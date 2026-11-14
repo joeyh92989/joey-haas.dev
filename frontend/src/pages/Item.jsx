@@ -13,7 +13,7 @@ import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Rating from '../components/Rating.jsx'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges, shortDate } from '../lib/comics.js'
-import { toggleOwned } from '../lib/comicEdits.js'
+import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import {
   laneSpans,
   lanesLabel,
@@ -21,7 +21,7 @@ import {
   runSentence,
 } from '../lib/comicRun.js'
 import { readSnapshot } from '../lib/snapshot.js'
-import { runWords, STATUS_LABEL } from '../lib/shelf.js'
+import { adminItemPath, runWords, STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import NotFound from './NotFound.jsx'
@@ -304,7 +304,7 @@ function publicRun(item) {
 
 /** "58 of 72+" and its pill, then the format and the "as of" note. */
 function ComicSummary({ comic, model }) {
-  if (model.held === 0) return null
+  const held = model.held > 0
   const pill =
     model.state === 'gaps'
       ? SERIES.pill.gaps(model.missing)
@@ -315,18 +315,31 @@ function ComicSummary({ comic, model }) {
     comic.ongoing && !comic.following && comic.as_of
       ? SERIES.asOf(SHORT_MONTH_YEAR.format(parseDate(comic.as_of)))
       : null
-  const notes = [COMICS.formats[comic.shelf_format], asOf].filter(Boolean)
+  const notes = [
+    COMICS.formats[comic.shelf_format],
+    comic.issue_count ? SERIES.issueCount(comic.issue_count) : null,
+    asOf,
+  ].filter(Boolean)
+  // With nothing recorded there is no count to give, only the notes.
+  if (!held && notes.length === 0) return null
   return (
     <p className="comic-sum">
-      <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
-      <span
-        className="series-pill"
-        data-ok={model.state === 'gaps' ? undefined : ''}
-      >
-        {pill}
-      </span>
+      {held && (
+        <>
+          <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
+          <span
+            className="series-pill"
+            data-ok={model.state === 'gaps' ? undefined : ''}
+          >
+            {pill}
+          </span>
+        </>
+      )}
       {notes.length > 0 && (
-        <span className="muted"> · {notes.join(' · ')}</span>
+        <span className="muted">
+          {held ? ' · ' : ''}
+          {notes.join(' · ')}
+        </span>
       )}
     </p>
   )
@@ -401,12 +414,16 @@ function WhatsNext({ model }) {
 }
 
 /**
- * The run card, the editions and About: the comic's cards, in that order.
+ * The run card, the cover wall, the editions and About: the comic's cards,
+ * in that order, the same ones the admin comic page shows minus its edit
+ * controls and private fields.
  *
  * The run card draws the lanes (the overview) above the box (the detail),
  * except for a run of 12 issues or fewer, where the cells already show
- * everything. The sentence under the box is the text equivalent of both.
- * Signed in, a single issue's cell toggles it owned and saves at once.
+ * everything; the sentence under it is the text equivalent. The wall
+ * replaces the box whenever the series has issue rows, and draws even with
+ * nothing owned (Show: Missing is the store list). Signed in, each cover
+ * on it is a button (`onMark`).
  */
 function ComicCards({
   comic,
@@ -416,12 +433,14 @@ function ComicCards({
   wall,
   skipped,
   series,
-  onToggleIssue,
-  saving,
-  saveError,
+  onMark,
 }) {
   const spans = laneSpans(model)
-  const hasWall = (wall?.issues?.length ?? 0) > 0
+  // The wall draws for a series with issue rows, anything released, or
+  // anything held: the owner marks books on it, so it can't wait for rows.
+  const hasWall =
+    Boolean(wall) &&
+    (wall.issues.length > 0 || comic.released > 0 || model.held > 0)
   return (
     <>
       {model.held > 0 && (
@@ -437,34 +456,21 @@ function ComicCards({
           )}
           {!hasWall && (
             <>
-              <RunBox
-                model={model}
-                mode={onToggleIssue ? 'toggle' : 'public'}
-                busy={saving}
-                onCell={
-                  onToggleIssue
-                    ? (issue) => onToggleIssue(issue.n, !issue.held)
-                    : undefined
-                }
-              />
+              <RunBox model={model} mode="public" />
               <RunKey variant="box" />
             </>
           )}
           <p className="comic-sentence muted">{runSentence(model)}</p>
-          {saveError && (
-            <p className="admin-error" role="alert">
-              {saveError}
-            </p>
-          )}
         </section>
       )}
 
-      {model.held > 0 && hasWall && (
+      {hasWall && (
         <CoverWall
           wall={wall}
           detail={detail}
           series={series}
           skipped={skipped ?? undefined}
+          onMark={onMark}
         />
       )}
 
@@ -530,8 +536,6 @@ function ItemPage({ id }) {
   const { signedIn = false } = useOutletContext() ?? {}
   const [preview, setPreview] = useState(null)
   const [expanded, setExpanded] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState(null)
   const [runs, setRuns] = useState(null)
   // The owner's skipped issues, from the same row as the playthroughs.
   const [skipped, setSkipped] = useState(null)
@@ -568,63 +572,81 @@ function ItemPage({ id }) {
     }
   }, [id])
 
-  // The owner's playthroughs come from the admin read, which a visitor
-  // cannot make; the public item carries only the dates. Quiet on failure:
-  // the table is an aside, and the edit page is where it matters.
+  // The owner's playthroughs and skips come from the admin read, which a
+  // visitor cannot make; the public item carries only the dates. Quiet on
+  // failure: the table is an aside, and the edit page is where it matters.
+  const fetchOwner = useCallback(async () => {
+    try {
+      const response = await apiFetch(`/api/items/${encodeURIComponent(id)}`)
+      return response.ok ? await response.json() : null
+    } catch {
+      return null
+    }
+  }, [id])
+  const applyOwner = useCallback((body) => {
+    if (!body) return // The aside stays as it was.
+    setRuns(body.playthroughs ?? null)
+    setSkipped(new Set(expandRanges(body.issues_skipped)))
+  }, [])
+  const loadOwner = useCallback(
+    async () => applyOwner(await fetchOwner()),
+    [fetchOwner, applyOwner],
+  )
   useEffect(() => {
     if (!signedIn) return undefined
     let cancelled = false
-    apiFetch(`/api/items/${encodeURIComponent(id)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
-        if (cancelled) return
-        setRuns(body?.playthroughs ?? null)
-        setSkipped(new Set(expandRanges(body?.issues_skipped)))
-      })
-      .catch(() => {})
+    fetchOwner().then((body) => {
+      if (!cancelled) applyOwner(body)
+    })
     return () => {
       cancelled = true
     }
-  }, [id, signedIn])
+  }, [signedIn, fetchOwner, applyOwner])
 
   // A comic's issue rows and editions, for the cover wall. Quiet on failure
-  // (and while the series has no issue rows): the run box draws as before.
+  // (and while the series has no issue rows): the page draws without it.
   const comicReady = loaded?.type === 'comic'
+  const fetchWall = useCallback(async () => {
+    try {
+      const response = await apiFetch(
+        `/api/public/items/${encodeURIComponent(id)}/issues`,
+      )
+      const body = response.ok ? await response.json() : null
+      return Array.isArray(body?.issues) ? body : null
+    } catch {
+      return null
+    }
+  }, [id])
+  const loadWall = useCallback(
+    async () => setWall(await fetchWall()),
+    [fetchWall],
+  )
   useEffect(() => {
     if (!comicReady) return undefined
     let cancelled = false
-    apiFetch(`/api/public/items/${encodeURIComponent(id)}/issues`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
-        if (!cancelled) setWall(Array.isArray(body?.issues) ? body : null)
-      })
-      .catch(() => {})
+    fetchWall().then((body) => {
+      if (!cancelled) setWall(body)
+    })
     return () => {
       cancelled = true
     }
-  }, [id, comicReady])
+  }, [comicReady, fetchWall])
 
   /**
-   * Owns or unowns one issue from the grid (`lib/comicEdits.js` edits the
-   * owner's own ranges), then reloads the public detail, which recomputes
-   * the run.
+   * Sets one book (a tap on a cover): the one mark route, then the public
+   * detail, the wall and the owner's skips are read again, so every count on
+   * the page follows. A refusal throws its own words to the wall's status line.
    */
-  const toggleIssue = useCallback(
-    async (issue, owned) => {
-      setSaving(true)
-      setSaveError(null)
-      try {
-        await toggleOwned(id, issue, owned)
-      } catch {
-        setSaveError(SERIES.saveError)
-        setSaving(false)
-        return
-      }
-      // The write went through; stay busy until the re-read settles.
-      await refresh()
-      setSaving(false)
+  const markIssue = useCallback(
+    async (n, state, undo = {}) => {
+      const result = await setMark(id, n, state)
+      // Undo puts back what the first tap moved, and a skip the tap cleared.
+      if (undo.skip) await toggleSkip(id, n)
+      if (undo.restore) await restoreSeries(id, undo.restore)
+      await Promise.all([refresh(), loadWall(), loadOwner()])
+      return result
     },
-    [id, refresh],
+    [id, refresh, loadWall, loadOwner],
   )
 
   const staleLine = (
@@ -659,9 +681,7 @@ function ItemPage({ id }) {
         wall={wall}
         expanded={expanded}
         onToggleDescription={() => setExpanded((current) => !current)}
-        onToggleIssue={signedIn ? toggleIssue : undefined}
-        saving={saving}
-        saveError={saveError}
+        onMark={signedIn ? markIssue : undefined}
         loadState={failed ? staleLine : null}
       />
     )
@@ -706,9 +726,7 @@ function ItemView({
   loadState = null,
   expanded = false,
   onToggleDescription,
-  onToggleIssue,
-  saving = false,
-  saveError = null,
+  onMark,
 }) {
   const isComic = item.type === 'comic'
   // The detail's comic block; the snapshot preview has none.
@@ -765,7 +783,7 @@ function ItemView({
           {copy && <p className="item-copy">{copy}</p>}
           {comic && <ComicSummary comic={comic} model={run} />}
           {signedIn && (
-            <Link to={`/admin/collection/${item.id}`} className="item-edit">
+            <Link to={adminItemPath(item)} className="item-edit">
               Edit
             </Link>
           )}
@@ -829,8 +847,7 @@ function ItemView({
           <h2>{runWords(item.type).runs}</h2>
           <PlaythroughTable runs={runs} type={item.type} />
           <p className="muted playthroughs-note">
-            Dates change on the{' '}
-            <Link to={`/admin/collection/${item.id}`}>edit page</Link>.
+            Dates change on the <Link to={adminItemPath(item)}>edit page</Link>.
           </p>
         </section>
       )}
@@ -844,9 +861,7 @@ function ItemView({
           series={{ id: item.id, title: item.title }}
           model={run}
           description={description}
-          onToggleIssue={onToggleIssue}
-          saving={saving}
-          saveError={saveError}
+          onMark={onMark}
         />
       )}
 

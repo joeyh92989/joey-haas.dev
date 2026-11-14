@@ -1,14 +1,16 @@
 /**
- * The owner's range edits to a comic series, shared by the series page's
- * run box and the issue page.
+ * The owner's edits to a comic series, shared by the series page, the issue
+ * page and the admin comic page.
  *
- * Each function reads the stored row (`GET /api/items/{id}`, the owner's own
- * ranges, not the public ones that count an edition's issues too), edits
- * the text with `lib/comics.js` and PATCHes it. Validation is the server's:
- * a refusal throws an Error whose message is the API's `detail`.
+ * `setMark` is the one write for owned and read (a POST to the mark route).
+ * `toggleSkip` reads the stored row (`GET /api/items/{id}`, the owner's own
+ * ranges), edits the text with `lib/comics.js` and PATCHes it. Validation is
+ * the server's: a refusal throws an Error whose message is the API's
+ * `detail`.
  */
 import { apiFetch, errorMessage } from './api.js'
 import { compactRanges, expandRanges } from './comics.js'
+import { setStatus } from './statusMoves.js'
 
 const path = (id) => `/api/items/${encodeURIComponent(id)}`
 
@@ -28,29 +30,47 @@ async function patch(id, changes) {
 }
 
 /**
- * Owns or unowns one issue as a single. Owning a skipped issue drops the
- * skip, as Got it does: the API refuses an issue both owned and skipped.
+ * Sets one book to missing, owned or read: the one write behind every tap on
+ * a cover (the series page, the issue page, the admin page). The marks on the
+ * issue rows are the record; the server keeps the range text and `read_to`
+ * in step. `to` marks every issue from `n` through it (a whole edition).
  *
  * @param {string} id - The series' item id.
  * @param {number} n
- * @param {boolean} [want] - The state to reach; omitted, the stored state flips.
+ * @param {'missing'|'owned'|'read'} state
+ * @param {number} [to]
+ * @returns {Promise<object>} The series' comic state after the write.
  */
-export async function toggleOwned(id, n, want) {
-  const row = await stored(id)
-  const numbers = new Set(expandRanges(row.issues_owned))
-  const owned = want ?? !numbers.has(n)
-  if (owned) numbers.add(n)
-  else numbers.delete(n)
-  const changes = { issues_owned: compactRanges(numbers) }
-  const skipped = new Set(expandRanges(row.issues_skipped))
-  if (owned && skipped.delete(n))
-    changes.issues_skipped = compactRanges(skipped)
-  await patch(id, changes)
+export async function setMark(id, n, state, to) {
+  const response = await apiFetch(
+    `/api/comics/${encodeURIComponent(id)}/issues/${n}/mark`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(to ? { state, to } : { state }),
+    },
+  )
+  // A 409 here is the route's own (an edition-held book can't go missing).
+  if (!response.ok)
+    throw new Error(await errorMessage(response, { ownConflicts: true }))
+  return response.json()
 }
 
-/** Sets the read marker to this issue. */
-export async function setReadTo(id, n) {
-  await patch(id, { read_to: n })
+/**
+ * Puts back what a first tap moved on the series itself (a Want that became
+ * owned, To read): `previous` is the mark route's answer, only the fields
+ * that changed.
+ *
+ * @param {string} id
+ * @param {{owned_format?: string, status?: string}} previous
+ */
+export async function restoreSeries(id, previous) {
+  if (previous.owned_format)
+    await patch(id, { owned_format: previous.owned_format })
+  if (previous.status) {
+    const response = await setStatus(id, previous.status)
+    if (!response.ok) throw new Error(await errorMessage(response))
+  }
 }
 
 /** Skips or un-skips one issue (private; the API refuses a held one). */

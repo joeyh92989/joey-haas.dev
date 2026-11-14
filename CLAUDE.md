@@ -453,7 +453,7 @@ before pushing.
   - [x] 3. Split the shelf by type: Games at `/shelf/games`, Comics, and
         their admin twins
   - [x] 4. Delete, bulk delete, redo, and discard an empty sitting
-  - [ ] 5. Comics: the book is what you own (5a intake reads the issue
+  - [x] 5. Comics: the book is what you own (5a intake reads the issue
         number, 5b ownership on the issue row, 5c one place to edit and a
         comic edit page)
   - [ ] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
@@ -943,12 +943,42 @@ before pushing.
   bulk create and PATCH (`items.py`), Got it, Skip and the edition link
   (`comics_routes.py`), and intake's commit. `sync_series` never touches the
   marks and fills a stub when the issue arrives; `load_issues` hides stubs
-  unless `include_stubs`, so the public pages and Check ignore them. Readers
-  still use the ranges in 5b (5c switches them); no public output has a mark
-  field and `skipped` stays private. **After deploy:** `POST
+  unless `include_stubs`, so Check and the build's index ignore them. From 5c
+  the public wall and issue page read owned and read from these rows (a held
+  stub is a numbered blank cover; a skipped one is no page) and `skipped`
+  stays private. **After deploy:** `POST
   /api/comics/marks/backfill` once, signed in (not a job route): it answers
   `{series, rows_marked, stubs_added, rows_changed, mismatches, errors}`;
   `mismatches` empty means the marks agree with the ranges. Idempotent.
+- **The marks are the record (5c, comics-book design).** Read is per
+  book: a tap sets one issue's mark, and `sync_marks` keeps every `read`
+  mark of a row that stays owned unless the write set `read_to`
+  (`from_read_to`, item PATCH) or names the reads (`reads`, the mark
+  route); a number newly held reads as `read_to` says. `issues_owned` (the
+  singles) and `read_to` (the highest owned issue with every owned issue up
+  to it read, what Read next and the lanes mean) are kept in step from the
+  marks by the mark route; the API still accepts them, and an explicit
+  `read_to` marks every owned issue up to it read and clears those above.
+  **`POST /api/comics/{id}/issues/{n}/mark`** `{state: missing | owned |
+  read, to?}` is the one write behind every tap (series page wall, issue
+  page, admin comic page, the edition page's Read to the end with `to`):
+  owned adds the single and clears a skip, read is owned plus read, missing
+  removes the single and its read mark; a book held only in an edition
+  can't go missing (409 "In <edition>. Edit editions on the comic's page.",
+  the cycle there is owned and read). Admin only, not in `JOB_ROUTES`;
+  Undo posts the previous state; the answer's `previous` names what a first
+  tap moved on a Want (owned format, status) so Undo can restore it. Skip keeps `POST .../skip` (and the issue
+  page's PATCH to un-skip) and stays private. `GET /api/comics/{id}/wall`
+  (admin) serves the wall and comic block for any comic, private too, with
+  the public builders. Public bodies gain `owned` and `read` on the wall and
+  issue page and `issue_count` (Comic Vine's `count_of_issues`, stored as
+  `issue_count`) on the comic block; the series read count follows the
+  marks. **The comic edit page is `/admin/shelf/comics/:id`**
+  (`AdminComic.jsx`: Series, Issues as the same `CoverWall` with taps,
+  Editions, Comic Vine match, Delete); `/admin/collection/:id` is games
+  only and redirects a comic there client-side. No range text field, read-to
+  field or run cells (`ComicRunEditor` is gone). The public series page is
+  its mirror minus edit controls and private fields.
 - **Job token:** `require_admin` accepts `Bearer JOB_TOKEN` only on
   `items.JOB_ROUTES`, matched on the routed template, and
   `tests/test_job_token.py` is the point of it: it pins the whitelist
@@ -985,7 +1015,8 @@ before pushing.
   (`backend/public_next_cache.py`, one entry per app); admin routes are not,
   and the store list stays live. The fingerprint is the UTC day, a count and
   an `(id, xmin)` digest of every `items`, `recommendations`,
-  `playthroughs` and `play_sessions` row (the Continue card reads the open
+  `playthroughs`, `play_sessions` and `comic_issues` row (Tonight's comic
+  progress counts read marks) (the Continue card reads the open
   run and its journal, which touch neither the item's xmin nor its
   updated_at), the
   catalogue's finished runs, and the windowed shown and skipped pick events

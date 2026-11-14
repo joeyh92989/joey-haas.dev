@@ -153,3 +153,37 @@ describe('wallTiles', () => {
     expect(withSkips.find((t) => t.n === 2).state).toBe('skipped')
   })
 })
+
+describe('wallTiles from the marks', () => {
+  it('reads each book on its own, not up to a marker', () => {
+    const tiles = wall({
+      issues: issues(4),
+      owned: new Set([1, 2, 3]),
+      reads: new Set([2]),
+      released: 4,
+    })
+    expect(tiles.map((t) => t.state)).toEqual([
+      'owned',
+      'read',
+      'owned',
+      'missing',
+    ])
+  })
+
+  it('shows how far into a book the reading goes', () => {
+    const tiles = wall({
+      issues: issues(6),
+      editions: [edition(1, 6)],
+      owned: new Set(),
+      reads: new Set([1, 2, 3]),
+      released: 6,
+    })
+    expect(tiles[0]).toMatchObject({ kind: 'book', readTo: 3 })
+  })
+
+  it('does not fold a long missing stretch when signed in', () => {
+    const tiles = wall({ owned: new Set([20]), reads: new Set(), fold: false })
+    expect(tiles.some((t) => t.kind === 'stack')).toBe(false)
+    expect(tiles.filter((t) => t.state === 'missing')).toHaveLength(19)
+  })
+})

@@ -170,7 +170,7 @@ export default function DoneStep({
                 coverUrl={series.cover_url ?? null}
                 to={
                   series.is_public === false
-                    ? `/admin/collection/${series.item_id}`
+                    ? `/admin/shelf/comics/${series.item_id}`
                     : itemPath(series.item_id)
                 }
                 growth={reportGrowth(series)}

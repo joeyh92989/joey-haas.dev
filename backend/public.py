@@ -46,6 +46,7 @@ from public_comics import (
     PublicComicsOut,
     comic_detail,
     load_public_comics,
+    read_marks_count,
 )
 from public_issues import (
     PublicComicIndex,
@@ -443,6 +444,7 @@ def _to_public_detail(
     today: date | None = None,
     runs: RunDates | None = None,
     played: LastPlayed | None = None,
+    read_marks: int | None = None,
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
@@ -467,7 +469,7 @@ def _to_public_detail(
             for other in similar
         ],
         comic=(
-            comic_detail(item, today or datetime.now(UTC).date())
+            comic_detail(item, today or datetime.now(UTC).date(), read_marks)
             if item.type == ItemType.COMIC
             else None
         ),
@@ -763,8 +765,15 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             raise HTTPException(status_code=404, detail="Not found")
         runs = await _run_dates(session, Item.id == item.id)
         played = await _last_played(session, Item.id == item.id)
+        read_marks = None
+        if item.type == ItemType.COMIC:
+            read_marks = await read_marks_count(session, item.id)
         return _to_public_detail(
-            item, similar_in_collection(item, public_items), runs=runs, played=played
+            item,
+            similar_in_collection(item, public_items),
+            runs=runs,
+            played=played,
+            read_marks=read_marks,
         )
 
     return router

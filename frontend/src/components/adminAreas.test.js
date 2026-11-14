@@ -123,6 +123,7 @@ describe('areaFor', () => {
     // The old list path and the item edit pages, which have not moved.
     ['/admin/collection', 'shelf', 'Games'],
     ['/admin/collection/42', 'shelf', 'Games'],
+    ['/admin/shelf/comics/42', 'shelf', 'Comics'],
     ['/admin/collection/add', 'shelf', 'Add'],
     ['/admin/collection/add/abc', 'shelf', 'Add'],
     ['/admin/closet/add', 'closet', 'Add'],

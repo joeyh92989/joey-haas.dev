@@ -18,7 +18,7 @@ import uuid
 from collections.abc import AsyncIterator
 from dataclasses import asdict
 from datetime import UTC, date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
@@ -28,7 +28,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from comic_issues import sync_series
 from comics import (
+    MARK_STATES,
     MAX_ISSUE,
+    MarkRefused,
     MarksResult,
     RangeError,
     comic_snapshot,
@@ -38,6 +40,7 @@ from comics import (
     mark_mismatches,
     owned_set,
     parse_ranges,
+    plan_mark,
     pull_weeks,
     row_run,
     series_from_row,
@@ -47,6 +50,8 @@ from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from models import CatalogueRun, ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
+from public_comics import comic_detail, read_marks_count
+from public_issues import build_wall
 from sources.base import SourceError
 from sources.registry import adapter_for
 
@@ -103,6 +108,13 @@ async def got_issues(
         setattr(item, field, value)
     await sync_marks(session, item)
     return len(owned - before)
+
+
+class MarkBody(BaseModel):
+    state: Literal[*MARK_STATES]
+    # Through this number, for a whole book at once (the edition page's Read
+    # to the end): every issue from the path's number to it gets the state.
+    to: Annotated[int, Field(ge=1, le=MAX_ISSUE)] | None = None
 
 
 def _state(item: Item) -> dict:
@@ -462,6 +474,86 @@ def create_comics_router(
         await session.commit()
         await session.refresh(item)
         return _state(item)
+
+    @router.post("/{item_id}/issues/{number}/mark")
+    async def mark(
+        item_id: uuid.UUID,
+        number: IssueNumber,
+        body: MarkBody,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Sets one book to missing, owned or read: the one write behind every
+        tap on a cover (the series page, the issue page, the admin page). The
+        marks on the issue rows are the record; the range text and `read_to`
+        are kept in step from them. Undo posts the previous state back."""
+        item = await _comic(session, item_id)
+        reads = set(
+            await session.scalars(
+                select(ComicIssue.number).where(
+                    ComicIssue.item_id == item.id, ComicIssue.read.is_(True)
+                )
+            )
+        )
+        if body.to is not None and body.to < number:
+            raise HTTPException(status_code=422, detail="To runs from the number up")
+        try:
+            owned, skipped = item.issues_owned, item.issues_skipped
+            for each in range(number, (body.to or number) + 1):
+                change = plan_mark(
+                    owned, skipped, item.editions, reads, each, body.state
+                )
+                owned, skipped = change.issues_owned, change.issues_skipped
+                reads = set(change.reads)
+        except MarkRefused as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        body_fields: dict = {
+            "issues_owned": change.issues_owned,
+            "issues_skipped": change.issues_skipped,
+            "read_to": change.read_to,
+        }
+        before = {
+            "status": item.status.value,
+            "owned_format": item.owned_format.value if item.owned_format else None,
+        }
+        if body.state != "missing" and item.owned_format == OwnedFormat.NONE:
+            body_fields.update(owned_format=OwnedFormat.PHYSICAL)
+            await apply_status(session, item, ItemStatus.BACKLOG, _today())
+        for field, value in _copy_fields(body_fields, item).items():
+            setattr(item, field, value)
+        await sync_marks(session, item, reads=set(change.reads))
+        await session.commit()
+        await session.refresh(item)
+        after = {
+            "status": item.status.value,
+            "owned_format": item.owned_format.value if item.owned_format else None,
+        }
+        # What the tap moved on the series itself (a Want becomes owned, To
+        # read), so Undo can put it back.
+        return _state(item) | {
+            "number": number,
+            "state": body.state,
+            "previous": {k: v for k, v in before.items() if after[k] != v} or None,
+        }
+
+    @router.get("/{item_id}/wall")
+    async def wall(
+        item_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """The cover wall and the comic block the series page draws, for any
+        comic, private ones too: the admin comic page carries the same wall.
+        The public builders, so a skip is in neither body."""
+        item = await session.get(Item, item_id)
+        if item is None or item.type != ItemType.COMIC:
+            raise HTTPException(status_code=404, detail="No such comic")
+        today = _today()
+        built = await build_wall(session, item_id, today, public_only=False)
+        return {
+            "wall": built,
+            "comic": comic_detail(
+                item, today, await read_marks_count(session, item_id)
+            ),
+        }
 
     @router.post("/marks/backfill")
     async def backfill_marks(

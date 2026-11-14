@@ -98,7 +98,7 @@ function renderPage() {
       <Routes>
         <Route path="admin/pull-list" element={<AdminPullList />} />
         <Route path="admin/shelf/games" element={<Arrival />} />
-        <Route path="admin/collection/:id" element={<p>Item page</p>} />
+        <Route path="admin/shelf/comics/:id" element={<p>Item page</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -121,7 +121,7 @@ describe('AdminPullList', () => {
     expect(week).toHaveTextContent('this week')
     expect(
       within(week).getByRole('link', { name: 'Saga #73' }),
-    ).toHaveAttribute('href', '/admin/collection/id-Saga')
+    ).toHaveAttribute('href', '/admin/shelf/comics/id-Saga')
     expect(week).toHaveTextContent('Image · Nov 4 · own 1–72 of 72')
     expect(
       screen.getByRole('region', { name: /Week of Nov 9/ }),
@@ -282,7 +282,7 @@ describe('AdminPullList', () => {
     ).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Edit: Saga' })).toHaveAttribute(
       'href',
-      '/admin/collection/id-Saga',
+      '/admin/shelf/comics/id-Saga',
     )
   })
 

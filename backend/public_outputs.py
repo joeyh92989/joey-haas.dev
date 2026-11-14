@@ -318,11 +318,14 @@ def _progress(item: PickerItem) -> PublicProgress | None:
 
 
 def _tonight_card(
-    row: Item, reasons: list[str], slot_label: str | None = None
+    row: Item,
+    reasons: list[str],
+    slot_label: str | None = None,
+    item: PickerItem | None = None,
 ) -> PublicTonightCard:
     """A tonight card from a public item: Up next (pinned, not slotted, so
     unlabelled) or a pick from public_picks."""
-    item = to_picker_item(row)
+    item = item or to_picker_item(row)
     return PublicTonightCard(
         item_id=row.id,
         type=row.type,
@@ -337,7 +340,9 @@ def _tonight_card(
 
 
 def _pick_card(sets: PublicSets, pick: PublicPick) -> PublicTonightCard:
-    return _tonight_card(sets.rows[pick.item.id], list(pick.reasons), pick.slot_label)
+    return _tonight_card(
+        sets.rows[pick.item.id], list(pick.reasons), pick.slot_label, pick.item
+    )
 
 
 def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:

@@ -15,7 +15,7 @@ from collections.abc import Iterable
 from datetime import date, datetime
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from comics import (
@@ -31,7 +31,7 @@ from comics import (
     sort_series,
     validate_editions,
 )
-from models import ComicShelfFormat, Item, ItemStatus, ItemType, OwnedFormat
+from models import ComicIssue, ComicShelfFormat, Item, ItemStatus, ItemType, OwnedFormat
 
 ADDED_MONTHS = 12
 
@@ -171,6 +171,9 @@ class PublicComicDetail(BaseModel):
     read: int
     # As on the shelf row.
     read_next: int | None
+    # Comic Vine's count_of_issues for the volume (stored as `issue_count`),
+    # shown on the series page; null before the series is linked.
+    issue_count: int | None
     editions: list[PublicEdition]
     next_issue: PublicNextIssue | None
     following: bool
@@ -218,7 +221,9 @@ def _segments(series: ComicSeries) -> list[PublicRunSegment]:
     return [PublicRunSegment(kind=k, length=n) for k, n in series.run().segments]
 
 
-def _row(item: Item, series: ComicSeries, today: date) -> PublicComicRow:
+def _row(
+    item: Item, series: ComicSeries, today: date, read_marks: int = 0
+) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
     return PublicComicRow(
@@ -240,7 +245,7 @@ def _row(item: Item, series: ComicSeries, today: date) -> PublicComicRow:
         status=item.status,
         rating=item.rating,
         read_to=item.read_to,
-        read=read_state(item.read_to, set(series.owned)).read,
+        read=max(read_marks, read_state(item.read_to, set(series.owned)).read),
         read_next=read_next(item.read_to, set(series.owned)),
         next_issue=_next(series, today),
         created_at=item.created_at,
@@ -321,7 +326,11 @@ def comic_weeks(items: Iterable[Item], today: date) -> PublicComicWeeks:
     )
 
 
-def comic_detail(item: Item, today: date) -> PublicComicDetail:
+def comic_detail(
+    item: Item, today: date, read_marks: int | None = None
+) -> PublicComicDetail:
+    """`read_marks` is the count of owned issues whose row says read (5c: read
+    is per book); `read_to` still counts for a row the marks have not reached."""
     series = series_of(item)
     run = series.run()
     fetched = (item.source_metadata or {}).get("fetched_on")
@@ -338,8 +347,14 @@ def comic_detail(item: Item, today: date) -> PublicComicDetail:
         missing=run.missing,
         segments=_segments(series),
         read_to=item.read_to,
-        read=read_state(item.read_to, set(series.owned)).read,
+        read=max(read_marks or 0, read_state(item.read_to, set(series.owned)).read),
         read_next=read_next(item.read_to, set(series.owned)),
+        issue_count=(
+            count
+            if isinstance(count := (item.source_metadata or {}).get("issue_count"), int)
+            and not isinstance(count, bool)
+            else None
+        ),
         editions=[
             PublicEdition(
                 kind=e["kind"], label=e["label"], from_issue=e["from"], to_issue=e["to"]
@@ -353,6 +368,40 @@ def comic_detail(item: Item, today: date) -> PublicComicDetail:
     )
 
 
+async def read_marks_by_item(
+    session: AsyncSession, item_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Owned, read issues per series, for the series that have any."""
+    ids = list(item_ids)
+    if not ids:
+        return {}
+    rows = await session.execute(
+        select(ComicIssue.item_id, func.count())
+        .where(
+            ComicIssue.item_id.in_(ids),
+            ComicIssue.owned.is_(True),
+            ComicIssue.read.is_(True),
+        )
+        .group_by(ComicIssue.item_id)
+    )
+    return {item_id: count for item_id, count in rows}
+
+
+async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
+    """How many owned issues of a series carry a read mark."""
+    return (
+        await session.scalar(
+            select(func.count())
+            .select_from(ComicIssue)
+            .where(
+                ComicIssue.item_id == item_id,
+                ComicIssue.owned.is_(True),
+                ComicIssue.read.is_(True),
+            )
+        )
+    ) or 0
+
+
 async def public_comic_items(session: AsyncSession) -> list[Item]:
     result = await session.execute(
         select(Item).where(Item.is_public.is_(True), Item.type == ItemType.COMIC)
@@ -363,9 +412,10 @@ async def public_comic_items(session: AsyncSession) -> list[Item]:
 async def load_public_comics(session: AsyncSession, today: date) -> PublicComicsOut:
     items = await public_comic_items(session)
     pairs = {item.id: (item, series_of(item)) for item in items}
+    marks = await read_marks_by_item(session, pairs)
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
     return PublicComicsOut(
-        series=[_row(pairs[s.id][0], s, today) for s in ordered],
+        series=[_row(pairs[s.id][0], s, today, marks.get(s.id, 0)) for s in ordered],
         stats=comic_stats(items, today),
         this_week=comic_weeks(items, today),
     )

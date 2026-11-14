@@ -46,6 +46,7 @@ const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
 const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
 const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
+const AdminComic = lazy(() => import('./pages/AdminComic.jsx'))
 const AdminCloset = lazy(() => import('./pages/AdminCloset.jsx'))
 const AdminClosetProfile = lazy(() => import('./pages/AdminClosetProfile.jsx'))
 const AdminClosetToday = lazy(() => import('./pages/AdminClosetToday.jsx'))
@@ -116,6 +117,12 @@ function ShelfPart() {
 function KeyedAdminItem() {
   const { id } = useParams()
   return <AdminItem key={id} />
+}
+
+/** The comic edit page, remounted per id for the same reason. */
+function KeyedAdminComic() {
+  const { id } = useParams()
+  return <AdminComic key={id} />
 }
 
 /** The garment page, remounted per id for the same reason as the item's. */
@@ -189,6 +196,7 @@ export default function App() {
           <Route path="jobs" element={<AdminJobs />} />
           <Route path="shelf/games" element={<AdminCollection />} />
           <Route path="shelf/comics" element={<AdminComics />} />
+          <Route path="shelf/comics/:id" element={<KeyedAdminComic />} />
           {/* The old list path lands on Games, keeping the query and the
               pull list's prefill (location state). The item edit routes
               under collection/ are unchanged. */}

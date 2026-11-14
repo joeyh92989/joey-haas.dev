@@ -721,7 +721,7 @@ describe('AdminSitting', () => {
     // A private series has no public page yet: its admin page instead.
     expect(within(rows[1]).getByRole('link', { name: 'Saga' })).toHaveAttribute(
       'href',
-      '/admin/collection/saga-item',
+      '/admin/shelf/comics/saga-item',
     )
     expect(within(list).queryByRole('checkbox')).toBeNull()
     expect(within(list).queryByRole('button')).toBeNull()

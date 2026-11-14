@@ -578,3 +578,29 @@ async def test_the_fingerprint_is_unchanged_by_reads(sessionmaker_for_test, seed
         after = await next_fingerprint(session, NOW)
 
     assert after == before
+
+
+async def test_a_read_mark_on_an_issue_row_moves_the_fingerprint(
+    sessionmaker_for_test, seeded
+):
+    """Tonight's comic progress counts read marks, so comic_issues is in the
+    fingerprint: a mark written with SQL by hand still rebuilds."""
+    from models import ComicIssue, ItemType
+
+    async with sessionmaker_for_test() as session:
+        comic = Item(
+            type=ItemType.COMIC, title="Saga", status=ItemStatus.BACKLOG, is_public=True
+        )
+        session.add(comic)
+        await session.flush()
+        session.add(ComicIssue(item_id=comic.id, number=1, owned=True))
+        await session.commit()
+        before = await next_fingerprint(session, NOW)
+    async with sessionmaker_for_test() as session:
+        await session.execute(
+            text("UPDATE comic_issues SET read = true WHERE number = 1")
+        )
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        after = await next_fingerprint(session, NOW)
+    assert before != after

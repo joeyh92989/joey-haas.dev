@@ -206,7 +206,6 @@ export function EditionRows({
  * @param {object} props.value - Form state carrying the EMPTY_COMIC_FIELDS keys.
  * @param {(next: object) => void} props.onChange
  * @param {number|null} [props.released] - Comic Vine's released count, for the hint.
- * @param {boolean} [props.showSkipped] - The edit page's private Skipped field.
  * @param {Record<string, string>} [props.errors] - API errors by field.
  * @param {{itemId: string, saved: object[], onLinked: (editions: object[]) => void}|null} [props.editionLinks]
  *   - The edit page's Comic Vine link control per edition row; `saved` is
@@ -216,7 +215,6 @@ export function ComicFields({
   value,
   onChange,
   released = null,
-  showSkipped = false,
   errors = {},
   editionLinks = null,
 }) {
@@ -260,33 +258,6 @@ export function ComicFields({
         onChange={set('read_to')}
       />
       <FieldError id="comic-read_to-error" message={errors.read_to} />
-
-      {showSkipped && (
-        <>
-          <label htmlFor="comic-skipped">
-            Skipped <span className="comic-private">private</span>
-          </label>
-          <input
-            id="comic-skipped"
-            placeholder="58"
-            aria-describedby={describedBy(
-              'issues_skipped',
-              'comic-skipped-hint',
-            )}
-            aria-invalid={errors.issues_skipped ? true : undefined}
-            value={value.issues_skipped}
-            onChange={set('issues_skipped')}
-          />
-          <p id="comic-skipped-hint" className="muted comic-hint">
-            Issues I chose not to buy. Never public; an owned issue can’t be
-            skipped.
-          </p>
-          <FieldError
-            id="comic-issues_skipped-error"
-            message={errors.issues_skipped}
-          />
-        </>
-      )}
 
       <EditionRows
         rows={value.editions}

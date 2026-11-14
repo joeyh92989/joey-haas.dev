@@ -8,7 +8,7 @@ import CoverTile from '../components/CoverTile.jsx'
 import StatePill from '../components/StatePill.jsx'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
-import { setReadTo } from '../lib/comicEdits.js'
+import { setMark } from '../lib/comicEdits.js'
 import { editionPath, issuePath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
@@ -31,7 +31,7 @@ function OwnerBox({ id, page, onChanged }) {
     setBusy(true)
     setError(null)
     try {
-      await setReadTo(id, page.to_issue)
+      await setMark(id, page.from_issue, 'read', page.to_issue)
       await onChanged()
     } catch (failure) {
       setError(failure?.message || ISSUE.owner.failed)
@@ -57,7 +57,7 @@ function OwnerBox({ id, page, onChanged }) {
         </button>
         <Link
           className="btn sm"
-          to={`/admin/collection/${encodeURIComponent(id)}`}
+          to={`/admin/shelf/comics/${encodeURIComponent(id)}`}
         >
           {COPY.owner.edit}
         </Link>
@@ -201,7 +201,11 @@ export default function ComicEdition({ id, slug }) {
             <dd>{readFact}</dd>
           </dl>
 
-          <ComicDescription paragraphs={page.description} />
+          <ComicDescription
+            paragraphs={page.description}
+            sourceUrl={page.source_url ?? COMIC_VINE_HOME}
+            cover={Boolean(page.large_url || page.cover_url)}
+          />
 
           {signedIn && <OwnerBox id={id} page={page} onChanged={refresh} />}
 

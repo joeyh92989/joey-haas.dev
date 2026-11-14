@@ -216,6 +216,18 @@ export function adminListPath(type) {
   return type === 'comic' ? '/admin/shelf/comics' : '/admin/shelf/games'
 }
 
+/**
+ * An item's admin edit page: a comic's own page under the Comics list (the
+ * twin rule), a game's at its old path.
+ *
+ * @param {{id: string, type?: string}} item
+ */
+export function adminItemPath(item) {
+  return item.type === 'comic'
+    ? `/admin/shelf/comics/${item.id}`
+    : `/admin/collection/${item.id}`
+}
+
 /** Lower case without accents, so "pokemon" finds "Pokémon". */
 function fold(text) {
   return text

@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
-import { setReadTo, toggleOwned, toggleSkip } from '../lib/comicEdits.js'
+import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 
 const COPY = spine.comics.issue.owner
 
 /**
- * The owner's buttons on an issue page, drawn only when signed in. They
- * edit the stored row (`lib/comicEdits.js`) and `onChanged` reloads the
- * public page. A refusal from the API is shown in its own words.
+ * The owner's buttons on an issue page, drawn only when signed in. Owned and
+ * read write through the one mark route (the same data a tap on the series
+ * page's cover writes); Skip stays here and edits the stored ranges
+ * (`lib/comicEdits.js`). `onChanged` reloads the public page. The status
+ * line under the buttons names the change and offers Undo. A refusal from
+ * the API is shown in its own words.
  *
  * `stored` is the owner's own row, which is the only place a skip exists:
  * it never reaches the public page.
@@ -15,21 +18,46 @@ const COPY = spine.comics.issue.owner
  * @param {object} props
  * @param {string} props.id - The series' item id.
  * @param {number} props.n - This issue.
- * @param {{issues_owned: string|null, issues_skipped: string|null,
- *   read_to: number|null, ownedSet: Set<number>, skippedSet: Set<number>}} props.stored
- * @param {boolean} props.held - Held as a single or through an edition.
+ * @param {'missing'|'owned'|'read'|'not-out'} props.state - From the public page.
+ * @param {{ownedSet: Set<number>, skippedSet: Set<number>}} props.stored
+ * @param {{label: string}|null} [props.edition] - The edition holding it.
  * @param {() => Promise<void>} props.onChanged
  */
-export default function OwnerControls({ id, n, stored, held, onChanged }) {
+export default function OwnerControls({
+  id,
+  n,
+  state,
+  stored,
+  edition = null,
+  onChanged,
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [last, setLast] = useState(null)
+  const ownRef = useRef(null)
+  const refocus = useRef(false)
 
-  async function run(action) {
+  // After Undo the Owned button takes focus back, once it is enabled again.
+  useEffect(() => {
+    if (!busy && refocus.current) {
+      refocus.current = false
+      ownRef.current?.focus()
+    }
+  })
+
+  const held = state === 'read' || state === 'owned'
+  const read = state === 'read'
+  const skipped = stored.skippedSet.has(n)
+  // Held only through an edition: it can't be made missing from here.
+  const editionOnly = held && !stored.ownedSet.has(n) && edition !== null
+
+  async function run(action, done) {
     setBusy(true)
     setError(null)
     try {
-      await action()
+      const result = await action()
       await onChanged()
+      setLast(done && { ...done, previous: result?.previous ?? null })
     } catch (failure) {
       setError(failure?.message || COPY.failed)
     } finally {
@@ -37,9 +65,23 @@ export default function OwnerControls({ id, n, stored, held, onChanged }) {
     }
   }
 
-  const single = stored.ownedSet.has(n)
-  const skipped = stored.skippedSet.has(n)
-  const readHere = stored.read_to === n
+  const mark = (next) =>
+    run(() => setMark(id, n, next), {
+      now: next,
+      was: held ? (read ? 'read' : 'owned') : 'missing',
+      // Owning a skipped issue clears the skip; Undo puts it back.
+      skipped: skipped && next !== 'missing',
+    })
+
+  const undo = () => {
+    const { was, previous, skipped: wasSkipped } = last
+    refocus.current = true
+    run(async () => {
+      await setMark(id, n, was)
+      if (wasSkipped) await toggleSkip(id, n)
+      if (previous) await restoreSeries(id, previous)
+    }, null)
+  }
 
   return (
     <div className="comic-issue-owner">
@@ -48,35 +90,58 @@ export default function OwnerControls({ id, n, stored, held, onChanged }) {
         <button
           type="button"
           className="btn sm"
-          disabled={busy}
-          onClick={() => run(() => toggleOwned(id, n))}
+          ref={ownRef}
+          aria-pressed={held}
+          disabled={busy || editionOnly}
+          onClick={() => mark(held ? 'missing' : 'owned')}
         >
-          {single ? COPY.owned : COPY.own}
+          {held ? COPY.owned : COPY.own}
         </button>
         <button
           type="button"
           className="btn sm"
+          aria-pressed={read}
           disabled={busy}
-          onClick={() => run(() => setReadTo(id, n))}
+          onClick={() => mark(read ? 'owned' : 'read')}
         >
-          {readHere ? COPY.readDone : COPY.readTo}
+          {read ? COPY.readDone : COPY.read}
         </button>
         {!held && (
           <button
             type="button"
             className="btn sm"
+            aria-pressed={skipped}
             disabled={busy}
-            onClick={() => run(() => toggleSkip(id, n))}
+            onClick={() => run(() => toggleSkip(id, n), null)}
           >
             {skipped ? COPY.skipped : COPY.skip}
           </button>
         )}
       </div>
-      {error && (
-        <p className="admin-error" role="alert">
-          {error}
+      {editionOnly && (
+        <p className="comic-issue-owner-note">
+          {COPY.inEdition(edition.label)}
         </p>
       )}
+      <p className="comic-issue-saved" role="status">
+        {error ? (
+          <span className="admin-error" role="alert">
+            {error}
+          </span>
+        ) : last ? (
+          <>
+            {COPY.marked[last.now]}{' '}
+            <button
+              type="button"
+              className="link-button"
+              disabled={busy}
+              onClick={undo}
+            >
+              {COPY.undo}
+            </button>
+          </>
+        ) : null}
+      </p>
     </div>
   )
 }

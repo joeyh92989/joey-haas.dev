@@ -1,5 +1,5 @@
 ---
-status: 5a, 5b done (5c planned)
+status: 5a, 5b, 5c done (5c implemented, awaiting merge)
 kind: ui
 mode: auto (Joey's stops from the shelf sweep run; design approved 13 Nov 2026)
 ---
@@ -357,3 +357,175 @@ Deviations from the plan above:
 - No frontend change: `issues_synced_on` is an additive field on `ItemOut`
   nothing reads yet, so the frontend tests are not rerun for this item
   beyond the full verification below.
+
+---
+
+## 5c. One place to edit, and a comic edit page
+
+### Problem
+
+The public series page draws the cover wall only when something is owned,
+and the wall has no owner control; ownership is edited through range text,
+the run editor's cells and the issue page's buttons. Read is one number
+(`read_to`), so "read" can't be set per book, and 5b's `sync_marks`
+rederives every row's `read` from it. The admin comic page is the game
+form. Joey (13 Nov): the public comic page should show what the admin page
+shows, minus the edit controls and private fields.
+
+### Decisions (my calls)
+
+1. **Read becomes per book.** The marks are the record from 5c on: a tap
+   sets one issue's state, and `comics.py` keeps the series' range text
+   and `read_to` in step from the marks (one writer, as the queue says):
+   `issues_owned` = the owned singles; `read_to` = the highest n with every
+   owned issue up to n read (what Read next and the run lanes already
+   mean). `sync_marks` stops rederiving `read` from `read_to` except when a
+   write sets `read_to` explicitly (the API still accepts it; it then marks
+   every owned issue up to n read and clears those above, as today).
+2. **One write for every tap**: `POST /api/comics/{id}/issues/{n}/mark`
+   `{state: "missing" | "owned" | "read"}` (admin, not in `JOB_ROUTES`).
+   Owned adds the single (and clears a skip, as Got it does); read sets
+   owned and read; missing removes the single and clears read. An issue
+   held only in an edition can't be made missing from a cover: 409 "In
+   <edition>. Edit editions on the comic's page." and the cycle there is
+   owned ↔ read. Skip keeps its route and stays on the issue page. The
+   wall, the issue page and the admin page all use this one route. Undo
+   posts the previous state back.
+3. **Pages read the marks.** The public wall and issue page take owned and
+   read from the rows (`owned`, `read` added to `WALL_FIELDS` /
+   `ISSUE_FIELDS` in `tests/test_public_issues.py`; `skipped` stays out
+   of every public body and is pinned out). A held issue with no Comic
+   Vine row (a stub) shows on the wall as a numbered blank cover.
+4. **The wall always shows** for a series with issue rows or anything held,
+   with **Show: All · Missing** (labelled chips, counts). Signed in it is
+   open; for visitors a long missing stretch folds as today.
+5. **Comic edit page** at `/admin/shelf/comics/:id` (the twin rule's
+   path); `/admin/collection/:id` for a comic redirects there client-side,
+   games keep their path. Panels per `d-admin-comic.html`: Series (title,
+   status, rating, favourite, following, public, notes), Issues (the same
+   wall with taps, counts), Editions (add, remove, link), Comic Vine match
+   (Refresh, re-link), Delete (item 4's confirm). Gone: Pin as Up next,
+   the journal's Minutes, platform, format, the range text field, the
+   read-to field, the run cells (`ComicRunEditor` retires).
+6. **Public mirror** (Joey's ask): the public series page shows
+   description ("From Comic Vine" under it), publisher, years, issue count
+   (Comic Vine's `count_of_issues`, added to the public allowlist), shelf
+   format, editions, the wall and Read next — everything the admin page
+   shows except edit controls and private fields (notes, skips, prices,
+   following). An empty Comic Vine description shows nothing, not a
+   placeholder.
+
+### Rules added to `docs/design-system.md` in this PR
+
+A cover that is a control (button for the owner; the issue link is a
+sibling; the button's name says the state it moves to); the instantly
+saved change (status line under the thing changed, Undo, no toast);
+labelled chips inside a detail page's section; the source line under a
+description ("From Comic Vine", omitted when empty; a cover-only issue
+says "Cover from Comic Vine"); the admin twin of a detail page (rail,
+breadcrumb, `AdminPageHeader` with the page's actions, panels); and the
+public mirror rule: a public detail page shows what its admin twin shows,
+minus edit controls and private fields.
+
+### Plan (TDD; one backend pytest run at a time)
+
+1. Backend: the mark route and per-book read in `comics.py` (marks →
+   `issues_owned` + `read_to`; `sync_marks` keeps row reads unless
+   `read_to` is written); edition-held 409; skip clearing. Tests for
+   every state change, Undo round-trips, cumulative `read_to`, the
+   explicit `read_to` write path.
+2. Public reads: wall and issue page from the marks, `owned`/`read` added
+   and pinned, `skipped` pinned out; stubs drawn as blank covers;
+   `count_of_issues` on the public allowlist with its pin.
+3. `CoverWall`: owner mode (B1 cycle via the route, status line + Undo,
+   edition-held cycle), Show All · Missing, signed-in open, always shown.
+   Matches `b1-series-cycle.html` at 1280 and 400.
+4. Issue page: the owner controls write through the same route (Skip
+   unchanged); "From Comic Vine" / "Cover from Comic Vine". Matches
+   `c-issue.html`.
+5. Public series page: the mirror fields; the wall replaces `RunBox`
+   whenever there are rows; `ComicSummary` no longer hides at zero held.
+6. Admin comic page `AdminComic.jsx` at `/admin/shelf/comics/:id` with the
+   redirect, `ADMIN_ROUTES` row, links updated (`AdminComics`, `Item`,
+   `ComicEdition`, `adminListPath`); `ComicRunEditor` and the comic range
+   fields retired from `AdminItem`/`ItemForm`. Matches `d-admin-comic.html`.
+7. Docs: design-system rules above, CLAUDE.md (marks are the record; the
+   mark route; the comic edit path), changelog bullet, `voice.md` if a
+   word is new, this section's status, and the queue's item 5 ticked in
+   CLAUDE.md's TODO.
+8. Verify: full backend pytest, `npm test`, lint, format, ruff, build,
+   e2e.
+
+Done when (the rest of item 5): owned and read set by tapping a cover,
+signed in, on the series page and the issue page, both writing the same
+data; the range text field and the run cells are gone from the comic edit
+page; signed out, no skip or owner control appears anywhere; existing rows
+keep what they recorded (Waterworld still owns #1–4).
+
+Ship notes: no migration. Public outputs gain `owned`, `read` and
+`count_of_issues`, all pinned.
+
+### 5c status: done
+
+Tasks 1 to 8 built on `feat/comic-edit-in-place`; nothing pushed.
+
+### 5c Deviations
+
+- **`sync_marks` preserves reads.** The plan said it "stops rederiving
+  `read` from `read_to` except when a write sets `read_to`". Done as
+  parameters: `from_read_to` (item PATCH that carries `read_to`) and `reads`
+  (the mark route); every other writer keeps the read marks of rows that stay
+  owned, and a newly held number reads as `read_to` says. `mark_mismatches`
+  no longer compares `read` (it cannot be derived), only owned, skipped and a
+  read mark on a book not owned.
+- **`read_to` after a tap** is the highest owned issue with every owned issue
+  up to it read; reading #2 before #1 leaves `read_to` unset until #1 is
+  read. Existing rows keep the `read_to` they have until a tap changes it.
+- **The mark route takes an optional `to`** (mark #n through #to). The edition
+  page's Read to the end uses it (it marks the book's issues read; it no
+  longer marks everything before the book, which `read_to` did).
+- **A new admin read, `GET /api/comics/{id}/wall`,** serves the wall and the
+  comic block for any comic. The admin page for a private series needs it,
+  and the public route 404s a private row.
+- **Public reads tolerate rows the marks have not reached:** a held issue is
+  held if the row says so or the ranges do, and read if the row says so or
+  `read_to` does (the series detail's read count is the larger of the two).
+- **`count_of_issues` is stored as `issue_count`**, so the public field on the
+  comic block is `issue_count`.
+- **The Issues panel on the admin page is the wall itself**, with the counts
+  line and a hint, not the mockup's link to the series page (a private series
+  has no page). The number under a cover is not a link there when the series
+  is private.
+- **`ComicSummary` at zero held** shows the format, issue count and "as of"
+  notes only (no "0 of N" count); nothing recorded and no notes shows nothing.
+- **No `ADMIN_ROUTES` row** for `/admin/shelf/comics/:id`: it is a dynamic path
+  like `/admin/collection/:id`, which the test excludes; the Comics page owns
+  it by prefix.
+- **The admin comic page has no Reads table** (playthroughs), as the panel
+  list says; status moves go through the status route. Comic Type is no longer
+  offered on the game page.
+- Undo of a tap on a skipped cover posts `missing`, so the skip is not
+  restored (owning clears it).
+
+Review follow-ups (after the first pass):
+
+- `plan_mark`: missing on a book held as a single and in an edition keeps its
+  read mark (the edition still holds it).
+- The wall draws for a series with issue rows, `released > 0` or anything held,
+  and the admin page has an "Add issue #" box (1 to 9999) that posts `owned`
+  to the mark route; a number with no row gets a stub and shows on the wall.
+- Undo restores a skip the tap cleared (`setMark` missing, then the skip) and
+  what a first tap moved on a Want: the mark route answers `previous`
+  (`owned_format`, `status`, only what changed) and Undo puts it back
+  (`restoreSeries`).
+- The shelf card's read count and Tonight's comic progress use the marks-based
+  count like the series page (`read_marks_by_item`); `comic_issues` joined the
+  `/api/public/next` fingerprint (keyed by item and number), with a test.
+- Focus: after Undo it returns to the cover button (wall) or the Owned button
+  (issue page); under Show: Missing a tapped cover's focus moves to the next
+  cover, or the wall heading.
+- PATCH takes the row lock when its body touches the mark fields, so it
+  cannot interleave with a tap (no test: the lock needs two live connections).
+- `e2e/fixtures/api/issue.json` carries `owned` and `read`.
+- The wall's "The number opens the issue" line shows only when numbers are
+  links (not on a private series' admin wall).

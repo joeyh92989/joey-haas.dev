@@ -205,14 +205,19 @@ export default function ComicIssue({ id, n }) {
             <dd>{readFact}</dd>
           </dl>
 
-          <ComicDescription paragraphs={page.description} />
+          <ComicDescription
+            paragraphs={page.description}
+            sourceUrl={page.source_url}
+            cover={Boolean(page.large_url || page.cover_url)}
+          />
 
           {signedIn && stored && (
             <OwnerControls
               id={id}
               n={page.number}
+              state={page.state}
               stored={stored}
-              held={held}
+              edition={page.edition}
               onChanged={reload}
             />
           )}

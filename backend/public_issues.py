@@ -14,6 +14,7 @@ that into a 404.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 from datetime import date
 from urllib.parse import urlparse
 
@@ -42,6 +43,9 @@ NEIGHBOURS = 4
 
 class PublicWallIssue(BaseModel):
     number: int
+    # From the marks on the issue row. A skipped issue is just missing.
+    owned: bool
+    read: bool
     name: str | None
     store_date: date | None
     cover_url: str | None
@@ -92,6 +96,8 @@ class PublicIssuePage(BaseModel):
     description: list[str]
     # read, owned, missing or not-out. Missing includes a skipped issue.
     state: str
+    owned: bool
+    read: bool
     held_as: str
     edition: PublicIssueEdition | None
     released: int
@@ -160,15 +166,15 @@ class PublicComicIndex(BaseModel):
     editions: list[PublicComicIndexEdition]
 
 
-async def _public_comic(session: AsyncSession, item_id: uuid.UUID) -> Item | None:
-    """One row by id, held to the public predicate."""
-    result = await session.execute(
-        select(Item).where(
-            Item.id == item_id,
-            Item.is_public.is_(True),
-            Item.type == ItemType.COMIC,
-        )
-    )
+async def _public_comic(
+    session: AsyncSession, item_id: uuid.UUID, public_only: bool = True
+) -> Item | None:
+    """One row by id, held to the public predicate. `public_only=False` is
+    for the admin comic page, which draws the same wall for a private row."""
+    query = select(Item).where(Item.id == item_id, Item.type == ItemType.COMIC)
+    if public_only:
+        query = query.where(Item.is_public.is_(True))
+    result = await session.execute(query)
     return result.scalar_one_or_none()
 
 
@@ -182,31 +188,44 @@ def _comic_vine_url(item: Item) -> str | None:
     return url
 
 
+def _held(series: ComicSeries, rows: Iterable[ComicIssue]) -> dict[int, bool]:
+    """Every issue held, loose or in an edition, mapped to whether it is read.
+
+    The marks on the issue rows are the record from 5c; the ranges still
+    count for a row the marks have not reached, so a held issue is either.
+    Read is the row's mark, or `read_to` for a row that carries none."""
+    read_to = series.read_to
+    held = {n: read_to is not None and n <= read_to for n in series.owned}
+    for row in rows:
+        if row.owned:
+            held[row.number] = row.read or held.get(row.number, False)
+    return held
+
+
 def _state(
-    number: int, series: ComicSeries, released: int, upcoming: int | None
+    number: int, held: dict[int, bool], released: int, upcoming: int | None
 ) -> str:
     """read, owned, missing, or not-out (the next dated issue, beyond what is
     released). None for a number with no page."""
-    if number in series.owned:
-        read_to = series.read_to
-        return "read" if read_to is not None and number <= read_to else "owned"
+    if number in held:
+        return "read" if held[number] else "owned"
     if number <= released:
         return "missing"
     return "not-out" if number == upcoming else ""
 
 
 def _page_numbers(
-    series: ComicSeries, released: int, upcoming: int | None
+    held: dict[int, bool], released: int, upcoming: int | None
 ) -> list[int]:
     """The issue numbers that have a page: the one rule of the issue route, the
     wall and the index."""
-    candidates = {*range(1, released + 1), *series.owned}
+    candidates = {*range(1, released + 1), *held}
     if upcoming is not None:
         candidates.add(upcoming)
     return sorted(
         n
         for n in candidates
-        if 1 <= n <= MAX_ISSUE and _state(n, series, released, upcoming)
+        if 1 <= n <= MAX_ISSUE and _state(n, held, released, upcoming)
     )
 
 
@@ -217,7 +236,7 @@ def _upcoming(series: ComicSeries, today: date) -> int | None:
 
 def _neighbours(
     around: int,
-    series: ComicSeries,
+    held: dict[int, bool],
     released: int,
     upcoming: int | None,
     rows: dict[int, ComicIssue],
@@ -226,7 +245,7 @@ def _neighbours(
     centres on it)."""
     out = []
     for number in range(max(1, around - NEIGHBOURS), around + NEIGHBOURS + 1):
-        state = _state(number, series, released, upcoming)
+        state = _state(number, held, released, upcoming)
         if state:
             row = rows.get(number)
             out.append(
@@ -252,15 +271,22 @@ def _edition_cover(edition: dict, by_number: dict[int, ComicIssue]) -> str | Non
 
 
 async def build_wall(
-    session: AsyncSession, item_id: uuid.UUID, today: date
+    session: AsyncSession,
+    item_id: uuid.UUID,
+    today: date,
+    public_only: bool = True,
 ) -> PublicWall | None:
-    item = await _public_comic(session, item_id)
+    item = await _public_comic(session, item_id, public_only)
     if item is None:
         return None
     series = series_of(item)
     released = series.run().released
-    numbers = set(_page_numbers(series, released, _upcoming(series, today)))
-    rows = await load_issues(session, item.id)
+    every = await load_issues(session, item.id, include_stubs=True)
+    held = _held(series, every)
+    numbers = set(_page_numbers(held, released, _upcoming(series, today)))
+    # A stub is a book held that Comic Vine has not synced: drawn as a
+    # numbered blank. A skipped stub is no page (skips stay private).
+    rows = [row for row in every if row.cv_id is not None or row.owned]
     by_number = {row.number: row for row in rows}
     editions = _editions(item)
     out_editions = []
@@ -282,6 +308,8 @@ async def build_wall(
         issues=[
             PublicWallIssue(
                 number=row.number,
+                owned=row.number in held,
+                read=held.get(row.number, False),
                 name=row.name,
                 store_date=row.store_date,
                 cover_url=row.cover_url,
@@ -312,21 +340,26 @@ async def build_issue_page(
     series = series_of(item)
     released = series.run().released
     upcoming = _upcoming(series, today)
-    state = _state(number, series, released, upcoming)
+    # The issue in full; its strip needs only the covers around it. The marks
+    # come with them, stubs included (a held book Comic Vine lacks).
+    full = await load_issues(
+        session, item.id, number, number, with_description=True, include_stubs=True
+    )
+    row = full[0] if full else None
+    around = await load_issues(
+        session,
+        item.id,
+        max(1, number - NEIGHBOURS),
+        number + NEIGHBOURS,
+        include_stubs=True,
+    )
+    held = _held(series, around)
+    state = _state(number, held, released, upcoming)
     if not state:
         return None
-    # The issue in full; its strip needs only the covers around it.
-    full = await load_issues(session, item.id, number, number, with_description=True)
-    row = full[0] if full else None
-    rows = {
-        r.number: r
-        for r in await load_issues(
-            session,
-            item.id,
-            max(1, number - NEIGHBOURS),
-            number + NEIGHBOURS,
-        )
-    }
+    rows = {r.number: r for r in around if r.cv_id is not None}
+    if row is not None and row.cv_id is None:
+        row = None  # a stub has no name, cover or description to publish
     editions = _editions(item)
     slugs = edition_slugs(editions)
     covering = next(
@@ -349,6 +382,8 @@ async def build_issue_page(
         large_url=row.large_url if row else None,
         description=list(row.description) if row else [],
         state=state,
+        owned=number in held,
+        read=held.get(number, False),
         held_as=_held_as(number, item, covering[1] if covering else None),
         edition=(
             PublicIssueEdition(
@@ -359,7 +394,7 @@ async def build_issue_page(
         ),
         released=released,
         ongoing=series.ongoing,
-        neighbours=_neighbours(number, series, released, upcoming, rows),
+        neighbours=_neighbours(number, held, released, upcoming, rows),
         source_url=_comic_vine_url(item) or COMIC_VINE_HOME,
     )
 
@@ -380,7 +415,13 @@ async def build_edition_page(
     series = series_of(item)
     released = series.run().released
     upcoming = _upcoming(series, today)
-    rows = {row.number: row for row in await load_issues(session, item.id, low, high)}
+    around = await load_issues(session, item.id, low, high + 1, include_stubs=True)
+    held = _held(series, around)
+    rows = {
+        row.number: row
+        for row in around
+        if row.cv_id is not None and row.number <= high
+    }
     collected = [rows[n] for n in range(low, high + 1) if n in rows]
     cover = edition.get("cover_url") or next(
         (r.cover_url for r in collected if r.cover_url), None
@@ -388,11 +429,17 @@ async def build_edition_page(
     large = edition.get("large_url") or next(
         (r.large_url for r in collected if r.large_url), None
     )
-    read_to = series.read_to
-    if read_to is not None and read_to >= high:
-        read, shown = "all", high
-    elif read_to is not None and read_to >= low:
-        read, shown = "to", read_to
+    # Read from the marks: every book inside, or the unbroken run from its
+    # first book.
+    shown = None
+    for n in range(low, high + 1):
+        if not held.get(n):
+            break
+        shown = n
+    if shown == high:
+        read = "all"
+    elif shown is not None:
+        read = "to"
     else:
         read, shown = "not-yet", None
     after = high + 1
@@ -400,7 +447,7 @@ async def build_edition_page(
         following = PublicEditionNext(
             slug=slugs[index + 1], label=editions[index + 1]["label"]
         )
-    elif _state(after, series, released, upcoming):
+    elif _state(after, held, released, upcoming):
         following = PublicEditionNext(number=after)
     else:
         following = None
@@ -424,7 +471,7 @@ async def build_edition_page(
             PublicNeighbour(
                 number=n,
                 cover_url=rows[n].cover_url if n in rows else None,
-                state=_state(n, series, released, upcoming) or "owned",
+                state=_state(n, held, released, upcoming) or "owned",
             )
             for n in range(low, high + 1)
         ],
@@ -451,7 +498,6 @@ async def load_comic_index(
             select(ComicIssue)
             .where(
                 ComicIssue.item_id.in_(list(by_item)),
-                ComicIssue.cv_id.is_not(None),  # not a stub
             )
             .options(defer(ComicIssue.description))
         )
@@ -462,8 +508,11 @@ async def load_comic_index(
         series = series_of(item)
         released = series.run().released
         upcoming = _upcoming(series, today)
-        rows = by_item[item.id]
-        numbers = _page_numbers(series, released, upcoming)
+        every = by_item[item.id]
+        held = _held(series, every.values())
+        # Names and covers come only from Comic Vine's rows, never a stub.
+        rows = {n: r for n, r in every.items() if r.cv_id is not None}
+        numbers = _page_numbers(held, released, upcoming)
         editions = _editions(item)
         out.append(
             PublicComicIndex(

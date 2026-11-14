@@ -701,6 +701,59 @@ export const spine = {
       fold: 'Fold these back up',
       readTo: (n) => `read to ${n}`,
       edition: 'Collected edition',
+      /** The Show chips over the wall. */
+      show: { label: 'Show', all: 'All', missing: 'Missing' },
+      nothingMissing: 'Nothing missing from this run.',
+      /** Signed in: a cover is a button that moves the book one step. */
+      owner: {
+        how: 'Tap a cover to mark it: owned, then read, then missing again. Only you can do this.',
+        howLinked:
+          'Tap a cover to mark it: owned, then read, then missing again. The number opens the issue. Only you can do this.',
+        do: { owned: 'Mark owned', read: 'Mark read', missing: 'Mark missing' },
+        /** The button's name: where the book is now, then what a tap does. */
+        tapName: (series, n, now, doWord) =>
+          `${series} #${n}, ${now}. ${doWord}`,
+        openName: (series, n) => `Open ${series} #${n}`,
+        marked: (series, n, state) => `${series} #${n} marked ${state}.`,
+        undo: 'Undo',
+        failed: 'Could not save that. Try again.',
+        /** Lower-case state words for the status line. */
+        words: { read: 'read', owned: 'owned', missing: 'missing' },
+        skippedTag: 'Skipped',
+      },
+    },
+    /** The admin comic page, /admin/shelf/comics/:id. */
+    admin: {
+      shelf: 'Shelf',
+      comics: 'Comics',
+      fallbackTitle: 'Comic',
+      kicker: 'Comic',
+      public: 'Public',
+      private: 'Private',
+      viewOnSite: 'View on the site',
+      series: 'Series',
+      privateTag: 'private',
+      save: 'Save changes',
+      saved: 'Saved.',
+      issues: 'Issues',
+      issuesLine: (owned, released, read, missing) =>
+        `${owned} of ${released} owned, ${read} read, ${missing} missing.`,
+      addLabel: 'Add issue #',
+      add: 'Add',
+      addHint:
+        'A whole number from 1 to 9999. It is marked owned, whether or not Comic Vine lists it.',
+      addRange: 'Issue numbers are whole numbers from 1 to 9999.',
+      issuesHint:
+        'Tap a cover to mark it owned, read or missing. Skips are set on the issue page. Issue numbers are whole numbers; #0, #½ and annuals can’t be recorded yet.',
+      editions: 'Editions',
+      saveEditions: 'Save editions',
+      match: 'Comic Vine match',
+      refresh: 'Refresh from Comic Vine',
+      unlinked: 'Not linked to Comic Vine.',
+      relinkLine: 'Wrong series? Search Comic Vine and link another.',
+      delete: 'Delete',
+      deleteLine:
+        'Removes the series, its issue records and its editions for good.',
     },
     pills: { following: 'Following', want: 'Want' },
     chips: {
@@ -732,6 +785,8 @@ export const spine = {
       kicker: 'Comic',
       ongoing: 'ongoing',
       asOf: (month) => `as of ${month}`,
+      /** Comic Vine's count of the volume's issues, in the summary line. */
+      issueCount: (n) => `${n} ${n === 1 ? 'issue' : 'issues'} in Comic Vine`,
       editions: 'Editions',
       collects: (from, to) =>
         from === to ? `collects #${from}` : `collects #${from}–${to}`,
@@ -795,15 +850,27 @@ export const spine = {
         label: 'Comic Vine',
         after: '.',
       },
+      /** The source line under a description, and under a cover with none. */
+      from: 'From',
+      coverFrom: 'Cover from',
       owner: {
         note: 'Only you see these buttons.',
         own: 'I own this',
         owned: 'Owned ✓',
-        readTo: 'Read to here',
-        readDone: 'Read to here ✓',
+        read: 'I’ve read this',
+        readDone: 'Read ✓',
         skip: 'Skip · private',
         skipped: 'Skipped · private ✓',
         failed: 'Could not save that change. Try again.',
+        /** The status line under the buttons, and the word Undo. */
+        marked: {
+          missing: 'Marked missing.',
+          owned: 'Marked owned.',
+          read: 'Marked read.',
+        },
+        undo: 'Undo',
+        /** The server's words for a book held only in an edition. */
+        inEdition: (label) => `In ${label}. Edit editions on the comic’s page.`,
       },
     },
     /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */

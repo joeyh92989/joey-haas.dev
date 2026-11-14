@@ -8859,6 +8859,101 @@ a.cover-tile:focus-visible {
   width: 12px;
 }
 
+/* The wall's Show chips and, signed in, its covers as buttons (comics 5c).
+   The cover is a button and its number a link beside it, never nested. */
+.wall-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.wall-how {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  margin: 0;
+  width: 100%;
+}
+
+.wall-status {
+  align-items: baseline;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+  gap: 0.2rem 0.6rem;
+  margin: var(--space-3) 0 0;
+  min-height: 1.4rem;
+}
+
+.cover-tile-hold {
+  position: relative;
+}
+
+.cover-tile-btn {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  padding: 0;
+  width: 100%;
+}
+
+.cover-tile-btn:hover .cover-tile-frame,
+.cover-tile-btn:focus-visible .cover-tile-frame {
+  border-color: var(--accent);
+}
+
+.cover-tile-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+a.cover-tile-cap {
+  color: var(--text-2);
+  min-height: 1.5rem;
+  padding-top: 0.1rem;
+  text-decoration: none;
+}
+
+a.cover-tile-cap span {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+a.cover-tile-cap:hover span,
+a.cover-tile-cap:focus-visible span {
+  color: var(--accent);
+}
+
+.cover-tile-flag {
+  bottom: 6px;
+  left: 6px;
+  position: absolute;
+}
+
+.cover-tile-do {
+  background: var(--accent);
+  border-radius: 3px;
+  bottom: 6px;
+  color: var(--accent-ink);
+  display: none;
+  font: 600 var(--fs-12) / 1 var(--font-sans);
+  left: 6px;
+  padding: var(--space-1) 0.35rem;
+  position: absolute;
+  right: 6px;
+  text-align: center;
+}
+
+.cover-tile-btn:hover .cover-tile-do,
+.cover-tile-btn:focus-visible .cover-tile-do {
+  display: block;
+}
+
 @media (max-width: 480px) {
   .cover-wall-grid {
     gap: 0.8rem var(--space-2);
@@ -9049,41 +9144,6 @@ a.cover-tile:focus-visible {
 .comic-fields {
   display: grid;
   gap: 0.35rem;
-}
-
-/* The admin edit's run card leads the comic fields across the whole form;
-   the tap-mode group and the edition rows sit in the same grid. */
-.comic-run-editor {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  grid-column: 1 / -1;
-  margin: var(--space-2) 0;
-  padding: var(--space-4) 1.1rem;
-}
-
-.comic-run-editor h2 {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-16);
-  font-weight: 600;
-  gap: var(--space-2);
-  margin: 0 0 0.7rem;
-}
-
-.comic-run-editor h2 small {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  font-weight: 400;
-}
-
-.comic-tap-modes {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin: var(--space-4) 0 var(--space-3);
 }
 
 .comic-private {
@@ -12260,6 +12320,19 @@ a.state-pill:focus-visible {
   gap: var(--space-2);
 }
 
+.comic-issue-saved {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  margin: var(--space-2) 0 0;
+  min-height: 1.4rem;
+}
+
+.desc-source {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  margin: 0.35rem 0 0;
+}
+
 .comic-issue-attribution {
   color: var(--text-3);
   font-size: var(--fs-12);
@@ -12428,4 +12501,55 @@ a.btn.sm {
 .shelf-delete {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* The admin comic page, /admin/shelf/comics/:id (comics 5c). */
+.admin-comic-head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  margin-bottom: var(--space-5);
+}
+
+.admin-comic-cols {
+  align-items: start;
+  display: grid;
+  gap: var(--space-4) 1.25rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.admin-comic-cols > div {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-comic-sum {
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .admin-comic-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-comic-head {
+    gap: var(--space-4);
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+}
+
+.admin-comic-add {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.admin-comic-add input {
+  max-width: 6rem;
 }

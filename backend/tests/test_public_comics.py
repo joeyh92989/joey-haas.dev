@@ -63,7 +63,7 @@ ISSUE_FIELDS = {
 DETAIL_FIELDS = {
     "publisher", "owned_text", "released", "ongoing", "run_state", "missing",
     "segments", "read_to", "read", "read_next", "editions", "next_issue",
-    "following",
+    "following", "issue_count",
     "shelf_format", "as_of",
 }  # fmt: skip
 
@@ -128,6 +128,7 @@ def _saga(**fields) -> Item:
                 _issue("74", "2026-11-18"),
             ],
             "released": 72,
+            "issue_count": 75,
             "ongoing": True,
             "fetched_on": "2026-11-05",
         },
@@ -197,7 +198,7 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "series_title", "publisher", "issues", "editions",
     }  # fmt: skip
     assert set(PublicWallIssue.model_fields) == {
-        "number", "name", "store_date", "cover_url",
+        "number", "owned", "read", "name", "store_date", "cover_url",
     }  # fmt: skip
     assert set(PublicWallEdition.model_fields) == {
         "slug", "kind", "label", "from_issue", "to_issue", "cover_url",
@@ -207,8 +208,8 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
     assert set(PublicIssuePage.model_fields) == {
         "series_id", "series_title", "publisher", "number", "name",
         "store_date", "cover_date", "cover_url", "large_url", "description",
-        "state", "held_as", "edition", "released", "ongoing", "neighbours",
-        "source_url",
+        "state", "owned", "read", "held_as", "edition", "released", "ongoing",
+        "neighbours", "source_url",
     }  # fmt: skip
     assert set(PublicEditionLink.model_fields) == {"slug", "label"}
     assert set(PublicEditionNext.model_fields) == {"slug", "label", "number"}
@@ -338,6 +339,7 @@ async def test_the_item_page_carries_the_comic_block(sessionmaker_for_test):
         {"kind": "TPB", "label": "Vol. 10", "from_issue": 55, "to_issue": 60}
     ]
     assert comic["as_of"] == "2026-11-05"
+    assert comic["issue_count"] == 75
     assert comic["read_to"] == 30
     assert comic["read_next"] == 31
     assert comic["shelf_format"] == saga.shelf_format.value
@@ -428,3 +430,38 @@ async def test_an_empty_shelf_is_zeroes_not_an_error(sessionmaker_for_test):
     assert body["this_week"]["later"] == []
     # Sanity: the clock is frozen, so the weeks start on 4 November.
     assert body["this_week"]["weeks"][0]["start"] == date(2026, 11, 4).isoformat()
+
+
+async def test_the_series_read_count_follows_the_marks(sessionmaker_for_test):
+    """Read is per book (5c): a book read out of order counts, though read_to
+    (the unbroken run from #1) says none."""
+    from models import ComicIssue
+
+    comic = _comic("Waterworld", issues_owned="1–4", read_to=None)
+    await _add(sessionmaker_for_test, comic)
+    async with sessionmaker_for_test() as session:
+        session.add(ComicIssue(item_id=comic.id, number=3, owned=True, read=True))
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get(f"/api/public/items/{comic.id}")).json()["comic"]
+    assert body["read"] == 1 and body["read_to"] is None
+
+
+async def test_the_shelf_card_counts_read_marks_like_the_series_page(
+    sessionmaker_for_test,
+):
+    from models import ComicIssue
+
+    comic = _comic("Waterworld", issues_owned="1–4", read_to=None)
+    await _add(sessionmaker_for_test, comic)
+    async with sessionmaker_for_test() as session:
+        session.add(ComicIssue(item_id=comic.id, number=3, owned=True, read=True))
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        row = next(
+            r
+            for r in (await client.get("/api/public/comics")).json()["series"]
+            if r["title"] == "Waterworld"
+        )
+        detail = (await client.get(f"/api/public/items/{comic.id}")).json()["comic"]
+    assert row["read"] == detail["read"] == 1

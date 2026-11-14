@@ -11,9 +11,20 @@
   "description": ["An invented issue for the test fixture."],
   "state": "owned",
   "held_as": "In Volume One",
-  "edition": { "slug": "ed-1-1", "label": "Volume One" },
+  "edition": {
+    "slug": "ed-1-1",
+    "label": "Volume One"
+  },
   "released": 1,
   "ongoing": false,
-  "neighbours": [{ "number": 1, "cover_url": null, "state": "owned" }],
-  "source_url": "https://comicvine.gamespot.com/"
+  "neighbours": [
+    {
+      "number": 1,
+      "cover_url": null,
+      "state": "owned"
+    }
+  ],
+  "source_url": "https://comicvine.gamespot.com/",
+  "owned": true,
+  "read": false
 }
