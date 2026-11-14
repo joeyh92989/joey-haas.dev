@@ -158,3 +158,23 @@ Ship notes: no database migration. Rollout order is 2, 3, 1, 4, 5, 6, 7 as separ
 After 6: merge a trivial PR; `deploy.yml` goes green, `https://api.joey-haas.dev/api/health`
 answers, `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev` passes, and
 the Render dashboard shows the deploy came from the hook with the merge SHA.
+
+## Appendix: CI baseline (task 1, 2026-11-14)
+
+Medians over the last 14 successful `ci.yml` runs (`gh api .../actions/runs/<id>/jobs`).
+Workflow wall time is the slowest job, so **backend sets it**.
+
+| Job | Median | Range | Largest steps (median) |
+|---|---|---|---|
+| backend | 568 s | 417–595 | Run tests 521 s · containers 22 s · install 13 s |
+| frontend | 158 s | 115–196 | Run tests 120 s · lint 12 s · build 7 s |
+| e2e | 75 s | 54–95 | browser tests 33 s · Install Chromium 18 s · build 7 s |
+
+What this decides for task 7:
+- **Backend pytest is 92% of the critical path.** It is where speed-ups go: parallel
+  workers with a database each (pytest-xdist), and whatever the profile shows about the
+  per-test schema rebuild.
+- **Audits are 2 s, e2e is 75 s, Chromium install is 18 s.** A browser cache would save
+  seconds, and e2e sharding would add runner start-up to a job that is not the bottleneck. Dropped.
+- **Vitest is 120 s** and the second-longest step; sharding it across runners
+  (`vitest --shard`) is a coverage-neutral option once backend is no longer the long pole.
