@@ -1421,7 +1421,7 @@ def create_items_router(
         pinned event is recorded. A route of its own rather than a PATCH field,
         because it changes another row and writes an event.
         """
-        server_today = datetime.now(UTC).date()
+        server_today = playthroughs.server_today()
         if today is not None:
             # The status route dates its moves the same way, so the
             # misclick rule's "started today" compares like with like.
@@ -1474,7 +1474,7 @@ def create_items_router(
         Wrap up to earlier in the week, and `note` is its one line.
         """
         try:
-            playthroughs.check_today(payload.today, datetime.now(UTC).date())
+            playthroughs.check_today(payload.today, playthroughs.server_today())
         except playthroughs.PlaythroughError as error:
             raise _refused(error) from error
         item = await _load(session, item_id)

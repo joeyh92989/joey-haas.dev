@@ -55,3 +55,23 @@ PR #173 · docs/planning/2026-11-11-comic-issue-pages-plan.md
 ### 2026-11-12 · lesson · Contract tests on both sides of an API can each be wrong
 The neighbour strip's API dropped the current issue while the frontend's fixtures included it; both suites passed and only the whole-branch review saw it. Build frontend fixtures from the backend's response shape (or one shared fixture) for any new public body.
 PR #173 · docs/planning/2026-11-11-comic-issue-pages-design.md
+
+### 2026-11-14 · lesson · A targeted local test run misses files
+A local run over a guessed name pattern skipped `test_recommendations_routes.py` and CI caught it on #229. Build the pattern from the files the diff imports, and let CI run the full suite before merging.
+PR #229
+
+### 2026-11-14 · lesson · The migration head is pinned
+Adding a migration means bumping the head pin in `test_schema_check.py`; forgetting it failed CI on #225. Put the bump in the migration task of the plan.
+PR #225
+
+### 2026-11-14 · lesson · A run across midnight UTC can flake
+A test date read once at import and a server clock read per request drift a day apart when CI crosses 00:00 UTC (#227). Give the code one injectable clock and freeze it in the test.
+docs/planning/2026-11-14-test-flakes-design.md
+
+### 2026-11-14 · lesson · The auto-mode classifier can refuse production job calls
+A backfill fired from the browser against production was refused until Joey said "run the backfill" in so many words. Ask for that explicit go-ahead instead of retrying.
+PR #229
+
+### 2026-11-14 · lesson · Comic Vine models some trades as one-issue volumes
+Mad Max TPB, Haunt of Horror and Hello Darkness "Volume One" are one-issue volumes, while Creepshow is a volume of singles with the trade as an edition. Check `count_of_issues` before assuming a series has singles.
+docs/planning/2026-11-13-comics-book-design.md

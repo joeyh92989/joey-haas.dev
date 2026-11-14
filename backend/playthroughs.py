@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field, replace
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -327,6 +327,12 @@ def check_dates(run: Run) -> None:
         and run.started_on > run.paused_on
     ):
         raise PlaythroughError("A playthrough cannot pause before it started.")
+
+
+def server_today() -> date:
+    """The server's date: the UTC day. The one clock `check_today` is given,
+    so a test freezes it in one place."""
+    return datetime.now(UTC).date()
 
 
 def check_today(today: date, server_today: date) -> None:

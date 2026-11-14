@@ -12,6 +12,15 @@ from tests.test_items_pin import client_for
 pytestmark = pytest.mark.asyncio
 
 TODAY = datetime.now(UTC).date()
+
+
+@pytest.fixture(autouse=True)
+def frozen_server_clock(monkeypatch):
+    """One clock for the file: the tests' TODAY is read once at import, so a
+    run crossing midnight UTC must not move the server's day under it."""
+    monkeypatch.setattr(pt, "server_today", lambda: TODAY)
+
+
 D1 = date(2026, 3, 1)
 D2 = date(2026, 6, 1)
 
