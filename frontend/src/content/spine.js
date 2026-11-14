@@ -596,8 +596,6 @@ export const spine = {
   /** The item page's labels. */
   item: {
     outOfTen: 'out of 10',
-    genresLabel: 'Genres',
-    alsoOnLabel: 'Also on',
     mainStory: 'Main story',
     toComplete: 'To complete',
   },

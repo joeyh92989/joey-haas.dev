@@ -1176,3 +1176,109 @@ describe('Games header', () => {
     expect(screen.queryByText(/^I built this myself:/)).toBeNull()
   })
 })
+
+describe('Games tags', () => {
+  const styled = (n, ...tags) => ({
+    ...ITEMS[1],
+    id: `t${n}`,
+    title: `Game ${n}`,
+    wanted: false,
+    tags,
+  })
+  const style = (tag) => ({ group: 'play_style', tag })
+  const setting = (tag) => ({ group: 'setting', tag })
+
+  // Ten games: shooter on four, RPG on three, puzzle on one; sci-fi on three.
+  const SHELF = [
+    styled(1, style('shooter'), setting('sci-fi')),
+    styled(2, style('shooter'), setting('sci-fi')),
+    styled(3, style('shooter'), setting('horror')),
+    styled(4, style('shooter')),
+    styled(5, style('rpg'), setting('fantasy')),
+    styled(6, style('rpg'), setting('sci-fi')),
+    styled(7, style('rpg')),
+    styled(8, style('puzzle')),
+    styled(9),
+    styled(10),
+  ]
+
+  it('filters by labelled Play style, Setting and Tone groups', async () => {
+    stubApi({ items: SHELF })
+    await renderReady()
+
+    for (const name of ['Play style', 'Setting']) {
+      expect(screen.getByRole('group', { name })).toBeInTheDocument()
+    }
+    // Tone has no chip with anything behind it, so it is not drawn.
+    expect(screen.queryByRole('group', { name: 'Tone' })).toBeNull()
+
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Play style' })).getByRole(
+        'button',
+        { name: /Shooter/ },
+      ),
+    )
+    expect(gridTitles()).toHaveLength(4)
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Setting' })).getByRole(
+        'button',
+        { name: /Sci-fi/ },
+      ),
+    )
+    expect(gridTitles().sort()).toEqual(['Game 1', 'Game 2'])
+  })
+
+  it('counts each chip from the whole shelf', async () => {
+    stubApi({ items: SHELF })
+    await renderReady()
+    const group = screen.getByRole('group', { name: 'Play style' })
+    expect(
+      within(group).getByRole('button', { name: 'Shooter 4' }),
+    ).toBeInTheDocument()
+    expect(
+      within(group).getByRole('button', { name: 'RPG 3' }),
+    ).toBeInTheDocument()
+  })
+
+  it('draws no chip that matches more than half the games it is given', async () => {
+    const wide = [
+      ...SHELF,
+      ...[11, 12, 13, 14, 15, 16].map((n) => styled(n, style('shooter'))),
+    ]
+    stubApi({ items: wide })
+    await renderReady()
+
+    // Ten of sixteen are shooters: over half, so no chip for it.
+    const group = screen.getByRole('group', { name: 'Play style' })
+    expect(within(group).queryByRole('button', { name: /Shooter/ })).toBeNull()
+    const total = wide.length
+    for (const chip of document.querySelectorAll(
+      '.chip-rows .chip[aria-pressed]',
+    )) {
+      const count = Number(chip.querySelector('.chip-count')?.textContent)
+      if (count) expect(count).toBeLessThanOrEqual(total / 2)
+    }
+  })
+
+  it('leaves out IGDB’s raw genres', async () => {
+    stubApi({
+      items: SHELF.map((item) => ({ ...item, genres: ['Adventure'] })),
+    })
+    await renderReady()
+    expect(screen.queryByRole('button', { name: /Adventure/ })).toBeNull()
+  })
+
+  it('clears the tag filters with Clear filters', async () => {
+    stubApi({ items: SHELF })
+    await renderReady()
+    await userEvent.click(
+      within(screen.getByRole('group', { name: 'Play style' })).getByRole(
+        'button',
+        { name: /Puzzle/ },
+      ),
+    )
+    expect(gridTitles()).toEqual(['Game 8'])
+    await userEvent.click(screen.getByRole('button', { name: /Clear filters/ }))
+    expect(gridTitles()).toHaveLength(10)
+  })
+})

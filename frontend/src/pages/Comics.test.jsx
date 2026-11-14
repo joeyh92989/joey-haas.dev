@@ -320,6 +320,56 @@ describe('Comics', () => {
     expect(localStorage.length).toBe(0)
   })
 
+  describe('tags', () => {
+    const tagged = {
+      ...COMICS,
+      series: [
+        { ...ROWS[0], tags: [{ group: 'genre', tag: 'sci-fi' }] },
+        {
+          ...ROWS[1],
+          tags: [
+            { group: 'genre', tag: 'superhero' },
+            { group: 'form', tag: 'ongoing' },
+          ],
+        },
+        {
+          ...ROWS[2],
+          tags: [
+            { group: 'genre', tag: 'horror' },
+            { group: 'form', tag: 'mini-series' },
+          ],
+        },
+        { ...ROWS[3], tags: [{ group: 'based_on', tag: 'original' }] },
+      ],
+    }
+
+    it('offers Genre and Form chip groups, not Based on', () => {
+      mockComics({ data: tagged, live: true, failed: false })
+      renderPage()
+      expect(screen.getByRole('group', { name: 'Genre' })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: 'Form' })).toBeInTheDocument()
+      expect(screen.queryByRole('group', { name: 'Based on' })).toBeNull()
+    })
+
+    it('filters by a genre and undoes it', async () => {
+      mockComics({ data: tagged, live: true, failed: false })
+      renderPage()
+      const genre = screen.getByRole('group', { name: 'Genre' })
+      const horror = within(genre).getByRole('button', { name: /^Horror/ })
+      await userEvent.click(horror)
+      expect(runTitles()).toEqual(['Monstress'])
+      await userEvent.click(horror)
+      expect(runTitles()).toHaveLength(4)
+    })
+
+    it('leaves the groups out while no series is tagged', () => {
+      mockComics({ data: COMICS, live: true, failed: false })
+      renderPage()
+      expect(screen.queryByRole('group', { name: 'Genre' })).toBeNull()
+      expect(screen.queryByRole('group', { name: 'Form' })).toBeNull()
+    })
+  })
+
   it('keeps a pressed publisher’s chip when live rows drop it', async () => {
     mockComics({ data: COMICS, live: false, failed: false })
     const { rerender } = renderPage()

@@ -205,6 +205,29 @@ describe('AdminComic', () => {
     expect(await screen.findByText('Saved.')).toBeInTheDocument()
   })
 
+  it('picks a series’ tags from the comic vocabulary and saves them alone', async () => {
+    const { writes } = stubApi({
+      item: { ...COMIC, tags: [{ group: 'genre', tag: 'horror' }] },
+    })
+    renderPage()
+    const picker = await screen.findByRole('group', { name: 'Form' })
+    expect(screen.getByRole('button', { name: 'Horror' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await userEvent.click(
+      within(picker).getByRole('button', { name: 'Ongoing' }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(writes).toHaveLength(1))
+    expect(writes[0][2]).toEqual({
+      tags: [
+        { group: 'genre', tag: 'horror' },
+        { group: 'form', tag: 'ongoing' },
+      ],
+    })
+  })
+
   it('says nothing changed rather than sending an empty save', async () => {
     const { writes } = stubApi()
     renderPage()

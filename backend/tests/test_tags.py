@@ -275,3 +275,21 @@ def test_original_never_sits_with_a_based_on_source_and_one_run_form_wins():
         {"group": "form", "tag": "anthology"},
         {"group": "form", "tag": "mini-series"},
     ]
+
+
+def test_the_frontend_vocabulary_matches_by_key():
+    """frontend/src/content/tagVocabulary.json is the same list, keys only;
+    content/tags.js adds the words people read (and its own test holds every
+    key to a word)."""
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "frontend"
+        / "src"
+        / "content"
+        / "tagVocabulary.json"
+    )
+    shared = json.loads(path.read_text())
+    assert shared == {
+        item_type: [{"key": group, "tags": list(words)} for group, words in groups]
+        for item_type, groups in tags.VOCABULARY.items()
+    }

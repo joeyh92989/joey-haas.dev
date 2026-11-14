@@ -25,12 +25,20 @@ import {
   sortComics,
 } from '../lib/comics.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
+import {
+  filterByTags,
+  hasTagFilter,
+  noTags,
+  tagChipGroups,
+} from '../lib/tags.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 
 const copy = spine.comics
 const PUBLISHERS_SHOWN = 3
+// What a visitor can filter comics by; Based on is shown, not filtered.
+const FILTER_GROUPS = ['genre', 'form']
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'asc' }))
 
 const MONTH_LABEL = new Intl.DateTimeFormat('en', {
@@ -206,6 +214,7 @@ export default function Comics() {
   const [chip, setChip] = useState(() => storedPref(PREF.chip, COMIC_CHIPS))
   const [sort, setSort] = useState(() => storedPref(PREF.sort, COMIC_SORTS))
   const [publisher, setPublisher] = useState(null)
+  const [picked, setPicked] = useState(() => noTags('comic'))
   const [query, setQuery] = useState('')
 
   function changeFilters(next) {
@@ -215,6 +224,9 @@ export default function Comics() {
       writeShelfPref(PREF.chip, show)
     }
     setPublisher(next.publisher ?? null)
+    setPicked(
+      Object.fromEntries(FILTER_GROUPS.map((key) => [key, next[key] ?? null])),
+    )
   }
 
   function changeSort({ value }) {
@@ -224,10 +236,17 @@ export default function Comics() {
 
   const { series = [], stats } = data ?? {}
   const visible = sortComics(
-    searchComics(filterComics(series, chip, publisher), query),
+    searchComics(
+      filterByTags(filterComics(series, chip, publisher), 'comic', picked),
+      query,
+    ),
     sort,
   )
-  const filtered = query.trim() !== '' || chip !== 'all' || publisher !== null
+  const filtered =
+    query.trim() !== '' ||
+    chip !== 'all' ||
+    publisher !== null ||
+    hasTagFilter('comic', picked)
   const counts = chipCounts(series)
   const publishers = publishersByCount(series)
   // A pressed publisher the rows no longer hold (live data replaced the
@@ -246,6 +265,9 @@ export default function Comics() {
         count: counts[value],
       })),
     },
+    ...tagChipGroups('comic', series).filter(({ key }) =>
+      FILTER_GROUPS.includes(key),
+    ),
     {
       key: 'publisher',
       label: copy.chips.publisher,
@@ -301,7 +323,11 @@ export default function Comics() {
             <FilterChips
               labelled
               groups={groups}
-              value={{ show: chip === 'all' ? null : chip, publisher }}
+              value={{
+                show: chip === 'all' ? null : chip,
+                publisher,
+                ...picked,
+              }}
               onChange={changeFilters}
             />
             <div className="ctl-row">

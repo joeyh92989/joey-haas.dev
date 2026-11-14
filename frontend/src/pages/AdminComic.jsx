@@ -8,6 +8,7 @@ import { EditionRows } from '../components/ItemForm.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import Panel from '../components/Panel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
+import TagPicker from '../components/TagPicker.jsx'
 import { spine } from '../content/spine.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
@@ -34,6 +35,7 @@ function toForm(item) {
     following: Boolean(item.following),
     is_public: Boolean(item.is_public),
     notes: item.notes ?? '',
+    tags: item.tags ?? [],
   }
 }
 
@@ -46,6 +48,7 @@ function toPayload(form) {
     following: form.following,
     is_public: form.is_public,
     notes: form.notes === '' ? null : form.notes,
+    tags: form.tags,
   }
 }
 
@@ -55,7 +58,9 @@ function changedFields(item, form) {
   const after = toPayload(form)
   return Object.fromEntries(
     Object.keys(after)
-      .filter((key) => before[key] !== after[key])
+      .filter(
+        (key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]),
+      )
       .map((key) => [key, after[key]]),
   )
 }
@@ -520,6 +525,14 @@ export default function AdminComic() {
                 rows="3"
                 value={form.notes}
                 onChange={set('notes')}
+              />
+
+              <TagPicker
+                type="comic"
+                value={form.tags}
+                onChange={(tags) =>
+                  setForm((current) => ({ ...current, tags }))
+                }
               />
 
               <div className="item-detail-actions">

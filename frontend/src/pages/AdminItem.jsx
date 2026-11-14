@@ -12,6 +12,7 @@ import {
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import { adminListPath, runWords } from '../lib/shelf.js'
 import PlayJournal from '../components/PlayJournal.jsx'
+import TagPicker from '../components/TagPicker.jsx'
 import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import {
@@ -48,6 +49,7 @@ const EDITABLE = [
   'completeness',
   'acquired_at',
   'release_date',
+  'tags',
 ]
 
 /** A form value as the API wants it: an empty string means "not set". */
@@ -71,6 +73,7 @@ function toForm(item) {
     completeness: item.completeness ?? '',
     acquired_at: item.acquired_at ?? '',
     release_date: item.release_date ?? '',
+    tags: item.tags ?? [],
   }
 }
 
@@ -92,6 +95,7 @@ function toPayload(form) {
     completeness: orNull(form.completeness),
     acquired_at: orNull(form.acquired_at),
     release_date: orNull(form.release_date),
+    tags: form.tags,
   }
 }
 
@@ -764,6 +768,16 @@ export default function AdminItem() {
               checked={form.is_public}
               onChange={set('is_public')}
             />
+
+            {form.type === 'game' && (
+              <TagPicker
+                type="game"
+                value={form.tags}
+                onChange={(tags) =>
+                  setForm((current) => ({ ...current, tags }))
+                }
+              />
+            )}
 
             <div className="item-detail-actions">
               <button type="submit" disabled={saving}>
