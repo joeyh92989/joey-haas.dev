@@ -12466,6 +12466,17 @@ a.btn.sm {
 
 /* ---------- LoadState ---------- */
 
+/* Item page, before the snapshot or API has the item: the head's shape. */
+.item-skeleton .skeleton-line {
+  height: 0.9rem;
+  margin-top: var(--space-3);
+}
+
+.item-skeleton .item-skeleton-title {
+  height: 1.6rem;
+  width: 70%;
+}
+
 .load-state {
   align-items: center;
   display: flex;
