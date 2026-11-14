@@ -44,8 +44,10 @@ from physical_sources.stores import STORES
 from public_comics import (
     PublicComicDetail,
     PublicComicsOut,
+    PublicTag,
     comic_detail,
     load_public_comics,
+    public_tags,
     read_marks_count,
 )
 from public_issues import (
@@ -95,14 +97,6 @@ PUBLIC_DETAIL_METADATA_FIELDS = PUBLIC_METADATA_FIELDS + (
 SIMILAR_LIMIT = 8
 SIMILAR_SOURCE = "igdb"
 SIMILAR_MIN_SHARED_GENRES = 2
-
-
-class PublicTag(BaseModel):
-    """One curated tag: a group and a word from the type's vocabulary
-    (tags.py). The words people read live in the frontend, by key."""
-
-    group: str
-    tag: str
 
 
 class PublicItemOut(BaseModel):
@@ -245,19 +239,6 @@ def _string_list(value: object) -> list[str]:
     return [str(entry) for entry in value if entry]
 
 
-def _public_tags(value: object) -> list[PublicTag]:
-    """Stored tags as published: well-formed {group, tag} strings only."""
-    if not isinstance(value, list):
-        return []
-    return [
-        PublicTag(group=entry["group"], tag=entry["tag"])
-        for entry in value
-        if isinstance(entry, dict)
-        and isinstance(entry.get("group"), str)
-        and isinstance(entry.get("tag"), str)
-    ]
-
-
 def _number(value: object) -> float | None:
     # bool is an int subclass; a stray True is not a score.
     if isinstance(value, bool) or not isinstance(value, int | float):
@@ -363,7 +344,7 @@ def _list_fields(
         "favorite": item.favorite,
         "finished_at": item.finished_at,
         "genres": _string_list(snapshot.get("genres")),
-        "tags": _public_tags(item.tags),
+        "tags": public_tags(item.tags),
         "community_score": _number(snapshot.get("community_score")),
         "platforms": _string_list(snapshot.get("platforms")),
         "created_at": item.created_at,

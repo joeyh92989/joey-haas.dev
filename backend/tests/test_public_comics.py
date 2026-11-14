@@ -50,7 +50,7 @@ ROW_FIELDS = {
     "item_id", "title", "publisher", "year", "cover_url", "ongoing",
     "following", "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
-    "read_to", "read", "read_next", "next_issue", "created_at",
+    "read_to", "read", "read_next", "next_issue", "tags", "created_at",
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",
@@ -276,6 +276,22 @@ async def test_rows_carry_the_run_and_a_want_carries_none(sessionmaker_for_test)
     assert want["segments"] == []
     assert want["run_state"] is None
     assert want["shelf_format"] == "omnibus"
+
+
+async def test_a_row_publishes_its_tags_and_not_whether_they_were_edited(
+    sessionmaker_for_test,
+):
+    shelf = _shelf()
+    stored = [{"group": "genre", "tag": "sci-fi"}, {"group": "form", "tag": "ongoing"}]
+    saga = next(row for row in shelf if row.title == "Saga")
+    saga.tags, saga.tags_edited = stored, True
+    await _add(sessionmaker_for_test, *shelf)
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/public/comics")).json()
+    rows = {row["title"]: row for row in body["series"]}
+    assert rows["Saga"]["tags"] == stored
+    assert rows["Monstress"]["tags"] == []
+    assert "tags_edited" not in rows["Saga"]
 
 
 async def test_the_weeks_list_public_followed_series_only(sessionmaker_for_test):
