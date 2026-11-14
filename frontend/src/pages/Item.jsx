@@ -29,7 +29,9 @@ import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import NotFound from './NotFound.jsx'
 import { itemPath } from '../lib/spinePaths.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
-import { SAVED_NOT_REFRESHED } from '../content/status.js'
+import { SAVED_NOT_REFRESHED, WAKING } from '../content/status.js'
+import { useElapsed } from '../lib/useElapsed.js'
+import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
 import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
 
 const COMICS = spine.comics
@@ -695,7 +697,7 @@ function ItemPage({ id }) {
         item={preview}
         detail={false}
         signedIn={signedIn}
-        loadState={failed ? staleLine : null}
+        loadState={failed ? staleLine : <DetailWait />}
       />
     )
   }
@@ -706,8 +708,42 @@ function ItemPage({ id }) {
     <article className="item-page">
       <Breadcrumb trail={itemTrail(null, false)} />
       <h1 className="visually-hidden">{spine.name}</h1>
+      {!failed && <ItemSkeleton />}
       <LoadState loading={!failed} failed={failed} onRetry={retry} />
     </article>
+  )
+}
+
+/**
+ * The snapshot preview's quiet wait for the rest of the item. A warm API
+ * answers in a fraction of a second, so this says nothing until the wait is
+ * long enough to be a sleeping server, then says so.
+ */
+function DetailWait() {
+  const seconds = useElapsed(true)
+  if (seconds < SLOW_LOAD_AFTER_S) return null
+  return (
+    <p className="load-state muted" role="status">
+      {WAKING}
+    </p>
+  )
+}
+
+/**
+ * The item page's shape in `--skeleton`, for an item the snapshot does not
+ * have yet (added since the last nightly build) while the API wakes.
+ */
+function ItemSkeleton() {
+  return (
+    <div className="item-head item-skeleton" aria-hidden="true">
+      <div className="item-cover">
+        <span className="skeleton-cover" />
+      </div>
+      <div className="item-heading">
+        <span className="skeleton-line item-skeleton-title" />
+        <span className="skeleton-line skeleton-line-short" />
+      </div>
+    </div>
   )
 }
 

@@ -417,6 +417,29 @@ describe('Item', () => {
     )
   })
 
+  it('draws the page’s shape, not a bare line, for an item the snapshot lacks', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    const { container } = renderPage()
+    expect(container.querySelector('.item-skeleton')).not.toBeNull()
+    expect(
+      await screen.findByText(/waking the server/i, {}, { timeout: 5000 }),
+    ).toBeInTheDocument()
+    expect(container.querySelector('.item-skeleton')).not.toBeNull()
+  })
+
+  it('swaps the skeleton for the error and Try again when the read fails', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([])
+    stubApi({ ok: false, status: 500, json: async () => ({}) })
+    const { container } = renderPage()
+    expect(await screen.findByText(/didn’t load/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+    expect(container.querySelector('.item-skeleton')).toBeNull()
+  })
+
   it('links to the edit page when signed in', async () => {
     stubItem()
     await renderReady({ signedIn: true })
@@ -658,6 +681,22 @@ describe('Item snapshot preview', () => {
     expect(screen.queryByText('Defy the god of the dead.')).toBeNull()
     expect(screen.queryByText('Community')).toBeNull()
     expect(screen.queryByText(/waking the server/i)).toBeNull()
+  })
+
+  it('keeps the preview up and says the server is waking once the wait is long', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([ROW])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    await renderReady()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(
+      await screen.findByText(/waking the server/i, {}, { timeout: 5000 }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Hades' }),
+    ).toBeInTheDocument()
   })
 
   it('adds the detail when the API answers', async () => {

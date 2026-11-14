@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-14
+
+- A game’s page no longer sits nearly blank while the server wakes up. A game added since the last nightly build now shows the page’s outline and says the server is waking, and a game I already have a preview of says so too if the rest takes more than a few seconds.
+
 ## 2026-11-13
 
 - Games and comics now have tags I picked the words for. On [Games](/shelf/games) I can filter by play style, setting and tone, and on [Comics](/shelf/comics) by genre and form, instead of IGDB’s genres, where Adventure and Action were on almost everything. A game’s page lists its tags in labelled groups, with the platforms in a row of their own. Each comic series is tagged by a model that can only choose from my list, and I can change any tag on the edit page.
