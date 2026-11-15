@@ -43,8 +43,14 @@ Cutover is two settings, made together: set `API_DEPLOY_FROM_ACTIONS=true`, and
 set `autoDeployTrigger: off` on the API service in `render.yaml` (otherwise
 Render deploys it too). Prove it first with a manual run of `deploy.yml`.
 
-Rollback: set `autoDeployTrigger: commit` again and clear the variable. A bad
-deploy is reverted with a PR as before; migrations stay (additive).
+Rollback of the **code**, fast: Actions -> Deploy API -> Run workflow with
+`commit` set to an earlier commit of main (it must contain `GET /api/version`,
+317b574 or later). It runs no migrations, redeploys that commit through the hook
+and waits for `/api/version` to report it. The schema stays where it is, which is
+safe because migrations are additive. Then revert the bad change with a PR.
+
+Rollback of the **cutover**: set `autoDeployTrigger: commit` again and clear the
+variable. Migrations stay (additive).
 
 ## Gotchas
 

@@ -17,8 +17,10 @@ name: Deploy API
 # Off until the API_DEPLOY_FROM_ACTIONS repository variable is "true", which is
 # set together with `autoDeployTrigger: off` on the API in render.yaml (the
 # cutover). Until then Render deploys on its own and this would deploy twice.
-# A manual run (Run workflow, on main) always works and is the dry run: migrations are a
-# no-op when current, and the hook redeploys the commit it is given.
+# A manual run (Run workflow, on main) always works. With no input it deploys
+# main's tip like a push. With `commit` it redeploys that EARLIER commit of main
+# and runs no migrations: a code rollback that leaves the schema alone (safe
+# because migrations are additive), and the way to prove the hook deploys.
 #
 # Needs secrets DATABASE_URL_DIRECT (Neon's direct, unpooled URL) and
 # RENDER_API_DEPLOY_HOOK_URL (the API service's deploy hook, not the static
@@ -27,6 +29,14 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      commit:
+        description: >-
+          Redeploy this EARLIER commit of main (no migrations run). Leave empty
+          to deploy main's tip. It must contain GET /api/version (317b574 or
+          later), which the wait reads.
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -55,7 +65,35 @@ jobs:
     # its own error fires before this limit does.
     timeout-minutes: 45
     steps:
+      # Full history: a requested commit is checked to be an ancestor of main.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # A push deploys the commit that was pushed. A manual run may name an
+      # earlier commit of main instead: a code rollback. The schema is never
+      # rolled back (migrations are additive), so that path runs none.
+      - name: Choose the commit to deploy
+        id: target
+        env:
+          REQUESTED: ${{ inputs.commit }}
+        run: |
+          if [ -z "$REQUESTED" ]; then
+            echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "migrate=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! sha="$(git rev-parse --verify --quiet "$REQUESTED^{commit}")"; then
+            echo "::error::'$REQUESTED' is not a commit in this repository"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$sha" "$GITHUB_SHA"; then
+            echo "::error::$sha is not an ancestor of main's tip $GITHUB_SHA"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "migrate=false" >> "$GITHUB_OUTPUT"
+          echo "Redeploying $sha (main is at $GITHUB_SHA); migrations will not run."
 
       - uses: actions/setup-python@v7
         with:
@@ -85,6 +123,7 @@ jobs:
 
       # env.py reads the direct URL only: Neon's pooler cannot run Alembic.
       - name: Apply migrations
+        if: steps.target.outputs.migrate == 'true'
         working-directory: backend
         env:
           DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
@@ -99,27 +138,30 @@ jobs:
       - name: Deploy the API at this commit
         env:
           HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+          TARGET: ${{ steps.target.outputs.sha }}
         run: |
           echo "::add-mask::$HOOK_URL"
           case "$HOOK_URL" in *\?*) separator='&' ;; *) separator='?' ;; esac
-          curl -fsS -m 60 -X POST "${HOOK_URL}${separator}ref=${GITHUB_SHA}" > /dev/null
-          echo "Deploy requested for $GITHUB_SHA"
+          response="$(curl -fsS -m 60 -X POST "${HOOK_URL}${separator}ref=${TARGET}")"
+          echo "Deploy requested for $TARGET; Render answered: $response"
 
       # /api/health answers the same from the old instance and the new one, so
       # the commit is what says the new build is the one serving. A free
       # instance cold-starts slowly, hence the generous wait.
       - name: Wait for the new build
+        env:
+          TARGET: ${{ steps.target.outputs.sha }}
         run: |
           for attempt in $(seq 1 60); do
             live="$(curl -s -m 10 "$API_URL/api/version" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')"
             echo "attempt $attempt: live commit '${live:-none}'"
-            if [ "$live" = "$GITHUB_SHA" ]; then
-              echo "The API is serving $GITHUB_SHA"
+            if [ "$live" = "$TARGET" ]; then
+              echo "The API is serving $TARGET"
               exit 0
             fi
             sleep 15
           done
-          echo "::error::The API was not serving $GITHUB_SHA within 15 minutes. The migration is applied (additive, safe ahead of the code); see the Render deploy log, and roll back per CLAUDE.md -> Ship if the deploy failed."
+          echo "::error::The API was not serving $TARGET within 25 minutes. Any migration is applied (additive, safe ahead of the code); see the Render deploy log, and roll back per CLAUDE.md -> Ship if the deploy failed."
           exit 1
 
       - name: Smoke test
