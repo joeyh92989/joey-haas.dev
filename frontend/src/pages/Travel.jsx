@@ -5,6 +5,7 @@ import TripCard from '../components/TripCard.jsx'
 import { trips } from '../content/trips.js'
 import { placeSlug } from '../lib/trips.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import PageHeader from '../components/PageHeader.jsx'
 
 /** The sentence under the lede while no trip is published. */
 export const EMPTY = 'No trips written up yet.'
@@ -64,10 +65,11 @@ export default function Travel() {
 
   return (
     <section>
-      <h1>Travel</h1>
-      <p className="prose">
-        Trips, a day at a time: where we went, what happened and a few photos.
-      </p>
+      <PageHeader
+        title="Travel"
+        lede="Trips, a day at a time: where we went, what happened and a few photos."
+        ledeClassName="prose"
+      />
       {trips.length === 0 ? (
         <p className="muted">{EMPTY}</p>
       ) : (

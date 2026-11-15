@@ -9,6 +9,8 @@ import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
 import { apiFetch } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+import EmptyState from '../components/EmptyState.jsx'
+import { EMPTY } from '../content/emptyStates.js'
 
 /** The range shown first. */
 const DEFAULT_RANGE = '30d'
@@ -142,12 +144,12 @@ export default function AdminAnalytics() {
         ) : data.views ? (
           <DayBars series={data.series} />
         ) : (
-          <div className="analytics-empty">
-            <p>No views yet. The beacon is running. Check back tomorrow.</p>
-            <p className="muted">
-              Live since {dayLabel(data.live_since, { weekday: true })}.
-            </p>
-          </div>
+          <EmptyState
+            title={EMPTY.analytics.noViews}
+            line={EMPTY.analytics.liveSince(
+              dayLabel(data.live_since, { weekday: true }),
+            )}
+          />
         )}
       </Panel>
 

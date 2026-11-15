@@ -9,6 +9,7 @@ import {
   picksFor,
   toggleMood,
 } from '../lib/pickForMe.js'
+import EmptyState from './EmptyState.jsx'
 
 const copy = spine.next.pickForMe
 const SHOWN = 3
@@ -194,7 +195,7 @@ export default function PickForMe({ table, lead = null }) {
         {announce}
       </p>
       {!chosen ? (
-        <p className="pick-empty muted">{copy.choose}</p>
+        <EmptyState title={copy.choose} />
       ) : picks.length ? (
         <ul className="tonight-alts pick-cards">
           {picks.map(({ pick, card }) => (

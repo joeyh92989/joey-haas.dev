@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { LOAD_ERROR } from '../../content/status.js'
+import LoadState from '../LoadState.jsx'
 import {
   removeGarmentRequest,
   removePhotoRequest,
@@ -41,6 +41,7 @@ function formValues(fields, garment) {
 export default function GarmentCheck({ sitting, kind, onRemoved }) {
   const [garments, setGarments] = useState(null)
   const [failed, setFailed] = useState(false)
+  const [tries, setTries] = useState(0)
   const [skipped, setSkipped] = useState(() => new Set())
   // Removed here at once, whether or not the page has caught up yet.
   const [removed, setRemoved] = useState(() => new Set())
@@ -67,7 +68,12 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
     return () => {
       live = false
     }
-  }, [])
+  }, [tries])
+
+  function retry() {
+    setFailed(false)
+    setTries((count) => count + 1)
+  }
 
   const pieces = useMemo(
     () =>
@@ -193,11 +199,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
       <p className="visually-hidden" role="status">
         {notice}
       </p>
-      {failed && (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      )}
+      {failed && <LoadState failed onRetry={retry} />}
       {error && (
         <p className="admin-error" role="alert">
           {error}

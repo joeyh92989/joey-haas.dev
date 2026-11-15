@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import ShelfCardActions from './ShelfCardActions.jsx'
 
@@ -39,6 +39,17 @@ function renderActions(item = ITEM) {
   )
   return handlers
 }
+
+// jsdom has no showModal; the touch sheet is a native modal dialog (Sheet).
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+    this.dispatchEvent(new Event('close'))
+  }
+})
 
 afterEach(() => {
   vi.mocked(useMediaQuery).mockReset()
@@ -190,7 +201,10 @@ describe('ShelfCardActions on a touch device', () => {
     const button = screen.getByRole('button', { name: 'Actions for Star Fox' })
     await userEvent.click(button)
 
-    await userEvent.keyboard('{Escape}')
+    fireEvent(
+      screen.getByRole('dialog'),
+      new Event('cancel', { cancelable: true }),
+    )
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(button).toHaveFocus()
@@ -209,7 +223,8 @@ describe('ShelfCardActions on a touch device', () => {
     expect(handlers.onRate).toHaveBeenCalledWith(ITEM, 6)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByText('outside'))
+    // A press on the backdrop is a click on the dialog itself.
+    await userEvent.click(screen.getByRole('dialog'))
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

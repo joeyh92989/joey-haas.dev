@@ -83,13 +83,15 @@ export default function MetadataPicker({ type, onSelect }) {
 
       {state === 'searching' && <p className="muted">Searching…</p>}
       {state === 'unavailable' && (
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           Lookup unavailable — this source has no API key configured. Enter the
           title manually.
         </p>
       )}
       {state === 'error' && (
-        <p className="admin-error">Lookup failed. Enter the title manually.</p>
+        <p className="admin-error" role="alert">
+          Lookup failed. Enter the title manually.
+        </p>
       )}
       {state === 'done' && candidates.length === 0 && (
         <p className="muted">No matches. Enter the title manually.</p>

@@ -59,13 +59,13 @@ describe('PickForMe', () => {
     renderBand()
     expect(screen.getByRole('radio', { name: /Any length/ })).not.toBeChecked()
     expect(titles()).toEqual([])
-    expect(document.querySelector('.pick-empty')).toHaveTextContent(
+    expect(document.querySelector('.empty-state')).toHaveTextContent(
       spine.next.pickForMe.choose,
     )
     await user.click(screen.getByRole('button', { name: 'Cozy' }))
-    expect(document.querySelector('.pick-empty')).toBeNull()
+    expect(document.querySelector('.empty-state')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Cozy' }))
-    expect(document.querySelector('.pick-empty')).toHaveTextContent(
+    expect(document.querySelector('.empty-state')).toHaveTextContent(
       spine.next.pickForMe.choose,
     )
     expect(titles()).toEqual([])

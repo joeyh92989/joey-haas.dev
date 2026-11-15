@@ -5129,6 +5129,21 @@ a.month-bar::before {
   z-index: 10;
 }
 
+/* Rendered through Sheet (a modal dialog): undo the dialog's own box. */
+dialog.shelf-sheet {
+  border-width: 1px 0 0;
+  color: var(--text);
+  margin: 0;
+  max-height: 85dvh;
+  max-width: none;
+  overflow: auto;
+  top: auto;
+  width: auto;
+}
+.shelf-sheet::backdrop {
+  background: var(--overlay);
+}
+
 /* Full width in the sheet, with thumb-sized targets: at 3rem each half-star
    is 24px wide, WCAG 2.5.8's minimum. */
 .shelf-sheet .quick-rate {

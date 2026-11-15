@@ -13,6 +13,8 @@ import {
 } from '../lib/intakeDemo.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import EmptyState from '../components/EmptyState.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 
 /** The replay's steps, in order; each names the stage that is lit. */
 const STEPS = ['idle', 'read', 'match', 'review', 'add']
@@ -133,9 +135,12 @@ export default function IntakeDemo() {
   if (!recording) {
     return (
       <article className="intake-demo">
-        <h1>{copy.title}</h1>
-        <p className="intake-demo-lede">{copy.lede}</p>
-        <p className="intake-demo-empty">{copy.notRecorded}</p>
+        <PageHeader
+          title={copy.title}
+          lede={copy.lede}
+          ledeClassName="intake-demo-lede"
+        />
+        <EmptyState title={copy.notRecorded} />
       </article>
     )
   }
@@ -159,8 +164,11 @@ export default function IntakeDemo() {
 
   return (
     <article className="intake-demo">
-      <h1>{copy.title}</h1>
-      <p className="intake-demo-lede">{copy.lede}</p>
+      <PageHeader
+        title={copy.title}
+        lede={copy.lede}
+        ledeClassName="intake-demo-lede"
+      />
       <div className="intake-demo-grid">
         <div className="intake-demo-shelf">
           <DrawnShelf titles={recording.titles} />
@@ -209,12 +217,9 @@ export default function IntakeDemo() {
               </ul>
             ) : (
               // The stage line is shown here and announced by the status note.
-              <p
-                className="intake-demo-empty"
-                aria-hidden={stageNote ? 'true' : undefined}
-              >
-                {stageNote ?? copy.empty}
-              </p>
+              <div aria-hidden={stageNote ? 'true' : undefined}>
+                <EmptyState title={stageNote ?? copy.empty} />
+              </div>
             )}
           </div>
           {shown && (

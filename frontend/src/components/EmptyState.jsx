@@ -8,13 +8,21 @@ import { Link } from 'react-router'
  * @param {object} props
  * @param {import('react').ReactNode} props.title - What is missing.
  * @param {import('react').ReactNode} [props.line] - One more line of context.
+ * @param {import('react').Ref<HTMLParagraphElement>} [props.titleRef] - Makes
+ *   the title a focus target (tabIndex -1) for a page that moves focus here.
  * @param {{label: string, to?: string, onClick?: () => void}} [props.action]
  *   The next step: a link with `to`, a button with `onClick`.
  */
-export default function EmptyState({ title, line, action }) {
+export default function EmptyState({ title, line, action, titleRef }) {
   return (
     <div className="empty-state">
-      <p className="empty-state-title">{title}</p>
+      <p
+        className="empty-state-title"
+        ref={titleRef}
+        tabIndex={titleRef ? -1 : undefined}
+      >
+        {title}
+      </p>
       {line && <p className="empty-state-line muted">{line}</p>}
       {action &&
         (action.to ? (

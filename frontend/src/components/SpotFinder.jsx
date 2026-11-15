@@ -4,6 +4,7 @@ import { StatusText } from './JobStatusRow.jsx'
 import { denver } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { whenWords } from '../lib/nightly.js'
+import EmptyState from './EmptyState.jsx'
 
 const copy = denver.finder
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -241,7 +242,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
       )}
       {state === 'loading' && <p>Loading the queue…</p>}
       {state === 'ready' && entries.length === 0 && (
-        <p className="finder-empty">{copy.empty}</p>
+        <EmptyState title={copy.empty} />
       )}
       {entries.length > 0 && (
         <ul className="cand-list">

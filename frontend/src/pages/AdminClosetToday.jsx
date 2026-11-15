@@ -35,6 +35,7 @@ import {
   swapTile,
   woreGarments,
 } from '../lib/closet.js'
+import EmptyState from '../components/EmptyState.jsx'
 
 /**
  * How the outfit on screen was chosen, for `POST /api/closet/wore`. A photo
@@ -218,7 +219,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         <p className="muted">Loading…</p>
       )}
       {mode === 'closet' && garments?.length === 0 && (
-        <p className="muted">{adminCopy.closetNoPieces}</p>
+        <EmptyState title={adminCopy.closetNoPieces} />
       )}
       {garments?.length > 0 && (
         <ul className="garment-grid today-picker">

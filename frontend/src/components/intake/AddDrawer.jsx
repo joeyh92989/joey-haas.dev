@@ -11,9 +11,9 @@ const FOCUSABLE =
  * typed, then the kind's own fields from its `FieldSpec` list (the same
  * list the sitting's Details step draws), then Add, Add and search again,
  * Cancel. Beside the grid at 1280; a modal bottom sheet below 900px
- * (`sheet`), which renders through Sheet. Either way focus is trapped inside
- * while it is open and Escape closes it; the caller returns focus to the
- * button that opened it.
+ * (`sheet`), which renders through Sheet, the one modal and the only dialog.
+ * The inline drawer is a labelled `aside`, not a dialog. Escape closes both;
+ * the caller returns focus to the button that opened it.
  *
  * @param {object} props
  * @param {object} props.kind The kind, as `GET /api/intake/kinds` serves it.
@@ -170,7 +170,6 @@ export default function AddDrawer({
   return (
     <aside
       ref={ref}
-      role="dialog"
       aria-labelledby={`${id}-title`}
       className="intake-drawer"
       onKeyDown={onKeyDown}

@@ -21,7 +21,8 @@ import {
   setStatus as postStatus,
   statusMoves,
 } from '../lib/statusMoves.js'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import { ACTION_ERROR, WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 
 // A comic has its own page (`AdminComic`), so it is not offered here.
 const TYPES = ['game', 'movie', 'boardgame']
@@ -211,6 +212,7 @@ export default function AdminItem() {
   const [item, setItem] = useState(null)
   const [form, setForm] = useState(null)
   const [state, setState] = useState('loading')
+  const [tries, setTries] = useState(0)
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -252,7 +254,12 @@ export default function AdminItem() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [fetchItem])
+  }, [fetchItem, tries])
+
+  function retry() {
+    setState('loading')
+    setTries((count) => count + 1)
+  }
 
   /**
    * Runs one status or playthrough write and shows the item it returns.
@@ -512,7 +519,7 @@ export default function AdminItem() {
     return (
       <section>
         {header}
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
       </section>
@@ -523,7 +530,9 @@ export default function AdminItem() {
     return (
       <section>
         {header}
-        <p className="admin-error">{adminCopy.itemMissing}</p>
+        <p className="admin-error" role="alert">
+          {adminCopy.itemMissing}
+        </p>
       </section>
     )
   }
@@ -532,7 +541,7 @@ export default function AdminItem() {
     return (
       <section>
         {header}
-        <p className="admin-error">{LOAD_ERROR}</p>
+        <LoadState failed onRetry={retry} />
       </section>
     )
   }

@@ -128,13 +128,13 @@ describe('AddSection on the shelf', () => {
     await search(user)
     const add = await screen.findByRole('button', { name: 'Add Saga' })
     await user.click(add)
-    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    const drawer = screen.getByRole('complementary', { name: 'Saga' })
     expect(within(drawer).getByText('Comic · comicvine')).toBeInTheDocument()
     await user.type(within(drawer).getByLabelText('Issues owned'), '1-6')
     await user.click(
       within(drawer).getByRole('button', { name: 'Add to shelf' }),
     )
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
     const [sent] = api.calls('POST', /\/api\/intake\/add$/)
     expect(sent.body).toMatchObject({
       kind: 'comic',
@@ -167,12 +167,12 @@ describe('AddSection on the shelf', () => {
     renderAt()
     await search(user)
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
-    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    const drawer = screen.getByRole('complementary', { name: 'Saga' })
     await user.type(within(drawer).getByLabelText('Issues owned'), '3-4')
     await user.click(
       within(drawer).getByRole('button', { name: 'Add to shelf' }),
     )
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
     expect(screen.getByRole('status')).toHaveTextContent(
       'Added 2 issues to Saga',
     )
@@ -185,7 +185,7 @@ describe('AddSection on the shelf', () => {
     await search(user)
     const add = await screen.findByRole('button', { name: 'Add SaGa Frontier' })
     await user.click(add)
-    const drawer = screen.getByRole('dialog', { name: 'SaGa Frontier' })
+    const drawer = screen.getByRole('complementary', { name: 'SaGa Frontier' })
     expect(drawer).toContainElement(document.activeElement)
     const cancel = within(drawer).getByRole('button', { name: 'Cancel' })
     cancel.focus()
@@ -194,7 +194,7 @@ describe('AddSection on the shelf', () => {
     await user.tab({ shift: true })
     expect(cancel).toHaveFocus()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('complementary')).toBeNull()
     expect(add).toHaveFocus()
   })
 
@@ -207,12 +207,12 @@ describe('AddSection on the shelf', () => {
     await user.click(
       screen.getByRole('button', { name: 'Keep as a typed Movie' }),
     )
-    const drawer = screen.getByRole('dialog', { name: 'Heat' })
+    const drawer = screen.getByRole('complementary', { name: 'Heat' })
     expect(within(drawer).getByLabelText('Title')).toHaveValue('Heat')
     await user.click(
       within(drawer).getByRole('button', { name: 'Add to shelf' }),
     )
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
     const [sent] = api.calls('POST', /\/api\/intake\/add$/)
     expect(sent.body).toMatchObject({
       kind: 'movie',
@@ -229,7 +229,7 @@ describe('AddSection on the shelf', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Keep as a typed Board game' }),
     )
-    const drawer = screen.getByRole('dialog', { name: 'Wingspan' })
+    const drawer = screen.getByRole('complementary', { name: 'Wingspan' })
     expect(
       within(drawer).getByText('Board game · kept as typed'),
     ).toBeInTheDocument()
@@ -282,7 +282,7 @@ describe('AddSection on the shelf', () => {
     await search(user)
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     await user.click(screen.getByRole('button', { name: 'Add to shelf' }))
-    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    const drawer = screen.getByRole('complementary', { name: 'Saga' })
     expect(
       await within(drawer).findByText('Issue ranges run low to high'),
     ).toBeInTheDocument()
@@ -314,7 +314,7 @@ describe('AddSection on the shelf', () => {
     await search(user)
     await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     await user.click(screen.getByRole('button', { name: 'Add to shelf' }))
-    const drawer = screen.getByRole('dialog', { name: 'Saga' })
+    const drawer = screen.getByRole('complementary', { name: 'Saga' })
     expect(await within(drawer).findByRole('alert')).toHaveTextContent(
       'Year must be a four-digit year',
     )
@@ -477,7 +477,7 @@ describe('AddSection in the Closet', () => {
       'Type a piece to add it by hand, or ▤ Photos, one per piece',
     )
     await user.type(field, 'Navy blazer{Enter}')
-    const drawer = screen.getByRole('dialog', { name: 'Navy blazer' })
+    const drawer = screen.getByRole('complementary', { name: 'Navy blazer' })
     expect(within(drawer).getByLabelText('Name')).toHaveValue('Navy blazer')
     await user.click(
       within(drawer).getByRole('button', { name: 'Add to closet' }),
@@ -504,13 +504,13 @@ describe('AddSection in the Closet', () => {
     renderAt('closet')
     const field = await screen.findByRole('textbox', { name: 'Add' })
     await user.type(field, 'Navy blazer{Enter}')
-    const drawer = screen.getByRole('dialog', { name: 'Navy blazer' })
+    const drawer = screen.getByRole('complementary', { name: 'Navy blazer' })
     await user.click(
       within(drawer).getByRole('button', { name: 'Add to closet' }),
     )
     await waitFor(() =>
       expect(
-        screen.queryByRole('dialog', { name: 'Navy blazer' }),
+        screen.queryByRole('complementary', { name: 'Navy blazer' }),
       ).not.toBeInTheDocument(),
     )
     expect(field).toHaveValue('Navy blazer')

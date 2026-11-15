@@ -27,6 +27,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
+import EmptyState from '../components/EmptyState.jsx'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
@@ -584,11 +585,15 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
                 onUnpin={unpin}
               />
             ) : tonight.picks.length === 0 ? (
-              <p className="empty-box">
-                {copy.empty.games.before}{' '}
-                <a href="#pick-for-me">{copy.empty.games.link}</a>
-                {copy.empty.games.after}
-              </p>
+              <EmptyState
+                title={
+                  <>
+                    {copy.empty.games.before}{' '}
+                    <a href="#pick-for-me">{copy.empty.games.link}</a>
+                    {copy.empty.games.after}
+                  </>
+                }
+              />
             ) : (
               <p className="muted">{copy.empty.upNext}</p>
             )}
