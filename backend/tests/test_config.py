@@ -175,3 +175,17 @@ def test_the_paid_fallback_is_on_only_for_an_explicit_true(value, on):
     if value is not None:
         env["LLM_PAID_FALLBACK"] = value
     assert load_config(env).llm_paid_fallback is on
+
+
+def test_docs_are_off_in_production():
+    assert load_config(COMPLETE).docs_enabled is False
+
+
+def test_docs_are_on_for_a_local_frontend():
+    env = {**COMPLETE, "FRONTEND_URL": "http://localhost:5173"}
+    assert load_config(env).docs_enabled is True
+
+
+def test_docs_flag_turns_them_on_explicitly():
+    assert load_config({**COMPLETE, "ENABLE_DOCS": "1"}).docs_enabled is True
+    assert load_config({**COMPLETE, "ENABLE_DOCS": "true"}).docs_enabled is False
