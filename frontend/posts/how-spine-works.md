@@ -9,7 +9,7 @@ draft: false
 
 My Shelf tracks the [game collection on this site](/shelf). It knows what I own on cartridge, what I’ve finished, what I should play next, and what’s about to be released that I’d want. This post is the engineering behind it: what each part does, which decisions were deliberate, and where the boring parts are deliberately boring.
 
-The whole thing runs on free tiers. A React and Vite frontend is a static site on Render; a FastAPI backend is a free Render web service; Postgres 18 lives on Neon’s free plan. Every push to `main` deploys both, and `main` only takes merges from pull requests whose CI passes.
+The whole thing runs on free tiers. A React and Vite frontend is a static site on Render; a FastAPI backend is a free Render web service; Postgres 18 lives on Neon’s free plan. The static site deploys on every push to `main`. The API deploys from a GitHub Actions workflow that migrates the database, deploys the merged commit, waits for the API to report it and runs a smoke check. `main` only takes merges from pull requests.
 
 ## Why it exists
 
@@ -27,7 +27,7 @@ Confidence is measured, never asked for. A vision model will report high confide
 
 ## One contract for every metadata source
 
-Behind the importer sits a small adapter interface: find candidates for a title, then fetch the details of one. IGDB (via Twitch’s OAuth token exchange), TMDB (a bearer token) and Comic Vine (a query-parameter key, and a one-request-a-second throttle of my own, since it documents no limits) all implement it, and the rest of the application never learns which one it’s talking to.
+Behind the importer sits a small adapter interface: find candidates for a title, then fetch the details of one. IGDB (via Twitch’s OAuth token exchange) and Comic Vine (a query-parameter key, and a one-request-a-second throttle of my own, since it documents no limits) implement it, as does a TMDB adapter for films that isn’t switched on yet, and the rest of the application never learns which one it’s talking to.
 
 A source with no credentials raises `SourceNotConfigured`, which is deliberately not a failure: it means the feature was never enabled on this deploy, so the right response is to disable that media type, not to retry or alert. BoardGameGeek is the one adapter currently reporting itself unavailable, because its XML API stopped serving anonymous requests and now needs a registered application.
 
@@ -35,7 +35,7 @@ Each resolved item keeps a snapshot of what its source said (genres, themes, key
 
 ## The physical catalog
 
-To know what exists on cartridge, My Shelf keeps its own catalog. It reads a community-maintained registry of Switch 2 physical editions through the Google Sheets API, a second community tracker as a cross-check, twelve boutique stores’ public product JSON (Shopify and WooCommerce, read under their robots.txt rules), and IGDB’s N64 list for the older shelf. Each listing is resolved to an IGDB game, then collapsed to one honest format per game and platform, then synced onto the Switch 2 copies I own.
+To know what exists on cartridge, My Shelf keeps its own catalog. It reads a community-maintained registry of Switch 2 physical editions through the Google Sheets API, a second community tracker as a cross-check, eleven boutique stores’ public product JSON (Shopify and WooCommerce, read under their robots.txt rules), and IGDB’s N64 list for the older shelf. Each listing is resolved to an IGDB game, then collapsed to one honest format per game and platform, then synced onto the Switch 2 copies I own.
 
 The collapse rule is the part I’d defend in a review. A registry row and a store listing usually describe different editions of the same game: a retail Game-Key Card beside a Limited Run or Super Rare full cartridge. So the best edition in my home region wins. Any full cartridge there makes the game a cartridge; the sources’ trust tiers only break ties between rows that say the same thing. A cartridge in another region is a note on the item, never a relabel. And the registry may write a format only through one function that refuses to overwrite a value I set by hand, read from a cartridge ID, or confirmed from a photo.
 
@@ -144,12 +144,12 @@ And here’s one item from the shelf endpoint, trimmed to the interesting fields
 
 ## Keeping it boring
 
-The free tier sleeps. Rather than pay to keep the API warm, a nightly GitHub Actions workflow wakes the API, does the refreshing I’d otherwise press buttons for (record Play Next’s picks, walk the catalog, run Radar, and run Discover on Sunday evenings), then fetches the public outputs, compares them with the snapshot already deployed, and triggers a static-site deploy only when something changed. It authenticates with a job token that opens exactly seven routes and nothing else, and a test pins that list. The shelf paints that snapshot instantly and refreshes from the API once it wakes; the “waking the server” state only ever shows when there’s no snapshot at all.
+The free tier sleeps. Rather than pay to keep the API warm, a nightly GitHub Actions workflow wakes the API, does the refreshing I’d otherwise press buttons for (refresh followed comics, walk the catalog, run Radar, and run Discover on Sunday evenings), then fetches the public outputs, compares them with the snapshot already deployed, and triggers a static-site deploy only when something changed. It authenticates with a job token that opens a fixed list of routes and nothing else, and a test pins that list. The shelf paints that snapshot instantly and refreshes from the API once it wakes; the “waking the server” state only ever shows when there’s no snapshot at all.
 
-Migrations are hand-written Alembic, additive only, and applied by hand before the code that needs them merges. That’s only safe if forgetting is loud, so the API refuses to boot when the database is behind the code, and allows (with a warning) a database that is ahead, because for a few minutes after each migration the live code is older than the schema.
+Migrations are hand-written Alembic, additive only, and applied automatically when a pull request merges, before the new API code deploys. That’s only safe if forgetting is loud, so the API refuses to boot when the database is behind the code, and allows (with a warning) a database that is ahead, because for a few minutes after each migration the live code is older than the schema.
 
 CI runs the backend through `ruff`, `pytest` against a real Postgres, and `pip-audit`; the frontend through Prettier, ESLint, Vitest, a production build, and `npm audit`. A smoke script checks production after each deploy, including that no draft content reached the public bundle and that the admin API still answers 401 to anyone without a session, before it checks whether the thing asked for exists. Every feature starts as a design document and a plan in `docs/planning/` before any code, and the repository is public if you’d like to read either.
 
 ## What’s next
 
-Since this was written, the shelf has gained a [year in review](/shelf/year) and a [tour](/shelf/how) of the pipeline above. Still to come: the N64 collection on its own platform, and board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating, and abandonment sharpens the profile it scores against.
+Since this was written, the shelf has gained a [year in review](/shelf/year) and a [tour](/shelf/how) of the pipeline above. Still to come: board games once BoardGameGeek issues API tokens again. Beyond that, the thing most likely to improve Play Next isn’t code but data: every finish, rating, and abandonment sharpens the profile it scores against.

@@ -79,7 +79,7 @@ export const spine = {
         where: '/admin/collection/add',
         title: 'Takes everything in the same way',
         claim:
-          'Games, films, comics and clothes all come in through one pipeline: photograph a shelf or search for a title, let the source match each title, check the doubtful ones, add. A vision model reads the titles off each photo while I keep shooting, and is never asked how confident it is: the server compares each title with the source by string similarity and marks the match exact, probable or uncertain.',
+          'Games, comics and clothes all come in through one pipeline: photograph a shelf or search for a title, let the source match each title, check the doubtful ones, add. A vision model reads the titles off each photo while I keep shooting, and is never asked how confident it is: the server compares each title with the source by string similarity and marks the match exact, probable or uncertain.',
         why: {
           lead: 'Why one pipeline:',
           text: 'each kind of thing declares only what is its own: how it’s recognized, what it’s matched against, which fields it asks for. A new kind is one module, not a new page. And a similarity score can be tested where a model’s confidence can’t, so the whole matching path runs in tests without calling the model.',
