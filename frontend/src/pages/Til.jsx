@@ -18,7 +18,8 @@ export default function Til() {
       <h1>TIL</h1>
       <p className="prose">
         Short notes on things I learned while building this site and the things
-        on it. Longer pieces are on the <Link to="/blog">blog</Link>.
+        on it. Longer pieces are on the <Link to="/blog">blog</Link>.{' '}
+        <a href="/til/feed.xml">RSS</a>
       </p>
       {notes.length === 0 ? (
         <p className="prose muted">No notes yet.</p>

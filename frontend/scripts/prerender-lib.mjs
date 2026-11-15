@@ -12,11 +12,15 @@ import {
   monthName,
 } from '../src/lib/monthInReview.js'
 import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
-import { finishRows } from '../src/lib/finishes.js'
+import { finishDates, finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
 import { isHiddenPath } from '../src/lib/snapshotPresence.js'
 import { editionPath, issuePath, itemPath } from '../src/lib/spinePaths.js'
-import { finishYears, yearInReview } from '../src/lib/yearInReview.js'
+import {
+  finishYears,
+  ownedFinishes,
+  yearInReview,
+} from '../src/lib/yearInReview.js'
 
 export const SITE_URL = 'https://joey-haas.dev'
 
@@ -74,6 +78,12 @@ export const LEGACY_PREFIX = '/spine'
 const SPINE_FEED = {
   href: `${spine.path}/feed.xml`,
   title: `${spine.name}: finished games`,
+}
+
+/** The blog feed, announced on every page, as the shell always did. */
+const BLOG_FEED = {
+  href: '/feed.xml',
+  title: profile.name,
 }
 
 /** The TIL feed, announced in the head of the notes pages. */
@@ -155,6 +165,110 @@ function tripImage(trip) {
   }
 }
 
+/** Home's structured data: the person and the site, as one graph. */
+function homeJsonLd() {
+  const person = `${SITE_URL}/#person`
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Person',
+        '@id': person,
+        name: profile.name,
+        url: SITE_URL,
+        jobTitle: 'Senior Software Engineer',
+        sameAs: [profile.github, profile.linkedin].filter(Boolean),
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        name: profile.name,
+        url: SITE_URL,
+        author: { '@id': person },
+      },
+    ],
+  }
+}
+
+/** A post's structured data. */
+function postJsonLd(post, url, description) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description,
+    url,
+    mainEntityOfPage: url,
+    ...(/^\d{4}-\d{2}-\d{2}$/.test(post.date)
+      ? { datePublished: post.date }
+      : {}),
+    author: { '@type': 'Person', name: profile.name, url: SITE_URL },
+  }
+}
+
+/** The latest of some YYYY-MM-DD dates, or nothing. */
+const latest = (dates) =>
+  dates
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d ?? ''))
+    .sort()
+    .pop()
+
+/** An item's sitemap date: its latest finish, else the day it was added. */
+function itemDate(item) {
+  return (
+    latest(finishDates(item)) ??
+    latest([
+      typeof item.created_at === 'string' ? item.created_at.slice(0, 10) : '',
+    ])
+  )
+}
+
+/**
+ * The name each item is titled by: its title, and where two rows share one,
+ * qualified by year, then platform, then creator, then a short id, so no two
+ * pages share a <title> (#268). Only colliding rows change.
+ *
+ * @param {object[]} items
+ * @returns {Map<string, string>} id to display title.
+ */
+export function itemLabels(items) {
+  const valid = items.filter((item) => item?.id != null && item.title)
+  const labels = new Map()
+  const picks = [(i) => i.year, (i) => i.platform, (i) => i.creator]
+  for (const [title, group] of Map.groupBy(valid, (item) => item.title)) {
+    if (group.length === 1) {
+      labels.set(group[0].id, title)
+      continue
+    }
+    // The fewest qualifiers that tell every row apart; all of them if none do.
+    const label = (item, count) => {
+      const parts = picks
+        .slice(0, count)
+        .map((pick) => pick(item))
+        .filter(Boolean)
+      return parts.length ? `${title} (${parts.join(', ')})` : title
+    }
+    let count = 1
+    while (
+      count < picks.length &&
+      new Set(group.map((item) => label(item, count))).size < group.length
+    ) {
+      count += 1
+    }
+    const text = group.map((item) => label(item, count))
+    group.forEach((item, i) => {
+      const clash = text.indexOf(text[i]) !== text.lastIndexOf(text[i])
+      labels.set(
+        item.id,
+        clash
+          ? `${title} (${[...picks.map((pick) => pick(item)).filter(Boolean), String(item.id).slice(0, 8)].join(', ')})`
+          : text[i],
+      )
+    })
+  }
+  return labels
+}
+
 /**
  * Every public route and its head. Items come from the build-time snapshot,
  * which holds public items only, so nothing private can be prerendered.
@@ -205,6 +319,8 @@ export function publicRoutes({
     [spine.next.path]: { legacy: true },
     [spine.how.path]: { legacy: true },
     '/now': { feed: SPINE_FEED },
+    '/': { jsonLd: homeJsonLd() },
+    '/blog': { feed: BLOG_FEED },
   }
   const routes = staticPages(posts.length > 0).map((entry) => ({
     ...page(entry.path, entry.headTitle, entry.description),
@@ -215,13 +331,19 @@ export function publicRoutes({
   const lastmod = (date) =>
     /^\d{4}-\d{2}-\d{2}$/.test(date) ? { lastmod: date } : {}
   for (const post of posts) {
+    const description = excerpt(post.body)
     routes.push({
       ...page(
         `/blog/${post.slug}`,
         `${post.title} · ${profile.name}`,
-        excerpt(post.body),
+        description,
       ),
       type: 'article',
+      jsonLd: postJsonLd(
+        post,
+        `${SITE_URL}/blog/${encodeURIComponent(post.slug)}`,
+        description,
+      ),
       ...lastmod(post.date),
     })
   }
@@ -263,8 +385,13 @@ export function publicRoutes({
       ...lastmod(trip.date),
     })
   }
+  const labels = itemLabels(items)
+  const seriesDate = new Map()
   for (const item of items) {
     if (item?.id == null || !item.title) continue
+    const label = labels.get(item.id)
+    const date = itemDate(item)
+    seriesDate.set(item.id, { label, date })
     const where = item.platform ? ` on ${item.platform}` : ''
     const rated = item.rating != null ? ` Rated ${item.rating}/10.` : ''
     const kind = ITEM_KINDS[item.type] ?? 'collection'
@@ -274,11 +401,12 @@ export function publicRoutes({
     routes.push({
       ...page(
         `${spine.path}/${encodeURIComponent(item.id)}`,
-        `${item.title} · ${spine.name}`,
+        `${label} · ${spine.name}`,
         `${item.title}${where}, ${place} on ${spine.name}.${rated}`,
       ),
       slash: true,
       legacy: true,
+      ...(date ? { lastmod: date } : {}),
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
@@ -289,6 +417,9 @@ export function publicRoutes({
   // `legacy` mirror.
   for (const series of Array.isArray(comicIssues) ? comicIssues : []) {
     if (!series?.item_id || !series.series_title) continue
+    const known = seriesDate.get(series.item_id)
+    const seriesName = known?.label ?? series.series_title
+    const seriesMod = known?.date ? { lastmod: known.date } : {}
     // The SPA's own builders, minus the slash `slash: true` puts back.
     const bare = (path) => path.slice(0, -1)
     const cover = (url, alt) =>
@@ -297,7 +428,7 @@ export function publicRoutes({
         : DEFAULT_IMAGE
     for (const issue of series.issues ?? []) {
       if (!Number.isInteger(issue?.number)) continue
-      const label = `${series.series_title} #${issue.number}`
+      const label = `${seriesName} #${issue.number}`
       const named = issue.name ? `, “${issue.name}”` : ''
       routes.push({
         ...page(
@@ -306,12 +437,13 @@ export function publicRoutes({
           `${label}${named}, from ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
         slash: true,
+        ...seriesMod,
         image: cover(issue.cover_url, `Cover of ${label}`),
       })
     }
     for (const edition of series.editions ?? []) {
       if (!edition?.slug || !edition.label) continue
-      const label = `${series.series_title}, ${edition.label}`
+      const label = `${seriesName}, ${edition.label}`
       routes.push({
         ...page(
           bare(editionPath(series.item_id, edition.slug)),
@@ -319,6 +451,7 @@ export function publicRoutes({
           `${label}, a collected edition on ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
         slash: true,
+        ...seriesMod,
         image: cover(edition.cover_url, `Cover of ${label}`),
       })
     }
@@ -335,6 +468,13 @@ export function publicRoutes({
       ),
       slash: true,
       feed: SPINE_FEED,
+      ...lastmod(
+        latest(
+          ownedFinishes(items)
+            .map((row) => row.finished_at)
+            .filter((d) => d.startsWith(`${year}-`)),
+        ),
+      ),
     })
   }
   // One page per month with a finish. Months with only sessions keep the
@@ -351,6 +491,7 @@ export function publicRoutes({
       ),
       slash: true,
       feed: SPINE_FEED,
+      ...lastmod(latest(finished.map((row) => row.finished_at))),
     })
   }
   return routes
@@ -427,12 +568,23 @@ export function headTags(route) {
     `<meta property="og:image:alt" content="${escapeHtml(image.alt)}" />`,
     // A cover is portrait: the large card would crop it to a strip.
     `<meta name="twitter:card" content="${image.width ? 'summary_large_image' : 'summary'}" />`,
+    `<meta name="twitter:title" content="${escapeHtml(route.title)}" />`,
+    `<meta name="twitter:description" content="${escapeHtml(route.description)}" />`,
   )
   if (route.noindex) lines.push('<meta name="robots" content="noindex" />')
-  if (route.feed) {
+  // The blog feed rides on every page, as the shell's own tag did; a page's
+  // own feed comes after it.
+  const feeds = [BLOG_FEED]
+  if (route.feed && route.feed.href !== BLOG_FEED.href) feeds.push(route.feed)
+  for (const feed of feeds) {
     lines.push(
-      `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(route.feed.title)}" href="${escapeHtml(route.feed.href)}" />`,
+      `<link rel="alternate" type="application/rss+xml" title="${escapeHtml(feed.title)}" href="${escapeHtml(feed.href)}" />`,
     )
+  }
+  if (route.jsonLd) {
+    // `<` would let a title close the script element.
+    const json = JSON.stringify(route.jsonLd).replace(/</g, '\\u003c')
+    lines.push(`<script type="application/ld+json">${json}</script>`)
   }
   return lines.join('\n    ')
 }
@@ -443,6 +595,7 @@ const SHELL_TAGS = [
   /<meta\s[^>]*property="og:[^"]*"[^>]*>\s*/g,
   /<meta\s[^>]*name="twitter:[^"]*"[^>]*>\s*/g,
   /<link\s[^>]*rel="canonical"[^>]*>\s*/g,
+  /<link\s[^>]*rel="alternate"[^>]*>\s*/g,
 ]
 
 /**
@@ -526,10 +679,51 @@ ${entries}
 `
 }
 
+/** Turns a changelog line's markdown links into their words. */
+const plainLine = (line) =>
+  line.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[`*_]/g, '')
+
+/**
+ * /changelog.xml: one item per changelog day, newest first, the day's lines as
+ * its text. The GUID is the day, which is unique in the file (the parser
+ * refuses a repeat).
+ *
+ * @param {{date: string, lines: string[]}[]} entries parseChangelog()'s output.
+ * @returns {string}
+ */
+export function changelogFeed(entries) {
+  const items = entries
+    .slice(0, FEED_SIZE)
+    .map(
+      (entry) => `    <item>
+      <title>${escapeHtml(`Changes on ${entry.date}`)}</title>
+      <link>${SITE_URL}/stats</link>
+      <guid isPermaLink="false">${SITE_URL}/stats#changes-${entry.date}</guid>
+      <pubDate>${new Date(`${entry.date}T00:00:00Z`).toUTCString()}</pubDate>
+      <description>${escapeHtml(entry.lines.map(plainLine).join('\n'))}</description>
+    </item>`,
+    )
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeHtml(`Changes · ${profile.name}`)}</title>
+    <link>${SITE_URL}/stats</link>
+    <description>${escapeHtml(`What changed on joey-haas.dev, from the changelog on /stats.`)}</description>
+    <language>en-us</language>
+    <atom:link href="${SITE_URL}/changelog.xml" rel="self" type="application/rss+xml"/>
+${items}
+  </channel>
+</rss>
+`
+}
+
 /** sitemap.xml for the public routes. */
 export function sitemap(routes) {
   const entries = routes
-    .filter((route) => !route.noindex)
+    // Canonical URLs only: a page that names another page as its canonical
+    // (/shelf, a client redirect to Games) is that page's, not its own.
+    .filter((route) => !route.noindex && !route.canonical)
     .map((route) => {
       const lastmod = route.lastmod ? `<lastmod>${route.lastmod}</lastmod>` : ''
       return `  <url><loc>${escapeHtml(routeUrl(route))}</loc>${lastmod}</url>`

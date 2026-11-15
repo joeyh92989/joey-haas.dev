@@ -152,6 +152,9 @@ export default function Stats() {
 
       <section id="changes" aria-labelledby="changes-title">
         <h2 id="changes-title">Changes</h2>
+        <p className="prose muted">
+          <a href="/changelog.xml">RSS</a>
+        </p>
         <ol className="changelog" role="list">
           {CHANGELOG.map((entry) => (
             <li key={entry.date}>
