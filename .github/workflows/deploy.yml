@@ -65,10 +65,7 @@ jobs:
     # its own error fires before this limit does.
     timeout-minutes: 45
     steps:
-      # Full history: a requested commit is checked to be an ancestor of main.
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
       # A push deploys the commit that was pushed. A manual run may name an
       # earlier commit of main instead: a code rollback. The schema is never
@@ -83,6 +80,12 @@ jobs:
             echo "migrate=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # A requested commit is checked to be an ancestor of main's tip and
+          # the migrations since it are listed, which needs the history the
+          # default shallow checkout leaves out (a push never needs it).
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --quiet --unshallow
+          fi
           if ! sha="$(git rev-parse --verify --quiet "$REQUESTED^{commit}")"; then
             echo "::error::'$REQUESTED' is not a commit in this repository"
             exit 1
@@ -91,9 +94,22 @@ jobs:
             echo "::error::$sha is not an ancestor of main's tip $GITHUB_SHA"
             exit 1
           fi
+          # The wait reads GET /api/version, which first shipped in this commit.
+          # An older target could never be confirmed, so refuse it up front.
+          version_commit=317b5744c6237f734da704f2c5197c69162e38e3
+          if ! git merge-base --is-ancestor "$version_commit" "$sha"; then
+            echo "::error::$sha predates GET /api/version ($version_commit), so the wait could never confirm it"
+            exit 1
+          fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "migrate=false" >> "$GITHUB_OUTPUT"
           echo "Redeploying $sha (main is at $GITHUB_SHA); migrations will not run."
+          # The schema is not rolled back. That is safe only while every
+          # migration since the target is additive, so name them.
+          since="$(git diff --name-only "$sha" "$GITHUB_SHA" -- backend/migrations/versions)"
+          if [ -n "$since" ]; then
+            echo "::warning::These migrations landed after $sha and stay applied; check the older code runs on them: $(echo "$since" | tr '\n' ' ')"
+          fi
 
       - uses: actions/setup-python@v7
         with:
@@ -161,11 +177,20 @@ jobs:
             fi
             sleep 15
           done
-          echo "::error::The API was not serving $TARGET within 25 minutes. Any migration is applied (additive, safe ahead of the code); see the Render deploy log, and roll back per CLAUDE.md -> Ship if the deploy failed."
+          echo "::error::The API was not serving $TARGET after 60 attempts (15 to 25 minutes). Any migration is applied (additive, safe ahead of the code); see the Render deploy log. If the deploy failed, roll the code back: Run workflow with commit set (.github/workflows/README.md -> Cutover and rollback)."
           exit 1
 
+      # smoke.sh is the tip's, and it pins routes an earlier build may lack, so a
+      # rollback is checked for health only.
       - name: Smoke test
+        env:
+          MIGRATE: ${{ steps.target.outputs.migrate }}
         run: |
+          if [ "$MIGRATE" != "true" ]; then
+            echo "Rollback: checking /api/health only (smoke.sh describes the tip, not this build)."
+            test "$(curl -s -m 90 "$API_URL/api/health")" = '{"status":"ok"}'
+            exit 0
+          fi
           if ! ./scripts/smoke.sh "$SITE_URL" "$API_URL"; then
             echo "Smoke failed; retrying once in 3 minutes (the static site deploys separately)."
             sleep 180
