@@ -8863,8 +8863,16 @@ a.cover-tile:focus-visible {
 .wall-how {
   color: var(--text-3);
   font-size: var(--fs-13);
-  margin: 0;
-  width: 100%;
+  margin: 0 0 0 auto;
+  max-width: 34rem;
+}
+
+@media (max-width: 640px) {
+  .wall-how {
+    margin-left: 0;
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .wall-status {
@@ -12242,8 +12250,38 @@ a.cover-tile-cap:focus-visible span {
 }
 
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
-   width the order is strip, cover (62%, centred), then text. The strip
-   scrolls inside itself, never the page. */
+   width the cover (62%, centred) comes first, then the text, then the
+   neighbouring issues under their heading. The strip scrolls inside itself,
+   never the page. */
+.crumbs-bar {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.crumbs-bar .crumbs {
+  min-width: 0;
+}
+
+.crumbs-end {
+  flex: none;
+  font-size: var(--fs-13);
+}
+
+.issue-neighbours {
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+}
+
+.issue-neighbours h2 {
+  font-size: var(--fs-13);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+}
+
 .neighbour-strip {
   display: flex;
   gap: 0.6rem;
@@ -12550,6 +12588,12 @@ a.btn.sm {
   gap: var(--space-4);
 }
 
+/* The panels and the wall carry their own bottom margin; with the grid gap
+   it left a double gap above Editions. The gap alone spaces the column. */
+.admin-comic-cols > div > * {
+  margin-block: 0;
+}
+
 .admin-comic-sum {
   font-variant-numeric: tabular-nums;
   margin: 0 0 var(--space-2);
@@ -12595,7 +12639,8 @@ a.btn.sm {
   .shelf-behind a,
   .section-head a,
   .project-links a,
-  .spine-project a {
+  .spine-project a,
+  .crumb-edit {
     align-items: center;
     display: inline-flex;
     min-height: 2.75rem;

@@ -23,6 +23,7 @@ import {
 import { itemPath } from '../lib/spinePaths.js'
 import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { adminListPath } from '../lib/shelf.js'
+import { useMediaQuery } from '../lib/useMediaQuery.js'
 
 const COPY = spine.comics.admin
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
@@ -108,6 +109,8 @@ export default function AdminComic() {
   const [addNumber, setAddNumber] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState(null)
+  // One column: Delete follows Issues, in the DOM too, so tab order matches.
+  const single = useMediaQuery('(max-width: 900px)')
 
   const fetchItem = useCallback(async () => {
     try {
@@ -378,18 +381,16 @@ export default function AdminComic() {
     { label: COPY.comics, to: adminListPath('comic') },
     { label: item?.title ?? COPY.fallbackTitle },
   ]
+  const ready = state === 'ready' && item
+  const viewOnSite = ready && item.is_public && (
+    <Link className="btn" to={itemPath(item.id)}>
+      {COPY.viewOnSite}
+    </Link>
+  )
   const header = (
     <>
       <Breadcrumb trail={trail} />
-      <AdminPageHeader
-        title={state === 'ready' && item ? item.title : COPY.fallbackTitle}
-      >
-        {state === 'ready' && item?.is_public && (
-          <Link className="btn" to={itemPath(item.id)}>
-            {COPY.viewOnSite}
-          </Link>
-        )}
-      </AdminPageHeader>
+      {!ready && <AdminPageHeader title={COPY.fallbackTitle} />}
     </>
   )
 
@@ -439,6 +440,17 @@ export default function AdminComic() {
   const skipped = new Set(expandRanges(item.issues_skipped))
   const comic = wall?.comic
   const run = item.comic_run
+  const deletePanel = (
+    <Panel title={COPY.delete}>
+      <p className="muted">{COPY.deleteLine}</p>
+      <ShelfConfirm
+        ids={[id]}
+        title={item.title}
+        className="btn danger"
+        onConfirm={remove}
+      />
+    </Panel>
+  )
 
   return (
     <section className="admin-comic">
@@ -454,8 +466,9 @@ export default function AdminComic() {
         <div className="admin-comic-cover">
           <CoverImage src={item.cover_url} type="comic" alt="" />
         </div>
-        <p className="muted">
-          {[
+        <AdminPageHeader
+          title={item.title}
+          description={[
             COPY.kicker,
             item.creator,
             item.year,
@@ -463,7 +476,9 @@ export default function AdminComic() {
           ]
             .filter(Boolean)
             .join(' · ')}
-        </p>
+        >
+          {viewOnSite}
+        </AdminPageHeader>
       </div>
 
       <div className="admin-comic-cols">
@@ -569,15 +584,7 @@ export default function AdminComic() {
             </form>
           </Panel>
 
-          <Panel title={COPY.delete}>
-            <p className="muted">{COPY.deleteLine}</p>
-            <ShelfConfirm
-              ids={[id]}
-              title={item.title}
-              className="btn danger"
-              onConfirm={remove}
-            />
-          </Panel>
+          {!single && deletePanel}
         </div>
 
         <div>
@@ -699,6 +706,7 @@ export default function AdminComic() {
               <MetadataPicker type="comic" onSelect={relink} />
             </div>
           </Panel>
+          {single && deletePanel}
         </div>
       </div>
 
