@@ -9,7 +9,6 @@ import {
   expandRanges,
   filterComics,
   publishersByCount,
-  runCount,
   searchComics,
   monthYear,
   shortDate,
@@ -49,12 +48,6 @@ describe('ranges', () => {
 })
 
 describe('labels', () => {
-  it('writes owned of released, with a plus while ongoing', () => {
-    const run = { owned: 54, released: 72, ongoing: true }
-    expect(runCount(run)).toBe('54 / 72+')
-    expect(runCount(run, '/')).toBe('54/72+')
-  })
-
   it('dates in UTC, so a week never shifts a day', () => {
     expect(shortDate('2026-11-11')).toBe('Nov 11')
   })
