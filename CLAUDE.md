@@ -51,7 +51,14 @@ backend, deployed on Render via Blueprint (render.yaml).
 
 ## Deploying
 
-Push to `main` on GitHub → Render auto-deploys both services. There is no
+Push to `main` on GitHub → two deploys. The static site deploys on push on
+Render. **The API deploys from GitHub Actions**, not on push
+(`autoDeployTrigger: "off"` in `render.yaml`): `.github/workflows/deploy.yml`
+runs `alembic upgrade head` on Neon, calls the API's deploy hook at the merged
+SHA, waits until `GET /api/version` reports it, then runs `scripts/smoke.sh`.
+A failed migration stops there, before any new code is live. It is gated on the
+`API_DEPLOY_FROM_ACTIONS` repository variable; the workflow, its settings,
+the rollback and the cutover are in `.github/workflows/README.md`. There is no
 staging environment; verify `npm run build` passes and the app works locally
 before pushing.
 
@@ -466,21 +473,33 @@ before pushing.
 
 ## Ship
 
-- Checks: the PR's `backend` and `frontend` GitHub Actions jobs
+- Checks: the PR's `backend`, `frontend`, `e2e` and `e2e-admin` GitHub Actions
+  jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
+  changes `backend/migrations/versions`)
 - Merge: squash
-- Migration: rehearse `cd backend && ./.venv/bin/pytest tests/test_migrations.py`
-  (upgrade, downgrade, upgrade on Postgres; additive migrations only) ·
-  apply from the PR's worktree, **before** merging:
-  `cd backend && <main checkout>/backend/.venv/bin/python scripts/migrate_neon.py current`
-  then `… upgrade`
-- Deploy: merge to `main` → Render auto-deploys both services · live when
-  `curl -s https://api.joey-haas.dev/api/public/status` answers and the new
-  routes answer (not 404) and `https://joey-haas.dev/` serves the new build
-- Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
+- Migration: rehearse in CI: the `neon-rehearsal` job applies it to a
+  schema-only Neon branch of production and comments the schema diff on the PR,
+  and `cd backend && ./.venv/bin/pytest tests/test_migrations.py` runs the
+  upgrade, downgrade, upgrade cycle (additive migrations only; at most two
+  migration PRs can rehearse at once, a free-plan root-branch limit) · apply:
+  **automatic on merge**, as the first step of the Deploy API workflow. Do not
+  apply by hand first; the hand route (`scripts/migrate_neon.py`, see Debugging
+  and support) is break-glass only
+- Deploy: merge to `main` → the static site deploys on push; the API deploys
+  from the **Deploy API** workflow run for that push (Actions tab) · live when
+  that run is green: it waits for `GET /api/version` to report the merged SHA
+  and smokes. A merge that changes nothing under `backend/` still deploys the
+  API through the hook (Render's own filter would skip it)
+- Smoke: run by the Deploy API workflow (retried once for the static site's
+  clock); by hand: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`
 - Logs: `./scripts/render-logs.sh 30 error` (errors in the last 30 minutes; exit 0 = none, 1 = entries, 2 = unreadable). Needs `RENDER_API_KEY` in the environment; run it after smoke and treat any entry newer than the deploy as new errors. Dashboard fallback: the API service's Logs
-- Rollback: revert the merge commit with a PR (Render redeploys); migrations
-  stay (additive, safe ahead of the code). A schema rollback is a manual
-  `alembic downgrade` after a Neon restore point (`backend/migrations/README.md`)
+- Rollback: **code, fast:** Actions → Deploy API → Run workflow with `commit`
+  set to an earlier commit of main (317b574 or later): no migrations run, the
+  hook deploys that commit, the run waits for it. Then revert the bad change
+  with a PR. **The cutover itself:** set `autoDeployTrigger: commit` in
+  `render.yaml` and clear `API_DEPLOY_FROM_ACTIONS`. Migrations stay (additive,
+  safe ahead of the code). A schema rollback is a manual `alembic downgrade`
+  after a Neon restore point (`backend/migrations/README.md`)
 
 ## Debugging and support
 
@@ -512,7 +531,8 @@ before pushing.
   /api/comics/status`. A series the tag job gave up on after three unusable
   answers (`items.tag_attempts`, migration `0019`) is counted in the tag row's
   note; saving its tags or a changed Comic Vine description resets it.
-- **Applying a migration from a worktree**: `scripts/migrate_neon.py` looks for
+- **Applying a migration by hand (break-glass; the Deploy API workflow does it
+  on merge)**: from a worktree, `scripts/migrate_neon.py` looks for
   `backend/.venv/bin/alembic` beside itself and a worktree has no `.venv`.
   Symlink the main checkout's: `ln -s <main>/backend/.venv backend/.venv`
   (untracked; gitignored), then `<main>/backend/.venv/bin/python
@@ -565,12 +585,16 @@ before pushing.
 
 ## Media tracker
 
-- **Migrations must be applied to Neon before deploying**, from the PR's
-  worktree with `backend/scripts/migrate_neon.py current` then `upgrade`
-  (worktrees have no `.env`; the script reads the main checkout's). `schema_check`
+- **Migrations are applied to Neon by the Deploy API workflow when a PR
+  merges**, before the API is deployed (by hand, which is break-glass only:
+  `backend/scripts/migrate_neon.py current` then `upgrade`; worktrees have no
+  `.env`, the script reads the main checkout's). The per-feature "deploy order:
+  apply `00NN` to Neon, then merge" notes below predate this and are now done
+  by the workflow; their other steps (press Refresh, run a backfill, set a
+  secret on Render) still apply. `schema_check`
   refuses to boot behind the schema, which is it working, not failing. A
   database *ahead* of the code boots with a warning, because the deploy order
-  is migrate-then-merge; that is only safe because **migrations are
+  is migrate-then-deploy; that is only safe because **migrations are
   additive**: add tables and columns, never rename or drop in the same release
   (see `backend/migrations/README.md`). `0004` adds `pick_events`; `0005`
   adds the physical catalogue's five tables and four enum types, reusing

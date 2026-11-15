@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural
 mode: gated
 ---
@@ -182,3 +182,18 @@ What this decides for task 7:
   seconds, and e2e sharding would add runner start-up to a job that is not the bottleneck. Dropped.
 - **Vitest is 120 s** and the second-longest step; sharding it across runners
   (`vitest --shard`) is a coverage-neutral option once backend is no longer the long pole.
+
+## Outcome (2026-11-15)
+
+Shipped as PRs #250 (per-checkout test databases, migration lock, baseline),
+#251 and #255 (Neon schema-only rehearsal, proven on throwaway PR #254), #252
+(schema built once, truncate between tests: backend CI 9m to about 4m),
+#253, #256 and #257 (deploy workflow, `GET /api/version`, rollback by `commit`,
+the hook-URL guard), and the cutover (#258, then the `API_DEPLOY_FROM_ACTIONS`
+variable). Deviations from the plan: a `GET /api/version` route was added so the
+deploy can tell the new instance from the old; a schema-only Neon branch turned
+out to be a root branch with no parent and an empty `alembic_version`, so the
+rehearsal stamps the base head and names `production` as the diff base; xdist
+and Vitest sharding were not built (the profile showed the per-test schema
+rebuild was the cost, and it is fixed). The first hook secret held the static
+site's hook, found by checking each Render service's deploy list.
