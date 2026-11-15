@@ -296,7 +296,8 @@ describe('Denver', () => {
 
   it('says when there are no spots, and when they failed to load', () => {
     const { unmount } = renderPage('/denver', [])
-    expect(screen.getByText(copy.empty)).toBeInTheDocument()
+    expect(screen.getByText(copy.empty)).toHaveClass('empty-state-title')
+    expect(screen.getByText(copy.emptyLine)).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: copy.tagsLabel })).toBeNull()
     unmount()
 

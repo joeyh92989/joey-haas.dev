@@ -272,6 +272,6 @@ names and the admin list paths.
 | Hand-rolled `h1` on a shell or error page | `AdminLayout.jsx` (the signed-out gate), `RouteErrorBoundary.jsx` | when touched |
 | Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | next games detail change |
 | Item status words outside `StatePill` | `Item.jsx` (`statusInWords`) | next games detail change |
-| Empty words inline, not `EmptyState` | `Denver.jsx` (`muted` line), the Closet and intake lists | when touched |
+| Empty words inline, not `EmptyState` | the Closet and intake lists | when touched |
 | Admin game edit and add paths not under `/admin/shelf` | `/admin/collection/:id`, `/admin/collection/add*` | next games detail change |
 | The admin comic card shows no sync state: `ItemOut` carries no `issues_synced_on` | `AdminComics.jsx` | item 5 |
