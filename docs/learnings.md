@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-15 · lesson · A focus test in AdminLayout flaked on CI
+`AdminLayout.test.jsx > offers sign-in again after a sign-out the server confirmed` failed with `expected <body> to be <main id="main">` on a PR that only changed `render.yaml` (run 43726434998) and passed on a rerun of the same commit. A third flaky test after #237's two: a focus assertion racing the runner. One rerun confirmed it; if it recurs, freeze the timing it waits on like #237 did, not retry.
+PR #258
+
 ### 2026-11-15 · lesson · A deploy hook for the wrong service answers 2xx
 `RENDER_API_DEPLOY_HOOK_URL` held the static site's hook, so a dry run "succeeded" while the API never rebuilt; only Render's deploy list for each service showed it. `deploy.yml` now checks the URL names the API's service id. Prove a deploy by the live commit changing (`GET /api/version`), never by the hook's status code.
 PR #256 · run 43672179895
