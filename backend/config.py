@@ -78,6 +78,10 @@ class Config:
     # unless E2E_TEST_LOGIN is exactly "1", and load_config refuses to boot
     # with it on against a FRONTEND_URL that is not http://localhost.
     e2e_test_login: bool = False
+    # Whether /docs, /redoc and /openapi.json are served (#264). On for a
+    # localhost FRONTEND_URL or ENABLE_DOCS=1; off everywhere else, so the
+    # admin route list is not public.
+    docs_enabled: bool = False
 
 
 # The HTTP client logs every request URL at INFO. Several source keys travel
@@ -189,4 +193,6 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         == "true",
         job_token=_optional(source, "JOB_TOKEN"),
         e2e_test_login=e2e_test_login,
+        docs_enabled=source.get("ENABLE_DOCS", "") == "1"
+        or is_local_frontend(frontend_url),
     )

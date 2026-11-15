@@ -76,7 +76,14 @@ if config.google_sheets_api_key:
     configured.append("sheets")
 logger.info("metadata sources configured: %s", ", ".join(configured) or "none")
 
-app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine))
+# The schema lists every admin and job route, so production serves none of
+# it (config.docs_enabled).
+_docs = (
+    {}
+    if config.docs_enabled
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+app = FastAPI(title="joey-haas.dev API", lifespan=engine_lifespan(engine), **_docs)
 
 # require_admin reads the job token from here (Spine Next spec, K1), so the
 # five routers keep their signatures. An app that never sets it -- every test
