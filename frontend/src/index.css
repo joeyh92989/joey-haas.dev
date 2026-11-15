@@ -9429,7 +9429,7 @@ a.cover-tile-cap:focus-visible span {
   align-content: start;
   display: grid;
   gap: var(--space-1);
-  padding: 0.9rem var(--space-4) var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-4);
 }
 
 .trip-card__title {
@@ -9446,7 +9446,7 @@ a.cover-tile-cap:focus-visible span {
 .trip .lede {
   color: var(--text-2);
   font-size: var(--fs-16);
-  margin: 0 0 1.25rem;
+  margin: 0 0 var(--space-4);
 }
 
 .trip .kicker a {
@@ -9500,7 +9500,7 @@ a.cover-tile-cap:focus-visible span {
   align-items: center;
   color: var(--text);
   display: flex;
-  gap: 0.35rem;
+  gap: var(--space-1);
   min-height: 24px;
   position: absolute;
   text-decoration: none;
@@ -9533,7 +9533,7 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 4px;
   font-size: var(--fs-12);
   font-weight: 600;
-  padding: 0 0.3rem;
+  padding: 0 var(--space-1);
   white-space: nowrap;
 }
 
@@ -9566,7 +9566,7 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-12);
   gap: var(--space-1) var(--space-4);
   justify-content: space-between;
-  padding: 0.4rem var(--space-3);
+  padding: var(--space-2) var(--space-3);
 }
 
 .drawn-map__stops {
@@ -9574,7 +9574,7 @@ a.cover-tile-cap:focus-visible span {
   flex-wrap: wrap;
   gap: 0 var(--space-3);
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: var(--space-4);
 }
 
 .drawn-map__stops a {
@@ -9585,11 +9585,11 @@ a.cover-tile-cap:focus-visible span {
    rather than wrapping into a block above the first day. */
 .trip-places ul {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--space-2);
   list-style: none;
   margin: 0 0 var(--space-4);
   overflow-x: auto;
-  padding: 2px;
+  padding: 2px; /* space-exception: hairline, optical offset */
 }
 
 .trip-places .chip {
@@ -9605,12 +9605,12 @@ a.cover-tile-cap:focus-visible span {
 /* Days */
 .trip-day {
   border-top: 1px solid var(--line);
-  padding: 1.25rem 0;
+  padding: var(--space-4) 0;
   scroll-margin-top: 1rem;
 }
 
 .trip-day .kicker {
-  margin: 0 0 0.15rem;
+  margin: 0 0 0.15rem; /* space-exception: hairline, optical offset */
 }
 
 .trip-day__title {
@@ -9692,7 +9692,7 @@ a.cover-tile-cap:focus-visible span {
   color: var(--text);
   font-size: var(--fs-13);
   line-height: 1.4;
-  padding: 0.35rem 0.6rem;
+  padding: var(--space-1) var(--space-2);
 }
 
 /* A photo-less day: the prose on a card with its place as a stamp. */
@@ -9701,7 +9701,7 @@ a.cover-tile-cap:focus-visible span {
   border: 1px solid var(--line);
   border-radius: 10px;
   margin-top: var(--space-3);
-  padding: var(--space-4) 1.1rem;
+  padding: var(--space-4) var(--space-4);
   position: relative;
 }
 
@@ -9714,7 +9714,7 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-12);
   letter-spacing: 0.04em;
   margin: 0 0 var(--space-2) var(--space-3);
-  padding: 0.2rem 0.45rem;
+  padding: var(--space-1) var(--space-2);
   text-transform: uppercase;
 }
 
@@ -9733,7 +9733,7 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-14);
   gap: var(--space-2) var(--space-4);
   justify-content: space-between;
-  padding-top: 1.25rem;
+  padding-top: var(--space-4);
 }
 
 .trip-nav a[rel='next'] {
@@ -9749,7 +9749,7 @@ a.cover-tile-cap:focus-visible span {
   margin: 0;
   max-height: none;
   max-width: none;
-  padding: 3.5rem var(--space-4) var(--space-4);
+  padding: var(--space-7) var(--space-4) var(--space-4);
   width: 100vw;
 }
 
@@ -9765,7 +9765,7 @@ a.cover-tile-cap:focus-visible span {
 
 .lightbox__figure {
   display: grid;
-  gap: 0.6rem;
+  gap: var(--space-2);
   margin: 0;
   max-width: 60rem;
   width: 100%;
@@ -9790,7 +9790,7 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-14);
   gap: var(--space-1) var(--space-4);
   justify-content: space-between;
-  padding: 0.4rem 0.7rem;
+  padding: var(--space-2) var(--space-3);
 }
 
 .lightbox__count {
@@ -9876,7 +9876,7 @@ a.cover-tile-cap:focus-visible span {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   margin-bottom: var(--space-5);
-  padding: var(--space-4) 1.25rem;
+  padding: var(--space-4) var(--space-4);
 }
 
 .spot-form-title,
@@ -9926,7 +9926,7 @@ a.cover-tile-cap:focus-visible span {
   flex: 1 1 14rem;
   font: inherit;
   font-size: var(--fs-14);
-  padding: 0.4rem 0.6rem;
+  padding: var(--space-2) var(--space-2);
 }
 
 .spots-search:focus-visible {
@@ -9937,7 +9937,7 @@ a.cover-tile-cap:focus-visible span {
 
 .spots-counts {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--space-2);
   margin: 0;
 }
 
@@ -9946,7 +9946,7 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 999px;
   color: var(--text-2);
   font: 500 var(--fs-12) var(--font-mono);
-  padding: 0.15rem 0.6rem;
+  padding: 0.15rem var(--space-2); /* space-exception: hairline, optical offset */
 }
 
 /* The row header is the spot's name, not a column label: undo
@@ -9960,7 +9960,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .spots-name > span:first-child {
-  margin-right: 0.4rem;
+  margin-right: var(--space-2);
 }
 
 .spots-hood {
@@ -9975,7 +9975,7 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 999px;
   color: var(--text-2);
   font: 500 var(--fs-12) var(--font-mono);
-  padding: 0 0.4rem;
+  padding: 0 var(--space-2);
 }
 
 .spots-tags {
@@ -10003,7 +10003,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .spots-actions button + button {
-  margin-left: 0.4rem;
+  margin-left: var(--space-2);
 }
 
 /* The phone drops Last visit; the rest fits 400px without scrolling. */
@@ -10014,7 +10014,7 @@ a.cover-tile-cap:focus-visible span {
 
   .spots-table th,
   .spots-table td {
-    padding-inline: 0.4rem;
+    padding-inline: var(--space-2);
   }
 
   .spots-actions {
@@ -10022,7 +10022,7 @@ a.cover-tile-cap:focus-visible span {
   }
 
   .spots-actions button {
-    margin: 0.2rem 0;
+    margin: var(--space-1) 0;
   }
 
   .spot-form-wrap .item-detail-form {
@@ -10034,13 +10034,13 @@ a.cover-tile-cap:focus-visible span {
 .finder-layout {
   align-items: start;
   display: grid;
-  gap: 1.25rem;
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .finder-title {
   font-size: var(--fs-18);
-  margin: 0 0 0.4rem;
+  margin: 0 0 var(--space-2);
 }
 
 .runline {
@@ -10049,7 +10049,7 @@ a.cover-tile-cap:focus-visible span {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.4rem var(--space-3);
+  gap: var(--space-2) var(--space-3);
   justify-content: space-between;
   margin-bottom: var(--space-3);
 }
@@ -10067,8 +10067,8 @@ a.cover-tile-cap:focus-visible span {
   border: 1px solid var(--line);
   border-radius: 10px;
   display: grid;
-  gap: 0.4rem;
-  padding: 0.85rem var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
 }
 
 .cand-h {
@@ -10087,7 +10087,7 @@ a.cover-tile-cap:focus-visible span {
 .cand-area {
   color: var(--text-3);
   font-size: var(--fs-13);
-  margin: 0.1rem 0 0;
+  margin: 0.1rem 0 0; /* space-exception: hairline, optical offset */
 }
 
 .cand-area::first-letter {
@@ -10103,7 +10103,7 @@ a.cover-tile-cap:focus-visible span {
   font-family: var(--font-mono);
   font-size: var(--fs-12);
   letter-spacing: 0.04em;
-  padding: 0.1rem 0.35rem;
+  padding: 0.1rem var(--space-1); /* space-exception: hairline, optical offset */
   text-transform: uppercase;
 }
 
@@ -10127,13 +10127,13 @@ a.cover-tile-cap:focus-visible span {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 
 .cand-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: var(--space-1);
   list-style: none;
   margin: 0 0 0 auto;
   padding: 0;
@@ -10147,7 +10147,7 @@ a.cover-tile-cap:focus-visible span {
   cursor: pointer;
   font: inherit;
   font-size: var(--fs-12);
-  padding: 0.1rem var(--space-2);
+  padding: 0.1rem var(--space-2); /* space-exception: hairline, optical offset */
 }
 
 .minitag[aria-pressed='true'] {
@@ -10195,13 +10195,13 @@ a.cover-tile-cap:focus-visible span {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 0.6rem;
+  gap: var(--space-2) var(--space-2);
 }
 
 .wk-pills ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-1);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10212,7 +10212,7 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 999px;
   color: var(--text-2);
   font-size: var(--fs-13);
-  padding: 0.15rem 0.65rem;
+  padding: 0.15rem var(--space-3); /* space-exception: hairline, optical offset */
 }
 
 .wk-none {
@@ -10240,7 +10240,7 @@ a.cover-tile-cap:focus-visible span {
 .wx-bars {
   align-items: end;
   display: grid;
-  gap: 3px;
+  gap: var(--space-1);
   grid-template-columns: repeat(13, minmax(0, 1fr));
   height: 4.5rem;
 }
@@ -10312,8 +10312,8 @@ a.cover-tile-cap:focus-visible span {
   border: 1px solid var(--line);
   border-radius: 10px;
   display: grid;
-  gap: 0.45rem;
-  padding: 0.9rem var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4);
 }
 
 .sug.lead {
@@ -10358,14 +10358,14 @@ a.cover-tile-cap:focus-visible span {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.35rem var(--space-3);
+  gap: var(--space-1) var(--space-3);
   margin: 0;
 }
 
 .sug-tags {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: var(--space-1);
 }
 
 .sug-tag {
@@ -10373,16 +10373,16 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 999px;
   color: var(--text-2);
   font-size: var(--fs-12);
-  padding: 0.05rem var(--space-2);
+  padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
 }
 
 .sug-why {
   color: var(--text-2);
   display: grid;
   font-size: var(--fs-14);
-  gap: 0.2rem;
+  gap: var(--space-1);
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: var(--space-4);
 }
 
 .savedtag,
@@ -10397,13 +10397,13 @@ a.cover-tile-cap:focus-visible span {
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-13);
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 
 .wk-skips ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem var(--space-3);
+  gap: var(--space-2) var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -10418,7 +10418,7 @@ a.cover-tile-cap:focus-visible span {
 
 .wk-visits {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-1);
   list-style: none;
   margin: 0;
   padding: 0;
