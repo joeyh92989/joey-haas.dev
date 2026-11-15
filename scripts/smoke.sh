@@ -154,9 +154,15 @@ if command -v jq > /dev/null; then
   first_title="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
   if [ -n "$first_id" ]; then
     item_page="$(curl -s -m 90 "$SITE_URL/shelf/$first_id/")"
-    check_equals "GET /shelf/<id>/ has its own prerendered title" \
-      "$(printf '%s' "$item_page" | grep -o '<title>[^<]*</title>')" \
-      "<title>$first_title · My Shelf</title>"
+    # A title shared by several series is qualified (year, platform, creator
+    # or a short id: prerender-lib), so the page's title is the item's name,
+    # optionally followed by " (qualifier)", then " · My Shelf".
+    item_title="$(printf '%s' "$item_page" | grep -o '<title>[^<]*</title>')"
+    case "$item_title" in
+      "<title>$first_title · My Shelf</title>"|"<title>$first_title ("*") · My Shelf</title>")
+        report_pass "GET /shelf/<id>/ has its own prerendered title" "$item_title" ;;
+      *) report_fail "GET /shelf/<id>/ has its own prerendered title" "expected '<title>$first_title[ (qualifier)] · My Shelf</title>', got '$item_title'" ;;
+    esac
     check_equals "GET /shelf/<id>/ has a slash canonical" \
       "$(printf '%s' "$item_page" | grep -o '<link rel="canonical"[^>]*>')" \
       "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_id/\" />"

@@ -66,3 +66,16 @@ describe('CoverStrip', () => {
     expect(container).toBeEmptyDOMElement()
   })
 })
+
+describe('smallCover', () => {
+  it('asks IGDB for the small cover and leaves other URLs alone', async () => {
+    const { smallCover } = await import('./CoverStrip.jsx')
+    expect(
+      smallCover('https://images.igdb.com/igdb/image/upload/t_cover_big/a.jpg'),
+    ).toBe('https://images.igdb.com/igdb/image/upload/t_cover_small/a.jpg')
+    expect(smallCover('https://example.com/a.jpg')).toBe(
+      'https://example.com/a.jpg',
+    )
+    expect(smallCover(null)).toBeNull()
+  })
+})

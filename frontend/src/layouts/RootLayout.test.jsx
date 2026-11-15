@@ -207,6 +207,27 @@ describe('RootLayout outlet context', () => {
     expect(await screen.findByText('signed in: true')).toBeInTheDocument()
   })
 
+  it('asks quietly, so a signed-out visitor gets no 401 in the console', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{"signed_in":false}', { status: 200 }))
+
+    renderProbe()
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+    expect(String(spy.mock.calls[0][0])).toContain('/api/auth/me?quiet=1')
+    // A 200 that says signed_in: false is signed out.
+    await Promise.resolve()
+    expect(screen.getByText('signed in: false')).toBeInTheDocument()
+  })
+
+  it('is true for a quiet answer that says signed_in: true', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"email":"a@b.c","signed_in":true}', { status: 200 }),
+    )
+    renderProbe()
+    expect(await screen.findByText('signed in: true')).toBeInTheDocument()
+  })
+
   it('stays false when the session check fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('{}', { status: 401 }),
