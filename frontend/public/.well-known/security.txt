@@ -1,0 +1,4 @@
+Contact: mailto:josephthaas@gmail.com
+Expires: 2027-11-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://joey-haas.dev/.well-known/security.txt

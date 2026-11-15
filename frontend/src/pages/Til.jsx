@@ -35,6 +35,8 @@ export default function Til() {
               )}
               <PostMeta
                 date={note.frontmatter.date}
+                updated={note.frontmatter.updated}
+                readingMinutes={note.frontmatter.readingMinutes}
                 tags={note.frontmatter.tags}
               />
               <div

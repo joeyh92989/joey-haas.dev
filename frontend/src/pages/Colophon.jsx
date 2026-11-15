@@ -76,6 +76,53 @@ export default function Colophon() {
           and signed-in visits are excluded.
         </li>
       </ul>
+
+      <h2 id="accessibility">Accessibility</h2>
+      <p className="prose">
+        I haven&rsquo;t had the site audited, and I don&rsquo;t claim a
+        conformance level. What I test:
+      </p>
+      <ul className="prose-list">
+        <li>
+          Every pull request runs axe (WCAG 2 A and AA rules) in a real browser
+          against the built site, in both themes. A new serious violation fails
+          the build, and known ones are listed with an issue number.
+        </li>
+        <li>
+          Every page starts with a skip link, and search opens from the
+          keyboard. Dialogs are native, move focus in and back out, and close
+          with Escape.
+        </li>
+        <li>
+          Text and status colors are chosen on measured contrast, and the ratios
+          are recorded beside the tokens in the stylesheet.
+        </li>
+      </ul>
+      <p className="prose">
+        If something doesn&rsquo;t work for you, email{' '}
+        <a href={`mailto:${profile.email}`}>{profile.email}</a> with the page
+        and what happened, and I&rsquo;ll fix it.
+      </p>
+
+      <h2 id="docs">Docs and decisions</h2>
+      <ul className="prose-list">
+        <li>
+          <a href={`${profile.repo}/blob/main/docs/design-system.md`}>
+            Design system
+          </a>
+          : the rules every page follows.
+        </li>
+        <li>
+          <a href={`${profile.repo}/blob/main/docs/learnings.md`}>Learnings</a>:
+          dated lessons and decisions, with the pull requests behind them.
+        </li>
+        <li>
+          <a href={`${profile.repo}/tree/main/docs/planning`}>
+            Specs and plans
+          </a>
+          : one design doc and plan for each feature.
+        </li>
+      </ul>
     </section>
   )
 }
