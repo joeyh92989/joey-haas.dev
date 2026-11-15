@@ -9,7 +9,9 @@ import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
  */
 
 /** Chip values for the one comics chip row, in display order. */
-export const COMIC_CHIPS = ['all', 'following', 'gaps', 'unread', 'want']
+// The public shelf's chips. Following is private, so it is not one of them:
+// the public body does not carry it (#301); the admin shelf adds it itself.
+export const COMIC_CHIPS = ['all', 'gaps', 'unread', 'want']
 
 export const COMIC_SORTS = ['next', 'title', 'publisher', 'missing']
 
@@ -98,7 +100,10 @@ export function filterComics(rows, chip, publisher = null) {
 /** How many rows each chip would leave, for the chips' counts. */
 export function chipCounts(rows) {
   return Object.fromEntries(
-    COMIC_CHIPS.map((chip) => [chip, rows.filter(CHIP_TEST[chip]).length]),
+    Object.keys(CHIP_TEST).map((chip) => [
+      chip,
+      rows.filter(CHIP_TEST[chip]).length,
+    ]),
   )
 }
 
