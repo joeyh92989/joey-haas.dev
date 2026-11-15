@@ -2,7 +2,6 @@
 title: Profile before parallelizing CI
 date: 2026-11-14
 tags: [ci, pytest]
-draft: true
 ---
 
 Backend pytest was 92% of the critical path in CI, and nearly all of it was one fixture.
