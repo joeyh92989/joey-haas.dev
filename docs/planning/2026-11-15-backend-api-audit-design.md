@@ -1,5 +1,5 @@
 ---
-status: building
+status: shipped
 kind: fix
 mode: auto
 ---
