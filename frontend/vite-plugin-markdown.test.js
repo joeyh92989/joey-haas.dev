@@ -47,3 +47,11 @@ describe('compileEntry heading ids', () => {
     expect(html).toContain('--shiki-dark')
   })
 })
+
+describe('compileEntry code blocks', () => {
+  it('makes a code block focusable and named, so it can scroll by keyboard', async () => {
+    const { html } = await compileEntry('```js\nconst a = 1\n```\n')
+    expect(html).toMatch(/<pre[^>]*tabindex="0"/)
+    expect(html).toMatch(/<pre[^>]*aria-label="Code"/)
+  })
+})
