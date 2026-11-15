@@ -31,6 +31,31 @@ const DEFAULT_IMAGE = {
   alt: 'Joey Haas, senior software engineer, and My Shelf, a tracker for his physical game collection.',
 }
 
+/**
+ * A generated card (og-card.mjs) for a post, note or trip, written to
+ * dist/og/<kind>/<slug>.png by prerender.mjs. The route keeps `ogCard` so the
+ * build knows what to draw, and `useFallbackImage` puts the site card back
+ * when the drawing fails, so a link preview never points at a missing file.
+ */
+export function ogCardFile(kind, slug) {
+  return `og/${kind}/${slug}.png`
+}
+
+function ogCardImage(kind, slug, title, what) {
+  return {
+    url: `${SITE_URL}/${ogCardFile(kind, encodeURIComponent(slug))}`,
+    width: 1200,
+    height: 630,
+    alt: `${title}, ${what} on joey-haas.dev`,
+  }
+}
+
+export function useFallbackImage(route) {
+  const fallback = { ...route, image: DEFAULT_IMAGE }
+  delete fallback.ogCard
+  return fallback
+}
+
 /** How an item's type reads in "in Joey Haas’s …". */
 const ITEM_KINDS = {
   game: 'game collection',
@@ -339,6 +364,13 @@ export function publicRoutes({
         description,
       ),
       type: 'article',
+      image: ogCardImage('blog', post.slug, post.title, 'a post'),
+      ogCard: {
+        kind: 'blog',
+        slug: post.slug,
+        title: post.title,
+        date: post.date,
+      },
       jsonLd: postJsonLd(
         post,
         `${SITE_URL}/blog/${encodeURIComponent(post.slug)}`,
@@ -361,6 +393,13 @@ export function publicRoutes({
         excerpt(note.body),
       ),
       type: 'article',
+      image: ogCardImage('til', note.slug, note.title, 'a TIL note'),
+      ogCard: {
+        kind: 'til',
+        slug: note.slug,
+        title: note.title,
+        date: note.date,
+      },
       feed: TIL_FEED,
       ...lastmod(note.date),
     })
@@ -381,7 +420,19 @@ export function publicRoutes({
         summary ? clip(String(summary)) : excerpt(trip.body),
       ),
       type: 'article',
-      image: tripImage(trip),
+      // A trip with a cover photo previews as that photo; the card is for
+      // one without.
+      ...(trip.frontmatter?.cover
+        ? { image: tripImage(trip) }
+        : {
+            image: ogCardImage('travel', trip.slug, trip.title, 'a trip'),
+            ogCard: {
+              kind: 'travel',
+              slug: trip.slug,
+              title: trip.title,
+              date: trip.date,
+            },
+          }),
       ...lastmod(trip.date),
     })
   }
