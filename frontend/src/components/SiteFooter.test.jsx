@@ -78,6 +78,6 @@ describe('SiteFooter', () => {
       .getByRole('contentinfo')
       .querySelector('.footer-credit')
     expect(within(credit).queryByRole('link', { name: 'Denver' })).toBeNull()
-    expect(credit.textContent).toMatch(/Daily game · Colophon · Stats$/)
+    expect(credit.textContent).toMatch(/Daily game · Colophon · Stats · RSS$/)
   })
 })
