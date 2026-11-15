@@ -25,7 +25,7 @@ and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
 | **Detail** | One thing: a game, a comic series | Breadcrumb · detail head (cover beside `PageHeader`'s title and facts) · sections as `item-card` panels · source attribution | Full, sections at reading width |
 | **Sub-detail** | One part of a detail: a comic issue or edition | Breadcrumb · detail head · description with its source · neighbours (`NeighbourStrip`) | Full, text at reading width |
 | **Tool** | Something you use: Daily game, Pick for me, the admin pages | Not yet ruled | — |
-| **Prose** | Something you read: posts, TIL, About, Colophon | Not yet ruled | Reading |
+| **Prose** | Something you read: posts, TIL, About, Colophon | The page's own `h1` (title, optional lede), then the text. See [Prose pages](#prose-pages) | Reading |
 
 A list page has no breadcrumb: the area band's tabs are its way around. A
 detail or sub-detail page has no tabs.
@@ -46,7 +46,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 
 | Job | Component | Rule |
 |---|---|---|
-| Page header | `PageHeader` | Every page's `h1` comes from it: optional trail, optional kicker, the title, optional lede. On list pages it sits under the area band with no trail. |
+| Page header | `PageHeader` | Every list, detail and tool page's `h1` comes from it: optional trail, optional kicker, the title, optional lede. On list pages it sits under the area band with no trail. Prose pages and the gaps in the table below are the only other files with an `h1`, and `designConsistency.test.js` fails a new one. |
 | Area band | `SpineHeader` | The shelf's name, tagline and tabs, on shelf list pages only. It is not a page header and never holds the page's `h1`. |
 | Breadcrumb | `Breadcrumb` | The one way back on detail and sub-detail pages, at the top. The trail is area › type page › parent › this page, every crumb but the last a link. No second "back" link anywhere on the page. |
 | Card (a thing) | `PosterCard` in `PosterGrid` | One card per item on every list page, games and comic series alike. A card's owner controls are a sibling of its link (CLAUDE.md). |
@@ -54,10 +54,18 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Figure | `StatTile` (`StatTiles` for a row) | Every number shown as a figure, public and admin. |
 | Filter row | `FilterChips` with `labelled` | Every chip row has a visible label naming what it filters, on both sides. A row whose chips would match nothing is not drawn (`FilterChips` hides a group of one; a type with no rows gets no chip). |
 | State pill | `StatePill` | A thing's state in words and colour: owned, read, missing, not out, skipped, and the play statuses. One pill per state, the same words everywhere (`content/spine.js`). |
-| Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. |
-| Load error | `LoadState` | A failed read says so in the shared words (`content/status.js`) with Try again; a stale but painted page says it quietly. |
-| Dialog | `Sheet` | The one modal (CLAUDE.md). |
+| Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. No page writes its own empty box or `*-empty` class (`designConsistency.test.js`). |
+| Load error | `LoadState` | A failed read says so in the shared words (`content/status.js`) with Try again; a stale but painted page says it quietly. A bare `{LOAD_ERROR}` paragraph is refused, and every `admin-error` is a `role="alert"` (`designConsistency.test.js`). |
+| Dialog | `Sheet` | The one modal (CLAUDE.md), and the only `role="dialog"`: the card action sheet on touch renders through it. A non-modal panel, such as the inline add drawer, is a labelled `aside`, not a dialog. |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
+
+## Prose pages
+
+A prose page (Home, About, Projects, Now, Colophon, Blog, TIL and their
+posts, Not found) keeps its own `h1` in its article: the title, then an
+optional lede, then reading-width text. It does not use `PageHeader`, which
+is for pages with a trail, a kicker or a list under them. Only a prose page
+may hand-write an `h1`, and the list is in `designConsistency.test.js`.
 
 ## A mark that is not match confidence
 
@@ -260,8 +268,10 @@ names and the admin list paths.
 | Gap | Where | Closed by |
 |---|---|---|
 | Hand-rolled `h1` under the area band | `Next.jsx`, `YearInReview.jsx`, `Daily.jsx`, `HowItWorks.jsx` | when touched |
+| Hand-rolled `h1` on a detail or sub-detail head | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` (and their fallback heads) | next games detail change |
+| Hand-rolled `h1` on a shell or error page | `AdminLayout.jsx` (the signed-out gate), `RouteErrorBoundary.jsx` | when touched |
 | Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | next games detail change |
 | Item status words outside `StatePill` | `Item.jsx` (`statusInWords`) | next games detail change |
-| Empty words inline, not `EmptyState` | `Denver.jsx`, other shelf pages | when touched |
+| Empty words inline, not `EmptyState` | `Denver.jsx` (`muted` line), the Closet and intake lists | when touched |
 | Admin game edit and add paths not under `/admin/shelf` | `/admin/collection/:id`, `/admin/collection/add*` | next games detail change |
 | The admin comic card shows no sync state: `ItemOut` carries no `issues_synced_on` | `AdminComics.jsx` | item 5 |
