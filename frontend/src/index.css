@@ -583,7 +583,7 @@ p.muted a,
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--text);
-  margin: 12vh auto auto;
+  margin: 12vh auto auto; /* space-exception: viewport-relative offset, not a step */
   max-height: 76vh;
   max-width: calc(100% - 32px);
   overflow: hidden;
@@ -5617,7 +5617,7 @@ dialog.shelf-sheet {
 
 .rating-star {
   color: var(--rating);
-  margin-right: 0.2em;
+  margin-right: 0.2em; /* space-exception: scales with the glyph beside it */
 }
 
 .rating-large {
@@ -8695,7 +8695,7 @@ a.cover-tile:focus-visible {
   align-items: flex-end;
   aspect-ratio: 2 / 3;
   display: flex;
-  padding: 8%;
+  padding: 8%; /* space-exception: proportional to the box */
   background-image: var(--hatch);
   border: 1px solid var(--run-missing);
   border-radius: 4px;

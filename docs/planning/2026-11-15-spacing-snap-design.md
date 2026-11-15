@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 kind: chore
 mode: auto
 ---
@@ -39,7 +39,12 @@ Nearest step by rem. A tie goes up under 1rem (keeps touch targets from shrinkin
   nearest step (4px) would be a 60 to 400 percent change on a pad that exists to nudge a glyph or a
   border by a pixel or two.
 - **Beyond the scale** (above 4rem): none snap; they stay.
-- Component exceptions found in review are listed below (filled in as the commits land).
+- **Relative units** (`12vh`, `0.2em`, `8%`): not steps of the rem scale; one line each.
+- **Intake demo spines** (`gap: 3px`, `padding: 6px 3px`): a drawing of tightly packed spines; snapped, a
+  12-spine row overflowed a 393px phone by 4px (caught by the overflow check).
+- Result: 546 values snapped, 61 left as exceptions (55 hairline, 1 beyond the scale, 3 relative, 2 spines).
+- Pre-existing, not caused by this change: `/admin/closet/today` and `/admin/catalogue` scroll sideways on a
+  phone against an empty database (451px and 442px wide before, 469px and 440px after). Not fixed here.
 
 ## Process
 
