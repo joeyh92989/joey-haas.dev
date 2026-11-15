@@ -14,6 +14,7 @@
 import matter from 'gray-matter'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { readingMinutes } from '../src/lib/readingTime.js'
 import { SITE_URL, excerpt } from './prerender-lib.mjs'
 
 /**
@@ -51,7 +52,7 @@ export function toDateString(value) {
  * missing folder reads as empty, so a site with no notes yet still builds.
  *
  * @param {string} dir The folder to read.
- * @returns {Promise<{slug: string, title: string, date: string, body: string}[]>}
+ * @returns {Promise<{slug: string, title: string, date: string, body: string, readingMinutes: number, updated: string | null}[]>}
  */
 export async function readPublished(dir) {
   let names
@@ -72,6 +73,9 @@ export async function readPublished(dir) {
       title: String(data.title),
       date: toDateString(data.date),
       body: content,
+      readingMinutes: readingMinutes(content),
+      // Optional: the date of the latest revision.
+      updated: data.updated ? toDateString(data.updated) : null,
       // The rest of the frontmatter, for a reader that needs more than the
       // four fields every kind of entry has (a trip's summary and cover).
       frontmatter: data,

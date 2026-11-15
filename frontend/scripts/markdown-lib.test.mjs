@@ -111,3 +111,22 @@ describe('writeFeed', () => {
     expect(tilXml).not.toContain('essay')
   })
 })
+
+describe('readPublished reading time and updated date', () => {
+  it('derives minutes from the body and reads an optional updated date', async () => {
+    await write(
+      'notes',
+      'long.md',
+      { title: 'Long', date: '2026-10-01', updated: '2026-10-05' },
+      Array(500).fill('word').join(' '),
+    )
+    await write('notes', 'short.md', { title: 'Short', date: '2026-09-01' })
+    const entries = await readPublished(path.join(root, 'notes'))
+    const long = entries.find((e) => e.slug === 'long')
+    const short = entries.find((e) => e.slug === 'short')
+    expect(long.readingMinutes).toBe(3)
+    expect(long.updated).toBe('2026-10-05')
+    expect(short.readingMinutes).toBe(1)
+    expect(short.updated).toBeNull()
+  })
+})
