@@ -71,4 +71,35 @@ describe('Colophon', () => {
       '/til/feed.xml',
     )
   })
+
+  it('states what is tested and how to report a problem, with no conformance claim', () => {
+    render(
+      <MemoryRouter>
+        <Colophon />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('heading', { name: 'Accessibility' })).toBeVisible()
+    expect(screen.getByText(/runs axe/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /@/ })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^mailto:/),
+    )
+    expect(
+      screen.queryByText(/WCAG 2\.\d (A|AA) (compliant|conformant)/i),
+    ).toBeNull()
+  })
+
+  it('links the three docs on GitHub', () => {
+    render(
+      <MemoryRouter>
+        <Colophon />
+      </MemoryRouter>,
+    )
+    for (const name of ['Design system', 'Learnings', 'Specs and plans']) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute(
+        'href',
+        expect.stringContaining('github.com/joeyh92989/joey-haas.dev/'),
+      )
+    }
+  })
 })

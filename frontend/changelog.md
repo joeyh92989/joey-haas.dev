@@ -6,10 +6,13 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-15
 
+- A comic series whose issues I own are all read now says Read, or Caught up while the run is still going, instead of To read.
 - The blog, TIL and these changes now have RSS feeds you can find: an RSS link on each page and in the footer, and `/blog/feed.xml` works alongside `/feed.xml`.
 - Home now has Resume (PDF) and Email me buttons, and search finds Resume and Contact.
 - [Now](/now) says what day it was last written and that it covers games only.
 - Dates read month first everywhere, such as Nov 9, 2026, and the admin’s Play next is spelled that way across the site.
+- Posts and notes show a reading time and, when revised, an updated date.
+- The [Colophon](/colophon) has an accessibility section (what is tested and how to report a problem) and links to the design, learnings and planning docs; there is now a `/.well-known/security.txt`.
 
 ## 2026-11-14
 

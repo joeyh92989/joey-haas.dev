@@ -167,6 +167,7 @@ const asPoster = (row) => ({
   creator: row.publisher,
   cover_url: row.cover_url,
   status: row.status,
+  caught_up: row.caught_up,
   rating: row.rating,
   row,
 })
@@ -365,7 +366,7 @@ export default function Comics() {
                   to={itemPath(item.id)}
                   stacked
                   run={<ComicCardRun row={item.row} />}
-                  statusLabels={copy.status}
+                  statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
                 />
               )}
             />

@@ -62,7 +62,12 @@ export default function BlogPost() {
         ledeClassName="post-summary"
       />
       {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
-      <PostMeta date={post.frontmatter.date} tags={post.frontmatter.tags} />
+      <PostMeta
+        date={post.frontmatter.date}
+        updated={post.frontmatter.updated}
+        readingMinutes={post.frontmatter.readingMinutes}
+        tags={post.frontmatter.tags}
+      />
 
       {headings.length > MAX_HEADINGS_WITHOUT_CONTENTS && (
         <nav className="post-toc" aria-labelledby="post-toc-label">

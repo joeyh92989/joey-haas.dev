@@ -542,7 +542,8 @@ p.muted a,
 
   /* 44px tap targets for the bar's controls (#276); the bar is 54px. */
   .mast .btn,
-  .brand {
+  .brand,
+  .hero-actions .btn {
     min-height: 2.75rem;
   }
 
@@ -12577,4 +12578,26 @@ a.btn.sm {
 
 .admin-comic-add input {
   max-width: 6rem;
+}
+
+/* ---------- Phone tap targets (#276) ----------
+   44px high for the controls a thumb has to hit: shelf chips, the sub-nav
+   tabs, jump links and the CTAs that close a section. Last in the file so it
+   wins over the desktop rules above at equal specificity. Inline links in
+   prose keep their line height (WCAG 2.5.8 exempts them). */
+@media (max-width: 700px) {
+  .chip,
+  .btn.sm,
+  .disclosure,
+  .spine-tabs a,
+  .spine-name a,
+  .shelf-links a,
+  .shelf-behind a,
+  .section-head a,
+  .project-links a,
+  .spine-project a {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+  }
 }

@@ -83,7 +83,7 @@ export default function PosterCard({
   statusLabels,
 }) {
   const markLabel = statusLabels
-    ? statusLabels[item.status]
+    ? (item.caught_up && statusLabels.caughtUp) || statusLabels[item.status]
     : statusLabel(item.status, item.type)
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const mark = formatMark(item)

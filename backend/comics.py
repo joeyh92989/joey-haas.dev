@@ -651,6 +651,32 @@ def run_summary(
     )
 
 
+def shown_status(
+    stored: str,
+    *,
+    owned: int,
+    read: int,
+    released: int | None,
+    ongoing: bool,
+    missing: int,
+) -> tuple[str, bool]:
+    """The status a comic page shows, derived from the issue marks (#277).
+
+    Returns (status, caught_up). The stored status is the owner's override: any
+    value but `backlog` is shown as it is. A backlog series with every owned
+    issue read is `finished` when its run is complete (ended, nothing missing,
+    issue count known) and otherwise stays `backlog` with caught_up true (the
+    page says "Caught up"). No owned issues, or any unread one, is plain
+    backlog. Pure: callers pass counts, and skips and stubs never enter
+    (a skip is not owned; a stub is a held number and counts as owned).
+    """
+    if stored != "backlog" or owned <= 0 or read < owned:
+        return stored, False
+    if ongoing or missing > 0 or released is None:
+        return "backlog", True
+    return "finished", False
+
+
 @dataclass(frozen=True)
 class ReadState:
     read: int

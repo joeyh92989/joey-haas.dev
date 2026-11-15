@@ -491,6 +491,18 @@ export default function AdminComic() {
                   </option>
                 ))}
               </select>
+              {comic && comic.status !== item.status && (
+                <p className="muted">
+                  The public page shows {spine.comics.status[comic.status]}:
+                  every issue I own is read.
+                </p>
+              )}
+              {comic && comic.caught_up && (
+                <p className="muted">
+                  The public page shows {spine.comics.caughtUp}: every issue I
+                  own is read, and the run is not complete.
+                </p>
+              )}
 
               <label htmlFor="rating">Rating</label>
               <input
