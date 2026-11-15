@@ -139,7 +139,10 @@ describe('AdminLayout session states', () => {
     ;(await screen.findByRole('button', { name: /sign out/i })).click()
     expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull()
-    expect(document.activeElement).toBe(screen.getByRole('main'))
+    // Focus moves in an effect after the commit that drew the gate.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('main')),
+    )
   })
 
   it('reads a server error on the session check as an error, with a retry', async () => {
