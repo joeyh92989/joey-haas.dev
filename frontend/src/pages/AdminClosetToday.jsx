@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import OutfitSwatches, { Swatch } from '../components/OutfitSwatches.jsx'
@@ -217,7 +218,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         <p className="muted">Loading…</p>
       )}
       {mode === 'closet' && garments?.length === 0 && (
-        <p className="muted">No active pieces to build around yet.</p>
+        <p className="muted">{adminCopy.closetNoPieces}</p>
       )}
       {garments?.length > 0 && (
         <ul className="garment-grid today-picker">

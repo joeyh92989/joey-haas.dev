@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import { Link, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CardActionsShell from '../components/CardActionsShell.jsx'
@@ -406,7 +407,7 @@ export default function AdminComics() {
             disabled={busy || publicCount === 0}
             onClick={() => setAllVisibility(false)}
           >
-            Hide all
+            {adminCopy.comics.hideAll}
           </button>
           <button
             type="button"
@@ -414,7 +415,9 @@ export default function AdminComics() {
             disabled={refreshing}
             onClick={refreshMetadata}
           >
-            {refreshing ? 'Refreshing…' : 'Refresh comic metadata'}
+            {refreshing
+              ? adminCopy.comics.refreshing
+              : adminCopy.comics.refreshMetadata}
           </button>
         </>
       )}

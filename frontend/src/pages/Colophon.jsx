@@ -46,14 +46,14 @@ export default function Colophon() {
       <ul className="prose-list">
         <li>
           FastAPI on Python 3.12, with Postgres 18 on Neon. Migrations are
-          additive and applied by hand. The API won&rsquo;t boot if the database
-          is behind one.
+          additive and applied when a pull request merges. The API won&rsquo;t
+          boot if the database is behind one.
         </li>
         <li>
           <Link to={spine.path}>{spine.name}</Link> reads game metadata from
-          IGDB, and film and comic metadata from TMDB and Comic Vine. Gemini
-          reads titles from shelf photos and writes Discover&rsquo;s picks,
-          answering only with games from a list it&rsquo;s given.
+          IGDB and comic metadata from Comic Vine. Gemini reads titles from
+          shelf photos and writes Discover&rsquo;s picks, answering only with
+          games from a list it&rsquo;s given.
         </li>
         <li>
           A nightly GitHub Actions job refreshes comics and the physical release
