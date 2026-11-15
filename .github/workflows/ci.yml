@@ -253,7 +253,9 @@ jobs:
   # exist, and skipped for fork PRs (which get no secrets) and for PRs that do
   # not touch backend/migrations/versions. The branch is `pr-<number>`, replaced
   # on each push and deleted by pr-closed.yml when the PR closes; the expiry is
-  # a safety net, since a free project holds ten branches in all.
+  # a safety net. A schema-only branch is a ROOT branch, and a free project
+  # allows three roots (production is one), so two migration PRs can rehearse
+  # at once.
   neon-rehearsal:
     if: >-
       vars.NEON_PROJECT_ID != ''
@@ -369,7 +371,8 @@ jobs:
           alembic upgrade head
           alembic current
 
-      # Compares the branch with its parent (production) and comments the diff.
+      # A schema-only branch is a root branch with no parent, so the base is
+      # named: the diff is the branch against production's schema.
       - name: Comment the schema diff
         if: steps.changed.outputs.migrations == 'true'
         # v1.0.1, pinned: this action receives the Neon API key.
@@ -377,4 +380,5 @@ jobs:
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
           compare_branch: ${{ env.NEON_BRANCH }}
+          base_branch: production
           api_key: ${{ secrets.NEON_API_KEY }}
