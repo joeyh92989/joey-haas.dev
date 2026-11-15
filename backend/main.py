@@ -40,6 +40,7 @@ from physical_routes import create_physical_router
 from physical_sources.limits import REQUEST_TIMEOUT_SECONDS, USER_AGENT
 from picker_routes import create_picker_router
 from public import create_public_router
+from public_cache import add_public_cache
 from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.registry import build_registry, configured_sources
@@ -109,6 +110,8 @@ app.add_middleware(
 # Inside CORS (added before it), so an unhandled error's 500 still carries
 # Access-Control-Allow-Origin and the SPA can read it (errors.py).
 add_json_errors(app)
+# Cache-Control and an ETag on the public reads (public_cache.py).
+add_public_cache(app)
 # Inside CORS too: a state-changing request from a foreign browser origin is
 # refused, which SameSite=Lax alone does not do for *.joey-haas.dev.
 add_origin_check(app, allowed_origins(config))
