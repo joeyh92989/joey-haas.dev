@@ -75,6 +75,15 @@ services:
         source: /til/render-rewrites-need-the-slash
         destination: /til/render-rewrites-need-the-slash/index.html
       - type: rewrite
+        source: /til/profile-before-parallelizing-ci
+        destination: /til/profile-before-parallelizing-ci/index.html
+      - type: rewrite
+        source: /til/deploy-hook-2xx-is-not-a-deploy
+        destination: /til/deploy-hook-2xx-is-not-a-deploy/index.html
+      - type: rewrite
+        source: /til/guard-state-writes-on-the-server
+        destination: /til/guard-state-writes-on-the-server/index.html
+      - type: rewrite
         source: /spine
         destination: /spine/index.html
       - type: rewrite

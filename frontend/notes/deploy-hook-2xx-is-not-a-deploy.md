@@ -2,7 +2,6 @@
 title: A deploy hook for the wrong service still answers 2xx
 date: 2026-11-15
 tags: [render, ci]
-draft: true
 ---
 
 The deploy hook I had set for the API was the static site’s hook. A dry run of the workflow reported success, because the hook answered 2xx, but the API never rebuilt. I only caught it by opening Render’s deploy list for each service and seeing nothing new on the API.

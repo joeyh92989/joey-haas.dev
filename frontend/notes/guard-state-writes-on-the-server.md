@@ -2,7 +2,6 @@
 title: Guard state-dependent writes on the server
 date: 2026-11-12
 tags: [api, concurrency]
-draft: true
 ---
 
 The Remove button for a photo was disabled in the client whenever the photo was in the `reading` state. It looked like a guard, but it almost never fired.
