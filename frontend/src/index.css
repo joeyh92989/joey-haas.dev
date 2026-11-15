@@ -18,6 +18,9 @@
  * ratios are recorded beside each.
  */
 :root {
+  /* The opaque stop of a mask-image gradient: only its alpha is read, so it
+     is the same in both themes and is the one raw hex outside a palette. */
+  --mask-opaque: #000;
   --bg: #0f1114;
   --surface: #15181c;
   --sunken: #1b1f24;
@@ -290,6 +293,7 @@ a:hover {
    against body text in both themes, so colour alone cannot mark them. */
 .prose a,
 .prose-list a,
+.post-body a,
 .changelog a,
 .empty-box a,
 .intake-demo-fine a,
@@ -534,6 +538,18 @@ p.muted a,
 
   .mast-menu {
     display: inline-flex;
+  }
+
+  /* 44px tap targets for the bar's controls (#276); the bar is 54px. */
+  .mast .btn,
+  .brand {
+    min-height: 2.75rem;
+  }
+
+  .jump-nav a {
+    align-items: center;
+    display: flex;
+    min-height: 2.75rem;
   }
 }
 
@@ -2051,19 +2067,7 @@ footer {
   padding: 14px var(--space-4);
 }
 
-/* Dashboard (/admin): jobs and quick actions side by side, then changes. */
-.dashboard-two {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  margin-bottom: 14px;
-}
-
-/* Side by side, so the prose rule spacing stacked sections does not apply. */
-.dashboard-two > .panel {
-  margin-top: 0;
-}
-
+/* Dashboard (/admin): jobs, then changes. */
 .job-list {
   list-style: none;
   margin: 0;
@@ -2110,33 +2114,6 @@ footer {
   white-space: nowrap;
 }
 
-.quick-actions {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr;
-}
-
-.quick-actions a {
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: var(--fs-14);
-  padding: var(--space-3);
-  text-decoration: none;
-}
-
-.quick-actions a:hover {
-  border-color: var(--line-strong);
-}
-
-.quick-actions small {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-12);
-  margin-top: 2px;
-}
-
 /* Three short columns: they wrap on a phone rather than scroll, so When
    stays in view. */
 .item-table.recent-table {
@@ -2150,20 +2127,12 @@ footer {
 
 /* Beside the sidebar, four tiles would be too narrow for their labels. */
 @media (max-width: 900px) {
-  .dashboard-two {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .stat-tiles {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 700px) {
-  .quick-actions {
-    grid-template-columns: 1fr;
-  }
-
   /* Time over the text, the state and Run now under it. */
   .job-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2740,11 +2709,6 @@ footer {
 .intake-checkone .intake-actions.quiet {
   display: flex;
   margin-top: var(--space-2);
-}
-
-.intake-note {
-  font-size: var(--fs-13);
-  margin: 0.4rem 0 0;
 }
 
 .intake-skim-head {
@@ -4370,10 +4334,10 @@ footer {
     scrollbar-width: none;
     -webkit-mask-image: linear-gradient(
       to right,
-      #000 calc(100% - 2rem),
+      var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
   }
 
   .spine-tabs::-webkit-scrollbar {
@@ -6049,19 +6013,18 @@ section > .cover-key {
     scroll-padding-inline-end: 2rem;
   }
 
-  /* A cut-off chip reads as "more", not "clipped". The #000 is an alpha
-     mask, not a colour that is displayed (only its opacity matters), so it
-     is right in both themes and the no-raw-hex rule does not apply. The
+  /* A cut-off chip reads as "more", not "clipped". The mask stop is
+     --mask-opaque, an alpha mask, not a colour that is displayed. The
      padding lets the last item clear the fade, and scroll-padding keeps a
      focused item out of it. The block padding on the scrollers (cancelled
      by negative margin) keeps focus rings from being clipped by overflow. */
   .chip-row {
     -webkit-mask-image: linear-gradient(
       to right,
-      #000 calc(100% - 2rem),
+      var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
   }
 
   /* The cover shrinks so the title still fits beside it. */
@@ -6442,10 +6405,10 @@ section > .cover-key {
     padding-right: var(--space-6);
     -webkit-mask-image: linear-gradient(
       to right,
-      #000 calc(100% - 2rem),
+      var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
   }
 }
 
@@ -9003,27 +8966,6 @@ a.cover-tile-cap:focus-visible span {
   text-transform: uppercase;
 }
 
-.item-facts {
-  display: grid;
-  font-size: var(--fs-14);
-  gap: 0.3rem var(--space-4);
-  grid-template-columns: max-content 1fr;
-  margin: var(--space-3) 0 0;
-}
-
-.item-facts > div {
-  display: contents;
-}
-
-.item-facts dt {
-  color: var(--text-3);
-}
-
-.item-facts dd {
-  color: var(--text-2);
-  margin: 0;
-}
-
 .item-card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -10840,6 +10782,12 @@ a.cover-tile-cap:focus-visible span {
   border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
+}
+
+.spot-map-clear {
+  left: var(--space-2);
+  position: absolute;
+  top: var(--space-2);
 }
 
 .spot-map-ground {

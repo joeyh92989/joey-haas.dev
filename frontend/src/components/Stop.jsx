@@ -27,7 +27,7 @@ function StopCapture({ capture }) {
         <CaptureTable columns={capture.columns} rows={capture.rows} />
       )}
       {capture.code && (
-        <pre className="tour-code">
+        <pre className="tour-code" tabIndex={0} aria-label="Code">
           <code>{capture.code}</code>
         </pre>
       )}

@@ -97,12 +97,34 @@ export function rehypeHeadingIds() {
   }
 }
 
+/**
+ * A code block that scrolls sideways must take keyboard focus, and a focusable
+ * region needs a name (axe scrollable-region-focusable, #275).
+ */
+function rehypeFocusableCode() {
+  return (tree) => {
+    const walk = (node) => {
+      if (node.type === 'element' && node.tagName === 'pre') {
+        node.properties = {
+          ...node.properties,
+          tabIndex: 0,
+          role: 'region',
+          ariaLabel: 'Code',
+        }
+      }
+      node.children?.forEach(walk)
+    }
+    walk(tree)
+  }
+}
+
 /** The parse and highlight chain both pipelines share; `ids` adds heading ids. */
 function pipeline({ ids = false } = {}) {
   const chain = unified().use(remarkParse).use(remarkGfm).use(remarkRehype)
   if (ids) chain.use(rehypeHeadingIds)
   return chain
     .use(rehypeShiki, { themes: SHIKI_THEMES, defaultColor: 'light' })
+    .use(rehypeFocusableCode)
     .use(rehypeStringify)
 }
 

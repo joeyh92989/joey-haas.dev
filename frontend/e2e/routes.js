@@ -23,5 +23,11 @@ export function routePaths(remote = !!process.env.E2E_BASE_URL) {
       resolve(import.meta.dirname, '../dist', page.path.slice(1), 'index.html'),
     )
   const optional = [BLOG_PAGE, TIL_PAGE].filter((page) => remote || built(page))
-  return [...STATIC_PAGES, ...optional].map((page) => page.path)
+  const paths = [...STATIC_PAGES, ...optional].map((page) => page.path)
+  // One post with real content: link and code-block checks (#273, #275).
+  const post = '/blog/how-spine-works'
+  const postBuilt = existsSync(
+    resolve(import.meta.dirname, '../dist', post.slice(1), 'index.html'),
+  )
+  return remote || postBuilt ? [...paths, post] : paths
 }
