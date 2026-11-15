@@ -19,6 +19,7 @@ import {
   robots,
   sitemap,
   strayTripDirs,
+  useFallbackImage,
 } from './prerender-lib.mjs'
 import { editionPath, issuePath } from '../src/lib/spinePaths.js'
 import { readPublished } from './markdown-lib.mjs'
@@ -178,7 +179,14 @@ describe('publicRoutes', () => {
     })
     const plain = routeAt(bare, '/travel/croatia-greece-2026')
     expect(plain.description).toBe('Landed late.')
-    expect(plain.image.url).toBe('https://joey-haas.dev/og-card.png')
+    // No cover photo: the generated card stands in for it.
+    expect(plain.image.url).toBe(
+      'https://joey-haas.dev/og/travel/croatia-greece-2026.png',
+    )
+    expect(plain.ogCard).toMatchObject({
+      kind: 'travel',
+      title: 'Croatia & Greece',
+    })
   })
 
   it('lists TIL and its notes as articles with the TIL feed', () => {
@@ -915,5 +923,62 @@ describe('the audit fixes (#266 #267 #268 #269 #290)', () => {
     expect(xml).toContain('Added a page today.\nFixed it.')
     expect(xml.indexOf('2026-11-14')).toBeLessThan(xml.indexOf('2026-11-13'))
     expect(xml.match(/<item>/g)).toHaveLength(2)
+  })
+})
+
+describe('generated link-preview cards', () => {
+  const routes = publicRoutes({
+    posts: [POST],
+    notes: [NOTE],
+    trips: [],
+    items: [ITEM],
+  })
+
+  it('gives each post and note its own image and an alt that names it', () => {
+    const post = routeAt(routes, '/blog/how-spine-works')
+    const note = routeAt(routes, '/til/a-note')
+    expect(post.image).toEqual({
+      url: 'https://joey-haas.dev/og/blog/how-spine-works.png',
+      width: 1200,
+      height: 630,
+      alt: 'How Spine works, a post on joey-haas.dev',
+    })
+    expect(note.image.url).toBe('https://joey-haas.dev/og/til/a-note.png')
+    expect(note.image.alt).toBe('A note, a TIL note on joey-haas.dev')
+    expect(post.ogCard).toEqual({
+      kind: 'blog',
+      slug: 'how-spine-works',
+      title: 'How Spine works',
+      date: '2026-10-02',
+    })
+  })
+
+  it('writes the page’s own image into og:image, og:image:alt and twitter', () => {
+    const html = renderHead(SHELL, routeAt(routes, '/til/a-note'))
+    expect(html).toContain(
+      '<meta property="og:image" content="https://joey-haas.dev/og/til/a-note.png" />',
+    )
+    expect(html).toContain(
+      '<meta property="og:image:alt" content="A note, a TIL note on joey-haas.dev" />',
+    )
+    expect(html).toContain(
+      '<meta name="twitter:card" content="summary_large_image" />',
+    )
+    expect(html).not.toContain('og-card.png')
+  })
+
+  it('leaves home, static pages and shelf items as they were', () => {
+    for (const path of ['/', '/about', '/blog', `/shelf/${ITEM.id}`]) {
+      const route = routeAt(routes, path)
+      expect(route.ogCard).toBeUndefined()
+      expect(route.image.url).not.toContain('/og/')
+    }
+  })
+
+  it('falls back to the site card when a drawing fails', () => {
+    const fallback = useFallbackImage(routeAt(routes, '/til/a-note'))
+    expect(fallback.ogCard).toBeUndefined()
+    expect(fallback.image.url).toBe('https://joey-haas.dev/og-card.png')
+    expect(renderHead(SHELL, fallback)).toContain('og-card.png')
   })
 })

@@ -34,8 +34,11 @@ import {
   robots,
   sitemap,
   spineFeed,
+  ogCardFile,
   strayTripDirs,
+  useFallbackImage,
 } from './prerender-lib.mjs'
+import { loadFaces, renderCardPng } from './og-card.mjs'
 import { readPublished } from './markdown-lib.mjs'
 import { spine } from '../src/content/spine.js'
 import { parseChangelog } from '../src/lib/changelog.js'
@@ -115,6 +118,33 @@ for (const dir of strayTripDirs(travelDirs, trips)) {
   console.log(`prerender: left out dist/travel/${dir} (no published trip)`)
 }
 
+// A card per post, note and cover-less trip (scripts/og-card.mjs). A failed
+// drawing logs and leaves that page on the site card; it never fails the build.
+const cardRoutes = routes.filter((route) => route.ogCard)
+let faces = null
+try {
+  if (cardRoutes.length > 0) faces = await loadFaces()
+} catch (error) {
+  console.warn(`prerender: card fonts unreadable, site card instead: ${error}`)
+}
+for (const [i, route] of routes.entries()) {
+  if (!route.ogCard) continue
+  try {
+    if (!faces) throw new Error('no fonts')
+    const file = path.join(
+      dist,
+      ...ogCardFile(route.ogCard.kind, route.ogCard.slug).split('/'),
+    )
+    await fs.mkdir(path.dirname(file), { recursive: true })
+    await fs.writeFile(file, await renderCardPng(route.ogCard, faces))
+  } catch (error) {
+    console.warn(
+      `prerender: no card for ${route.path}, site card instead: ${error}`,
+    )
+    routes[i] = useFallbackImage(route)
+  }
+}
+
 for (const route of routes) {
   const html = renderHead(shell, route)
   await write(route.path, html)
@@ -134,4 +164,5 @@ for (const prefix of [spine.path, LEGACY_PREFIX]) {
   await fs.mkdir(dir, { recursive: true })
   await fs.writeFile(path.join(dir, 'feed.xml'), feed, 'utf8')
 }
+console.log(`prerender: ${cardRoutes.length} link-preview card(s)`)
 console.log(`prerendered ${routes.length} route(s), sitemap.xml and robots.txt`)
