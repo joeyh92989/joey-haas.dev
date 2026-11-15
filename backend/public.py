@@ -456,8 +456,17 @@ def _to_public_detail(
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
     description = snapshot.get("description")
     votes = snapshot.get("community_votes")
+    fields = _list_fields(item, runs, played)
+    comic = (
+        comic_detail(item, today or datetime.now(UTC).date(), read_marks)
+        if item.type == ItemType.COMIC
+        else None
+    )
+    if comic is not None:
+        # The marks decide what a comic's status reads as (#277).
+        fields["status"] = comic.status
     return PublicItemDetailOut(
-        **_list_fields(item, runs, played),
+        **fields,
         description=description if isinstance(description, str) else None,
         community_votes=(
             votes if isinstance(votes, int) and not isinstance(votes, bool) else None
@@ -474,11 +483,7 @@ def _to_public_detail(
             )
             for other in similar
         ],
-        comic=(
-            comic_detail(item, today or datetime.now(UTC).date(), read_marks)
-            if item.type == ItemType.COMIC
-            else None
-        ),
+        comic=comic,
     )
 
 
