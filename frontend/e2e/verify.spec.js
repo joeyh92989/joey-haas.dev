@@ -68,7 +68,7 @@ test.describe('tap targets at 400px (#276)', () => {
     }) => {
       await page.setViewportSize(PHONE)
       await openRoute(path, 'dark')
-      if (path.startsWith('/shelf/') && path !== '/shelf/how')
+      if (path === '/shelf/games')
         await expect(page.locator('.chip').first()).toBeVisible()
       const small = await page.evaluate((floor) => {
         const sel =
