@@ -6,6 +6,16 @@ import CoverImage from './CoverImage.jsx'
 const STRIP_SIZE = 4
 
 /**
+ * The strip's slots are about 52x70, so IGDB's 90x128 `t_cover_small` is
+ * enough; the stored `t_cover_big` is 264x352. Other hosts' URLs pass through.
+ */
+export function smallCover(url) {
+  return typeof url === 'string'
+    ? url.replace('/t_cover_big/', '/t_cover_small/')
+    : url
+}
+
+/**
  * Four favourite covers from the build-time snapshot, for Home and Projects.
  *
  * Those pages make no API calls, so this reads the static snapshot and
@@ -32,7 +42,11 @@ export default function CoverStrip() {
   return (
     <span className="cover-strip" aria-hidden="true">
       {covers.map((item) => (
-        <CoverImage key={item.id} src={item.cover_url} type={item.type} />
+        <CoverImage
+          key={item.id}
+          src={smallCover(item.cover_url)}
+          type={item.type}
+        />
       ))}
     </span>
   )

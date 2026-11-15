@@ -137,8 +137,10 @@ describe('App redirects', () => {
     ['/collection/42', /^\/shelf\/42\/$/],
   ])('sends %s to its /shelf page', async (from, to) => {
     renderAt(from)
-    await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent(to),
+    // /spine/year lands through a lazy page, whose chunk loads on first use.
+    await waitFor(
+      () => expect(screen.getByTestId('location')).toHaveTextContent(to),
+      { timeout: 5000 },
     )
   })
 })

@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { fileURLToPath } from 'node:url'
 import { snapshotPresence } from './scripts/snapshot-presence.mjs'
+import fontPreload from './vite-plugin-font-preload.js'
 import markdown from './vite-plugin-markdown.js'
 
 const SNAPSHOT_DIR = fileURLToPath(
@@ -21,7 +22,7 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-    plugins: [markdown(), react()],
+    plugins: [markdown(), react(), fontPreload()],
     // Whether Comics and Denver have anything to show (#125), read once from
     // the snapshot fetch-snapshot.mjs has just written. src/lib/snapshotPresence.js.
     define: {

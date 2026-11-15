@@ -141,11 +141,22 @@ def create_auth_router(config: Config) -> APIRouter:
         return RedirectResponse(f"{config.frontend_url}/admin", status_code=302)
 
     @router.get("/me")
-    async def me(request: Request):
-        """Reports the signed-in admin, or 401."""
+    async def me(request: Request, quiet: bool = False):
+        """Reports the signed-in admin, or 401.
+
+        `?quiet=1` is for the public pages' session check: signed out answers
+        200 `{"signed_in": false}` instead of 401, because a 401 on every
+        public page load is logged to the browser console as an error. A
+        signed-in answer also carries `signed_in: true`. Without the
+        parameter the route is unchanged.
+        """
         user = session_admin(request)
         if not user:
+            if quiet:
+                return {"signed_in": False}
             return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+        if quiet:
+            return {"email": user["email"], "signed_in": True}
         return {"email": user["email"]}
 
     @router.post("/logout")

@@ -100,6 +100,20 @@ def test_me_without_session_is_401():
     assert client.get("/api/auth/me").status_code == 401
 
 
+def test_quiet_me_without_session_is_200_signed_out():
+    client = build_client()
+    response = client.get("/api/auth/me?quiet=1")
+    assert response.status_code == 200
+    assert response.json() == {"signed_in": False}
+
+
+def test_quiet_me_with_session_names_the_admin():
+    client = build_client()
+    sign_in(client)
+    body = client.get("/api/auth/me?quiet=1").json()
+    assert body == {"email": "admin@example.com", "signed_in": True}
+
+
 def test_callback_rejects_disallowed_account_without_creating_session():
     client = build_client()
     response = sign_in(

@@ -3,33 +3,36 @@ import { Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 import RootLayout from './layouts/RootLayout.jsx'
 import About from './pages/About.jsx'
 import Blog from './pages/Blog.jsx'
-import Comics from './pages/Comics.jsx'
-import ComicEdition from './pages/ComicEdition.jsx'
-import ComicIssue from './pages/ComicIssue.jsx'
-import Daily from './pages/Daily.jsx'
-import Games from './pages/Games.jsx'
-import IntakeDemo from './pages/IntakeDemo.jsx'
 import Colophon from './pages/Colophon.jsx'
 import BlogPost from './pages/BlogPost.jsx'
 import Home from './pages/Home.jsx'
-import HowItWorks from './pages/HowItWorks.jsx'
-import Item from './pages/Item.jsx'
-import MonthInReview from './pages/MonthInReview.jsx'
-import Next from './pages/Next.jsx'
 import Now from './pages/Now.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
-import Stats from './pages/Stats.jsx'
 import Til from './pages/Til.jsx'
 import TilNote from './pages/TilNote.jsx'
 import Travel from './pages/Travel.jsx'
 import Trip from './pages/Trip.jsx'
-import YearInReview, { CurrentYear } from './pages/YearInReview.jsx'
 import { gamesPath, itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
 // boundary covers the layout's wait, and AdminLayout's each page's.
+const Comics = lazy(() => import('./pages/Comics.jsx'))
+const ComicEdition = lazy(() => import('./pages/ComicEdition.jsx'))
+const ComicIssue = lazy(() => import('./pages/ComicIssue.jsx'))
+const Daily = lazy(() => import('./pages/Daily.jsx'))
+const Games = lazy(() => import('./pages/Games.jsx'))
+const IntakeDemo = lazy(() => import('./pages/IntakeDemo.jsx'))
+const HowItWorks = lazy(() => import('./pages/HowItWorks.jsx'))
+const Item = lazy(() => import('./pages/Item.jsx'))
+const MonthInReview = lazy(() => import('./pages/MonthInReview.jsx'))
+const Next = lazy(() => import('./pages/Next.jsx'))
+const Stats = lazy(() => import('./pages/Stats.jsx'))
+const YearInReview = lazy(() => import('./pages/YearInReview.jsx'))
+const CurrentYear = lazy(() =>
+  import('./pages/YearInReview.jsx').then((m) => ({ default: m.CurrentYear })),
+)
 const AdminLayout = lazy(() => import('./layouts/AdminLayout.jsx'))
 const Admin = lazy(() => import('./pages/Admin.jsx'))
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'))

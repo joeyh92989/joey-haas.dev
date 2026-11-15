@@ -180,3 +180,26 @@ describe('isValidSnapshot', () => {
     expect(isValidSnapshot('comics', [])).toBe(false)
   })
 })
+
+describe('readSnapshot caching', () => {
+  it('fetches a snapshot once however many callers ask', async () => {
+    const fetch = stubFetch(async () => ({
+      ok: true,
+      json: async () => [{ id: '1' }],
+    }))
+    const [a, b] = await Promise.all([
+      readSnapshot('items'),
+      readSnapshot('items'),
+    ])
+    expect(a).toEqual(b)
+    await readSnapshot('items')
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not keep a failure, so a later read tries again', async () => {
+    const fetch = stubFetch(async () => ({ ok: false }))
+    expect(await readSnapshot('items')).toBeNull()
+    expect(await readSnapshot('items')).toBeNull()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+})

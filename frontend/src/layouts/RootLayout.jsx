@@ -149,9 +149,17 @@ export default function RootLayout() {
     // error because a session check timed out would be worse than a footer
     // that simply offers sign-in.
     let cancelled = false
-    apiFetch('/api/auth/me')
-      .then((response) => {
-        if (!cancelled) setSignedIn(response.ok)
+    // quiet=1: a signed-out answer is 200 {signed_in: false}, not a 401 the
+    // browser would log as a console error on every public page. An older API
+    // ignores the parameter and answers 401, which reads as signed out too.
+    apiFetch('/api/auth/me?quiet=1')
+      .then(async (response) => {
+        if (!response.ok) return false
+        const body = await response.json().catch(() => null)
+        return body?.signed_in !== false
+      })
+      .then((signedIn) => {
+        if (!cancelled) setSignedIn(signedIn)
       })
       .catch(() => {
         if (!cancelled) setSignedIn(false)
@@ -231,7 +239,7 @@ export default function RootLayout() {
 
       <main id="main" ref={mainRef} tabIndex={-1} className={pageClass}>
         <RouteErrorBoundary key={pathname}>
-          {/* Lazy admin pages wait here; public pages are in the main chunk. */}
+          {/* Lazy pages (admin, the shelf, Daily, Stats) wait here. */}
           <Suspense
             fallback={
               <p className="muted" role="status">
