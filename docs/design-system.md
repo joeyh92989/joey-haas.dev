@@ -67,6 +67,14 @@ optional lede, then reading-width text. It does not use `PageHeader`, which
 is for pages with a trail, a kicker or a list under them. Only a prose page
 may hand-write an `h1`, and the list is in `designConsistency.test.js`.
 
+A drawn diagram on a prose page is a `<figure>` like `ArchitectureFigure`
+(Colophon): an inline SVG drawn with tokens, `role="img"` with an
+`aria-label`, and a `<figcaption>` that carries the same facts as a list,
+since the SVG's children are presentational. Its text and lines are measured
+on contrast (4.5:1 and 3:1) and the ratios recorded beside its CSS. A project
+card's hero is a pair of WebP files, dark and light, from
+`scripts/project-heroes.mjs`.
+
 ## A mark that is not match confidence
 
 Intake's `ConfidenceBadge` (Exact, Probable, Check, On shelf) says how far a

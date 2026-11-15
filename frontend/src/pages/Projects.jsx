@@ -11,7 +11,7 @@ import { projects } from '../content/projects.js'
  * A project with `to` lives on this site and is linked with a router Link, so
  * it navigates without a full page load; `url` links away.
  * `strip: 'favourites'` adds the collection's cover strip, read from the build-time
- * snapshot, not the API. `tagline`, `line`, `highlights` and `links` render
+ * snapshot, not the API. `tagline`, `line`, `hero`, `differently`, `highlights` and `links` render
  * only when set. The cards share Home's Work card language, one per row.
  */
 export default function Projects() {
@@ -36,6 +36,22 @@ export default function Projects() {
                 project.name
               )}
             </h2>
+            {project.hero && (
+              <div className="project-hero">
+                {['dark', 'light'].map((theme) => (
+                  <img
+                    key={theme}
+                    className={`project-hero__img project-hero__img--${theme}`}
+                    src={`/projects/${project.hero.slug}-${theme}.webp`}
+                    alt={project.hero.alt}
+                    width={project.hero.width}
+                    height={project.hero.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ))}
+              </div>
+            )}
             {project.strip === 'favourites' && <CoverStrip />}
             <p>{project.description}</p>
             {project.highlights && (
@@ -61,6 +77,11 @@ export default function Projects() {
               </p>
             )}
             {project.line && <p className="project-line">{project.line}</p>}
+            {project.differently && (
+              <p className="project-differently">
+                <strong>What I’d do differently.</strong> {project.differently}
+              </p>
+            )}
             <ul className="tech-list">
               {project.tech.map((tech) => (
                 <li key={tech}>{tech}</li>

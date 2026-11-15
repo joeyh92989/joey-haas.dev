@@ -36,9 +36,16 @@ vi.mock('../content/projects.js', () => ({
       to: '/shelf',
       url: null,
       strip: 'favourites',
+      hero: {
+        slug: 'my-shelf',
+        alt: 'The Games page.',
+        width: 1200,
+        height: 560,
+      },
     },
     {
       name: 'This site',
+      differently: 'A line Joey wrote.',
       description: 'This site.',
       tech: ['Vite'],
       url: 'https://github.com/joeyh92989/joey-haas.dev',
@@ -55,6 +62,31 @@ function renderProjects() {
 }
 
 describe('Projects', () => {
+  it('draws a hero in both themes only where set, with its size and alt', () => {
+    const { container } = renderProjects()
+    const cards = container.querySelectorAll('.project-card')
+    const images = cards[0].querySelectorAll('img.project-hero__img')
+    expect(images).toHaveLength(2)
+    expect(images[0]).toHaveAttribute('src', '/projects/my-shelf-dark.webp')
+    expect(images[1]).toHaveAttribute('src', '/projects/my-shelf-light.webp')
+    for (const image of images) {
+      expect(image).toHaveAttribute('alt', 'The Games page.')
+      expect(image).toHaveAttribute('width', '1200')
+      expect(image).toHaveAttribute('height', '560')
+      expect(image).toHaveAttribute('loading', 'lazy')
+    }
+    expect(cards[1].querySelector('.project-hero')).toBeNull()
+  })
+
+  it('shows the differently line only when it is set', () => {
+    const { container } = renderProjects()
+    const cards = container.querySelectorAll('.project-card')
+    expect(cards[0].querySelector('.project-differently')).toBeNull()
+    expect(cards[1].querySelector('.project-differently')).toHaveTextContent(
+      'A line Joey wrote.',
+    )
+  })
+
   it('gives a card with a strip its favourite covers', async () => {
     const { container } = renderProjects()
     const cards = container.querySelectorAll('.project-card')

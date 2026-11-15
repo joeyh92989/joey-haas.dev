@@ -335,6 +335,19 @@ the output is deterministic, that real intersections fall on the drawn
 lines, and that the committed module's fit, labels and attribution are
 valid. The fixture and the module are generated, so Prettier ignores them.
 
+## project-heroes.mjs
+
+Writes the Projects cards' hero images, `public/projects/<slug>-<dark|light>.webp`
+(1200 x 560, each under 80 KB). It opens two public pages with Playwright
+(`/shelf/games/` for My Shelf, `/` for This site), in each theme, with the
+analytics opt-out set and `/api/track` blocked, and compresses with sharp,
+lowering the quality until the file fits. Public pages only; never point it at
+`/admin`. Run by hand when a page's look changes: `node scripts/project-heroes.mjs`
+(from `frontend/`; `E2E_BASE_URL` shoots another site, default
+`https://joey-haas.dev`), then commit the WebP files. The card's `hero` entry in
+`content/projects.js` holds the alt text, which should be rewritten if the shot
+changes.
+
 ## e2e-admin-db.mjs
 
 Prepares the local database for the admin browser suite (`npm run e2e:admin`,

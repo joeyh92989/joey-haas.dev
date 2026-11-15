@@ -12646,3 +12646,119 @@ a.btn.sm {
     min-height: 2.75rem;
   }
 }
+
+/* ===== Projects visuals (#289): hero images and the architecture figure =====
+   Measured contrast (WCAG 2.x), dark / light. Figure ground is --surface; a
+   node is filled --bg.
+   Text: --text on --bg 16.27 / 17.49; --text on --surface 15.32 / 17.96;
+   --text-2 on --bg 9.06 / 8.03; --text-2 on --surface 8.53 / 8.24;
+   --text on --accent-soft (snapshot) 13.11 / 15.65; --text-2 on
+   --accent-soft 7.30 / 7.18; --accent-ink on --accent (badge numerals)
+   7.15 / 6.09.
+   Lines and marks (3:1 needed): --text-3 on --surface 5.60 / 5.29 (node
+   outlines, edges, arrowheads); --text-3 on --bg 5.95 / 5.16; --accent on
+   --surface 6.73 / 6.09 (snapshot outline and badges); --accent on
+   --accent-soft 5.76 / 5.31. */
+
+.project-hero {
+  margin: 0.875rem 0 var(--space-3);
+}
+
+.project-hero__img {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.project-hero__img--light,
+[data-theme='light'] .project-hero__img--dark {
+  display: none;
+}
+
+[data-theme='light'] .project-hero__img--light {
+  display: block;
+}
+
+.project-card .project-differently {
+  color: var(--text);
+}
+
+.arch {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+}
+
+.arch__svg {
+  display: block;
+  height: auto;
+  margin: 0 auto;
+  max-width: 22.5rem;
+  width: 100%;
+}
+
+.arch__node rect {
+  fill: var(--bg);
+  stroke: var(--text-3);
+  stroke-width: 1.5;
+}
+
+.arch__node--frame rect {
+  fill: none;
+}
+
+.arch__node--snapshot rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+}
+
+.arch__name {
+  fill: var(--text);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.arch__sub {
+  fill: var(--text-2);
+  font-size: var(--fs-12);
+}
+
+.arch__edge {
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.5;
+}
+
+.arch__head {
+  fill: var(--text-3);
+}
+
+.arch__badge circle {
+  fill: var(--accent);
+}
+
+.arch__badge text {
+  fill: var(--accent-ink);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.arch figcaption {
+  color: var(--text-2);
+  font-size: var(--fs-14);
+  margin-top: var(--space-3);
+}
+
+.arch figcaption ol {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.25rem;
+}
+
+.arch figcaption li + li {
+  margin-top: var(--space-1);
+}
+/* ===== end Projects visuals ===== */
