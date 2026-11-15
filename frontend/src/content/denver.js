@@ -46,7 +46,8 @@ export const denver = {
     sorted: 'sorted by neighborhood',
     offMap: 'Off the map',
     noMatch: 'No spot has all of those tags.',
-    empty: 'Coming soon. No spots on the list yet.',
+    empty: 'Nothing here yet.',
+    emptyLine: 'No spots are published.',
   },
   admin: {
     title: 'Spots',

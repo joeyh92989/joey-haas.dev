@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import EmptyState from '../components/EmptyState.jsx'
 import LoadState from '../components/LoadState.jsx'
 import SpotCard, { SpotTags } from '../components/SpotCard.jsx'
 import SpotMap from '../components/SpotMap.jsx'
@@ -253,7 +254,7 @@ export default function Denver() {
               <span className="muted">· {copy.sorted}</span>
             </p>
             {spots.length === 0 ? (
-              <p className="muted">{copy.empty}</p>
+              <EmptyState title={copy.empty} line={copy.emptyLine} />
             ) : visible.length === 0 ? (
               <p className="muted">{copy.noMatch}</p>
             ) : (
