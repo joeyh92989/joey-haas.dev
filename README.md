@@ -81,6 +81,13 @@ snapshot files and never call the API.
 | `/admin/pull-list` | Pull list | Followed series' issues by week (Wednesday to Tuesday, UTC), with Got it and Skip per issue, Refresh followed, and a Comic Vine series search with Follow, Want and Own |
 | anything else | NotFound (client-side 404) | |
 
+NotFound is a soft 404: Render's static hosting serves `index.html` with a 200
+for any path without a file, and a rewrite to a missing file serves an empty
+200, so a true 404 status is not available. `NotFound` adds
+`<meta name="robots" content="noindex">` while it is mounted so crawlers that
+run JavaScript drop the URL. `scripts/smoke.sh` cannot see a broken link for
+the same reason.
+
 The `/admin*` routes are absent from the site navigation deliberately. The
 footer carries an understated "Sign in" link (which reads "Admin" once a session
 exists) — a door for one person, not a call to action. That is not a security
