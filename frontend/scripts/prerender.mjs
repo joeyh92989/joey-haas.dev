@@ -116,16 +116,7 @@ for (const dir of strayTripDirs(travelDirs, trips)) {
 }
 
 for (const route of routes) {
-  // The home page's file is also the SPA fallback for every other path, so
-  // its head is the site-wide one plus the home title; no canonical there,
-  // or every unknown path would claim to be the home page.
-  const html =
-    route.path === '/'
-      ? renderHead(shell, route).replace(
-          /\s*<link rel="canonical"[^>]*>|\s*<meta property="og:url"[^>]*>/g,
-          '',
-        )
-      : renderHead(shell, route)
+  const html = renderHead(shell, route)
   await write(route.path, html)
 }
 // Pre-rename heads: written, never listed in the sitemap.

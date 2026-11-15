@@ -5,10 +5,12 @@
  *
  * Runs after `vite build`, so dist/ already exists.
  */
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { writeFeed } from './markdown-lib.mjs'
-import { SITE_URL } from './prerender-lib.mjs'
+import { parseChangelog } from '../src/lib/changelog.js'
+import { SITE_URL, changelogFeed } from './prerender-lib.mjs'
 
 const frontend = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(frontend, 'dist')
@@ -44,3 +46,24 @@ for (const options of FEEDS) {
     `${path.relative(dist, options.outFile)} written with ${count} item(s)`,
   )
 }
+
+// /blog/feed.xml is the blog feed's address by the pattern /til/feed.xml
+// sets; readers that guess it should not land on the SPA shell.
+await fs.mkdir(path.join(dist, 'blog'), { recursive: true })
+await fs.copyFile(
+  path.join(dist, 'feed.xml'),
+  path.join(dist, 'blog', 'feed.xml'),
+)
+console.log('blog/feed.xml written (a copy of feed.xml)')
+
+const changes = parseChangelog(
+  await fs.readFile(path.join(frontend, 'changelog.md'), 'utf8'),
+)
+await fs.writeFile(
+  path.join(dist, 'changelog.xml'),
+  changelogFeed(changes),
+  'utf8',
+)
+console.log(
+  `changelog.xml written with ${Math.min(changes.length, 20)} item(s)`,
+)

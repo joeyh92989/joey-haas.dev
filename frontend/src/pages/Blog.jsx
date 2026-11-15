@@ -17,6 +17,9 @@ export default function Blog() {
   return (
     <section>
       <h1>Blog</h1>
+      <p className="prose muted">
+        <a href="/feed.xml">RSS</a>
+      </p>
       {notes.length > 0 && (
         <p className="prose muted">
           Shorter things are in <Link to="/til">TIL</Link>.
