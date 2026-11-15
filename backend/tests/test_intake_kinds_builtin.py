@@ -19,9 +19,7 @@ def test_every_builtin_kind_is_registered():
 
 
 def test_a_garment_row_keeps_only_garment_fields():
-    row = garment_kind.to_row(
-        {"payload": {"name": "Coat", "warmth": 4, "evil": "x"}}
-    )
+    row = garment_kind.to_row({"payload": {"name": "Coat", "warmth": 4, "evil": "x"}})
     assert row == {"name": "Coat", "warmth": 4}
     assert garment_kind.to_row({}) == {}
 
