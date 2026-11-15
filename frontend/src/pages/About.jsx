@@ -22,7 +22,14 @@ export default function About() {
   return (
     <div className="about">
       <aside className="about-aside">
-        <img className="about-photo" src={joeyPhoto} alt="" />
+        <img
+          className="about-photo"
+          src={joeyPhoto}
+          alt=""
+          width="96"
+          height="96"
+          decoding="async"
+        />
         <h1 className="about-title">About</h1>
         <Kicker>{profile.location}</Kicker>
         <dl className="about-facts">

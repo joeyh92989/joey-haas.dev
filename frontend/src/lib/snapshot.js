@@ -141,14 +141,36 @@ export function isValidSnapshot(name, body) {
 }
 
 /**
+ * One request per snapshot per page load: Home's playing line and cover strip
+ * both read `items`, and `max-age=0` means a second fetch is a second round
+ * trip. A body is kept; a failure is not, so a later read can try again.
+ */
+const reads = new Map()
+
+/** Forgets every cached read. For tests, which swap `fetch` between cases. */
+export function resetSnapshotCache() {
+  reads.clear()
+}
+
+/**
  * Reads one snapshot.
  *
  * @param {string} name One of the SHAPES keys.
  * @returns {Promise<any|null>} The parsed body, or null when it is missing,
  *   unreadable or the wrong shape. Never rejects.
  */
-export async function readSnapshot(name) {
-  if (!Object.hasOwn(SHAPES, name)) return null
+export function readSnapshot(name) {
+  if (!Object.hasOwn(SHAPES, name)) return Promise.resolve(null)
+  if (reads.has(name)) return reads.get(name)
+  const read = fetchSnapshot(name).then((body) => {
+    if (body === null && reads.get(name) === read) reads.delete(name)
+    return body
+  })
+  reads.set(name, read)
+  return read
+}
+
+async function fetchSnapshot(name) {
   const valid = SHAPES[name]
   try {
     const response = await fetch(`/snapshot/${name}.json`)

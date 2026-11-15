@@ -413,7 +413,8 @@ describe('Item', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
     await waitFor(
       () => expect(screen.getByText(/waking the server/i)).toBeInTheDocument(),
-      { timeout: 4000 },
+      // The line appears after 3 s of real time; leave room for a loaded runner.
+      { timeout: 9000 },
     )
   })
 
