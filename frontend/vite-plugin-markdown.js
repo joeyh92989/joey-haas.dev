@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
+import { readingMinutes } from './src/lib/readingTime.js'
 
 import {
   assertNoPlaceholders,
@@ -165,6 +166,18 @@ function toDateString(value, slug, ctx) {
     ctx.error(`${slug}.md has an invalid date "${text}" — expected YYYY-MM-DD`)
   }
   return text
+}
+
+/**
+ * Normalizes the optional `updated` frontmatter date and refuses one that
+ * is not a real revision of the entry (earlier than its `date`).
+ */
+function updatedString(value, date, slug, ctx) {
+  const updated = toDateString(value, slug, ctx)
+  if (updated < toDateString(date, slug, ctx)) {
+    ctx.error(`${slug}.md has an updated date before its date`)
+  }
+  return updated
 }
 
 /**
@@ -328,6 +341,11 @@ export default function markdown() {
         date: toDateString(data.date, slug, this),
         tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
         draft,
+        readingMinutes: readingMinutes(content),
+        // Optional: when a post was last revised, never before its date.
+        ...(data.updated
+          ? { updated: updatedString(data.updated, data.date, slug, this) }
+          : {}),
         // Optional: a line or two for the blog index and Home's card.
         ...(data.summary ? { summary: String(data.summary) } : {}),
       }
