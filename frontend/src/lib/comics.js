@@ -70,11 +70,6 @@ export function monthYear(iso) {
   return MONTH_YEAR.format(new Date(Date.UTC(year, month - 1, day)))
 }
 
-/** "54 / 72+", the `+` marking a series still coming out. */
-export function runCount({ owned, released, ongoing }, separator = ' / ') {
-  return `${owned}${separator}${released}${ongoing ? '+' : ''}`
-}
-
 /** Owned issues the read marker has not reached yet. */
 export const isUnread = (row) => !row.wanted && row.read < row.owned
 

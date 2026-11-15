@@ -49,7 +49,7 @@ describe('About', () => {
         fact.value,
       )
     }
-    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Resume PDF' })).toHaveAttribute(
       'href',
       '/resume.pdf',
     )

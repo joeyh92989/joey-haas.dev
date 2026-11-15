@@ -78,7 +78,6 @@ export default function SpotMap({
         viewBox={drawing.viewBox.join(' ')}
         role="img"
         aria-label={label}
-        onClick={() => onSelect(null)}
       >
         <path className="spot-map-park" d={drawing.parks} />
         <path className="spot-map-water-edge" d={drawing.water} />
@@ -133,6 +132,15 @@ export default function SpotMap({
         >
           {renderPopover(chosen)}
         </div>
+      ) : null}
+      {selected != null ? (
+        <button
+          type="button"
+          className="btn sm spot-map-clear"
+          onClick={() => onSelect(null)}
+        >
+          Clear selection
+        </button>
       ) : null}
       {drawing.attribution ? (
         <p className="spot-map-attribution">

@@ -38,7 +38,7 @@ export default function About() {
               <a
                 href="/resume.pdf"
                 download="Joey Haas Resume.pdf"
-                aria-label="Resume (PDF)"
+                aria-label="Resume PDF"
               >
                 PDF <span aria-hidden="true">↓</span>
               </a>

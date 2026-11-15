@@ -220,24 +220,6 @@ export function picksThrough(isoDay, pool, salt, epoch = DAILY_EPOCH) {
   return picks
 }
 
-/**
- * Today's pick.
- *
- * @returns {{ day: number, isoDay: string, item: object } | null}
- */
-export function pickFor(isoDay, pool, salt, epoch = DAILY_EPOCH) {
-  return picksThrough(isoDay, pool, salt, epoch).at(-1) ?? null
-}
-
-/**
- * Yesterday's pick, null on day 1.
- *
- * @returns {{ day: number, isoDay: string, item: object } | null}
- */
-export function yesterdayPick(isoDay, pool, salt, epoch = DAILY_EPOCH) {
-  return picksThrough(isoDay, pool, salt, epoch).at(-2) ?? null
-}
-
 function sameFamily(a, b) {
   return PLATFORM_FAMILIES.some(
     (family) => family.includes(a) && family.includes(b),

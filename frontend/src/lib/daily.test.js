@@ -11,7 +11,6 @@ import {
   fnv1a,
   grade,
   matchTitle,
-  pickFor,
   picksThrough,
   shareText,
   shareWords,
@@ -19,7 +18,6 @@ import {
   shortPlatform,
   suggest,
   yearOf,
-  yesterdayPick,
 } from './daily.js'
 
 // The ten strings PLATFORM_NAMES (backend/sources/igdb.py) and
@@ -118,6 +116,11 @@ describe('fnv1a', () => {
     expect(fnv1a('foobar')).toBe(0xbf9cf968)
   })
 })
+
+// Today's and yesterday's pick are the tail of picksThrough, which is all the
+// app reads.
+const pickFor = (...args) => picksThrough(...args).at(-1) ?? null
+const yesterdayPick = (...args) => picksThrough(...args).at(-2) ?? null
 
 describe('picks', () => {
   const pool = dailyPool(Array.from({ length: 10 }, (_, n) => game(`g${n}`)))

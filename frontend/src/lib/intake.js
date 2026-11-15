@@ -46,9 +46,6 @@ export const WRITTEN_STATES = ['exact', 'ready', 'typed']
 /** Entry states asked one at a time in Check (a probable match is asked too). */
 export const CHECK_STATES = ['check', 'probable']
 
-/** The skim grid's states: trusted matches, and what is already owned. */
-export const SKIM_STATES = ['exact', 'owned']
-
 /**
  * A listed sitting's meter: ready (written at commit), to check (check and
  * probable entries, asked one at a time), and still reading (entries whose
