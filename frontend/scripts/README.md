@@ -114,6 +114,10 @@ and is gitignored.
 
 ## prerender.mjs
 
+`og-card.mjs` draws the link-preview card for each post, TIL note and cover-less trip into
+`dist/og/<kind>/<slug>.png` (title, kind, date; glyph outlines from the @fontsource files via
+opentype.js, rasterised by sharp). A failed card logs and that page keeps `/og-card.png`.
+
 **What and why.** Crawlers and link previewers (Slack, iMessage, LinkedIn)
 mostly do not run JavaScript, so before this every URL previewed as "Joey
 Haas" with the site card. After `vite build`, it writes a copy of
