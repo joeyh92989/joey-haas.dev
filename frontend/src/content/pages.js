@@ -103,7 +103,7 @@ export const BLOG_PAGE = row(
   '/blog',
   'Blog',
   `Blog · ${profile.name}`,
-  `Posts by ${profile.name}.`,
+  `Posts by ${profile.name} on software, payments systems and building ${spine.name}, the tracker behind this site.`,
 )
 
 /** /til, listed (and prerendered) only while a note is published. */

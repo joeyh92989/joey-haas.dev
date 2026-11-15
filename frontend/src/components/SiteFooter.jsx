@@ -44,7 +44,7 @@ export default function SiteFooter({
             </>
           )}
           &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
-          <Link to="/stats">Stats</Link>
+          <Link to="/stats">Stats</Link> &middot; <a href="/feed.xml">RSS</a>
         </p>
         <p className="footer-links">
           <a href={`mailto:${profile.email}`}>{profile.email}</a>

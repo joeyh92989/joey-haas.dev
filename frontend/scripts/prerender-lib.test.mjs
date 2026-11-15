@@ -6,7 +6,9 @@ import {
   ADMIN_ROUTES,
   LEGACY_PREFIX,
   assertDailyPool,
+  changelogFeed,
   clip,
+  itemLabels,
   excerpt,
   legacyRoutes,
   spineFeed,
@@ -496,7 +498,7 @@ describe('noindex, sitemap and robots', () => {
 
   it('lists every route, with a post’s date', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
-    expect(xml.match(/<url>/g)).toHaveLength(17)
+    expect(xml.match(/<url>/g)).toHaveLength(16)
     expect(xml).toContain(
       '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
     )
@@ -753,12 +755,165 @@ describe('an empty page (#183)', () => {
       '<meta name="robots" content="noindex" />',
     )
     expect(sitemap(both)).not.toContain('/shelf/comics')
-    expect(sitemap(both)).toContain('/shelf</loc>')
+    expect(sitemap(both)).not.toContain('/shelf</loc>')
   })
 
   it('changes nothing when no path is hidden', () => {
     const plain = publicRoutes({ posts: [], items: [] })
     expect(plain.some((r) => r.noindex)).toBe(false)
     expect(sitemap(plain)).toContain('/denver')
+  })
+})
+
+describe('the audit fixes (#266 #267 #268 #269 #290)', () => {
+  const urlsIn = (xml) =>
+    [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1])
+  const titleOf = (route) => renderHead(SHELL, route).match(/<title>([^<]*)/)[1]
+
+  it('gives Home a canonical, og:url, structured data and twitter text', () => {
+    const routes = publicRoutes({ posts: [], items: [] })
+    const head = renderHead(SHELL, routeAt(routes, '/'))
+    expect(head).toContain(
+      '<link rel="canonical" href="https://joey-haas.dev/" />',
+    )
+    expect(head).toContain(
+      '<meta property="og:url" content="https://joey-haas.dev/" />',
+    )
+    expect(head).toContain('<meta name="twitter:title"')
+    expect(head).toContain('<meta name="twitter:description"')
+    const ld = JSON.parse(head.match(/ld\+json">([^<]*)</)[1])
+    const types = ld['@graph'].map((node) => node['@type'])
+    expect(types).toEqual(['Person', 'WebSite'])
+    expect(ld['@graph'][0].sameAs).toEqual([
+      'https://github.com/joeyh92989',
+      'https://www.linkedin.com/in/haasjoseph/',
+    ])
+  })
+
+  it('marks a post up as a BlogPosting', () => {
+    const routes = publicRoutes({ posts: [POST], items: [] })
+    const head = renderHead(SHELL, routeAt(routes, '/blog/how-spine-works'))
+    const ld = JSON.parse(head.match(/ld\+json">([^<]*)</)[1])
+    expect(ld['@type']).toBe('BlogPosting')
+    expect(ld.datePublished).toBe('2026-10-02')
+    expect(ld.headline).toBe('How Spine works')
+  })
+
+  it('lists only canonical URLs in the sitemap', () => {
+    const routes = publicRoutes({ posts: [POST], items: [ITEM] })
+    const listed = routes.filter((route) => !route.noindex && !route.canonical)
+    expect(urlsIn(sitemap(routes))).toEqual(listed.map(routeUrl))
+    expect(urlsIn(sitemap(routes))).not.toContain('https://joey-haas.dev/shelf')
+  })
+
+  it('dates items, years and months from the snapshot', () => {
+    const items = [
+      {
+        ...ITEM,
+        id: 'a',
+        finished_at: '2026-03-01',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        ...ITEM,
+        id: 'b',
+        title: 'B',
+        finished_at: null,
+        created_at: '2026-02-05T10:00:00Z',
+      },
+    ]
+    const routes = publicRoutes({ posts: [], items })
+    expect(routeAt(routes, '/shelf/a').lastmod).toBe('2026-03-01')
+    expect(routeAt(routes, '/shelf/b').lastmod).toBe('2026-02-05')
+    expect(routeAt(routes, '/shelf/year/2026').lastmod).toBe('2026-03-01')
+    expect(routeAt(routes, '/shelf/journal/2026-03').lastmod).toBe('2026-03-01')
+  })
+
+  it('qualifies colliding titles by year, so no two pages share one', () => {
+    const items = [
+      {
+        type: 'comic',
+        id: 'c1',
+        title: 'Creepshow',
+        year: 2024,
+        creator: 'Image',
+      },
+      {
+        type: 'comic',
+        id: 'c2',
+        title: 'Creepshow',
+        year: 2022,
+        creator: 'Image',
+      },
+      {
+        type: 'comic',
+        id: 'c3',
+        title: 'Creepshow',
+        year: 2022,
+        creator: 'Image',
+      },
+      { type: 'game', id: 'g', title: 'Hades II' },
+    ]
+    const labels = itemLabels(items)
+    expect(labels.get('c1')).toBe('Creepshow (2024, Image)')
+    expect(labels.get('g')).toBe('Hades II')
+    const comicIssues = items
+      .filter((i) => i.type === 'comic')
+      .map((i) => ({
+        item_id: i.id,
+        series_title: i.title,
+        issues: [{ number: 1 }],
+        editions: [],
+      }))
+    const routes = publicRoutes({ posts: [], items, comicIssues })
+    const titles = routes.map(titleOf)
+    expect(new Set(titles).size).toBe(titles.length)
+    expect(routeAt(routes, '/shelf/c1/1').title).toBe(
+      'Creepshow (2024, Image) #1 · My Shelf',
+    )
+  })
+
+  it('never ends a description mid-clause', () => {
+    const routes = publicRoutes({
+      posts: [POST],
+      items: [ITEM],
+      notes: [NOTE],
+    })
+    for (const route of routes) {
+      expect(route.description, route.path).toMatch(/[.!?”’)]$/)
+    }
+    expect(routeAt(routes, '/blog').description.length).toBeGreaterThan(60)
+  })
+
+  it('clips at a sentence, then a clause, then a word', () => {
+    const sentence =
+      'First sentence is long enough to stand alone as a snippet here. '
+    expect(clip(`${sentence}${'tail '.repeat(40)}`)).toBe(sentence.trim())
+    const clause = `${'word '.repeat(22)}stops, ${'more '.repeat(40)}`
+    expect(clip(clause)).toMatch(/stops…$/)
+  })
+
+  it('announces the blog feed on Home and Blog, once', () => {
+    const routes = publicRoutes({ posts: [POST], items: [] })
+    for (const at of ['/', '/blog']) {
+      const head = renderHead(SHELL, routeAt(routes, at))
+      expect(head.match(/href="\/feed.xml"/g)).toHaveLength(1)
+    }
+  })
+
+  it('writes the changelog as a feed, links as words', () => {
+    const xml = changelogFeed([
+      {
+        date: '2026-11-14',
+        lines: ['Added [a page](/stats) today.', 'Fixed it.'],
+      },
+      { date: '2026-11-13', lines: ['Older.'] },
+    ])
+    expect(xml).toContain(
+      '<atom:link href="https://joey-haas.dev/changelog.xml"',
+    )
+    expect(xml).toContain('Added a page today.\nFixed it.')
+    expect(xml.indexOf('2026-11-14')).toBeLessThan(xml.indexOf('2026-11-13'))
+    expect(xml.match(/<item>/g)).toHaveLength(2)
   })
 })
