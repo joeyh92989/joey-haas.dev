@@ -99,6 +99,34 @@ services:
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
+      # Transport and privacy. HSTS covers this host only: no
+      # includeSubDomains and no preload, both hard to undo.
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      # The real CSP, report-only until it has been watched in a browser
+      # console; enforcing it is a separate, deliberate change (#263). The
+      # script hash is the pre-paint theme script in frontend/index.html:
+      # editing that script changes the hash (headers.test.mjs checks).
+      # style-src needs 'unsafe-inline' for React style props. Covers come
+      # from IGDB and Comic Vine; fonts are self-hosted; the API is the one
+      # cross-origin connection (admin pages and /shelf, plus the beacon).
+      - path: /*
+        name: Content-Security-Policy-Report-Only
+        value: "default-src 'self'; script-src 'self' 'sha256-a/lqY4++pB/+B6a90vrqI9gmwIq3xLUa6SLE9og55G0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.igdb.com https://comicvine.gamespot.com; font-src 'self'; connect-src 'self' https://api.joey-haas.dev; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      # Hashed build output: the file name changes with its content, so a
+      # copy can be kept for a year. HTML is deliberately not matched. Trip
+      # photos (/travel/<slug>/*.webp) are not covered: their names are not
+      # hashed and /travel/ holds prerendered HTML too.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     envVars:
       - key: VITE_API_URL
         sync: false # set this in the Render dashboard to the API service URL

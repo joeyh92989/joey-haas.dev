@@ -20,4 +20,17 @@ describe('NotFound', () => {
       '/',
     )
   })
+
+  it('marks the page noindex while mounted and removes it on leave', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <NotFound />
+      </MemoryRouter>,
+    )
+    const tags = document.head.querySelectorAll('meta[name="robots"]')
+    expect(tags).toHaveLength(1)
+    expect(tags[0]).toHaveAttribute('content', 'noindex')
+    unmount()
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull()
+  })
 })

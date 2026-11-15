@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-15
+
+- The blog, TIL and these changes now have RSS feeds you can find: an RSS link on each page and in the footer, and `/blog/feed.xml` works alongside `/feed.xml`.
+
 ## 2026-11-14
 
 - A game’s page no longer sits nearly blank while the server wakes up. A game added since the last nightly build now shows the page’s outline and says the server is waking, and a game I already have a preview of says so too if the rest takes more than a few seconds.
