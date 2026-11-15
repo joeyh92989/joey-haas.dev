@@ -12,10 +12,17 @@ import { Link } from 'react-router'
  *   current page last. A last item with a `to`
  *   is a link, not the current page (the trail of a page still loading).
  * @param {string} [props.label] - The nav's accessible name.
+ * @param {import('react').ReactNode} [props.end] - A control to the right
+ *   of the trail (the owner's Edit link). It sits beside the `nav`, not in
+ *   it, so the landmark stays a trail.
  */
-export default function Breadcrumb({ trail, label = 'Breadcrumb' }) {
+export default function Breadcrumb({
+  trail,
+  label = 'Breadcrumb',
+  end = null,
+}) {
   const last = trail.length - 1
-  return (
+  const nav = (
     <nav aria-label={label} className="crumbs">
       <ol>
         {trail.map((crumb, i) =>
@@ -31,5 +38,12 @@ export default function Breadcrumb({ trail, label = 'Breadcrumb' }) {
         )}
       </ol>
     </nav>
+  )
+  if (!end) return nav
+  return (
+    <div className="crumbs-bar">
+      {nav}
+      <div className="crumbs-end">{end}</div>
+    </div>
   )
 }

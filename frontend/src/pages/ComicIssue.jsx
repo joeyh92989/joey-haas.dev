@@ -141,6 +141,16 @@ export default function ComicIssue({ id, n }) {
           { label: page.series_title, to: itemPath(page.series_id) },
           { label: `#${page.number}` },
         ]}
+        end={
+          signedIn && (
+            <Link
+              className="crumb-edit"
+              to={`/admin/shelf/comics/${encodeURIComponent(page.series_id)}`}
+            >
+              {COPY.edit}
+            </Link>
+          )
+        }
       />
 
       <LoadState
@@ -149,12 +159,6 @@ export default function ComicIssue({ id, n }) {
         live={read.live}
         staleMessage={afterWrite ? SAVED_NOT_REFRESHED : undefined}
         onRetry={tryAgain}
-      />
-
-      <NeighbourStrip
-        list={page.neighbours}
-        current={page.number}
-        series={series}
       />
 
       <div className="comic-issue-main">
@@ -231,6 +235,16 @@ export default function ComicIssue({ id, n }) {
           </p>
         </div>
       </div>
+
+      <section className="issue-neighbours" aria-labelledby="issue-neighbours">
+        <h2 id="issue-neighbours">{COPY.neighbours}</h2>
+        <NeighbourStrip
+          list={page.neighbours}
+          current={page.number}
+          series={series}
+          labelledBy="issue-neighbours"
+        />
+      </section>
     </article>
   )
 }

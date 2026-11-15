@@ -14,8 +14,10 @@ const COPY = spine.comics.issue
  *   - The API's `neighbours`, current issue included.
  * @param {number} props.current - The issue the page is about.
  * @param {{id: string, title: string}} props.series
+ * @param {string} [props.labelledBy] - The id of a visible heading that
+ *   names the list; without it the list carries its own label.
  */
-export default function NeighbourStrip({ list, current, series }) {
+export default function NeighbourStrip({ list, current, series, labelledBy }) {
   const currentRef = useRef(null)
 
   useEffect(() => {
@@ -25,7 +27,11 @@ export default function NeighbourStrip({ list, current, series }) {
   }, [current])
 
   return (
-    <ol className="neighbour-strip" aria-label={COPY.neighbours}>
+    <ol
+      className="neighbour-strip"
+      aria-label={labelledBy ? undefined : COPY.neighbours}
+      aria-labelledby={labelledBy}
+    >
       {list.map((entry) => {
         const isCurrent = entry.number === current
         const tile =

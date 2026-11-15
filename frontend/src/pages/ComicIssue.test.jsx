@@ -279,6 +279,33 @@ describe('ComicIssue, public', () => {
     expect(within(strip).queryByRole('link', { name: /#73/ })).toBeNull()
   })
 
+  it('puts the strip under the issue with its heading, and Edit by the breadcrumb', async () => {
+    stubApi()
+    renderIssue({ signedIn: true })
+    const strip = await screen.findByRole('list', {
+      name: 'Neighboring issues',
+    })
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Neighboring issues',
+    })
+    const text = document.querySelector('.comic-issue-text')
+    const follows = (a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    expect(follows(text, heading)).toBeTruthy()
+    expect(follows(heading, strip)).toBeTruthy()
+    const edit = screen.getByRole('link', { name: 'Edit' })
+    expect(edit.getAttribute('href')).toMatch(/^\/admin\/shelf\/comics\//)
+    expect(document.querySelector('.crumbs-bar')).toContainElement(edit)
+  })
+
+  it('shows no Edit link signed out', async () => {
+    stubApi()
+    renderIssue()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByRole('link', { name: 'Edit' })).toBeNull()
+  })
+
   it('shows no owner box and no skip text signed out', async () => {
     const fetch = stubApi()
     const { container } = renderIssue()

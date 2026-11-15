@@ -830,6 +830,7 @@ export const spine = {
       fallbackTitle: (n) => `Issue #${n}`,
       breadcrumb: 'Breadcrumb',
       neighbours: 'Neighboring issues',
+      edit: 'Edit',
       coverAlt: (series, n) => `Cover of ${series} #${n}`,
       notOwned: 'Not owned',
       noCover: 'No cover',

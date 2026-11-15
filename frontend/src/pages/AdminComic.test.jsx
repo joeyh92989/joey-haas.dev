@@ -147,6 +147,44 @@ describe('AdminComic', () => {
     expect(screen.queryByText('Minutes')).toBeNull()
   })
 
+  it('puts the title beside the cover, and Delete under Series on a wide screen', async () => {
+    stubApi()
+    renderPage()
+    const h1 = await screen.findByRole('heading', {
+      level: 1,
+      name: COMIC.title,
+    })
+    const head = document.querySelector('.admin-comic-head')
+    expect(head).toContainElement(h1)
+    expect(head.querySelector('.admin-comic-cover')).not.toBeNull()
+    const order = (a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    const h = (name) => screen.getByRole('heading', { name })
+    expect(order(h('Series'), h('Delete'))).toBeTruthy()
+    expect(order(h('Delete'), h('Issues'))).toBeTruthy()
+  })
+
+  it('puts Issues before Delete in one column', async () => {
+    vi.stubGlobal('matchMedia', (query) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    stubApi()
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: COMIC.title })
+    const h = (name) => screen.getByRole('heading', { name })
+    expect(
+      h('Issues').compareDocumentPosition(h('Delete')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      h('Comic Vine match').compareDocumentPosition(h('Delete')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   it('draws the same wall with taps, and a tap posts to the mark route', async () => {
     const { writes } = stubApi()
     renderPage()
