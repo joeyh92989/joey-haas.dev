@@ -123,6 +123,13 @@ services:
     # no database, so a sleeping Neon cannot fail it; a boot that refuses the
     # schema never answers it, so a bad deploy is cancelled rather than live.
     healthCheckPath: /api/health
+    # The API deploys from GitHub Actions, not on push: .github/workflows/
+    # deploy.yml migrates Neon, then calls this service's deploy hook at the
+    # merged commit, so a failed migration stops before any new code is live.
+    # Leaving this on would deploy every merge twice. To go back, set it to
+    # `commit` and clear the API_DEPLOY_FROM_ACTIONS repository variable (see
+    # .github/workflows/README.md). The static site still deploys on push.
+    autoDeployTrigger: "off"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.4
