@@ -4337,7 +4337,11 @@ footer {
       var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(
+      to right,
+      var(--mask-opaque) calc(100% - 2rem),
+      transparent
+    );
   }
 
   .spine-tabs::-webkit-scrollbar {
@@ -6024,7 +6028,11 @@ section > .cover-key {
       var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(
+      to right,
+      var(--mask-opaque) calc(100% - 2rem),
+      transparent
+    );
   }
 
   /* The cover shrinks so the title still fits beside it. */
@@ -6408,7 +6416,11 @@ section > .cover-key {
       var(--mask-opaque) calc(100% - 2rem),
       transparent
     );
-    mask-image: linear-gradient(to right, var(--mask-opaque) calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(
+      to right,
+      var(--mask-opaque) calc(100% - 2rem),
+      transparent
+    );
   }
 }
 
