@@ -146,7 +146,7 @@ describe('HowItWorks', () => {
     ).toHaveAttribute('href', '/shelf/intake')
   })
 
-  it('links stop 3 to Pick for me, also before Play Next has picks', () => {
+  it('links stop 3 to Pick for me, also before Play next has picks', () => {
     mockData({ items: empty, next: empty })
     renderAt()
     expect(

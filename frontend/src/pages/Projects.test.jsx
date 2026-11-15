@@ -24,7 +24,7 @@ vi.mock('../content/projects.js', () => ({
       tagline: 'A tracker for a physical game collection',
       description: 'A tracker.',
       line: 'I built this.',
-      highlights: ['Photo import.', 'Play Next.'],
+      highlights: ['Photo import.', 'Play next.'],
       links: [
         { to: '/shelf', label: 'Open My Shelf' },
         {

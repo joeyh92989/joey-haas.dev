@@ -34,7 +34,7 @@ describe('PlaythroughTable', () => {
     render(<PlaythroughTable runs={RUNS} />)
     const rows = screen.getAllByRole('row').slice(1)
     expect(rows[0]).toHaveTextContent('1')
-    expect(rows[0]).toHaveTextContent('20 Mar 2024')
+    expect(rows[0]).toHaveTextContent('Mar 20, 2024')
     expect(rows[1]).toHaveTextContent('Paused')
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(document.querySelector('input')).toBeNull()
@@ -83,7 +83,7 @@ describe('the cell text', () => {
   })
 
   it('formats a day, or a dash', () => {
-    expect(formatDay('2026-10-19')).toBe('19 Oct 2026')
+    expect(formatDay('2026-10-19')).toBe('Oct 19, 2026')
     expect(formatDay(null)).toBe('—')
   })
 

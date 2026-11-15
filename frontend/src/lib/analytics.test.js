@@ -9,8 +9,8 @@ import {
 
 describe('analytics words', () => {
   it('formats a UTC day with or without its weekday', () => {
-    expect(dayLabel('2026-10-12')).toBe('12 Oct')
-    expect(dayLabel('2026-10-12', { weekday: true })).toBe('Mon 12 Oct')
+    expect(dayLabel('2026-10-12')).toBe('Oct 12')
+    expect(dayLabel('2026-10-12', { weekday: true })).toBe('Mon, Oct 12')
   })
 
   it('names devices and the direct referrer', () => {

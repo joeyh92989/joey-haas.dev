@@ -217,6 +217,12 @@ esac
 
 check_equals "GET /api/auth/me unauthenticated" "$(http_status "$API_URL/api/auth/me")" "401"
 
+# The OpenAPI schema lists every admin and job route; production serves none
+# of it (config.docs_enabled).
+for docs_path in /docs /redoc /openapi.json; do
+  check_equals "GET $docs_path is off" "$(http_status "$API_URL$docs_path")" "404"
+done
+
 # The local-only test sign-in (backend/e2e_login.py) must not exist here. A 404
 # means E2E_TEST_LOGIN is off; anything else is an auth bypass in production.
 check_equals "POST /api/auth/test-login absent" \

@@ -169,7 +169,7 @@ describe('Admin Home', () => {
       within(shelf).getByText('Switch · 3 sessions · 6h'),
     ).toBeInTheDocument()
     expect(
-      within(shelf).getByRole('link', { name: 'Play Next' }),
+      within(shelf).getByRole('link', { name: 'Play next' }),
     ).toHaveAttribute('href', '/admin/play-next')
     await waitFor(() => expect(figureOf(shelf, 'Owned')).toHaveTextContent('2'))
     expect(figureOf(shelf, `Finished · ${YEAR}`)).toHaveTextContent('1')

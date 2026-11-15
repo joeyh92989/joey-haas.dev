@@ -80,8 +80,8 @@ export default function About() {
                 key={`${entry.company}-${entry.role}`}
               >
                 <h3 className="timeline-role">
-                  <span>{entry.role}</span> ·{' '}
-                  <span className="timeline-company">{entry.company}</span>
+                  <span className="timeline-company">{entry.company}</span> —{' '}
+                  <span>{entry.role}</span>
                 </h3>
                 <Kicker className="timeline-meta">{entry.meta}</Kicker>
                 <p className="timeline-summary">{entry.summary}</p>

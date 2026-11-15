@@ -15,12 +15,7 @@ import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { tripMonth } from '../lib/tripDates.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-
-const SHORT_DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
+import { DAY as SHORT_DAY } from '../lib/formatDate.js'
 
 const thisSite = projects.find((project) => project.url === profile.repo)
 
@@ -101,6 +96,16 @@ export default function Home() {
             <Link to="/about" className="btn primary">
               About me
             </Link>
+            <a
+              href="/resume.pdf"
+              download="Joey Haas Resume.pdf"
+              className="btn"
+            >
+              Resume (PDF)
+            </a>
+            <a href={`mailto:${profile.email}`} className="btn">
+              Email me
+            </a>
             <Link to={spine.path} className="btn">
               See {spine.name}
             </Link>

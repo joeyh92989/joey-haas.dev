@@ -128,7 +128,7 @@ describe('areaFor', () => {
     ['/admin/collection/add/abc', 'shelf', 'Add'],
     ['/admin/closet/add', 'closet', 'Add'],
     ['/admin/closet/add/abc', 'closet', 'Add'],
-    ['/admin/play-next', 'shelf', 'Play Next'],
+    ['/admin/play-next', 'shelf', 'Play next'],
     ['/admin/discover', 'shelf', 'Discover'],
     ['/admin/radar', 'shelf', 'Radar'],
     ['/admin/pull-list', 'shelf', 'Pull list'],

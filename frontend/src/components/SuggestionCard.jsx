@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { denver, tagLabel } from '../content/denver.js'
 
 /**
- * One of the weekend's three suggestions, in the Play Next card shape: the
+ * One of the weekend's three suggestions, in the Play next card shape: the
  * slot and when-line, the spot, its tags and distance, the reasons, and
  * Save / Been / Skip. A saved card says what it is saved for and offers
  * Unsave instead; a card logged as Been says Visited. The buttons carry the

@@ -26,7 +26,7 @@ export const projects = [
     highlights: [
       'Photo import: a vision model reads titles off the spines; each match is scored by string distance, never by asking the model how sure it is.',
       'A physical catalog: a community registry and a watch list of boutique stores, collapsed to one honest format per game, full cartridge or Game-Key Card.',
-      'Play Next scores the backlog on six weighted terms, mostly a taste profile built from my own ratings, favorites, and finishes, plus fit and time waiting. Every pick says why.',
+      'Play next scores the backlog on six weighted terms, mostly a taste profile built from my own ratings, favorites, and finishes, plus fit and time waiting. Every pick says why.',
       'Discover and Radar: the model only ever picks positions in a list the server built, with a deterministic fallback when it can’t answer.',
     ],
     links: [

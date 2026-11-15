@@ -12,6 +12,7 @@ import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+import { WEEKDAY_DAY } from '../lib/formatDate.js'
 
 const copy = denver.weekend
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -72,11 +73,7 @@ async function fetchPlan(seed) {
 /** The weekend's dates in a few words: "Sat, Nov 14 – Sun, Nov 15". */
 function dateRange(days) {
   const words = days.map((day) =>
-    new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    }),
+    WEEKDAY_DAY.format(new Date(`${day.date}T12:00:00Z`)),
   )
   return words.join(' – ')
 }

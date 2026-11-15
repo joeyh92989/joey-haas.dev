@@ -16,18 +16,7 @@ import { pageName, usePageTitles } from '../lib/pageTitles.js'
 import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
-
-const TIME = new Intl.DateTimeFormat('en', {
-  hour: 'numeric',
-  minute: '2-digit',
-})
-
-const CHANGE_DATE = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
+import { DAY_YEAR as CHANGE_DATE, TIME } from '../lib/formatDate.js'
 
 const figure = (count) => count.toLocaleString('en')
 

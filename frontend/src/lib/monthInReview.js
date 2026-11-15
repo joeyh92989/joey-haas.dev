@@ -1,4 +1,6 @@
 import { ownedFinishes } from './yearInReview.js'
+import { MONTH_YEAR_LONG as NAME } from './formatDate.js'
+import { MONTH_SHORT as SHORT } from './formatDate.js'
 
 /**
  * One month of the play journal, worked out from the public items and the
@@ -7,12 +9,6 @@ import { ownedFinishes } from './yearInReview.js'
  */
 
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/
-
-const NAME = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /**
  * A `yyyy-mm` string as numbers, or null when it is not a month.
@@ -113,8 +109,6 @@ export function monthInReview(items, sessions, month, nearby = []) {
     next: sorted.find((other) => other > month) ?? null,
   }
 }
-
-const SHORT = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' })
 
 /**
  * The twelve months of a year for the journal's index: how many games were

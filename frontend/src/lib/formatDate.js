@@ -70,3 +70,97 @@ export function ownerDay(now = Date.now()) {
   )
   return `${parts.year}-${parts.month}-${parts.day}`
 }
+
+/*
+ * The named formats. One locale (en-US, month first) and one place for
+ * every Intl date formatter in the app; `dateFormats.test.js` fails on an
+ * inline `Intl.DateTimeFormat` or `toLocale*DateString` anywhere else.
+ * Date-only strings parse as UTC midnight, so these read in UTC; a call
+ * site that holds a real instant says so in its own name.
+ */
+const utc = (options) =>
+  new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' })
+
+/** "Nov 9": a day in the current year, where the year is plain from context. */
+export const DAY = utc({ month: 'short', day: 'numeric' })
+
+/** "Nov 9, 2026": a day that could be read in any year. */
+export const DAY_YEAR = utc({ month: 'short', day: 'numeric', year: 'numeric' })
+
+/** "Tue, Oct 27". */
+export const WEEKDAY_DAY = utc({
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+})
+
+/** "Monday, Nov 9". */
+export const WEEKDAY_LONG_DAY = utc({
+  weekday: 'long',
+  month: 'short',
+  day: 'numeric',
+})
+
+/** "Nov 2026". */
+export const MONTH_YEAR = utc({ month: 'short', year: 'numeric' })
+
+/** "November 2026". */
+export const MONTH_YEAR_LONG = utc({ month: 'long', year: 'numeric' })
+
+/** "Nov". */
+export const MONTH_SHORT = utc({ month: 'short' })
+
+/** "N", a month's initial for a chart axis. */
+export const MONTH_NARROW = utc({ month: 'narrow' })
+
+/** "Tue, Oct 27, 3:04 PM" in the viewer's own zone, for a run's timestamp. */
+export const WEEKDAY_DAY_TIME = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+/** "Nov 9, 2026, 3:04 PM" in the viewer's own zone. */
+export const DAY_YEAR_TIME = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+/** "Nov 11, 7:42 PM" in the owner's Denver time. */
+export const DENVER_DAY_TIME = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Denver',
+})
+
+/** "7:42 PM" in the owner's Denver time. */
+export const DENVER_TIME = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Denver',
+})
+
+/** "3:04 PM" in the viewer's own zone. */
+export const TIME = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+/**
+ * The Denver calendar day, 'YYYY-MM-DD', of an instant; null when it does
+ * not parse.
+ *
+ * @param {string | number | Date} instant
+ * @returns {string | null}
+ */
+export function denverDay(instant) {
+  const date = new Date(instant)
+  return Number.isNaN(date.getTime()) ? null : ownerDay(date)
+}

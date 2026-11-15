@@ -86,3 +86,6 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
 - `frontend/src/content/status.js` has straight apostrophes in "Planning didn't answer in time." and "Tagging didn't answer in time."
 - `frontend/src/content/status.js` `WAKING` uses a dash: "Waking the server — it sleeps when idle…"
 - `frontend/notes/render-rewrites-need-the-slash.md` uses straight apostrophes in prose.
+
+- **Names and cases** (Joey, 15 Nov 2026, #283; "my call" in `docs/planning/2026-11-15-copy-dates-naming-hero-design.md`): **Play next** in sentence case, like Pull list, Store list and What's next. The tracker is never "the Collection". A role line reads **Company — Role** on every surface (Home, About, the resume).
+- **Dates** (#282): one locale, month first. Day-only reads "Nov 9", and carries the year ("Nov 9, 2026") wherever it could be read in any year. The formats live in `frontend/src/lib/formatDate.js`; nothing else builds one.

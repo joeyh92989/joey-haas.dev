@@ -134,7 +134,7 @@ function nudgeText(unrated) {
     unrated.length === 1
       ? `1 finished ${noun} has`
       : `${unrated.length} finished ${noun}s have`
-  return `${subject} no rating. Rating them is what makes Play Next work.`
+  return `${subject} no rating. Rating them is what makes Play next work.`
 }
 
 const EMPTY_FORM = {

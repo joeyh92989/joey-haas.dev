@@ -868,7 +868,7 @@ describe('AdminCollection nudge', () => {
 
     expect(
       screen.getByText(
-        '3 finished games have no rating. Rating them is what makes Play Next work.',
+        '3 finished games have no rating. Rating them is what makes Play next work.',
       ),
     ).toBeInTheDocument()
   })

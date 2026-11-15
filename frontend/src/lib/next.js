@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { WEEKDAY_DAY as WEEKDAY } from './formatDate.js'
 
 /**
  * What's next's page-side helpers. The sections themselves come from the
@@ -6,14 +7,8 @@ import { spine } from '../content/spine.js'
  * page's job (Spine Next spec, B6).
  */
 
-const WEEKDAY = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-})
-
 /**
- * "Mon 26 Oct": how What's next dates its freshness line and the Just
+ * "Mon, Oct 26": how What's next dates its freshness line and the Just
  * finished chip. A date-only value is read at noon UTC, so no timezone moves
  * its day; anything unreadable is null.
  */

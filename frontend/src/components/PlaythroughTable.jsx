@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { runWords, statusLabel } from '../lib/shelf.js'
+import { DAY_YEAR as DAY } from '../lib/formatDate.js'
 
 /**
  * One item's playthroughs, oldest first: number, started, finished,
@@ -212,14 +213,7 @@ function AddPast({ busy, onAdd, type }) {
   )
 }
 
-const DAY = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-/** "19 Oct 2026", or a dash for a date the run never had. */
+/** "Oct 19, 2026", or a dash for a date the run never had. */
 export function formatDay(value) {
   return value ? DAY.format(new Date(`${value}T00:00:00Z`)) : '—'
 }

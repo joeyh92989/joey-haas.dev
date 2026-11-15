@@ -1,3 +1,4 @@
+import { WEEKDAY_DAY_TIME as WHEN } from './formatDate.js'
 /**
  * The Dashboard's nightly status: the header's one line and the jobs panel
  * (Spine Next spec, A4; site refresh, T12).
@@ -29,14 +30,6 @@ const HOUR_MS = 3600 * 1000
 
 /** Runs this close to the night's catalogue run belong to that night. */
 const SAME_NIGHT_MS = 6 * 3600 * 1000
-
-const WHEN = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 /**
  * Summarises the latest night.
@@ -86,7 +79,7 @@ export function lastNightly(status, generated, now = Date.now()) {
   }
 }
 
-/** A run time as the Dashboard shows it: "Sun 18 Oct, 22:41". */
+/** A run time as the Dashboard shows it: "Sun, Oct 18, 10:41 PM". */
 export function whenWords(ms) {
   return WHEN.format(ms)
 }

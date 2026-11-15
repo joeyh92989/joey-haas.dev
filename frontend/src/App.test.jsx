@@ -173,7 +173,7 @@ const TITLES = [
   ['/admin/collection/add/abc', 'Sitting · Admin · Joey Haas'],
   ['/admin/closet/add', 'Add · Admin · Joey Haas'],
   ['/admin/closet/add/abc', 'Sitting · Admin · Joey Haas'],
-  ['/admin/play-next', 'Play Next · Admin · Joey Haas'],
+  ['/admin/play-next', 'Play next · Admin · Joey Haas'],
   ['/admin/catalogue', 'Sources · Admin · Joey Haas'],
   ['/admin/radar', 'Radar · Admin · Joey Haas'],
   ['/admin/pull-list', 'Pull list · Admin · Joey Haas'],
