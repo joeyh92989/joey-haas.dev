@@ -369,7 +369,8 @@ jobs:
           alembic upgrade head
           alembic current
 
-      # Compares the branch with its parent (production) and comments the diff.
+      # A schema-only branch is a root branch with no parent, so the base is
+      # named: the diff is the branch against production's schema.
       - name: Comment the schema diff
         if: steps.changed.outputs.migrations == 'true'
         # v1.0.1, pinned: this action receives the Neon API key.
@@ -377,4 +378,5 @@ jobs:
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
           compare_branch: ${{ env.NEON_BRANCH }}
+          base_branch: production
           api_key: ${{ secrets.NEON_API_KEY }}
