@@ -1,5 +1,13 @@
 # Learnings
 
+### 2026-11-15 · lesson · A deploy hook for the wrong service answers 2xx
+`RENDER_API_DEPLOY_HOOK_URL` held the static site's hook, so a dry run "succeeded" while the API never rebuilt; only Render's deploy list for each service showed it. `deploy.yml` now checks the URL names the API's service id. Prove a deploy by the live commit changing (`GET /api/version`), never by the hook's status code.
+PR #256 · run 43672179895
+
+### 2026-11-15 · lesson · Render skips the API for commits outside backend/
+The API service has `rootDir: backend`, so a merge that touches only `.github/` or docs deploys nothing, and live can differ from main's tip. A hook with `ref` always deploys the commit it names.
+PR #256
+
 ### 2026-11-14 · decision · Deploy the API from GitHub Actions: migrate, then the deploy hook
 Chose a `deploy.yml` (alembic upgrade on Neon, then Render's deploy hook at the merged SHA, then wait on `/api/version` and smoke) over a migration in `buildCommand` (runs on every rebuild, no gate) and over `preDeployCommand` and Render previews (paid-only). It costs nothing and a failed migration stops before any new code is live; it gives up Render's auto-deploy of the API.
 PR #253 · docs/planning/2026-11-14-ephemeral-ci-migrations-design.md

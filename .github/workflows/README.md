@@ -33,7 +33,7 @@ live code, the old API still boots.
 | `NEON_PROJECT_ID` | variable | `neon-rehearsal`, `pr-closed.yml` | `damp-hall-89096472`; unset = both skip |
 | `NEON_API_KEY` | secret | same | Neon console -> Account settings -> API keys |
 | `DATABASE_URL_DIRECT` | secret | `deploy.yml` | Neon's **direct** (unpooled) URL, as in `backend/.env` |
-| `RENDER_API_DEPLOY_HOOK_URL` | secret | `deploy.yml` | the **API** service's deploy hook (Render -> service -> Settings) |
+| `RENDER_API_DEPLOY_HOOK_URL` | secret | `deploy.yml` | the **API** service's deploy hook (Render -> `joey-haas-dev-api` -> Settings -> Deploy Hook). The URL must contain `srv-da3u2m8ae00c73983rsg`; `deploy.yml` refuses any other |
 | `RENDER_DEPLOY_HOOK_URL` | secret | `nightly.yml` | existing; the static site's snapshot deploy |
 | `API_DEPLOY_FROM_ACTIONS` | variable | `deploy.yml` | `"true"` at cutover; unset = push runs skip (manual runs still work) |
 
