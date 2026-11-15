@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 kind: bug
 mode: auto
 ---
