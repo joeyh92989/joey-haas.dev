@@ -1,6 +1,6 @@
 # joey-haas.dev
 
-Resume/portfolio website and the home of a media collection tracker. React
+Resume/portfolio website and the home of My Shelf, a tracker for my game and comic collection. React
 (Vite) frontend + FastAPI backend + Postgres, deployed on Render and Neon.
 
 ## Structure
@@ -8,9 +8,10 @@ Resume/portfolio website and the home of a media collection tracker. React
 ```
 frontend/   React app (Vite) — routed static site; bio, projects and blog ship in the bundle
 backend/    FastAPI app — Google sign-in, the media tracker's API, Alembic migrations
-docs/       Specs and plans, one design + plan pair per feature, under docs/planning/
+docs/       Specs and plans, one design + plan pair per feature, under docs/planning/;
+            design-system.md (design rules), voice.md (copy voice), learnings.md (lessons)
 scripts/    smoke.sh — post-deploy verification; render-logs.sh — recent API errors
-render.yaml Render Blueprint — defines both services for auto-deploy
+render.yaml Render Blueprint — defines both services (the API deploys from .github/workflows/deploy.yml)
 ```
 
 ## Local development
@@ -48,6 +49,8 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/now` | Now | What I am doing now |
 | `/colophon` | Colophon | How the site is built |
+| `/denver` | Denver | The short list: a drawn map and list of published spots from `/api/public/spots`, painting the build-time snapshot first |
+| `/shelf/intake` | Intake demo | A replay of the signed-in photo intake, from a recording; no API call |
 | `/daily` | Daily game | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
 | `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
 | `/blog` | Blog index | Posts compiled from `frontend/posts/` at build time |
@@ -69,10 +72,14 @@ snapshot files and never call the API.
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
 | `/admin/shelf/games` | Games | The Games page's twin: inline rate, favourite, status and publish, a list view, bulk set and bulk delete, publish and hide all (games only), and game metadata refresh. Each card and List row can Redo (send the row back to Add to match again) or Delete; every delete names the row and what goes with it. `/admin/collection` redirects here |
 | `/admin/shelf/comics` | Comics | The Comics page's twin: each series with its run, Follow, Public, a link to its cover wall and Edit, Redo and Delete, publish and hide all (comics only), and comic metadata refresh |
-| `/admin/collection/:id` | Edit item | Every field, plus re-linking to a different IGDB/TMDB/Comic Vine match |
+| `/admin/collection/:id` | Edit game | Every field, plus re-linking to a different IGDB match; a comic id redirects to its page below |
+| `/admin/shelf/comics/:id` | Edit comic | The series, its issues as a cover wall with taps, editions, the Comic Vine match and Delete |
 | `/admin/collection/add`, `/admin/closet/add` | Add | Intake: a tile per kind the API registers for the area, and the area's unfinished sittings (see [Intake](#intake)) |
 | `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
 | `/admin/import` | Redirect | Import photos became Add: redirects client-side to `/admin/collection/add` |
+| `/admin/jobs` | Jobs | One row per nightly step and its last run |
+| `/admin/spots`, `/admin/weekend` | Spots, Weekend | The Denver spot finder and list, and the weekend planner |
+| `/admin/closet`, `/admin/closet/profile`, `/admin/closet/today`, `/admin/closet/review` | Closet | The outfit planner: pieces, profile, today's plan and the weekly review |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Sources | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
 | `/admin/radar` | Radar | Upcoming physical releases and open pre-orders, ranked by taste, plus IGDB's upcoming games with no physical edition yet; Want adds the game as a public want, listed on What's next |
@@ -536,7 +543,7 @@ Migrations `0001`–`0014` build this up: items, enrichment columns, copy
 columns, `pick_events`, the catalogue's five tables, the shared
 `recommendations` table, `play_sessions`, analytics, `pick_events.slot`,
 the comic columns, `playthroughs`, a playthrough's `note`, the
-Denver spots tables, and the Closet tables. They are applied by hand and must be additive — see
+Denver spots tables, and the Closet tables. They are applied automatically when a pull request merges (the Deploy API workflow) and must be additive — see
 [Database](#database).
 
 ### Tracker environment variables
@@ -834,7 +841,7 @@ sign-in route keeps its localhost-only guard there).
 It needs:
 
 - local Postgres as in [Tests](#running-the-tests-and-checks)
-  (`postgres:postgres@localhost:5432`). `scripts/e2e-admin-db.mjs` creates
+  (`postgres:postgres@localhost:5432`). `frontend/scripts/e2e-admin-db.mjs` creates
   `joeyhaas_e2e` if missing and runs `alembic upgrade head` on it. It touches
   no other database (never `postgres`, which pytest drops).
 - `psql` on PATH. If your Postgres is not `postgres:postgres@localhost:5432`,
@@ -907,7 +914,9 @@ merging, `./scripts/smoke.sh` against production is still a manual step.
 ## Deploying to Render
 
 Both services are already deployed from `render.yaml` via a Render Blueprint.
-Every push to `main` deploys both automatically.
+A push to `main` deploys the static site on Render. The API deploys from the Deploy API workflow
+(`.github/workflows/deploy.yml`, `autoDeployTrigger: off`), which applies migrations, calls the deploy hook
+and waits for `/api/version` to report the merged commit; see `.github/workflows/README.md`.
 
 - Frontend: https://personal-site-zas6.onrender.com
 - API: https://personal-site-api-spey.onrender.com

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
@@ -142,7 +143,7 @@ function SeriesSearch({ onFollowChange }) {
           onChange={(event) => setQuery(event.target.value)}
         />
         <button type="submit" disabled={busy}>
-          {busy ? 'Searching…' : 'Search'}
+          {busy ? adminCopy.pullList.searching : adminCopy.pullList.search}
         </button>
       </form>
       <p role="status" aria-live="polite">
@@ -356,7 +357,7 @@ export default function AdminPullList() {
   const header = (
     <AdminPageHeader
       title="Pull list"
-      description="New issues of the series you follow, from Comic Vine."
+      description={adminCopy.pullList.description}
     >
       {state === 'ready' && (
         <button
@@ -365,7 +366,9 @@ export default function AdminPullList() {
           disabled={refreshing}
           onClick={refresh}
         >
-          {refreshing ? 'Refreshing…' : 'Refresh'}
+          {refreshing
+            ? adminCopy.pullList.refreshing
+            : adminCopy.pullList.refresh}
         </button>
       )}
     </AdminPageHeader>

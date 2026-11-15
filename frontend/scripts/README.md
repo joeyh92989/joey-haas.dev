@@ -330,3 +330,20 @@ answer for a small area around Union Station
 the output is deterministic, that real intersections fall on the drawn
 lines, and that the committed module's fit, labels and attribution are
 valid. The fixture and the module are generated, so Prettier ignores them.
+
+## e2e-admin-db.mjs
+
+Prepares the local database for the admin browser suite (`npm run e2e:admin`,
+and the `e2e-admin` CI job): creates `joeyhaas_e2e` if it is missing, then runs
+`alembic upgrade head` on it. It is idempotent and touches no other database.
+It needs a build in `frontend/dist` first and `psql` on PATH.
+`E2E_PG_ADMIN_URL` overrides the maintenance connection used to create the
+database; the database it migrates is always `joeyhaas_e2e`.
+
+## fixture-snapshot.test.mjs
+
+A Vitest file, not a build step. It checks that every snapshot file in
+`frontend/e2e/fixtures/snapshot/` passes the shape check in
+`fetch-snapshot.mjs` (`SNAPSHOTS`), and that every required snapshot has a
+fixture, so a changed snapshot shape fails here instead of in the CI `e2e`
+job. Run it with `npm test`.

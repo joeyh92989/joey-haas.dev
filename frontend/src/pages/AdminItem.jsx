@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
@@ -522,7 +523,7 @@ export default function AdminItem() {
     return (
       <section>
         {header}
-        <p className="admin-error">No item with that id.</p>
+        <p className="admin-error">{adminCopy.itemMissing}</p>
       </section>
     )
   }
