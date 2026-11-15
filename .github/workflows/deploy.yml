@@ -135,6 +135,20 @@ jobs:
               missing=1
             fi
           done
+          # Each Render service has its own hook, and a hook for the wrong one
+          # answers 2xx and deploys that service instead (the static site's did,
+          # on 2026-11-15, while the API never rebuilt). A hook URL carries its
+          # service id, which is not a secret, so check it names the API.
+          api_service=srv-da3u2m8ae00c73983rsg
+          if [ -n "$RENDER_API_DEPLOY_HOOK_URL" ]; then
+            case "$RENDER_API_DEPLOY_HOOK_URL" in
+              *"$api_service"*) ;;
+              *)
+                echo "::error::RENDER_API_DEPLOY_HOOK_URL does not name the API service ($api_service). Copy the Deploy Hook from the joey-haas-dev-api service's Settings, not the static site's."
+                missing=1
+                ;;
+            esac
+          fi
           exit "$missing"
 
       # env.py reads the direct URL only: Neon's pooler cannot run Alembic.
