@@ -796,6 +796,8 @@ FORBIDDEN = {
     # A playthrough's or a journal day's note is the owner's (play-states,
     # Tonight continue).
     "note", "minutes",
+    # Following a comic series is private (spec D5; #301).
+    "following",
 }  # fmt: skip
 NEXT_ROW_FIELDS = {
     "title", "platform", "physical_format", "release_date", "release_precision",

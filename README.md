@@ -1154,6 +1154,21 @@ detail and next models' field sets.
 | `GET /api/public/spots` | `/denver`: published spots (`PublicSpot`: `spot_id`, name, slug, neighbourhood, tags, blurb, lat, lng), by neighbourhood then name; never an anchor, a visit or a distance; uncached |
 | `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
+Following a comic series is private (comics spec D5): no public model
+carries `following`, `test_public_outputs.py` forbids the key in `/next`, and
+`test_public_comics.py` in every comics body. The admin shelf reads it from
+`/api/items`.
+
+**Response models and error bodies.** Everything under `/api/public/` has a
+`response_model`. Admin and job routes (`intake`, `comics_routes`,
+`closet_routes`, `recommendations_routes` and the like) return dicts by
+design: the only reader is the signed-in admin UI or a nightly job, and a
+model per route would duplicate the dict it already builds. Add a model when
+a route becomes public or a second client reads it. Every error body is
+`{"detail": ...}` (`backend/errors.py`): a string, or for a 422 a list of
+`{type, loc, msg}` that never echoes the request's `input`; a 404 reads
+"Not found" whichever layer raised it.
+
 `/api/public/picks` and `/api/public/radar` are retired and answer 404;
 `/api/public/next` carries both (Play Next's picks as `tonight`, Radar's
 dated cartridges in its sections), and `scripts/smoke.sh` pins the 404.

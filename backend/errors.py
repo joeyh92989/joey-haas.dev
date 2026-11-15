@@ -13,14 +13,42 @@ from __future__ import annotations
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
 
 
 def add_json_errors(app: FastAPI) -> None:
-    """Registers the catch-all. Call it before adding CORSMiddleware, so CORS
-    is added later and wraps it (the last middleware added is outermost)."""
+    """Registers the catch-all and the shared 4xx body shape. Call it before
+    adding CORSMiddleware, so CORS is added later and wraps it (the last
+    middleware added is outermost).
+
+    Every error body is `{"detail": ...}`, the one key the frontend's
+    `errorMessage` reads: a string, or for a 422 a list of
+    `{type, loc, msg}` (never the caller's `input`). Status codes and
+    headers are untouched."""
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, exc: StarletteHTTPException):
+        # The router's own 404 says "Not Found"; ours say "Not found".
+        detail = (
+            "Not found"
+            if exc.status_code == 404 and exc.detail == "Not Found"
+            else exc.detail
+        )
+        return JSONResponse(
+            {"detail": detail}, status_code=exc.status_code, headers=exc.headers
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, exc: RequestValidationError):
+        detail = [
+            {"type": e["type"], "loc": list(e["loc"]), "msg": e["msg"]}
+            for e in exc.errors()
+        ]
+        return JSONResponse({"detail": detail}, status_code=422)
 
     @app.middleware("http")
     async def json_errors(request: Request, call_next):

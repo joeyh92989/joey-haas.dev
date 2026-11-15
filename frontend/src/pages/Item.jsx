@@ -303,10 +303,10 @@ function ComicSummary({ comic, model }) {
     model.state === 'gaps'
       ? SERIES.pill.gaps(model.missing)
       : SERIES.pill[model.state]
-  // "As of" only for an ongoing series nobody follows: a followed one is
-  // refreshed nightly, an ended one cannot drift (comics spec, 4).
+  // "As of" only for an ongoing series: an ended one cannot drift. Whether
+  // the owner follows it is private and not in the public body (#301).
   const asOf =
-    comic.ongoing && !comic.following && comic.as_of
+    comic.ongoing && comic.as_of
       ? SERIES.asOf(SHORT_MONTH_YEAR.format(parseDate(comic.as_of)))
       : null
   const notes = [

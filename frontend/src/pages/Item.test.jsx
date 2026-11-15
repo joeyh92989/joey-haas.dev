@@ -779,7 +779,6 @@ const SAGA = {
     read: 3,
     editions: [{ kind: 'TPB', label: 'Vol. 2', from_issue: 6, to_issue: 8 }],
     next_issue: { number: '9', store_date: '2026-11-12' },
-    following: true,
     shelf_format: 'trades',
     as_of: '2026-10-30',
   },
@@ -833,9 +832,7 @@ describe('Item series page (AC5)', () => {
     await renderSaga()
     const sum = document.querySelector('.comic-sum')
     expect(sum).toHaveTextContent('7 of 8+ 1 missing')
-    // Followed, so refreshed nightly: no "as of".
     expect(sum).toHaveTextContent('Trades')
-    expect(sum).not.toHaveTextContent('as of')
     const next = screen.getByRole('region', { name: 'What’s next' })
     expect(next).toHaveTextContent('Next to read#44 unread')
     expect(next).toHaveTextContent('First gap#51 missing')
@@ -850,8 +847,8 @@ describe('Item series page (AC5)', () => {
     ).toHaveTextContent('Next to read#6in Vol. 2')
   })
 
-  it('dates the run of an ongoing series nobody follows', async () => {
-    stubSaga({ following: false })
+  it('dates the run of an ongoing series', async () => {
+    stubSaga()
     await renderSaga()
     expect(document.querySelector('.comic-sum')).toHaveTextContent(
       'as of Oct 2026',

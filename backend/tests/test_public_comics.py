@@ -44,11 +44,12 @@ NOW = datetime(2026, 11, 6, 15, 0, tzinfo=UTC)
 COMIC_FORBIDDEN = {
     "issues_skipped", "skipped", "notes", "owned_format", "acquired_at",
     "source_metadata", "is_public", "price", "store", "url", "external_id",
+    "following",
 }  # fmt: skip
 
 ROW_FIELDS = {
     "item_id", "title", "publisher", "year", "cover_url", "ongoing",
-    "following", "wanted", "shelf_format", "edition_labels", "owned",
+    "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
     "read_to", "read", "read_next", "next_issue", "tags", "created_at",
     "caught_up",
@@ -64,7 +65,7 @@ ISSUE_FIELDS = {
 DETAIL_FIELDS = {
     "publisher", "owned_text", "released", "ongoing", "run_state", "missing",
     "segments", "read_to", "read", "read_next", "editions", "next_issue",
-    "following", "issue_count",
+    "issue_count",
     "shelf_format", "as_of", "status", "caught_up",
 }  # fmt: skip
 

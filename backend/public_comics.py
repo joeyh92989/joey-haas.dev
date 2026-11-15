@@ -80,7 +80,6 @@ class PublicComicRow(BaseModel):
     year: int | None
     cover_url: str | None
     ongoing: bool
-    following: bool
     wanted: bool
     shelf_format: ComicShelfFormat | None
     edition_labels: list[str]
@@ -206,7 +205,6 @@ class PublicComicDetail(BaseModel):
     issue_count: int | None
     editions: list[PublicEdition]
     next_issue: PublicNextIssue | None
-    following: bool
     # The same as the shelf row's: how the run sits on the shelf.
     shelf_format: ComicShelfFormat | None
     # The day the issues were last fetched from Comic Vine.
@@ -264,7 +262,6 @@ def _row(
         year=item.year,
         cover_url=item.cover_url,
         ongoing=series.ongoing,
-        following=item.following,
         wanted=wanted,
         shelf_format=item.shelf_format,
         edition_labels=[e["label"] for e in _editions(item)],
@@ -424,7 +421,6 @@ def comic_detail(
             for e in _editions(item)
         ],
         next_issue=_next(series, today),
-        following=item.following,
         shelf_format=item.shelf_format,
         as_of=as_of,
     )

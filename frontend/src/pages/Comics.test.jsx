@@ -24,7 +24,6 @@ const series = (title, fields = {}) => ({
   year: 2020,
   cover_url: null,
   ongoing: false,
-  following: false,
   wanted: false,
   shelf_format: 'singles',
   edition_labels: [],
@@ -45,7 +44,6 @@ const series = (title, fields = {}) => ({
 const ROWS = [
   series('Saga', {
     ongoing: true,
-    following: true,
     owned: 54,
     released: 72,
     missing: 18,
@@ -62,7 +60,6 @@ const ROWS = [
   series('Absolute Batman', {
     publisher: 'DC',
     ongoing: true,
-    following: true,
     owned: 12,
     released: 12,
     run_state: 'up_to_date',
