@@ -1,3 +1,4 @@
+import { beforeEach } from 'vitest'
 import { configure } from '@testing-library/react'
 import * as snapshot from './lib/snapshot.js'
 
