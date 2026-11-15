@@ -33,30 +33,16 @@ import { SAVED_NOT_REFRESHED, WAKING } from '../content/status.js'
 import { useElapsed } from '../lib/useElapsed.js'
 import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
 import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
+import {
+  MONTH_YEAR as SHORT_MONTH_YEAR,
+  MONTH_YEAR_LONG as MONTH_YEAR,
+  DAY_YEAR as DAY,
+} from '../lib/formatDate.js'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
 const ITEM = spine.item
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
-
-const SHORT_MONTH_YEAR = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-const MONTH_YEAR = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-const DAY = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /** A "YYYY-MM-DD" column value as a UTC date, so no day shifts by zone. */
 function parseDate(value) {

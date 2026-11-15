@@ -34,22 +34,16 @@ import {
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import {
+  MONTH_YEAR_LONG as MONTH_LABEL,
+  MONTH_NARROW as MONTH_INITIAL,
+} from '../lib/formatDate.js'
 
 const copy = spine.comics
 const PUBLISHERS_SHOWN = 3
 // What a visitor can filter comics by; Based on is shown, not filtered.
 const FILTER_GROUPS = ['genre', 'form']
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'asc' }))
-
-const MONTH_LABEL = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
-  month: 'narrow',
-  timeZone: 'UTC',
-})
 
 /** Preference keys (spec, S6): the public shelf's namespace, per page. */
 const PREF = {

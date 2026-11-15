@@ -1,5 +1,6 @@
 import { apiFetch } from './api.js'
 import { runWords, STATUS_ORDER, statusLabel } from './shelf.js'
+import { MONTH_YEAR as MONTH } from './formatDate.js'
 
 /**
  * The status control's entries for one admin row, and the call that makes
@@ -7,12 +8,6 @@ import { runWords, STATUS_ORDER, statusLabel } from './shelf.js'
  * opens, closes, pauses or deletes a playthrough); this file only names the
  * moves, so the card menu, the touch sheet and the list `<select>` agree.
  */
-
-const MONTH = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /** The playthrough a new run would take: one past the highest. */
 function nextNumber(item) {

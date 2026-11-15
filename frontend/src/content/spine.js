@@ -56,8 +56,8 @@ export const spine = {
     tryPickForMe: 'Try Pick for me with a length and a vibe',
     title: 'A tour of My Shelf, in nine stops',
     description:
-      'A tour of My Shelf: intake, the physical catalog, Play Next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
-    lede: 'Everything on the Collection and What’s next pages comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
+      'A tour of My Shelf: intake, the physical catalog, Play next, Radar, Discover, and the nightly job, with each public result beside the signed-in tool that made it.',
+    lede: 'Everything on My Shelf comes out of a pipeline I run for myself. Each stop pairs the public result with a drawing of the signed-in tool that made it and links to the code it runs.',
     tocLabel: 'Stops',
     live: 'Live, from the public API',
     behind: 'Behind the sign-in',
@@ -377,7 +377,7 @@ export const spine = {
     /** Tonight's lead pick, the other picks, and the owner's buttons. */
     pickForMe: {
       heading: 'Pick for me',
-      lede: 'Choose a length and up to two vibes (either one will do), and the same scoring Play Next uses picks three games from my backlog.',
+      lede: 'Choose a length and up to two vibes (either one will do), and the same scoring Play next uses picks three games from my backlog.',
       sizeLegend: 'How long',
       moodLegend: 'Vibe',
       sizes: {
@@ -528,7 +528,7 @@ export const spine = {
     waking: WAKING,
     error: LOAD_ERROR,
   },
-  /** The Collection page's labelled controls, result count, key and paging. */
+  /** The Games page's labelled controls, result count, key and paging. */
   shelf: {
     groupShow: 'Show',
     groupStatus: 'Status',

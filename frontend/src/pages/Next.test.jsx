@@ -276,7 +276,7 @@ describe('Next', () => {
     // The API publishes UTC days only, read at noon so no timezone moves them.
     // The picks are live, so they carry a word, not a date.
     expect(screen.getByText(/^Picks /)).toHaveTextContent(
-      'Picks live · Releases checked Sun 4 Oct · Suggestions Sun 4 Oct',
+      'Picks live · Releases checked Sun, Oct 4 · Suggestions Sun, Oct 4',
     )
     const headings = screen
       .getAllByRole('heading', { level: 2 })
@@ -801,7 +801,7 @@ describe('Tonight', () => {
     renderPage()
     const chip = document.querySelector('.tonight-just')
     expect(chip).toHaveTextContent('Just finished Metroid Dread')
-    expect(chip).toHaveTextContent('Mon 26 Oct · 9 h')
+    expect(chip).toHaveTextContent('Mon, Oct 26 · 9 h')
   })
 
   it('pins a pick, refetches, and moves focus to its title', async () => {

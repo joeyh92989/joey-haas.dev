@@ -17,6 +17,7 @@ import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import { DAY } from '../lib/formatDate.js'
 
 const MONTHS = [
   'Jan',
@@ -32,12 +33,6 @@ const MONTHS = [
   'Nov',
   'Dec',
 ]
-
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
 
 function shortDate(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)

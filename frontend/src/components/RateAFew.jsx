@@ -9,7 +9,7 @@ const LIMIT = 6
 
 /**
  * Finished games with no rating, a few at a time: each rating sharpens the
- * profile Discover and Play Next rank by. Dismissible, and the dismissal
+ * profile Discover and Play next rank by. Dismissible, and the dismissal
  * is remembered in this browser.
  *
  * A table, so each game's stars sit beside its title. A game rated here
@@ -101,7 +101,7 @@ export default function RateAFew({ items, onRated }) {
       <h2 id="rate-a-few-title">Rate a few</h2>
       <p className="muted">
         You finished these but never rated them. Each rating sharpens what
-        Discover and Play Next suggest.
+        Discover and Play next suggest.
       </p>
       {error && <p role="alert">{error}</p>}
       <table className="rate-a-few-table" ref={table}>

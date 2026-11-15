@@ -140,7 +140,7 @@ describe('Stats', () => {
   it('names the busiest day and its count under the chart', () => {
     mockStats({ data: BODY })
     renderPage()
-    expect(screen.getByText('Busiest day: Fri 30 Oct, 8 views.')).toBeVisible()
+    expect(screen.getByText('Busiest day: Fri, Oct 30, 8 views.')).toBeVisible()
   })
 
   it('names item, year and month rows, and keeps the path when unknown', async () => {

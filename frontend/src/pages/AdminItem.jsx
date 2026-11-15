@@ -443,7 +443,7 @@ export default function AdminItem() {
     }
   }
 
-  /** Lets Play Next suggest this game again, then re-reads the item. */
+  /** Lets Play next suggest this game again, then re-reads the item. */
   async function restoreToPlayNext() {
     setError(null)
     try {
@@ -452,7 +452,7 @@ export default function AdminItem() {
       })
       const reread = response.ok ? await apiFetch(`/api/items/${id}`) : null
       if (!reread?.ok) {
-        setError('Couldn’t restore it to Play Next.')
+        setError('Couldn’t restore it to Play next.')
         return
       }
       applyServerItem(await reread.json())
@@ -570,7 +570,7 @@ export default function AdminItem() {
         )}
         {item.play_next_excluded && (
           <p>
-            <span className="muted">Excluded from Play Next.</span>{' '}
+            <span className="muted">Excluded from Play next.</span>{' '}
             <button type="button" onClick={restoreToPlayNext}>
               Restore
             </button>

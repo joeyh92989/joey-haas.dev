@@ -7,6 +7,9 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 ## 2026-11-15
 
 - The blog, TIL and these changes now have RSS feeds you can find: an RSS link on each page and in the footer, and `/blog/feed.xml` works alongside `/feed.xml`.
+- Home now has Resume (PDF) and Email me buttons, and search finds Resume and Contact.
+- [Now](/now) says what day it was last written and that it covers games only.
+- Dates read month first everywhere, such as Nov 9, 2026, and the admin’s Play next is spelled that way across the site.
 
 ## 2026-11-14
 

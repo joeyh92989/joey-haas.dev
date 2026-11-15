@@ -74,7 +74,7 @@ describe('bandCounts', () => {
 
 describe('weekdayWords', () => {
   it('reads a date-only value on its own day, whatever the timezone', () => {
-    expect(weekdayWords('2026-10-26')).toBe('Mon 26 Oct')
+    expect(weekdayWords('2026-10-26')).toBe('Mon, Oct 26')
   })
 
   it('is null for anything unreadable', () => {

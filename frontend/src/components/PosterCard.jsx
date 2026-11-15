@@ -3,15 +3,10 @@ import { statusLabel } from '../lib/shelf.js'
 import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
 import Rating from './Rating.jsx'
+import { MONTH_YEAR } from '../lib/formatDate.js'
 
 const SWITCH_2_ID = 508
 const SWITCH_2_NAME = 'Nintendo Switch 2'
-
-const MONTH_YEAR = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /**
  * The format mark's accessible name, or null for no mark.
