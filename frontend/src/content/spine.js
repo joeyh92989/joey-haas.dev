@@ -624,6 +624,8 @@ export const spine = {
       finished: 'Read',
       abandoned: 'Dropped',
     },
+    /** Every owned issue read, but the run is not complete (#277). */
+    caughtUp: 'Caught up',
     /** Mirrors the comic_shelf_format enum. */
     formats: { singles: 'Singles', trades: 'Trades', omnibus: 'Omnibus' },
     runStates: {

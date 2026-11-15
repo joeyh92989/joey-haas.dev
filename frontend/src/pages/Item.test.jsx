@@ -229,6 +229,19 @@ describe('Item', () => {
     ])
   })
 
+  it('says Caught up for a comic whose owned issues are all read', async () => {
+    stubItem({
+      ...SAGA,
+      title: DETAIL.title,
+      status: 'backlog',
+      comic: { ...SAGA.comic, caught_up: true, status: 'backlog' },
+    })
+    await renderReady()
+    expect(document.querySelector('.item-status')).toHaveTextContent(
+      'Caught up',
+    )
+  })
+
   it('names a comic series’ tags by Genre, Based on and Form', async () => {
     stubItem({
       type: 'comic',

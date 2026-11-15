@@ -28,6 +28,7 @@ from comics import (
     read_state,
     series_from_row,
     shelf_figures,
+    shown_status,
     sort_series,
     validate_editions,
 )
@@ -89,6 +90,9 @@ class PublicComicRow(BaseModel):
     run_state: str | None
     segments: list[PublicRunSegment]
     status: ItemStatus
+    # Every owned issue read on a run that is not complete: the page says
+    # "Caught up" in place of To read (#277).
+    caught_up: bool
     rating: int | None
     read_to: int | None
     read: int
@@ -191,6 +195,10 @@ class PublicComicDetail(BaseModel):
     segments: list[PublicRunSegment]
     read_to: int | None
     read: int
+    # The status the page shows, derived from the marks, and caught_up as on
+    # the shelf row (#277).
+    status: ItemStatus
+    caught_up: bool
     # As on the shelf row.
     read_next: int | None
     # Comic Vine's count_of_issues for the volume (stored as `issue_count`),
@@ -248,6 +256,7 @@ def _row(
 ) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
+    status, caught_up = derived_status(item, series, read_marks)
     return PublicComicRow(
         item_id=item.id,
         title=item.title,
@@ -264,7 +273,8 @@ def _row(
         missing=0 if wanted else run.missing,
         run_state=None if wanted else run.state,
         segments=[] if wanted else _segments(series),
-        status=item.status,
+        status=status,
+        caught_up=caught_up,
         rating=item.rating,
         read_to=item.read_to,
         read=max(read_marks, read_state(item.read_to, set(series.owned)).read),
@@ -273,6 +283,25 @@ def _row(
         tags=public_tags(item.tags),
         created_at=item.created_at,
     )
+
+
+def derived_status(
+    item: Item, series: ComicSeries, read_marks: int
+) -> tuple[ItemStatus, bool]:
+    """`comics.shown_status` for a row: the one place the stored status, the
+    run and the read count meet. Read counts the marks and read_to, as the
+    series page does."""
+    run = series.run()
+    read = max(read_marks, read_state(item.read_to, set(series.owned)).read)
+    status, caught_up = shown_status(
+        item.status.value,
+        owned=run.owned,
+        read=read,
+        released=series.released,
+        ongoing=series.ongoing,
+        missing=run.missing,
+    )
+    return ItemStatus(status), caught_up
 
 
 def _months_back(today: date, count: int) -> list[date]:
@@ -284,7 +313,9 @@ def _months_back(today: date, count: int) -> list[date]:
     return months[::-1]
 
 
-def comic_stats(items: list[Item], today: date) -> PublicComicStats:
+def comic_stats(
+    items: list[Item], today: date, marks: dict[uuid.UUID, int] | None = None
+) -> PublicComicStats:
     pairs = [(item, series_of(item)) for item in items]
     figures = shelf_figures(series for _, series in pairs)
     shelf = [(item, s) for item, s in pairs if s.on_shelf]
@@ -304,7 +335,12 @@ def comic_stats(items: list[Item], today: date) -> PublicComicStats:
             gaps=states["gaps"],
             wanted=len(pairs) - len(shelf),
         ),
-        by_status=dict(Counter(item.status.value for item, _ in shelf)),
+        by_status=dict(
+            Counter(
+                derived_status(item, s, (marks or {}).get(item.id, 0))[0].value
+                for item, s in shelf
+            )
+        ),
         publishers=[
             PublicPublisherCount(publisher=name, count=n)
             for name, n in sorted(
@@ -356,6 +392,7 @@ def comic_detail(
     is per book); `read_to` still counts for a row the marks have not reached."""
     series = series_of(item)
     run = series.run()
+    status, caught_up = derived_status(item, series, read_marks or 0)
     fetched = (item.source_metadata or {}).get("fetched_on")
     try:
         as_of = date.fromisoformat(fetched) if isinstance(fetched, str) else None
@@ -371,6 +408,8 @@ def comic_detail(
         segments=_segments(series),
         read_to=item.read_to,
         read=max(read_marks or 0, read_state(item.read_to, set(series.owned)).read),
+        status=status,
+        caught_up=caught_up,
         read_next=read_next(item.read_to, set(series.owned)),
         issue_count=(
             count
@@ -439,6 +478,6 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
     return PublicComicsOut(
         series=[_row(pairs[s.id][0], s, today, marks.get(s.id, 0)) for s in ordered],
-        stats=comic_stats(items, today),
+        stats=comic_stats(items, today, marks),
         this_week=comic_weeks(items, today),
     )

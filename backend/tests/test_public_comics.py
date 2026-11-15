@@ -51,6 +51,7 @@ ROW_FIELDS = {
     "following", "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
     "read_to", "read", "read_next", "next_issue", "tags", "created_at",
+    "caught_up",
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",
@@ -64,7 +65,7 @@ DETAIL_FIELDS = {
     "publisher", "owned_text", "released", "ongoing", "run_state", "missing",
     "segments", "read_to", "read", "read_next", "editions", "next_issue",
     "following", "issue_count",
-    "shelf_format", "as_of",
+    "shelf_format", "as_of", "status", "caught_up",
 }  # fmt: skip
 
 
@@ -481,3 +482,87 @@ async def test_the_shelf_card_counts_read_marks_like_the_series_page(
         )
         detail = (await client.get(f"/api/public/items/{comic.id}")).json()["comic"]
     assert row["read"] == detail["read"] == 1
+
+
+async def _read_all(factory, comic, numbers):
+    from models import ComicIssue
+
+    async with factory() as session:
+        session.add_all(
+            ComicIssue(item_id=comic.id, number=n, owned=True, read=True)
+            for n in numbers
+        )
+        await session.commit()
+
+
+async def _shown(factory, comic):
+    async with client_for(factory) as client:
+        row = next(
+            r
+            for r in (await client.get("/api/public/comics")).json()["series"]
+            if r["title"] == comic.title
+        )
+        page = (await client.get(f"/api/public/items/{comic.id}")).json()
+        stats = (await client.get("/api/public/comics")).json()["stats"]
+    return row, page, stats
+
+
+async def test_all_read_on_a_complete_run_shows_finished_everywhere(
+    sessionmaker_for_test,
+):
+    """#277: the row, the series page, its comic block and the status bar agree."""
+    comic = _comic(
+        "Creepshow",
+        status=ItemStatus.BACKLOG,
+        issues_owned="1–5",
+        source_metadata={"released": 5, "ongoing": False},
+    )
+    await _add(sessionmaker_for_test, comic)
+    await _read_all(sessionmaker_for_test, comic, range(1, 6))
+    row, page, stats = await _shown(sessionmaker_for_test, comic)
+    assert row["status"] == page["status"] == page["comic"]["status"] == "finished"
+    assert row["caught_up"] is False and page["comic"]["caught_up"] is False
+    assert stats["by_status"] == {"finished": 1}
+
+
+async def test_all_read_on_an_ongoing_series_is_caught_up_not_finished(
+    sessionmaker_for_test,
+):
+    comic = _comic(
+        "Saga",
+        status=ItemStatus.BACKLOG,
+        issues_owned="1–3",
+        source_metadata={"released": 3, "ongoing": True},
+    )
+    await _add(sessionmaker_for_test, comic)
+    await _read_all(sessionmaker_for_test, comic, range(1, 4))
+    row, page, _ = await _shown(sessionmaker_for_test, comic)
+    assert row["status"] == page["status"] == "backlog"
+    assert row["caught_up"] is True and page["comic"]["caught_up"] is True
+
+
+async def test_a_partly_read_series_stays_to_read(sessionmaker_for_test):
+    comic = _comic(
+        "Monstress",
+        status=ItemStatus.BACKLOG,
+        issues_owned="1–5",
+        source_metadata={"released": 5, "ongoing": False},
+    )
+    await _add(sessionmaker_for_test, comic)
+    await _read_all(sessionmaker_for_test, comic, [1, 2])
+    row, page, _ = await _shown(sessionmaker_for_test, comic)
+    assert row["status"] == page["status"] == "backlog"
+    assert row["caught_up"] is False
+
+
+async def test_a_hand_set_status_is_never_derived_over(sessionmaker_for_test):
+    comic = _comic(
+        "Paused One",
+        status=ItemStatus.PAUSED,
+        issues_owned="1–2",
+        source_metadata={"released": 2, "ongoing": False},
+    )
+    await _add(sessionmaker_for_test, comic)
+    await _read_all(sessionmaker_for_test, comic, [1, 2])
+    row, page, _ = await _shown(sessionmaker_for_test, comic)
+    assert row["status"] == page["status"] == "paused"

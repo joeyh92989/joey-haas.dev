@@ -80,7 +80,10 @@ function timesWord(count) {
  */
 function statusInWords(item) {
   const labels = item.type === 'comic' ? COMICS.status : STATUS_LABEL
-  const label = labels[item.status] ?? item.status
+  const label =
+    item.type === 'comic' && item.comic?.caught_up
+      ? COMICS.caughtUp
+      : (labels[item.status] ?? item.status)
   const times = item.times_completed ?? 0
   if (item.status === 'finished' && item.finished_at) {
     const when = parseDate(item.finished_at)
