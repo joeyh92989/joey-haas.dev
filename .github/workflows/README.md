@@ -52,5 +52,9 @@ deploy is reverted with a PR as before; migrations stay (additive).
   `RENDER_GIT_COMMIT`. If that shows `unknown`, the wait can never succeed:
   `scripts/smoke.sh` flags it.
 - Fork PRs get no secrets, so the rehearsal skips them.
-- A free Neon project holds ten branches in all; the rehearsal uses one per
-  open migration PR and expires it after seven days.
+- A schema-only Neon branch is a root branch and a free project allows three
+  roots (production is one), so only two migration PRs can rehearse at once. The
+  branch expires after seven days as a net.
+- Proven on a real branch (PR #254, closed unmerged): create, stamp at the base
+  head (`stamp_revision -> 0019`), apply only the PR's revisions, the schema-diff
+  comment, and `pr-closed.yml` deleting the branch.

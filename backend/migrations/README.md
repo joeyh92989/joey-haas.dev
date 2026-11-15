@@ -91,8 +91,13 @@ run; that assumes production is at the base head, which the apply-then-merge
 order guarantees. A failed upgrade fails the PR.
 
 - The branch is replaced on every push and deleted by `.github/workflows/pr-closed.yml`
-  when the PR closes. It also expires after seven days. A free Neon project holds
-  ten branches in all, so keep open migration PRs few.
+  when the PR closes. It also expires after seven days. A schema-only branch is a
+  **root** branch (no parent), and a free Neon project allows three roots with
+  `production` one of them, so at most **two** migration PRs can be open at once;
+  a third's rehearsal fails at branch creation until one closes.
+- The comment diffs the branch against `production`. Expect one noise hunk about
+  `ALTER DEFAULT PRIVILEGES ... neon_superuser`: Neon builds schema-only branches
+  with slightly different default grants. Everything else is the migration's change.
 - It needs the `NEON_PROJECT_ID` repository **variable** and the `NEON_API_KEY`
   **secret** (Settings -> Secrets and variables -> Actions). With the variable
   unset both workflows skip, so a fork or a fresh clone is unaffected. Fork PRs

@@ -8,9 +8,9 @@ PR #253 · docs/planning/2026-11-14-ephemeral-ci-migrations-design.md
 Backend pytest was 92% of the critical path, and nearly all of it was the `engine` fixture rebuilding every table for each of ~3,000 tests (0.3-0.6 s each). Building the schema once and truncating between tests halved it (14m to 7m45s locally) with no xdist. Look at `--durations` with setup included before adding workers or runners.
 PR #252
 
-### 2026-11-14 · lesson · A schema-only Neon branch has an empty alembic_version
-It copies tables but no rows, so `alembic upgrade head` would replay every migration; the CI rehearsal stamps the base branch's head first. Found in review, not yet proven on a live branch (needs the Neon secrets).
-PR #251
+### 2026-11-14 · lesson · A schema-only Neon branch has no rows and no parent
+It copies tables but no rows, so `alembic_version` is empty and the rehearsal stamps the base head first (proven: `stamp_revision -> 0019`, then only the PR's revision ran). It is also a root branch: the diff action needs `base_branch: production`, and the free plan's three-root limit allows two rehearsals at once.
+PR #251 · PR #254 (probe, closed)
 
 ### 2026-11-14 · lesson · `/code-review` diffs against local `main`, which is stale
 In a worktree the skill reviewed already-merged PRs. Fetch, and pass the range explicitly: `origin/main...HEAD`.
