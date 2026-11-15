@@ -18,7 +18,7 @@ describe('ownerYear', () => {
 
 describe('ownerMonth', () => {
   it('turns over at midnight in Denver, not UTC', () => {
-    // 05:00 UTC on 1 Nov is still 31 Oct, 23:00 in Denver.
+    // 05:00 UTC on Nov 1 is still Oct 31, 23:00 in Denver.
     expect(ownerMonth(Date.UTC(2026, 10, 1, 5))).toEqual({
       year: 2026,
       month: 10,
@@ -32,7 +32,7 @@ describe('ownerMonth', () => {
 
 describe('ownerDay', () => {
   it('turns over at midnight in Denver, not UTC', () => {
-    // 05:00 UTC on 9 Nov is still 8 Nov, 22:00 in Denver (MST, UTC-7).
+    // 05:00 UTC on Nov 9 is still Nov 8, 22:00 in Denver (MST, UTC-7).
     expect(ownerDay(Date.UTC(2026, 10, 9, 5))).toBe('2026-11-08')
     expect(ownerDay(Date.UTC(2026, 10, 9, 7))).toBe('2026-11-09')
   })

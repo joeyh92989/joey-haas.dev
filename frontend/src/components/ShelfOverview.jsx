@@ -2,6 +2,10 @@ import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import { ownerMonth, ownerYear } from '../lib/formatDate.js'
 import { STATUS_LABEL, STATUS_ORDER, topFavourites } from '../lib/shelf.js'
+import {
+  MONTH_YEAR as MONTH_LABEL,
+  MONTH_NARROW as MONTH_INITIAL,
+} from '../lib/formatDate.js'
 
 /**
  * The shelf's overview blocks, shared by the public Games and Comics pages
@@ -11,17 +15,6 @@ import { STATUS_LABEL, STATUS_ORDER, topFavourites } from '../lib/shelf.js'
 
 const FAVOURITES_SHOWN = 4
 const RATINGS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-const MONTH_LABEL = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
-
-const MONTH_INITIAL = new Intl.DateTimeFormat('en', {
-  month: 'narrow',
-  timeZone: 'UTC',
-})
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
 

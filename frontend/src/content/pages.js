@@ -122,6 +122,21 @@ export const TRAVEL_PAGE = row(
   `Trips by ${profile.name}, a day at a time: where we went, what happened and a few photos.`,
 )
 
+/**
+ * Search-only entries: places a visitor looks for that are not prerendered
+ * pages (the resume file, the contact line on About), so they stay out of
+ * `STATIC_PAGES`, the prerender and the sitemap.
+ */
+export const SEARCH_ONLY_PAGES = [
+  row('/resume.pdf', 'Resume (PDF)', '', 'My resume as a PDF.'),
+  row('/about#contact', 'Contact', '', 'My email and LinkedIn.'),
+]
+
+/** What search lists: the static pages and the search-only entries. */
+export function searchPages(hasPosts) {
+  return [...staticPages(hasPosts), ...SEARCH_ONLY_PAGES]
+}
+
 /** The static pages to list, given whether any post is published. */
 export function staticPages(hasPosts) {
   return hasPosts ? [...STATIC_PAGES, BLOG_PAGE] : STATIC_PAGES

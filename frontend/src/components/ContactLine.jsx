@@ -11,7 +11,7 @@ import { profile } from '../content/profile.js'
  */
 export default function ContactLine({ downloadName }) {
   return (
-    <p className="prose">
+    <p className="prose" id="contact">
       Reach me at <a href={`mailto:${profile.email}`}>{profile.email}</a>
       {profile.linkedin && (
         <>

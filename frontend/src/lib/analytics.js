@@ -1,3 +1,4 @@
+import { DAY, WEEKDAY_DAY as WEEKDAY } from './formatDate.js'
 /**
  * Shared words for the admin Analytics page, /stats and the Dashboard's
  * views tile.
@@ -7,21 +8,8 @@
  * would read as the one before.
  */
 
-const DAY = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
-
-const WEEKDAY = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
-
 /**
- * A UTC day from the API as "12 Oct", or "Mon 12 Oct" with the weekday.
+ * A UTC day from the API as "Oct 12", or "Mon, Oct 12" with the weekday.
  *
  * @param {string} iso A date, `YYYY-MM-DD`.
  * @param {{weekday?: boolean}} [options]

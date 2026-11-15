@@ -110,7 +110,7 @@ describe('AdminShell on a desktop', () => {
       ])
     expect(groups).toEqual([
       ['Shelf', ['Games', 'Comics', 'Add']],
-      ['Recommend', ['Play Next', 'Discover', 'Radar', 'Pull list']],
+      ['Recommend', ['Play next', 'Discover', 'Radar', 'Pull list']],
       ['Data', ['Sources', 'Store list']],
     ])
     expect(within(nav).getByRole('link', { name: 'Radar' })).toHaveAttribute(
@@ -293,7 +293,7 @@ describe('AdminShell on a phone', () => {
   it.each([
     [
       'More',
-      ['Play Next', 'Discover', 'Radar', 'Pull list', 'Sources', 'Store list'],
+      ['Play next', 'Discover', 'Radar', 'Pull list', 'Sources', 'Store list'],
     ],
   ])('opens %s as a sheet of its pages', (label, links) => {
     renderAt('/admin/collection')

@@ -10,24 +10,12 @@ import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
-
-const MONTH = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
+import { MONTH_YEAR as MONTH, DAY_YEAR as DAY } from '../lib/formatDate.js'
 
 function utc(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day))
 }
-
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 function finishedOn(isoDate) {
   return DAY.format(utc(isoDate))
@@ -47,18 +35,23 @@ export default function Now() {
   // The game to show and whether it is Tonight's pick, not a pinned up_next.
   const [upNext, setUpNext] = useState(null)
   const [isPick, setIsPick] = useState(false)
+  // The day the snapshot was fetched, 'YYYY-MM-DD', or null without one.
+  const [asOf, setAsOf] = useState(null)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([readSnapshot('items'), readSnapshot('next')]).then(
-      ([snapshotItems, next]) => {
-        if (cancelled) return
-        setItems(snapshotItems ?? [])
-        const pinned = next?.tonight?.up_next
-        setUpNext(pinned ?? next?.tonight?.picks?.[0] ?? null)
-        setIsPick(!pinned)
-      },
-    )
+    Promise.all([
+      readSnapshot('items'),
+      readSnapshot('next'),
+      readSnapshot('meta'),
+    ]).then(([snapshotItems, next, meta]) => {
+      if (cancelled) return
+      setAsOf(meta?.fetched_at?.slice(0, 10) ?? null)
+      setItems(snapshotItems ?? [])
+      const pinned = next?.tonight?.up_next
+      setUpNext(pinned ?? next?.tonight?.picks?.[0] ?? null)
+      setIsPick(!pinned)
+    })
     return () => {
       cancelled = true
     }
@@ -74,10 +67,11 @@ export default function Now() {
     <section className="now">
       <h1>Now</h1>
       <p className="prose">
-        What I&rsquo;m playing and what&rsquo;s up next, with what I&rsquo;ve
-        finished lately. <Link to={spine.path}>{spine.name}</Link> writes this
-        page every night, so it&rsquo;s never more than a day old.
+        <Link to={spine.path}>{spine.name}</Link> writes this page every night,
+        and it covers games only. My work is on the{' '}
+        <Link to="/about">About</Link> page.
       </p>
+      {asOf && <p className="muted">As of {DAY.format(utc(asOf))}.</p>}
 
       {items === null && (
         <p className="muted" role="status">

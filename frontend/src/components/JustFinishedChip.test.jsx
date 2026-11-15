@@ -18,7 +18,7 @@ describe('JustFinishedChip', () => {
       'Just finished Xenoblade Chronicles 3',
     )
     expect(container.querySelector('.tj-b')).toHaveTextContent(
-      'Mon 26 Oct · 62 h',
+      'Mon, Oct 26 · 62 h',
     )
     expect(screen.getByText('Xenoblade Chronicles 3').tagName).toBe('B')
   })
@@ -46,7 +46,7 @@ describe('JustFinishedChip', () => {
     const { container } = render(
       <JustFinishedChip finish={{ ...FINISH, time_to_beat_hours: null }} />,
     )
-    expect(container.querySelector('.tj-b')).toHaveTextContent(/^Mon 26 Oct$/)
+    expect(container.querySelector('.tj-b')).toHaveTextContent(/^Mon, Oct 26$/)
   })
 })
 
@@ -56,7 +56,7 @@ describe('JustFinishedChip with a rating', () => {
       <JustFinishedChip finish={{ ...FINISH, rating: 9 }} />,
     )
     expect(container.querySelector('.tj-b')).toHaveTextContent(
-      'Mon 26 Oct · 62 h · ★9',
+      'Mon, Oct 26 · 62 h · ★9',
     )
     expect(screen.getByRole('img', { name: '9 out of 10' })).toBeInTheDocument()
   })

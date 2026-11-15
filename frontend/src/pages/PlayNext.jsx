@@ -150,7 +150,7 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
 }
 
 /**
- * Play Next: three named picks from the owned backlog.
+ * Play next: three named picks from the owned backlog.
  *
  * Every change to the controls asks again from scratch; Reroll and Not tonight
  * ask again without the games already shown. Admin-only, like the collection:
@@ -383,7 +383,7 @@ export default function PlayNext() {
   // One header for every state, so the page never re-titles as it loads.
   const header = (
     <AdminPageHeader
-      title="Play Next"
+      title="Play next"
       description="Three picks from the backlog, scored against what you’ve rated, loved, and finished."
     />
   )

@@ -1,9 +1,7 @@
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
+import { DAY_YEAR as DAY, MONTH_YEAR_LONG as MONTH } from './formatDate.js'
+
+/** "October 2026": a month as the shelf and Radar group by it. */
+export { MONTH }
 
 /** A date-only ISO string as a UTC Date, so formatting never shifts a day. */
 export function utc(isoDate) {
@@ -15,13 +13,6 @@ export function utc(isoDate) {
 export function dayWords(isoDate) {
   return DAY.format(utc(isoDate))
 }
-
-/** "October 2026": a month as the shelf and Radar group by it. */
-export const MONTH = new Intl.DateTimeFormat('en', {
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /**
  * A release date as precisely as it is known: "Dec 4, 2026", "October 2026",

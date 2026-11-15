@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BLOG_PAGE, STATIC_PAGES, staticPages } from './pages.js'
+import { BLOG_PAGE, STATIC_PAGES, searchPages, staticPages } from './pages.js'
 
 describe('STATIC_PAGES', () => {
   it('lists each path once, rooted', () => {
@@ -17,5 +17,13 @@ describe('STATIC_PAGES', () => {
   it('adds the blog only when there are posts', () => {
     expect(staticPages(false)).not.toContain(BLOG_PAGE)
     expect(staticPages(true).at(-1)).toBe(BLOG_PAGE)
+  })
+})
+
+describe('searchPages', () => {
+  it('adds Resume and Contact for search without making them prerendered pages', () => {
+    const titles = searchPages(false).map((page) => page.title)
+    expect(titles).toEqual(expect.arrayContaining(['Resume (PDF)', 'Contact']))
+    expect(STATIC_PAGES.map((page) => page.path)).not.toContain('/resume.pdf')
   })
 })

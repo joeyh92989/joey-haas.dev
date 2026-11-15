@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Now from './Now.jsx'
 
-const snapshots = vi.hoisted(() => ({ items: null, next: null }))
+const snapshots = vi.hoisted(() => ({ items: null, next: null, meta: null }))
 vi.mock('../lib/snapshot.js', () => ({
   readSnapshot: vi.fn(async (name) => snapshots[name]),
 }))
@@ -24,6 +24,7 @@ const item = (id, fields) => ({
 afterEach(() => {
   snapshots.items = null
   snapshots.next = null
+  snapshots.meta = null
 })
 
 describe('Now', () => {
@@ -34,6 +35,15 @@ describe('Now', () => {
       </MemoryRouter>,
     )
   }
+
+  it('says when the snapshot was fetched and that it covers games only', async () => {
+    snapshots.items = []
+    snapshots.meta = { fetched_at: '2026-11-15T00:17:00.000Z' }
+    renderPage()
+
+    expect(await screen.findByText('As of Nov 15, 2026.')).toBeInTheDocument()
+    expect(screen.getByText(/covers games only/)).toBeInTheDocument()
+  })
 
   it('lists paused games under their own heading, dated by the pause', async () => {
     snapshots.items = [

@@ -99,7 +99,7 @@ describe('Daily', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Daily game' }),
     ).toBeInTheDocument()
-    expect(await screen.findByText('Day 3 · 12 Nov')).toBeInTheDocument()
+    expect(await screen.findByText('Day 3 · Nov 12')).toBeInTheDocument()
     expect(screen.getByText(/Guess the game on my shelf in six/)).toBeVisible()
     expect(screen.getByRole('table')).toHaveAccessibleName(
       `0 of ${MAX_GUESSES} guesses`,
@@ -114,7 +114,7 @@ describe('Daily', () => {
 
   it('puts the guess input above the board', async () => {
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     const input = screen.getByRole('combobox', { name: 'Your guess' })
     const board = screen.getByRole('table')
     expect(
@@ -126,7 +126,7 @@ describe('Daily', () => {
     const user = userEvent.setup()
     const [miss] = wrong(1)
     const { unmount } = renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, miss.title)
 
     expect(screen.getByRole('status')).toHaveTextContent(
@@ -152,7 +152,7 @@ describe('Daily', () => {
     const user = userEvent.setup()
     const [miss] = wrong(1)
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, miss.title)
     await user.type(screen.getByRole('combobox'), miss.title.slice(0, 4))
     expect(
@@ -163,7 +163,7 @@ describe('Daily', () => {
   it('wins: shows the answer, the streak, and closes the input', async () => {
     const user = userEvent.setup()
     const { container } = renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, answer().title)
 
     expect(screen.getByRole('status')).toHaveTextContent('Solved in 1.')
@@ -183,7 +183,7 @@ describe('Daily', () => {
   it('moves focus to the outcome when the game ends, not on a restored day', async () => {
     const user = userEvent.setup()
     const { unmount } = renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, answer().title)
     expect(screen.getByRole('heading', { name: 'Got it in 1.' })).toHaveFocus()
 
@@ -196,7 +196,7 @@ describe('Daily', () => {
   it('loses after six misses and names the answer', async () => {
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     for (const item of wrong(MAX_GUESSES)) await guess(user, item.title)
 
     expect(screen.getByRole('status')).toHaveTextContent(
@@ -216,7 +216,7 @@ describe('Daily', () => {
   it('says so when a typed title is not on the shelf', async () => {
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, 'Zelda Nonexistent')
     expect(screen.getByRole('status')).toHaveTextContent('Not on the shelf.')
     expect(screen.getByRole('table')).toHaveAccessibleName(
@@ -228,7 +228,7 @@ describe('Daily', () => {
     const user = userEvent.setup()
     const [miss] = wrong(1)
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, miss.title)
     await guess(user, miss.title)
     expect(screen.getByRole('status')).toHaveTextContent(
@@ -254,7 +254,7 @@ describe('Daily', () => {
       }),
     )
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     expect(screen.queryByRole('combobox')).toBeNull()
     expect(
       screen.getByRole('heading', {
@@ -265,7 +265,7 @@ describe('Daily', () => {
 
   it("links yesterday's answer", async () => {
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     const yesterday = picks().at(-2).item
     expect(screen.getByText('Yesterday’s answer:')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: yesterday.title })).toHaveAttribute(
@@ -277,23 +277,23 @@ describe('Daily', () => {
   it('has no Yesterday line on day one', async () => {
     vi.setSystemTime(new Date('2026-11-10T19:00:00Z'))
     renderPage()
-    await screen.findByText('Day 1 · 10 Nov')
+    await screen.findByText('Day 1 · Nov 10')
     expect(screen.queryByText('Yesterday’s answer:')).toBeNull()
   })
 
   it('rolls over to the next day when the tab is looked at again', async () => {
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     vi.setSystemTime(new Date('2026-11-13T19:00:00Z'))
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    expect(await screen.findByText('Day 4 · 13 Nov')).toBeInTheDocument()
+    expect(await screen.findByText('Day 4 · Nov 13')).toBeInTheDocument()
   })
 
   it('re-reads storage on rollover, so another tab’s day is not undone', async () => {
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     // Another tab plays day 4 to a win while this one sits in the background.
     vi.setSystemTime(new Date('2026-11-13T19:00:00Z'))
     const dayFour = answer()
@@ -310,7 +310,7 @@ describe('Daily', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await screen.findByText('Day 4 · 13 Nov')
+    await screen.findByText('Day 4 · Nov 13')
     expect(
       screen.getByRole('heading', { name: 'Got it in 1.' }),
     ).toBeInTheDocument()
@@ -320,7 +320,7 @@ describe('Daily', () => {
   it("clears the last day's status line when it rolls over", async () => {
     const user = userEvent.setup()
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, answer().title)
     expect(screen.getByRole('status')).toHaveTextContent('Solved in 1.')
 
@@ -328,7 +328,7 @@ describe('Daily', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await screen.findByText('Day 4 · 13 Nov')
+    await screen.findByText('Day 4 · Nov 13')
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
@@ -364,7 +364,7 @@ describe('Daily', () => {
         throw new Error('blocked')
       })
     renderPage()
-    await screen.findByText('Day 3 · 12 Nov')
+    await screen.findByText('Day 3 · Nov 12')
     await guess(user, answer().title)
     expect(
       screen.getByRole('heading', { name: 'Got it in 1.' }),

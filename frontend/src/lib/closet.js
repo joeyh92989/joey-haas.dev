@@ -3,6 +3,7 @@
  * and the page's filter. No fetches and no React, so each is tested alone.
  */
 import { API_URL } from './api.js'
+import { DAY, DENVER_TIME, WEEKDAY_LONG_DAY, denverDay } from './formatDate.js'
 
 /** The grid/list choice, under the admin namespace like the shelf's own. */
 export const VIEW_PREF = 'shelf.admin.closet.view'
@@ -106,11 +107,7 @@ export function seasonLabel(seasons) {
 
 /** A 'YYYY-MM-DD' day as "Nov 6", read in UTC like formatDate. */
 export function shortDate(day) {
-  return new Date(day).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
+  return DAY.format(new Date(day))
 }
 
 /** The month a packed garment comes back, from `back_on` ("2027-05-01"). */
@@ -304,27 +301,17 @@ export const NOT_THIS_REASONS = [
   { value: 'other', label: 'Other' },
 ]
 
-/** The owner's zone: plans are made for the day in Denver. */
-const OWNER_ZONE = 'America/Denver'
-
 /**
  * The Denver calendar day, 'YYYY-MM-DD', of an ISO instant such as
  * created_at; null when the instant does not parse.
  */
 export function ownerDay(instant) {
-  const date = new Date(instant)
-  if (Number.isNaN(date.getTime())) return null
-  return date.toLocaleDateString('en-CA', { timeZone: OWNER_ZONE })
+  return denverDay(instant)
 }
 
 /** A plan's day, 'YYYY-MM-DD', as "Monday, Nov 9". */
 export function longDate(day) {
-  return new Date(day).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
+  return WEEKDAY_LONG_DAY.format(new Date(day))
 }
 
 /**
@@ -337,13 +324,9 @@ export function plannedWords(plan, justNow) {
   if (!plan?.planned_at) return null
   const at = new Date(plan.planned_at)
   if (Number.isNaN(at.getTime())) return null
-  const madeOn = at.toLocaleDateString('en-CA', { timeZone: OWNER_ZONE })
+  const madeOn = denverDay(at)
   if (madeOn < plan.day) return 'planned last night'
-  const time = at.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: OWNER_ZONE,
-  })
+  const time = DENVER_TIME.format(at)
   return `planned at ${time}`
 }
 

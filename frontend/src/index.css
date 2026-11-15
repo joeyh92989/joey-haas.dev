@@ -2080,7 +2080,7 @@ footer {
   display: grid;
   font-size: var(--fs-14);
   gap: var(--space-1) var(--space-3);
-  /* Wide enough for the longest time, "Wed 30 Sept, 00:17". */
+  /* Wide enough for the longest time, "Wed, Sep 30, 00:17". */
   grid-template-columns: 9rem minmax(0, 1fr) auto auto;
   padding: var(--space-2) 0;
 }
@@ -5200,7 +5200,7 @@ a.month-bar::before {
   margin: 0 0 var(--space-2);
 }
 
-/* Play Next. Three cards in a row that wraps; the pinned game above them. */
+/* Play next. Three cards in a row that wraps; the pinned game above them. */
 .play-next-controls {
   display: flex;
   flex-direction: column;
@@ -5224,7 +5224,7 @@ a.month-bar::before {
   flex: 0 0 4rem;
 }
 
-/* Admin Play Next: the Continue card(s) above the controls. */
+/* Admin Play next: the Continue card(s) above the controls. */
 .play-next-continuing {
   margin: 1.25rem 0;
 }
@@ -5282,7 +5282,7 @@ a.month-bar::before {
   margin: 0 0 var(--space-2);
 }
 
-/* Shared by Play Next and Tonight; the band is text, never colour alone. */
+/* Shared by Play next and Tonight; the band is text, never colour alone. */
 .size-pill {
   border: 1px solid var(--line-strong);
   border-radius: 999px;

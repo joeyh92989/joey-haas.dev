@@ -8,6 +8,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { ACTION_ERROR } from '../content/status.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+import { DAY_YEAR_TIME } from '../lib/formatDate.js'
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -57,10 +58,7 @@ async function fetchStatus() {
 function when(timestamp) {
   if (!timestamp) return 'never'
   const date = new Date(timestamp)
-  return date.toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
+  return DAY_YEAR_TIME.format(date)
 }
 
 /** A run's outcome in words, never a colour alone. */

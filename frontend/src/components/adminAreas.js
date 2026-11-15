@@ -55,7 +55,7 @@ export const ADMIN_AREAS = [
         group: 'Shelf',
         badge: 'intake.shelf',
       },
-      { to: '/admin/play-next', label: 'Play Next', group: 'Recommend' },
+      { to: '/admin/play-next', label: 'Play next', group: 'Recommend' },
       { to: '/admin/discover', label: 'Discover', group: 'Recommend' },
       { to: '/admin/radar', label: 'Radar', group: 'Recommend' },
       { to: '/admin/pull-list', label: 'Pull list', group: 'Recommend' },
