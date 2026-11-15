@@ -14,7 +14,11 @@ import { spine } from './spine.js'
  * `strip: 'favourites'` shows the collection's favorite covers. `summary` is
  * Home's one-line version of a card; `line` sits above the tech chips. `tagline`,
  * `highlights` and `links` are optional; `links` entries take `to` for a route
- * or `href` for an external URL, and carry no arrow.
+ * or `href` for an external URL, and carry no arrow. `hero` is the card's
+ * picture: `slug` names `public/projects/<slug>-dark.webp` and `-light.webp`
+ * (made by `scripts/project-heroes.mjs`), with `alt`, `width` and `height`.
+ * `differently` is Joey's "what I'd do differently" line, left unset until he
+ * writes it; the card shows it only when it is set.
  */
 export const projects = [
   {
@@ -39,6 +43,13 @@ export const projects = [
     to: spine.path,
     url: null,
     strip: 'favourites',
+    hero: {
+      slug: 'my-shelf',
+      alt: 'My Shelf’s Games page: three figures (108 owned, 58 finished, 8 finished this year), the game I’m playing now, and filter chips for status, play style and setting.',
+      width: 1200,
+      height: 560,
+    },
+    // differently: '',  // Joey's line: what I'd do differently
   },
   {
     name: 'This site',
@@ -52,5 +63,12 @@ export const projects = [
     ],
     tech: ['React', 'Vite', 'FastAPI', 'Postgres', 'GitHub Actions', 'Render'],
     url: profile.repo,
+    hero: {
+      slug: 'this-site',
+      alt: 'The home page of this site: the headline, a short introduction, and a panel with my role, focus, stack, last ship date and the game I’m playing.',
+      width: 1200,
+      height: 560,
+    },
+    // differently: '',  // Joey's line: what I'd do differently
   },
 ]

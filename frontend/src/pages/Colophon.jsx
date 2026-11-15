@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
 import { spine } from '../content/spine.js'
+import ArchitectureFigure from '../components/ArchitectureFigure.jsx'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 /**
@@ -17,6 +18,9 @@ export default function Colophon() {
         How this site is built, for anyone curious. The whole thing is open:{' '}
         <a href={profile.repo}>the source is on GitHub</a>.
       </p>
+
+      <h2 id="architecture">Architecture</h2>
+      <ArchitectureFigure />
 
       <h2>Frontend</h2>
       <ul className="prose-list">

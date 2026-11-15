@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-15
 
+- [Projects](/projects) cards now have a screenshot, and the [Colophon](/colophon#architecture) has a diagram of how the static site, the API, Postgres, the nightly job and the snapshot fit together.
 - Posts, TIL notes and trips now preview with their own title card when shared, instead of the same site image.
 - Three new [TIL](/til) notes: profiling CI before parallelizing it, a deploy hook that answers 2xx for the wrong service, and guarding state-dependent writes on the server.
 - A comic series whose issues I own are all read now says Read, or Caught up while the run is still going, instead of To read.
