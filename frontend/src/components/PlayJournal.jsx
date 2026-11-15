@@ -3,13 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ACTION_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { localToday } from '../lib/statusMoves.js'
-
-const DAY = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
+import { DAY_YEAR as DAY } from '../lib/formatDate.js'
 
 function shown(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)

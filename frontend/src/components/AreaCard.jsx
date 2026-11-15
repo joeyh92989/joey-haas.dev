@@ -9,7 +9,7 @@ import { Link } from 'react-router'
  * @param {object} props
  * @param {string} props.title The area's name.
  * @param {string} props.to The area's home page.
- * @param {string} props.linkLabel The link's words, e.g. "Play Next".
+ * @param {string} props.linkLabel The link's words, e.g. "Play next".
  * @param {import('react').ReactNode} [props.lead] The one thing today.
  * @param {Array<{label: string, value: import('react').ReactNode}>} [props.figures]
  * @param {import('react').ReactNode} [props.actions] Buttons or links.

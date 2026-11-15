@@ -15,6 +15,7 @@
  * the casual case of reading the snapshot order.
  */
 import { SIZE_LABELS, sizeBand } from './sizeBand.js'
+import { DAY as KICKER_DATE } from './formatDate.js'
 
 /** Day 1. Set to the day the puzzle shipped. */
 export const DAILY_EPOCH = '2026-11-10'
@@ -409,14 +410,8 @@ export function shareWords(grades) {
   })
 }
 
-const KICKER_DATE = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
-
 /**
- * The header's kicker: 'Day 37 · 8 Nov'.
+ * The header's kicker: 'Day 37 · Nov 8'.
  *
  * @param {number} day The day number.
  * @param {string} isoDay The day as 'YYYY-MM-DD'.

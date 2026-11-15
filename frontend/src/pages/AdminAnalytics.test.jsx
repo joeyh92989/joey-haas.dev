@@ -9,7 +9,7 @@ const json = (body, status = 200) => ({
   json: async () => body,
 })
 
-/** A read over `days` days ending 14 Oct, empty unless overridden. */
+/** A read over `days` days ending Oct 14, empty unless overridden. */
 function body(days, overrides = {}) {
   return {
     range: `${days}d`,
@@ -88,7 +88,7 @@ describe('AdminAnalytics', () => {
         'No views yet. The beacon is running. Check back tomorrow.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByText('Live since Thu 8 Oct.')).toBeInTheDocument()
+    expect(screen.getByText('Live since Thu, Oct 8.')).toBeInTheDocument()
     expect(String(fetch.mock.calls[0][0])).toMatch(
       /\/api\/analytics\?range=30d$/,
     )
@@ -106,7 +106,7 @@ describe('AdminAnalytics', () => {
     await screen.findByText(/beacon is running/)
     fireEvent.click(screen.getByRole('button', { name: '7d' }))
     expect(
-      await screen.findByText('Mon 12 Oct · news.example.com'),
+      await screen.findByText('Mon, Oct 12 · news.example.com'),
     ).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledTimes(2)
     expect(String(fetch.mock.calls[1][0])).toMatch(/range=7d$/)
@@ -121,9 +121,11 @@ describe('AdminAnalytics', () => {
   it('charts the days and lists pages, referrers and devices', async () => {
     stubApi({ '30d': json(FULL) })
     render(<AdminAnalytics />)
-    const peak = await screen.findByRole('img', { name: 'Mon 12 Oct: 6 views' })
+    const peak = await screen.findByRole('img', {
+      name: 'Mon, Oct 12: 6 views',
+    })
     expect(peak).toHaveClass('day-bar')
-    expect(screen.getByText(/Busiest day: Mon 12 Oct, 6 views/)).toBeVisible()
+    expect(screen.getByText(/Busiest day: Mon, Oct 12, 6 views/)).toBeVisible()
     const referrers = screen.getByRole('list', {
       name: 'Referrers by visitors',
     })
@@ -162,7 +164,7 @@ describe('AdminAnalytics', () => {
     answers['30d'] = json(FULL)
     fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByText('Mon 12 Oct · news.example.com'),
+      await screen.findByText('Mon, Oct 12 · news.example.com'),
     ).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(fetch).toHaveBeenCalledTimes(2)

@@ -457,8 +457,8 @@ describe('AdminItem copy fields', () => {
   })
 })
 
-describe('AdminItem Play Next controls', () => {
-  it('offers Restore only when Play Next excludes the item', async () => {
+describe('AdminItem Play next controls', () => {
+  it('offers Restore only when Play next excludes the item', async () => {
     stubApi({ item: { ...ITEM, play_next_excluded: false } })
     renderPage()
     await screen.findByDisplayValue('Star Fox')
@@ -487,13 +487,13 @@ describe('AdminItem Play Next controls', () => {
     renderPage()
 
     expect(
-      await screen.findByText('Excluded from Play Next.'),
+      await screen.findByText('Excluded from Play next.'),
     ).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Restore' }))
 
     await waitFor(() =>
       expect(
-        screen.queryByText('Excluded from Play Next.'),
+        screen.queryByText('Excluded from Play next.'),
       ).not.toBeInTheDocument(),
     )
     const [url, options] = writeCalls(mock)[0]

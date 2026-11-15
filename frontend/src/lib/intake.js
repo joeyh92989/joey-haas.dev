@@ -7,6 +7,7 @@
 import { FORMAT_OPTIONS, PLATFORM_OPTIONS } from '../components/ItemForm.jsx'
 import { MAX_ATTEMPTS, MAX_PHOTO_BYTES, PHOTO_ACCEPT } from './closet.js'
 import { statusLabel } from './shelf.js'
+import { DENVER_DAY_TIME as SITTING_STARTED } from './formatDate.js'
 
 /**
  * Words for option values the site already names elsewhere. Presentation
@@ -130,14 +131,6 @@ export function localToday(now = new Date()) {
   const pad = (n) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
-
-const SITTING_STARTED = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZone: 'America/Denver',
-})
 
 /** When a sitting began, as "Nov 11, 7:42 PM" in the owner's Denver time. */
 export function startedAt(when) {

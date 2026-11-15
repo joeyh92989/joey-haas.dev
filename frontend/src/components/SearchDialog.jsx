@@ -1,13 +1,13 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { posts } from '../content/posts.js'
-import { staticPages } from '../content/pages.js'
+import { searchPages } from '../content/pages.js'
 import { hiddenPaths } from '../lib/snapshotPresence.js'
 import Sheet from './Sheet.jsx'
 import { loadIndex, pageEntry, search } from '../lib/searchIndex.js'
 
 /** The bundled Pages group, there before (and without) the index. */
-const PAGE_ENTRIES = staticPages(posts.length > 0)
+const PAGE_ENTRIES = searchPages(posts.length > 0)
   .filter((entry) => !hiddenPaths.includes(entry.path))
   .map(pageEntry)
 
@@ -75,7 +75,9 @@ export default function SearchDialog({ open, onClose }) {
 
   function go(row) {
     close()
-    navigate(row.href)
+    // A file is not a route: the SPA would answer it with its own 404.
+    if (row.href.endsWith('.pdf')) window.location.assign(row.href)
+    else navigate(row.href)
   }
 
   function handleKeyDown(event) {

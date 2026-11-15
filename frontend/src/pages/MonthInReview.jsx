@@ -20,13 +20,7 @@ import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
 import { itemPath, yearPath } from '../lib/spinePaths.js'
-
-const DAY = new Intl.DateTimeFormat('en', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-})
+import { WEEKDAY_DAY as DAY } from '../lib/formatDate.js'
 
 function dayWords(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)

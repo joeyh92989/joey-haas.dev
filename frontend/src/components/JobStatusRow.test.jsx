@@ -44,7 +44,7 @@ describe('JobStatusRow', () => {
     expect(row).toHaveTextContent('Radar')
     expect(row).toHaveTextContent('Upcoming releases')
     expect(row).toHaveTextContent('stale')
-    expect(row).toHaveTextContent(/\d{2}:\d{2}/)
+    expect(row).toHaveTextContent(/\d{1,2}:\d{2}/)
     expect(
       screen.getByRole('link', { name: 'Run now: Radar' }),
     ).toHaveAttribute('href', '/admin/radar')

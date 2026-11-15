@@ -1,3 +1,4 @@
+import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
 /**
  * Comics on the shelf: range expansion, the chip filters and the sorts.
  *
@@ -11,12 +12,6 @@
 export const COMIC_CHIPS = ['all', 'following', 'gaps', 'unread', 'want']
 
 export const COMIC_SORTS = ['next', 'title', 'publisher', 'missing']
-
-const DAY_MONTH = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  timeZone: 'UTC',
-})
 
 /**
  * Every issue number in a canonical ranges string, ascending.
@@ -67,12 +62,6 @@ export function shortDate(iso) {
   const [year, month, day] = iso.split('-').map(Number)
   return DAY_MONTH.format(new Date(Date.UTC(year, month - 1, day)))
 }
-
-const MONTH_YEAR = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
 
 /** "Aug 1997" for an ISO date: a cover's caption, where a back issue's year
  *  matters and the day does not (the approved cover-wall mockup). */

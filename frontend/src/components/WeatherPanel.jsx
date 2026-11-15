@@ -1,5 +1,6 @@
 import Panel from './Panel.jsx'
 import { StatusText } from './JobStatusRow.jsx'
+import { DAY } from '../lib/formatDate.js'
 
 /**
  * The wet hours as runs of labels: "10a–4p, 7p". Hours are consecutive
@@ -48,10 +49,7 @@ export default function WeatherPanel({ day, range }) {
   const hours = day.hours ?? []
   const scale = range ?? [day.low ?? 0, day.high ?? 0]
   const wet = wetRuns(hours)
-  const date = new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
+  const date = DAY.format(new Date(`${day.date}T12:00:00Z`))
   const label =
     hours.length === 0
       ? null

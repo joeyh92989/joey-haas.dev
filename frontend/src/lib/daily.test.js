@@ -419,6 +419,6 @@ describe('share', () => {
   })
 
   it('formats the kicker', () => {
-    expect(dayKicker(37, '2026-11-08')).toBe('Day 37 · 8 Nov')
+    expect(dayKicker(37, '2026-11-08')).toBe('Day 37 · Nov 8')
   })
 })

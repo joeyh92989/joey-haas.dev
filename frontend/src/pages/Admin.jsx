@@ -379,7 +379,7 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
       <AreaCard
         title="Shelf"
         to="/admin/play-next"
-        linkLabel="Play Next"
+        linkLabel="Play next"
         lead={lead}
         figures={[
           // Owned and Finished come from the layout's items, not a read here.

@@ -16,8 +16,8 @@ describe('DayBars', () => {
     render(<DayBars series={SERIES} />)
     const bars = screen.getAllByRole('img')
     expect(bars).toHaveLength(5)
-    expect(bars[1]).toHaveAccessibleName('Sun 11 Oct: 8 views')
-    expect(bars[2]).toHaveAccessibleName('Mon 12 Oct: 1 view')
+    expect(bars[1]).toHaveAccessibleName('Sun, Oct 11: 8 views')
+    expect(bars[2]).toHaveAccessibleName('Mon, Oct 12: 1 view')
     // The peak is told in the caption, not by colour.
     expect(bars.every((bar) => bar.className === 'day-bar')).toBe(true)
     expect(bars[3].style.height).toBe('100%')
@@ -26,7 +26,7 @@ describe('DayBars', () => {
 
   it('captions the busiest day, the latest on a tie, and none with no views', () => {
     const { rerender } = render(<DayBars series={SERIES} />)
-    expect(screen.getByText('Busiest day: Tue 13 Oct, 8 views.')).toBeVisible()
+    expect(screen.getByText('Busiest day: Tue, Oct 13, 8 views.')).toBeVisible()
     rerender(
       <DayBars series={SERIES.map((point) => ({ ...point, views: 0 }))} />,
     )
@@ -39,11 +39,11 @@ describe('DayBars', () => {
     expect(table).toHaveClass('visually-hidden')
     const rows = within(table).getAllByRole('row').slice(1)
     expect(rows.map((row) => row.textContent)).toEqual([
-      'Sat 10 Oct2',
-      'Sun 11 Oct8',
-      'Mon 12 Oct1',
-      'Tue 13 Oct8',
-      'Wed 14 Oct0',
+      'Sat, Oct 102',
+      'Sun, Oct 118',
+      'Mon, Oct 121',
+      'Tue, Oct 138',
+      'Wed, Oct 140',
     ])
   })
 
@@ -55,11 +55,11 @@ describe('DayBars', () => {
     const { container } = render(<DayBars series={series} />)
     const labels = [...container.querySelectorAll('.day-bars-axis span')]
     expect(labels.map((label) => label.textContent)).toEqual([
-      '1 Sept',
-      '8 Sept',
-      '16 Sept',
-      '23 Sept',
-      '30 Sept',
+      'Sep 1',
+      'Sep 8',
+      'Sep 16',
+      'Sep 23',
+      'Sep 30',
     ])
   })
 
