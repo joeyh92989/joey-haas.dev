@@ -37,3 +37,13 @@ Two timing dependencies, found by reading the failing tests:
 
 Full `npm test` repeatedly, including while other worktrees' suites and pytest
 ran (machine load average above 400 during the first run).
+
+## Result
+
+Same machine, same time, load average 450 to 900 (several worktrees running
+suites at once): before, 35 tests in 29 files failed (1 s waits, 5 s tests);
+after, 9 failed in 7 files, and 6 of those hit even the 30 s ceiling because
+files took 500 s of wall time each. The remaining failures are CPU starvation
+at roughly 100 times oversubscription, not timing races, and 17 worker-start
+errors came from Vitest's own pool. The acceptance run (10 consecutive passes
+beside pytest) was not reachable on that machine and needs a quiet one or CI.

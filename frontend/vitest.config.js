@@ -10,6 +10,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./src/test-setup.js'],
+    // A ceiling, not a delay: see docs/planning/2026-11-15-admin-test-load-design.md
+    testTimeout: 30000,
+    hookTimeout: 30000,
     exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })
