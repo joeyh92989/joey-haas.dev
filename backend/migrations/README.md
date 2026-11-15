@@ -73,10 +73,20 @@ migration once no deployed code reads it.
 
 ## Deploy order
 
-1. `alembic upgrade head` against Neon (`scripts/migrate_neon.py upgrade`
-   from the PR's worktree).
-2. Merge; Render deploys.
-3. Smoke: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haas.dev`.
+Automatic. When a PR merges to `main`, the Deploy API workflow
+(`.github/workflows/deploy.yml`) runs:
+
+1. `alembic upgrade head` against Neon (the lock above makes two runs take
+   turns). A failure stops here; the old API keeps running on the old schema.
+2. The API service's deploy hook at the merged commit, then a wait until
+   `GET /api/version` reports it.
+3. `scripts/smoke.sh`.
+
+Nothing is applied by hand any more. The hand route
+(`scripts/migrate_neon.py current`, then `upgrade`, from a worktree) is
+break-glass only, for when the workflow is down. For the minutes between step 1
+and step 2 the live code is older than the schema, which is why the rule above
+holds: additive migrations only.
 
 ## PR rehearsal on a Neon branch
 
