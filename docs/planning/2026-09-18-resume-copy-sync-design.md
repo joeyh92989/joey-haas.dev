@@ -198,3 +198,7 @@ full-pass smoke run after deploy.
 ## Issues
 
 Not filing GitHub issues for this change; it is a single-session content sync.
+
+## Deliberate gaps
+
+- 2026-11-15, decided by Joey (#285): the headline "Shipping software since 2012" stays. About states the split, 8 years product management and 5 years engineering.
