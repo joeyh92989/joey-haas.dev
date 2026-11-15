@@ -13,6 +13,7 @@ import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { WEEKDAY_DAY } from '../lib/formatDate.js'
+import EmptyState from '../components/EmptyState.jsx'
 
 const copy = denver.weekend
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -449,7 +450,7 @@ export default function AdminWeekend() {
           ))}
         </ul>
       ) : (
-        <p className="finder-empty">{copy.noSuggestions}</p>
+        <EmptyState title={copy.noSuggestions} />
       )}
 
       {otherSkips.length > 0 && (

@@ -13,6 +13,8 @@ import {
 } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle } from '../lib/closet.js'
+import EmptyState from '../components/EmptyState.jsx'
+import { EMPTY } from '../content/emptyStates.js'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -121,19 +123,17 @@ function UndoToast({ toast, busy, onUndo, onDismiss }) {
 function DeckEmpty({ skipped, nextTurn, emptyRef, onShowSkipped }) {
   if (skipped === 0)
     return (
-      <p className="panel review-empty" tabIndex={-1} ref={emptyRef}>
-        Nothing to decide. Next season turn: {nextTurn}.
-      </p>
+      <EmptyState
+        titleRef={emptyRef}
+        title={EMPTY.closetReview.nothing(nextTurn)}
+      />
     )
   return (
-    <div className="panel review-empty">
-      <p tabIndex={-1} ref={emptyRef}>
-        {pieces(skipped)} skipped for next time.
-      </p>
-      <button type="button" className="btn sm" onClick={onShowSkipped}>
-        Show skipped
-      </button>
-    </div>
+    <EmptyState
+      titleRef={emptyRef}
+      title={EMPTY.closetReview.skipped(pieces(skipped))}
+      action={{ label: EMPTY.closetReview.showSkipped, onClick: onShowSkipped }}
+    />
   )
 }
 

@@ -360,7 +360,9 @@ export default function CoverWall({
       {owner && (
         <p className="wall-status" role="status">
           {error ? (
-            <span className="admin-error">{error}</span>
+            <span className="admin-error" role="alert">
+              {error}
+            </span>
           ) : last ? (
             <>
               {OWNER.marked(series.title, last.n, OWNER.words[last.now])}{' '}

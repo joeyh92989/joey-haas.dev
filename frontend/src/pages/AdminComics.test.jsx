@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent } from '@testing-library/react'
 import { axeViolations } from '../lib/axe.test-util.js'
 import AdminComics from './AdminComics.jsx'
 
@@ -482,6 +483,14 @@ describe('AdminComics delete, redo and the touch sheet', () => {
 
   it('puts the controls behind a … toggle on touch, as the Games card does', async () => {
     touch = true
+    // jsdom has no showModal; the sheet is a native modal dialog (Sheet).
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '')
+    }
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open')
+      this.dispatchEvent(new Event('close'))
+    }
     stubApi()
     await renderPage()
     expect(screen.queryByLabelText('Public: Saga')).toBeNull()
@@ -495,7 +504,7 @@ describe('AdminComics delete, redo and the touch sheet', () => {
     expect(
       within(sheet).getByRole('button', { name: 'Delete Saga' }),
     ).toBeInTheDocument()
-    await userEvent.keyboard('{Escape}')
+    fireEvent(sheet, new Event('cancel', { cancelable: true }))
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

@@ -9,6 +9,7 @@ import { placeSpots } from '../lib/mapFit.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
+import PageHeader from '../components/PageHeader.jsx'
 
 const copy = denver.page
 
@@ -185,8 +186,11 @@ export default function Denver() {
   if (!data) {
     return (
       <section className="denver-page">
-        <h1>{copy.title}</h1>
-        <p className="denver-lede">{copy.lede}</p>
+        <PageHeader
+          title={copy.title}
+          lede={copy.lede}
+          ledeClassName="denver-lede"
+        />
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </section>
     )
@@ -197,8 +201,11 @@ export default function Denver() {
 
   return (
     <section className="denver-page">
-      <h1>{copy.title}</h1>
-      <p className="denver-lede">{copy.lede}</p>
+      <PageHeader
+        title={copy.title}
+        lede={copy.lede}
+        ledeClassName="denver-lede"
+      />
       <LoadState failed={failed} stale live={live} onRetry={retry} />
       <TagChips
         counts={tagCounts(spots)}

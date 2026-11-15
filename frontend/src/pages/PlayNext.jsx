@@ -9,6 +9,9 @@ import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { localToday, pinPath } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
+import EmptyState from '../components/EmptyState.jsx'
+import { EMPTY } from '../content/emptyStates.js'
 
 const SIZES = [
   ['any', 'Any'],
@@ -203,6 +206,11 @@ export default function PlayNext() {
       .finally(() => clearTimeout(timer))
     return () => clearTimeout(timer)
   }, [fetchItems, round])
+
+  function retryLoad() {
+    setStatus('loading')
+    setRound((current) => current + 1)
+  }
 
   useEffect(() => {
     if (status !== 'ready') return undefined
@@ -401,7 +409,7 @@ export default function PlayNext() {
     return (
       <section>
         {header}
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
       </section>
@@ -412,7 +420,7 @@ export default function PlayNext() {
     return (
       <section>
         {header}
-        <p className="admin-error">{LOAD_ERROR}</p>
+        <LoadState failed onRetry={retryLoad} />
       </section>
     )
   }
@@ -561,14 +569,15 @@ export default function PlayNext() {
 
       {result && picks.length === 0 ? (
         moods.length > 0 ? (
-          <div className="play-next-empty">
-            <p>Nothing on the shelf matches those vibes.</p>
-            <button type="button" onClick={() => change(setMoods)([])}>
-              Try without vibes
-            </button>
-          </div>
+          <EmptyState
+            title={EMPTY.playNext.vibes}
+            action={{
+              label: EMPTY.playNext.withoutVibes,
+              onClick: () => change(setMoods)([]),
+            }}
+          />
         ) : (
-          <p className="muted">Nothing in the backlog right now.</p>
+          <EmptyState title={EMPTY.playNext.backlog} />
         )
       ) : (
         <>

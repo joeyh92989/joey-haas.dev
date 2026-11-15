@@ -38,6 +38,7 @@ import {
   MONTH_YEAR_LONG as MONTH_YEAR,
   DAY_YEAR as DAY,
 } from '../lib/formatDate.js'
+import EmptyState from '../components/EmptyState.jsx'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
@@ -344,16 +345,14 @@ function WhatsNext({ model }) {
   if (model.state === 'want') {
     return (
       <div className="comic-hero-next">
-        <p className="comic-empty">
-          {SERIES.empty.want(model.released, model.ongoing)}
-        </p>
+        <EmptyState title={SERIES.empty.want(model.released, model.ongoing)} />
       </div>
     )
   }
   if (model.state === 'unrecorded') {
     return (
       <div className="comic-hero-next">
-        <p className="comic-empty">{SERIES.empty.unrecorded}</p>
+        <EmptyState title={SERIES.empty.unrecorded} />
       </div>
     )
   }

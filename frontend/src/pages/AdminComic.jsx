@@ -10,7 +10,8 @@ import Panel from '../components/Panel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import TagPicker from '../components/TagPicker.jsx'
 import { spine } from '../content/spine.js'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import { ACTION_ERROR, WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 import { apiFetch } from '../lib/api.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import {
@@ -93,6 +94,7 @@ export default function AdminComic() {
   const [rows, setRows] = useState([])
   const [wall, setWall] = useState(null)
   const [state, setState] = useState('loading')
+  const [tries, setTries] = useState(0)
   const [slow, setSlow] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -145,7 +147,12 @@ export default function AdminComic() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [fetchItem, fetchWall])
+  }, [fetchItem, fetchWall, tries])
+
+  function retry() {
+    setState('loading')
+    setTries((count) => count + 1)
+  }
 
   /** The stored row and the wall again, after a write that changes both. */
   const reread = useCallback(async () => {
@@ -398,7 +405,7 @@ export default function AdminComic() {
     return (
       <section>
         {header}
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
       </section>
@@ -408,7 +415,9 @@ export default function AdminComic() {
     return (
       <section>
         {header}
-        <p className="admin-error">No item with that id.</p>
+        <p className="admin-error" role="alert">
+          No item with that id.
+        </p>
       </section>
     )
   }
@@ -416,7 +425,7 @@ export default function AdminComic() {
     return (
       <section>
         {header}
-        <p className="admin-error">{LOAD_ERROR}</p>
+        <LoadState failed onRetry={retry} />
       </section>
     )
   }

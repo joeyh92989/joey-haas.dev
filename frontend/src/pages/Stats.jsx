@@ -17,6 +17,7 @@ import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { DAY_YEAR as CHANGE_DATE, TIME } from '../lib/formatDate.js'
+import PageHeader from '../components/PageHeader.jsx'
 
 const figure = (count) => count.toLocaleString('en')
 
@@ -54,8 +55,7 @@ export default function Stats() {
 
   return (
     <section className="site-stats">
-      <h1>Stats</h1>
-      <p className="prose">{LEDE}</p>
+      <PageHeader title="Stats" lede={LEDE} ledeClassName="prose" />
 
       {data ? (
         <>

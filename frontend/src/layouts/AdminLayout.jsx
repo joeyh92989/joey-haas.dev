@@ -7,7 +7,8 @@ import {
 } from 'react-router'
 import AdminShell from '../components/AdminShell.jsx'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
-import { LOAD_ERROR, WAKING } from '../content/status.js'
+import { WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
@@ -338,18 +339,7 @@ export default function AdminLayout() {
           </p>
         )}
 
-        {status === 'error' && (
-          <>
-            <p className="admin-error" role="alert">
-              {LOAD_ERROR}
-            </p>
-            <p>
-              <button type="button" className="btn" onClick={retry}>
-                Try again
-              </button>
-            </p>
-          </>
-        )}
+        {status === 'error' && <LoadState failed onRetry={retry} />}
 
         {status === 'signed-out' && (
           <p>

@@ -306,7 +306,7 @@ describe('Next', () => {
     renderPage()
     // No game to pick: the dashed box says why and points at Pick for me.
     expect(screen.queryByText(spine.next.empty.upNext)).toBeNull()
-    const box = document.querySelector('.empty-box')
+    const box = document.querySelector('.empty-state')
     expect(box).toHaveTextContent(spine.next.empty.games.before)
     expect(
       within(box).getByRole('link', { name: spine.next.empty.games.link }),
@@ -545,7 +545,7 @@ describe('Next', () => {
   it('renders a body whose tonight is missing', () => {
     mockNext({ data: { buy_now: [] }, live: true, failed: false })
     renderPage()
-    expect(document.querySelector('.empty-box')).toHaveTextContent(
+    expect(document.querySelector('.empty-state')).toHaveTextContent(
       spine.next.empty.games.before,
     )
   })

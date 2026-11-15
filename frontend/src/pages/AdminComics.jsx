@@ -15,7 +15,8 @@ import { RunKey } from '../components/RunLanes.jsx'
 import SortControl from '../components/SortControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { publishAllDetail } from '../content/shelfPublish.js'
-import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import { ACTION_ERROR, WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 import { spine } from '../content/spine.js'
 import {
   DELETE_FAILED,
@@ -428,7 +429,7 @@ export default function AdminComics() {
     return (
       <section>
         {header}
-        <p className="admin-error">
+        <p className="admin-error" role="alert">
           Not signed in. <Link to="/admin">Go to admin</Link>.
         </p>
       </section>
@@ -438,7 +439,13 @@ export default function AdminComics() {
     return (
       <section>
         {header}
-        <p className="admin-error">{LOAD_ERROR}</p>
+        <LoadState
+          failed
+          onRetry={() => {
+            setStatus('loading')
+            load()
+          }}
+        />
       </section>
     )
   }

@@ -6,6 +6,7 @@ import CoverImage from '../components/CoverImage.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { shortDate } from '../lib/comics.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 
 /** Got it and Skip take a whole issue number; "1.5" or "Annual" do not. */
 const WHOLE_NUMBER = /^\d+$/
@@ -230,6 +231,7 @@ function SeriesSearch({ onFollowChange }) {
 export default function AdminPullList() {
   const [list, setList] = useState(null)
   const [state, setState] = useState('loading')
+  const [tries, setTries] = useState(0)
   const [slow, setSlow] = useState(false)
   const [done, setDone] = useState(() => new Set())
   const [refreshing, setRefreshing] = useState(false)
@@ -272,7 +274,12 @@ export default function AdminPullList() {
       live = false
       clearTimeout(timer)
     }
-  }, [apply, fetchList])
+  }, [apply, fetchList, tries])
+
+  function retry() {
+    setState('loading')
+    setTries((count) => count + 1)
+  }
 
   // After an action the list is already on screen: a failed re-read keeps
   // it (and its Refresh) and says so, rather than replacing the page.
@@ -391,7 +398,7 @@ export default function AdminPullList() {
       {state === 'loading' && (
         <p className="muted">{slow ? WAKING : 'Loading…'}</p>
       )}
-      {state === 'error' && <p className="admin-error">{LOAD_ERROR}</p>}
+      {state === 'error' && <LoadState failed onRetry={retry} />}
       <p
         ref={statusRef}
         className="catalogue-progress"

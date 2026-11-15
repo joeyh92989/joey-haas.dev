@@ -922,7 +922,7 @@ describe('Item series page (AC5)', () => {
     async (_, comic, item, text) => {
       stubItem({ ...SAGA, ...item, comic: { ...SAGA.comic, ...comic } })
       await renderSaga()
-      expect(document.querySelector('.comic-empty')).toHaveTextContent(text)
+      expect(document.querySelector('.empty-state')).toHaveTextContent(text)
       expect(screen.queryByRole('heading', { name: 'The run' })).toBeNull()
     },
   )

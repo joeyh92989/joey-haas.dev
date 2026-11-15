@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import KindTile from '../components/intake/KindTile.jsx'
 import UnfinishedList from '../components/intake/UnfinishedList.jsx'
-import { LOAD_ERROR } from '../content/status.js'
+import LoadState from '../components/LoadState.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { addPath, areaOfPath, sittingLabel } from '../lib/intake.js'
 
@@ -30,6 +30,7 @@ export default function AdminAdd() {
   const [kinds, setKinds] = useState(null)
   const [sittings, setSittings] = useState(null)
   const [failed, setFailed] = useState(false)
+  const [tries, setTries] = useState(0)
   const [error, setError] = useState(null)
   const [starting, setStarting] = useState(false)
 
@@ -55,7 +56,12 @@ export default function AdminAdd() {
     return () => {
       live = false
     }
-  }, [area])
+  }, [area, tries])
+
+  function retry() {
+    setFailed(false)
+    setTries((count) => count + 1)
+  }
 
   const areaKinds = (kinds ?? []).filter((kind) => kind.area === area)
   const photoKinds = areaKinds.filter((kind) => kind.ways_in.includes('photo'))
@@ -115,11 +121,7 @@ export default function AdminAdd() {
             : 'a sitting: one kind, many at once'
         }
       />
-      {failed && (
-        <p className="admin-error" role="alert">
-          {LOAD_ERROR}
-        </p>
-      )}
+      {failed && <LoadState failed onRetry={retry} />}
       {error && (
         <p className="admin-error" role="alert">
           {error}

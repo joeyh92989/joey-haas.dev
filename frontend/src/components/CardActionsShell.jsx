@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import Sheet from './Sheet.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 
 /**
@@ -6,7 +7,8 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
  * cards. On a pointer device the panel is always in the document and CSS
  * reveals it on hover and on focus-within (opacity, so a keyboard can still
  * reach it). On touch it collapses to one "…" button that opens the same
- * panel as a sheet, closed by Escape or a tap outside.
+ * panel in a `Sheet` (the one modal), which handles Escape, a tap outside
+ * and returning focus to the "…" button.
  *
  * @param {object} props
  * @param {string} props.label  Names the group, the "…" button and the sheet.
@@ -22,26 +24,9 @@ export default function CardActionsShell({
 }) {
   const hover = useMediaQuery('(hover: hover)')
   const [open, setOpen] = useState(false)
-  const root = useRef(null)
   const toggle = useRef(null)
-  const sheet = useRef(null)
   const sheetId = useId()
   const classes = className ? `shelf-actions ${className}` : 'shelf-actions'
-
-  // An opened sheet takes focus, so the keyboard lands where the work is
-  // and Escape reaches it.
-  useEffect(() => {
-    if (open) sheet.current?.querySelector(focusSelector)?.focus()
-  }, [open, focusSelector])
-
-  useEffect(() => {
-    if (!open) return undefined
-    function onPointerDown(event) {
-      if (!root.current?.contains(event.target)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [open])
 
   if (hover) {
     return (
@@ -57,17 +42,7 @@ export default function CardActionsShell({
   }
 
   return (
-    <div
-      className={classes}
-      data-mode="sheet"
-      ref={root}
-      onKeyDown={(event) => {
-        if (open && event.key === 'Escape') {
-          setOpen(false)
-          toggle.current?.focus()
-        }
-      }}
-    >
+    <div className={classes} data-mode="sheet">
       <button
         ref={toggle}
         type="button"
@@ -79,17 +54,17 @@ export default function CardActionsShell({
       >
         <span aria-hidden="true">…</span>
       </button>
-      {open && (
-        <div
-          ref={sheet}
-          id={sheetId}
-          className="shelf-sheet"
-          role="dialog"
-          aria-label={label}
-        >
-          {children}
-        </div>
-      )}
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        ariaLabel={label}
+        variant="bare"
+        className="shelf-sheet"
+        initialFocus={focusSelector}
+        returnFocus={toggle}
+      >
+        <div id={sheetId}>{children}</div>
+      </Sheet>
     </div>
   )
 }
