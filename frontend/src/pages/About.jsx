@@ -59,6 +59,7 @@ export default function About() {
           <h2 className="about-label" id="about-summary">
             Summary
           </h2>
+          <p className="prose">I’m Joseph (Joey) Haas.</p>
           {/* Keyed by position, not text: two identical paragraphs would collide. */}
           {paragraphs.map((paragraph, index) => (
             <p className="prose" key={index}>

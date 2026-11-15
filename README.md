@@ -1080,8 +1080,8 @@ limit is 150 minutes.
 ## Analytics
 
 This site counts its own visits: no cookies, no third-party script, and
-nothing leaves the site's own API. Each page view sends the path, the
-referring site on a visit's first page, and whether the device is a
+nothing leaves the site’s own API. Each page view sends the path, the
+referring site on a visit’s first page, and whether the device is a
 desktop, phone or tablet. A visitor is a hash of IP address and browser
 that changes every day, so one day cannot be joined to the next, and
 neither the address nor the browser is stored. Nothing is sent under
