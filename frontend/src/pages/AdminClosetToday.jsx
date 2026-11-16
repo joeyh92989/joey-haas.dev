@@ -65,11 +65,14 @@ function todayPath(choice) {
 /** The morning low, the afternoon high, the read and the hours. */
 function WeatherStrip({ weather }) {
   return (
-    <section className="panel today-weather" aria-label="Weather">
+    <section
+      className="panel today-weather"
+      aria-label={adminCopy.closetToday.weather}
+    >
       <p className="today-temps">
         <span className="today-low">{weather.low}°</span>
         <span aria-hidden="true"> → </span>
-        <span className="visually-hidden"> to </span>
+        <span className="visually-hidden"> {adminCopy.closetToday.to} </span>
         <span className="today-high">{weather.high}°</span>
       </p>
       <p className="today-sentence">{weather.sentence}</p>
@@ -188,7 +191,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
 
   return (
     <div className="today-sheet-body">
-      <h2 id={titleId}>Match this…</h2>
+      <h2 id={titleId}>{adminCopy.closetToday.matchThis}</h2>
       <div className="today-sheet-modes">
         <button
           type="button"
@@ -197,10 +200,10 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
           data-autofocus
           onClick={() => setMode('closet')}
         >
-          From the closet
+          {adminCopy.closetToday.fromCloset}
         </button>
         <label className="btn btn-file">
-          From a photo
+          {adminCopy.closetToday.fromPhoto}
           <input
             type="file"
             className="visually-hidden"
@@ -216,7 +219,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         </p>
       )}
       {mode === 'closet' && !garments && !error && (
-        <p className="muted">Loading…</p>
+        <p className="muted">{adminCopy.closetToday.loading}</p>
       )}
       {mode === 'closet' && garments?.length === 0 && (
         <EmptyState title={adminCopy.closetNoPieces} />
@@ -244,7 +247,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
       )}
       <div className="today-sheet-acts">
         <button type="button" className="btn ghost" onClick={onClose}>
-          Cancel
+          {adminCopy.closetToday.cancel}
         </button>
       </div>
     </div>
@@ -278,7 +281,7 @@ function OutfitCard({
         tabIndex={-1}
         ref={headingRef}
       >
-        Wear this
+        {adminCopy.closetToday.wearThis}
       </p>
       <ul className="today-tiles">
         {outfit.garments.map((tile) => (
@@ -301,7 +304,7 @@ function OutfitCard({
           </span>
           <span aria-hidden="true"> · </span>
           <button type="button" className="link-button" onClick={onChange}>
-            Change
+            {adminCopy.closetToday.change}
           </button>
         </p>
       ) : (
@@ -312,7 +315,7 @@ function OutfitCard({
             disabled={busy || transient}
             onClick={onWore}
           >
-            Wore this
+            {adminCopy.closetToday.woreThis}
           </button>
           <button
             type="button"
@@ -320,7 +323,7 @@ function OutfitCard({
             disabled={busy}
             onClick={onSwap}
           >
-            Swap a piece
+            {adminCopy.closetToday.swapPiece}
           </button>
           <button
             type="button"
@@ -328,7 +331,7 @@ function OutfitCard({
             disabled={busy}
             onClick={onMatch}
           >
-            Match this…
+            {adminCopy.closetToday.matchThis}
           </button>
           <button
             type="button"
@@ -337,12 +340,16 @@ function OutfitCard({
             disabled={busy}
             onClick={() => setAsking((open) => !open)}
           >
-            Not this…
+            {adminCopy.closetToday.notThis}
           </button>
         </div>
       )}
       {asking && !wornState && (
-        <div className="chip-row" role="group" aria-label="Why not this">
+        <div
+          className="chip-row"
+          role="group"
+          aria-label={adminCopy.closetToday.whyNotThis}
+        >
           {NOT_THIS_REASONS.map((reason) => (
             <button
               key={reason.value}
@@ -373,7 +380,7 @@ function OutfitAlt({ outfit, busy, onWear }) {
       </p>
       <p className="today-alt-reason">{outfitReason(outfit)}</p>
       <button type="button" className="btn sm" disabled={busy} onClick={onWear}>
-        Wear this instead
+        {adminCopy.closetToday.wearThisInstead}
       </button>
     </li>
   )
@@ -627,7 +634,10 @@ export default function AdminClosetToday() {
 
   return (
     <section className="today">
-      <AdminPageHeader title="Today" description={description} />
+      <AdminPageHeader
+        title={adminCopy.closetToday.title}
+        description={description}
+      />
 
       {error && (
         <p className="admin-error" role="alert">
@@ -644,7 +654,7 @@ export default function AdminClosetToday() {
             setAttempt((n) => n + 1)
           }}
         >
-          Retry
+          {adminCopy.closetToday.retry}
         </button>
       )}
       {!answer && !error && (
@@ -709,7 +719,7 @@ export default function AdminClosetToday() {
             />
           ) : (
             <section className="panel today-card">
-              <p className="today-kicker">Wear this</p>
+              <p className="today-kicker">{adminCopy.closetToday.wearThis}</p>
               <p className="today-reason">
                 {plan?.model_note ?? 'Nothing is planned for today yet.'}
               </p>
@@ -717,7 +727,10 @@ export default function AdminClosetToday() {
           )}
 
           {lead && alternatives.length > 0 && (
-            <ul className="today-alts" aria-label="Alternatives">
+            <ul
+              className="today-alts"
+              aria-label={adminCopy.closetToday.alternatives}
+            >
               {alternatives.map((outfit, index) => (
                 <OutfitAlt
                   key={`${index}-${outfit.garments.map((g) => g.id).join('-')}`}

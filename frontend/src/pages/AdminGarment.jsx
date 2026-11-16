@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import GarmentForm from '../components/GarmentForm.jsx'
 import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
@@ -88,11 +89,11 @@ export default function AdminGarment() {
   return (
     <section className="garment-page">
       <AdminPageHeader
-        title="Garment"
+        title={adminCopy.closetGarment.title}
         description={garment ? garmentTitle(garment) : null}
       >
         <Link className="btn sm ghost" to="/admin/closet">
-          ← Closet
+          {adminCopy.closetGarment.backToCloset}
         </Link>
       </AdminPageHeader>
       {error && (
