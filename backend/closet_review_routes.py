@@ -309,7 +309,10 @@ def create_closet_review_router(
                     "opinion": opinions.get(card.held.id),
                     "suggested": card.suggested,
                     "back_on": card.back_on.isoformat(),
-                    "size": sizes.get(card.held.category or ""),
+                    # The garment's own size wins; the profile's size for
+                    # its category is the fallback.
+                    "size": rows[card.held.id].size
+                    or sizes.get(card.held.category or ""),
                 }
                 for card in cards
             ],
