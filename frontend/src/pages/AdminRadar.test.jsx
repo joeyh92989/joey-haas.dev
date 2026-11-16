@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminRadar, { ago, byMonth, soonestWindow } from './AdminRadar.jsx'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.radar
 
 function row(id, fields = {}) {
   return {
@@ -163,7 +166,7 @@ describe('AdminRadar', () => {
     renderPage()
     expect(await screen.findByText('Wanted One')).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Wanted, still to come' }),
+      screen.getByRole('heading', { name: copy.wantedStillToCome }),
     ).toBeInTheDocument()
     expect(screen.getByText('Preordered')).toBeInTheDocument()
     expect(screen.getByText('Next Year')).toBeInTheDocument()
@@ -403,7 +406,7 @@ describe('AdminRadar', () => {
       }),
     })
     renderPage({ signedIn: false })
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: copy.signIn })).toBeVisible()
   })
 
   it('says the read failed and reads again on Try again', async () => {
@@ -423,7 +426,7 @@ describe('AdminRadar', () => {
       .setup()
       .click(within(alert).getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('heading', { name: 'Wanted, still to come' }),
+      await screen.findByRole('heading', { name: copy.wantedStillToCome }),
     ).toBeInTheDocument()
     await waitFor(() =>
       expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
