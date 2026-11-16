@@ -547,8 +547,7 @@ before pushing.
   localhost `FRONTEND_URL`). Branch protection on `main` requires `backend` and
   `frontend`, and requires the branch to be up to date with `main` (strict), so
   after another PR merges, `gh pr update-branch <n>` and wait for CI again before
-  merging; update one PR at a time. `./scripts/merge-train.sh` does that loop for
-  a list of PRs; by hand, never update several at once. `e2e`, `e2e-admin` and `neon-rehearsal` are
+  merging; update one PR at a time (`./scripts/merge-train.sh` runs this loop). `e2e`, `e2e-admin` and `neon-rehearsal` are
   not required, so a red one does not block a merge: read them anyway.
 - **Known flaky tests** (issue #244): Admin* suites in `npm test` time out under
   load (AdminLayout's focus-target test has failed on CI; it passes on a rerun

@@ -36,14 +36,19 @@ re-runs. The train removes the gaps; it cannot remove the cycle (that needs
 For each PR, in the order given: stop unless it is open and not a draft;
 `gh pr update-branch` if it is behind `main` (read from the compare API's
 `behind_by`, since a PR that is behind and also waiting on checks can show
-`BLOCKED`, not `BEHIND`); wait for the **required** checks;
+`BLOCKED`, not `BEHIND`); wait for the **required** checks (all of them: the names are read from branch
+protection, since GitHub registers them one at a time after a push);
 `gh pr merge --squash`; confirm it is `MERGED`; next. If a merge lands while
 the checks run and the PR falls behind again, it goes round again (three
 rounds at most).
 
+Before each merge it prints a WARNING for any non-required check that is not
+green (`e2e`, `e2e-admin`, `neon-rehearsal`); it does not stop for one, so read
+it, as CLAUDE.md says.
+
 Environment (all optional): `POLL_SECONDS` (20) between polls,
 `MAX_WAIT_MINUTES` (30) per PR for the checks, `GRACE_SECONDS` (120) for the
-checks of a new head to appear.
+checks of a new head to appear. The limits are wall-clock time.
 
 Exit 0 = every PR merged. Exit 1 = it stopped on a PR and said why on stderr.
 Exit 2 = bad usage.
@@ -55,11 +60,12 @@ Exit 2 = bad usage.
 - a required check fails (read it, fix it, rerun the train: an unrelated
   known flake gets one rerun by hand, per CLAUDE.md, not by the script);
 - the checks do not finish in `MAX_WAIT_MINUTES`, or do not appear after a push;
-- `gh` refuses to update or merge.
+- `gh` refuses to update or merge, or the compare API cannot be read (an
+  unreadable answer is never taken as "behind").
 
 ### Gates it does not check
 
-It checks the required status checks, nothing else. The caller owns the rest of
+It checks the required status checks and only warns about the rest. The caller owns the rest of
 `sdlc-ship`'s gate: finish review clean, migration rehearsal read, and, for a
 PR with a migration, that it is additive. Run it only on PRs that passed those,
 and only when you are allowed to merge (the ship step, or when asked).
