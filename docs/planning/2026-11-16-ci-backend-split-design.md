@@ -31,8 +31,8 @@ database per worker in `tests/testdb.py`; wait for a setup-versus-body profile).
 1. Edit `ci.yml`, `.github/workflows/README.md`, `CLAUDE.md`. Acceptance: the
    PR's own CI shows `backend` green, `backend-tests` shorter than the 328 s
    test step, and the aggregate fails if either half is red.
-2. Prove the aggregate: a throwaway PR (or branch push) with a deliberately
-   failing migration test must turn `backend` red; do not merge it.
+2. Prove the aggregate's test: run its shell line for each result pair
+   (success, failure, cancelled, skipped) and see only success/success pass.
 
 Expected saving: about 50 to 60 s of a 6 minute cycle (the aggregate adds a
 few seconds). Measure on the PR, do not trust this.

@@ -82,8 +82,11 @@ jobs:
   # The migration chain tests (upgrade, downgrade, upgrade) on their own
   # Postgres: they drop and rebuild the schema, so a separate database also
   # keeps them from sharing one with the rest of the suite.
+  # Keep the Postgres image, Python version and install in step with
+  # backend-tests: the same pins, so both halves test what production runs.
   backend-migrations:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:18
@@ -126,6 +129,7 @@ jobs:
     needs: [backend-tests, backend-migrations]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Both backend jobs passed
         env:

@@ -474,8 +474,9 @@ before pushing.
 
 ## Ship
 
-- Checks: the PR's `backend`, `frontend`, `e2e` and `e2e-admin` GitHub Actions
-  jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
+- Checks: the PR's `backend` (aggregate of `backend-tests` and
+  `backend-migrations`: open the red half), `frontend`, `e2e` and `e2e-admin`
+  GitHub Actions jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
   changes `backend/migrations/versions`)
 - Merge: squash. Branch policy: **strict** (a PR must be up to date with
   `main`). To merge several ready PRs, run `./scripts/merge-train.sh <pr>…`
