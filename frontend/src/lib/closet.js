@@ -150,9 +150,16 @@ export function statLine(garment) {
   return window && window !== 'all year' ? `${worn} · ${window}` : worn
 }
 
-/** The photo's URL on the API, or null for a garment without one. */
-export function imageUrl(garment) {
-  return garment.image ? `${API_URL}${garment.image}` : null
+/**
+ * The photo's URL on the API, or null for a garment without one. The API
+ * stores 800px; `{ size: 'thumb' }` asks for the 400px grid rendition, which
+ * tiles and table rows use. The garment's `image` already carries `?v=`.
+ */
+export function imageUrl(garment, { size } = {}) {
+  if (!garment.image) return null
+  const url = `${API_URL}${garment.image}`
+  if (size !== 'thumb') return url
+  return `${url}${url.includes('?') ? '&' : '?'}size=thumb`
 }
 
 /**
