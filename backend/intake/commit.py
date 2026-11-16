@@ -36,7 +36,8 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException
@@ -60,12 +61,17 @@ from comics import (
 from comics_routes import got_issues
 from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
+from intake.seed_import import imported_keys, take_summary
 from intake.shelf_kinds import book_edition
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
     ComicIssue,
     ComicShelfFormat,
     Garment,
+    GarmentColorSource,
+    GarmentImage,
+    GarmentProduct,
+    GarmentProductSource,
     GarmentStatus,
     GarmentTagSource,
     IntakeArea,
@@ -198,6 +204,10 @@ class SittingCommit:
     skipped_kept: int = 0
     photos_empty: int = 0
     photos_waiting: int = 0
+    # Seed-file pieces written without a photograph (never fetched, or the
+    # fetch failed), and the file's own counts for Done (None: no file).
+    images_missing: int = 0
+    file_import: dict[str, int] | None = None
     refused: list[Refusal] = field(default_factory=list)
     created: list[uuid.UUID] = field(default_factory=list)
     series_grew: list[SeriesGrew] = field(default_factory=list)
@@ -216,6 +226,8 @@ class SittingCommit:
             "skipped_kept": self.skipped_kept,
             "photos_empty": self.photos_empty,
             "photos_waiting": self.photos_waiting,
+            "images_missing": self.images_missing,
+            "file_import": self.file_import,
             "refused": [refusal.as_json() for refusal in self.refused],
         }
 
@@ -295,6 +307,109 @@ def _typed_garment(kind: Kind, entry: IntakeEntry) -> Garment | Refusal:
     except HTTPException as error:
         return Refusal(entry.id, None, str(error.detail))
     return row
+
+
+def is_seed(entry: IntakeEntry) -> bool:
+    """A draft made from a seed file row: the server's `seed` record."""
+    return bool((entry.payload or {}).get("seed"))
+
+
+def _text(value: Any, limit: int) -> str | None:
+    """A string cut to `limit`, or None; anything else is not text."""
+    return value[:limit] if isinstance(value, str) and value else None
+
+
+def _seed_record(entry: IntakeEntry) -> tuple[dict[str, Any], str] | str:
+    """The entry's seed record and its source, or the sentence for why the
+    record is unusable (an entry written by something other than the file
+    import). Never raises: a damaged record refuses its own entry."""
+    seed = (entry.payload or {}).get("seed")
+    if not isinstance(seed, dict):
+        return "This piece's file record is damaged; remove it and import again"
+    valid = {source.value for source in GarmentProductSource}
+    source = seed.get("source")
+    if source not in valid:
+        return "This piece's file record names no known store"
+    for key in ("order_id", "store_item_no", "price_usd", "key"):
+        if seed.get(key) is not None and not isinstance(seed[key], str):
+            return f"This piece's file record has a bad {key}"
+    return seed, source
+
+
+@dataclass
+class SeedGarment:
+    """What a seed entry writes: the garment, its product row and, when the
+    entry holds one, its photo."""
+
+    garment: Garment
+    product: GarmentProduct
+    image: GarmentImage | None
+    photo_id: uuid.UUID | None = None
+
+
+def _seed_garment(
+    kind: Kind, entry: IntakeEntry, photo: Any | None, now: datetime
+) -> SeedGarment | Refusal:
+    """A garment from a seed file row (design D5, D6): written at commit,
+    never at upload. It is `untagged` with no tag source, so the tag queue
+    takes it for warmth, formality and seasons, while its store colour,
+    brand and size are the vendor's (`color_source` vendor)."""
+    payload = entry.payload or {}
+    record = _seed_record(entry)
+    if isinstance(record, str):
+        return Refusal(entry.id, None, record)
+    seed, source = record
+    price = None
+    if seed.get("price_usd"):
+        try:
+            price = Decimal(seed["price_usd"]).quantize(Decimal("0.01"))
+        except ArithmeticError:
+            price = None
+        if price is None or not 0 <= price <= Decimal("999999.99"):
+            return Refusal(entry.id, None, "This piece's file record has a bad price")
+    try:
+        fields = GarmentFields.model_validate(kind.to_row({"payload": payload}))
+    except ValidationError as error:
+        return _validation_refusal(entry, error)
+    row = Garment(
+        id=uuid.uuid4(),
+        status=GarmentStatus.UNTAGGED,
+        seasons=[],
+        tag_attempts=0,
+    )
+    try:
+        apply_garment_fields(row, fields)
+    except HTTPException as error:
+        return Refusal(entry.id, None, str(error.detail))
+    # apply_garment_fields saves like a hand edit: an untagged piece goes
+    # active and a colour becomes `manual`. A seed piece is neither.
+    row.status = GarmentStatus.UNTAGGED
+    row.tag_source = None
+    row.color_source = GarmentColorSource.VENDOR if row.color_name else None
+    snapshot = seed.get("row") if isinstance(seed.get("row"), dict) else {}
+    product = GarmentProduct(
+        garment_id=row.id,
+        source=GarmentProductSource(source),
+        order_ref=_text(seed.get("order_id"), 80),
+        store_item_no=_text(seed.get("store_item_no"), 80),
+        title=snapshot.get("name")
+        if isinstance(snapshot.get("name"), str)
+        else row.name,
+        price=price,
+        snapshot=snapshot,
+        fetched_at=now,
+    )
+    image = (
+        GarmentImage(
+            garment_id=row.id,
+            webp=photo.thumb_webp,
+            width=photo.width,
+            height=photo.height,
+        )
+        if photo is not None
+        else None
+    )
+    return SeedGarment(row, product, image, entry.photo_id)
 
 
 def _is_comic(kind: Kind | None) -> bool:
@@ -611,6 +726,40 @@ async def commit_sitting(
     rows: list[ItemIn] = []
     row_entries: list[IntakeEntry] = []
     garments: list[Garment] = []
+    seeds: list[SeedGarment] = []
+    # Held photos of the sitting's seed entries, and the pieces already
+    # imported since the file was read (another sitting committed first).
+    seed_photos = {
+        photo.id: photo
+        for photo in (
+            await session.execute(
+                select(
+                    IntakePhoto.id,
+                    IntakePhoto.thumb_webp,
+                    IntakePhoto.width,
+                    IntakePhoto.height,
+                ).where(
+                    IntakePhoto.id.in_(
+                        [
+                            entry.photo_id
+                            for entry in entries
+                            if is_seed(entry) and entry.photo_id
+                        ]
+                    )
+                )
+            )
+        ).all()
+    }
+    seed_sources = {
+        record[1]
+        for entry in entries
+        if is_seed(entry)
+        and entry.state in WRITTEN
+        and not isinstance(record := _seed_record(entry), str)
+    }
+    imported = await imported_keys(session, seed_sources)
+    seed_seen: set[str] = set()
+    now = datetime.now(UTC)
     seen: set[tuple[str, str]] = set()
     series: dict[tuple[str, str], _Series] = {}
     for entry in entries:
@@ -626,6 +775,23 @@ async def commit_sitting(
         if kind.area is IntakeArea.CLOSET:
             if entry.garment_id is not None:
                 outcome.added += 1  # made real on upload; nothing to flip
+                continue
+            if is_seed(entry):
+                record = _seed_record(entry)
+                seed_key = None if isinstance(record, str) else record[0].get("key")
+                if seed_key is not None and (
+                    seed_key in imported or seed_key in seed_seen
+                ):
+                    outcome.already_owned += 1  # imported since it was read
+                    continue
+                seed_seen.add(seed_key)
+                made = _seed_garment(kind, entry, seed_photos.get(entry.photo_id), now)
+                if isinstance(made, Refusal):
+                    outcome.refused.append(made)
+                else:
+                    seeds.append(made)
+                    if made.image is None:
+                        outcome.images_missing += 1
                 continue
             made = _typed_garment(kind, entry)
             if isinstance(made, Refusal):
@@ -754,6 +920,20 @@ async def commit_sitting(
         )
         return outcome
     session.add_all(garments)
+    if seeds:
+        session.add_all([made.garment for made in seeds])
+        await session.flush()  # the garments exist before their products
+        session.add_all([made.product for made in seeds])
+        session.add_all([made.image for made in seeds if made.image is not None])
+        # The held photos have moved to the garments.
+        await session.execute(
+            delete(IntakePhoto).where(
+                IntakePhoto.id.in_(
+                    [made.photo_id for made in seeds if made.photo_id is not None]
+                )
+            )
+        )
+    outcome.file_import = await take_summary(session, sitting_id)
     for item, gained in gains:
         outcome.issues_added += await got_issues(session, item, gained, today)
     for _, item, _, _ in plans:
@@ -762,7 +942,7 @@ async def commit_sitting(
     for grew in outcome.series_grew:
         grew.after_write()
     outcome.created = result.created
-    outcome.added += len(result.created) + len(garments)
+    outcome.added += len(result.created) + len(garments) + len(seeds)
     outcome.already_owned += result.existing
 
     if kept or photos_waiting:

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router'
+import { seedIntake } from '../../content/seedIntake.js'
 import { discardAsk } from '../../content/shelfDelete.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import {
@@ -7,7 +8,9 @@ import {
   fieldPayload,
   localToday,
   meterCounts,
+  refuseSeedFile,
   sittingLabel,
+  startedAt,
 } from '../../lib/intake.js'
 import { useMediaQuery } from '../../lib/useMediaQuery.js'
 import AddBar from './AddBar.jsx'
@@ -277,6 +280,52 @@ export default function AddSection({ area, onAdded, children }) {
     }
   }
 
+  /** "From a file": a sitting, the file into it, then on to its Check. */
+  async function fromFile(file) {
+    const refused = refuseSeedFile(file, seedIntake)
+    setError(refused)
+    if (refused) return
+    const [kind] = areaKinds.filter((k) => k.ways_in.includes('file'))
+    setBusy(true)
+    setNotice('')
+    try {
+      const created = await apiFetch('/api/intake/sittings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          area,
+          kind: kind.key,
+          label: seedIntake.label(startedAt(new Date())),
+        }),
+      })
+      if (!created.ok) {
+        setError(await errorMessage(created, { ownConflicts: true }))
+        return
+      }
+      const sittingId = (await created.json()).id
+      const form = new FormData()
+      form.append('file', file)
+      const sent = await apiFetch(`/api/intake/sittings/${sittingId}/file`, {
+        method: 'POST',
+        body: form,
+      })
+      if (!sent.ok) {
+        setError(await errorMessage(sent, { ownConflicts: true }))
+        // A file the server refused leaves no empty sitting behind.
+        await apiFetch(`/api/intake/sittings/${sittingId}`, {
+          method: 'DELETE',
+        })
+        return
+      }
+      context.refreshIntakeCounts?.()
+      navigate(`${addPath(area)}/${sittingId}`)
+    } catch {
+      setError(NO_ANSWER)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function add({ title, values }, again) {
     const { kind, chosen } = drawer
     const payload = fieldPayload(kind.fields, values)
@@ -359,6 +408,11 @@ export default function AddSection({ area, onAdded, children }) {
         onChange={setQuery}
         onSubmit={submit}
         onPhotos={photos}
+        onFile={
+          areaKinds.some((kind) => kind.ways_in.includes('file'))
+            ? fromFile
+            : undefined
+        }
         busy={busy || !kinds}
         inputRef={inputRef}
       />

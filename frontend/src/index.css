@@ -12905,3 +12905,45 @@ a.btn.sm {
   }
 }
 /* ===== end Print ===== */
+
+/* Clothes · Check for a seed file: one card per piece, the product photo
+   beside its fields (stacked on a phone). */
+.intake-seed-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.intake-seed-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  padding: var(--space-3);
+}
+
+.intake-seed-card .intake-garment-photo {
+  max-height: 10rem;
+}
+
+.intake-seed-nophoto {
+  align-items: center;
+  aspect-ratio: 4 / 5;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  font-size: var(--fs-13);
+  justify-content: center;
+  margin: 0;
+  padding: var(--space-2);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .intake-seed-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

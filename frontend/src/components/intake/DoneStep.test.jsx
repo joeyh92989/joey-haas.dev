@@ -20,12 +20,12 @@ const base = {
   created: ['x'],
 }
 
-function done(answer) {
+function done(answer, sitting = { area: 'shelf', kind: 'comic' }) {
   render(
     <MemoryRouter>
       <DoneStep
         answer={{ ...base, ...answer }}
-        sitting={{ area: 'shelf', kind: 'comic' }}
+        sitting={sitting}
         onNextBox={vi.fn()}
         startingNext={false}
         headingRef={{ current: null }}
@@ -97,5 +97,41 @@ describe('DoneStep comic lines', () => {
     })
     done({ series_new: [series('1'), series('2')] })
     expect(screen.getAllByText('Waterworld · adds #1')).toHaveLength(2)
+  })
+})
+
+describe('DoneStep after a seed file', () => {
+  const closet = { area: 'closet', kind: 'garment' }
+
+  it('counts what the file skipped, repeated and could not photograph', () => {
+    done(
+      {
+        added: 5,
+        images_missing: 2,
+        file_import: {
+          added: 5,
+          skipped_not_owned: 19,
+          skipped_known_not_owned: 3,
+          already_imported: 7,
+          duplicates: 1,
+          unreadable: 0,
+        },
+      },
+      closet,
+    )
+    const tile = (label) => screen.getByText(label).parentElement
+    expect(tile('skipped, not owned')).toHaveTextContent('19')
+    expect(tile('skipped, marked not owned before')).toHaveTextContent('3')
+    expect(tile('skipped, already imported')).toHaveTextContent('7')
+    expect(tile('repeated in the file')).toHaveTextContent('1')
+    expect(tile('added without a photo')).toHaveTextContent('2')
+    // A count that is zero is not a tile.
+    expect(screen.queryByText('lines not understood')).toBeNull()
+  })
+
+  it('shows none of it for a sitting no file was added to', () => {
+    done({ file_import: null, images_missing: 0 }, closet)
+    expect(screen.queryByText(/skipped, not owned/)).toBeNull()
+    expect(screen.queryByText('added without a photo')).toBeNull()
   })
 })

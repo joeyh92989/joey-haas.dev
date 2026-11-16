@@ -1,13 +1,15 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { comicIntake } from '../../content/comicIntake.js'
+import { seedIntake } from '../../content/seedIntake.js'
 import { isBook, needsNumber, repeats } from '../../lib/comicBooks.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
-import { CHECK_STATES, entryCover } from '../../lib/intake.js'
+import { CHECK_STATES, entryCover, isSeedEntry } from '../../lib/intake.js'
 import { live, removeEntry } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
 import ComicBooks from './ComicBooks.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
+import SeedCheck from './SeedCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
 
@@ -93,6 +95,15 @@ export default function CheckStep({
   const chain = useRef(new Map())
   const oneRef = useRef(null)
   const closet = sitting.area === 'closet'
+  // Pieces made from a seed file, before the closet has them at all.
+  const seeds = closet ? live(sitting.entries).filter(isSeedEntry) : []
+  const kindOf = (key) =>
+    kinds.find((kind) => kind.key === key) ?? {
+      key,
+      area: 'closet',
+      label: 'Garment',
+      fields: [],
+    }
   // A comic sitting reads books: each settled comic is a row with its number.
   const books = !closet && sitting.kind === 'comic'
 
@@ -233,7 +244,9 @@ export default function CheckStep({
   }
 
   const hint = closet
-    ? 'Only pieces the tagger could not finish are asked about.'
+    ? seeds.length > 0
+      ? seedIntake.hint
+      : 'Only pieces the tagger could not finish are asked about.'
     : numberless > 0
       ? comicIntake.nextHeld(numberless)
       : skim.length > 0 &&
@@ -249,19 +262,22 @@ export default function CheckStep({
           {error}
         </p>
       )}
-      {closet ? (
-        <GarmentCheck
+      {seeds.length > 0 && (
+        <SeedCheck
           sitting={sitting}
-          kind={
-            kinds.find((kind) => kind.key === 'garment') ?? {
-              key: 'garment',
-              area: 'closet',
-              label: 'Garment',
-              fields: [],
-            }
-          }
-          onRemoved={onRemoved}
+          kind={kindOf('garment')}
+          entries={seeds}
+          onEntry={onEntry}
         />
+      )}
+      {closet ? (
+        (seeds.length === 0 || sitting.entries.some((e) => e.garment_id)) && (
+          <GarmentCheck
+            sitting={sitting}
+            kind={kindOf('garment')}
+            onRemoved={onRemoved}
+          />
+        )
       ) : current ? (
         <CheckOne
           key={current.id}

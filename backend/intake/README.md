@@ -21,7 +21,65 @@ and the entries read from them or typed in.
   chosen match's metadata plus the payload's `ItemIn` fields, and records a
   physical copy. Board games are typed only while BGG needs a token.
 - `garment_kind.py` — the closet's garment: no source, no details step;
-  `to_row` keeps only `GarmentFields` keys.
+  `to_row` keeps only `GarmentFields` keys. Ways in: photo, type and
+  **file** (the seed file below). Its fields include brand, store colour
+  and size.
+- `seed_file.py` (pure), `seed_import.py`, `seed_image.py` — the closet's
+  **From a file** way in (issue #396, `docs/planning/2026-11-16-closet-products-design.md`
+  D3, D5-D8). A seed CSV (UTF-8, header row; columns `n, source, order_id,
+  date, date_basis, brand, name, color_name, size, price_usd, category_hint,
+  store_item_no, still_owned, image_url`; only `source`, `name`,
+  `still_owned` are required; at most 500 lines and 1 MB) becomes one
+  `typed` garment entry per piece, with **no model call and no photograph**:
+  - A row's fate, in this order: `still_owned` no is **skipped, not
+    owned**; a key in `closet_settings["import.not_owned"]` is **skipped,
+    marked not owned before**; a row already in `garment_products` (same
+    source, item number and size, else the same order line: order, name,
+    colour, size) is **already imported**, which is also what makes uploading the
+    same file again harmless; a row repeated in the file or already in the
+    sitting is a **duplicate**; a line that cannot be read (unknown
+    source, no name, a field too long for the closet) is **unreadable**,
+    worded for the first five. The counts are kept in
+    `intake_settings["file.<sitting id>"]`, reported once by the commit
+    as `file_import` (Done's tiles), and removed with the sitting.
+  - An entry's payload holds the fields Check edits (name, brand, store
+    colour `color_name`, size, category from `category_hint` or none,
+    `primary_color` from `closet_colors.colour_family`, `acquired_on`) and
+    two keys only the server writes: `seed` (the row, its keys and its
+    `image_url`) and `image` (`pending`, `held`, `failed` with
+    `image_error`, or `none`). `PATCH` keeps those keys whatever the page
+    sends, so a Check edit can never change the address the server fetches.
+  - **Photos** are fetched once each, a few per request, by
+    `POST /sittings/{id}/seed-images` (the Check page asks until none is
+    pending). `seed_image.fetch_image` takes only https on port 443,
+    refuses any host that resolves to a non-public address, follows
+    redirects by hand and checks every hop, times out at 8 s per request and
+    20 s in all, asks for no compression and refuses a compressed answer,
+    takes only JPEG, PNG or WebP and stops reading at 6 MB; requests to a host are
+    spaced. The result is made 800px (`make_garment_image`) and **held** as
+    an `intake_photos` row the entry points at (served by the existing
+    `GET /photos/{id}/image`), so nothing reaches the closet before the
+    commit. Residual risk: the host is resolved for the check and again to
+    connect (DNS rebinding); the route is admin-only and only ever decodes
+    the answer as an image.
+  - **Commit** writes, for each seed entry, the garment (`untagged`,
+    `tag_source` NULL so the tag queue takes it for warmth, formality and
+    seasons; `color_name` verbatim with `color_source` vendor; `primary_hex`
+    NULL; `acquired_on` the purchase date), its `garment_products` row
+    (source, `order_ref`, `store_item_no`, title, price, the row as the
+    snapshot, `fetched_at`) and the held photo as its image. A piece
+    without a photo (never fetched, or failed) is written anyway and
+    counted as `images_missing`. A piece imported since the file was read
+    is `already_owned`.
+  - **Don't own this** (`POST /entries/{id}/not-owned`) ignores the entry,
+    drops its held photo and adds its key (`source|order_id|store_item_no`,
+    or `source|order_id|name+colour+size`, lower case) to
+    `closet_settings["import.not_owned"]` through
+    `seed_import.add_not_owned`, which is also the way to seed the list
+    from code. Known limit: two sittings committing the same rows at the
+    same instant can write them twice (no unique index backs the "already
+    imported" check; one would need a migration). There is no undo route; the list is plain JSON in
+    `closet_settings` (`{"keys": [...]}`).
 - `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
 - `reader.py` — `read_next()`, behind `POST /api/intake/sittings/{id}/read-next`.
   One call claims the sitting's oldest `uploaded` shelf photo in one
@@ -148,6 +206,9 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
 | `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |
 | `POST /add` | One thing from the add bar, through the commit service |
+| `POST /sittings/{id}/file` | The closet's From a file: a seed CSV (multipart `file`, at most 1 MB) into the sitting's draft entries; answers this file's counts and `problems`; moves the sitting to Check. 409 for a shelf sitting, 413 over the limit, 422 for a file that is not a seed file |
+| `POST /sittings/{id}/seed-images` | Fetch the next few file pieces' photos (once each); answers the entries it changed and `pending` |
+| `POST /entries/{id}/not-owned` | Check's Don't own this (file pieces only; 409 otherwise) |
 | `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
 | `GET /counts`, `GET /budget` | Entries to check or confirm (`check` and `probable`) per area; today's free reads |
@@ -219,7 +280,10 @@ change nothing, every entry left still to check, is a 409 too
 (`NOTHING_TO_ADD`). The reader's `chosen` is the importer's candidate, whose
 cover is `thumbnail_url`: `shelf_kinds.to_row` maps it to `cover_url`.
 Garments from photos are already real and are only counted; a typed garment
-is created as `POST /api/closet/garments` creates one. After the commit,
+is created as `POST /api/closet/garments` creates one, and a seed-file entry
+is created at commit with its product and photo (see `seed_import.py`
+above). The answer also carries `images_missing` and `file_import`
+(the seed file's counts, null for a sitting no file was added to). After the commit,
 covers and creators are filled in as `/bulk` does (`items._enrich`, best
 effort).
 
