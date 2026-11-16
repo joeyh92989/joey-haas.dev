@@ -45,7 +45,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import (
     APIRouter,
@@ -62,7 +62,12 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import closet_tag
-from closet_images import ClosetImageError, make_thumbnail, read_capped
+from closet_images import (
+    ClosetImageError,
+    make_garment_image,
+    read_capped,
+    resize_webp,
+)
 from closet_schemas import (
     GarmentListOut,
     GarmentOut,
@@ -670,7 +675,7 @@ def create_closet_router(
 
         # One photo at a time, off the event loop.
         thumbnails = [
-            (await convert_upload(upload, make_thumbnail))[0] for upload in photos
+            (await convert_upload(upload, make_garment_image))[0] for upload in photos
         ]
 
         # Ascending created_at in upload order, so the queue tags a rack in
@@ -695,13 +700,17 @@ def create_closet_router(
     @router.get("/garments/{garment_id}/image", response_model=None)
     async def garment_image(
         garment_id: uuid.UUID,
+        size: Literal["thumb"] | None = None,
         if_none_match: str | None = Header(default=None),
         session: AsyncSession = Depends(get_session),
     ) -> Response:
         """The photo as WebP. Private (it is behind the session) and cached a
-        day; the ETag follows the garment's updated_at."""
+        day; the ETag follows the garment's updated_at, with a `-thumb`
+        suffix for `?size=thumb`, the 400px grid rendition made on read."""
         row = await _found(session, garment_id)
         etag = _etag(row)
+        if size == "thumb":
+            etag = etag[:-1] + '-thumb"'
         headers = {"Cache-Control": "private, max-age=86400", "ETag": etag}
         if if_none_match is not None and etag in {
             tag.strip() for tag in if_none_match.split(",")
@@ -710,7 +719,8 @@ def create_closet_router(
         image = await session.get(GarmentImage, garment_id)
         if image is None:
             raise HTTPException(status_code=404, detail="That garment has no photo")
-        return Response(content=image.webp, media_type="image/webp", headers=headers)
+        body = image.webp if size is None else resize_webp(image.webp)
+        return Response(content=body, media_type="image/webp", headers=headers)
 
     @router.get("/profile", response_model=ProfileOut)
     async def get_profile(

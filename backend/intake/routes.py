@@ -30,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import intake.garment_kind  # noqa: F401  (registers the closet's kind)
 import intake.shelf_kinds  # noqa: F401  (registers the shelf's kinds)
-from closet_images import make_reading_copy, make_thumbnail
+from closet_images import make_garment_image, make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
@@ -436,7 +436,7 @@ def create_intake_router(
             )
             session.add(row)
         else:
-            (thumb,) = await convert_upload(photo, make_thumbnail)
+            (thumb,) = await convert_upload(photo, make_garment_image)
             garment = await add_garment_photo(session, thumb, datetime.now(UTC))
             row = IntakePhoto(
                 sitting_id=sitting.id,
