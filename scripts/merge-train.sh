@@ -9,13 +9,15 @@
 # moment the previous one lands. See scripts/README.md for the why and the gates.
 #
 # Env: POLL_SECONDS (default 20) between polls; MAX_WAIT_MINUTES (default 30)
-# per PR for the checks to finish; GRACE_SECONDS (default 120) for a new head's
+# per PR for the checks to finish (MAX_WAIT_SECONDS overrides it; used by the
+# tests); GRACE_SECONDS (default 120) for a new head's
 # checks to appear. The limits are wall-clock, not poll counts.
 # Exit 0 = every PR merged, 1 = stopped on a PR (reason on stderr), 2 = usage.
 set -u
 
 POLL_SECONDS="${POLL_SECONDS:-20}"
 MAX_WAIT_MINUTES="${MAX_WAIT_MINUTES:-30}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-$((MAX_WAIT_MINUTES * 60))}"
 GRACE_SECONDS="${GRACE_SECONDS:-120}"
 
 dry_run=0
@@ -75,7 +77,7 @@ wait_for_new_head() {
 # Poll the required checks (gh exits 0 pass, 1 fail, 8 pending), and treat "no
 # checks reported" as not yet while GitHub creates the new head's runs.
 wait_for_checks() {
-  local pr="$1" start="$SECONDS" out rc ctx missing
+  local pr="$1" start="$SECONDS" out rc ctx missing=""
   while :; do
     out="$(gh pr checks "$pr" --required 2>&1)"
     rc=$?
@@ -86,7 +88,8 @@ wait_for_checks() {
           printf '%s\n' "$out" | cut -f1 | grep -qx "$ctx" || missing="$missing $ctx"
         done
         [ -z "$missing" ] && return 0
-        [ $((SECONDS - start)) -ge "$GRACE_SECONDS" ] && stop "$pr" "required check(s) never reported:$missing"
+        # A required check can appear late on purpose: the `backend` aggregate
+        # only starts after its two halves finish. Wait for it like any check.
         ;;
       8) ;;
       *)
@@ -98,7 +101,7 @@ wait_for_checks() {
         fi
         ;;
     esac
-    [ $((SECONDS - start)) -ge $((MAX_WAIT_MINUTES * 60)) ] && stop "$pr" "checks still running after ${MAX_WAIT_MINUTES} minutes"
+    [ $((SECONDS - start)) -ge "$MAX_WAIT_SECONDS" ] && stop "$pr" "checks still running after ${MAX_WAIT_SECONDS}s${missing:+ (required, not yet reported:$missing)}"
     sleep "$POLL_SECONDS"
   done
 }

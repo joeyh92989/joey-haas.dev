@@ -7,7 +7,8 @@
 #   <n>.state (OPEN|MERGED)  <n>.draft  <n>.merge (CLEAN|BEHIND)  <n>.head
 #   <n>.mergeable  <n>.checks  <n>.mergefail (refusals left)
 # <n>.checks is: pass | fail | pending:<k> | none (no checks reported yet) |
-# partial (only `backend` ever reports) | behindonce (passes, but main moves
+# partial (only `backend` ever reports) | late:<k> (`frontend` is missing for the
+# first k polls, like an aggregate that starts last) | behindonce (passes, but main moves
 # on while it runs). Merging a PR makes every other open PR BEHIND, like
 # branch protection's strict rule; update-branch gives a PR a new head and
 # restarts its checks. `apifail` in the dir makes the compare API answer nothing.
@@ -57,6 +58,9 @@ case "$1 $2" in
       fail) printf 'backend\tfail\t1m\n'; exit 1 ;;
       none) echo "no checks reported on the 'x' branch"; exit 1 ;;
       partial) printf 'backend\tpass\t1m\n'; exit 0 ;;
+      late:*) k="${c#late:}"
+        if [ "$k" -le 0 ]; then echo pass >"$d/$pr.checks"; printf 'backend\tpass\t1m\nfrontend\tpass\t1m\n'; exit 0; fi
+        echo "late:$((k - 1))" >"$d/$pr.checks"; printf 'backend\tpass\t1m\n'; exit 0 ;;
       behindonce) echo pass >"$d/$pr.checks"; echo BEHIND >"$d/$pr.merge"
         printf 'backend\tpass\t1m\nfrontend\tpass\t1m\n'; exit 0 ;;
       pending:*) k="${c#pending:}"
@@ -85,7 +89,7 @@ new_pr() {
   echo "$2" >"$FAKE_DIR/$1.merge"; echo "$3" >"$FAKE_DIR/$1.checks"
   echo MERGEABLE >"$FAKE_DIR/$1.mergeable"; echo "sha$1" >"$FAKE_DIR/$1.head"
 }
-run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0 GRACE_SECONDS=1 MAX_WAIT_MINUTES=1 "$here/merge-train.sh" "$@" 2>"$FAKE_DIR/err" >"$FAKE_DIR/out"; echo $?; }
+run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0 GRACE_SECONDS=1 MAX_WAIT_SECONDS=2 "$here/merge-train.sh" "$@" 2>"$FAKE_DIR/err" >"$FAKE_DIR/out"; echo $?; }
 check() { # name expected actual
   if [ "$2" = "$3" ]; then echo "ok    $1"; else echo "FAIL  $1: expected '$2', got '$3'"; fails=$((fails + 1)); fi
 }
@@ -129,8 +133,11 @@ check "no checks ever reported stops" 1 "$(run 1)"
 check "...and says so" 1 "$(grep -c 'no required checks appeared' "$FAKE_DIR/err")"
 fresh t9; new_pr 1 CLEAN partial
 check "a required check that never reports stops" 1 "$(run 1)"
-check "...and names it" 1 "$(grep -c 'never reported: frontend' "$FAKE_DIR/err")"
+check "...and names it" 1 "$(grep -c 'not yet reported: frontend' "$FAKE_DIR/err")"
 check "...without merging" 0 "$(count 'pr merge')"
+fresh t9b; new_pr 1 CLEAN late:3
+check "a required check that appears late is waited for" 0 "$(run 1)"
+check "...and then merged" MERGED "$(cat "$FAKE_DIR/1.state")"
 fresh t10; new_pr 1 CLEAN behindonce
 check "falling behind during checks goes round again" 0 "$(run 1)"
 check "...with one update-branch" 1 "$(count 'update-branch 1')"

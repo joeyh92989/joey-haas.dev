@@ -48,7 +48,10 @@ it, as CLAUDE.md says.
 
 Environment (all optional): `POLL_SECONDS` (20) between polls,
 `MAX_WAIT_MINUTES` (30) per PR for the checks, `GRACE_SECONDS` (120) for the
-checks of a new head to appear. The limits are wall-clock time.
+checks of a new head to appear. The limits are wall-clock time. A required
+check that has not reported yet is waited for like a running one, up to
+`MAX_WAIT_MINUTES` (the `backend` aggregate only starts once its two halves
+finish), and named if it never shows.
 
 Exit 0 = every PR merged. Exit 1 = it stopped on a PR and said why on stderr.
 Exit 2 = bad usage.
