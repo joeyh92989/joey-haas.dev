@@ -134,9 +134,9 @@ function SeriesSearch({ onFollowChange }) {
 
   return (
     <section className="pull-list-search" aria-labelledby="pull-list-search">
-      <h2 id="pull-list-search">Find a series</h2>
+      <h2 id="pull-list-search">{adminCopy.pullList.findSeries}</h2>
       <form className="pull-list-search-form" onSubmit={search}>
-        <label htmlFor="series-query">Series name</label>
+        <label htmlFor="series-query">{adminCopy.pullList.seriesName}</label>
         <input
           id="series-query"
           type="search"
@@ -156,7 +156,7 @@ function SeriesSearch({ onFollowChange }) {
         </p>
       )}
       {results?.length === 0 && (
-        <p className="muted">Comic Vine has no series by that name.</p>
+        <p className="muted">{adminCopy.pullList.noSeries}</p>
       )}
       {results?.length > 0 && (
         <ul className="next-rows">
@@ -197,14 +197,14 @@ function SeriesSearch({ onFollowChange }) {
                   </button>
                   {!result.in_shelf &&
                     (result.wanted ? (
-                      <span className="muted">Wanted</span>
+                      <span className="muted">{adminCopy.pullList.wanted}</span>
                     ) : (
                       <button
                         type="button"
                         aria-label={`Want: ${result.title}`}
                         onClick={() => want(result)}
                       >
-                        Want
+                        {adminCopy.pullList.want}
                       </button>
                     ))}
                   <Link
@@ -363,7 +363,7 @@ export default function AdminPullList() {
 
   const header = (
     <AdminPageHeader
-      title="Pull list"
+      title={adminCopy.pullList.title}
       description={adminCopy.pullList.description}
     >
       {state === 'ready' && (
@@ -386,7 +386,8 @@ export default function AdminPullList() {
       <section className="pull-list">
         {header}
         <p>
-          <Link to="/admin">Sign in</Link> to see the pull list.
+          <Link to="/admin">{adminCopy.pullList.signIn}</Link>{' '}
+          {adminCopy.pullList.toSeeList}
         </p>
       </section>
     )
@@ -428,11 +429,13 @@ export default function AdminPullList() {
               <h2 id={`week-${week.start}`}>
                 Week of {shortDate(week.start)}
                 {week.this_week && (
-                  <span className="next-badge">this week</span>
+                  <span className="next-badge">
+                    {adminCopy.pullList.thisWeek}
+                  </span>
                 )}
               </h2>
               {week.rows.length === 0 ? (
-                <p className="muted">Nothing out.</p>
+                <p className="muted">{adminCopy.pullList.nothingOut}</p>
               ) : (
                 <ul className="next-rows">
                   {week.rows.map((row) => {
@@ -478,7 +481,7 @@ export default function AdminPullList() {
                               aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'got')}
                             >
-                              Got it
+                              {adminCopy.pullList.gotIt}
                             </button>
                             <button
                               type="button"
@@ -486,7 +489,7 @@ export default function AdminPullList() {
                               aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'skip')}
                             >
-                              Skip
+                              {adminCopy.pullList.skip}
                             </button>
                           </div>
                         )}

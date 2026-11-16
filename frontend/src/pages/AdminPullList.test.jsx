@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import AdminPullList from './AdminPullList.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 const issue = (title, number, fields = {}) => ({
   item_id: `id-${title}`,
@@ -109,7 +110,10 @@ afterEach(() => {
 })
 
 async function search(text = 'batman') {
-  await userEvent.type(screen.getByLabelText('Series name'), text)
+  await userEvent.type(
+    screen.getByLabelText(adminCopy.pullList.seriesName),
+    text,
+  )
   await userEvent.click(screen.getByRole('button', { name: 'Search' }))
 }
 
@@ -125,7 +129,7 @@ describe('AdminPullList', () => {
     expect(week).toHaveTextContent('Image · Nov 4 · own 1–72 of 72')
     expect(
       screen.getByRole('region', { name: /Week of Nov 9/ }),
-    ).toHaveTextContent('Nothing out.')
+    ).toHaveTextContent(adminCopy.pullList.nothingOut)
     expect(screen.getByText('No store date yet: Paper Girls.')).toBeVisible()
     expect(
       screen.getByText(/Following 2 series · last refresh Oct 31/),

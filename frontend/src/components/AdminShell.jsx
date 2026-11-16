@@ -4,6 +4,7 @@ import NavSheet from './NavSheet.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 import { ADMIN_AREAS, areaFor, currentPage, segmentsFor } from './adminAreas.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /** Below this width the rail and page list give way to tabs and segments. */
 export const PHONE_QUERY = '(max-width: 900px)'
@@ -95,18 +96,18 @@ function AreaRail({ current, badges }) {
   return (
     <div className="admin-rail">
       <span className="admin-rail-mark" aria-hidden="true">
-        jh
+        {adminCopy.shell.mark}
       </span>
-      <nav aria-label="Areas" className="admin-rail-nav">
+      <nav aria-label={adminCopy.shell.areas} className="admin-rail-nav">
         <AreaLinks
           current={current}
           badges={badges}
           iconClass="admin-rail-icon"
         />
       </nav>
-      <Link to="/" className="admin-rail-site" title="View site">
+      <Link to="/" className="admin-rail-site" title={adminCopy.shell.viewSite}>
         <span aria-hidden="true">↗</span>
-        <span className="visually-hidden">View site</span>
+        <span className="visually-hidden">{adminCopy.shell.viewSite}</span>
       </Link>
     </div>
   )
@@ -169,11 +170,11 @@ function AreaPages({
         {email && <p className="admin-side-email">{email}</p>}
         <p>
           <Link to="/">
-            View site <span aria-hidden="true">↗</span>
+            {adminCopy.shell.viewSite} <span aria-hidden="true">↗</span>
           </Link>
           {' · '}
           <button type="button" className="link-button" onClick={onSignOut}>
-            Sign out
+            {adminCopy.shell.signOut}
           </button>
         </p>
       </div>
@@ -340,17 +341,17 @@ export default function AdminShell({
           <p className="admin-phone-foot">
             {email && <span className="admin-side-email">{email}</span>}
             <Link to="/">
-              View site <span aria-hidden="true">↗</span>
+              {adminCopy.shell.viewSite} <span aria-hidden="true">↗</span>
             </Link>
             <button type="button" className="link-button" onClick={onSignOut}>
-              Sign out
+              {adminCopy.shell.signOut}
             </button>
           </p>
         )}
       </main>
 
       {phone && (
-        <nav aria-label="Areas" className="admin-tabs">
+        <nav aria-label={adminCopy.shell.areas} className="admin-tabs">
           <AreaLinks
             current={area}
             badges={badges}
