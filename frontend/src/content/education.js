@@ -28,7 +28,7 @@ export const education = [
 /** Rendered as a chip row beneath the education timeline, in this order. */
 export const certifications = [
   'Certified Scrum Product Owner · Scrum Alliance',
-  'Pragmatic Marketing Certified · Pragmatic Institute',
+  'Pragmatic Marketing Certification · Pragmatic Institute',
 ]
 
 /** Rendered as a chip row after the certifications on the About page. */
