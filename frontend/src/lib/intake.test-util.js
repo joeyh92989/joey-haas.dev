@@ -84,7 +84,7 @@ export const KINDS = [
     key: 'garment',
     area: 'closet',
     label: 'Garment',
-    ways_in: ['photo', 'type', 'file'],
+    ways_in: ['photo', 'type', 'file', 'link'],
     has_details: false,
     source_state: null,
     fields: [
@@ -169,6 +169,8 @@ export function fakeIntakeApi({
   add,
   garments = [],
   file,
+  links,
+  choose,
   seedImages,
 } = {}) {
   const state = {
@@ -263,6 +265,28 @@ export function fakeIntakeApi({
               problems: [],
             },
           }
+      return json(answer.status, answer.body)
+    }
+    if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/links$/))) {
+      const answer = links
+        ? links(state.sittings[m[1]], body)
+        : {
+            status: 201,
+            body: {
+              entries: [],
+              read: 1,
+              kept: 0,
+              not_links: 0,
+              duplicates: 0,
+            },
+          }
+      return json(answer.status, answer.body)
+    }
+    if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/choose$/))) {
+      const found = findEntry(m[1])
+      const answer = choose
+        ? await choose(found, body)
+        : { status: 200, body: found }
       return json(answer.status, answer.body)
     }
     if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/seed-images$/))) {

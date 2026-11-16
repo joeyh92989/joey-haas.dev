@@ -232,7 +232,52 @@ export const MAX_SEED_BYTES = 1024 * 1024
 
 /** An entry made from a seed file row: the server's own `seed` record. */
 export function isSeedEntry(entry) {
-  return entry.kind === 'garment' && Boolean(entry.payload?.seed)
+  return (
+    entry.kind === 'garment' &&
+    Boolean(entry.payload?.seed) &&
+    !entry.payload?.link
+  )
+}
+
+/** An entry made from a pasted product link: the server's `link` record. */
+export function isLinkEntry(entry) {
+  return entry.kind === 'garment' && Boolean(entry.payload?.link)
+}
+
+/** Product links the server reads in one paste (intake/link_import.py). */
+export const MAX_LINKS = 10
+
+/**
+ * The addresses in pasted text: one per line, blanks dropped, repeats
+ * dropped. Anything is passed on as typed; the server says which lines were
+ * not addresses.
+ *
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function linesOf(text) {
+  return [
+    ...new Set(
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+  ]
+}
+
+/** Whether the add bar's text is a pasted link rather than a piece's name. */
+export function looksLikeLink(text) {
+  return /^https?:\/\/\S+$/i.test(text.trim())
+}
+
+/** The store's host, for a link's kicker; the link itself when unreadable. */
+export function linkHost(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
 }
 
 /**
@@ -271,4 +316,18 @@ export function editedPayload(payload, edits) {
     else next[key] = text
   }
   return next
+}
+
+/**
+ * The keys a link piece's Check edit sends: trimmed, a blank as '' (the
+ * server removes it). Only these change on the server, so a save made
+ * before a colour choice cannot put the old colour's fields back.
+ */
+export function editedKeys(edits) {
+  return Object.fromEntries(
+    Object.entries(edits).map(([key, value]) => [
+      key,
+      String(value ?? '').trim(),
+    ]),
+  )
 }

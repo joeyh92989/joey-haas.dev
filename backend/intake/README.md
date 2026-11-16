@@ -21,8 +21,8 @@ and the entries read from them or typed in.
   chosen match's metadata plus the payload's `ItemIn` fields, and records a
   physical copy. Board games are typed only while BGG needs a token.
 - `garment_kind.py` — the closet's garment: no source, no details step;
-  `to_row` keeps only `GarmentFields` keys. Ways in: photo, type and
-  **file** (the seed file below). Its fields include brand, store colour
+  `to_row` keeps only `GarmentFields` keys. Ways in: photo, type,
+  **file** (the seed file below) and **link** (`link_import.py`). Its fields include brand, store colour
   and size.
 - `seed_file.py` (pure), `seed_import.py`, `seed_image.py` — the closet's
   **From a file** way in (issue #396, `docs/planning/2026-11-16-closet-products-design.md`
@@ -80,6 +80,83 @@ and the entries read from them or typed in.
     same instant can write them twice (no unique index backs the "already
     imported" check; one would need a migration). There is no undo route; the list is plain JSON in
     `closet_settings` (`{"keys": [...]}`).
+- `closet_resolver.py` (backend root), `link_import.py` — the closet's
+  **From links** way in (issue #398, design D11). Paste up to 10 product
+  addresses (the add bar's **From links**, or one link typed into the bar);
+  `POST /sittings/{id}/links` makes one `typed` garment entry per link, with
+  **no model call**. `closet_resolver.resolve(url)` reads a link in this
+  order and never raises for a store's behaviour:
+  1. **Shopify's per-product JSON**, `<origin>/products/<handle>.json` (also
+     behind `/collections/x/` or a locale prefix): title, vendor (brand),
+     options, variants (id, option values, price, available, image), images.
+     Colours are the variants grouped by the `Color` option; a product with
+     no such option (Duer lists one product per colour) takes its colour
+     from the `color_` tag, else the title after " - "; a size is the other
+     option values joined by " / ". Marine Layer and Duer both answer this.
+  2. **JSON-LD** `Product` / `ProductGroup` (`hasVariant`, `@graph` arrays):
+     name, brand, `color`, `size`, image, `offers.price`, sku, url.
+  3. Otherwise the link is **kept as typed** (name from `og:title`/`<title>`
+     or the handle) with the link saved.
+  Every fetch is guarded as `seed_image.py` (https on 443 only, every
+  address public, redirects by hand, 3 MB cap, 20 s in all, no
+  compression), a redirect may only stay on the store's own site, requests
+  to a host are spaced two a second (`HostThrottle`) and `robots.txt` is
+  read per RFC 9309 before any path (`courtesy.robots_for`; an unreachable
+  file is a disallow; only the `.json` disallowed falls back to the page).
+  A store that refuses (robots, 403/429, timeout, non-https, private
+  address, not a product page) leaves an entry with `payload.link.state`
+  `kept` and the reason in `payload.link.message`, never a failed sitting.
+  - An entry's payload is the seed file's: the fields Check edits, the
+    server-only `seed` record (`source` is `marinelayer`/`duer` by host,
+    else `link`) and `image`, plus the server-only `link` record
+    (`{url, state resolved|kept, via shopify|jsonld, code, message}`).
+    `PATCH` of a link piece **merges**: only the keys sent change (a blank
+    removes one) and the server's keys stay, so a Check save sent before a
+    colour choice cannot put the old colour back (file pieces still replace
+    the payload). The product's **colours are the entry's `candidates`**
+    (`{external_id, title, color_name, image_url, price, sizes: [{size,
+    variant_id, available}]}`). One colour, or the colour and size of a
+    `?variant=` in the link, is chosen at once; with several Check's radio
+    calls `POST /entries/{id}/choose {external_id}` (row locked; 409 for a
+    removed or written piece; only a stored candidate can be picked), which
+    sets the store colour verbatim, the family (`closet_colors.colour_family`,
+    blank to be asked), the price and the photo (the old held photo is
+    dropped; the new one is fetched next). A size the owner typed stays
+    unless the new colour lists sizes without it. Size is a select over the
+    colour's sizes.
+  - **One piece is one product, colour and size.** The store's own ids are
+    only unique inside a product (a JSON-LD page with no sku is `c0`
+    everywhere), so `store_item_no` is `closet_resolver.item_ref`: host,
+    path and colour id, cut to 80 characters and hashed past that. A kept
+    link's is its address. The "already imported" key is
+    `source|item|<store_item_no>|<size>`, rebuilt **at commit** from the
+    payload as Check left it (`link_import.entry_key`); the product's
+    snapshot stores the piece's `size` so `imported_keys` rebuilds the same
+    string. Another size of one colour is another piece; a repeat is
+    counted `already_owned`, never silent. A piece offering several colours
+    with none chosen is **refused at commit** (422, field `color_name`).
+  - Limits: a paste is 10 links; a sitting holds 100 link pieces (422); all
+    the links of a paste share 45 s, after which unanswered ones are kept as
+    typed (`timeout`); one link that raises anything is kept as typed
+    (`unreadable`), never a 500. A link with control characters or
+    whitespace after decoding is not requested. Addresses in
+    `64:ff9b::/96` (NAT64) and IPv4-mapped IPv6 are checked or refused with
+    the other non-public ones, in `seed_image._public` for both fetchers.
+  - **Photos** are the seed file's: `POST /sittings/{id}/seed-images` fetches
+    each once through `seed_image.fetch_image` into a held 800 px
+    `intake_photos` row. A photo is written only if its address is still the
+    entry's (`fetch_pending` re-reads the locked row), so a colour chosen
+    while it was coming is not overwritten by the old colour's photo. The
+    page runs one loop per sitting (`lib/useSeedImages.js`) that asks until
+    nothing is pending.
+  - **Commit** is the seed file's (`_seed_garment`): a garment `untagged`,
+    `tag_source` NULL, `color_source` vendor, plus its `garment_products`
+    row with `url` the link as pasted, `title`, `price`, `snapshot` the
+    **parsed product** (never the raw page) and `fetched_at` the read time.
+    "Don't own this" is the file's alone (409 for a link piece); a link
+    piece is removed from the sitting instead.
+  Tests run offline against fixtures recorded by
+  `scripts/record_closet_fixtures.py` (`tests/fixtures/closet/`).
 - `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
 - `reader.py` — `read_next()`, behind `POST /api/intake/sittings/{id}/read-next`.
   One call claims the sitting's oldest `uploaded` shelf photo in one
