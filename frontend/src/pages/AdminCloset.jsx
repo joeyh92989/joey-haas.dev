@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useOutletContext } from 'react-router'
+import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import GarmentTable from '../components/GarmentTable.jsx'
@@ -176,7 +177,10 @@ export default function AdminCloset() {
   }
 
   const header = (
-    <AdminPageHeader title="Closet" description={countsLine(closet?.counts)} />
+    <AdminPageHeader
+      title={adminCopy.closet.title}
+      description={countsLine(closet?.counts)}
+    />
   )
 
   if (!closet) {
@@ -236,7 +240,7 @@ export default function AdminCloset() {
                   })
                 }
               >
-                Show them
+                {adminCopy.closet.showThem}
               </button>
               {waiting > 0 && (
                 <button
@@ -245,7 +249,7 @@ export default function AdminCloset() {
                   disabled={tagging?.state === 'tagging'}
                   onClick={tagNow}
                 >
-                  Tag now
+                  {adminCopy.closet.tagNow}
                 </button>
               )}
             </span>
@@ -280,7 +284,11 @@ export default function AdminCloset() {
             onChange={(next) => setFilter((prev) => settleFilter(prev, next))}
           />
           <div className="closet-toolbar-end">
-            <div className="chip-row" role="group" aria-label="View">
+            <div
+              className="chip-row"
+              role="group"
+              aria-label={adminCopy.closet.view}
+            >
               {[
                 ['grid', 'Grid'],
                 ['list', 'List'],
@@ -306,11 +314,9 @@ export default function AdminCloset() {
         )}
 
         {garments.length === 0 ? (
-          <p className="muted">
-            Nothing here yet. ▤ Photos adds pieces, one per photo.
-          </p>
+          <p className="muted">{adminCopy.closet.nothingYet}</p>
         ) : shown.length === 0 ? (
-          <p className="muted">Nothing matches these chips.</p>
+          <p className="muted">{adminCopy.closet.nothingMatches}</p>
         ) : view === 'list' ? (
           <GarmentTable garments={shown} />
         ) : (

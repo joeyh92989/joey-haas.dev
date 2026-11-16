@@ -11,6 +11,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminCloset from './AdminCloset.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 function garment(id, name, fields = {}) {
   return {
@@ -219,7 +220,9 @@ describe('AdminCloset', () => {
     expect(line.closest('.intake-waiting')).toHaveTextContent(
       '3 photos waiting for tags',
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Tag now' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closet.tagNow }),
+    )
     expect(
       await screen.findByText(/2 tagged, 1 still queued/),
     ).toBeInTheDocument()
@@ -243,7 +246,9 @@ describe('AdminCloset', () => {
       renderCloset()
       await act(async () => {})
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Tag now' }))
+        fireEvent.click(
+          screen.getByRole('button', { name: adminCopy.closet.tagNow }),
+        )
       })
       return calls
     }
@@ -356,7 +361,7 @@ describe('AdminCloset', () => {
     })
     renderCloset()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Tag now' }),
+      await screen.findByRole('button', { name: adminCopy.closet.tagNow }),
     )
     expect(
       await screen.findByText(/tagging is already running/),
@@ -368,7 +373,9 @@ describe('AdminCloset', () => {
     renderCloset()
     await screen.findByRole('list')
     expect(tiles()).toContain('/admin/closet/d')
-    await userEvent.click(screen.getByRole('button', { name: 'Show them' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closet.showThem }),
+    )
     expect(tiles()).toEqual(['/admin/closet/d'])
   })
 

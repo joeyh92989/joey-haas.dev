@@ -56,6 +56,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import closet
 import closet_opinion
 from closet_routes import garment_out, load_profile, profile_out
+from closet_schemas import (
+    DecisionOut,
+    DismissOut,
+    GarmentOut,
+    MovedOut,
+    OpinionJobOut,
+    ReviewOut,
+    UndoOut,
+)
 from closet_today_routes import owner_today
 from items import require_admin
 from llm import LLMError, LLMProvider
@@ -230,7 +239,7 @@ def create_closet_review_router(
         cards = closet.deck(held, day, is_open, await _kept_since(session, turn.on))
         return cards, held, rows, {"profile": profile, "turn": turn, "open": is_open}
 
-    @router.get("/review")
+    @router.get("/review", response_model=ReviewOut)
     async def review(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         day = today()
         cards, held, rows, state = await _deck(session, day)
@@ -242,14 +251,14 @@ def create_closet_review_router(
         opinions = batch.get("opinions") or {}
         by_id = {h.id: h for h in held}
 
-        def out(garment_id: str) -> dict[str, Any]:
+        def out(garment_id: str) -> GarmentOut:
             row = rows[garment_id]
             return garment_out(
                 row,
                 has_image=row.id in photos,
                 wears_12mo=by_id[garment_id].wears_12mo,
                 last_worn=by_id[garment_id].last_worn,
-            ).model_dump(mode="json")
+            )
 
         kept = await _kept_since(session, turn.on)
         members = [h for h in closet.turn_members(held, day) if h.id not in kept]
@@ -373,7 +382,7 @@ def create_closet_review_router(
             raise HTTPException(status_code=404, detail="No such garment")
         return rows[0]
 
-    @router.post("/garments/{garment_id}/decision")
+    @router.post("/garments/{garment_id}/decision", response_model=DecisionOut)
     async def decide(
         garment_id: uuid.UUID,
         body: DecisionIn,
@@ -407,7 +416,7 @@ def create_closet_review_router(
         await session.commit()
         return {"undo": token, "id": str(row.id), "status": row.status.value}
 
-    @router.post("/garments/{garment_id}/sold")
+    @router.post("/garments/{garment_id}/sold", response_model=DecisionOut)
     async def mark_sold(
         garment_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -425,7 +434,7 @@ def create_closet_review_router(
         await session.commit()
         return {"undo": token, "id": str(row.id), "status": row.status.value}
 
-    @router.post("/pack-all")
+    @router.post("/pack-all", response_model=MovedOut)
     async def pack_all(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The season turn's Pack all: every active garment out of season,
         packed until its window opens."""
@@ -455,7 +464,7 @@ def create_closet_review_router(
         await session.commit()
         return {"ids": [h.id for h in members], "undo": token}
 
-    @router.post("/unpack-all")
+    @router.post("/unpack-all", response_model=MovedOut)
     async def unpack_all(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -483,7 +492,7 @@ def create_closet_review_router(
         ids = {str(row.id) for row in targets}
         return {"ids": [h.id for h in due if h.id in ids], "undo": token}
 
-    @router.post("/undo")
+    @router.post("/undo", response_model=UndoOut)
     async def undo(
         body: UndoIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -538,7 +547,7 @@ def create_closet_review_router(
         await session.commit()
         return {"ids": restored, "skipped": len(left)}
 
-    @router.post("/review/dismiss")
+    @router.post("/review/dismiss", response_model=DismissOut)
     async def dismiss(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """Close the current turn's banner (and its out-of-season flags)."""
         day = today()
@@ -604,7 +613,7 @@ def create_closet_review_router(
         logger.info("closet opinion: %s", summary)
         return summary
 
-    @router.post("/jobs/opinion")
+    @router.post("/jobs/opinion", response_model=OpinionJobOut)
     async def opinion_job(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:

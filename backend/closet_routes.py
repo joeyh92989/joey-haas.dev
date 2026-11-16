@@ -63,6 +63,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import closet_tag
 from closet_images import ClosetImageError, make_thumbnail, read_capped
+from closet_schemas import (
+    GarmentListOut,
+    GarmentOut,
+    JobStatusOut,
+    ProfileOut,
+    TagJobOut,
+    TagNowOut,
+    UploadOut,
+)
 from importer import ACCEPTED_MEDIA_TYPES
 from items import require_admin
 from llm import Image, LLMError, LLMProvider
@@ -149,36 +158,6 @@ TEXT_FIELDS = (
     "material",
     "notes",
 )
-
-
-class GarmentOut(BaseModel):
-    id: uuid.UUID
-    name: str | None
-    category: GarmentCategory | None
-    subtype: str | None
-    brand: str | None
-    primary_color: str | None
-    primary_hex: str | None
-    secondary_color: str | None
-    secondary_hex: str | None
-    pattern: str | None
-    material: str | None
-    warmth: int | None
-    formality: int | None
-    seasons: list[int]
-    notes: str | None
-    acquired_on: date | None
-    status: GarmentStatus
-    back_on: date | None
-    tag_source: GarmentTagSource | None
-    tag_attempts: int
-    created_at: datetime
-    updated_at: datetime
-    # The photo's URL, versioned by updated_at so a changed garment is
-    # fetched again; null for a garment without one.
-    image: str | None
-    wears_12mo: int
-    last_worn: date | None
 
 
 class ProfileFields(BaseModel):
@@ -558,7 +537,7 @@ def create_closet_router(
             last_worn=last,
         )
 
-    @router.get("/garments")
+    @router.get("/garments", response_model=GarmentListOut)
     async def list_garments(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -605,13 +584,13 @@ def create_closet_router(
             "counts": {"total": len(rows), **counts},
         }
 
-    @router.get("/garments/{garment_id}")
+    @router.get("/garments/{garment_id}", response_model=GarmentOut)
     async def get_garment(
         garment_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> GarmentOut:
         return await _one_out(session, await _found(session, garment_id))
 
-    @router.post("/garments", status_code=201)
+    @router.post("/garments", status_code=201, response_model=GarmentOut)
     async def create_garment(
         fields: GarmentFields, session: AsyncSession = Depends(get_session)
     ) -> GarmentOut:
@@ -628,7 +607,7 @@ def create_closet_router(
         await session.refresh(row)
         return garment_out(row, has_image=False)
 
-    @router.patch("/garments/{garment_id}")
+    @router.patch("/garments/{garment_id}", response_model=GarmentOut)
     async def patch_garment(
         garment_id: uuid.UUID,
         fields: GarmentFields,
@@ -643,7 +622,8 @@ def create_closet_router(
         await session.refresh(row)
         return await _one_out(session, row)
 
-    @router.delete("/garments/{garment_id}", status_code=204)
+    # 204: no body, so no model.
+    @router.delete("/garments/{garment_id}", status_code=204, response_model=None)
     async def delete_garment(
         garment_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> Response:
@@ -654,7 +634,7 @@ def create_closet_router(
         await session.commit()
         return Response(status_code=204)
 
-    @router.post("/garments/photos", status_code=201)
+    @router.post("/garments/photos", status_code=201, response_model=UploadOut)
     async def upload_photos(
         photos: list[UploadFile] = File(),
         session: AsyncSession = Depends(get_session),
@@ -694,7 +674,8 @@ def create_closet_router(
             "garments": [garment_out(row, has_image=True) for row in rows],
         }
 
-    @router.get("/garments/{garment_id}/image")
+    # The photo as WebP bytes (or a 304), not JSON.
+    @router.get("/garments/{garment_id}/image", response_model=None)
     async def garment_image(
         garment_id: uuid.UUID,
         if_none_match: str | None = Header(default=None),
@@ -714,13 +695,13 @@ def create_closet_router(
             raise HTTPException(status_code=404, detail="That garment has no photo")
         return Response(content=image.webp, media_type="image/webp", headers=headers)
 
-    @router.get("/profile")
+    @router.get("/profile", response_model=ProfileOut)
     async def get_profile(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
         return profile_out(await load_profile(session))
 
-    @router.patch("/profile")
+    @router.patch("/profile", response_model=ProfileOut)
     async def patch_profile(
         fields: ProfileFields, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -734,7 +715,7 @@ def create_closet_router(
         await session.refresh(row)
         return profile_out(row)
 
-    @router.get("/status")
+    @router.get("/status", response_model=JobStatusOut)
     async def job_status(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -929,7 +910,7 @@ def create_closet_router(
         )
         await session.commit()
 
-    @router.post("/tag")
+    @router.post("/tag", response_model=TagNowOut)
     async def tag_now(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The page's Tag now: one batch, whatever the nightly budget says."""
         if run_lock.locked():
@@ -944,7 +925,7 @@ def create_closet_router(
                 "remaining": await _remaining(session),
             }
 
-    @router.post("/jobs/tag")
+    @router.post("/jobs/tag", response_model=TagJobOut)
     async def tag_job(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The nightly step: batches until the profile's budget of calls is
         spent, a model error stops it, or the queue is empty. Writes its

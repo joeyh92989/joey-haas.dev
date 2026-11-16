@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownerYear } from '../lib/formatDate.js'
 import AdminLayout from '../layouts/AdminLayout.jsx'
 import AdminJobs from './AdminJobs.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
@@ -424,14 +425,16 @@ describe('Admin Jobs', () => {
       screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('region', { name: 'Recent changes' }),
+      screen.getByRole('region', { name: adminCopy.jobs.recentChanges }),
     ).toBeInTheDocument()
   })
 
   it('lists the newest edits and runs, each linked', async () => {
     stubApi()
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Recent changes' })
+    const panel = await screen.findByRole('region', {
+      name: adminCopy.jobs.recentChanges,
+    })
     const table = await within(panel).findByRole('table')
     const rows = within(table).getAllByRole('row').slice(1)
     expect(rows[0]).toHaveTextContent('Sources refresh')

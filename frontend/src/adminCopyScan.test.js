@@ -37,6 +37,13 @@ describe('admin copy scan', () => {
     expect(hits.map((h) => h.text).sort()).toEqual(['Hi there', 'Some words'])
   })
 
+  it('skips code after a greater-than operator', () => {
+    const hits = scanSource(
+      `<div>{list.length > 0 && (<p>Words</p>)}{a > 0 || b ? <b>x</b> : null}</div>`,
+    )
+    expect(hits.map((h) => h.text)).toEqual(['Words'])
+  })
+
   it('lets no Admin file gain inline strings beyond its baseline', () => {
     const found = scanAll()
     if (process.env.ADMIN_COPY_LIST) {

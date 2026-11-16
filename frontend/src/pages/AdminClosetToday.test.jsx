@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminClosetToday from './AdminClosetToday.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 function tile(slot, id, name, extra = {}) {
   return {
@@ -145,7 +146,8 @@ function renderPage() {
   )
 }
 
-const card = () => screen.getByRole('region', { name: 'Wear this' })
+const card = () =>
+  screen.getByRole('region', { name: adminCopy.closetToday.wearThis })
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -170,12 +172,16 @@ describe('AdminClosetToday', () => {
     expect(
       screen.getByText('Monday, Nov 9 · planned last night'),
     ).toBeInTheDocument()
-    const weather = screen.getByRole('region', { name: 'Weather' })
+    const weather = screen.getByRole('region', {
+      name: adminCopy.closetToday.weather,
+    })
     expect(weather).toHaveTextContent('34°')
     expect(weather).toHaveTextContent('58°')
     expect(weather).toHaveTextContent('Cold morning, mild afternoon.')
     expect(within(card()).getByText('Navy and grey keep it calm.'))
-    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    const alts = screen.getByRole('list', {
+      name: adminCopy.closetToday.alternatives,
+    })
     expect(within(alts).getAllByRole('listitem')).toHaveLength(2)
     expect(within(alts).getByText('grey tee · jeans · white sneakers'))
     expect(
@@ -205,7 +211,9 @@ describe('AdminClosetToday', () => {
     expect(
       within(card()).getByText('picked without the model'),
     ).toBeInTheDocument()
-    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    const alts = screen.getByRole('list', {
+      name: adminCopy.closetToday.alternatives,
+    })
     expect(
       within(alts).getByText('Template pick. Picked without the model.'),
     ).toBeInTheDocument()
@@ -295,10 +303,14 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    const ask = screen.getByRole('button', { name: 'Not this…' })
+    const ask = screen.getByRole('button', {
+      name: adminCopy.closetToday.notThis,
+    })
     await userEvent.click(ask)
     expect(ask).toHaveAttribute('aria-expanded', 'true')
-    const reasons = screen.getByRole('group', { name: 'Why not this' })
+    const reasons = screen.getByRole('group', {
+      name: adminCopy.closetToday.whyNotThis,
+    })
     await userEvent.click(
       within(reasons).getByRole('button', { name: 'Too warm' }),
     )
@@ -331,7 +343,9 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.swapPiece }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(
       await within(sheet).findByRole('button', { name: /flannel/ }),
@@ -339,7 +353,9 @@ describe('AdminClosetToday', () => {
     await waitFor(() =>
       expect(within(card()).getByText('flannel')).toBeInTheDocument(),
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Not this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.notThis }),
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Too warm' }))
     await waitFor(() =>
       expect(within(card()).getByText('grey tee')).toBeInTheDocument(),
@@ -358,7 +374,9 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Not this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.notThis }),
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Too formal' }))
     await waitFor(() => expect(calls.at(-1).path).toBe('/api/closet/plan'))
     expect(calls.at(-1).body).toMatchObject({
@@ -393,7 +411,9 @@ describe('AdminClosetToday', () => {
         'You locked the navy oxford. Picked without the model.',
       ),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.swapPiece }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(
       await within(sheet).findByRole('button', { name: /flannel/ }),
@@ -422,7 +442,9 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.swapPiece }),
+    )
     const sheet = await screen.findByRole('dialog')
     expect(
       await within(sheet).findByText('Nothing else fits this slot today.'),
@@ -446,7 +468,9 @@ describe('AdminClosetToday', () => {
       ),
     ).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     expect(await screen.findByText('Worn ✓')).toBeInTheDocument()
     expect(calls.at(-1).body).toEqual({
       occasion: 'office',
@@ -467,15 +491,19 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     expect(await within(card()).findByText('Worn ✓')).toBeInTheDocument()
     expect(calls.at(-1).body.source).toBe('planned')
     expect(
-      screen.queryByRole('button', { name: 'Wore this' }),
+      screen.queryByRole('button', { name: adminCopy.closetToday.woreThis }),
     ).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Change' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.change }),
+    )
     expect(
-      screen.getByRole('button', { name: 'Wore this' }),
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
     ).toBeInTheDocument()
   })
 
@@ -492,16 +520,22 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    const alts = screen.getByRole('list', {
+      name: adminCopy.closetToday.alternatives,
+    })
     await userEvent.click(
-      within(alts).getAllByRole('button', { name: 'Wear this instead' })[0],
+      within(alts).getAllByRole('button', {
+        name: adminCopy.closetToday.wearThisInstead,
+      })[0],
     )
     expect(within(card()).getByText('grey tee')).toBeInTheDocument()
     // The old lead takes the alternative's place.
     expect(
       within(alts).getByText('navy oxford · grey chinos · white sneakers'),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     await screen.findByText('Worn ✓')
     expect(calls.at(-1).body).toMatchObject({
       source: 'alternative',
@@ -528,10 +562,14 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.matchThis }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(
-      within(sheet).getByRole('button', { name: 'From the closet' }),
+      within(sheet).getByRole('button', {
+        name: adminCopy.closetToday.fromCloset,
+      }),
     )
     const pick = await within(sheet).findByRole('button', { name: /jeans/ })
     expect(within(sheet).queryByText('packed coat')).not.toBeInTheDocument()
@@ -571,34 +609,45 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.matchThis }),
+    )
     const sheet = await screen.findByRole('dialog')
     const file = new File(['x'], 'shirt.jpg', { type: 'image/jpeg' })
     // The input is visually hidden: its label carries the focus ring.
     expect(
-      within(sheet).getByText('From a photo').closest('label'),
+      within(sheet).getByText(adminCopy.closetToday.fromPhoto).closest('label'),
     ).toHaveClass('btn-file')
-    await userEvent.upload(within(sheet).getByLabelText('From a photo'), file)
+    await userEvent.upload(
+      within(sheet).getByLabelText(adminCopy.closetToday.fromPhoto),
+      file,
+    )
     expect(await within(card()).findByText('green shirt')).toBeInTheDocument()
     const match = calls.find((c) => c.path === '/api/closet/match')
     expect(match.body.get('photo')).toBe(file)
     expect(match.body.get('occasion')).toBe('office')
     // A piece not owned cannot be recorded as worn.
-    expect(screen.getByRole('button', { name: 'Wore this' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    ).toBeDisabled()
     expect(
       screen.queryByRole('button', { name: 'Build around the green shirt' }),
     ).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Save as owned' }))
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Wore this' })).toBeEnabled(),
+      expect(
+        screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+      ).toBeEnabled(),
     )
     const save = calls.find((c) => c.path === '/api/closet/garments/from-match')
     expect(save.body.get('photo')).toBe(file)
     expect(JSON.parse(save.body.get('attributes'))).toEqual(attributes)
     expect(within(card()).getByText('not worn yet')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     await screen.findByText('Worn ✓')
     expect(calls.at(-1).body).toMatchObject({
       source: 'own',
@@ -620,7 +669,7 @@ describe('AdminClosetToday', () => {
     renderPage()
     expect(await screen.findByText('Nothing fits the day')).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Wore this' }),
+      screen.queryByRole('button', { name: adminCopy.closetToday.woreThis }),
     ).not.toBeInTheDocument()
   })
 
@@ -652,8 +701,12 @@ describe('AdminClosetToday', () => {
       await within(card()).findByText('Worn today: another outfit'),
     ).toBeInTheDocument()
     expect(within(card()).queryByText('Worn ✓')).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Change' }))
-    expect(screen.getByRole('button', { name: 'Wore this' })).toBeEnabled()
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.change }),
+    )
+    expect(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    ).toBeEnabled()
   })
 
   it('after Wore this, a chip with another lead says another outfit', async () => {
@@ -670,7 +723,9 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     expect(await within(card()).findByText('Worn ✓')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Date' }))
     expect(
@@ -692,7 +747,9 @@ describe('AdminClosetToday', () => {
     await screen.findByText('navy oxford')
     const status = screen.getByRole('status')
     expect(status).toHaveTextContent(/^$/)
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     expect(status).toHaveTextContent('Recording…')
     // The chips are disabled, not silently ignored, while it runs.
     expect(screen.getByRole('button', { name: 'Date' })).toBeDisabled()
@@ -710,7 +767,9 @@ describe('AdminClosetToday', () => {
     it('names the wait with seconds once slow, then says it is still working', async () => {
       stub({ 'GET /api/closet/today': () => new Promise(() => {}) })
       renderPage()
-      expect(screen.getByText('Loading…')).toBeInTheDocument()
+      expect(
+        screen.getByText(adminCopy.closetToday.loading),
+      ).toBeInTheDocument()
       await act(async () => {
         vi.advanceTimersByTime(3000)
       })
@@ -751,7 +810,9 @@ describe('AdminClosetToday', () => {
       )
       expect(asked).toBe(1)
       await act(async () => {
-        screen.getByRole('button', { name: 'Retry' }).click()
+        screen
+          .getByRole('button', { name: adminCopy.closetToday.retry })
+          .click()
       })
       expect(asked).toBe(2)
       expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -763,14 +824,18 @@ describe('AdminClosetToday', () => {
       renderPage()
       await act(async () => {})
       expect(screen.getByRole('alert')).toHaveTextContent(/didn.t load/)
-      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: adminCopy.closetToday.retry }),
+      ).toBeInTheDocument()
       status = 401
       await act(async () => {
-        screen.getByRole('button', { name: 'Retry' }).click()
+        screen
+          .getByRole('button', { name: adminCopy.closetToday.retry })
+          .click()
       })
       expect(screen.getByRole('alert')).toHaveTextContent(/Your session ended/)
       expect(
-        screen.queryByRole('button', { name: 'Retry' }),
+        screen.queryByRole('button', { name: adminCopy.closetToday.retry }),
       ).not.toBeInTheDocument()
     })
 
@@ -800,10 +865,14 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.matchThis }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(
-      within(sheet).getByRole('button', { name: 'From the closet' }),
+      within(sheet).getByRole('button', {
+        name: adminCopy.closetToday.fromCloset,
+      }),
     )
     await userEvent.click(
       await within(sheet).findByRole('button', { name: /jeans/ }),
@@ -812,7 +881,9 @@ describe('AdminClosetToday', () => {
       expect(within(card()).getByText('grey tee')).toBeInTheDocument(),
     )
     await waitFor(() =>
-      expect(document.activeElement).toHaveTextContent('Wear this'),
+      expect(document.activeElement).toHaveTextContent(
+        adminCopy.closetToday.wearThis,
+      ),
     )
     expect(document.activeElement).toHaveAttribute('id', 'today-wear')
   })
@@ -836,10 +907,12 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    await userEvent.click(screen.getByRole('button', { name: 'Match this…' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.matchThis }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.upload(
-      within(sheet).getByLabelText('From a photo'),
+      within(sheet).getByLabelText(adminCopy.closetToday.fromPhoto),
       new File(['x'], 'shirt.jpg', { type: 'image/jpeg' }),
     )
     const save = await screen.findByRole('button', { name: 'Save as owned' })
@@ -877,16 +950,24 @@ describe('AdminClosetToday', () => {
     })
     renderPage()
     await screen.findByText('navy oxford')
-    const alts = screen.getByRole('list', { name: 'Alternatives' })
+    const alts = screen.getByRole('list', {
+      name: adminCopy.closetToday.alternatives,
+    })
     await userEvent.click(
-      within(alts).getAllByRole('button', { name: 'Wear this instead' })[0],
+      within(alts).getAllByRole('button', {
+        name: adminCopy.closetToday.wearThisInstead,
+      })[0],
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Swap a piece' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.swapPiece }),
+    )
     const sheet = await screen.findByRole('dialog')
     await userEvent.click(
       await within(sheet).findByRole('button', { name: /flannel/ }),
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Wore this' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.closetToday.woreThis }),
+    )
     await within(card()).findByText('Worn ✓')
     expect(calls.at(-1).body.source).toBe('swapped')
   })
