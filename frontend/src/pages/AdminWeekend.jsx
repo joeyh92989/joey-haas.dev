@@ -14,6 +14,7 @@ import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { WEEKDAY_DAY } from '../lib/formatDate.js'
 import EmptyState from '../components/EmptyState.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 const copy = denver.weekend
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -151,7 +152,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
           value={miles}
           onChange={(event) => setMiles(event.target.value)}
         />
-        <span aria-hidden="true">mi</span>
+        <span aria-hidden="true">{adminCopy.weekend.miles}</span>
       </label>
       <label className="wk-field">
         {copy.homeBy}

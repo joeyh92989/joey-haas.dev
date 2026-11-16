@@ -10,6 +10,7 @@ import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
@@ -293,12 +294,16 @@ export default function AdminSpots() {
                   <table className="item-table spots-table">
                     <thead>
                       <tr>
-                        <th scope="col">Spot</th>
-                        <th scope="col">Tags</th>
-                        {!phone && <th scope="col">Last visit</th>}
-                        <th scope="col">Public</th>
+                        <th scope="col">{adminCopy.spots.spot}</th>
+                        <th scope="col">{adminCopy.spots.tags}</th>
+                        {!phone && (
+                          <th scope="col">{adminCopy.spots.lastVisit}</th>
+                        )}
+                        <th scope="col">{adminCopy.spots.isPublic}</th>
                         <th scope="col">
-                          <span className="visually-hidden">Actions</span>
+                          <span className="visually-hidden">
+                            {adminCopy.spots.actions}
+                          </span>
                         </th>
                       </tr>
                     </thead>
@@ -308,7 +313,9 @@ export default function AdminSpots() {
                           <th scope="row" className="spots-name">
                             <span>{spot.name}</span>
                             {spot.anchor && (
-                              <span className="spots-anchor">Anchor</span>
+                              <span className="spots-anchor">
+                                {adminCopy.spots.anchor}
+                              </span>
                             )}
                             {spot.neighbourhood && (
                               <span className="spots-hood">
@@ -350,7 +357,7 @@ export default function AdminSpots() {
                               onClick={(event) => openForm(event, spot)}
                               aria-label={`Edit ${spot.name}`}
                             >
-                              Edit
+                              {adminCopy.spots.edit}
                             </button>
                             <button
                               type="button"
@@ -358,7 +365,7 @@ export default function AdminSpots() {
                               disabled={busy.has(spot.id)}
                               aria-label={`Log a visit to ${spot.name}`}
                             >
-                              Log visit
+                              {adminCopy.spots.logVisit}
                             </button>
                           </td>
                         </tr>

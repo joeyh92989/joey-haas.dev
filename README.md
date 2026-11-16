@@ -779,8 +779,10 @@ render `adminCopy.<key>`; a file that loses one fails until the baseline is
 lowered, so the baseline only shrinks. List what remains with
 `cd frontend && ADMIN_COPY_LIST=1 npx vitest run src/adminCopyScan.test.js`.
 The scan is a regex, not a parser: it misses strings built in JavaScript
-(template literals, ternaries, variables) and other props, and can count text
-after a `>` operator, so treat the numbers as a floor to ratchet, not a census.
+(template literals, ternaries, variables) and other props, so it is a floor, not a
+census. With #300 finished the baseline is all zeros and holds no false
+positives (the scan skips code after a `>` operator, text with `&&` or `||`),
+so any new inline admin string fails the test.
 
 ## Smoke test
 
