@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural + UI
 mode: auto
 ---
@@ -80,3 +80,16 @@ Ship notes: one additive migration (0020), applied by the Deploy API workflow on
 ## Open questions
 
 None blocking. The #400 spike decides D9's default.
+
+## Outcome (2026-11-16)
+
+Merged: #405 (#393), #406 (#395), #407 (#394), #408 (#397), #409 (#396), #410 (#401), #413 (#398), #412 (#402), #415 (#399); #403 closed as part of #396. Deviations from the plan:
+
+- **D2 kept:** garment images are 800px and the grid rendition is made on read (`?size=thumb`); no second migration. Existing garments stay at 400px until re-uploaded.
+- **D5 changed in detail:** a file entry holds its photo as an `intake_photos` row until commit, so nothing reaches `garments` early; photos are fetched during Check, not at upload or commit.
+- **D7 kept:** `closet_settings["import.not_owned"]` holds the durable not-owned keys; the dedupe and not-owned keys carry size and colour.
+- **D9 kept:** ranker thumbnails sit behind `closet_settings["rank.images"]`, default off, no admin control; `backend/scripts/closet_rank_images_probe.py` records the with/without comparison once the closet has photos. **#400 stays open** until that is run.
+- **D11 kept:** the resolver is `backend/closet_resolver.py`; a candidate is a colour (its first variant id), not a variant.
+- **#399 widened:** add or replace a garment's photo, and attach a product (read, then confirm; PATCH rather than PUT because CORS allows no PUT). A manual colour or size is kept unless a replace flag is sent.
+- **Seed load:** 45 owned pieces loaded from the Stitch Fix export (34) and the other stores' order lines (11); the 11 have no photo until attached with #399.
+- **Known limits:** two sittings committing the same file rows at the same instant can double-write (needs a unique index); DNS rebinding is accepted for the admin-only fetches; a changed vendor colour does not update an existing colour family.
