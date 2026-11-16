@@ -782,3 +782,49 @@ async def test_typing_a_number_marks_it_typed_and_a_bad_one_is_refused(
     assert backwards.status_code == 422
     # a refused edit changes nothing
     assert after.json()["entries"][0]["payload"]["issue_number"] is None
+
+
+@pytest.mark.asyncio
+async def test_every_json_route_declares_a_response_model(sessionmaker_for_test):
+    """#373: no JSON route answers without a model, so the OpenAPI schema
+    pins every body. A 204 and the image answer have no JSON body."""
+    async with client_for(sessionmaker_for_test) as client:
+        spec = (await client.get("/openapi.json")).json()
+    unpinned = []
+    for path, methods in spec["paths"].items():
+        for method, op in methods.items():
+            ok = op["responses"].get("200") or op["responses"].get("201")
+            if ok is None or path.endswith("/image"):
+                continue  # a 204, or the image bytes
+            schema = ok.get("content", {}).get("application/json", {}).get("schema")
+            if schema in (None, {}) or schema == {"type": "object"}:
+                unpinned.append(f"{method.upper()} {path}")
+    assert unpinned == []
+
+
+@pytest.mark.asyncio
+async def test_bodies_keep_their_exact_keys(sessionmaker_for_test):
+    """The models add and drop nothing: the keys today's bodies carry."""
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="game")
+        assert set(sitting) == {
+            "id", "area", "kind", "label", "step", "photos", "entries",
+        }  # fmt: skip
+        entry = (
+            await client.post(
+                f"/api/intake/sittings/{sitting['id']}/entries",
+                json={"kind": "game", "payload": {"title": "Hades"}},
+            )
+        ).json()
+        # number_check is a comic's alone; a game's body never carries it.
+        assert set(entry) == {
+            "id", "photo_id", "kind", "state", "payload", "candidates",
+            "chosen", "garment_id", "on_shelf",
+        }  # fmt: skip
+        (summary,) = (await client.get("/api/intake/sittings?area=shelf")).json()
+        assert set(summary) == {
+            "id", "area", "kind", "label", "step", "photos", "photos_waiting",
+            "entries", "created_at", "updated_at",
+        }  # fmt: skip
+        budget = (await client.get("/api/intake/budget")).json()
+        assert set(budget) == {"remaining", "enforced", "resets_at"}

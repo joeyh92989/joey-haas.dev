@@ -189,16 +189,15 @@ describe('AdminComics', () => {
     await renderPage()
     const group = screen.getByRole('group', { name: 'Actions for Saga' })
     expect(
-      within(group).getByRole('button', { name: 'Follow' }),
+      within(group).getByRole('button', { name: adminCopy.comics.follow }),
     ).toHaveAttribute('aria-pressed', 'true')
     expect(within(group).getByLabelText('Public: Saga')).toBeChecked()
     expect(
       within(group).getByRole('link', { name: 'Cover wall · 18 missing' }),
     ).toHaveAttribute('href', '/shelf/s/')
-    expect(within(group).getByRole('link', { name: 'Edit' })).toHaveAttribute(
-      'href',
-      '/admin/shelf/comics/s',
-    )
+    expect(
+      within(group).getByRole('link', { name: adminCopy.comics.edit }),
+    ).toHaveAttribute('href', '/admin/shelf/comics/s')
   })
 
   it('has no cover-wall link on a private series, only Edit', async () => {
@@ -207,7 +206,7 @@ describe('AdminComics', () => {
     const group = screen.getByRole('group', { name: 'Actions for Monstress' })
     expect(within(group).queryByRole('link', { name: /Cover wall/ })).toBeNull()
     expect(
-      within(group).getByRole('link', { name: 'Edit' }),
+      within(group).getByRole('link', { name: adminCopy.comics.edit }),
     ).toBeInTheDocument()
   })
 
@@ -224,14 +223,18 @@ describe('AdminComics', () => {
     const mock = stubApi()
     await renderPage()
     const group = screen.getByRole('group', { name: 'Actions for Monstress' })
-    await userEvent.click(within(group).getByRole('button', { name: 'Follow' }))
+    await userEvent.click(
+      within(group).getByRole('button', { name: adminCopy.comics.follow }),
+    )
     await waitFor(() => expect(writes(mock)).toHaveLength(1))
     const [url, options] = writes(mock)[0]
     expect(url).toContain('/api/comics/follow')
     expect(JSON.parse(options.body)).toEqual({ external_id: '4051' })
 
     const saga = screen.getByRole('group', { name: 'Actions for Saga' })
-    await userEvent.click(within(saga).getByRole('button', { name: 'Follow' }))
+    await userEvent.click(
+      within(saga).getByRole('button', { name: adminCopy.comics.follow }),
+    )
     await waitFor(() => expect(writes(mock)).toHaveLength(2))
     expect(writes(mock)[1][0]).toContain('/api/comics/unfollow')
   })
@@ -336,7 +339,9 @@ describe('AdminComics', () => {
     expect(
       await screen.findByText('No comics on the shelf yet.'),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Add comics' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: adminCopy.comics.addComics }),
+    ).toBeInTheDocument()
   })
 
   it('says so when the read fails', async () => {

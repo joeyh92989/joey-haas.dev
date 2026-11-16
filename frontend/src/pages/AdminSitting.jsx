@@ -11,6 +11,7 @@ import DetailsStep from '../components/intake/DetailsStep.jsx'
 import DoneStep from '../components/intake/DoneStep.jsx'
 import ShootStep from '../components/intake/ShootStep.jsx'
 import SittingStepper from '../components/intake/SittingStepper.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 import { LOAD_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { useReadNext } from '../lib/useReadNext.js'
@@ -253,7 +254,7 @@ function AdminSitting() {
       )}
       {!sitting && !failed && (
         <p className="muted" role="status">
-          Loading…
+          {adminCopy.sitting.loading}
         </p>
       )}
       {sitting && step && (
@@ -287,7 +288,8 @@ function AdminSitting() {
               next={
                 steps.includes('details') ? (
                   <>
-                    Details <span aria-hidden="true">→</span>
+                    {adminCopy.sitting.details}{' '}
+                    <span aria-hidden="true">→</span>
                   </>
                 ) : (
                   `Add ${writable} to ${target}`

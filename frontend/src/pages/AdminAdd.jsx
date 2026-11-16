@@ -4,6 +4,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import KindTile from '../components/intake/KindTile.jsx'
 import UnfinishedList from '../components/intake/UnfinishedList.jsx'
 import LoadState from '../components/LoadState.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { addPath, areaOfPath, sittingLabel } from '../lib/intake.js'
 
@@ -114,7 +115,7 @@ export default function AdminAdd() {
   return (
     <>
       <AdminPageHeader
-        title="Add"
+        title={adminCopy.add.title}
         description={
           area === 'closet'
             ? 'a sitting: photograph pieces, one per photo'
@@ -129,13 +130,13 @@ export default function AdminAdd() {
       )}
       {!kinds && !failed && (
         <p className="muted" role="status">
-          Loading…
+          {adminCopy.add.loading}
         </p>
       )}
       {kinds && (
         <>
           <h2 className="kicker" id="intake-start">
-            Start a sitting
+            {adminCopy.add.startSitting}
           </h2>
           <div
             role="group"
