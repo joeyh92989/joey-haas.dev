@@ -23,6 +23,7 @@ from models import (
     ClosetSetting,
     Garment,
     GarmentCategory,
+    GarmentColorSource,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -565,3 +566,117 @@ async def test_a_second_run_while_one_runs_is_a_409(sessionmaker_for_test):
     ):
         assert (await client.post("/api/closet/tag")).status_code == 409
         assert (await client.post("/api/closet/jobs/tag")).status_code == 409
+
+
+# --- colour guard (#394) ----------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "source", [GarmentColorSource.VENDOR, GarmentColorSource.MANUAL]
+)
+async def test_a_set_colour_survives_a_tag_run(sessionmaker_for_test, source):
+    """Mirrors a seed-imported garment: UNTAGGED, no tag source, colour from
+    the store, brand and size set (plan D6)."""
+    ids = await seed(
+        sessionmaker_for_test,
+        1,
+        color_source=source,
+        color_name="Burgundy",
+        primary_color="burgundy",
+        primary_hex="#800020",
+        secondary_color="cream",
+        secondary_hex="#fffdd0",
+        brand="Duer",
+        size="M",
+    )
+    provider = FakeProvider(
+        {
+            "items": [
+                {
+                    "index": 0,
+                    "attributes": attrs(
+                        0,
+                        primary_color="red",
+                        primary_hex="#ff0000",
+                        secondary_color="white",
+                        secondary_hex="#ffffff",
+                        brand="Other",
+                        pattern="solid",
+                        material="cotton",
+                    ),
+                }
+            ]
+        }
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        response = await client.post("/api/closet/tag")
+    assert response.json()["tagged"] == 1
+    (row,) = await rows(sessionmaker_for_test, ids)
+    assert (row.color_name, row.primary_color) == ("Burgundy", "burgundy")
+    assert (row.primary_hex, row.secondary_color, row.secondary_hex) == (
+        "#800020",
+        "cream",
+        "#fffdd0",
+    )
+    assert row.color_source == source
+    assert (row.brand, row.size) == ("Duer", "M")
+    assert (row.warmth, row.formality, row.seasons) == (2, 3, [1, 2, 3])
+    assert (row.pattern, row.material) == ("solid", "cotton")
+    assert row.status == GarmentStatus.ACTIVE
+    assert row.tag_source == GarmentTagSource.MODEL
+
+
+@pytest.mark.asyncio
+async def test_a_protected_garment_without_a_brand_gets_the_models(
+    sessionmaker_for_test,
+):
+    ids = await seed(
+        sessionmaker_for_test,
+        1,
+        color_source=GarmentColorSource.VENDOR,
+        color_name="Burgundy",
+        primary_color="burgundy",
+    )
+    provider = FakeProvider(
+        {"items": [{"index": 0, "attributes": attrs(0, brand="Levi's")}]}
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/tag")
+    (row,) = await rows(sessionmaker_for_test, ids)
+    assert row.brand == "Levi's"
+    assert row.primary_color == "burgundy"
+
+
+@pytest.mark.asyncio
+async def test_a_garment_with_no_colour_source_is_tagged_and_marked_model(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test, 1)
+    provider = FakeProvider(answer([0]))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/tag")
+    (row,) = await rows(sessionmaker_for_test, ids)
+    assert (row.primary_color, row.primary_hex) == ("navy", "#1f2a44")
+    assert row.color_source == GarmentColorSource.MODEL
+    assert row.color_name is None
+
+
+@pytest.mark.asyncio
+async def test_a_hand_edited_garment_with_a_colour_is_never_retagged(
+    sessionmaker_for_test,
+):
+    ids = await seed(
+        sessionmaker_for_test,
+        1,
+        tag_source=GarmentTagSource.MANUAL,
+        color_source=GarmentColorSource.MANUAL,
+        color_name="Burgundy",
+    )
+    provider = FakeProvider(answer([0]))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        response = await client.post("/api/closet/tag")
+    assert response.json()["tagged"] == 0
+    assert provider.calls == []
+    (row,) = await rows(sessionmaker_for_test, ids)
+    assert row.color_name == "Burgundy"
