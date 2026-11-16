@@ -25,6 +25,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { comicPayload } from '../lib/comics.js'
 import { finishedIn } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
+import { adminCopy } from '../content/adminCopy.js'
 import { tagMoreLabels } from '../content/tags.js'
 import {
   filterByTags,
@@ -818,14 +819,14 @@ export default function AdminCollection() {
               className="chip"
               onClick={() => setFilters({ ...NO_GAME_FILTER, unrated: true })}
             >
-              Show them
+              {adminCopy.collection.showThem}
             </button>
             <button
               type="button"
               className="link-button"
               onClick={() => setNudgeDismissed(true)}
             >
-              Dismiss
+              {adminCopy.collection.dismiss}
             </button>
           </div>
         )}
@@ -936,7 +937,7 @@ export default function AdminCollection() {
   const ready = status === 'ready' && items.length > 0
   const header = (
     <AdminPageHeader
-      title="Games"
+      title={adminCopy.collection.gamesTitle}
       description={
         ready ? `${publicCount} of ${items.length} public` : undefined
       }
@@ -945,7 +946,7 @@ export default function AdminCollection() {
         View {gamesPath()} <span aria-hidden="true">↗</span>
       </Link>
       <Link to="/admin/collection/add" className="btn sm">
-        Add games
+        {adminCopy.collection.addGames}
       </Link>
       {ready && (
         <>
@@ -965,7 +966,7 @@ export default function AdminCollection() {
             disabled={bulkBusy || publicCount === 0}
             onClick={() => setAllVisibility(false)}
           >
-            Hide all
+            {adminCopy.collection.hideAll}
           </button>
           <button
             type="button"
@@ -977,7 +978,11 @@ export default function AdminCollection() {
               ? 'Refreshing…'
               : `Refresh ${REFRESH_TYPE} metadata`}
           </button>
-          <div className="chip-row" role="group" aria-label="View">
+          <div
+            className="chip-row"
+            role="group"
+            aria-label={adminCopy.collection.view}
+          >
             {[
               ['shelf', 'Shelf'],
               ['list', 'List'],
@@ -1012,7 +1017,8 @@ export default function AdminCollection() {
       <section>
         {header}
         <p className="admin-error" role="alert">
-          Not signed in. <Link to="/admin">Go to admin</Link>.
+          {adminCopy.collection.notSignedIn}{' '}
+          <Link to="/admin">{adminCopy.collection.goToAdmin}</Link>.
         </p>
       </section>
     )
@@ -1048,7 +1054,10 @@ export default function AdminCollection() {
       {savedComic && (
         <p role="status">
           Saved “{savedComic}”. Comics show on{' '}
-          <Link to="/admin/shelf/comics">the Comics page</Link>, not here.
+          <Link to="/admin/shelf/comics">
+            {adminCopy.collection.comicsPage}
+          </Link>
+          {adminCopy.collection.notHere}
         </p>
       )}
 
@@ -1065,7 +1074,7 @@ export default function AdminCollection() {
           open={fullOpen}
           onToggle={(event) => setFullOpen(event.currentTarget.open)}
         >
-          <summary>Add with the full form</summary>
+          <summary>{adminCopy.collection.addWithFullForm}</summary>
 
           <MetadataPicker type={form.type} onSelect={applyCandidate} />
 
@@ -1098,18 +1107,20 @@ export default function AdminCollection() {
                     <div
                       className="bulk-set"
                       role="group"
-                      aria-label="Selected items"
+                      aria-label={adminCopy.collection.selectedItems}
                     >
                       <span>{selected.size} selected</span>
                       <label>
-                        Set platform
+                        {adminCopy.collection.setPlatform}
                         <select
                           value={bulkPlatform}
                           onChange={(event) =>
                             setBulkPlatform(event.target.value)
                           }
                         >
-                          <option value="">unchanged</option>
+                          <option value="">
+                            {adminCopy.collection.unchanged}
+                          </option>
                           {PLATFORM_OPTIONS.map(([id, name]) => (
                             <option key={id} value={id}>
                               {name}
@@ -1118,14 +1129,16 @@ export default function AdminCollection() {
                         </select>
                       </label>
                       <label>
-                        Set format
+                        {adminCopy.collection.setFormat}
                         <select
                           value={bulkFormat}
                           onChange={(event) =>
                             setBulkFormat(event.target.value)
                           }
                         >
-                          <option value="">unchanged</option>
+                          <option value="">
+                            {adminCopy.collection.unchanged}
+                          </option>
                           {FORMAT_OPTIONS.map(([format, label]) => (
                             <option key={format} value={format}>
                               {label}
@@ -1140,7 +1153,7 @@ export default function AdminCollection() {
                         }
                         onClick={applyBulkSet}
                       >
-                        Apply
+                        {adminCopy.collection.apply}
                       </button>
                       <ShelfConfirm
                         key={[...selected].sort().join(',')}
@@ -1158,7 +1171,7 @@ export default function AdminCollection() {
                         <th>
                           <input
                             type="checkbox"
-                            aria-label="Select all"
+                            aria-label={adminCopy.collection.selectAll}
                             checked={
                               items.length > 0 && selected.size === items.length
                             }
@@ -1166,14 +1179,16 @@ export default function AdminCollection() {
                           />
                         </th>
                         <th>
-                          <span className="visually-hidden">Cover</span>
+                          <span className="visually-hidden">
+                            {adminCopy.collection.cover}
+                          </span>
                         </th>
-                        <th>Type</th>
-                        <th>Title</th>
-                        <th>Platform</th>
-                        <th>Status</th>
-                        <th>Rating</th>
-                        <th>Public</th>
+                        <th>{adminCopy.collection.type}</th>
+                        <th>{adminCopy.collection.title}</th>
+                        <th>{adminCopy.collection.platform}</th>
+                        <th>{adminCopy.collection.status}</th>
+                        <th>{adminCopy.collection.rating}</th>
+                        <th>{adminCopy.collection.isPublic}</th>
                         <th />
                       </tr>
                     </thead>

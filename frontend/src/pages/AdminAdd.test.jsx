@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { entry, fakeIntakeApi, KINDS, photo } from '../lib/intake.test-util.js'
 import AdminAdd from './AdminAdd.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 function Sitting() {
   return <p data-testid="sitting">{useParams().sittingId}</p>
@@ -42,7 +43,9 @@ describe('AdminAdd', () => {
   it('builds a tile per kind of the area, with the ways in each declared', async () => {
     fakeIntakeApi()
     renderAt()
-    const tiles = await screen.findByRole('group', { name: 'Start a sitting' })
+    const tiles = await screen.findByRole('group', {
+      name: adminCopy.add.startSitting,
+    })
     const names = within(tiles)
       .getAllByRole('button')
       .map((tile) => tile.querySelector('.intake-kind-name').textContent)
@@ -125,7 +128,9 @@ describe('AdminAdd', () => {
   it('gives the Closet one kind and goes straight to its tile', async () => {
     fakeIntakeApi()
     renderAt('/admin/closet/add')
-    const tiles = await screen.findByRole('group', { name: 'Start a sitting' })
+    const tiles = await screen.findByRole('group', {
+      name: adminCopy.add.startSitting,
+    })
     expect(within(tiles).getAllByRole('button')).toHaveLength(1)
     expect(within(tiles).getByRole('button')).toHaveTextContent('Garment')
   })
@@ -133,7 +138,9 @@ describe('AdminAdd', () => {
   it('names the Closet start button Garment for assistive tech', async () => {
     fakeIntakeApi()
     renderAt('/admin/closet/add')
-    const tiles = await screen.findByRole('group', { name: 'Start a sitting' })
+    const tiles = await screen.findByRole('group', {
+      name: adminCopy.add.startSitting,
+    })
     expect(within(tiles).getByRole('button', { name: /Garment/ })).toBeEnabled()
   })
 
