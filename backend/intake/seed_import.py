@@ -59,7 +59,7 @@ NOT_OWNED_KEY = "import.not_owned"
 # Photos fetched per request: the page asks again until none is pending.
 IMAGE_BATCH = 4
 # The payload keys only the server writes; a PATCH from the page keeps them.
-SERVER_KEYS = ("seed", "image", "image_error")
+SERVER_KEYS = ("seed", "image", "image_error", "link")
 COUNTS = (
     "added",
     "skipped_not_owned",
@@ -309,12 +309,19 @@ async def fetch_pending(
     urls = [(entry.payload["seed"]["image_url"]) for entry in batch]
     answers = await asyncio.gather(*(_fetch_one(url) for url in urls))
     changed = []
-    for entry, (photo, error) in zip(batch, answers, strict=True):
+    for entry, url, (photo, error) in zip(batch, urls, answers, strict=True):
         fresh = await session.scalar(
-            select(IntakeEntry).where(IntakeEntry.id == entry.id).with_for_update()
+            select(IntakeEntry)
+            .where(IntakeEntry.id == entry.id)
+            .with_for_update()
+            # The page may have changed the entry while the photo was coming:
+            # read the row, not the copy this session loaded before.
+            .execution_options(populate_existing=True)
         )
         if fresh is None or not _pending(fresh):
             continue  # removed or answered meanwhile
+        if fresh.payload["seed"]["image_url"] != url:
+            continue  # another photo was chosen meanwhile; it is fetched next
         payload = dict(fresh.payload)
         if photo is None:
             payload["image"] = "failed"

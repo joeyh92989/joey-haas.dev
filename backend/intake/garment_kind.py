@@ -2,7 +2,8 @@
 
 A garment has no source to match against, and its photo is the garment's
 own picture, so there is no details step: the tag queue reads it later. A
-seed file ("file") makes drafts without a photograph (`intake/seed_import.py`).
+seed file ("file") makes drafts without a photograph (`intake/seed_import.py`),
+and so does a product link ("link", `intake/link_import.py`).
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ register(
         key="garment",
         area=IntakeArea.CLOSET,
         label="Garment",
-        ways_in=("photo", "type", "file"),
+        ways_in=("photo", "type", "file", "link"),
         source=None,
         has_details=False,
         fields=(

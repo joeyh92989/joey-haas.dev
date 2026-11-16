@@ -44,6 +44,16 @@ from intake.commit import (
     series_on_shelf_for,
 )
 from intake.kinds import REGISTRY, describe
+from intake.link_import import (
+    MAX_LINKS,
+    ChoiceRefused,
+    EntryGone,
+    TooManyLinks,
+    choose_colour,
+    import_links,
+    is_link,
+    merge_edit,
+)
 from intake.nightly import LAST_RUN_KEY, run_nightly
 from intake.reader import read_next
 from intake.schemas import (
@@ -54,6 +64,7 @@ from intake.schemas import (
     EntryOut,
     FileImportOut,
     KindOut,
+    LinksOut,
     NightlySummaryOut,
     PhotoOut,
     ReadNextOut,
@@ -138,8 +149,21 @@ class AddIn(BaseModel):
 CHOSEN_REFUSED = "A chosen result needs its external_source and external_id"
 
 NOT_FROM_A_FILE = "Only a piece from a seed file can be marked not owned"
+TOO_MANY_LINKS = f"Paste at most {MAX_LINKS} links at a time"
 
 TAG_AGAIN_REFUSED = "Only a piece the tagger gave up on can be tagged again"
+
+
+class LinksIn(BaseModel):
+    """Pasted product addresses, one per item (the page splits lines)."""
+
+    urls: list[str] = Field(min_length=1, max_length=MAX_LINKS)
+
+
+class ChooseIn(BaseModel):
+    """A colour among the entry's own candidates, by `external_id`."""
+
+    external_id: str = Field(min_length=1, max_length=200)
 
 
 class EntryPatch(BaseModel):
@@ -588,6 +612,65 @@ def create_intake_router(
         await session.commit()
         return {**result.counts(), "problems": result.problems or []}
 
+    @router.post(
+        "/sittings/{sitting_id}/links", status_code=201, response_model=LinksOut
+    )
+    async def add_links(
+        sitting_id: uuid.UUID,
+        body: LinksIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """The closet's "From links": each product address becomes one draft
+        garment entry (`intake/link_import.py`), read from the store's own
+        product JSON or page, with no model call. A store that refuses, or a
+        page with no product, leaves the entry kept as typed with the reason
+        in `payload.link.message`; the sitting never fails for it. Nothing
+        reaches the closet until the sitting is committed. 409 for a shelf
+        sitting, 422 when nothing pasted was an address."""
+        sitting = await _sitting_or_404(session, sitting_id)
+        if sitting.area is not IntakeArea.CLOSET or sitting.kind not in (
+            None,
+            "garment",
+        ):
+            raise HTTPException(409, "Links can only be added to a closet sitting")
+        try:
+            result = await import_links(session, sitting.id, body.urls)
+        except TooManyLinks as refused:
+            raise HTTPException(422, str(refused)) from None
+        if not result.entries and result.duplicates == 0:
+            raise HTTPException(422, "Paste product addresses that start with https://")
+        sitting.step = "check"
+        sitting.updated_at = func.now()
+        await session.commit()
+        return {
+            "entries": await entries_json(session, result.entries),
+            **result.counts(),
+        }
+
+    @router.post("/entries/{entry_id}/choose", response_model=EntryOut)
+    async def choose(
+        entry_id: uuid.UUID,
+        body: ChooseIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Check's colour radio for a pasted link: the entry takes the chosen
+        colour's name, family, price and photo (the photo is fetched again).
+        Only a colour the link itself offered can be chosen (422)."""
+        entry = await session.scalar(
+            select(IntakeEntry).where(IntakeEntry.id == entry_id).with_for_update()
+        )
+        if entry is None:
+            raise HTTPException(404, "No such entry")
+        try:
+            await choose_colour(session, entry, body.external_id)
+        except EntryGone as gone:
+            raise HTTPException(409, str(gone)) from None
+        except ChoiceRefused as refused:
+            raise HTTPException(422, str(refused)) from None
+        await session.commit()
+        [shown] = await entries_json(session, [entry])
+        return shown
+
     @router.post("/sittings/{sitting_id}/seed-images", response_model=SeedImagesOut)
     async def fetch_seed_images(
         sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
@@ -702,7 +785,11 @@ def create_intake_router(
             if field == "state" and value is None:
                 continue
             if field == "payload" and value is not None and entry.kind == "garment":
-                value = keep_server_keys(entry.payload or {}, value)
+                value = (
+                    merge_edit(entry.payload or {}, value)
+                    if is_link(entry)
+                    else keep_server_keys(entry.payload or {}, value)
+                )
             if field == "payload" and entry.kind == "comic" and value is not None:
                 try:
                     value = edit_book(entry.payload, value)
@@ -726,7 +813,7 @@ def create_intake_router(
         if entry is None:
             raise HTTPException(404, "No such entry")
         seed = (entry.payload or {}).get("seed")
-        if not seed:
+        if not seed or not seed.get("not_owned_key"):
             raise HTTPException(409, NOT_FROM_A_FILE)
         await add_not_owned(session, [seed["not_owned_key"]])
         payload = {

@@ -1,5 +1,6 @@
 """robots.txt checks (RFC 9309), on every store host's recorded robots.txt."""
 
+import asyncio
 import time
 from pathlib import Path
 
@@ -198,3 +199,15 @@ def test_a_star_heavy_pattern_is_matched_in_linear_time():
 def test_glob_matching(pattern, path, matches):
     robots = parse_robots(f"User-agent: *\nDisallow: {pattern}\n")
     assert allowed(robots, f"https://example.test{path}") is not matches
+
+
+@pytest.mark.asyncio
+async def test_the_throttle_forgets_hosts_it_is_done_with():
+    from physical_sources.base import HostThrottle
+
+    throttle = HostThrottle(per_second=1000)
+    throttle.MAX_HOSTS = 5
+    for index in range(20):
+        await throttle.wait(f"host{index}.test")
+        await asyncio.sleep(0.003)
+    assert len(throttle._locks) <= 6

@@ -128,7 +128,21 @@ class HostThrottle:
         self._retried[host] = used + 1
         return True
 
+    MAX_HOSTS = 1024
+
+    def _prune(self, now: float) -> None:
+        """Forgets hosts whose spacing is over, so a long-lived process that
+        is handed many different hosts (pasted links) does not grow without
+        bound. A host in use (its lock held) stays."""
+        for host in [h for h, due in self._next.items() if due <= now]:
+            lock = self._locks.get(host)
+            if lock is None or not lock.locked():
+                self._next.pop(host, None)
+                self._locks.pop(host, None)
+
     async def wait(self, host: str) -> None:
+        if len(self._locks) > self.MAX_HOSTS:
+            self._prune(asyncio.get_running_loop().time())
         lock = self._locks.setdefault(host, asyncio.Lock())
         async with lock:
             loop = asyncio.get_running_loop()

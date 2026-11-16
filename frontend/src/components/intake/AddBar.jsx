@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake as words } from '../../content/seedIntake.js'
 
 /**
@@ -16,6 +17,9 @@ import { seedIntake as words } from '../../content/seedIntake.js'
  * @param {() => void} props.onPhotos
  * @param {(file: File) => void} [props.onFile] Offered only where a kind has
  *   the `file` way in: "From a file" picks a seed CSV.
+ * @param {() => void} [props.onLinks] Offered only where a kind has the
+ *   `link` way in: "From links" opens the paste panel.
+ * @param {boolean} [props.linksOpen] The paste panel is showing.
  * @param {boolean} [props.busy] A search or a new sitting is under way.
  * @param {import('react').Ref<HTMLInputElement>} props.inputRef
  */
@@ -26,6 +30,8 @@ export default function AddBar({
   onSubmit,
   onPhotos,
   onFile,
+  onLinks,
+  linksOpen = false,
   busy = false,
   inputRef,
 }) {
@@ -74,6 +80,18 @@ export default function AddBar({
             onClick={() => filePicker.current?.click()}
           >
             <span aria-hidden="true">▦</span> {words.button}
+          </button>
+        )}
+        {onLinks && (
+          <button
+            type="button"
+            className="btn"
+            aria-label={linkIntake.buttonLabel}
+            aria-expanded={linksOpen}
+            disabled={busy}
+            onClick={onLinks}
+          >
+            <span aria-hidden="true">↗</span> {linkIntake.button}
           </button>
         )}
         <button

@@ -107,7 +107,7 @@ async def test_the_built_in_kinds(sessionmaker_for_test):
     assert served["game"]["ways_in"] == ["photo", "search", "type"]
     assert served["garment"]["area"] == "closet"
     assert served["garment"]["has_details"] is False
-    assert served["garment"]["ways_in"] == ["photo", "type", "file"]
+    assert served["garment"]["ways_in"] == ["photo", "type", "file", "link"]
     movie_fields = {field["key"] for field in served["movie"]["fields"]}
     assert "disc_format" in movie_fields
     issues = next(f for f in served["comic"]["fields"] if f["key"] == "issues_owned")

@@ -54,11 +54,22 @@ async def resolve(host: str) -> list[str]:
     return sorted({info[4][0] for info in infos})
 
 
+# NAT64 (RFC 6052) embeds an IPv4 address; some resolvers hand it out for
+# internal hosts, so it is refused whatever it embeds.
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
 def _public(address: str) -> bool:
     try:
-        return ipaddress.ip_address(address.split("%")[0]).is_global
+        ip = ipaddress.ip_address(address.split("%")[0])
     except ValueError:
         return False
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip in _NAT64:
+            return False
+        if ip.ipv4_mapped is not None:
+            return ip.ipv4_mapped.is_global
+    return ip.is_global
 
 
 async def check_url(url: str, resolver: Resolver = resolve) -> str:
