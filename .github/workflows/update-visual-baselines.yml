@@ -6,6 +6,10 @@ name: update-visual-baselines
 
 on:
   workflow_dispatch:
+  # TEMPORARY bootstrap: fires once when this file changes on the branch.
+  push:
+    branches: [chore/visual-baselines]
+    paths: ['.github/workflows/update-visual-baselines.yml']
 
 # The only workflow that writes to the repo: it commits PNGs to the branch.
 permissions:

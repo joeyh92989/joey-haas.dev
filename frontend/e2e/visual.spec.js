@@ -44,8 +44,15 @@ for (const theme of THEMES) {
       await page.waitForLoadState('networkidle')
       await loadAllImages(page)
       await page.evaluate(() => document.fonts.ready)
+      // A post is long and its full height varied by 11px between two CI
+      // runs on one build, so only its top is captured (also ~1 MB smaller).
+      const clip =
+        name === 'post'
+          ? { x: 0, y: 0, width: page.viewportSize().width, height: 2400 }
+          : undefined
       await expect(page).toHaveScreenshot(`${name}-${theme}.png`, {
         fullPage: true,
+        clip,
         animations: 'disabled',
         caret: 'hide',
         // Home's "Last shipped" date is the newest changelog entry, which
