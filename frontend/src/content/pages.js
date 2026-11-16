@@ -4,8 +4,8 @@
  *
  * `title` is the short name search shows; `headTitle` is the <title> and
  * og:title the prerender writes; `description` is the meta description,
- * clipped where its source is prose rather than a one-liner (the bio's first
- * paragraph, What's next's lede). The palette truncates by CSS. A new public
+ * clipped where its source is prose rather than a one-liner (What's next's
+ * lede). The palette truncates by CSS. A new public
  * page needs its row here and a rewrite in render.yaml (see CLAUDE.md).
  * `/blog` is only listed while there are published posts.
  */
@@ -18,6 +18,11 @@ import { spine } from './spine.js'
 
 const SITE_DESCRIPTION =
   'Joey Haas is a senior software engineer in Denver building payments and ledger systems, and My Shelf, a tracker for his physical game collection.'
+
+// Written out, not clipped from the bio: the bio's first sentence is longer
+// than a snippet and has no clause break that reads as a complete thought.
+const ABOUT_DESCRIPTION =
+  'Senior software engineer with 5 years building payments and ledger platforms, and 8 years as a product manager shipping enterprise software.'
 
 const row = (path, title, headTitle, description) => ({
   path,
@@ -37,7 +42,7 @@ export const STATIC_PAGES = [
     '/about',
     'About',
     `About · ${profile.name}`,
-    clip(profile.bio.split('\n\n')[0]),
+    ABOUT_DESCRIPTION,
   ),
   row(
     '/projects',
