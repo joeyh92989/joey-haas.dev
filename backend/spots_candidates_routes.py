@@ -44,6 +44,7 @@ from spot_sources.dedupe import dedupe
 from spot_sources.limits import RADIUS_M
 from spot_sources.overpass import Anchor, OverpassError, build_query, fetch, parse
 from spots_routes import _tags, commit_spot, slug_for
+from spots_schemas import FinderRunOut
 
 logger = logging.getLogger(__name__)
 
@@ -320,7 +321,7 @@ def create_candidates_router(
         logger.info("spot finder: %s", summary)
         return summary
 
-    @router.post("/refresh")
+    @router.post("/refresh", response_model=FinderRunOut)
     async def refresh(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The weekly job. A second call while one runs is a 409."""
         if run_lock.locked():
