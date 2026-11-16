@@ -119,7 +119,7 @@ async def test_an_upload_of_twelve_makes_twelve_untagged_garments_without_the_mo
         assert await session.scalar(select(func.count(Garment.id))) == 12
         images = (await session.scalars(select(GarmentImage))).all()
         assert len(images) == 12
-        assert all(max(i.width, i.height) == 400 for i in images)
+        assert all(max(i.width, i.height) == 800 for i in images)
         assert all(i.webp[8:12] == b"WEBP" for i in images)
         # Upload order is queue order.
         rows = (
@@ -178,6 +178,38 @@ async def test_the_image_route_caches_privately_and_answers_304(sessionmaker_for
     assert saved.json()["image"] != url
     assert after.status_code == 200
     assert after.headers["etag"] != etag
+
+
+async def test_size_thumb_serves_a_400px_rendition_with_its_own_etag(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/closet/garments/photos", files=photos(1))
+        ).json()
+        url = made["garments"][0]["image"]
+        full = await client.get(url)
+        thumb = await client.get(url, params={"size": "thumb"})
+        assert thumb.status_code == 200
+        assert thumb.headers["content-type"] == "image/webp"
+        assert thumb.headers["cache-control"] == "private, max-age=86400"
+        assert thumb.headers["etag"] != full.headers["etag"]
+        assert max(Image.open(io.BytesIO(thumb.content)).size) <= 400
+        again = await client.get(
+            url,
+            params={"size": "thumb"},
+            headers={"If-None-Match": thumb.headers["etag"]},
+        )
+        assert again.status_code == 304
+        # The full photo's ETag does not answer a thumb request.
+        crossed = await client.get(
+            url,
+            params={"size": "thumb"},
+            headers={"If-None-Match": full.headers["etag"]},
+        )
+        assert crossed.status_code == 200
+        bad = await client.get(url, params={"size": "huge"})
+    assert bad.status_code == 422
 
 
 async def test_a_garment_without_a_photo_is_404_on_the_image_route(

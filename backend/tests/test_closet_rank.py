@@ -252,3 +252,11 @@ def test_the_colouring_is_written_as_words_not_a_dict():
     )
     assert "Colouring: hair: dark brown, skin: olive" in prompt
     assert "{" not in prompt.split("Colouring:", 1)[1].splitlines()[0]
+
+
+def test_a_piece_is_described_by_its_store_colour_when_it_has_one():
+    named = piece("t1", "top", primary_color="red", color_name="Burgundy")
+    plain = piece("t2", "top", primary_color="red")
+    assert "Burgundy" in closet_rank._describe(named, DAY)
+    assert "red" not in closet_rank._describe(named, DAY)
+    assert "red" in closet_rank._describe(plain, DAY)

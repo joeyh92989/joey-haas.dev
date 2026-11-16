@@ -119,6 +119,11 @@ skip one, and never use an index that was not given.
 """
 
 
+# Columns a vendor or hand-set colour owns: the model's guess at plain colour
+# names never replaces the store's "Burgundy" (#394).
+COLOUR_FIELDS = ("primary_color", "primary_hex", "secondary_color", "secondary_hex")
+
+
 class TagBatchError(ValueError):
     """An answer that cannot be used; the whole batch stays queued."""
 

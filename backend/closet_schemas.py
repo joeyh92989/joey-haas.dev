@@ -17,7 +17,12 @@ from typing import Any, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
 
-from models import GarmentCategory, GarmentStatus, GarmentTagSource
+from models import (
+    GarmentCategory,
+    GarmentColorSource,
+    GarmentStatus,
+    GarmentTagSource,
+)
 
 # --- garments and the profile (closet_routes) -------------------------------
 
@@ -32,6 +37,9 @@ class GarmentOut(BaseModel):
     primary_hex: str | None
     secondary_color: str | None
     secondary_hex: str | None
+    color_name: str | None
+    color_source: GarmentColorSource | None
+    size: str | None
     pattern: str | None
     material: str | None
     warmth: int | None

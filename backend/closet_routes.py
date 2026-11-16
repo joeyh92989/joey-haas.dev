@@ -45,7 +45,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import (
     APIRouter,
@@ -57,12 +57,17 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import closet_tag
-from closet_images import ClosetImageError, make_thumbnail, read_capped
+from closet_images import (
+    ClosetImageError,
+    make_garment_image,
+    read_capped,
+    resize_webp,
+)
 from closet_schemas import (
     GarmentListOut,
     GarmentOut,
@@ -80,6 +85,7 @@ from models import (
     ClosetSetting,
     Garment,
     GarmentCategory,
+    GarmentColorSource,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -144,6 +150,11 @@ class GarmentFields(BaseModel):
     seasons: list[int] | None = Field(default=None, max_length=12)
     notes: str | None = Field(default=None, max_length=MAX_NOTES)
     acquired_on: date | None = None
+    # The purchase date: another name for acquired_on, the column it writes.
+    purchased_on: date | None = None
+    # The store's colour wording, verbatim; set by hand it is `manual`.
+    color_name: str | None = Field(default=None, max_length=80)
+    size: str | None = Field(default=None, max_length=40)
     status: GarmentStatus | None = None
     back_on: date | None = None
 
@@ -156,6 +167,7 @@ TEXT_FIELDS = (
     "secondary_color",
     "pattern",
     "material",
+    "size",
     "notes",
 )
 
@@ -277,6 +289,13 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
     for name in ("category", "warmth", "formality", "acquired_on"):
         if name in given:
             setattr(row, name, getattr(fields, name))
+    if "purchased_on" in given:
+        row.acquired_on = fields.purchased_on
+    if "color_name" in given:
+        row.color_name = _clean(fields.color_name)
+        row.color_source = (
+            GarmentColorSource.MANUAL if row.color_name is not None else None
+        )
     if "seasons" in given:
         row.seasons = _seasons(fields.seasons or [])
     if "back_on" in given:
@@ -323,6 +342,9 @@ def garment_out(
         primary_hex=row.primary_hex,
         secondary_color=row.secondary_color,
         secondary_hex=row.secondary_hex,
+        color_name=row.color_name,
+        color_source=row.color_source,
+        size=row.size,
         pattern=row.pattern,
         material=row.material,
         warmth=row.warmth,
@@ -653,7 +675,7 @@ def create_closet_router(
 
         # One photo at a time, off the event loop.
         thumbnails = [
-            (await convert_upload(upload, make_thumbnail))[0] for upload in photos
+            (await convert_upload(upload, make_garment_image))[0] for upload in photos
         ]
 
         # Ascending created_at in upload order, so the queue tags a rack in
@@ -678,13 +700,17 @@ def create_closet_router(
     @router.get("/garments/{garment_id}/image", response_model=None)
     async def garment_image(
         garment_id: uuid.UUID,
+        size: Literal["thumb"] | None = None,
         if_none_match: str | None = Header(default=None),
         session: AsyncSession = Depends(get_session),
     ) -> Response:
         """The photo as WebP. Private (it is behind the session) and cached a
-        day; the ETag follows the garment's updated_at."""
+        day; the ETag follows the garment's updated_at, with a `-thumb`
+        suffix for `?size=thumb`, the 400px grid rendition made on read."""
         row = await _found(session, garment_id)
         etag = _etag(row)
+        if size == "thumb":
+            etag = etag[:-1] + '-thumb"'
         headers = {"Cache-Control": "private, max-age=86400", "ETag": etag}
         if if_none_match is not None and etag in {
             tag.strip() for tag in if_none_match.split(",")
@@ -693,7 +719,8 @@ def create_closet_router(
         image = await session.get(GarmentImage, garment_id)
         if image is None:
             raise HTTPException(status_code=404, detail="That garment has no photo")
-        return Response(content=image.webp, media_type="image/webp", headers=headers)
+        body = image.webp if size is None else resize_webp(image.webp)
+        return Response(content=body, media_type="image/webp", headers=headers)
 
     @router.get("/profile", response_model=ProfileOut)
     async def get_profile(
@@ -847,6 +874,31 @@ def create_closet_router(
         for garment_id, entry in zip(ids, tagged, strict=True):
             values = dict(entry.attributes)
             values["category"] = GarmentCategory(values["category"])
+            # A colour from a store or a hand edit is kept, and so is a
+            # brand already set; decided in SQL so a save that lands during
+            # the model call is respected too.
+            fixed = Garment.color_source.in_(
+                (GarmentColorSource.VENDOR, GarmentColorSource.MANUAL)
+            )
+            for field in closet_tag.COLOUR_FIELDS:
+                values[field] = case(
+                    (fixed, getattr(Garment, field)), else_=values[field]
+                )
+            values["brand"] = case(
+                (fixed & Garment.brand.is_not(None), Garment.brand),
+                else_=values["brand"],
+            )
+            # A store's own title is kept too (vendor only; manual keeps
+            # just the colour).
+            values["name"] = case(
+                (
+                    (Garment.color_source == GarmentColorSource.VENDOR)
+                    & Garment.name.is_not(None)
+                    & (Garment.name != ""),
+                    Garment.name,
+                ),
+                else_=values["name"],
+            )
             result = await session.execute(
                 update(Garment)
                 .where(
@@ -856,6 +908,10 @@ def create_closet_router(
                 )
                 .values(
                     **values,
+                    color_source=case(
+                        (Garment.color_source.is_(None), GarmentColorSource.MODEL),
+                        else_=Garment.color_source,
+                    ),
                     tag_source=GarmentTagSource.MODEL,
                     status=GarmentStatus.ACTIVE,
                     updated_at=func.now(),
