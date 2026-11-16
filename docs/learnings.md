@@ -1,5 +1,10 @@
 # Learnings
 
+### 2026-11-16 · lesson · Merging an epic is serial under `strict`; stacks do not fix that, a train and a faster `backend` do
+Epic #392 (seven PRs, 80 minutes): `main` requires `backend` and `frontend` and an up-to-date branch (`strict`), so each merge put the rest behind it. CI is 5 to 7 minutes a run (`backend` 4.5 to 6.7, `frontend` 2 to 3.5; `e2e`, `e2e-admin` under 2.5, not required), not the 10 first written here. An `update-branch` re-ran 6 of 7 PRs; five merged about 7 minutes apart, one CI cycle each, and idle gaps (#404 about 22 minutes behind `main`, #410 9 minutes green before a merge) cost as much as the re-runs.
+Stacks do not remove per-PR CI or the `strict` cycle (docs: squash supported, CI runs on every PR in a stack, same repo only; plan availability not stated in GitHub's docs); they help real chains (#398 on #409). A merge queue is likely unavailable on a user-owned repo (third-party reports; GitHub's docs pages do not say; check Settings, Rules, New ruleset). Doing: `scripts/merge-train.sh` (no idle gaps) and a `backend` profile (pytest is 328 s of a 6-minute job). Not done: dropping `strict` (risk: two green PRs break main together, and `deploy.yml` does not wait for CI). The merge-order rule lives in `agents.md` and the repo `CLAUDE.md`, not in `sdlc-execution` or `sdlc-ship`.
+Epic #392 · docs/planning/2026-11-16-closet-products-design.md
+
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
 The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
 PR #378
