@@ -700,6 +700,17 @@ describe('deckStat added date', () => {
     expect(stat).toBe('Worn 0× in 12 months · added Nov 11')
   })
 
+  it('prefers the garment’s own size to the profile’s', () => {
+    const own = { ...base.garment, size: 'L' }
+    expect(deckStat({ ...base, size: 'M', garment: own })).toBe(
+      'Worn 0× in 12 months · size L',
+    )
+    expect(deckStat({ ...base, size: 'M' })).toBe(
+      'Worn 0× in 12 months · size M',
+    )
+    expect(deckStat(base)).toBe('Worn 0× in 12 months')
+  })
+
   it('prefers acquired_on over created_at', () => {
     const stat = deckStat({
       ...base,

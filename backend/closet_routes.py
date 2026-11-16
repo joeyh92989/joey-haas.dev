@@ -12,6 +12,11 @@
   `garment_images` alone, with `Cache-Control: private, max-age=86400` and
   an ETag from the garment's `updated_at`, answering 304 to a matching
   `If-None-Match`. No list query loads the bytes.
+- **A photo can be added later.** `POST /garments/{id}/photo` adds or
+  replaces one garment's photo (800px) and moves `updated_at`, so the image
+  URL changes; nothing else about the garment moves. `POST` and `PATCH`
+  `/garments/{id}/product` attach a store product from a pasted link
+  (`closet_product.py`; `intake/README.md`).
 - **The profile is one row** (`closet_profile`, `id = 1`). GET answers the
   defaults before it is first saved; PATCH validates every field it is
   given and writes the row. PATCH rather than PUT because the API's CORS

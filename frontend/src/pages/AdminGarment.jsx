@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import GarmentForm from '../components/GarmentForm.jsx'
+import GarmentProductPanel from '../components/GarmentProductPanel.jsx'
 import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle, statLine } from '../lib/closet.js'
@@ -105,6 +106,19 @@ export default function AdminGarment() {
         <p className="muted" role="status">
           Saved · {statLine(garment)}
         </p>
+      )}
+      {garment && (
+        <GarmentProductPanel
+          garment={garment}
+          onPhoto={setGarment}
+          onAttached={(next) => {
+            setGarment(next)
+            setSaved(false)
+            // The attach moved brand, colour and size: the form starts again
+            // from what the API now holds, or a save would put them back.
+            setVersion((v) => v + 1)
+          }}
+        />
       )}
       {garment ? (
         <GarmentForm
