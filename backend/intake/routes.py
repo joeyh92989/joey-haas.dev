@@ -46,6 +46,22 @@ from intake.commit import (
 from intake.kinds import REGISTRY, describe
 from intake.nightly import LAST_RUN_KEY, run_nightly
 from intake.reader import read_next
+from intake.schemas import (
+    AddOut,
+    BudgetOut,
+    CommitOut,
+    CommitRefusedOut,
+    EntryOut,
+    KindOut,
+    NightlySummaryOut,
+    PhotoOut,
+    ReadNextOut,
+    RefusedOut,
+    SearchOut,
+    SittingOut,
+    SittingSummaryOut,
+    StatusBody,
+)
 from intake.search import search_area
 from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
@@ -229,12 +245,12 @@ def create_intake_router(
             "entries": await entries_json(session, list(entries)),
         }
 
-    @router.get("/kinds")
+    @router.get("/kinds", response_model=list[KindOut])
     async def list_kinds() -> list[dict[str, Any]]:
         """Every registered kind, with its fields and source state."""
         return [describe(kind, registry) for kind in REGISTRY.values()]
 
-    @router.get("/search")
+    @router.get("/search", response_model=SearchOut)
     async def search(
         area: IntakeArea,
         query: str = Query(min_length=1, max_length=200),
@@ -244,7 +260,11 @@ def create_intake_router(
         each with its state, owned results marked (`intake/search.py`)."""
         return await search_area(session, registry, area, query.strip() or query)
 
-    @router.post("/add")
+    @router.post(
+        "/add",
+        response_model=AddOut,
+        responses={422: {"model": RefusedOut}},
+    )
     async def add_one(body: AddIn, session: AsyncSession = Depends(get_session)) -> Any:
         """Add one thing from the add bar through the commit service. 201
         with the new id; 200 when it was already on the shelf, with
@@ -277,7 +297,7 @@ def create_intake_router(
             },
         )
 
-    @router.post("/sittings", status_code=201)
+    @router.post("/sittings", status_code=201, response_model=SittingOut)
     async def create_sitting(
         body: SittingCreate, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -288,7 +308,7 @@ def create_intake_router(
         await session.commit()
         return await _sitting_json(session, sitting)
 
-    @router.get("/sittings")
+    @router.get("/sittings", response_model=list[SittingSummaryOut])
     async def list_sittings(
         area: IntakeArea, session: AsyncSession = Depends(get_session)
     ) -> list[dict[str, Any]]:
@@ -352,14 +372,14 @@ def create_intake_router(
             for sitting, count in rows
         ]
 
-    @router.get("/sittings/{sitting_id}")
+    @router.get("/sittings/{sitting_id}", response_model=SittingOut)
     async def get_sitting(
         sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
         """One sitting with its photos and entries."""
         return await _sitting_json(session, await _sitting_or_404(session, sitting_id))
 
-    @router.patch("/sittings/{sitting_id}")
+    @router.patch("/sittings/{sitting_id}", response_model=SittingOut)
     async def patch_sitting(
         sitting_id: uuid.UUID,
         body: SittingPatch,
@@ -372,7 +392,8 @@ def create_intake_router(
         await session.commit()
         return await _sitting_json(session, sitting)
 
-    @router.delete("/sittings/{sitting_id}", status_code=204)
+    # A 204 has no body, so there is nothing to model.
+    @router.delete("/sittings/{sitting_id}", status_code=204, response_model=None)
     async def delete_sitting(
         sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> Response:
@@ -382,7 +403,9 @@ def create_intake_router(
         await session.commit()
         return Response(status_code=204)
 
-    @router.post("/sittings/{sitting_id}/photos", status_code=201)
+    @router.post(
+        "/sittings/{sitting_id}/photos", status_code=201, response_model=PhotoOut
+    )
     async def upload_photo(
         sitting_id: uuid.UUID,
         photo: UploadFile = File(...),
@@ -437,7 +460,10 @@ def create_intake_router(
         await session.commit()
         return photo_json(row)
 
-    @router.delete("/sittings/{sitting_id}/photos/{photo_id}", status_code=204)
+    # A 204 has no body, so there is nothing to model.
+    @router.delete(
+        "/sittings/{sitting_id}/photos/{photo_id}", status_code=204, response_model=None
+    )
     async def delete_photo(
         sitting_id: uuid.UUID,
         photo_id: uuid.UUID,
@@ -485,7 +511,7 @@ def create_intake_router(
         await session.commit()
         return Response(status_code=204)
 
-    @router.post("/sittings/{sitting_id}/read-next")
+    @router.post("/sittings/{sitting_id}/read-next", response_model=ReadNextOut)
     async def read_next_photo(
         sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -510,7 +536,9 @@ def create_intake_router(
             "entries": await entries_json(session, list(outcome.entries)),
         }
 
-    @router.post("/sittings/{sitting_id}/entries", status_code=201)
+    @router.post(
+        "/sittings/{sitting_id}/entries", status_code=201, response_model=EntryOut
+    )
     async def add_entry(
         sitting_id: uuid.UUID,
         body: EntryCreate,
@@ -546,7 +574,11 @@ def create_intake_router(
         [shown] = await entries_json(session, [entry])
         return shown
 
-    @router.post("/sittings/{sitting_id}/commit")
+    @router.post(
+        "/sittings/{sitting_id}/commit",
+        response_model=CommitOut,
+        responses={422: {"model": CommitRefusedOut}},
+    )
     async def commit(
         sitting_id: uuid.UUID,
         body: CommitIn | None = None,
@@ -587,7 +619,7 @@ def create_intake_router(
         # The new items' ids, for Done's "Publish these N".
         return {**outcome.as_json(), "created": [str(i) for i in outcome.created]}
 
-    @router.patch("/entries/{entry_id}")
+    @router.patch("/entries/{entry_id}", response_model=EntryOut)
     async def patch_entry(
         entry_id: uuid.UUID,
         body: EntryPatch,
@@ -613,7 +645,7 @@ def create_intake_router(
         [shown] = await entries_json(session, [entry])
         return shown
 
-    @router.post("/entries/{entry_id}/tag-again")
+    @router.post("/entries/{entry_id}/tag-again", response_model=EntryOut)
     async def tag_again(
         entry_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -633,7 +665,7 @@ def create_intake_router(
         await session.commit()
         return entry_json(entry)
 
-    @router.post("/photos/{photo_id}/retry")
+    @router.post("/photos/{photo_id}/retry", response_model=PhotoOut)
     async def retry_photo(
         photo_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -648,7 +680,8 @@ def create_intake_router(
         await session.commit()
         return photo_json(photo)
 
-    @router.get("/photos/{photo_id}/image")
+    # Image bytes, not JSON.
+    @router.get("/photos/{photo_id}/image", response_model=None)
     async def photo_image(
         photo_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> Response:
@@ -662,7 +695,7 @@ def create_intake_router(
             headers={"Cache-Control": "private, max-age=86400"},
         )
 
-    @router.get("/counts")
+    @router.get("/counts", response_model=dict[str, int])
     async def counts(session: AsyncSession = Depends(get_session)) -> dict[str, int]:
         """Entries left to check or confirm (`check` and `probable`), per area
         (the rail's badges)."""
@@ -681,12 +714,12 @@ def create_intake_router(
         found = {area.value: count for area, count in rows}
         return {area.value: found.get(area.value, 0) for area in IntakeArea}
 
-    @router.get("/budget")
+    @router.get("/budget", response_model=BudgetOut)
     async def budget(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """What is left of today's free reads, and when it resets."""
         return await budget_state(session, config)
 
-    @router.post("/jobs/nightly")
+    @router.post("/jobs/nightly", response_model=NightlySummaryOut)
     async def nightly(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The nightly step (job token): expire sittings untouched for 30
         days, then read waiting shelf photos while the budget lasts. Its
@@ -696,7 +729,7 @@ def create_intake_router(
         async with nightly_lock:
             return await run_nightly(session, config, provider_factory, registry)
 
-    @router.get("/status")
+    @router.get("/status", response_model=StatusBody)
     async def status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The nightly's last run summary, null before its first run."""
         row = await session.get(IntakeSetting, LAST_RUN_KEY)
