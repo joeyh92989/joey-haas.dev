@@ -14,8 +14,8 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
 **Lede** (`frontend/src/content/profile.js`)
 > I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. I spent eight years as a product manager before that, so I care as much about why we build things as how.
 
-**About bio** (`frontend/src/content/profile.js`)
-> I still work like one: architecture doc first, then team alignment, then the endpoint, and the data forensics when something goes wrong.
+**About resume content** (`frontend/src/content/profile.js`, `experience.js`)
+The About summary, areas of expertise, toolbox and Experience timeline are Joey's own resume wording, kept as he wrote it. They are the one exception to these rules (see `docs/planning/2026-09-18-resume-copy-sync-design.md`), so none of them is a sample here.
 
 **Shelf tagline** (`frontend/src/content/spine.js`)
 > A tracker for my physical game and comic collection: what I own, what I’ve finished, and what to play or read next.
@@ -61,7 +61,7 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
 - Hype and résumé words: seamless, robust, leverage, elevate, unlock, cutting-edge, world-class, passionate about, game-changer, delve.
 - Exclamation marks, "Oops", "Please", and apologies in errors. Say what happened and what to do next.
 - Praise before description. Say what a thing is and does first.
-- Self-praise adjectives in career copy. Use the figure, as the bio does: "roughly $1B a year for 3.37M learners".
+- Self-praise adjectives in career copy. Use the figure, as the bio does, with the number of people behind it.
 
 ## 5. House rules already in the code
 

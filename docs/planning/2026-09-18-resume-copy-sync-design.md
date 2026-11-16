@@ -214,3 +214,16 @@ Joey's decisions, applied on the site:
 - The item names come from the issue; no dates, issuers or detail beyond them were added.
 
 `frontend/public/resume.pdf` is unchanged. If its wording for the migration differs from the above, Joey regenerates the export.
+
+## Sync of 2026-11-16 (#390)
+
+Joey's final 2026 resume went onto the site. The wording came from his brief, which is kept local and out of git (the repo is public), so this record holds decisions only.
+
+- **Replaced from the brief:** the About summary (`bio`), the areas of expertise, the toolbox chips (the technical skills line split at its top-level commas), and the Experience timeline (`experience.js`). Home's shorter list keeps its own clauses (`homeRows`), so Home did not change.
+- **Structure:** Guild is one employer with its blurb and four roles nested under it; every other employer is one entry with bullets. Published as written after a bullet-by-bullet review; one clause was struck from the funding-position bullet before it shipped.
+- **Kept:** the name, the hero, the headline, the lede, the tagline, the meta descriptions, the education years, `aboutFacts`, the Charter Champion Award chip. Tech parentheticals stay out of the bullets.
+- **Certification chip:** "Pragmatic Marketing Certified" became "Pragmatic Marketing Certification", in the site's name-dot-issuer chip style.
+- **Dates:** the site's meta style (spaced en dash, lowercase "present"), with the brief's months and years.
+- **Design:** direction B, the stepped rail (`docs/design-system.md` → Experience timeline). Print stacks About's aside above the body.
+- **Voice exception:** the brief's wording wins over `docs/voice.md` for this content, with no voice edits. It is the only content exempt from the voice rules. The one change made is typographic: apostrophes are curly, as everywhere on the site.
+- **Not here:** the PDF (Joey's export replaces `frontend/public/resume.pdf` in place, in a second PR) and the changelog entry, which ships with it.

@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: writing
 mode: auto
 ---

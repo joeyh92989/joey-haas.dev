@@ -116,6 +116,18 @@ line each time, not a toast), with Undo beside it, which posts the previous
 state back. A refusal replaces the line with the server's own words and
 leaves the control as it was. Nothing asks first: Undo is the safety.
 
+## Experience timeline
+
+About's Experience is the page's one rail (`.timeline`). A dot on the rail is a role and a ring is an employer holding several roles.
+
+- An employer with several roles is one `h3` at `--fs-18` with its ring, its dates and a blurb, then the roles as an `ol` of steps. Each role is an `h4` at `--fs-16`, a dates kicker and its bullets. Heading order is h2, h3, h4.
+- An employer with one role keeps the `h3` (company and role), the dates kicker and its bullets, with a dot.
+- Exactly one dot is the accent, on the present role. A ring is never the accent.
+- Bullets are a real `ul` (discs kept, no `role`) at `--fs-14`. Guidance, not a test: at most six bullets per role and three per one-role employer.
+- Roles sit on the same rail, with no second indent.
+- Print may break between roles, but a role keeps its heading with its bullets, and About's aside stacks above the body.
+- Home's shorter list is `homeExperience` and shows neither roles nor bullets.
+
 ## Chips inside a section
 
 A detail page's section may carry its own labelled chip row (the wall's
