@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -76,6 +76,58 @@ class GarmentListOut(BaseModel):
 
     garments: list[GarmentOut]
     counts: GarmentCountsOut
+
+
+class ProductSizeOut(BaseModel):
+    size: str | None
+    variant_id: str | None
+    available: bool | None
+
+
+class ProductColourOut(BaseModel):
+    """One colour a linked product comes in (`closet_resolver.Colour`)."""
+
+    external_id: str
+    title: str
+    color_name: str | None
+    image_url: str | None
+    price: str | None
+    sizes: list[ProductSizeOut]
+
+
+class AttachedProductOut(BaseModel):
+    """The product row a garment already has."""
+
+    url: str | None
+    title: str | None
+    source: str | None
+
+
+class ProductPreviewOut(BaseModel):
+    """`POST /garments/{id}/product`: what a link offers, nothing written.
+    `state` is `read`, or `refused` with `message` saying why."""
+
+    state: Literal["read", "refused"]
+    message: str | None
+    url: str
+    title: str | None
+    brand: str | None
+    currency: str | None
+    candidates: list[ProductColourOut]
+    attached: AttachedProductOut | None
+    has_photo: bool
+
+
+class ProductAttachOut(BaseModel):
+    """`PATCH /garments/{id}/product`: the garment as it now is, what became
+    of its photo (`added`, `kept`, `none`, `failed`) and the product row."""
+
+    garment: GarmentOut
+    photo: Literal["added", "kept", "none", "failed"]
+    photo_error: str | None
+    # Fields the owner's own values were kept for: colour, size.
+    kept: list[str]
+    product: AttachedProductOut
 
 
 class UploadOut(BaseModel):

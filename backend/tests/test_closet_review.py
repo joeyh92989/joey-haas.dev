@@ -16,6 +16,7 @@ from closet_review_routes import create_closet_review_router
 from closet_today_routes import load_pieces
 from llm import LLMError, _quota_message
 from models import (
+    ClosetProfile,
     ClosetSetting,
     Garment,
     GarmentCategory,
@@ -621,3 +622,20 @@ async def test_a_failed_opinion_job_records_it_and_keeps_the_batch(
     assert "prompt exploded" in status["note"]
     batch = await setting(sessionmaker_for_test, "opinion.batch")
     assert batch["opinions"] and batch["batch_on"] == DAY.isoformat()
+
+
+async def test_a_deck_card_carries_the_garments_own_size_before_the_profiles(
+    sessionmaker_for_test,
+):
+    """#399: the Sell checklist reads `size`: the garment's wins, the profile's
+    size for its category is the fallback, and a piece with neither has none."""
+    ids = await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(ClosetProfile(id=1, sizes={"top": "M", "bottom": "32"}))
+        own = await session.get(Garment, uuid.UUID(ids["linen shirt"]))
+        own.size = "Large"
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/closet/review")).json()
+    sizes = {c["garment"]["name"]: c["size"] for c in body["deck"]}
+    assert sizes == {"never worn": "M", "linen shirt": "Large", "shorts": "32"}

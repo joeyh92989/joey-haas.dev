@@ -12,6 +12,11 @@
   `garment_images` alone, with `Cache-Control: private, max-age=86400` and
   an ETag from the garment's `updated_at`, answering 304 to a matching
   `If-None-Match`. No list query loads the bytes.
+- **A photo can be added later.** `POST /garments/{id}/photo` adds or
+  replaces one garment's photo (800px) and moves `updated_at`, so the image
+  URL changes; nothing else about the garment moves. `POST` and `PATCH`
+  `/garments/{id}/product` attach a store product from a pasted link
+  (`closet_product.py`; `intake/README.md`).
 - **The profile is one row** (`closet_profile`, `id = 1`). GET answers the
   defaults before it is first saved; PATCH validates every field it is
   given and writes the row. PATCH rather than PUT because the API's CORS
@@ -59,8 +64,11 @@ from fastapi import (
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import closet_product
+import closet_resolver
 import closet_tag
 from closet_images import (
     ClosetImageError,
@@ -72,6 +80,8 @@ from closet_schemas import (
     GarmentListOut,
     GarmentOut,
     JobStatusOut,
+    ProductAttachOut,
+    ProductPreviewOut,
     ProfileOut,
     TagJobOut,
     TagNowOut,
@@ -170,6 +180,25 @@ TEXT_FIELDS = (
     "size",
     "notes",
 )
+
+
+class ProductLink(BaseModel):
+    """The pasted product link (`POST /garments/{id}/product`)."""
+
+    url: str = Field(min_length=1, max_length=closet_resolver.MAX_URL_CHARS)
+
+
+class ProductChoice(ProductLink):
+    """The owner's pick from what the link offered. Only ids: the colour,
+    its price and its photo are read again from the store, never taken from
+    here."""
+
+    external_id: str = Field(min_length=1, max_length=200)
+    size: str | None = Field(default=None, max_length=40)
+    replace_brand: bool = False
+    replace_color: bool = False
+    replace_size: bool = False
+    replace_product: bool = False
 
 
 class ProfileFields(BaseModel):
@@ -292,10 +321,12 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
     if "purchased_on" in given:
         row.acquired_on = fields.purchased_on
     if "color_name" in given:
-        row.color_name = _clean(fields.color_name)
-        row.color_source = (
-            GarmentColorSource.MANUAL if row.color_name is not None else None
-        )
+        typed = _clean(fields.color_name)
+        # The edit form sends the colour back on every save: only a colour
+        # that changed is the owner's own wording.
+        if typed != _clean(row.color_name):
+            row.color_name = typed
+            row.color_source = GarmentColorSource.MANUAL if typed is not None else None
     if "seasons" in given:
         row.seasons = _seasons(fields.seasons or [])
     if "back_on" in given:
@@ -536,6 +567,15 @@ def create_closet_router(
             raise HTTPException(status_code=404, detail="No such garment")
         return row
 
+    async def _conflict(session: AsyncSession, garment_id: uuid.UUID) -> HTTPException:
+        """What a failed write means: the garment is gone (404) or another
+        write got there first (409)."""
+        if await session.get(Garment, garment_id) is None:
+            return HTTPException(status_code=404, detail="No such garment")
+        return HTTPException(
+            status_code=409, detail="That garment changed meanwhile; try again"
+        )
+
     async def _has_image(session: AsyncSession, garment_id: uuid.UUID) -> bool:
         found = await session.scalar(
             select(GarmentImage.garment_id).where(GarmentImage.garment_id == garment_id)
@@ -694,6 +734,90 @@ def create_closet_router(
         return {
             "added": len(rows),
             "garments": [garment_out(row, has_image=True) for row in rows],
+        }
+
+    @router.post("/garments/{garment_id}/photo", response_model=GarmentOut)
+    async def set_garment_photo(
+        garment_id: uuid.UUID,
+        photo: UploadFile = File(),
+        session: AsyncSession = Depends(get_session),
+    ) -> GarmentOut:
+        """Adds a photo to a garment, or replaces its photo. Only the photo
+        and `updated_at` (the image URL's version) change: no retag, and no
+        field, status or source moves."""
+        await _found(session, garment_id)
+        check_media_type(photo)
+        [image] = await convert_upload(photo, make_garment_image)
+        try:
+            # Locked and read again: the garment may have gone, or another
+            # photo landed, while the upload was being decoded.
+            row = await session.scalar(
+                select(Garment)
+                .where(Garment.id == garment_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if row is None:
+                raise HTTPException(status_code=404, detail="No such garment")
+            await closet_product.store_photo(session, row, image)
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
+        await session.refresh(row)
+        return await _one_out(session, row)
+
+    @router.post("/garments/{garment_id}/product", response_model=ProductPreviewOut)
+    async def preview_product(
+        garment_id: uuid.UUID,
+        link: ProductLink,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Reads a product link and answers its colours, sizes, price and
+        brand. Writes nothing. A link the store will not give up is a 200
+        with `state` refused and the reason, never an error."""
+        row = await _found(session, garment_id)
+        return await closet_product.preview(
+            session, row, link.url, has_photo=await _has_image(session, row.id)
+        )
+
+    @router.patch("/garments/{garment_id}/product", response_model=ProductAttachOut)
+    async def attach_product(
+        garment_id: uuid.UUID,
+        choice: ProductChoice,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Attaches the chosen colour (see `closet_product.py`). PATCH, not
+        PUT: the API's CORS policy (`main.py`) allows GET, POST, PATCH and
+        DELETE only, and the POST above is the read-only preview."""
+        try:
+            row, photo, product, kept = await closet_product.attach(
+                session,
+                garment_id,
+                url=choice.url,
+                external_id=choice.external_id,
+                size=choice.size,
+                replace_brand=choice.replace_brand,
+                replace_color=choice.replace_color,
+                replace_size=choice.replace_size,
+                replace_product=choice.replace_product,
+            )
+            await session.commit()
+        except closet_product.AttachRefused as refused:
+            await session.rollback()
+            raise HTTPException(
+                status_code=refused.status, detail=refused.message
+            ) from None
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
+        await session.refresh(row)
+        return {
+            "garment": await _one_out(session, row),
+            "photo": photo.state,
+            "photo_error": photo.error,
+            "kept": kept,
+            "product": closet_product.attached(product),
         }
 
     # The photo as WebP bytes (or a 304), not JSON.

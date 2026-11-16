@@ -47,7 +47,10 @@ function stubApi(handlers) {
       calls.push({
         method,
         path,
-        body: options.body ? JSON.parse(options.body) : undefined,
+        body:
+          typeof options.body === 'string'
+            ? JSON.parse(options.body)
+            : undefined,
       })
       const handler = handlers[`${method} ${path}`]
       return handler ? handler(options) : json({}, 404)
@@ -136,5 +139,222 @@ describe('AdminGarment', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No garment has this id.',
     )
+  })
+
+  it('adds a photo from a picked file and shows the new one', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () => json({ ...GARMENT, image: null }),
+      'POST /api/closet/garments/g1/photo': () =>
+        json({ ...GARMENT, image: '/api/closet/garments/g1/image?v=2' }),
+    })
+    renderAt('/admin/closet/g1')
+    const input = await screen.findByLabelText('Photo file')
+    expect(screen.getByText('Add photo')).toBeInTheDocument()
+    await userEvent.upload(
+      input,
+      new File(['x'], 'shirt.jpg', { type: 'image/jpeg' }),
+    )
+    expect(await screen.findByText('Photo saved.')).toBeInTheDocument()
+    expect(calls.some((c) => c.path === '/api/closet/garments/g1/photo')).toBe(
+      true,
+    )
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('v=2'),
+    )
+    expect(screen.getByText('Replace photo')).toBeInTheDocument()
+  })
+
+  it('says why a photo was refused', async () => {
+    stubApi({
+      'GET /api/closet/garments/g1': () => json(GARMENT),
+      'POST /api/closet/garments/g1/photo': () =>
+        json({ detail: 'That file could not be read as a photo' }, 422),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.upload(
+      await screen.findByLabelText('Photo file'),
+      new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'could not be read as a photo',
+    )
+  })
+
+  const PREVIEW = {
+    state: 'read',
+    message: null,
+    url: 'https://store.test/products/crew',
+    title: 'Test Crew',
+    brand: 'Acme',
+    currency: 'USD',
+    attached: null,
+    has_photo: false,
+    candidates: [
+      {
+        external_id: '11',
+        title: 'Red',
+        color_name: 'Red',
+        image_url: null,
+        price: '42.50',
+        sizes: [
+          { size: 'S', variant_id: '11', available: false },
+          { size: 'M', variant_id: '12', available: true },
+        ],
+      },
+      {
+        external_id: '13',
+        title: 'Blue',
+        color_name: 'Blue',
+        image_url: null,
+        price: '40.00',
+        sizes: [{ size: 'S', variant_id: '13', available: true }],
+      },
+    ],
+  }
+
+  it('attaches a product after the owner picks a colour and a size', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () => json({ ...GARMENT, brand: 'Old' }),
+      'POST /api/closet/garments/g1/product': () => json(PREVIEW),
+      'PATCH /api/closet/garments/g1/product': () =>
+        json({
+          garment: { ...GARMENT, brand: 'Acme', color_name: 'Red', size: 'M' },
+          photo: 'kept',
+          photo_error: null,
+          kept: [],
+          product: { url: PREVIEW.url, title: 'Test Crew', source: 'link' },
+        }),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.type(
+      await screen.findByLabelText('Product link'),
+      PREVIEW.url,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
+    const attach = await screen.findByRole('button', {
+      name: 'Attach product',
+    })
+    expect(attach).toBeDisabled()
+    await userEvent.click(screen.getByLabelText(/^Red/))
+    await userEvent.selectOptions(
+      screen.getByLabelText('Size in this colour'),
+      'M',
+    )
+    await userEvent.click(
+      screen.getByLabelText('Replace the brand “Old” with “Acme”'),
+    )
+    await userEvent.click(attach)
+    expect(await screen.findByText(/Product attached/)).toBeInTheDocument()
+    const sent = calls.find((c) => c.method === 'PATCH')
+    expect(sent.body).toEqual({
+      url: PREVIEW.url,
+      external_id: '11',
+      size: 'M',
+      replace_brand: true,
+      replace_color: false,
+      replace_size: false,
+      replace_product: false,
+    })
+    // The form starts again from what the API now holds.
+    expect(screen.getByLabelText('Store colour')).toHaveValue('Red')
+    expect(screen.getByLabelText('Size')).toHaveValue('M')
+  })
+
+  it('asks before replacing an attached product', async () => {
+    stubApi({
+      'GET /api/closet/garments/g1': () => json(GARMENT),
+      'POST /api/closet/garments/g1/product': () =>
+        json({
+          ...PREVIEW,
+          attached: {
+            url: 'https://old.test/p',
+            title: 'Old Crew',
+            source: 'link',
+          },
+        }),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.type(
+      await screen.findByLabelText('Product link'),
+      PREVIEW.url,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
+    await userEvent.click(await screen.findByLabelText(/^Blue/))
+    const attach = screen.getByRole('button', { name: 'Attach product' })
+    expect(attach).toBeDisabled()
+    await userEvent.click(
+      screen.getByLabelText(/already has a product \(Old Crew\)/),
+    )
+    expect(attach).toBeEnabled()
+  })
+
+  it('shows the reason a link was refused and leaves the photo option', async () => {
+    stubApi({
+      'GET /api/closet/garments/g1': () => json(GARMENT),
+      'POST /api/closet/garments/g1/product': () =>
+        json({
+          ...PREVIEW,
+          state: 'refused',
+          message:
+            'refuses.test asks programs not to read that page (robots.txt)',
+          candidates: [],
+        }),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.type(
+      await screen.findByLabelText('Product link'),
+      PREVIEW.url,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('robots.txt')
+    expect(screen.getByRole('alert')).toHaveTextContent('add a photo')
+    expect(screen.queryByRole('button', { name: 'Attach product' })).toBeNull()
+  })
+
+  it('keeps a hand-entered colour and size unless the owner ticks to replace', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () =>
+        json({
+          ...GARMENT,
+          color_name: 'Slate',
+          color_source: 'manual',
+          size: 'L',
+        }),
+      'POST /api/closet/garments/g1/product': () => json(PREVIEW),
+      'PATCH /api/closet/garments/g1/product': () =>
+        json({
+          garment: { ...GARMENT, color_name: 'Red', size: 'M' },
+          photo: 'kept',
+          photo_error: null,
+          kept: [],
+          product: { url: PREVIEW.url, title: 'Test Crew', source: 'link' },
+        }),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.type(
+      await screen.findByLabelText('Product link'),
+      PREVIEW.url,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
+    await userEvent.click(await screen.findByLabelText(/^Red/))
+    await userEvent.selectOptions(
+      screen.getByLabelText('Size in this colour'),
+      'M',
+    )
+    await userEvent.click(
+      screen.getByLabelText('Replace the colour “Slate” with “Red”'),
+    )
+    await userEvent.click(
+      screen.getByLabelText('Replace the size “L” with “M”'),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Attach product' }),
+    )
+    await screen.findByText(/Product attached/)
+    expect(calls.find((c) => c.method === 'PATCH').body).toMatchObject({
+      replace_color: true,
+      replace_size: true,
+    })
   })
 })

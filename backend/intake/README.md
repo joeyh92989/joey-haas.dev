@@ -80,6 +80,46 @@ and the entries read from them or typed in.
     same instant can write them twice (no unique index backs the "already
     imported" check; one would need a migration). There is no undo route; the list is plain JSON in
     `closet_settings` (`{"keys": [...]}`).
+- `closet_product.py` (backend root; issue #399) — the same resolver for a
+  garment that already exists, from the garment's edit page (`/admin/closet/:id`),
+  outside any sitting. All three routes are in the admin-only closet router:
+  - `POST /api/closet/garments/{id}/photo` (multipart `photo`): adds or
+    replaces the photo (800px WebP, the upload's size, type and decode
+    guards: 415/413/422) and moves `updated_at`, which versions the image
+    URL and ETag. It touches no other field, status or source and never
+    retags. Answers the `GarmentOut`.
+  - `POST /api/closet/garments/{id}/product` `{url}`: reads the link and
+    answers `state` `read` (title, brand, currency, colours with sizes and
+    price, the garment's current product and whether it has a photo) or
+    `refused` with the reason (robots, no product, timeout...), a 200 either
+    way. **Writes nothing.**
+  - `PATCH /api/closet/garments/{id}/product` `{url, external_id, size,
+    replace_brand, replace_color, replace_size, replace_product}` (PATCH because the API's CORS policy
+    allows no PUT): reads the link **again** and takes the colour whose
+    `external_id` it offers (422 otherwise); a size must be one of that
+    colour's (422), or it is left alone. The client never sends a colour
+    name, a price or an image address. It sets `color_name` (`color_source`
+    vendor; a colour typed by hand is kept unless `replace_color`), `brand`
+    (only when empty or `replace_brand`), `size` (an existing size is kept
+    unless `replace_size`; a lone size only fills an empty one; `kept` in the
+    answer lists `colour` / `size` when the owner's value stood),
+    `primary_color` (its `colour_family`, only when empty: a changed vendor
+    colour does not update a colour family the tagger or the owner already
+    set) and writes the
+    garment's one `garment_products` row (source from the host, url, title,
+    dollar price, `store_item_no` as `item_ref`, snapshot = the parsed
+    product plus `chosen` and `size`). A garment that already has a product
+    answers 409 until `replace_product` is sent. No connection is held across
+    the network: the garment is looked at, the link and photo are fetched with
+    no open transaction, then the garment is locked (`FOR UPDATE`) and read
+    again before anything is written, so a photo added meanwhile is never
+    overwritten and a garment deleted meanwhile is a 404; a unique-key failure
+    at commit is rolled back and answered 409. A garment with no photo gets
+    the colour's photo through `seed_image.fetch_image` (guarded again); one
+    with a photo keeps it; a failed photo does not fail the attach (`photo`
+    `failed`, with `photo_error`). `status` and `tag_source` are untouched.
+  A colour typed by hand is `manual`; one sent back unchanged by the edit
+  form keeps its source.
 - `closet_resolver.py` (backend root), `link_import.py` — the closet's
   **From links** way in (issue #398, design D11). Paste up to 10 product
   addresses (the add bar's **From links**, or one link typed into the bar);

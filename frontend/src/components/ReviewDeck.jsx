@@ -18,7 +18,9 @@ export function deckStat(card) {
     garment.acquired_on ??
     (garment.created_at ? ownerDay(garment.created_at) : null)
   if (added) parts.push(`added ${shortDate(added)}`)
-  if (card.size) parts.push(`size ${card.size}`)
+  // The garment's own size wins; the card's is the profile's fallback.
+  const size = garment.size || card.size
+  if (size) parts.push(`size ${size}`)
   return parts.join(' · ')
 }
 
