@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { certifications, education } from '../content/education.js'
+import { awards, certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
 import { profile } from '../content/profile.js'
 import About from './About.jsx'
@@ -108,6 +108,10 @@ describe('About', () => {
     expect(certifications.length).toBeGreaterThan(0)
     for (const certification of certifications) {
       expect(screen.getByText(certification)).toBeInTheDocument()
+    }
+    expect(awards).toContain('Charter Champion Award')
+    for (const award of awards) {
+      expect(screen.getByText(award)).toBeInTheDocument()
     }
   })
 

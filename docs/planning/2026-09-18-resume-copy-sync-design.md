@@ -202,3 +202,15 @@ Not filing GitHub issues for this change; it is a single-session content sync.
 ## Deliberate gaps
 
 - 2026-11-15, decided by Joey (#285): the headline "Shipping software since 2012" stays. About states the split, 8 years product management and 5 years engineering.
+
+## Sync of 2026-11-15 (#285)
+
+Joey's decisions, applied on the site:
+
+- Bio: "and one service’s side of a company-wide migration to a new eligibility platform" became "and leading the ledger’s move to a new eligibility platform". Home's experience row and the About timeline say the same: Joey led the ledger's move.
+- Home's row: "the funding side of a company-wide eligibility migration" became "led the ledger’s move to a new eligibility platform".
+- Name: "Joseph (Joey) Haas" already opens About's summary (#317). Verified, unchanged.
+- About now covers the resume-only items: Incident response, Performance & load testing and Security remediation under Areas of expertise; the Charter Champion Award in an Awards chip row (`awards` in `content/education.js`); the issuers on the certification chips ("· Scrum Alliance", "· Pragmatic Institute").
+- The item names come from the issue; no dates, issuers or detail beyond them were added.
+
+`frontend/public/resume.pdf` is unchanged. If its wording for the migration differs from the above, Joey regenerates the export.
