@@ -12,6 +12,7 @@ import { ownerYear } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import AdminLayout from '../layouts/AdminLayout.jsx'
 import Admin from './Admin.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
@@ -289,7 +290,9 @@ describe('Admin Home', () => {
     )
     expect(figureOf(denver, 'Candidates')).toHaveTextContent('2')
     expect(
-      within(denver).getByRole('link', { name: 'Review candidates' }),
+      within(denver).getByRole('link', {
+        name: adminCopy.dashboard.reviewCandidates,
+      }),
     ).toHaveAttribute('href', '/admin/spots')
   })
 
@@ -421,7 +424,7 @@ describe('Admin Home', () => {
     expect(await screen.findByText('Couldn’t read: Shelf.')).toBeInTheDocument()
     expect(within(shelf).getByText('Continue: Dredge')).toBeInTheDocument()
     expect(
-      within(shelf).getByRole('button', { name: 'Wrap up' }),
+      within(shelf).getByRole('button', { name: adminCopy.dashboard.wrapUp }),
     ).toBeInTheDocument()
     expect(within(shelf).queryByText('Couldn’t read')).toBeNull()
   })
@@ -522,7 +525,11 @@ describe('Admin Home', () => {
       'href',
       '/admin/closet/today',
     )
-    fireEvent.click(within(closet).getByRole('button', { name: 'Wore this' }))
+    fireEvent.click(
+      within(closet).getByRole('button', {
+        name: adminCopy.dashboard.woreThis,
+      }),
+    )
     expect(await within(closet).findByText('Worn ✓')).toBeInTheDocument()
     const [, options] = fetch.mock.calls.find(([url]) =>
       String(url).endsWith('/api/closet/wore'),
@@ -548,7 +555,9 @@ describe('Admin Home', () => {
     const closet = await card('Closet')
     expect(await within(closet).findByText('Worn ✓')).toBeInTheDocument()
     expect(
-      within(closet).queryByRole('button', { name: 'Wore this' }),
+      within(closet).queryByRole('button', {
+        name: adminCopy.dashboard.woreThis,
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -571,7 +580,9 @@ describe('Admin Home', () => {
     expect(within(closet).queryByText('Worn ✓')).not.toBeInTheDocument()
     fireEvent.click(within(closet).getByRole('button', { name: 'Change' }))
     expect(
-      within(closet).getByRole('button', { name: 'Wore this' }),
+      within(closet).getByRole('button', {
+        name: adminCopy.dashboard.woreThis,
+      }),
     ).toBeInTheDocument()
   })
 
@@ -587,7 +598,9 @@ describe('Admin Home', () => {
     renderAt()
     const closet = await card('Closet')
     fireEvent.click(
-      await within(closet).findByRole('button', { name: 'Wore this' }),
+      await within(closet).findByRole('button', {
+        name: adminCopy.dashboard.woreThis,
+      }),
     )
     expect(await within(closet).findByRole('alert')).toHaveTextContent(
       'Your session ended',
@@ -608,7 +621,9 @@ describe('Admin Home', () => {
     renderAt()
     const closet = await card('Closet')
     fireEvent.click(
-      await within(closet).findByRole('button', { name: 'Wore this' }),
+      await within(closet).findByRole('button', {
+        name: adminCopy.dashboard.woreThis,
+      }),
     )
     expect(await within(closet).findByRole('alert')).toHaveTextContent(
       'Only an active garment can be worn or turned down',

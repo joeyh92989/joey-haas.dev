@@ -11,6 +11,7 @@ import { apiFetch } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { EMPTY } from '../content/emptyStates.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /** The range shown first. */
 const DEFAULT_RANGE = '30d'
@@ -92,7 +93,7 @@ export default function AdminAnalytics() {
   return (
     <section className="analytics" aria-busy={loading}>
       <AdminPageHeader
-        title="Analytics"
+        title={adminCopy.analytics.title}
         description="Page views on the public site, counted without cookies."
       >
         <RangeControl value={range} onChange={changeRange} />
@@ -136,8 +137,8 @@ export default function AdminAnalytics() {
       </StatTiles>
 
       <Panel
-        title="Views per day"
-        action={<span className="kicker">UTC days</span>}
+        title={adminCopy.analytics.viewsPerDay}
+        action={<span className="kicker">{adminCopy.analytics.utcDays}</span>}
       >
         {!data ? (
           pending
@@ -154,7 +155,10 @@ export default function AdminAnalytics() {
       </Panel>
 
       <div className="analytics-two">
-        <Panel title="Pages" action={<span className="kicker">views</span>}>
+        <Panel
+          title={adminCopy.analytics.pages}
+          action={<span className="kicker">{adminCopy.analytics.views}</span>}
+        >
           {data ? (
             <BarList label="Pages by views" rows={data.pages} />
           ) : (
@@ -163,8 +167,10 @@ export default function AdminAnalytics() {
         </Panel>
         <div>
           <Panel
-            title="Referrers"
-            action={<span className="kicker">visitors</span>}
+            title={adminCopy.analytics.referrers}
+            action={
+              <span className="kicker">{adminCopy.analytics.visitors}</span>
+            }
           >
             {data ? (
               <BarList
@@ -176,7 +182,10 @@ export default function AdminAnalytics() {
               pending
             )}
           </Panel>
-          <Panel title="Devices" action={<span className="kicker">views</span>}>
+          <Panel
+            title={adminCopy.analytics.devices}
+            action={<span className="kicker">{adminCopy.analytics.views}</span>}
+          >
             {data ? (
               <BarList
                 label="Devices by views"
