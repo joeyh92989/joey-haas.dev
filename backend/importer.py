@@ -30,6 +30,7 @@ from comics import MAX_ISSUE, RangeError, parse_ranges
 from items import require_admin
 from llm import Image, LLMError, LLMProvider
 from matching import Confidence, best_match
+from misc_schemas import ImportPhotosOut
 from models import ItemType
 from sources.base import SourceAdapter, SourceError, SourceResult
 from sources.igdb import platform_id
@@ -397,7 +398,7 @@ def create_import_router(
         dependencies=[Depends(require_admin)],
     )
 
-    @router.post("/photos")
+    @router.post("/photos", response_model=ImportPhotosOut)
     async def import_photos(photos: list[UploadFile] = File()) -> dict:
         """Reads titles off shelf photographs and resolves them to candidates."""
         if not photos:

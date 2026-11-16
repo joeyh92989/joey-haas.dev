@@ -108,7 +108,10 @@ def create_journal_router(factory: async_sessionmaker[AsyncSession]) -> APIRoute
         await session.refresh(row)
         return _out(row)
 
-    @router.delete("/{item_id}/sessions/{session_id}", status_code=204)
+    # response_model=None: a bare 204 with no body.
+    @router.delete(
+        "/{item_id}/sessions/{session_id}", status_code=204, response_model=None
+    )
     async def delete_session(
         item_id: uuid.UUID,
         session_id: uuid.UUID,

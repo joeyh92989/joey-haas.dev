@@ -1620,7 +1620,8 @@ def create_items_router(
         await session.commit()
         return RedoOut(sitting_id=sitting.id, entry_id=entry.id)
 
-    @router.delete("/{item_id}", status_code=204)
+    # response_model=None: a bare 204 with no body.
+    @router.delete("/{item_id}", status_code=204, response_model=None)
     async def delete_item(
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),

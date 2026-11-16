@@ -49,6 +49,7 @@ from analytics import (
 )
 from auth import session_admin
 from items import require_admin
+from misc_schemas import AdminSummaryOut, RollupOut
 from models import DailyStat, Item, PageView
 from public_outputs import PublicSiteStatsOut
 
@@ -95,7 +96,8 @@ def create_track_router(
     router = APIRouter(tags=["analytics"])
     cap = DailyCap()
 
-    @router.post("/api/track", status_code=204)
+    # response_model=None: a bare 204 with no body.
+    @router.post("/api/track", status_code=204, response_model=None)
     async def track(request: Request) -> Response:
         done = Response(status_code=204)
         if _opted_out(request) or session_admin(request) is not None:
@@ -306,7 +308,7 @@ def create_analytics_router(
         async with factory() as session:
             yield session
 
-    @router.get("")
+    @router.get("", response_model=AdminSummaryOut)
     async def read(
         span: str = Query("30d", alias="range"),
         session: AsyncSession = Depends(get_session),
@@ -322,7 +324,7 @@ def create_analytics_router(
 
         return {"range": span, **await cache.get(span, build)}
 
-    @router.post("/rollup")
+    @router.post("/rollup", response_model=RollupOut)
     async def rollup(session: AsyncSession = Depends(get_session)) -> dict:
         """Recomputes daily_stats for every finished day that still has raw
         rows, then deletes raw rows older than RETENTION_DAYS. Idempotent, so
