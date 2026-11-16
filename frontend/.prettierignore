@@ -28,4 +28,6 @@ test-results
 playwright-report
 e2e-shots
 playwright-report-admin
+playwright-report-visual
+test-results-visual
 e2e/.auth

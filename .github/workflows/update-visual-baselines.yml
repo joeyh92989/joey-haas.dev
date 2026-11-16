@@ -1,0 +1,64 @@
+# Regenerates the visual baselines (#217) on the same runner image as the CI
+# `e2e` job, then commits them to the branch it was run on. Baselines made
+# anywhere else (a Mac) would never match. Run by hand:
+#   gh workflow run update-visual-baselines.yml --ref <branch>
+name: update-visual-baselines
+
+on:
+  workflow_dispatch:
+
+# The only workflow that writes to the repo: it commits PNGs to the branch.
+permissions:
+  contents: write
+
+jobs:
+  update:
+    # Never write to main: baselines reach it through a PR.
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Use the fixture snapshot
+        run: |
+          mkdir -p public/snapshot
+          cp e2e/fixtures/snapshot/*.json public/snapshot/
+
+      - run: npm run build
+        env:
+          VITE_DAILY_SALT: ci
+
+      - name: Regenerate baselines
+        run: npx playwright test -c playwright.visual.config.js --update-snapshots
+
+      - name: Upload baselines
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-baselines
+          path: frontend/e2e/visual-baselines/
+          retention-days: 14
+
+      - name: Commit baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/visual-baselines
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged."
+          else
+            git commit -m "test(visual): update baselines on the CI runner"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

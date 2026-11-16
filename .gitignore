@@ -61,4 +61,6 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/e2e-shots/
 frontend/playwright-report-admin/
+frontend/playwright-report-visual/
+frontend/test-results-visual/
 frontend/e2e/.auth/

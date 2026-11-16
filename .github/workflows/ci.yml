@@ -162,6 +162,14 @@ jobs:
           # stray test.only cannot pass CI and one flake is not a failure.
           CI: 'true'
 
+      # Visual baselines (#217): compare mode. A diff is a layout change;
+      # intended ones are accepted with the update-visual-baselines workflow
+      # (.github/workflows/README.md).
+      - name: Run visual tests
+        run: npm run e2e:visual
+        env:
+          CI: 'true'
+
       # The HTML report (with traces of failing tests) is only worth keeping
       # when something failed.
       - name: Upload report
@@ -169,7 +177,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
-          path: frontend/playwright-report/
+          path: |
+            frontend/playwright-report/
+            frontend/playwright-report-visual/
+            frontend/test-results-visual/
           retention-days: 14
 
   # The admin suite (#216): the same run as `npm run e2e:admin` locally, against
