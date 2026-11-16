@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminItem from './AdminItem.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 const ITEM = {
   id: 'abc',
@@ -628,7 +629,7 @@ describe('AdminItem edits made while a re-link is in flight', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: /^Star Fox/ }),
     )
-    await screen.findByText('Re-linking…')
+    await screen.findByText(adminCopy.item.relinking)
     await userEvent.type(screen.getByLabelText('Rating'), '8')
   }
 
