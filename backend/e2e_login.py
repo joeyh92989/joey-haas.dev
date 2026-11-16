@@ -33,7 +33,8 @@ def create_e2e_login_router(config: Config) -> APIRouter:
     # session still matches auth.session_admin's allowlist.
     sub = config.admin_google_sub or "e2e"
 
-    @router.post("/test-login", status_code=204)
+    # response_model=None: a bare 204 with no body.
+    @router.post("/test-login", status_code=204, response_model=None)
     async def test_login(request: Request) -> Response:
         """Signs in as the configured admin. No body, no parameters."""
         request.session["user"] = {"sub": sub, "email": config.admin_email}

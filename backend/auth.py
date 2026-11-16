@@ -10,6 +10,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from config import Config
+from misc_schemas import MeOut
 
 logger = logging.getLogger(__name__)
 
@@ -99,14 +100,16 @@ def create_auth_router(config: Config) -> APIRouter:
     router = APIRouter(prefix="/api/auth", tags=["auth"])
     denied = f"{config.frontend_url}/admin?error=access_denied"
 
-    @router.get("/login")
+    # response_model=None: Authlib answers with a redirect to Google.
+    @router.get("/login", response_model=None)
     async def login(request: Request):
         """Redirects to Google. Authlib stores state and nonce in the session."""
         google = oauth.create_client("google")
         redirect_uri = str(request.url_for("callback"))
         return await google.authorize_redirect(request, redirect_uri)
 
-    @router.get("/callback", name="callback")
+    # response_model=None: every outcome is a 302 redirect.
+    @router.get("/callback", name="callback", response_model=None)
     async def callback(request: Request):
         """Completes sign-in.
 
@@ -140,7 +143,7 @@ def create_auth_router(config: Config) -> APIRouter:
         logger.info("Admin signed in. sub=%s", userinfo["sub"])
         return RedirectResponse(f"{config.frontend_url}/admin", status_code=302)
 
-    @router.get("/me")
+    @router.get("/me", response_model=MeOut)
     async def me(request: Request, quiet: bool = False):
         """Reports the signed-in admin, or 401.
 
@@ -159,7 +162,8 @@ def create_auth_router(config: Config) -> APIRouter:
             return {"email": user["email"], "signed_in": True}
         return {"email": user["email"]}
 
-    @router.post("/logout")
+    # response_model=None: a bare 204 with no body.
+    @router.post("/logout", response_model=None)
     async def logout(request: Request):
         """Clears the session. POST because it changes state."""
         request.session.clear()
