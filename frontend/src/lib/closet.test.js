@@ -14,6 +14,7 @@ import {
   filterGarments,
   settleFilter,
   garmentTitle,
+  imageUrl,
   ownerDay,
   MAX_PHOTO_BYTES,
   oversizePhoto,
@@ -393,5 +394,21 @@ describe('ownerDay', () => {
   it('is null for an instant that does not parse', () => {
     expect(ownerDay('not a date')).toBeNull()
     expect(ownerDay(undefined)).toBeNull()
+  })
+})
+
+describe('imageUrl', () => {
+  const image = '/api/closet/garments/g/image?v=12'
+  it('is null without a photo', () => {
+    expect(imageUrl({ image: null })).toBeNull()
+    expect(imageUrl({ image: null }, { size: 'thumb' })).toBeNull()
+  })
+  it('is the full photo by default', () => {
+    expect(imageUrl({ image })).toMatch(/\/image\?v=12$/)
+  })
+  it('asks for the grid rendition with size=thumb, keeping the version', () => {
+    expect(imageUrl({ image }, { size: 'thumb' })).toMatch(
+      /\/image\?v=12&size=thumb$/,
+    )
   })
 })

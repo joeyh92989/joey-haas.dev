@@ -14,11 +14,12 @@ Pure: Pillow and pillow-heif only, no FastAPI or database, so the route
   warning is an error here too.
 - **Small, then upright.** `thumbnail()` shrinks first (for a JPEG it lets
   the decoder skip to a reduced scale, so a 12 MP photo is never fully
-  decoded), and only the 400px result is turned: iPhone JPEGs are stored
+  decoded), and only the small result is turned: iPhone JPEGs are stored
   sideways with an EXIF orientation tag, which `ImageOps.exif_transpose`
   applies, or every portrait shot of a shirt lies on its side. The tag
   survives `thumbnail()`, which resizes in place. Saved as WebP at quality
-  80; a few hundred garments come to low tens of MB.
+  80; garments keep 800px (`make_garment_image`), and the grid's 400px
+  rendition is made on read (`resize_webp`).
 - **HEIC.** `register_heif_opener()` lets Pillow open the iPhone's default.
 - **Flat.** Alpha is composited onto white: the grid draws the photo as a
   tile, and a transparent PNG would show the page through it.
@@ -49,7 +50,10 @@ MAX_PHOTO_BYTES = 14 * 1024 * 1024
 # from its header. Decoded RGB is 3 bytes a pixel, so 120 MB at the cap.
 MAX_PIXELS = 40_000_000
 OPEN_FORMATS = ("JPEG", "PNG", "WEBP", "HEIF")
+# Shelf photos and transient photos, and the grid rendition of a garment.
 LONG_EDGE = 400
+# What a closet garment stores (decision D2); the grid asks for LONG_EDGE.
+GARMENT_LONG_EDGE = 800
 WEBP_QUALITY = 80
 # Intake's reading copy (make_reading_copy).
 READING_LONG_EDGE = 3072
@@ -140,12 +144,36 @@ def _upright(data: bytes, long_edge: int) -> Image.Image:
         raise unreadable from error
 
 
-def make_thumbnail(data: bytes) -> Thumbnail:
-    """The photo as an upright WebP whose long edge is at most 400px."""
-    image = _upright(data, LONG_EDGE)
+def _webp(image: Image.Image) -> Thumbnail:
     out = io.BytesIO()
     image.save(out, format="WEBP", quality=WEBP_QUALITY)
     return Thumbnail(webp=out.getvalue(), width=image.width, height=image.height)
+
+
+def make_thumbnail(data: bytes) -> Thumbnail:
+    """The photo as an upright WebP whose long edge is at most 400px."""
+    return _webp(_upright(data, LONG_EDGE))
+
+
+def resize_webp(webp: bytes, long_edge: int = LONG_EDGE) -> bytes:
+    """A stored WebP shrunk to `long_edge` (the grid rendition, made on read).
+
+    Already-small images come back as they are. The bytes are our own, so
+    only size and decode errors are possible, and they are not caught.
+    """
+    with Image.open(io.BytesIO(webp)) as source:
+        if max(source.size) <= long_edge:
+            return webp
+        source.thumbnail((long_edge, long_edge), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        source.save(out, format="WEBP", quality=WEBP_QUALITY)
+        return out.getvalue()
+
+
+def make_garment_image(data: bytes) -> Thumbnail:
+    """The photo as an upright WebP whose long edge is at most 800px: what a
+    closet garment stores, so the detail view is sharp on a phone."""
+    return _webp(_upright(data, GARMENT_LONG_EDGE))
 
 
 def make_reading_copy(data: bytes) -> bytes:

@@ -22,7 +22,7 @@ export default function GarmentTile({ garment }) {
   const title = garmentTitle(garment)
   const slot = categoryLabel(garment.category)
   const stat = statLine(garment)
-  const src = imageUrl(garment)
+  const src = imageUrl(garment, { size: 'thumb' })
   const label = [title, slot && slot.toLowerCase(), stat]
     .filter(Boolean)
     .join(', ')

@@ -65,7 +65,7 @@ export default function GarmentTable({ garments }) {
         </thead>
         <tbody>
           {garments.map((garment) => {
-            const src = imageUrl(garment)
+            const src = imageUrl(garment, { size: 'thumb' })
             const untagged = garment.status === 'untagged'
             return (
               <tr key={garment.id} data-status={garment.status}>
