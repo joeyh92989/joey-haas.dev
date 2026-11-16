@@ -821,6 +821,38 @@ running, set `E2E_BASE_URL` instead of building:
 `E2E_BASE_URL=https://joey-haas.dev npm run e2e`. The report is in
 `frontend/playwright-report/`. CI runs the same suite in the `e2e` job.
 
+### Visual baselines
+
+`toHaveScreenshot` compares full-page screenshots of home, about, projects, one
+post, the games shelf, one item, one comic series, the 404 and the daily game,
+each in dark and light at 393 and 1280 wide (36 PNGs in
+`frontend/e2e/visual-baselines/`), built from the fixture snapshot. It is a
+separate run (`npm run e2e:visual`, `playwright.visual.config.js`), so
+`npm run e2e` stays quiet, and the `e2e` job runs it in compare mode.
+
+**Baselines are made on the CI runner only.** Linux and macOS render text
+differently; a Mac-made PNG never matches, and a local `e2e:visual` run fails
+on every page (do not commit its output). To create or update them:
+
+```sh
+gh workflow run update-visual-baselines.yml --ref <your-branch>
+```
+
+The workflow regenerates the set on ubuntu, uploads it as the `visual-baselines`
+artifact and commits it to that branch. A commit made by `GITHUB_TOKEN` does
+not start CI, so push an empty commit (or re-run the PR's jobs) to compare.
+If the commit step is unwanted, download the artifact (`gh run download`) and
+commit `e2e/visual-baselines/` yourself.
+
+A failed compare uploads `test-results-visual/` (expected, actual, diff) with
+the report. **A diff is a real regression** when nobody meant to change that
+page's look: fix the code. It is **intended** when the PR changed the design:
+look at the diff images, then update the baselines as above and review the PNG
+changes in the PR. A diff on a page the PR did not touch, or one that differs
+between reruns, is runner noise: rerun once; if it persists, check the capture
+for something date- or data-dependent (the spec fixes the clock, blocks the
+API, disables animation and waits for fonts and images).
+
 Known problems are tracked, not hidden:
 
 - A genuine site defect is marked `test.fail()` with a `// known: ... backlog

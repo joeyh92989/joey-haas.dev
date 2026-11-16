@@ -4,8 +4,18 @@
 |---|---|---|
 | `ci.yml` | every PR and push to `main` | `backend`, `frontend`, `e2e`, `e2e-admin`, and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | migrate Neon, deploy the API, wait, smoke |
+| `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |
 | `nightly.yml` | 00:17 UTC | the data refreshes and the snapshot deploy (see its header) |
+
+## Visual baselines
+
+`ci.yml`'s `e2e` job compares screenshots (`npm run e2e:visual`) with the PNGs
+in `frontend/e2e/visual-baselines/`. They must come from the runner, so after
+an intended visual change run `gh workflow run update-visual-baselines.yml
+--ref <branch>`, then push an empty commit (a `GITHUB_TOKEN` commit does not
+trigger CI). Diff policy and the artifact route: `frontend/README.md` -> Browser
+tests -> Visual baselines.
 
 ## Migrations and deploys (the whole path)
 
