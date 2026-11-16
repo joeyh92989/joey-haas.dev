@@ -1009,6 +1009,45 @@ describe('AdminClosetToday', () => {
       expect(within(board).getByText('grey chinos')).toBeInTheDocument()
     })
 
+    it('draws a photoless piece in its hex, else its family token, else neutral', async () => {
+      const lead = {
+        garments: [
+          tile('top', 't1', 'navy oxford', {
+            primary_hex: null,
+            primary_color: 'navy',
+            color_name: 'Deep Sea',
+          }),
+          tile('bottom', 'b1', 'grey chinos', { primary_hex: '#445566' }),
+          tile('shoes', 's1', 'mystery shoes', {
+            primary_hex: null,
+            primary_color: 'chartreuse',
+          }),
+        ],
+        reason: 'Fallbacks.',
+        ranked_by: 'model',
+      }
+      stub({ 'GET /api/closet/today': answer({}, { lead }) })
+      renderPage()
+      await screen.findByText('navy oxford')
+      const board = within(card()).getByRole('group', {
+        name: adminCopy.closetToday.outfitBoard,
+      })
+      const pic = (slot) =>
+        board.querySelector(
+          `.outfit-piece[data-slot="${slot}"] .outfit-board-pic`,
+        )
+      expect(pic('top')).toHaveAttribute('data-family', 'navy')
+      expect(pic('top')).not.toHaveAttribute('style')
+      // The family's name as the caption, under the piece's own name.
+      expect(within(board).getByText('Deep Sea')).toBeInTheDocument()
+      expect(pic('bottom')).not.toHaveAttribute('data-family')
+      expect(pic('bottom').style.backgroundColor).not.toBe('')
+      // An unknown family falls back to the neutral box.
+      expect(pic('shoes')).not.toHaveAttribute('data-family')
+      expect(pic('shoes')).not.toHaveAttribute('style')
+      expect(within(board).getByText('mystery shoes')).toBeInTheDocument()
+    })
+
     it('reaches every piece by keyboard: Tab goes Swap, Build around', async () => {
       stub({ 'GET /api/closet/today': answer({}, { lead: SHOW }) })
       renderPage()

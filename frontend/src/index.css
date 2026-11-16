@@ -81,6 +81,24 @@
   --status-finished: #e3e6ea;
   --status-backlog: #8a919b;
   --status-abandoned: #6b737e;
+  /* Garment colour families (closet_colors.FAMILIES): the swatch a piece
+     without a photo or hex is drawn in. Data colours, one set for both
+     themes (a navy shirt is navy in either); the swatch's --line border
+     keeps black and white visible on either ground. */
+  --gc-black: #1c1c1e;
+  --gc-white: #f4f4f0;
+  --gc-grey: #8a8d91;
+  --gc-navy: #1f2f4f;
+  --gc-blue: #3f6fb5;
+  --gc-green: #4a7a4f;
+  --gc-red: #b03a3a;
+  --gc-orange: #d9822b;
+  --gc-yellow: #e3c443;
+  --gc-pink: #e08aa6;
+  --gc-purple: #7a4e9a;
+  --gc-brown: #6b4a2e;
+  --gc-beige: #d8c8a8;
+  --gc-tan: #b89468;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: var(--sunken);
   /* The search dialog's highlighted row, under an --accent inset bar.
@@ -11757,6 +11775,62 @@ a.cover-tile-cap:focus-visible span {
   aspect-ratio: 3 / 1;
 }
 
+.outfit-board-pic[data-family='black'] {
+  background-color: var(--gc-black);
+}
+
+.outfit-board-pic[data-family='white'] {
+  background-color: var(--gc-white);
+}
+
+.outfit-board-pic[data-family='grey'] {
+  background-color: var(--gc-grey);
+}
+
+.outfit-board-pic[data-family='navy'] {
+  background-color: var(--gc-navy);
+}
+
+.outfit-board-pic[data-family='blue'] {
+  background-color: var(--gc-blue);
+}
+
+.outfit-board-pic[data-family='green'] {
+  background-color: var(--gc-green);
+}
+
+.outfit-board-pic[data-family='red'] {
+  background-color: var(--gc-red);
+}
+
+.outfit-board-pic[data-family='orange'] {
+  background-color: var(--gc-orange);
+}
+
+.outfit-board-pic[data-family='yellow'] {
+  background-color: var(--gc-yellow);
+}
+
+.outfit-board-pic[data-family='pink'] {
+  background-color: var(--gc-pink);
+}
+
+.outfit-board-pic[data-family='purple'] {
+  background-color: var(--gc-purple);
+}
+
+.outfit-board-pic[data-family='brown'] {
+  background-color: var(--gc-brown);
+}
+
+.outfit-board-pic[data-family='beige'] {
+  background-color: var(--gc-beige);
+}
+
+.outfit-board-pic[data-family='tan'] {
+  background-color: var(--gc-tan);
+}
+
 .outfit-board-pic img {
   display: block;
   height: 100%;
@@ -11772,6 +11846,11 @@ a.cover-tile-cap:focus-visible span {
 .outfit-piece-name {
   font-size: var(--fs-14);
   overflow-wrap: anywhere;
+}
+
+.outfit-piece-color {
+  color: var(--text-2);
+  font-size: var(--fs-13);
 }
 
 .outfit-piece-stat {

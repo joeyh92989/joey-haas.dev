@@ -345,6 +345,8 @@ def _tile(
         "slot": slot,
         "id": piece.id,
         "name": piece.name,
+        "primary_color": piece.primary_color,
+        "color_name": piece.color_name,
         "primary_hex": piece.primary_hex,
         "secondary_hex": piece.secondary_hex,
         "image": image,

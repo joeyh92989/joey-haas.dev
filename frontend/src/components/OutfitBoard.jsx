@@ -3,6 +3,24 @@ import { categoryLabel, imageUrl } from '../lib/closet.js'
 
 const copy = adminCopy.closetToday
 
+/** The colour families that have a --gc-* swatch token (index.css). */
+const FAMILIES = new Set([
+  'black',
+  'white',
+  'grey',
+  'navy',
+  'blue',
+  'green',
+  'red',
+  'orange',
+  'yellow',
+  'pink',
+  'purple',
+  'brown',
+  'beige',
+  'tan',
+])
+
 /** The slots that sit in the main column, top to bottom. */
 const ROWS = [['outer', 'mid', 'top'], ['bottom'], ['shoes']]
 
@@ -27,7 +45,8 @@ export function boardLayout(garments) {
 /**
  * One piece's picture: the photo when there is one, else the piece's own
  * colour (the tagger's data, not a theme colour). A vendor-coloured piece
- * carries no hex, so it gets the neutral ground; its name is written under
+ * carries no hex, so its colour family picks a --gc-* token; only a piece with
+ * no colour known gets the neutral ground; its name is written under
  * the picture either way, so the picture itself is decoration.
  */
 function Picture({ piece, size }) {
@@ -43,6 +62,11 @@ function Picture({ piece, size }) {
     <span
       className="outfit-board-pic"
       data-bare="true"
+      data-family={
+        !piece.primary_hex && FAMILIES.has(piece.primary_color)
+          ? piece.primary_color
+          : undefined
+      }
       style={piece.primary_hex ? { backgroundColor: piece.primary_hex } : null}
     />
   )
@@ -143,6 +167,9 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
             {categoryLabel(tile.slot) ?? tile.slot}
           </span>
           <span className="outfit-piece-name">{tile.name}</span>
+          {!tile.image && tile.color_name && (
+            <span className="outfit-piece-color">{tile.color_name}</span>
+          )}
           <span className="outfit-piece-stat">{tile.qualifier}</span>
           <span className="outfit-piece-acts">
             <button
