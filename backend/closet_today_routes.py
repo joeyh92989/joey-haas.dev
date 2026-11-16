@@ -54,7 +54,13 @@ import closet
 import closet_rank
 import closet_tag
 import weather
-from closet_images import ClosetImageError, make_thumbnail, read_capped
+from closet_images import (
+    LONG_EDGE,
+    ClosetImageError,
+    make_thumbnail,
+    read_capped,
+    resize_webp,
+)
 from closet_routes import (
     DEFAULT_WEEK,
     OCCASIONS,
@@ -92,6 +98,10 @@ from recommendations_routes import _failure_note
 logger = logging.getLogger(__name__)
 
 PLAN_STATUS_KEY = "plan.last_run"
+# `{"enabled": bool}`: send the shortlist's thumbnails with the ranking prompt.
+# Off until the #400 measurement says latency and tokens are acceptable.
+RANK_IMAGES_KEY = "rank.images"
+THUMB_EDGE = LONG_EDGE  # the grid rendition
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
 NOTHING_TO_WEAR = "Nothing in the closet fits today yet"
@@ -366,6 +376,40 @@ def _weather_out(read: closet.WeatherRead, bike: bool, day: date) -> dict[str, A
     }
 
 
+async def shortlist_images(
+    session: AsyncSession, found: closet.Candidates
+) -> tuple[list[int], list[Image]]:
+    """The numbers and thumbnails to send with the ranking prompt, in the
+    order they are sent. A photo that cannot be shrunk is left out, its
+    piece ranked from text; so is anything past the byte budget."""
+    listed = closet_rank.numbered(found)
+    ids = {piece.id for _, piece in listed if not piece.transient}
+    if not ids:
+        return [], []
+    stored = dict(
+        (
+            await session.execute(
+                select(GarmentImage.garment_id, GarmentImage.webp).where(
+                    GarmentImage.garment_id.in_([uuid.UUID(i) for i in ids])
+                )
+            )
+        ).all()
+    )
+    have = {str(k) for k in stored}
+    sized: dict[int, bytes] = {}
+    for index in closet_rank.image_picks(found, have):
+        try:
+            sized[index] = await asyncio.to_thread(
+                resize_webp, stored[uuid.UUID(listed[index][1].id)], THUMB_EDGE
+            )
+        except Exception:  # one bad photo must not cost the rest
+            logger.warning("closet rank image %s unreadable", listed[index][1].id)
+    kept = closet_rank.within_budget(
+        list(sized), {i: len(data) for i, data in sized.items()}
+    )
+    return kept, [Image("image/webp", sized[i]) for i in kept]
+
+
 # --- the router ----------------------------------------------------------------
 
 
@@ -398,10 +442,22 @@ def create_closet_today_router(
         async with factory() as session:
             yield session
 
+    async def rank_images_on(session: AsyncSession) -> bool:
+        """`closet_settings["rank.images"]` (`{"enabled": bool}`): off unless
+        set. Read by every plan, the nightly job's and the re-plans'."""
+        row = await session.get(ClosetSetting, RANK_IMAGES_KEY)
+        return bool(row and row.value.get("enabled") is True)
+
     async def rank(
-        prompt: str, budget: dict[str, Any] | None = None
+        prompt: str,
+        budget: dict[str, Any] | None = None,
+        with_images: tuple[str, list[Image]] | None = None,
     ) -> tuple[dict | None, str | None]:
         """One model call, or why there was none. Never raises.
+
+        `with_images` is the same question as `prompt` with the shortlist's
+        photos: tried first; when the model errs or refuses the payload, the
+        text-only `prompt` is tried once, then it is the template as ever.
 
         `budget` is the nightly job's: once a call has failed (quota,
         overload, timeout) or the run is past `JOB_MODEL_BUDGET_S`, the
@@ -416,7 +472,17 @@ def create_closet_today_router(
                 return None, JOB_SKIP_TIME
         try:
             provider = provider_factory()
-            payload = await provider.complete_json(prompt, closet_rank.SCHEMA)
+            tried = False
+            if with_images is not None:
+                try:
+                    payload = await provider.complete_json(
+                        with_images[0], closet_rank.SCHEMA, images=with_images[1]
+                    )
+                    tried = True
+                except LLMError as error:
+                    logger.warning("closet rank with images failed: %s", error)
+            if not tried:
+                payload = await provider.complete_json(prompt, closet_rank.SCHEMA)
         except LLMError as error:
             logger.warning("closet plan model call failed: %s", error)
             if budget is not None:
@@ -478,11 +544,18 @@ def create_closet_today_router(
         if not closet.template(found, recent):
             outfits, note = [], NOTHING_TO_WEAR
         else:
+            args = (found, request, read, sentence, profile, reasons)
+            with_images = None
+            if await rank_images_on(session):
+                picks, images = await shortlist_images(session, found)
+                await session.commit()
+                if images:
+                    with_images = (
+                        closet_rank.build_prompt(*args, images=picks),
+                        images,
+                    )
             payload, note = await rank(
-                closet_rank.build_prompt(
-                    found, request, read, sentence, profile, reasons
-                ),
-                budget,
+                closet_rank.build_prompt(*args), budget, with_images
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
