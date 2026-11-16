@@ -61,6 +61,8 @@ from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import closet_product
+import closet_resolver
 import closet_tag
 from closet_images import (
     ClosetImageError,
@@ -72,6 +74,8 @@ from closet_schemas import (
     GarmentListOut,
     GarmentOut,
     JobStatusOut,
+    ProductAttachOut,
+    ProductPreviewOut,
     ProfileOut,
     TagJobOut,
     TagNowOut,
@@ -170,6 +174,23 @@ TEXT_FIELDS = (
     "size",
     "notes",
 )
+
+
+class ProductLink(BaseModel):
+    """The pasted product link (`POST /garments/{id}/product`)."""
+
+    url: str = Field(min_length=1, max_length=closet_resolver.MAX_URL_CHARS)
+
+
+class ProductChoice(ProductLink):
+    """The owner's pick from what the link offered. Only ids: the colour,
+    its price and its photo are read again from the store, never taken from
+    here."""
+
+    external_id: str = Field(min_length=1, max_length=200)
+    size: str | None = Field(default=None, max_length=40)
+    replace_brand: bool = False
+    replace_product: bool = False
 
 
 class ProfileFields(BaseModel):
@@ -694,6 +715,72 @@ def create_closet_router(
         return {
             "added": len(rows),
             "garments": [garment_out(row, has_image=True) for row in rows],
+        }
+
+    @router.post("/garments/{garment_id}/photo", response_model=GarmentOut)
+    async def set_garment_photo(
+        garment_id: uuid.UUID,
+        photo: UploadFile = File(),
+        session: AsyncSession = Depends(get_session),
+    ) -> GarmentOut:
+        """Adds a photo to a garment, or replaces its photo. Only the photo
+        and `updated_at` (the image URL's version) change: no retag, and no
+        field, status or source moves."""
+        row = await _found(session, garment_id)
+        check_media_type(photo)
+        [image] = await convert_upload(photo, make_garment_image)
+        await closet_product.store_photo(session, row, image)
+        await session.commit()
+        await session.refresh(row)
+        return await _one_out(session, row)
+
+    @router.post("/garments/{garment_id}/product", response_model=ProductPreviewOut)
+    async def preview_product(
+        garment_id: uuid.UUID,
+        link: ProductLink,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Reads a product link and answers its colours, sizes, price and
+        brand. Writes nothing. A link the store will not give up is a 200
+        with `state` refused and the reason, never an error."""
+        row = await _found(session, garment_id)
+        return await closet_product.preview(
+            session, row, link.url, has_photo=await _has_image(session, row.id)
+        )
+
+    @router.patch("/garments/{garment_id}/product", response_model=ProductAttachOut)
+    async def attach_product(
+        garment_id: uuid.UUID,
+        choice: ProductChoice,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Attaches the chosen colour (see `closet_product.py`). PATCH, not
+        PUT: the API's CORS policy (`main.py`) allows GET, POST, PATCH and
+        DELETE only, and the POST above is the read-only preview."""
+        row = await _found(session, garment_id)
+        try:
+            photo, product = await closet_product.attach(
+                session,
+                row,
+                url=choice.url,
+                external_id=choice.external_id,
+                size=choice.size,
+                replace_brand=choice.replace_brand,
+                replace_product=choice.replace_product,
+                has_photo=await _has_image(session, row.id),
+            )
+        except closet_product.AttachRefused as refused:
+            await session.rollback()
+            raise HTTPException(
+                status_code=refused.status, detail=refused.message
+            ) from None
+        await session.commit()
+        await session.refresh(row)
+        return {
+            "garment": await _one_out(session, row),
+            "photo": photo.state,
+            "photo_error": photo.error,
+            "product": closet_product.attached(product),
         }
 
     # The photo as WebP bytes (or a 304), not JSON.

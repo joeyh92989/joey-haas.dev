@@ -57,7 +57,7 @@ async def test_every_json_route_declares_a_response_model(sessionmaker_for_test)
             schema = ok.get("content", {}).get("application/json", {}).get("schema")
             if schema in (None, {}) or schema == {"type": "object"}:
                 unpinned.append(f"{method.upper()} {path}")
-    assert seen == 27
+    assert seen == 30
     assert unpinned == []
 
 
@@ -160,3 +160,13 @@ async def test_review_bodies_keep_their_exact_keys(sessionmaker_for_test):
     assert set(dismissed) == {"turn_on"}
     # a run that stored nothing new carries a note key, a clean one does not
     assert {"at", "ok", "flagged", "state", "opinions"} <= set(job)
+
+
+async def test_the_photo_route_answers_a_garment_body(sessionmaker_for_test):
+    async with garments.client_for(sessionmaker_for_test) as client:
+        made = (await client.post("/api/closet/garments", json={})).json()
+        response = await client.post(
+            f"/api/closet/garments/{made['id']}/photo",
+            files={"photo": ("a.jpg", garments.jpeg(), "image/jpeg")},
+        )
+    assert set(response.json()) == GARMENT_KEYS
