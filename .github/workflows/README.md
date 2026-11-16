@@ -2,7 +2,7 @@
 
 | File | Runs | What it does |
 |---|---|---|
-| `ci.yml` | every PR and push to `main` | `backend`, `frontend`, `e2e`, `e2e-admin`, and `neon-rehearsal` |
+| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `e2e`, `e2e-admin`, and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | migrate Neon, deploy the API, wait, smoke |
 | `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |

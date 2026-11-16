@@ -960,7 +960,7 @@ Every pull request runs two jobs, which must both pass before it can merge:
 
 | Job | Runs |
 |---|---|
-| `backend` | `pytest`, then `pip-audit` |
+| `backend` | passes when `backend-tests` (format, lint, `pytest` without the migration tests, then `pip-audit`) and `backend-migrations` (`tests/test_migrations.py`, on its own Postgres) both pass; a red `backend` means open one of those two |
 | `frontend` | `npm test`, `npm run build`, then `npm audit --audit-level=high` |
 
 Audits fail on high and critical advisories only. Moderate and low are reported
