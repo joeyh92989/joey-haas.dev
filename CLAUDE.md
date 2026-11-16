@@ -540,8 +540,11 @@ before pushing.
   scripts/migrate_neon.py current` and `upgrade`.
 - **CI jobs**: `frontend`, `backend`, `e2e` and `e2e-admin` (the admin browser
   suite against a Postgres 18 service and a real backend, test-login on a
-  localhost `FRONTEND_URL`). None is a *required* check in branch protection,
-  so a red job does not block a merge: read them before merging.
+  localhost `FRONTEND_URL`). Branch protection on `main` requires `backend` and
+  `frontend`, and requires the branch to be up to date with `main` (strict), so
+  after another PR merges, `gh pr update-branch <n>` and wait for CI again before
+  merging; update one PR at a time. `e2e`, `e2e-admin` and `neon-rehearsal` are
+  not required, so a red one does not block a merge: read them anyway.
 - **Known flaky tests** (issue #244): Admin* suites in `npm test` time out under
   load (AdminLayout's focus-target test has failed on CI; it passes on a rerun
   with no frontend change). One rerun of a failed job with a named, unrelated
