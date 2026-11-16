@@ -30,6 +30,8 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
   const [pick, setPick] = useState(null)
   const [size, setSize] = useState('')
   const [replaceBrand, setReplaceBrand] = useState(false)
+  const [replaceColour, setReplaceColour] = useState(false)
+  const [replaceSize, setReplaceSize] = useState(false)
   const [replaceProduct, setReplaceProduct] = useState(false)
 
   async function sendPhoto(event) {
@@ -90,6 +92,8 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       setPick(body.candidates.length === 1 ? body.candidates[0] : null)
       setSize('')
       setReplaceBrand(false)
+      setReplaceColour(false)
+      setReplaceSize(false)
       setReplaceProduct(false)
     } catch {
       setError(copy.lookFailed)
@@ -112,6 +116,8 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             external_id: pick.external_id,
             size: size || null,
             replace_brand: replaceBrand,
+            replace_color: replaceColour,
+            replace_size: replaceSize,
             replace_product: replaceProduct,
           }),
         },
@@ -125,7 +131,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       setNotice(
         `${copy.attached} ${
           typeof outcome === 'function' ? outcome(body.photo_error) : outcome
-        }`,
+        }${body.kept.length ? copy.kept(body.kept) : ''}`,
       )
       setRead(null)
       setLink('')
@@ -140,6 +146,15 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
   const sizes = pick?.sizes.filter((s) => s.size) ?? []
   const brandClash =
     read?.brand && garment.brand && read.brand !== garment.brand
+  // The owner's own colour and size are only replaced when they say so.
+  const colourClash =
+    garment.color_name &&
+    pick?.color_name &&
+    garment.color_source === 'manual' &&
+    garment.color_name !== pick.color_name
+  const theSize =
+    size || (sizes.length === 1 && !garment.size ? sizes[0].size : '')
+  const sizeClash = garment.size && theSize && garment.size !== theSize
   const needsReplace = Boolean(read?.attached)
   const ready = Boolean(pick) && (!needsReplace || replaceProduct)
 
@@ -244,6 +259,26 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
                 onChange={(e) => setReplaceBrand(e.target.checked)}
               />
               {copy.replaceBrand(garment.brand, read.brand)}
+            </label>
+          )}
+          {colourClash && (
+            <label className="garment-attach-choice">
+              <input
+                type="checkbox"
+                checked={replaceColour}
+                onChange={(e) => setReplaceColour(e.target.checked)}
+              />
+              {copy.replaceColour(garment.color_name, pick.color_name)}
+            </label>
+          )}
+          {sizeClash && (
+            <label className="garment-attach-choice">
+              <input
+                type="checkbox"
+                checked={replaceSize}
+                onChange={(e) => setReplaceSize(e.target.checked)}
+              />
+              {copy.replaceSize(garment.size, theSize)}
             </label>
           )}
           {needsReplace && (

@@ -64,6 +64,7 @@ from fastapi import (
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import closet_product
@@ -195,6 +196,8 @@ class ProductChoice(ProductLink):
     external_id: str = Field(min_length=1, max_length=200)
     size: str | None = Field(default=None, max_length=40)
     replace_brand: bool = False
+    replace_color: bool = False
+    replace_size: bool = False
     replace_product: bool = False
 
 
@@ -321,7 +324,7 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
         typed = _clean(fields.color_name)
         # The edit form sends the colour back on every save: only a colour
         # that changed is the owner's own wording.
-        if typed != row.color_name:
+        if typed != _clean(row.color_name):
             row.color_name = typed
             row.color_source = GarmentColorSource.MANUAL if typed is not None else None
     if "seasons" in given:
@@ -564,6 +567,15 @@ def create_closet_router(
             raise HTTPException(status_code=404, detail="No such garment")
         return row
 
+    async def _conflict(session: AsyncSession, garment_id: uuid.UUID) -> HTTPException:
+        """What a failed write means: the garment is gone (404) or another
+        write got there first (409)."""
+        if await session.get(Garment, garment_id) is None:
+            return HTTPException(status_code=404, detail="No such garment")
+        return HTTPException(
+            status_code=409, detail="That garment changed meanwhile; try again"
+        )
+
     async def _has_image(session: AsyncSession, garment_id: uuid.UUID) -> bool:
         found = await session.scalar(
             select(GarmentImage.garment_id).where(GarmentImage.garment_id == garment_id)
@@ -733,11 +745,25 @@ def create_closet_router(
         """Adds a photo to a garment, or replaces its photo. Only the photo
         and `updated_at` (the image URL's version) change: no retag, and no
         field, status or source moves."""
-        row = await _found(session, garment_id)
+        await _found(session, garment_id)
         check_media_type(photo)
         [image] = await convert_upload(photo, make_garment_image)
-        await closet_product.store_photo(session, row, image)
-        await session.commit()
+        try:
+            # Locked and read again: the garment may have gone, or another
+            # photo landed, while the upload was being decoded.
+            row = await session.scalar(
+                select(Garment)
+                .where(Garment.id == garment_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if row is None:
+                raise HTTPException(status_code=404, detail="No such garment")
+            await closet_product.store_photo(session, row, image)
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
         await session.refresh(row)
         return await _one_out(session, row)
 
@@ -764,29 +790,33 @@ def create_closet_router(
         """Attaches the chosen colour (see `closet_product.py`). PATCH, not
         PUT: the API's CORS policy (`main.py`) allows GET, POST, PATCH and
         DELETE only, and the POST above is the read-only preview."""
-        row = await _found(session, garment_id)
         try:
-            photo, product = await closet_product.attach(
+            row, photo, product, kept = await closet_product.attach(
                 session,
-                row,
+                garment_id,
                 url=choice.url,
                 external_id=choice.external_id,
                 size=choice.size,
                 replace_brand=choice.replace_brand,
+                replace_color=choice.replace_color,
+                replace_size=choice.replace_size,
                 replace_product=choice.replace_product,
-                has_photo=await _has_image(session, row.id),
             )
+            await session.commit()
         except closet_product.AttachRefused as refused:
             await session.rollback()
             raise HTTPException(
                 status_code=refused.status, detail=refused.message
             ) from None
-        await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
         await session.refresh(row)
         return {
             "garment": await _one_out(session, row),
             "photo": photo.state,
             "photo_error": photo.error,
+            "kept": kept,
             "product": closet_product.attached(product),
         }
 

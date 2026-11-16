@@ -222,6 +222,7 @@ describe('AdminGarment', () => {
           garment: { ...GARMENT, brand: 'Acme', color_name: 'Red', size: 'M' },
           photo: 'kept',
           photo_error: null,
+          kept: [],
           product: { url: PREVIEW.url, title: 'Test Crew', source: 'link' },
         }),
     })
@@ -251,6 +252,8 @@ describe('AdminGarment', () => {
       external_id: '11',
       size: 'M',
       replace_brand: true,
+      replace_color: false,
+      replace_size: false,
       replace_product: false,
     })
     // The form starts again from what the API now holds.
@@ -307,5 +310,51 @@ describe('AdminGarment', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('robots.txt')
     expect(screen.getByRole('alert')).toHaveTextContent('add a photo')
     expect(screen.queryByRole('button', { name: 'Attach product' })).toBeNull()
+  })
+
+  it('keeps a hand-entered colour and size unless the owner ticks to replace', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () =>
+        json({
+          ...GARMENT,
+          color_name: 'Slate',
+          color_source: 'manual',
+          size: 'L',
+        }),
+      'POST /api/closet/garments/g1/product': () => json(PREVIEW),
+      'PATCH /api/closet/garments/g1/product': () =>
+        json({
+          garment: { ...GARMENT, color_name: 'Red', size: 'M' },
+          photo: 'kept',
+          photo_error: null,
+          kept: [],
+          product: { url: PREVIEW.url, title: 'Test Crew', source: 'link' },
+        }),
+    })
+    renderAt('/admin/closet/g1')
+    await userEvent.type(
+      await screen.findByLabelText('Product link'),
+      PREVIEW.url,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
+    await userEvent.click(await screen.findByLabelText(/^Red/))
+    await userEvent.selectOptions(
+      screen.getByLabelText('Size in this colour'),
+      'M',
+    )
+    await userEvent.click(
+      screen.getByLabelText('Replace the colour “Slate” with “Red”'),
+    )
+    await userEvent.click(
+      screen.getByLabelText('Replace the size “L” with “M”'),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Attach product' }),
+    )
+    await screen.findByText(/Product attached/)
+    expect(calls.find((c) => c.method === 'PATCH').body).toMatchObject({
+      replace_color: true,
+      replace_size: true,
+    })
   })
 })

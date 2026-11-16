@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 import closet_product
 import closet_resolver as cr
@@ -296,7 +297,7 @@ async def test_attach_leaves_the_tag_state_and_a_typed_primary_colour(
         primary_color="navy",
         status=GarmentStatus.ACTIVE,
         tag_source=GarmentTagSource.MANUAL,
-        color_name="Old", color_source=GarmentColorSource.MANUAL,
+        color_name="Old", color_source=GarmentColorSource.VENDOR,
     )  # fmt: skip
     async with client_for(sessionmaker_for_test) as client:
         response = await client.patch(
@@ -306,6 +307,169 @@ async def test_attach_leaves_the_tag_state_and_a_typed_primary_colour(
     assert garment["primary_color"] == "navy"
     assert (garment["status"], garment["tag_source"]) == ("active", "manual")
     assert (garment["color_name"], garment["color_source"]) == ("Red", "vendor")
+
+
+async def test_a_hand_entered_colour_and_size_are_kept_unless_replaced(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test,
+        color_name="Slate",
+        color_source=GarmentColorSource.MANUAL,
+        size="L",
+    )
+    body = {"url": MULTI, "external_id": "11", "size": "M", "replace_product": True}
+    async with client_for(sessionmaker_for_test) as client:
+        kept = (await client.patch(url_of(row.id), json=body)).json()
+        both = (
+            await client.patch(
+                url_of(row.id),
+                json={**body, "replace_color": True, "replace_size": True},
+            )
+        ).json()
+    assert sorted(kept["kept"]) == ["colour", "size"]
+    assert (kept["garment"]["color_name"], kept["garment"]["size"]) == ("Slate", "L")
+    assert (kept["garment"]["color_source"]) == "manual"
+    assert both["kept"] == []
+    assert (both["garment"]["color_name"], both["garment"]["size"]) == ("Red", "M")
+    assert both["garment"]["color_source"] == "vendor"
+
+
+async def test_a_single_size_only_fills_an_empty_size(sessionmaker_for_test):
+    full = await _garment(sessionmaker_for_test, size="XL")
+    empty = await _garment(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        # Blue has one size (S), taken without being asked when none is typed.
+        a = await client.patch(
+            url_of(full.id), json={"url": MULTI, "external_id": "13"}
+        )
+        b = await client.patch(
+            url_of(empty.id), json={"url": MULTI, "external_id": "13"}
+        )
+    assert a.json()["garment"]["size"] == "XL"
+    assert b.json()["garment"]["size"] == "S"
+
+
+async def test_a_photo_added_during_the_lookup_is_never_overwritten(
+    sessionmaker_for_test, monkeypatch, network
+):
+    row = await _garment(sessionmaker_for_test)
+    real = closet_product.resolve
+
+    async def slow(url, **kw):
+        # The owner uploads a photo while the store is being read.
+        async with client_for(sessionmaker_for_test) as other:
+            await other.post(
+                f"/api/closet/garments/{row.id}/photo",
+                files={"photo": ("a.jpg", jpeg(300, 200, (9, 9, 9)), "image/jpeg")},
+            )
+        return await real(url, **kw)
+
+    monkeypatch.setattr(closet_product, "resolve", slow)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            url_of(row.id), json={"url": MULTI, "external_id": "11", "size": "M"}
+        )
+    assert response.status_code == 200, response.text
+    assert response.json()["photo"] == "kept"
+    async with sessionmaker_for_test() as session:
+        stored = await session.get(GarmentImage, row.id)
+    assert (stored.width, stored.height) == (300, 200)
+
+
+async def test_a_garment_deleted_during_the_lookup_is_404_not_500(
+    sessionmaker_for_test, monkeypatch
+):
+    row = await _garment(sessionmaker_for_test)
+    real = closet_product.resolve
+
+    async def gone(url, **kw):
+        async with sessionmaker_for_test() as session:
+            await session.delete(await session.get(Garment, row.id))
+            await session.commit()
+        return await real(url, **kw)
+
+    monkeypatch.setattr(closet_product, "resolve", gone)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            url_of(row.id), json={"url": MULTI, "external_id": "11"}
+        )
+    assert response.status_code == 404
+    assert await count(sessionmaker_for_test, GarmentProduct) == 0
+
+
+async def test_a_product_added_during_the_lookup_is_a_409(
+    sessionmaker_for_test, monkeypatch
+):
+    row = await _garment(sessionmaker_for_test)
+    real = closet_product.resolve
+
+    async def racing(url, **kw):
+        async with sessionmaker_for_test() as session:
+            session.add(GarmentProduct(garment_id=row.id, title="Other"))
+            await session.commit()
+        return await real(url, **kw)
+
+    monkeypatch.setattr(closet_product, "resolve", racing)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            url_of(row.id), json={"url": MULTI, "external_id": "11"}
+        )
+    assert response.status_code == 409
+    assert await count(sessionmaker_for_test, GarmentProduct) == 1
+
+
+async def test_a_lost_insert_race_is_a_409_never_a_500(
+    sessionmaker_for_test, monkeypatch
+):
+    """The backstop: a unique-key failure at commit (two attaches, two photo
+    writes) is rolled back and answered, whatever the lock let through."""
+    row = await _garment(sessionmaker_for_test)
+
+    async def collide(*args, **kw):
+        raise IntegrityError("insert", {}, Exception("duplicate key"))
+
+    monkeypatch.setattr(closet_product, "attach", collide)
+    monkeypatch.setattr(closet_product, "store_photo", collide)
+    async with client_for(sessionmaker_for_test) as client:
+        attach = await client.patch(
+            url_of(row.id), json={"url": MULTI, "external_id": "11"}
+        )
+        photo = await client.post(
+            f"/api/closet/garments/{row.id}/photo",
+            files={"photo": ("a.jpg", jpeg(), "image/jpeg")},
+        )
+    assert (attach.status_code, photo.status_code) == (409, 409)
+
+
+async def test_an_attach_strips_after_truncating_the_colour(
+    sessionmaker_for_test, monkeypatch
+):
+    row = await _garment(sessionmaker_for_test)
+    long = "Red " + "x" * 75 + " tail"  # character 80 falls on a space
+    product = cr.parse_shopify_json(shopify(), MULTI)
+    colour = product.colours[0]
+    padded = cr.Colour(
+        colour.external_id,
+        long[:79] + " z",
+        colour.image_url,
+        colour.price,
+        colour.sizes,
+    )
+    answer = cr.Resolution(
+        MULTI, product=cr.Product("shopify", MULTI, "T", None, "USD", (padded,))
+    )
+
+    async def fake(url, **kw):
+        return answer
+
+    monkeypatch.setattr(closet_product, "resolve", fake)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            url_of(row.id), json={"url": MULTI, "external_id": "11", "size": "M"}
+        )
+    name = response.json()["garment"]["color_name"]
+    assert name == name.strip() and len(name) <= 80
 
 
 async def test_the_product_routes_are_admin_only(sessionmaker_for_test, network):

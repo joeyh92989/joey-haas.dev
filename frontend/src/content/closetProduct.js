@@ -26,6 +26,11 @@ export const productCopy = {
     `Replace the brand “${current}” with “${found}”`,
   replaceProduct: (title) =>
     `This garment already has a product (${title || 'untitled'}). Replace it.`,
+  replaceColour: (current, found) =>
+    `Replace the colour “${current}” with “${found}”`,
+  replaceSize: (current, found) =>
+    `Replace the size “${current}” with “${found}”`,
+  kept: (fields) => ` Kept your ${fields.join(' and ')}.`,
   keepsPhoto: 'Its photo stays as it is.',
   addsPhoto: 'This colour’s photo is added.',
   unsavedNote: 'Attaching replaces any unsaved edits in the form below.',

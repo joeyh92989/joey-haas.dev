@@ -117,8 +117,10 @@ async def current_product(
 async def preview(
     session: AsyncSession, row: Garment, url: str, *, has_photo: bool
 ) -> dict[str, Any]:
-    """What the link offers, written nowhere. Never raises for a store."""
+    """What the link offers, written nowhere. Never raises for a store. The
+    session's connection is released before the network is touched."""
     existing = _attached(await current_product(session, row.id))
+    await session.rollback()
     resolution = await resolve(url)
     base = {
         "url": resolution.url,
@@ -183,22 +185,36 @@ async def _fetch_photo(candidate: dict[str, Any]) -> tuple[Any | None, PhotoResu
 
 async def attach(
     session: AsyncSession,
-    row: Garment,
+    garment_id: Any,
     *,
     url: str,
     external_id: str,
     size: str | None,
     replace_brand: bool,
+    replace_color: bool,
+    replace_size: bool,
     replace_product: bool,
-    has_photo: bool,
-) -> tuple[PhotoResult, GarmentProduct]:
-    """Writes the chosen colour onto the garment. Flushed, not committed:
-    the caller commits. Raises `AttachRefused`."""
-    existing = await current_product(session, row.id)
-    if existing is not None and not replace_product:
+) -> tuple[Garment, PhotoResult, GarmentProduct, list[str]]:
+    """Writes the chosen colour onto the garment and returns the row, what
+    became of its photo, the product row and the fields kept. Flushed, not
+    committed: the caller commits. Raises `AttachRefused`.
+
+    Three phases, so no connection is held across the network and nothing
+    stale is written: (1) look: the garment exists and whether it has a
+    product; (2) the network, with no open transaction: the link, then the
+    colour's photo if the garment had none; (3) lock the garment
+    (`FOR UPDATE`), read it again and write from that row. A photo that
+    appeared meanwhile is never overwritten."""
+    row = await session.get(Garment, garment_id)
+    if row is None:
+        raise AttachRefused(404, "No such garment")
+    if await current_product(session, garment_id) and not replace_product:
         raise AttachRefused(
             409, "This garment already has a product; confirm to replace it"
         )
+    had_photo = await session.get(GarmentImage, garment_id) is not None
+    await session.rollback()
+
     resolution = await resolve(url)
     product = resolution.product
     if product is None:
@@ -209,22 +225,46 @@ async def attach(
     if candidate is None:
         raise AttachRefused(422, "That colour is not one this link offers")
     chosen_size = _chosen_size(candidate, size)
+    thumbnail, fetched = (None, PhotoResult("kept"))
+    if not had_photo:
+        thumbnail, fetched = await _fetch_photo(candidate)
 
-    photo = PhotoResult("kept")
-    thumbnail = None
-    if not has_photo:
-        thumbnail, photo = await _fetch_photo(candidate)
+    row = await session.scalar(
+        select(Garment)
+        .where(Garment.id == garment_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if row is None:
+        raise AttachRefused(404, "No such garment")
+    existing = await current_product(session, garment_id)
+    if existing is not None and not replace_product:
+        raise AttachRefused(
+            409, "This garment already has a product; confirm to replace it"
+        )
+    photo = fetched
+    if await session.get(GarmentImage, garment_id) is not None:
+        # Added meanwhile, or there from the start: never overwritten.
+        thumbnail, photo = None, PhotoResult("kept")
 
-    name = candidate.get("color_name")
+    kept: list[str] = []
+    name = (candidate.get("color_name") or "")[:80].strip()
     if name:
-        row.color_name = name[:80]
-        row.color_source = GarmentColorSource.VENDOR
+        theirs = row.color_name and row.color_source is GarmentColorSource.MANUAL
+        if theirs and row.color_name != name and not replace_color:
+            kept.append("colour")
+        else:
+            row.color_name = name
+            row.color_source = GarmentColorSource.VENDOR
         if not row.primary_color and (family := colour_family(name)):
             row.primary_color = family
     if product.brand and (replace_brand or not row.brand):
-        row.brand = product.brand[:80]
+        row.brand = product.brand[:80].strip()
     if chosen_size:
-        row.size = chosen_size[:40]
+        if row.size and row.size != chosen_size and not replace_size:
+            kept.append("size")
+        else:
+            row.size = chosen_size[:40]
     touch(row)
 
     snapshot = {**product.as_json(), "chosen": external_id, "size": chosen_size}
@@ -246,7 +286,7 @@ async def attach(
     if thumbnail is not None:
         await store_photo(session, row, thumbnail)
     await session.flush()
-    return photo, existing
+    return row, photo, existing, kept
 
 
 def attached(product: GarmentProduct) -> dict[str, Any]:

@@ -523,3 +523,16 @@ async def test_a_typed_colour_is_manual_and_an_unchanged_one_keeps_its_source(
         None,
         None,
     )
+
+
+async def test_a_stored_colour_with_stray_space_is_not_flipped_by_an_untouched_save(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test, color_name="Grey Twill ", color_source="vendor"
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": "Grey Twill"}
+        )
+    assert response.json()["color_source"] == "vendor"

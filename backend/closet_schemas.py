@@ -125,6 +125,8 @@ class ProductAttachOut(BaseModel):
     garment: GarmentOut
     photo: Literal["added", "kept", "none", "failed"]
     photo_error: str | None
+    # Fields the owner's own values were kept for: colour, size.
+    kept: list[str]
     product: AttachedProductOut
 
 
