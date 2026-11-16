@@ -600,4 +600,98 @@ describe('AddSection in the Closet', () => {
       expect(api.calls('POST', /\/api\/intake\/sittings$/)).toEqual([])
     })
   })
+
+  describe('From links (the closet)', () => {
+    const open = async (user) => {
+      await user.click(
+        await screen.findByRole('button', { name: 'Add from product links' }),
+      )
+      return screen.getByRole('textbox', {
+        name: 'Product links, one per line',
+      })
+    }
+
+    it('is offered in the closet only', async () => {
+      fakeIntakeApi()
+      renderAt('shelf')
+      await screen.findByRole('searchbox', { name: 'Add' })
+      expect(
+        screen.queryByRole('button', { name: 'Add from product links' }),
+      ).toBeNull()
+    })
+
+    it('starts a sitting, sends the links one per line and opens it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi()
+      renderAt('closet')
+      const box = await open(user)
+      await user.type(
+        box,
+        'https://a.test/products/x{Enter}{Enter}https://b.test/products/y',
+      )
+      await user.click(screen.getByRole('button', { name: 'Read the links' }))
+      expect(await screen.findByTestId('where')).toHaveTextContent(
+        '/admin/closet/add/new-1',
+      )
+      expect(
+        api.calls('POST', /\/api\/intake\/sittings$/)[0].body,
+      ).toMatchObject({ area: 'closet', kind: 'garment' })
+      expect(api.calls('POST', /sittings\/new-1\/links$/)[0].body).toEqual({
+        urls: ['https://a.test/products/x', 'https://b.test/products/y'],
+      })
+    })
+
+    it('reads a link typed into the bar as one pasted link', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi()
+      renderAt('closet')
+      await user.type(
+        await screen.findByRole('textbox', { name: 'Add' }),
+        'https://a.test/products/x{Enter}',
+      )
+      expect(await screen.findByTestId('where')).toHaveTextContent(
+        '/admin/closet/add/new-1',
+      )
+      expect(api.calls('POST', /sittings\/new-1\/links$/)[0].body).toEqual({
+        urls: ['https://a.test/products/x'],
+      })
+    })
+
+    it('says why nothing was taken and leaves no empty sitting behind', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        links: () => ({
+          status: 422,
+          body: { detail: 'Paste product addresses that start with https://' },
+        }),
+      })
+      renderAt('closet')
+      await user.type(await open(user), 'hello')
+      await user.click(screen.getByRole('button', { name: 'Read the links' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Paste product addresses that start with https://',
+      )
+      expect(api.calls('DELETE', /sittings\/new-1$/)).toHaveLength(1)
+      expect(screen.queryByTestId('where')).toBeNull()
+    })
+
+    it('refuses more links than the server reads without sending them', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi()
+      renderAt('closet')
+      const box = await open(user)
+      await user.click(box)
+      await user.paste(
+        Array.from(
+          { length: 11 },
+          (_, i) => `https://a.test/products/${i}`,
+        ).join('\n'),
+      )
+      await user.click(screen.getByRole('button', { name: 'Read the links' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Paste at most 10 links at a time',
+      )
+      expect(api.calls('POST', /\/api\/intake\/sittings$/)).toEqual([])
+    })
+  })
 })

@@ -64,4 +64,24 @@ describe('Check for a closet sitting from a file', () => {
     ).toBeVisible()
     expect(screen.queryByText(/From the file/)).toBeNull()
   })
+
+  it('shows pasted links as link cards, with the link hint', async () => {
+    const linkPiece = entry('l1', 'typed', {
+      kind: 'garment',
+      photo_id: 'p-l1',
+      candidates: [],
+      payload: {
+        name: 'Linked Tee',
+        image: 'held',
+        link: { url: 'https://shop.test/products/t', state: 'resolved' },
+        seed: { source: 'link' },
+      },
+    })
+    step([linkPiece])
+    expect(await screen.findByText('From links · 1')).toBeVisible()
+    expect(screen.queryByText(/From the file/)).toBeNull()
+    expect(
+      screen.getByText(/Pieces from links wait in the tag queue/),
+    ).toBeVisible()
+  })
 })

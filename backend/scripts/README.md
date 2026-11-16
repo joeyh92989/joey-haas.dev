@@ -234,6 +234,32 @@ and its tests mock the content module. The recorder's own tests run on
 `tests/fixtures/intake_demo/provisional.json`, a hand-made model answer and
 search results, never on the public file. Re-record rather than edit.
 
+## record_closet_fixtures.py
+
+Records one Marine Layer and one Duer product link for the closet's link way
+in (`closet_resolver.py`, issue #398) into `tests/fixtures/closet/`: each
+store's per-product JSON (`/products/<handle>.json`) and `robots.txt` byte for
+byte, and an excerpt of the product page (its `<title>`, `og:title` and
+JSON-LD scripts, copied verbatim into a bare document, because the whole page
+is up to 1 MB the parser never reads), plus `manifest.json` with the links
+and the day. All of it is public product data: no sign-in, no cookie.
+
+```
+./.venv/bin/python scripts/record_closet_fixtures.py
+./.venv/bin/python scripts/record_closet_fixtures.py \
+    --marinelayer https://www.marinelayer.com/products/<handle> \
+    --duer https://www.duer.com/products/<handle>
+```
+
+Needs no key. It sends the catalogue's User-Agent, spaces requests two a
+second, reads `robots.txt` first and records nothing a store disallows.
+**Re-record, never hand-edit,** when a store changes its format or a product
+is retired (the defaults are current products and will go); a new link means
+updating the expected title, colour and size counts in
+`tests/test_closet_resolver.py`. `tests/test_closet_resolver.py` and
+`tests/test_intake_link_routes.py` run offline against these files; any body
+in them that is not from these files is marked SYNTHETIC.
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,

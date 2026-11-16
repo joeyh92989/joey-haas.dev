@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { seedIntake as words } from '../../content/seedIntake.js'
 import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import {
@@ -7,6 +7,7 @@ import {
   entryTitle,
   seedNeeds,
 } from '../../lib/intake.js'
+import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
 
 /** The photo's state in words, for a piece that has none to show. */
@@ -184,45 +185,15 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
  * @param {(entry: object) => void} props.onEntry An entry the API answered with.
  */
 export default function SeedCheck({ sitting, kind, entries, onEntry }) {
-  const [photosFailed, setPhotosFailed] = useState(false)
   const [notice, setNotice] = useState('')
-  const running = useRef(false)
-  const mounted = useRef(true)
   const fields = SEED_FIELD_KEYS.map((key) =>
     kind.fields.find((field) => field.key === key),
   ).filter(Boolean)
-  const pending = entries.filter((e) => e.payload.image === 'pending').length
-
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    if (pending === 0 || running.current || photosFailed) return
-    running.current = true
-    ;(async () => {
-      try {
-        const response = await apiFetch(
-          `/api/intake/sittings/${sitting.id}/seed-images`,
-          { method: 'POST' },
-        )
-        if (!response.ok) throw new Error('photos')
-        const body = await response.json()
-        body.entries.forEach(onEntry)
-        // Nothing changed though some wait: stop rather than ask forever.
-        if (body.entries.length === 0 && body.pending > 0 && mounted.current) {
-          setPhotosFailed(true)
-        }
-      } catch {
-        if (mounted.current) setPhotosFailed(true)
-      } finally {
-        running.current = false
-      }
-    })()
-  }, [pending, photosFailed, sitting.id, onEntry])
+  const { pending, failed: photosFailed } = useSeedImages(
+    sitting,
+    entries,
+    onEntry,
+  )
 
   return (
     <section className="intake-seed-check" aria-label="Pieces from the file">

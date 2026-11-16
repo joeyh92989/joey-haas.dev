@@ -1,14 +1,21 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { comicIntake } from '../../content/comicIntake.js'
+import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
 import { isBook, needsNumber, repeats } from '../../lib/comicBooks.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
-import { CHECK_STATES, entryCover, isSeedEntry } from '../../lib/intake.js'
+import {
+  CHECK_STATES,
+  entryCover,
+  isLinkEntry,
+  isSeedEntry,
+} from '../../lib/intake.js'
 import { live, removeEntry } from '../../lib/intakeRemove.js'
 import CheckOne from './CheckOne.jsx'
 import ComicBooks from './ComicBooks.jsx'
 import GarmentCheck from './GarmentCheck.jsx'
+import LinkCheck from './LinkCheck.jsx'
 import SeedCheck from './SeedCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
@@ -97,6 +104,8 @@ export default function CheckStep({
   const closet = sitting.area === 'closet'
   // Pieces made from a seed file, before the closet has them at all.
   const seeds = closet ? live(sitting.entries).filter(isSeedEntry) : []
+  // Pieces made from pasted product links, likewise.
+  const links = closet ? live(sitting.entries).filter(isLinkEntry) : []
   const kindOf = (key) =>
     kinds.find((kind) => kind.key === key) ?? {
       key,
@@ -246,7 +255,9 @@ export default function CheckStep({
   const hint = closet
     ? seeds.length > 0
       ? seedIntake.hint
-      : 'Only pieces the tagger could not finish are asked about.'
+      : links.length > 0
+        ? linkIntake.hint
+        : 'Only pieces the tagger could not finish are asked about.'
     : numberless > 0
       ? comicIntake.nextHeld(numberless)
       : skim.length > 0 &&
@@ -270,8 +281,17 @@ export default function CheckStep({
           onEntry={onEntry}
         />
       )}
+      {links.length > 0 && (
+        <LinkCheck
+          sitting={sitting}
+          kind={kindOf('garment')}
+          entries={links}
+          onEntry={onEntry}
+        />
+      )}
       {closet ? (
-        (seeds.length === 0 || sitting.entries.some((e) => e.garment_id)) && (
+        (seeds.length + links.length === 0 ||
+          sitting.entries.some((e) => e.garment_id)) && (
           <GarmentCheck
             sitting={sitting}
             kind={kindOf('garment')}

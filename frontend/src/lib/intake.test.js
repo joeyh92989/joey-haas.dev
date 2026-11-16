@@ -4,7 +4,11 @@ import {
   entryTitle,
   fieldPayload,
   garmentNeedsCheck,
+  isLinkEntry,
   isSeedEntry,
+  linesOf,
+  linkHost,
+  looksLikeLink,
   localToday,
   meterCounts,
   missingFields,
@@ -217,5 +221,34 @@ describe('the closet seed file helpers', () => {
         { name: ' Tee 2 ', size: '  ' },
       ),
     ).toEqual({ name: 'Tee 2', seed: { a: 1 } })
+  })
+})
+
+describe('link intake helpers', () => {
+  it('tells a link piece from a file piece', () => {
+    const piece = { kind: 'garment', payload: { seed: {}, link: { url: 'u' } } }
+    expect(isLinkEntry(piece)).toBe(true)
+    expect(isSeedEntry(piece)).toBe(false)
+    expect(isLinkEntry({ kind: 'garment', payload: { seed: {} } })).toBe(false)
+  })
+
+  it('splits pasted text into one address per line without blanks or repeats', () => {
+    expect(
+      linesOf(' https://a.test/x \r\n\n https://b.test/y\nhttps://a.test/x'),
+    ).toEqual(['https://a.test/x', 'https://b.test/y'])
+    expect(linesOf('  \n ')).toEqual([])
+  })
+
+  it('knows a pasted link from a piece’s name', () => {
+    expect(looksLikeLink(' https://a.test/products/x ')).toBe(true)
+    expect(looksLikeLink('Blue Oxford https://a.test')).toBe(false)
+    expect(looksLikeLink('Blue Oxford')).toBe(false)
+  })
+
+  it('names the store by its host', () => {
+    expect(linkHost('https://www.marinelayer.com/products/x')).toBe(
+      'marinelayer.com',
+    )
+    expect(linkHost('nonsense')).toBe('nonsense')
   })
 })
