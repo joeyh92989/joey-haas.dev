@@ -18,7 +18,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
+  # The backend suite runs as two parallel jobs (`backend-tests`, and
+  # `backend-migrations` for tests/test_migrations.py, about a fifth of the
+  # run) behind one aggregate job named `backend`, because branch protection
+  # requires a check called `backend`. Keep that name on the aggregate only.
+  backend-tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -62,17 +66,74 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      # Everything but the migration tests, which run in backend-migrations.
       - name: Run tests
         env:
           # conftest.py turns an unreachable database into a hard error when CI
           # is set, so these tests can never silently skip here.
           CI: 'true'
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-        run: pytest -q
+        run: pytest -q --ignore=tests/test_migrations.py
 
       - name: Audit dependencies
         # The pinned set Render installs, not a fresh resolve of the ranges.
         run: pip-audit --requirement constraints.txt --no-deps --disable-pip
+
+  # The migration chain tests (upgrade, downgrade, upgrade) on their own
+  # Postgres: they drop and rebuild the schema, so a separate database also
+  # keeps them from sharing one with the rest of the suite.
+  backend-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements-dev.txt
+            backend/constraints.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt -c constraints.txt
+
+      - name: Run migration tests
+        env:
+          CI: 'true'
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: pytest -q tests/test_migrations.py
+
+  # The required check. It passes only when both halves passed: `always()` so a
+  # failed or cancelled half fails this job, not leaves it skipped (a skipped
+  # required check reads as passing to branch protection).
+  backend:
+    needs: [backend-tests, backend-migrations]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Both backend jobs passed
+        env:
+          TESTS: ${{ needs.backend-tests.result }}
+          MIGRATIONS: ${{ needs.backend-migrations.result }}
+        run: |
+          echo "backend-tests: $TESTS; backend-migrations: $MIGRATIONS"
+          [ "$TESTS" = success ] && [ "$MIGRATIONS" = success ]
 
   frontend:
     runs-on: ubuntu-latest

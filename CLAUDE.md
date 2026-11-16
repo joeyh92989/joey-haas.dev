@@ -542,7 +542,9 @@ before pushing.
   Symlink the main checkout's: `ln -s <main>/backend/.venv backend/.venv`
   (untracked; gitignored), then `<main>/backend/.venv/bin/python
   scripts/migrate_neon.py current` and `upgrade`.
-- **CI jobs**: `frontend`, `backend`, `e2e` and `e2e-admin` (the admin browser
+- **CI jobs**: `frontend`, `backend` (an aggregate job: it passes only when
+  `backend-tests` and `backend-migrations` both do; keep the name `backend` on it
+  alone, since branch protection requires it), `e2e` and `e2e-admin` (the admin browser
   suite against a Postgres 18 service and a real backend, test-login on a
   localhost `FRONTEND_URL`). Branch protection on `main` requires `backend` and
   `frontend`, and requires the branch to be up to date with `main` (strict), so
