@@ -63,6 +63,13 @@ from closet_routes import (
     load_profile,
     profile_out,
 )
+from closet_schemas import (
+    CandidatesOut,
+    GarmentOut,
+    PlanJobOut,
+    TodayOut,
+    WoreOut,
+)
 from importer import ACCEPTED_MEDIA_TYPES
 from items import require_admin
 from llm import Image, LLMError, LLMProvider
@@ -572,7 +579,7 @@ def create_closet_today_router(
             "occasions": list(OCCASIONS),
         }
 
-    @router.get("/today")
+    @router.get("/today", response_model=TodayOut)
     async def get_today(
         occasion: str | None = None,
         bike: bool | None = None,
@@ -615,7 +622,7 @@ def create_closet_today_router(
             await session.commit()
         return await answer(session, day, plan, True)
 
-    @router.post("/plan")
+    @router.post("/plan", response_model=TodayOut)
     async def replan(
         body: PlanIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -680,7 +687,7 @@ def create_closet_today_router(
             await store(session, plan)
         return await answer(session, day, plan, True)
 
-    @router.get("/candidates")
+    @router.get("/candidates", response_model=CandidatesOut)
     async def candidates(
         slot: GarmentCategory,
         occasion: str | None = None,
@@ -736,7 +743,7 @@ def create_closet_today_router(
         finally:
             await photo.close()
 
-    @router.post("/match")
+    @router.post("/match", response_model=TodayOut)
     async def match(
         photo: UploadFile = File(),
         occasion: str | None = Form(default=None),
@@ -777,7 +784,7 @@ def create_closet_today_router(
         plan["match"] = attributes
         return await answer(session, day, plan, True)
 
-    @router.post("/garments/from-match", status_code=201)
+    @router.post("/garments/from-match", status_code=201, response_model=GarmentOut)
     async def save_match(
         photo: UploadFile = File(),
         attributes: str = Form(),
@@ -811,9 +818,9 @@ def create_closet_today_router(
         )
         await session.commit()
         await session.refresh(row)
-        return garment_out(row, has_image=True).model_dump(mode="json")
+        return garment_out(row, has_image=True)
 
-    @router.post("/wore", status_code=201)
+    @router.post("/wore", status_code=201, response_model=WoreOut)
     async def wore(body: WoreIn, session: AsyncSession = Depends(get_session)) -> dict:
         """Wore this: today's outfit and a wear per garment. A second call
         today replaces the first (Change)."""
@@ -883,7 +890,7 @@ def create_closet_today_router(
         )
         await session.commit()
 
-    @router.post("/jobs/plan")
+    @router.post("/jobs/plan", response_model=PlanJobOut)
     async def plan_job(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The nightly step: tomorrow's plans, one per occasion chip in the
         profile's default week (tomorrow's default first), each with
