@@ -5,6 +5,18 @@ Epic #392 (seven PRs, 80 minutes): `main` requires `backend` and `frontend` and 
 Stacks do not remove per-PR CI or the `strict` cycle (docs: squash supported, CI runs on every PR in a stack, same repo only; plan availability not stated in GitHub's docs); they help real chains (#398 on #409). A merge queue is likely unavailable on a user-owned repo (third-party reports; GitHub's docs pages do not say; check Settings, Rules, New ruleset). Doing: `scripts/merge-train.sh` (no idle gaps) and a `backend` profile (pytest is 328 s of a 6-minute job). Not done: dropping `strict` (risk: two green PRs break main together, and `deploy.yml` does not wait for CI). The merge-order rule lives in `agents.md` and the repo `CLAUDE.md`, not in `sdlc-execution` or `sdlc-ship`.
 Epic #392 · docs/planning/2026-11-16-closet-products-design.md
 
+### 2026-11-16 · lesson · A cold review of every PR that fetches a user-supplied address found a real bug each time
+#409 (seed file), #413 (link way in) and #415 (attach a product) each got a read-only reviewer that had not seen the author's report. All three found something the author's local gates passed: a client could plant the address the server later fetches (#409); two products with no SKU shared an id and the second was silently dropped as already owned, and a stale photo attached after a colour change (#413); a photo added while a link resolved was overwritten, and concurrent writes returned a 500 (#415). The SSRF guard itself held each time. Every fix went back to the author with a failing test first, except that the #415 race tests were written after the code and not shown failing on the old code. Keep the cold review for PRs that fetch, write on an address the client chose, or race a second writer; skip it for pure UI.
+PR #409 · PR #413 · PR #415
+
+### 2026-11-16 · lesson · Check the data and the live screen yourself before telling Joey how to use a feature
+The #396 agent never opened the real seed file, so I parsed it with the new parser before the upload (63 rows, 0 problems, only two colour names left for Check). I also told Joey a photo could be replaced from the garment page; the page only showed the photo, so #399 grew an add-or-replace control. Run the parser on the real file in a scratch process and open the live page before writing steps for Joey, and keep the file itself out of the repo (it is purchase history).
+PR #409 · PR #415
+
+### 2026-11-16 · lesson · A branch-guard hook blocks `git push origin HEAD`; agents need the refspec in the brief
+Several agents' first push was refused; they recovered with `git push origin HEAD:<branch>`. Put the explicit refspec in every implementer brief, as `agents.md` already says for pushes.
+PR #405
+
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
 The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
 PR #378
