@@ -67,6 +67,8 @@ snapshot files and never call the API.
 | `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
 | `/shelf/journal/:month` | Month in review | One month of the play journal |
 | `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows what's next, its run as lanes over a box of books, issues and bundles, and its collected editions instead |
+| `/shelf/:id/<n>` | Comic issue | One issue of a comic series, for a canonical number (digits, no leading zero, at most four). Served prerendered only at the slash form, `/shelf/<id>/<n>/` |
+| `/shelf/:id/ed-<from>-<to>` | Comic edition | One collected edition, by its canonical slug (`-2` and up on a repeat). Anything else under `/shelf/:id/` is NotFound |
 | `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine` and `/collection` → `/shelf/games`, `/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
@@ -74,6 +76,7 @@ snapshot files and never call the API.
 | `/admin/shelf/comics` | Comics | The Comics page's twin: each series with its run, Follow, Public, a link to its cover wall and Edit, Redo and Delete, publish and hide all (comics only), and comic metadata refresh |
 | `/admin/collection/:id` | Edit game | Every field, plus re-linking to a different IGDB match; a comic id redirects to its page below |
 | `/admin/shelf/comics/:id` | Edit comic | The series, its issues as a cover wall with taps, editions, the Comic Vine match and Delete |
+| `/admin/closet/:id` | Edit garment | Every field of one piece by hand, and delete |
 | `/admin/collection/add`, `/admin/closet/add` | Add | Intake: a tile per kind the API registers for the area, and the area's unfinished sittings (see [Intake](#intake)) |
 | `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
 | `/admin/import` | Redirect | Import photos became Add: redirects client-side to `/admin/collection/add` |
