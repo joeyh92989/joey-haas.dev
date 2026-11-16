@@ -28,10 +28,10 @@ export const projects = [
     description:
       'I collect games on cartridge, and nothing tracked them the way I wanted, least of all whether a box holds the full game or a download code. My Shelf does. It reads a shelf from a photograph, resolves every title against IGDB, picks tonight’s game from the backlog, and watches boutique publishers for the next cartridge worth owning.',
     highlights: [
-      'Photo import: a vision model reads titles off the spines; each match is scored by string distance, never by asking the model how sure it is.',
-      'A physical catalog: a community registry and a watch list of boutique stores, collapsed to one honest format per game, full cartridge or Game-Key Card.',
-      'Play next scores the backlog on six weighted terms, mostly a taste profile built from my own ratings, favorites, and finishes, plus fit and time waiting. Every pick says why.',
-      'Discover and Radar: the model only ever picks positions in a list the server built, with a deterministic fallback when it can’t answer.',
+      'A vision model reads titles off the spines for photo import. String distance scores each match; the model is never asked how sure it is.',
+      'The physical catalog merges a community registry and a watch list of boutique stores. Each game shows one format, full cartridge or Game-Key Card.',
+      'Play next scores the backlog on six weighted terms. A taste profile built from my ratings, favorites and finishes carries the most weight. Every pick says why.',
+      'In Discover and Radar the model only ever picks positions in a list the server built. When it can’t answer, a deterministic fallback takes over.',
     ],
     links: [
       { to: spine.path, label: `Open ${spine.name}` },
@@ -56,7 +56,7 @@ export const projects = [
     summary:
       'React and Vite, FastAPI behind Google sign-in, Postgres on Neon, and a pull-request pipeline to Render.',
     description:
-      'A React and Vite frontend with a Markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge. Built to be read, including by the recruiter who clicks View source.',
+      'A React and Vite frontend with a Markdown blog compiled at build time, a FastAPI backend behind Google sign-in, Postgres on Neon, and a pull-request pipeline that deploys to Render on merge.',
     links: [
       { href: profile.repo, label: 'Source' },
       { href: `${profile.repo}/actions`, label: 'CI pipeline' },

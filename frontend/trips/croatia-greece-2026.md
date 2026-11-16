@@ -3,7 +3,7 @@ title: Croatia & Greece
 date: 2026-09-12
 end: 2026-09-23
 precision: day
-summary: Twelve days, three places, one ferry that left on time.
+summary: Twelve days in Dubrovnik, Naxos and Athens.
 cover: walls-afternoon
 places:
   - { name: Dubrovnik, lat: 42.6507, lon: 18.0944 }
