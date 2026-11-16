@@ -13,6 +13,7 @@ from intake import kinds
 from intake.kinds import FieldSpec, Kind, kinds_for, register
 from intake.routes import create_intake_router
 from models import IntakeArea, ItemType
+from sources import tmdb
 from sources.registry import build_registry
 from tests.test_intake_budget import _config
 
@@ -117,6 +118,13 @@ async def test_the_built_in_kinds(sessionmaker_for_test):
         f for f in served["comic"]["fields"] if f["key"] == "shelf_format"
     )
     assert shelf_format["in_details"] is True
+
+
+@pytest.mark.asyncio
+async def test_movie_without_a_tmdb_token_says_which_token(sessionmaker_for_test):
+    movie = (await _kinds(sessionmaker_for_test))["movie"]
+    assert movie["source_state"] == tmdb.SHORT_REASON
+    assert "TMDB_API_TOKEN" in movie["source_state"]
 
 
 @pytest.mark.asyncio
