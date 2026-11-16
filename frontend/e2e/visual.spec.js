@@ -19,8 +19,9 @@ const PAGES = {
   daily: '/daily',
 }
 const THEMES = ['dark', 'light']
-// Any fixed instant: it sets the Daily game's number and the footer year.
-const NOW = new Date('2026-06-15T18:00:00Z')
+// Any fixed instant after the Daily game's first day (Nov 10, 2026): it sets
+// the Daily game's number and the footer year.
+const NOW = new Date('2026-12-15T18:00:00Z')
 
 /** Lazy images below the fold stay unloaded in a full-page capture. */
 async function loadAllImages(page) {
@@ -47,6 +48,9 @@ for (const theme of THEMES) {
         fullPage: true,
         animations: 'disabled',
         caret: 'hide',
+        // Home's "Last shipped" date is the newest changelog entry, which
+        // changes whenever a PR adds one.
+        mask: [page.locator('a[href="/stats#changes"]')],
       })
     })
   }
