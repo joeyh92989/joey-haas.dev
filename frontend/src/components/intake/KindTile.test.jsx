@@ -25,16 +25,14 @@ describe('KindTile', () => {
     expect(onStart).toHaveBeenCalledWith(kind())
   })
 
-  it("says why a kind's source is off, in text", () => {
+  it("is disabled and says why when the kind's source is off", () => {
+    const reason =
+      'Needs a TMDB_API_TOKEN on the API; movies are off until it is set.'
     render(
-      <KindTile
-        kind={kind({ source_state: 'movie source is not configured' })}
-        onStart={() => {}}
-      />,
+      <KindTile kind={kind({ source_state: reason })} onStart={() => {}} />,
     )
-    expect(
-      screen.getByText('movie source is not configured'),
-    ).toBeInTheDocument()
+    expect(screen.getByText(reason)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Movie/ })).toBeDisabled()
   })
 
   it('is a disabled button with its reason when it takes no photos', () => {

@@ -40,6 +40,9 @@ THUMBNAIL_SIZE = "w185"
 SEARCH_LIMIT = 10
 TIMEOUT = 10.0
 
+# The one-line version, for the intake tiles' status text.
+SHORT_REASON = "Needs a TMDB_API_TOKEN on the API; movies are off until it is set."
+
 
 # The detail call: credits for the director, keywords for the recommendation
 # engine's facets. One request either way (append_to_response).

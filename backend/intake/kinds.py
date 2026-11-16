@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from models import IntakeArea, ItemType
-from sources import bgg
+from sources import bgg, tmdb
 
 
 @dataclass(frozen=True)
@@ -72,7 +72,10 @@ def select(options: Iterable[Any]) -> tuple[str, ...]:
 
 # A short reason for a source that is known to be unavailable, kept beside
 # the source itself; any other unconfigured source gets the generic line.
-_SHORT_REASONS: dict[ItemType, str] = {ItemType.BOARDGAME: bgg.SHORT_REASON}
+_SHORT_REASONS: dict[ItemType, str] = {
+    ItemType.BOARDGAME: bgg.SHORT_REASON,
+    ItemType.MOVIE: tmdb.SHORT_REASON,
+}
 
 
 def _source_state(kind: Kind, registry: dict) -> str | None:
