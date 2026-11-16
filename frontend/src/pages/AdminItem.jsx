@@ -185,7 +185,7 @@ function RegistryLine({ item, onAdopted }) {
       <p className={note.agrees === false ? undefined : 'muted'}>{note.note}</p>
       {note.agrees === false && (
         <button type="button" disabled={busy} onClick={adopt}>
-          Use registry value
+          {adminCopy.item.useRegistryValue}
         </button>
       )}
       {error && (
@@ -520,7 +520,8 @@ export default function AdminItem() {
       <section>
         {header}
         <p className="admin-error" role="alert">
-          Not signed in. <Link to="/admin">Go to admin</Link>.
+          {adminCopy.item.notSignedIn}{' '}
+          <Link to="/admin">{adminCopy.item.goToAdmin}</Link>.
         </p>
       </section>
     )
@@ -560,28 +561,28 @@ export default function AdminItem() {
           {error}
         </p>
       )}
-      {savedAt && <p className="muted">Saved.</p>}
+      {savedAt && <p className="muted">{adminCopy.item.saved}</p>}
 
       <div className="play-next-status">
         {item.pinned_at ? (
           <p>
             Up next.{' '}
             <button type="button" onClick={() => setPinned('DELETE')}>
-              Unpin
+              {adminCopy.item.unpin}
             </button>
           </p>
         ) : (
           <p>
             <button type="button" onClick={() => setPinned('POST')}>
-              Pin as Up next
+              {adminCopy.item.pinAsUpNext}
             </button>
           </p>
         )}
         {item.play_next_excluded && (
           <p>
-            <span className="muted">Excluded from Play next.</span>{' '}
+            <span className="muted">{adminCopy.item.excludedFromPlayNext}</span>{' '}
             <button type="button" onClick={restoreToPlayNext}>
-              Restore
+              {adminCopy.item.restore}
             </button>
           </p>
         )}
@@ -602,12 +603,9 @@ export default function AdminItem() {
           {item.creator && <p className="muted">{item.creator}</p>}
 
           <div className="item-relink">
-            <h2>Re-link</h2>
-            <p className="muted">
-              Wrong match? Search for the right record — the cover, creator and
-              metadata are re-fetched from the source.
-            </p>
-            {relinking && <p className="muted">Re-linking…</p>}
+            <h2>{adminCopy.item.relink}</h2>
+            <p className="muted">{adminCopy.item.relinkHelp}</p>
+            {relinking && <p className="muted">{adminCopy.item.relinking}</p>}
             <MetadataPicker type={form.type} onSelect={relink} />
           </div>
 
@@ -616,7 +614,7 @@ export default function AdminItem() {
 
         <div className="item-detail-main">
           <form className="item-detail-form" onSubmit={save}>
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">{adminCopy.item.title}</label>
             <input
               id="title"
               value={form.title}
@@ -624,7 +622,7 @@ export default function AdminItem() {
               required
             />
 
-            <label htmlFor="type">Type</label>
+            <label htmlFor="type">{adminCopy.item.type}</label>
             <select id="type" value={form.type} onChange={set('type')}>
               {TYPES.map((value) => (
                 <option key={value} value={value}>
@@ -633,7 +631,7 @@ export default function AdminItem() {
               ))}
             </select>
 
-            <label htmlFor="year">Year</label>
+            <label htmlFor="year">{adminCopy.item.year}</label>
             <input
               id="year"
               type="number"
@@ -643,13 +641,13 @@ export default function AdminItem() {
               onChange={set('year')}
             />
 
-            <label htmlFor="owned_format">Format</label>
+            <label htmlFor="owned_format">{adminCopy.item.format}</label>
             <select
               id="owned_format"
               value={form.owned_format}
               onChange={set('owned_format')}
             >
-              <option value="">unspecified</option>
+              <option value="">{adminCopy.item.unspecified}</option>
               {OWNED_FORMATS.map((value) => (
                 <option key={value} value={value}>
                   {value === 'none' ? 'want (not owned)' : value}
@@ -658,13 +656,13 @@ export default function AdminItem() {
             </select>
 
             <>
-              <label htmlFor="platform_id">Platform</label>
+              <label htmlFor="platform_id">{adminCopy.item.platform}</label>
               <select
                 id="platform_id"
                 value={form.platform_id}
                 onChange={set('platform_id')}
               >
-                <option value="">unspecified</option>
+                <option value="">{adminCopy.item.unspecified}</option>
                 {PLATFORM_OPTIONS.map(([id, name]) => (
                   <option key={id} value={id}>
                     {name}
@@ -672,13 +670,15 @@ export default function AdminItem() {
                 ))}
               </select>
 
-              <label htmlFor="physical_format">Copy format</label>
+              <label htmlFor="physical_format">
+                {adminCopy.item.copyFormat}
+              </label>
               <select
                 id="physical_format"
                 value={form.physical_format}
                 onChange={set('physical_format')}
               >
-                <option value="">not recorded</option>
+                <option value="">{adminCopy.item.notRecorded}</option>
                 {FORMAT_OPTIONS.map(([format, label]) => (
                   <option key={format} value={format}>
                     {label}
@@ -691,18 +691,18 @@ export default function AdminItem() {
 
               {/* The code on a Switch 2 label decides the format; the server
                     refuses one that contradicts it. */}
-              <label htmlFor="cart_id">Cart ID</label>
+              <label htmlFor="cart_id">{adminCopy.item.cartId}</label>
               <input
                 id="cart_id"
-                placeholder="LP-AAC4B-USA-0"
+                placeholder={adminCopy.item.cartIdPlaceholder}
                 value={form.cart_id}
                 onChange={set('cart_id')}
               />
 
-              <label htmlFor="region">Region</label>
+              <label htmlFor="region">{adminCopy.item.region}</label>
               <input
                 id="region"
-                placeholder="USA"
+                placeholder={adminCopy.item.regionPlaceholder}
                 maxLength={4}
                 value={form.region}
                 onChange={set('region')}
@@ -710,13 +710,15 @@ export default function AdminItem() {
 
               {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
                 <>
-                  <label htmlFor="completeness">Completeness</label>
+                  <label htmlFor="completeness">
+                    {adminCopy.item.completeness}
+                  </label>
                   <select
                     id="completeness"
                     value={form.completeness}
                     onChange={set('completeness')}
                   >
-                    <option value="">unspecified</option>
+                    <option value="">{adminCopy.item.unspecified}</option>
                     {COMPLETENESS_OPTIONS.map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
@@ -727,7 +729,7 @@ export default function AdminItem() {
               )}
             </>
 
-            <label htmlFor="acquired_at">Acquired</label>
+            <label htmlFor="acquired_at">{adminCopy.item.acquired}</label>
             <input
               id="acquired_at"
               type="date"
@@ -737,7 +739,7 @@ export default function AdminItem() {
 
             {/* On a linked item a metadata refresh overwrites this: the source
               is the truth for a release date, since announced dates move. */}
-            <label htmlFor="release_date">Release date</label>
+            <label htmlFor="release_date">{adminCopy.item.releaseDate}</label>
             <input
               id="release_date"
               type="date"
@@ -745,7 +747,7 @@ export default function AdminItem() {
               onChange={set('release_date')}
             />
 
-            <label htmlFor="rating">Rating</label>
+            <label htmlFor="rating">{adminCopy.item.rating}</label>
             <input
               id="rating"
               type="number"
@@ -755,7 +757,7 @@ export default function AdminItem() {
               onChange={set('rating')}
             />
 
-            <label htmlFor="notes">Notes</label>
+            <label htmlFor="notes">{adminCopy.item.notes}</label>
             <textarea
               id="notes"
               rows="3"
@@ -763,7 +765,7 @@ export default function AdminItem() {
               onChange={set('notes')}
             />
 
-            <label htmlFor="favorite">Favorite</label>
+            <label htmlFor="favorite">{adminCopy.item.favorite}</label>
             <input
               id="favorite"
               type="checkbox"
@@ -771,7 +773,7 @@ export default function AdminItem() {
               onChange={set('favorite')}
             />
 
-            <label htmlFor="is_public">Public</label>
+            <label htmlFor="is_public">{adminCopy.item.isPublic}</label>
             <input
               id="is_public"
               type="checkbox"
@@ -808,7 +810,7 @@ export default function AdminItem() {
           >
             <h2 id="playthroughs-heading">{runWords(item.type).runs}</h2>
             <p className="item-status-control">
-              <label htmlFor="status">Status</label>
+              <label htmlFor="status">{adminCopy.item.status}</label>
               <select
                 id="status"
                 value={item.status}

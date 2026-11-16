@@ -408,7 +408,8 @@ export default function AdminComic() {
       <section>
         {header}
         <p className="admin-error" role="alert">
-          Not signed in. <Link to="/admin">Go to admin</Link>.
+          {adminCopy.comic.notSignedIn}{' '}
+          <Link to="/admin">{adminCopy.comic.goToAdmin}</Link>.
         </p>
       </section>
     )
@@ -486,7 +487,7 @@ export default function AdminComic() {
         <div>
           <Panel title={COPY.series}>
             <form className="item-detail-form" onSubmit={save}>
-              <label htmlFor="title">Title</label>
+              <label htmlFor="title">{adminCopy.comic.title}</label>
               <input
                 id="title"
                 value={form.title}
@@ -494,7 +495,7 @@ export default function AdminComic() {
                 required
               />
 
-              <label htmlFor="status">Status</label>
+              <label htmlFor="status">{adminCopy.comic.status}</label>
               <select
                 id="status"
                 value={item.status}
@@ -520,7 +521,7 @@ export default function AdminComic() {
                 </p>
               )}
 
-              <label htmlFor="rating">Rating</label>
+              <label htmlFor="rating">{adminCopy.comic.rating}</label>
               <input
                 id="rating"
                 type="number"
@@ -530,7 +531,7 @@ export default function AdminComic() {
                 onChange={set('rating')}
               />
 
-              <label htmlFor="favorite">Favorite</label>
+              <label htmlFor="favorite">{adminCopy.comic.favorite}</label>
               <input
                 id="favorite"
                 type="checkbox"
@@ -538,7 +539,7 @@ export default function AdminComic() {
                 onChange={set('favorite')}
               />
 
-              <label htmlFor="following">Following</label>
+              <label htmlFor="following">{adminCopy.comic.following}</label>
               <input
                 id="following"
                 type="checkbox"
@@ -546,7 +547,7 @@ export default function AdminComic() {
                 onChange={set('following')}
               />
 
-              <label htmlFor="is_public">Public</label>
+              <label htmlFor="is_public">{adminCopy.comic.isPublic}</label>
               <input
                 id="is_public"
                 type="checkbox"
@@ -555,7 +556,8 @@ export default function AdminComic() {
               />
 
               <label htmlFor="notes">
-                Notes <span className="comic-private">{COPY.privateTag}</span>
+                {adminCopy.comic.notes}{' '}
+                <span className="comic-private">{COPY.privateTag}</span>
               </label>
               <textarea
                 id="notes"
@@ -703,7 +705,9 @@ export default function AdminComic() {
             )}
             <div className="item-relink">
               <p className="muted">{COPY.relinkLine}</p>
-              {relinking && <p className="muted">Re-linking…</p>}
+              {relinking && (
+                <p className="muted">{adminCopy.comic.relinking}</p>
+              )}
               <MetadataPicker type="comic" onSelect={relink} />
             </div>
           </Panel>
