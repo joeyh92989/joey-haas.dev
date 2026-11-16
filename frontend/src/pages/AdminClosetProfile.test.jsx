@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminClosetProfile from './AdminClosetProfile.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 const PROFILE = {
   sizes: { top: 'M' },
@@ -68,7 +69,9 @@ describe('AdminClosetProfile', () => {
     await userEvent.type(budget, '0')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByText('Saved.')).toBeInTheDocument()
+    expect(
+      await screen.findByText(adminCopy.closetProfile.saved),
+    ).toBeInTheDocument()
     const patch = calls.find((c) => c.method === 'PATCH')
     expect(patch.url).toMatch(/\/api\/closet\/profile$/)
     expect(patch.body).toMatchObject({

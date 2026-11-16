@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router'
+import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import ReviewDeck from '../components/ReviewDeck.jsx'
 import SeasonTurnBanner from '../components/SeasonTurnBanner.jsx'
@@ -50,7 +51,10 @@ const DONE_WORDS = {
 /** Packed garments whose month has come: Unpack all brings them back. */
 function DueBack({ garments, busy, onUnpackAll }) {
   return (
-    <section className="review-banner" aria-label="Due back">
+    <section
+      className="review-banner"
+      aria-label={adminCopy.closetReview.dueBack}
+    >
       <p>
         {pieces(garments.length)} due back:{' '}
         {garments.map((g) => garmentTitle(g)).join(', ')}.
@@ -62,7 +66,7 @@ function DueBack({ garments, busy, onUnpackAll }) {
           disabled={busy}
           onClick={onUnpackAll}
         >
-          Unpack all
+          {adminCopy.closetReview.unpackAll}
         </button>
       </div>
     </section>
@@ -74,7 +78,7 @@ function Listed({ garments, busy, onSold }) {
   return (
     <section className="panel review-listed" aria-labelledby="review-listed">
       <h2 id="review-listed" className="kicker">
-        Listed for sale
+        {adminCopy.closetReview.listedForSale}
       </h2>
       <ul>
         {garments.map((garment) => (
@@ -86,7 +90,7 @@ function Listed({ garments, busy, onSold }) {
               disabled={busy}
               onClick={() => onSold(garment)}
             >
-              Mark sold
+              {adminCopy.closetReview.markSold}
             </button>
           </li>
         ))}
@@ -109,10 +113,10 @@ function UndoToast({ toast, busy, onUndo, onDismiss }) {
           disabled={busy}
           onClick={onUndo}
         >
-          Undo
+          {adminCopy.closetReview.undo}
         </button>
         <button type="button" className="btn sm ghost" onClick={onDismiss}>
-          Dismiss
+          {adminCopy.closetReview.dismiss}
         </button>
       </span>
     </div>
@@ -375,7 +379,10 @@ export default function AdminClosetReview() {
 
   return (
     <section className="review">
-      <AdminPageHeader title="Review" description={description} />
+      <AdminPageHeader
+        title={adminCopy.closetReview.title}
+        description={description}
+      />
 
       {/* While the sheet is open the page behind it is inert; the sheet
           shows the error itself. */}
@@ -393,7 +400,7 @@ export default function AdminClosetReview() {
             disabled={busy}
             onClick={retryRefresh}
           >
-            Try again
+            {adminCopy.closetReview.tryAgain}
           </button>
         </p>
       )}
