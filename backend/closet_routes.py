@@ -878,6 +878,17 @@ def create_closet_router(
                 (fixed & Garment.brand.is_not(None), Garment.brand),
                 else_=values["brand"],
             )
+            # A store's own title is kept too (vendor only; manual keeps
+            # just the colour).
+            values["name"] = case(
+                (
+                    (Garment.color_source == GarmentColorSource.VENDOR)
+                    & Garment.name.is_not(None)
+                    & (Garment.name != ""),
+                    Garment.name,
+                ),
+                else_=values["name"],
+            )
             result = await session.execute(
                 update(Garment)
                 .where(

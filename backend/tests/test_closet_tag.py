@@ -680,3 +680,40 @@ async def test_a_hand_edited_garment_with_a_colour_is_never_retagged(
     assert provider.calls == []
     (row,) = await rows(sessionmaker_for_test, ids)
     assert row.color_name == "Burgundy"
+
+
+@pytest.mark.asyncio
+async def test_a_vendor_name_survives_and_a_manual_one_is_replaced(
+    sessionmaker_for_test,
+):
+    (vendor,) = await seed(
+        sessionmaker_for_test,
+        1,
+        color_source=GarmentColorSource.VENDOR,
+        color_name="Burgundy",
+        primary_color="burgundy",
+        name="Duer No Sweat Pant",
+        brand="Duer",
+        size="M",
+    )
+    (manual,) = await seed(
+        sessionmaker_for_test,
+        1,
+        color_source=GarmentColorSource.MANUAL,
+        name="my pants",
+    )
+    provider = FakeProvider(
+        {
+            "items": [
+                {"index": 0, "attributes": attrs(0, name="burgundy pants")},
+                {"index": 1, "attributes": attrs(1, name="navy shirt")},
+            ]
+        }
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/tag")
+    got_vendor, got_manual = await rows(sessionmaker_for_test, [vendor, manual])
+    assert got_vendor.name == "Duer No Sweat Pant"
+    assert (got_vendor.warmth, got_vendor.formality) == (2, 3)
+    assert got_vendor.status == GarmentStatus.ACTIVE
+    assert got_manual.name in {"burgundy pants", "navy shirt"}
