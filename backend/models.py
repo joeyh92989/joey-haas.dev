@@ -1065,6 +1065,26 @@ class GarmentTagSource(str, enum.Enum):
     MANUAL = "manual"
 
 
+class GarmentColorSource(str, enum.Enum):
+    """Where a garment's `color_name` came from (migration 0020): the store's
+    own wording, a hand edit, or the tagger's guess."""
+
+    VENDOR = "vendor"
+    MANUAL = "manual"
+    MODEL = "model"
+
+
+class GarmentProductSource(str, enum.Enum):
+    """Where a garment's product record came from (migration 0020)."""
+
+    STITCHFIX = "stitchfix"
+    NORDSTROMRACK = "nordstromrack"
+    MARINELAYER = "marinelayer"
+    DUER = "duer"
+    LINK = "link"
+    MANUAL = "manual"
+
+
 class GarmentOutcome(str, enum.Enum):
     """A Review decision (PR D)."""
 
@@ -1125,10 +1145,17 @@ class Garment(Base):
     )
     subtype: Mapped[str | None] = mapped_column(String(60))
     brand: Mapped[str | None] = mapped_column(String(80))
+    # The colour family ("red"); duplicate detection and filters key on it.
     primary_color: Mapped[str | None] = mapped_column(String(40))
     primary_hex: Mapped[str | None] = mapped_column(String(7))
     secondary_color: Mapped[str | None] = mapped_column(String(40))
     secondary_hex: Mapped[str | None] = mapped_column(String(7))
+    # The store's own colour wording, verbatim (migration 0020), and who set it.
+    color_name: Mapped[str | None] = mapped_column(String(80))
+    color_source: Mapped[GarmentColorSource | None] = _enum_column(
+        GarmentColorSource, "garment_color_source"
+    )
+    size: Mapped[str | None] = mapped_column(String(40))
     pattern: Mapped[str | None] = mapped_column(String(40))
     material: Mapped[str | None] = mapped_column(String(60))
     warmth: Mapped[int | None] = mapped_column(SmallInteger)
@@ -1171,6 +1198,30 @@ class GarmentImage(Base):
     webp: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     width: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     height: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    created_at: Mapped[datetime] = _now_column()
+
+
+class GarmentProduct(Base):
+    """Where a garment was bought (migration 0020): one row per garment, kept
+    apart so list queries never load the snapshot. `snapshot` is the store's
+    product data as fetched at `fetched_at`."""
+
+    __tablename__ = "garment_products"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    garment_id: Mapped[uuid.UUID] = _garment_fk(unique=True)
+    source: Mapped[GarmentProductSource | None] = _enum_column(
+        GarmentProductSource, "garment_product_source"
+    )
+    url: Mapped[str | None] = mapped_column(Text)
+    order_ref: Mapped[str | None] = mapped_column(String(80))
+    store_item_no: Mapped[str | None] = mapped_column(String(80))
+    title: Mapped[str | None] = mapped_column(Text)
+    price: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    snapshot: Mapped[dict | None] = mapped_column(JSONB)
+    fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _now_column()
 
 
