@@ -487,3 +487,39 @@ async def test_the_photo_route_is_admin_only(sessionmaker_for_test):
     assert response.status_code == 401
     async with sessionmaker_for_test() as session:
         assert await session.get(GarmentImage, row.id) is None
+
+
+# --- store colour, brand and size by hand (#399) ------------------------------
+
+
+async def test_a_typed_colour_is_manual_and_an_unchanged_one_keeps_its_source(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test, color_name="Grey Twill", color_source="vendor"
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        # The edit form sends every field on save, the colour unchanged.
+        same = await client.patch(
+            f"/api/closet/garments/{row.id}",
+            json={"color_name": "Grey Twill", "size": "M", "brand": "Marine Layer"},
+        )
+        typed = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": "Slate"}
+        )
+        cleared = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": " "}
+        )
+    assert (same.json()["color_name"], same.json()["color_source"]) == (
+        "Grey Twill",
+        "vendor",
+    )
+    assert (same.json()["size"], same.json()["brand"]) == ("M", "Marine Layer")
+    assert (typed.json()["color_name"], typed.json()["color_source"]) == (
+        "Slate",
+        "manual",
+    )
+    assert (cleared.json()["color_name"], cleared.json()["color_source"]) == (
+        None,
+        None,
+    )

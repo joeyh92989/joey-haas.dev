@@ -313,10 +313,12 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
     if "purchased_on" in given:
         row.acquired_on = fields.purchased_on
     if "color_name" in given:
-        row.color_name = _clean(fields.color_name)
-        row.color_source = (
-            GarmentColorSource.MANUAL if row.color_name is not None else None
-        )
+        typed = _clean(fields.color_name)
+        # The edit form sends the colour back on every save: only a colour
+        # that changed is the owner's own wording.
+        if typed != row.color_name:
+            row.color_name = typed
+            row.color_source = GarmentColorSource.MANUAL if typed is not None else None
     if "seasons" in given:
         row.seasons = _seasons(fields.seasons or [])
     if "back_on" in given:
