@@ -1258,3 +1258,74 @@ async def test_0019_downgrade_drops_the_column_and_the_cycle_closes(clean_databa
         }
     assert "tag_attempts" not in columns
     assert _alembic("upgrade", "head").returncode == 0
+
+
+# --- Revision 0020: garment products. ----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_0020_adds_colour_size_and_the_products_table(clean_database):
+    assert _alembic("upgrade", "0019").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO garments (id, name) VALUES "
+                "('00000000-0000-0000-0000-000000000001', 'Tee')"
+            )
+        )
+
+    result = _alembic("upgrade", "0020")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.begin() as connection:
+        row = (
+            await connection.execute(
+                text("SELECT name, color_name, color_source, size FROM garments")
+            )
+        ).one()
+        assert tuple(row) == ("Tee", None, None, None)
+        await connection.execute(
+            text(
+                "INSERT INTO garment_products (id, garment_id, source, price) "
+                "VALUES ('00000000-0000-0000-0000-0000000000a1', "
+                "'00000000-0000-0000-0000-000000000001', 'duer', 59.00)"
+            )
+        )
+        await connection.execute(
+            text(
+                "DELETE FROM garments WHERE id = '00000000-0000-0000-0000-000000000001'"
+            )
+        )
+        count = await connection.scalar(text("SELECT count(*) FROM garment_products"))
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_0020_downgrade_drops_columns_table_and_types(clean_database):
+    assert _alembic("upgrade", "0020").returncode == 0
+    result = _alembic("downgrade", "0019")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'garments'"
+                )
+            )
+        }
+        tables = {
+            row[0]
+            for row in await connection.execute(
+                text("SELECT table_name FROM information_schema.tables")
+            )
+        }
+        types = {
+            row[0]
+            for row in await connection.execute(text("SELECT typname FROM pg_type"))
+        }
+    assert not {"color_name", "color_source", "size"} & columns
+    assert "garment_products" not in tables
+    assert not {"garment_color_source", "garment_product_source"} & types
+    assert _alembic("upgrade", "head").returncode == 0

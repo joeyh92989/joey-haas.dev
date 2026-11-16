@@ -80,6 +80,7 @@ from models import (
     ClosetSetting,
     Garment,
     GarmentCategory,
+    GarmentColorSource,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -144,6 +145,11 @@ class GarmentFields(BaseModel):
     seasons: list[int] | None = Field(default=None, max_length=12)
     notes: str | None = Field(default=None, max_length=MAX_NOTES)
     acquired_on: date | None = None
+    # The purchase date: another name for acquired_on, the column it writes.
+    purchased_on: date | None = None
+    # The store's colour wording, verbatim; set by hand it is `manual`.
+    color_name: str | None = Field(default=None, max_length=80)
+    size: str | None = Field(default=None, max_length=40)
     status: GarmentStatus | None = None
     back_on: date | None = None
 
@@ -156,6 +162,7 @@ TEXT_FIELDS = (
     "secondary_color",
     "pattern",
     "material",
+    "size",
     "notes",
 )
 
@@ -277,6 +284,13 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
     for name in ("category", "warmth", "formality", "acquired_on"):
         if name in given:
             setattr(row, name, getattr(fields, name))
+    if "purchased_on" in given:
+        row.acquired_on = fields.purchased_on
+    if "color_name" in given:
+        row.color_name = _clean(fields.color_name)
+        row.color_source = (
+            GarmentColorSource.MANUAL if row.color_name is not None else None
+        )
     if "seasons" in given:
         row.seasons = _seasons(fields.seasons or [])
     if "back_on" in given:
@@ -323,6 +337,9 @@ def garment_out(
         primary_hex=row.primary_hex,
         secondary_color=row.secondary_color,
         secondary_hex=row.secondary_hex,
+        color_name=row.color_name,
+        color_source=row.color_source,
+        size=row.size,
         pattern=row.pattern,
         material=row.material,
         warmth=row.warmth,
