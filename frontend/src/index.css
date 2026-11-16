@@ -12801,7 +12801,11 @@ a.btn.sm {
     --chart-2: #7393cb;
     /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
        borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
-    --redact: repeating-linear-gradient(135deg, #8a8f98 0 6px, #f3f3f0 6px 12px);
+    --redact: repeating-linear-gradient(
+      135deg,
+      #8a8f98 0 6px,
+      #f3f3f0 6px 12px
+    );
     /* Comic runs on --surface: 3.25 (--line-strong reached 1.66); the
        lanes' missing outline on --bg 3.17; --text over the hatch 5.53. */
     --run-missing: #8a8f98;
