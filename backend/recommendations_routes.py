@@ -56,6 +56,16 @@ from radar_load import (
     load_profile,
     watching,
 )
+from recs_schemas import (
+    AnswerOut,
+    DiscoverGeneratedOut,
+    DiscoverListOut,
+    ItemAddedOut,
+    RadarGeneratedOut,
+    RadarListOut,
+    StoreListOut,
+    WatchingOut,
+)
 from sources.base import SourceError
 from sources.igdb import PLATFORM_NAMES
 from tags import game_tags
@@ -448,7 +458,7 @@ def create_recommendations_router(
             "model_note": note,
         }
 
-    @router.post("/generate")
+    @router.post("/generate", response_model=RadarGeneratedOut | DiscoverGeneratedOut)
     async def generate(
         body: GenerateIn,
         _lock=Depends(exclusive),
@@ -467,7 +477,7 @@ def create_recommendations_router(
             )
         )
 
-    @router.get("")
+    @router.get("", response_model=DiscoverListOut | RadarListOut)
     async def list_recommendations(
         kind: Literal["radar", "discover"],
         session: AsyncSession = Depends(get_session),
@@ -527,7 +537,7 @@ def create_recommendations_router(
             "sections": sections,
         }
 
-    @router.get("/store-list")
+    @router.get("/store-list", response_model=StoreListOut)
     async def store_list(session: AsyncSession = Depends(get_session)) -> dict:
         """The signed-in What's next: the same sections as /api/public/next
         (next_list in admin mode, where any date counts, over pending rows
@@ -553,7 +563,7 @@ def create_recommendations_router(
             },
         }
 
-    @router.get("/watching")
+    @router.get("/watching", response_model=list[WatchingOut])
     async def list_watching(session: AsyncSession = Depends(get_session)) -> list[dict]:
         """Watched games still to come, soonest first."""
         return await watching(session, _today())
@@ -648,7 +658,9 @@ def create_recommendations_router(
             ) from None
         return {"item_id": str(item.id)}
 
-    @router.post("/{recommendation_id}/want", status_code=201)
+    @router.post(
+        "/{recommendation_id}/want", status_code=201, response_model=ItemAddedOut
+    )
     async def want(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
@@ -661,7 +673,9 @@ def create_recommendations_router(
             RecommendationStatus.WANTED,
         )
 
-    @router.post("/{recommendation_id}/own", status_code=201)
+    @router.post(
+        "/{recommendation_id}/own", status_code=201, response_model=ItemAddedOut
+    )
     async def own(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
@@ -686,7 +700,7 @@ def create_recommendations_router(
         await session.commit()
         return {"status": status.value}
 
-    @router.post("/{recommendation_id}/dismiss")
+    @router.post("/{recommendation_id}/dismiss", response_model=AnswerOut)
     async def dismiss(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
@@ -695,7 +709,7 @@ def create_recommendations_router(
             recommendation_id, RecommendationStatus.DISMISSED, WAITING, session
         )
 
-    @router.post("/{recommendation_id}/skip")
+    @router.post("/{recommendation_id}/skip", response_model=AnswerOut)
     async def skip(
         recommendation_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
