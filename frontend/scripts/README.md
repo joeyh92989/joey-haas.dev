@@ -385,3 +385,5 @@ step.
 edited. The synthetic snapshot files CI builds from live in
 `frontend/e2e/fixtures/snapshot/`, explained in `frontend/e2e/fixtures/README.md`
 and checked by `fixture-snapshot.test.mjs` above.
+
+Separate from the build: `closet/` holds the Stitch Fix order export, a script pasted into the browser console (see `closet/README.md`).
