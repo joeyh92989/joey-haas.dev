@@ -26,7 +26,7 @@ export const experience = [
     summary:
       'Owned the APIs that record benefit spending and led the ledger’s move to a new eligibility platform, a phased cutover with zero rollbacks or incidents: the API contract, the parity checks, the alerting, and the runbooks.',
     short:
-      'Owned the APIs that record benefit spending and the funding side of a company-wide eligibility migration.',
+      'Owned the APIs that record benefit spending and led the ledger’s move to a new eligibility platform.',
     current: true,
   },
   {
