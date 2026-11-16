@@ -407,6 +407,27 @@ async def test_wore_this_again_today_replaces_the_first(sessionmaker_for_test):
     assert unknown.status_code == 422
 
 
+async def test_today_tiles_carry_the_garment_colour(sessionmaker_for_test):
+    """A vendor-coloured piece has no hex; its family and name ride the tile."""
+    ids = await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Garment, uuid.UUID(ids["navy oxford"]))
+        row.primary_color = "navy"
+        row.color_name = "Deep Sea"
+        await session.commit()
+    provider = FakeProvider(
+        choose((["wool coat", "navy oxford", "chinos", "brown boots"], "Navy."))
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    tiles = {g["name"]: g for g in plan["lead"]["garments"]}
+    assert tiles["navy oxford"]["primary_color"] == "navy"
+    assert tiles["navy oxford"]["color_name"] == "Deep Sea"
+    assert tiles["navy oxford"]["primary_hex"] is None
+    assert tiles["chinos"]["primary_color"] is None
+    assert tiles["chinos"]["color_name"] is None
+
+
 async def test_match_plans_around_the_photo_and_writes_nothing(sessionmaker_for_test):
     await seed(sessionmaker_for_test)
     tagged = {

@@ -107,8 +107,8 @@ async def test_today_bodies_keep_their_exact_keys(sessionmaker_for_test):
         }  # fmt: skip
         assert set(body["plan"]["lead"]) == {"garments", "reason", "ranked_by"}
         assert set(body["plan"]["lead"]["garments"][0]) == {
-            "slot", "id", "name", "primary_hex", "secondary_hex", "image",
-            "qualifier", "transient",
+            "slot", "id", "name", "primary_color", "color_name", "primary_hex",
+            "secondary_hex", "image", "qualifier", "transient",
         }  # fmt: skip
         assert set(body["defaults"]) == {"occasion", "bike"}
         candidates = (await client.get("/api/closet/candidates?slot=top")).json()
