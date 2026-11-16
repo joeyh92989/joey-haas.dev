@@ -81,6 +81,24 @@
   --status-finished: #e3e6ea;
   --status-backlog: #8a919b;
   --status-abandoned: #6b737e;
+  /* Garment colour families (closet_colors.FAMILIES): the swatch a piece
+     without a photo or hex is drawn in. Data colours, one set for both
+     themes (a navy shirt is navy in either); the swatch's --line border
+     keeps black and white visible on either ground. */
+  --gc-black: #1c1c1e;
+  --gc-white: #f4f4f0;
+  --gc-grey: #8a8d91;
+  --gc-navy: #1f2f4f;
+  --gc-blue: #3f6fb5;
+  --gc-green: #4a7a4f;
+  --gc-red: #b03a3a;
+  --gc-orange: #d9822b;
+  --gc-yellow: #e3c443;
+  --gc-pink: #e08aa6;
+  --gc-purple: #7a4e9a;
+  --gc-brown: #6b4a2e;
+  --gc-beige: #d8c8a8;
+  --gc-tan: #b89468;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: var(--sunken);
   /* The search dialog's highlighted row, under an --accent inset bar.
@@ -2594,7 +2612,7 @@ footer {
 
 .intake-shot img,
 .intake-shot-blank {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 2 / 1;
   background: var(--sunken);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -8864,7 +8882,7 @@ a.cover-tile:focus-visible {
   color: var(--text-3);
   font-size: var(--fs-13);
   margin: 0 0 0 auto;
-  max-width: 34rem;
+  max-width: 28rem;
 }
 
 @media (max-width: 640px) {
@@ -11695,88 +11713,214 @@ a.cover-tile-cap:focus-visible span {
   text-transform: uppercase;
 }
 
-.today-tiles {
+/* The outfit board: outer and top over bottom over shoes, accessories
+   beside, composed from the pieces' own images. Pictures sit contained on
+   --sunken, so a flat-lay on white reads as a card and a phone photo is
+   letterboxed, never cropped. */
+.outfit-board {
   display: grid;
-  gap: var(--grid-gap);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 34rem;
+}
+
+.outfit-board[data-aside='true'] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.45fr);
+}
+
+.outfit-board-main,
+.outfit-board-aside {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.outfit-board-row {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(var(--pieces, 1), minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.admin-app-phone .today-tiles {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.outfit-board-aside .outfit-board-row {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-@media (max-width: 640px) {
-  .today-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.today-tile {
+.outfit-piece {
   align-content: start;
   display: grid;
   gap: var(--space-1);
+  min-width: 0;
+  position: relative;
 }
 
-.today-tile-swatch {
+.outfit-board-pic {
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.outfit-piece[data-slot='bottom'] .outfit-board-pic {
+  aspect-ratio: 4 / 3;
+}
+
+.outfit-piece[data-slot='shoes'] .outfit-board-pic {
+  aspect-ratio: 3 / 1;
+}
+
+.outfit-board-pic[data-family='black'] {
+  background-color: var(--gc-black);
+}
+
+.outfit-board-pic[data-family='white'] {
+  background-color: var(--gc-white);
+}
+
+.outfit-board-pic[data-family='grey'] {
+  background-color: var(--gc-grey);
+}
+
+.outfit-board-pic[data-family='navy'] {
+  background-color: var(--gc-navy);
+}
+
+.outfit-board-pic[data-family='blue'] {
+  background-color: var(--gc-blue);
+}
+
+.outfit-board-pic[data-family='green'] {
+  background-color: var(--gc-green);
+}
+
+.outfit-board-pic[data-family='red'] {
+  background-color: var(--gc-red);
+}
+
+.outfit-board-pic[data-family='orange'] {
+  background-color: var(--gc-orange);
+}
+
+.outfit-board-pic[data-family='yellow'] {
+  background-color: var(--gc-yellow);
+}
+
+.outfit-board-pic[data-family='pink'] {
+  background-color: var(--gc-pink);
+}
+
+.outfit-board-pic[data-family='purple'] {
+  background-color: var(--gc-purple);
+}
+
+.outfit-board-pic[data-family='brown'] {
+  background-color: var(--gc-brown);
+}
+
+.outfit-board-pic[data-family='beige'] {
+  background-color: var(--gc-beige);
+}
+
+.outfit-board-pic[data-family='tan'] {
+  background-color: var(--gc-tan);
+}
+
+.outfit-board-pic img {
   display: block;
   height: 100%;
+  object-fit: contain;
   width: 100%;
 }
 
-/* The locked tile: an --accent outline, a non-text mark at 5.76 (dark)
-   and 5.31 (light) at worst against the grounds it sits on. The pill
-   says "Built around" too, so the outline is never alone. */
-.today-tile[data-locked='true'] .garment-photo {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* The slot pill rides the top-left of the picture, as on the closet tiles. */
+.outfit-piece > .garment-slot {
+  top: 0.4rem;
 }
 
-/* Build around: hidden until the tile is hovered or holds focus, by
-   opacity so it stays focusable; always shown where there is no hover.
-   --text-2 on --surface is the slot pill's pair (8.53 dark, 8.24 light). */
-.today-lock {
+.outfit-piece-name {
+  font-size: var(--fs-14);
+  overflow-wrap: anywhere;
+}
+
+.outfit-piece-color {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.outfit-piece-stat {
+  color: var(--text-3);
+  font: var(--fs-12) var(--font-mono);
+}
+
+.outfit-piece-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Swap and Build around: real buttons under each piece, always shown, so
+   a keyboard or a touch reaches them without a hover. The locked piece
+   gets an --accent outline (5.76 dark, 5.31 light at worst) next to the
+   "Built around" pill, so the outline is never alone. */
+.outfit-piece-btn {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 999px;
-  bottom: 0.4rem;
   color: var(--text-2);
   cursor: pointer;
   font: var(--fs-12) var(--font-mono);
-  opacity: 0;
   padding: 0.1rem var(--space-2); /* space-exception: hairline, optical offset */
-  position: absolute;
-  right: 0.4rem;
-  transition: opacity 0.15s ease;
 }
 
-.today-tile:hover .today-lock,
-.today-tile:focus-within .today-lock,
-.today-lock[aria-pressed='true'] {
-  opacity: 1;
+.outfit-piece-btn:hover:not(:disabled) {
+  border-color: var(--accent);
 }
 
-@media (hover: none) {
-  .today-lock {
-    opacity: 1;
-  }
+.outfit-piece-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
-.today-lock[aria-pressed='true'] {
+.outfit-piece-btn[aria-pressed='true'] {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.today-lock:focus-visible {
+.outfit-piece-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.today-tile[data-transient='true'] .garment-photo {
+.outfit-piece[data-locked='true'] .outfit-board-pic {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.outfit-piece[data-transient='true'] .outfit-board-pic {
   border-style: dashed;
+}
+
+/* Small: an alternative's version of the same layout, as decoration. */
+.outfit-board[data-size='small'] {
+  gap: var(--space-1);
+  width: 7.5rem;
+}
+
+.outfit-board[data-size='small'] .outfit-board-main,
+.outfit-board[data-size='small'] .outfit-board-aside,
+.outfit-board[data-size='small'] .outfit-board-row {
+  gap: var(--space-1);
+}
+
+.outfit-board[data-size='small'] .outfit-board-pic {
+  border-radius: 3px;
 }
 
 .today-reason {

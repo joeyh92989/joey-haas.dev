@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import FilterChips from '../components/FilterChips.jsx'
-import OutfitSwatches, { Swatch } from '../components/OutfitSwatches.jsx'
+import OutfitBoard from '../components/OutfitBoard.jsx'
+import { Swatch } from '../components/OutfitSwatches.jsx'
 import Sheet from '../components/Sheet.jsx'
 import SwapSheet from '../components/SwapSheet.jsx'
 import {
@@ -86,52 +87,6 @@ function WeatherStrip({ weather }) {
         </ol>
       )}
     </section>
-  )
-}
-
-/**
- * One tile of the lead outfit: the photo (or the colour), the slot, the
- * name and the qualifier. An owned tile carries the Build around pill,
- * revealed on hover and on focus, always shown where there is no hover.
- */
-function OutfitTile({ tile, locked, busy, onLock, onSave, saving }) {
-  return (
-    <li
-      className="today-tile"
-      data-locked={locked ? 'true' : undefined}
-      data-transient={tile.transient ? 'true' : undefined}
-    >
-      <span className="garment-photo">
-        <Swatch garment={tile} className="today-tile-swatch" />
-        <span className="garment-slot">
-          {categoryLabel(tile.slot) ?? tile.slot}
-        </span>
-        {!tile.transient && (
-          <button
-            type="button"
-            className="today-lock"
-            aria-pressed={locked}
-            aria-label={`${locked ? 'Built around' : 'Build around'} the ${tile.name}`}
-            disabled={busy}
-            onClick={() => onLock(tile)}
-          >
-            {locked ? 'Built around' : 'Build around'}
-          </button>
-        )}
-      </span>
-      <span className="garment-name">{tile.name}</span>
-      <span className="garment-stat">{tile.qualifier}</span>
-      {tile.transient && (
-        <button
-          type="button"
-          className="btn sm"
-          disabled={saving || busy}
-          onClick={onSave}
-        >
-          {saving ? 'Saving…' : 'Save as owned'}
-        </button>
-      )}
-    </li>
   )
 }
 
@@ -254,7 +209,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
   )
 }
 
-/** The lead: four tiles, the reason, and what to do with it. */
+/** The lead: the outfit board, the reason, and what to do with it. */
 function OutfitCard({
   outfit,
   lockId,
@@ -267,6 +222,7 @@ function OutfitCard({
   onWore,
   onChange,
   onSwap,
+  onSwapSlot,
   onMatch,
   onNotThis,
 }) {
@@ -283,19 +239,15 @@ function OutfitCard({
       >
         {adminCopy.closetToday.wearThis}
       </p>
-      <ul className="today-tiles">
-        {outfit.garments.map((tile) => (
-          <OutfitTile
-            key={`${tile.slot}-${tile.id}`}
-            tile={tile}
-            locked={tile.id === lockId}
-            busy={busy}
-            saving={saving}
-            onLock={onLock}
-            onSave={onSave}
-          />
-        ))}
-      </ul>
+      <OutfitBoard
+        garments={outfit.garments}
+        lockId={lockId}
+        busy={busy}
+        saving={saving}
+        onLock={onLock}
+        onSwap={onSwapSlot}
+        onSave={onSave}
+      />
       <p className="today-reason">{outfitReason(outfit)}</p>
       {wornState ? (
         <p className="today-worn">
@@ -370,11 +322,11 @@ function OutfitCard({
   )
 }
 
-/** An alternative: swatches, the names on one line, the reason. */
+/** An alternative: the small board, the names on one line, the reason. */
 function OutfitAlt({ outfit, busy, onWear }) {
   return (
     <li className="panel today-alt">
-      <OutfitSwatches garments={outfit.garments} />
+      <OutfitBoard garments={outfit.garments} small />
       <p className="today-alt-names">
         {outfit.garments.map((g) => g.name).join(' · ')}
       </p>
@@ -414,6 +366,8 @@ export default function AdminClosetToday() {
   const [retryable, setRetryable] = useState(false)
   const elapsed = useElapsed(!answer && !error)
   const [swapOpen, setSwapOpen] = useState(false)
+  // The slot a piece's own Swap opened the sheet on; undefined for Swap a piece.
+  const [swapSlot, setSwapSlot] = useState(undefined)
   const [matchOpen, setMatchOpen] = useState(false)
   // The photo Match this planned around, kept for Save as owned.
   const [photo, setPhoto] = useState(null)
@@ -713,7 +667,14 @@ export default function AdminClosetToday() {
               onSave={saveOwned}
               onWore={wore}
               onChange={() => setChanging(true)}
-              onSwap={() => setSwapOpen(true)}
+              onSwap={() => {
+                setSwapSlot(undefined)
+                setSwapOpen(true)
+              }}
+              onSwapSlot={(slot) => {
+                setSwapSlot(slot)
+                setSwapOpen(true)
+              }}
               onMatch={() => setMatchOpen(true)}
               onNotThis={notThis}
             />
@@ -754,6 +715,7 @@ export default function AdminClosetToday() {
             outfit={lead}
             occasion={choice.occasion}
             bike={choice.bike}
+            slot={swapSlot}
             onClose={() => setSwapOpen(false)}
             onChoose={swapped}
           />
