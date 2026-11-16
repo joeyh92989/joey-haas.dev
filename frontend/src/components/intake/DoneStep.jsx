@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { comicIntake as words } from '../../content/comicIntake.js'
+import { seedIntake } from '../../content/seedIntake.js'
 import { hashRanges } from '../../lib/comicBooks.js'
 import { runModel } from '../../lib/comicRun.js'
 import { shelfPath } from '../../lib/intake.js'
@@ -96,6 +97,17 @@ export default function DoneStep({
       })),
   ]
 
+  // A seed file's counts, the ones that happened (Done says nothing of 0).
+  const file = answer.file_import ?? null
+  const fileTiles = [
+    [seedIntake.done.skippedNotOwned, file?.skipped_not_owned],
+    [seedIntake.done.skippedKnown, file?.skipped_known_not_owned],
+    [seedIntake.done.alreadyImported, file?.already_imported],
+    [seedIntake.done.duplicates, file?.duplicates],
+    [seedIntake.done.unreadable, file?.unreadable],
+    [seedIntake.done.withoutPhoto, file ? answer.images_missing : 0],
+  ].filter(([, value]) => value > 0)
+
   async function publish() {
     setPublishing(true)
     setError(null)
@@ -141,6 +153,9 @@ export default function DoneStep({
           label="photos that read nothing"
           value={answer.photos_empty}
         />
+        {fileTiles.map(([label, value]) => (
+          <StatTile key={label} label={label} value={value} />
+        ))}
         {grew.length > 0 && (
           <StatTile
             label="series grew"

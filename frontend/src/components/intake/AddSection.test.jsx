@@ -533,4 +533,71 @@ describe('AddSection in the Closet', () => {
       },
     )
   })
+
+  describe('From a file (the closet)', () => {
+    const csv = (name = 'seed.csv', size) => {
+      const file = new File(['source,name,still_owned\n'], name, {
+        type: 'text/csv',
+      })
+      if (size) Object.defineProperty(file, 'size', { value: size })
+      return file
+    }
+
+    it('is offered in the closet only', async () => {
+      fakeIntakeApi()
+      renderAt('shelf')
+      await screen.findByRole('searchbox', { name: 'Add' })
+      expect(
+        screen.queryByRole('button', { name: 'Add from a file' }),
+      ).toBeNull()
+    })
+
+    it('starts a sitting, sends the file into it and opens it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi()
+      renderAt('closet')
+      await screen.findByRole('button', { name: 'Add from a file' })
+      await user.upload(screen.getByLabelText('Seed file'), csv())
+      expect(await screen.findByTestId('where')).toHaveTextContent(
+        '/admin/closet/add/new-1',
+      )
+      expect(
+        api.calls('POST', /\/api\/intake\/sittings$/)[0].body,
+      ).toMatchObject({ area: 'closet', kind: 'garment' })
+      expect(api.calls('POST', /sittings\/new-1\/file$/)).toHaveLength(1)
+    })
+
+    it('says why a file is refused and leaves no empty sitting behind', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi({
+        file: () => ({
+          status: 422,
+          body: { detail: 'That file has no header row naming source' },
+        }),
+      })
+      renderAt('closet')
+      await screen.findByRole('button', { name: 'Add from a file' })
+      await user.upload(screen.getByLabelText('Seed file'), csv())
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That file has no header row naming source',
+      )
+      expect(api.calls('DELETE', /sittings\/new-1$/)).toHaveLength(1)
+      expect(screen.queryByTestId('where')).toBeNull()
+    })
+
+    it('refuses a file over the limit without sending it', async () => {
+      const user = userEvent.setup()
+      const api = fakeIntakeApi()
+      renderAt('closet')
+      await screen.findByRole('button', { name: 'Add from a file' })
+      await user.upload(
+        screen.getByLabelText('Seed file'),
+        csv('big.csv', 5 * 1024 * 1024),
+      )
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'big.csv is over 1024 KB',
+      )
+      expect(api.calls('POST', /\/api\/intake\/sittings$/)).toEqual([])
+    })
+  })
 })

@@ -152,6 +152,32 @@ class RefusedOut(BaseModel):
     refused: list[RefusalOut]
 
 
+class FileCountsOut(BaseModel):
+    """What a seed file did to a sitting, as Done reports it."""
+
+    added: int
+    skipped_not_owned: int
+    skipped_known_not_owned: int
+    already_imported: int
+    duplicates: int
+    unreadable: int
+
+
+class FileImportOut(FileCountsOut):
+    """`POST /sittings/{id}/file`: this file's counts and the first lines
+    that could not be read, in words."""
+
+    problems: list[str]
+
+
+class SeedImagesOut(BaseModel):
+    """`POST /sittings/{id}/seed-images`: the entries whose photo was just
+    fetched (or failed), and how many still wait."""
+
+    entries: list[EntryOut]
+    pending: int
+
+
 class CommitOut(BaseModel):
     """`POST /sittings/{id}/commit`."""
 
@@ -163,6 +189,8 @@ class CommitOut(BaseModel):
     skipped_kept: int
     photos_empty: int
     photos_waiting: int
+    images_missing: int
+    file_import: FileCountsOut | None
     refused: list[RefusalOut]
     created: list[str]
 
