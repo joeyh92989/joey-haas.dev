@@ -48,6 +48,21 @@ from comics import (
     series_from_row,
     sync_marks,
 )
+from comics_schemas import (
+    BackfillOut,
+    ComicsStatusOut,
+    ComicStateOut,
+    EditionLinkOut,
+    IssueHitOut,
+    IssuesSyncOut,
+    MarkOut,
+    PullListOut,
+    RefreshAllOut,
+    TagsGenerateOut,
+    UnfollowRemovedOut,
+    VolumeHitOut,
+    WallOut,
+)
 from intake.budget import pacific_day, remaining
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from llm import LLMError
@@ -348,7 +363,7 @@ def create_comics_router(
         except Exception:
             logger.exception("issue sync for %s failed", item_id)
 
-    @router.get("/search")
+    @router.get("/search", response_model=list[VolumeHitOut])
     async def search(q: str, session: AsyncSession = Depends(get_session)) -> list:
         """ComicVine volumes, each marked with what the shelf already holds."""
         query = q.strip()
@@ -390,7 +405,7 @@ def create_comics_router(
             )
         return out
 
-    @router.post("/follow")
+    @router.post("/follow", response_model=ComicStateOut)
     async def follow(body: VolumeIn, session: AsyncSession = Depends(get_session)):
         """Follows a series, creating a private followed-only row if needed."""
         item = await _by_volume(session, body.external_id)
@@ -404,7 +419,7 @@ def create_comics_router(
             await session.refresh(item)
         return _state(item)
 
-    @router.post("/unfollow")
+    @router.post("/unfollow", response_model=ComicStateOut | UnfollowRemovedOut)
     async def unfollow(body: VolumeIn, session: AsyncSession = Depends(get_session)):
         """Stops following. A followed-only row holding nothing else is
         removed, since Follow is what made it; any other row keeps everything
@@ -427,7 +442,7 @@ def create_comics_router(
         await session.refresh(item)
         return _state(item)
 
-    @router.post("/want", status_code=201)
+    @router.post("/want", status_code=201, response_model=ComicStateOut)
     async def want(body: VolumeIn, session: AsyncSession = Depends(get_session)):
         """A public want: no owned copy, as Radar's Want. A followed-only row
         becomes the want; a series already owned is a 409."""
@@ -444,7 +459,7 @@ def create_comics_router(
         await session.refresh(item)
         return _state(item)
 
-    @router.get("/pull-list")
+    @router.get("/pull-list", response_model=PullListOut)
     async def pull_list(session: AsyncSession = Depends(get_session)) -> dict:
         """This week and the next three, the undated note, and when the
         followed series were last refreshed."""
@@ -507,7 +522,7 @@ def create_comics_router(
             "undated": [{"item_id": s.id, "title": s.title} for s in listing.undated],
         }
 
-    @router.post("/{item_id}/issues/{number}/got")
+    @router.post("/{item_id}/issues/{number}/got", response_model=ComicStateOut)
     async def got(
         item_id: uuid.UUID,
         number: IssueNumber,
@@ -521,7 +536,7 @@ def create_comics_router(
         await session.refresh(item)
         return _state(item)
 
-    @router.post("/{item_id}/issues/{number}/skip")
+    @router.post("/{item_id}/issues/{number}/skip", response_model=ComicStateOut)
     async def skip(
         item_id: uuid.UUID,
         number: IssueNumber,
@@ -540,7 +555,7 @@ def create_comics_router(
         await session.refresh(item)
         return _state(item)
 
-    @router.post("/{item_id}/issues/{number}/mark")
+    @router.post("/{item_id}/issues/{number}/mark", response_model=MarkOut)
     async def mark(
         item_id: uuid.UUID,
         number: IssueNumber,
@@ -600,7 +615,7 @@ def create_comics_router(
             "previous": {k: v for k, v in before.items() if after[k] != v} or None,
         }
 
-    @router.get("/{item_id}/wall")
+    @router.get("/{item_id}/wall", response_model=WallOut)
     async def wall(
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
@@ -620,7 +635,7 @@ def create_comics_router(
             ),
         }
 
-    @router.post("/marks/backfill")
+    @router.post("/marks/backfill", response_model=BackfillOut)
     async def backfill_marks(
         session: AsyncSession = Depends(get_session),
     ) -> dict:
@@ -686,7 +701,7 @@ def create_comics_router(
         await finish_run(session, finished, **fields)
         await session.commit()
 
-    @router.post("/refresh")
+    @router.post("/refresh", response_model=RefreshAllOut)
     async def refresh_all(
         _lock=Depends(exclusive), session: AsyncSession = Depends(get_session)
     ) -> dict:
@@ -776,7 +791,7 @@ def create_comics_router(
             refreshed += 1
         return {"ok": not errors, "refreshed": refreshed, "errors": errors}
 
-    @router.post("/{item_id}/refresh")
+    @router.post("/{item_id}/refresh", response_model=ComicStateOut)
     async def refresh_one(
         item_id: uuid.UUID,
         _lock=Depends(exclusive),
@@ -795,7 +810,7 @@ def create_comics_router(
         await _sync_quietly(item)
         return _state(item)
 
-    @router.get("/issues/search")
+    @router.get("/issues/search", response_model=list[IssueHitOut])
     async def search_issues(q: str) -> list[dict]:
         """Comic Vine issues, for choosing what an edition collects."""
         query = q.strip()
@@ -807,7 +822,7 @@ def create_comics_router(
             raise _http_error_for(error) from error
         return [asdict(hit) for hit in hits]
 
-    @router.post("/tags/generate")
+    @router.post("/tags/generate", response_model=TagsGenerateOut)
     async def generate_tags(
         budget: int = Query(TAG_JOB_DEFAULT, ge=1, le=TAG_JOB_MAX),
         _lock=Depends(exclusive),
@@ -964,7 +979,7 @@ def create_comics_router(
         )
         return summary
 
-    @router.post("/issues/sync")
+    @router.post("/issues/sync", response_model=IssuesSyncOut)
     async def sync_issues(
         budget: int = Query(120, ge=1, le=190),
         _lock=Depends(exclusive),
@@ -1071,7 +1086,7 @@ def create_comics_router(
             "requests": budget - remaining,
         }
 
-    @router.get("/status")
+    @router.get("/status", response_model=ComicsStatusOut)
     async def status(session: AsyncSession = Depends(get_session)) -> dict:
         """The last run of the issue sync, the followed comics refresh and
         the tag job, each null before its first. Admin only: it is not a
@@ -1111,7 +1126,7 @@ def create_comics_router(
             "tags.last_run": tags_run_summary(tags, gave_up=given_up or 0),
         }
 
-    @router.put("/{item_id}/editions/{slug}/link")
+    @router.put("/{item_id}/editions/{slug}/link", response_model=EditionLinkOut)
     async def link_edition(
         item_id: uuid.UUID,
         slug: str,
