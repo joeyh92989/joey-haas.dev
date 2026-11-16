@@ -59,7 +59,7 @@ NOT_OWNED_KEY = "import.not_owned"
 # Photos fetched per request: the page asks again until none is pending.
 IMAGE_BATCH = 4
 # The payload keys only the server writes; a PATCH from the page keeps them.
-SERVER_KEYS = ("seed", "image", "image_error")
+SERVER_KEYS = ("seed", "image", "image_error", "link")
 COUNTS = (
     "added",
     "skipped_not_owned",

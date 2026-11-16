@@ -336,6 +336,15 @@ def _seed_record(entry: IntakeEntry) -> tuple[dict[str, Any], str] | str:
     return seed, source
 
 
+def _fetched_at(seed: dict[str, Any], now: datetime) -> datetime:
+    """When a pasted link's store was read (the seed record says), else now."""
+    try:
+        read = datetime.fromisoformat(seed["fetched_at"])
+    except (KeyError, TypeError, ValueError):
+        return now
+    return read if read.tzinfo else read.replace(tzinfo=UTC)
+
+
 @dataclass
 class SeedGarment:
     """What a seed entry writes: the garment, its product row and, when the
@@ -387,17 +396,17 @@ def _seed_garment(
     row.tag_source = None
     row.color_source = GarmentColorSource.VENDOR if row.color_name else None
     snapshot = seed.get("row") if isinstance(seed.get("row"), dict) else {}
+    named = snapshot.get("name") or snapshot.get("title")
     product = GarmentProduct(
         garment_id=row.id,
         source=GarmentProductSource(source),
         order_ref=_text(seed.get("order_id"), 80),
         store_item_no=_text(seed.get("store_item_no"), 80),
-        title=snapshot.get("name")
-        if isinstance(snapshot.get("name"), str)
-        else row.name,
+        url=_text(seed.get("url"), 2000),
+        title=named if isinstance(named, str) else row.name,
         price=price,
         snapshot=snapshot,
-        fetched_at=now,
+        fetched_at=_fetched_at(seed, now),
     )
     image = (
         GarmentImage(

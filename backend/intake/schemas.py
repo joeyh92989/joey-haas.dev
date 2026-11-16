@@ -170,6 +170,19 @@ class FileImportOut(FileCountsOut):
     problems: list[str]
 
 
+class LinksOut(BaseModel):
+    """`POST /sittings/{id}/links`: the entries made, and how the pasted
+    links went: `read` came from the store, `kept` stayed as typed with a
+    reason on the entry, `not_links` were not addresses, `duplicates` were
+    already in the sitting."""
+
+    entries: list[EntryOut]
+    read: int
+    kept: int
+    not_links: int
+    duplicates: int
+
+
 class SeedImagesOut(BaseModel):
     """`POST /sittings/{id}/seed-images`: the entries whose photo was just
     fetched (or failed), and how many still wait."""
