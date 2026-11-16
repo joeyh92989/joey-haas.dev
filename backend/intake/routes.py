@@ -631,7 +631,10 @@ def create_intake_router(
             sitting_id=sitting.id,
             kind=body.kind,
             state=state,
-            payload=body.payload,
+            # The server's own keys are never a client's to set.
+            payload=keep_server_keys({}, body.payload)
+            if body.kind == "garment"
+            else body.payload,
             chosen=body.chosen,
         )
         session.add(entry)
@@ -698,12 +701,8 @@ def create_intake_router(
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
-            if (
-                field == "payload"
-                and value is not None
-                and (entry.payload or {}).get("seed")
-            ):
-                value = keep_server_keys(entry.payload, value)
+            if field == "payload" and value is not None and entry.kind == "garment":
+                value = keep_server_keys(entry.payload or {}, value)
             if field == "payload" and entry.kind == "comic" and value is not None:
                 try:
                     value = edit_book(entry.payload, value)

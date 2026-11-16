@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx2
 import pytest
 
+from intake import seed_image
 from intake.seed_image import (
     MAX_BYTES,
     ImageFetchError,
@@ -184,3 +185,59 @@ async def test_a_transport_failure_is_worded_without_the_url():
                 throttle=None,
             )
     assert "SECRET" not in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_a_compressed_answer_is_refused():
+    def handler(request):
+        return httpx2.Response(
+            200,
+            content=b"x",
+            headers={"content-type": "image/jpeg", "content-encoding": "gzip"},
+        )
+
+    async with client(handler) as http:
+        with pytest.raises(ImageFetchError, match="compressed"):
+            await fetch_image(
+                "https://img.example.test/a",
+                client=http,
+                resolver=public,
+                throttle=None,
+            )
+
+
+@pytest.mark.asyncio
+async def test_the_default_client_asks_for_no_compression(monkeypatch):
+    seen = {}
+
+    def handler(request):
+        seen.update(request.headers)
+        return ok(b"abc")(request)
+
+    real = httpx2.AsyncClient
+    monkeypatch.setattr(
+        seed_image.httpx2,
+        "AsyncClient",
+        lambda **kw: real(transport=httpx2.MockTransport(handler), **kw),
+    )
+    await fetch_image("https://img.example.test/a", resolver=public, throttle=None)
+    assert seen["accept-encoding"] == "identity"
+
+
+@pytest.mark.asyncio
+async def test_a_photo_that_trickles_in_is_given_up_on(monkeypatch):
+    import asyncio
+
+    async def handler(request):
+        await asyncio.sleep(5)
+        return ok(b"late")(request)
+
+    monkeypatch.setattr(seed_image, "DEADLINE_SECONDS", 0.05)
+    async with client(handler) as http:
+        with pytest.raises(ImageFetchError, match="too long"):
+            await fetch_image(
+                "https://img.example.test/a",
+                client=http,
+                resolver=public,
+                throttle=None,
+            )

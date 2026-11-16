@@ -47,6 +47,7 @@ from intake.seed_image import ImageFetchError, fetch_image
 from models import (
     ClosetSetting,
     GarmentProduct,
+    GarmentProductSource,
     IntakeEntry,
     IntakeEntryState,
     IntakePhoto,
@@ -117,6 +118,7 @@ async def imported_keys(session: AsyncSession, sources: set[str]) -> set[str]:
     """The `dup_key` of every product already in `garment_products` for these
     sources. The colour and size are the snapshot's (the file's own words),
     since Check may have edited the garment's."""
+    sources = sources & {source.value for source in GarmentProductSource}
     if not sources:
         return set()
     rows = await session.execute(

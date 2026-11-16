@@ -86,14 +86,31 @@ def _date(text: str | None) -> date | None:
         return None
 
 
+# garment_products.price is numeric(8,2).
+MAX_PRICE = Decimal("999999.99")
+# garment_products.order_ref and store_item_no are String(80).
+MAX_REF = 80
+
+
+class PriceTooLarge(ValueError):
+    pass
+
+
 def _price(text: str | None) -> Decimal | None:
+    """The price to the cent; None for text that is no price. Raises
+    PriceTooLarge for one the column cannot hold."""
     if not text:
         return None
     try:
         price = Decimal(text.replace("$", "").replace(",", "").strip())
     except InvalidOperation:
         return None
-    return price if price.is_finite() and 0 <= price < Decimal("1000000") else None
+    if not price.is_finite() or price < 0:
+        return None
+    price = price.quantize(Decimal("0.01"))
+    if price > MAX_PRICE:
+        raise PriceTooLarge
+    return price
 
 
 def dup_key(
@@ -104,10 +121,14 @@ def dup_key(
     color_name: str | None,
     size: str | None,
 ) -> str:
-    """When two rows are one piece: the store's item number alone when it has
-    one, else the order line (order, name, colour, size)."""
+    """When two rows are one piece: the store's item number and the size
+    when it gave a number (the same item in another size is another piece),
+    else the order line (order, name, colour, size). The order and item
+    number are cut to what `garment_products` stores (80 characters), so a
+    stored row and the file's row agree."""
+    order_id = (order_id or "")[:MAX_REF]
     if store_item_no:
-        return f"{source}|item|{_norm(store_item_no)}"
+        return f"{source}|item|{_norm(store_item_no[:MAX_REF])}|{_norm(size)}"
     return "|".join(
         [source, _norm(order_id), _norm(name), _norm(color_name), _norm(size)]
     )
@@ -118,12 +139,14 @@ def not_owned_key(
     order_id: str | None,
     store_item_no: str | None,
     name: str | None,
+    color_name: str | None,
     size: str | None,
 ) -> str:
     """The durable "Don't own this" key (design D7):
-    `source|order_id|store_item_no`, or `source|order_id|name+size` when the
-    store gave no item number."""
-    ident = _norm(store_item_no) or f"{_norm(name)}+{_norm(size)}"
+    `source|order_id|store_item_no`, or `source|order_id|name+colour+size`
+    when the store gave no item number (two colours of one name in an order
+    are two pieces)."""
+    ident = _norm(store_item_no) or f"{_norm(name)}+{_norm(color_name)}+{_norm(size)}"
     return f"{source}|{_norm(order_id)}|{ident}"
 
 
@@ -140,7 +163,12 @@ def row_dup_key(row: SeedRow) -> str:
 
 def row_not_owned_key(row: SeedRow) -> str:
     return not_owned_key(
-        row.source, row.order_id, row.store_item_no, row.name, row.size
+        row.source,
+        row.order_id,
+        row.store_item_no,
+        row.name,
+        row.color_name,
+        row.size,
     )
 
 
@@ -157,6 +185,10 @@ def _row(line: int, record: dict[str, str]) -> SeedRow | str:
     owned = _norm(get("still_owned"))
     if owned not in _YES | _NO:
         return f"Line {line}: still_owned must be yes or no"
+    try:
+        price = _price(get("price_usd"))
+    except PriceTooLarge:
+        return f"Line {line}: the price is too large"
     hint = _norm(get("category_hint"))
     return SeedRow(
         line=line,
@@ -167,7 +199,7 @@ def _row(line: int, record: dict[str, str]) -> SeedRow | str:
         name=name,
         color_name=get("color_name"),
         size=get("size"),
-        price=_price(get("price_usd")),
+        price=price,
         category=hint if hint in CATEGORIES else None,
         store_item_no=get("store_item_no"),
         still_owned=owned in _YES,

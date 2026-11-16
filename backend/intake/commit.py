@@ -314,6 +314,28 @@ def is_seed(entry: IntakeEntry) -> bool:
     return bool((entry.payload or {}).get("seed"))
 
 
+def _text(value: Any, limit: int) -> str | None:
+    """A string cut to `limit`, or None; anything else is not text."""
+    return value[:limit] if isinstance(value, str) and value else None
+
+
+def _seed_record(entry: IntakeEntry) -> tuple[dict[str, Any], str] | str:
+    """The entry's seed record and its source, or the sentence for why the
+    record is unusable (an entry written by something other than the file
+    import). Never raises: a damaged record refuses its own entry."""
+    seed = (entry.payload or {}).get("seed")
+    if not isinstance(seed, dict):
+        return "This piece's file record is damaged; remove it and import again"
+    valid = {source.value for source in GarmentProductSource}
+    source = seed.get("source")
+    if source not in valid:
+        return "This piece's file record names no known store"
+    for key in ("order_id", "store_item_no", "price_usd", "key"):
+        if seed.get(key) is not None and not isinstance(seed[key], str):
+            return f"This piece's file record has a bad {key}"
+    return seed, source
+
+
 @dataclass
 class SeedGarment:
     """What a seed entry writes: the garment, its product row and, when the
@@ -322,6 +344,7 @@ class SeedGarment:
     garment: Garment
     product: GarmentProduct
     image: GarmentImage | None
+    photo_id: uuid.UUID | None = None
 
 
 def _seed_garment(
@@ -332,7 +355,18 @@ def _seed_garment(
     takes it for warmth, formality and seasons, while its store colour,
     brand and size are the vendor's (`color_source` vendor)."""
     payload = entry.payload or {}
-    seed = payload["seed"]
+    record = _seed_record(entry)
+    if isinstance(record, str):
+        return Refusal(entry.id, None, record)
+    seed, source = record
+    price = None
+    if seed.get("price_usd"):
+        try:
+            price = Decimal(seed["price_usd"]).quantize(Decimal("0.01"))
+        except ArithmeticError:
+            price = None
+        if price is None or not 0 <= price <= Decimal("999999.99"):
+            return Refusal(entry.id, None, "This piece's file record has a bad price")
     try:
         fields = GarmentFields.model_validate(kind.to_row({"payload": payload}))
     except ValidationError as error:
@@ -352,16 +386,17 @@ def _seed_garment(
     row.status = GarmentStatus.UNTAGGED
     row.tag_source = None
     row.color_source = GarmentColorSource.VENDOR if row.color_name else None
-    price = seed.get("price_usd")
+    snapshot = seed.get("row") if isinstance(seed.get("row"), dict) else {}
     product = GarmentProduct(
         garment_id=row.id,
-        source=GarmentProductSource(seed["source"]),
-        order_ref=(seed.get("order_id") or None) and seed["order_id"][:80],
-        store_item_no=(seed.get("store_item_no") or None)
-        and seed["store_item_no"][:80],
-        title=(seed.get("row") or {}).get("name") or row.name,
-        price=Decimal(price) if price else None,
-        snapshot=seed.get("row") or {},
+        source=GarmentProductSource(source),
+        order_ref=_text(seed.get("order_id"), 80),
+        store_item_no=_text(seed.get("store_item_no"), 80),
+        title=snapshot.get("name")
+        if isinstance(snapshot.get("name"), str)
+        else row.name,
+        price=price,
+        snapshot=snapshot,
         fetched_at=now,
     )
     image = (
@@ -374,7 +409,7 @@ def _seed_garment(
         if photo is not None
         else None
     )
-    return SeedGarment(row, product, image)
+    return SeedGarment(row, product, image, entry.photo_id)
 
 
 def _is_comic(kind: Kind | None) -> bool:
@@ -716,9 +751,11 @@ async def commit_sitting(
         ).all()
     }
     seed_sources = {
-        entry.payload["seed"]["source"]
+        record[1]
         for entry in entries
-        if is_seed(entry) and entry.state in WRITTEN
+        if is_seed(entry)
+        and entry.state in WRITTEN
+        and not isinstance(record := _seed_record(entry), str)
     }
     imported = await imported_keys(session, seed_sources)
     seed_seen: set[str] = set()
@@ -740,11 +777,14 @@ async def commit_sitting(
                 outcome.added += 1  # made real on upload; nothing to flip
                 continue
             if is_seed(entry):
-                seed = entry.payload["seed"]
-                if seed.get("key") in imported or seed.get("key") in seed_seen:
+                record = _seed_record(entry)
+                seed_key = None if isinstance(record, str) else record[0].get("key")
+                if seed_key is not None and (
+                    seed_key in imported or seed_key in seed_seen
+                ):
                     outcome.already_owned += 1  # imported since it was read
                     continue
-                seed_seen.add(seed.get("key"))
+                seed_seen.add(seed_key)
                 made = _seed_garment(kind, entry, seed_photos.get(entry.photo_id), now)
                 if isinstance(made, Refusal):
                     outcome.refused.append(made)
@@ -889,7 +929,7 @@ async def commit_sitting(
         await session.execute(
             delete(IntakePhoto).where(
                 IntakePhoto.id.in_(
-                    [e.photo_id for e in entries if is_seed(e) and e.photo_id]
+                    [made.photo_id for made in seeds if made.photo_id is not None]
                 )
             )
         )

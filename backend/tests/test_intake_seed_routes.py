@@ -24,6 +24,7 @@ from models import (
     IntakeEntry,
     IntakeEntryState,
     IntakePhoto,
+    IntakePhotoState,
     IntakeSetting,
     IntakeSitting,
 )
@@ -340,7 +341,7 @@ async def test_dont_own_this_removes_the_piece_and_every_later_file_skips_it(
     assert commit.json()["added"] == 1  # only the piece kept
     async with sessionmaker_for_test() as session:
         stored = await session.get(ClosetSetting, "import.not_owned")
-        assert stored.value == {"keys": ["stitchfix|ord-1|test tee 1+m"]}
+        assert stored.value == {"keys": ["stitchfix|ord-1|test tee 1+burgundy+m"]}
         assert await count(sessionmaker_for_test, IntakePhoto) == 0  # none held
 
 
@@ -434,3 +435,142 @@ async def test_an_expired_sittings_file_counts_go_with_it(sessionmaker_for_test)
         await session.commit()
     assert removed == 1
     assert await count(sessionmaker_for_test, IntakeSetting) == 0
+
+
+# --- review findings ---------------------------------------------------------
+
+
+async def _raw_entry(factory, sitting_id, payload, state=IntakeEntryState.TYPED):
+    async with factory() as session:
+        row = IntakeEntry(
+            sitting_id=uuid.UUID(sitting_id),
+            kind="garment",
+            state=state,
+            payload=payload,
+        )
+        session.add(row)
+        await session.commit()
+        return str(row.id)
+
+
+@pytest.mark.asyncio
+async def test_a_client_can_never_plant_the_servers_keys(sessionmaker_for_test):
+    planted = {
+        "name": "Tee",
+        "image": "pending",
+        "image_error": "x",
+        "seed": {"image_url": "https://169.254.169.254/x", "source": "duer"},
+    }
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        made = (
+            await client.post(
+                f"/api/intake/sittings/{sitting_id}/entries",
+                json={"kind": "garment", "payload": planted},
+            )
+        ).json()
+        plain = (
+            await client.patch(
+                f"/api/intake/entries/{made['id']}", json={"payload": planted}
+            )
+        ).json()
+        fetched = (
+            await client.post(f"/api/intake/sittings/{sitting_id}/seed-images")
+        ).json()
+    assert made["payload"] == {"name": "Tee"}
+    assert plain["payload"] == {"name": "Tee"}
+    assert fetched == {"entries": [], "pending": 0}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "seed",
+    [
+        {"source": "nope", "key": "k", "not_owned_key": "n"},
+        {"key": "k", "not_owned_key": "n"},
+        {"source": 5, "key": "k", "not_owned_key": "n"},
+        {"source": "duer", "order_id": 7, "key": "k", "not_owned_key": "n"},
+        {"source": "duer", "price_usd": "abc", "key": "k", "not_owned_key": "n"},
+        {"source": "duer", "price_usd": "99999999", "key": "k", "not_owned_key": "n"},
+        "not a dict",
+    ],
+)
+async def test_a_damaged_seed_record_refuses_its_entry_not_the_server(
+    sessionmaker_for_test, seed
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        entry_id = await _raw_entry(
+            sessionmaker_for_test, sitting_id, {"name": "Tee", "seed": seed}
+        )
+        response = await client.post(
+            f"/api/intake/sittings/{sitting_id}/commit", json={}
+        )
+    assert response.status_code == 422, response.text
+    assert [r["entry_id"] for r in response.json()["refused"]] == [entry_id]
+    assert await count(sessionmaker_for_test, Garment) == 0
+
+
+@pytest.mark.asyncio
+async def test_only_the_photos_of_pieces_written_are_deleted(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        await upload(client, sitting_id, HEADER + line(1))
+        await fetch_all(client, sitting_id)
+        (written,) = await entries_of(client, sitting_id)
+        kept_id = await _raw_entry(
+            sessionmaker_for_test,
+            sitting_id,
+            {"name": "Later", "seed": {"source": "duer"}},
+            state=IntakeEntryState.CHECK,
+        )
+        async with sessionmaker_for_test() as session:
+            photo = IntakePhoto(
+                sitting_id=uuid.UUID(sitting_id),
+                state=IntakePhotoState.READ,
+                thumb_webp=b"x",
+                width=1,
+                height=1,
+            )
+            session.add(photo)
+            await session.flush()
+            entry = await session.get(IntakeEntry, uuid.UUID(kept_id))
+            entry.photo_id = photo.id
+            await session.commit()
+            kept_photo = photo.id
+        response = await client.post(
+            f"/api/intake/sittings/{sitting_id}/commit", json={}
+        )
+    assert response.json()["added"] == 1 and written["photo_id"]
+    async with sessionmaker_for_test() as session:
+        left = set(await session.scalars(select(IntakePhoto.id)))
+    assert left == {kept_photo}
+
+
+@pytest.mark.asyncio
+async def test_a_long_order_id_still_matches_what_was_stored(sessionmaker_for_test):
+    text = HEADER + line(1, order_id="O" * 120)
+    async with client_for(sessionmaker_for_test) as client:
+        first = await start(client)
+        await upload(client, first, text)
+        await client.post(f"/api/intake/sittings/{first}/commit", json={})
+        second = await start(client)
+        body = (await upload(client, second, text)).json()
+    assert body["already_imported"] == 1 and body["added"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_price_the_column_cannot_hold_makes_the_line_unreadable(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        body = (
+            await upload(
+                client,
+                sitting_id,
+                HEADER + line(1, price_usd="1000000") + line(2, price_usd="999999.99"),
+            )
+        ).json()
+    assert body["added"] == 1 and body["unreadable"] == 1
+    assert "price" in body["problems"][0]

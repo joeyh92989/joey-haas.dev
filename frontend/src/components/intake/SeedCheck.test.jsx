@@ -183,4 +183,39 @@ describe('SeedCheck', () => {
     )
     expect(api.calls('POST', /seed-images$/)).toHaveLength(1)
   })
+
+  it('ignores a save that answers after Don’t own this has started', async () => {
+    const user = userEvent.setup()
+    const { api } = show([seedEntry('e1')])
+    // Hold the save's answer until the not-owned answer has been shown.
+    let release
+    const gate = new Promise((resolve) => (release = resolve))
+    const real = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation(async (url, options = {}) => {
+      const answer = await real(url, options)
+      if (options.method !== 'PATCH') return answer
+      // The answer as it was when sent, delivered late.
+      const body = await answer.json()
+      await gate
+      return { ...answer, json: async () => body }
+    })
+    const size = await screen.findByLabelText('Size')
+    await user.clear(size)
+    await user.type(size, 'L')
+    await user.tab()
+    await user.click(
+      await screen.findByRole('button', { name: 'Don’t own this: Tee e1' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Yes, not owned' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('img', { name: 'Tee e1' })).toBeNull(),
+    )
+    release()
+    await waitFor(() =>
+      expect(api.calls('PATCH', /entries\/e1$/).length).toBeGreaterThan(0),
+    )
+    // The late save must not bring the piece back.
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(screen.queryByRole('img', { name: 'Tee e1' })).toBeNull()
+  })
 })

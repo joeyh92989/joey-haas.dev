@@ -29,6 +29,8 @@ from physical_sources.limits import USER_AGENT
 
 MAX_BYTES = 6 * 1024 * 1024
 MAX_REDIRECTS = 3
+# The whole fetch, redirects and body included.
+DEADLINE_SECONDS = 20.0
 TIMEOUT = httpx2.Timeout(8.0, connect=4.0)
 ALLOWED_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 
@@ -90,11 +92,24 @@ async def fetch_image(
 ) -> bytes:
     """The photo's bytes, or ImageFetchError. `client` and `resolver` are
     for tests; the default client follows no redirects itself."""
+    try:
+        async with asyncio.timeout(DEADLINE_SECONDS):
+            return await _fetch(url, client, resolver, throttle)
+    except TimeoutError:
+        raise ImageFetchError("the photo took too long to fetch") from None
+
+
+async def _fetch(url, client, resolver, throttle) -> bytes:
     own = client is None
     http = client or httpx2.AsyncClient(
         timeout=TIMEOUT,
         follow_redirects=False,
-        headers={"User-Agent": USER_AGENT, "Accept": "image/*"},
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "image/*",
+            # The byte cap counts what is read; compression could hide a bomb.
+            "Accept-Encoding": "identity",
+        },
     )
     try:
         for _ in range(MAX_REDIRECTS + 1):
@@ -123,6 +138,9 @@ async def fetch_image(
 async def _body(response: httpx2.Response) -> bytes:
     if response.status_code != 200:
         raise ImageFetchError(f"the store answered {response.status_code}")
+    encoding = response.headers.get("content-encoding", "identity").strip().lower()
+    if encoding not in ("", "identity"):
+        raise ImageFetchError("the photo came compressed, which is not accepted")
     kind = response.headers.get("content-type", "").split(";")[0].strip().lower()
     if kind not in ALLOWED_TYPES:
         raise ImageFetchError("the address is not a JPEG, PNG or WebP photo")

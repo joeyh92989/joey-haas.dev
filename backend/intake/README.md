@@ -34,8 +34,8 @@ and the entries read from them or typed in.
   - A row's fate, in this order: `still_owned` no is **skipped, not
     owned**; a key in `closet_settings["import.not_owned"]` is **skipped,
     marked not owned before**; a row already in `garment_products` (same
-    source and item number, else the same order line: order, name, colour,
-    size) is **already imported**, which is also what makes uploading the
+    source, item number and size, else the same order line: order, name,
+    colour, size) is **already imported**, which is also what makes uploading the
     same file again harmless; a row repeated in the file or already in the
     sitting is a **duplicate**; a line that cannot be read (unknown
     source, no name, a field too long for the closet) is **unreadable**,
@@ -53,8 +53,9 @@ and the entries read from them or typed in.
     `POST /sittings/{id}/seed-images` (the Check page asks until none is
     pending). `seed_image.fetch_image` takes only https on port 443,
     refuses any host that resolves to a non-public address, follows
-    redirects by hand and checks every hop, times out at 8 s, takes only
-    JPEG, PNG or WebP and stops reading at 6 MB; requests to a host are
+    redirects by hand and checks every hop, times out at 8 s per request and
+    20 s in all, asks for no compression and refuses a compressed answer,
+    takes only JPEG, PNG or WebP and stops reading at 6 MB; requests to a host are
     spaced. The result is made 800px (`make_garment_image`) and **held** as
     an `intake_photos` row the entry points at (served by the existing
     `GET /photos/{id}/image`), so nothing reaches the closet before the
@@ -72,10 +73,12 @@ and the entries read from them or typed in.
     is `already_owned`.
   - **Don't own this** (`POST /entries/{id}/not-owned`) ignores the entry,
     drops its held photo and adds its key (`source|order_id|store_item_no`,
-    or `source|order_id|name+size`, lower case) to
+    or `source|order_id|name+colour+size`, lower case) to
     `closet_settings["import.not_owned"]` through
     `seed_import.add_not_owned`, which is also the way to seed the list
-    from code. There is no undo route; the list is plain JSON in
+    from code. Known limit: two sittings committing the same rows at the
+    same instant can write them twice (no unique index backs the "already
+    imported" check; one would need a migration). There is no undo route; the list is plain JSON in
     `closet_settings` (`{"keys": [...]}`).
 - `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
 - `reader.py` — `read_next()`, behind `POST /api/intake/sittings/{id}/read-next`.

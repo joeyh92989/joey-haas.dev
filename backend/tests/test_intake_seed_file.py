@@ -129,11 +129,23 @@ def test_blank_lines_are_skipped():
     assert len(parse_seed(HEADER + line() + ",,,,,,,,,,,,,\n").rows) == 1
 
 
-def test_the_item_number_alone_decides_when_the_store_gave_one():
+def test_the_item_number_and_size_decide_when_the_store_gave_a_number():
     a = dup_key("stitchfix", "O1", "SKU-9", "Tee", "Red", "M")
-    b = dup_key("stitchfix", "O2", " sku-9 ", "Other name", "Blue", "L")
+    b = dup_key("stitchfix", "O2", " sku-9 ", "Other name", "Blue", " m ")
     assert a == b
     assert dup_key("duer", "O1", "SKU-9", "Tee", "Red", "M") != a
+    # The same item in another size is another piece.
+    assert dup_key("stitchfix", "O1", "SKU-9", "Tee", "Red", "L") != a
+
+
+def test_a_stored_80_character_value_matches_the_full_one():
+    full = "x" * 120
+    assert dup_key("duer", full, None, "Tee", "Red", "M") == dup_key(
+        "duer", full[:80], None, "Tee", "Red", "M"
+    )
+    assert dup_key("duer", "O", full, "Tee", "Red", "M") == dup_key(
+        "duer", "O", full[:80], "Tee", "Red", "M"
+    )
 
 
 def test_without_an_item_number_the_order_line_decides():
@@ -144,8 +156,14 @@ def test_without_an_item_number_the_order_line_decides():
 
 
 def test_the_not_owned_key_follows_the_design():
-    assert not_owned_key("stitchfix", "O1", "SKU", "Tee", "M") == "stitchfix|o1|sku"
-    assert not_owned_key("duer", "O1", None, "Tee", "M") == "duer|o1|tee+m"
+    assert not_owned_key("stitchfix", "O1", "SKU", "Tee", "Red", "M") == (
+        "stitchfix|o1|sku"
+    )
+    assert not_owned_key("duer", "O1", None, "Tee", "Red", "M") == "duer|o1|tee+red+m"
+    # Two colours of one name in an order are two pieces.
+    assert not_owned_key("duer", "O1", None, "Tee", "Blue", "M") != (
+        not_owned_key("duer", "O1", None, "Tee", "Red", "M")
+    )
 
 
 def test_the_payload_carries_the_fields_check_shows_and_the_servers_own_record():

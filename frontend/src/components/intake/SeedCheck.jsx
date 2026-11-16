@@ -27,6 +27,9 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  // Set once Don't own this starts: a save still on its way must not bring
+  // the piece back when it answers.
+  const leaving = useRef(false)
   const payload = entry.payload
   const values = {
     ...Object.fromEntries(fields.map((f) => [f.key, payload[f.key] ?? ''])),
@@ -46,11 +49,14 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payload: editedPayload(payload, sent) }),
       })
+      if (leaving.current) return
       if (!response.ok) {
         setError(await errorMessage(response, { ownConflicts: true }))
         return
       }
-      onSaved(await response.json())
+      const saved = await response.json()
+      if (leaving.current) return
+      onSaved(saved)
       setEdits((old) => {
         const rest = { ...old }
         for (const key of Object.keys(sent)) {
@@ -64,6 +70,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
   }
 
   async function notOwned() {
+    leaving.current = true
     setBusy(true)
     setError(null)
     try {
@@ -72,11 +79,13 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
         { method: 'POST' },
       )
       if (!response.ok) {
+        leaving.current = false
         setError(await errorMessage(response, { ownConflicts: true }))
         return
       }
       onNotOwned(await response.json(), title)
     } catch {
+      leaving.current = false
       setError(words.noAnswer)
     } finally {
       setBusy(false)
