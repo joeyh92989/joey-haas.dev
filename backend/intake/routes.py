@@ -44,7 +44,16 @@ from intake.commit import (
     series_on_shelf_for,
 )
 from intake.kinds import REGISTRY, describe
-from intake.link_import import MAX_LINKS, ChoiceRefused, choose_colour, import_links
+from intake.link_import import (
+    MAX_LINKS,
+    ChoiceRefused,
+    EntryGone,
+    TooManyLinks,
+    choose_colour,
+    import_links,
+    is_link,
+    merge_edit,
+)
 from intake.nightly import LAST_RUN_KEY, run_nightly
 from intake.reader import read_next
 from intake.schemas import (
@@ -624,7 +633,10 @@ def create_intake_router(
             "garment",
         ):
             raise HTTPException(409, "Links can only be added to a closet sitting")
-        result = await import_links(session, sitting.id, body.urls)
+        try:
+            result = await import_links(session, sitting.id, body.urls)
+        except TooManyLinks as refused:
+            raise HTTPException(422, str(refused)) from None
         if not result.entries and result.duplicates == 0:
             raise HTTPException(422, "Paste product addresses that start with https://")
         sitting.step = "check"
@@ -644,11 +656,15 @@ def create_intake_router(
         """Check's colour radio for a pasted link: the entry takes the chosen
         colour's name, family, price and photo (the photo is fetched again).
         Only a colour the link itself offered can be chosen (422)."""
-        entry = await session.get(IntakeEntry, entry_id)
+        entry = await session.scalar(
+            select(IntakeEntry).where(IntakeEntry.id == entry_id).with_for_update()
+        )
         if entry is None:
             raise HTTPException(404, "No such entry")
         try:
             await choose_colour(session, entry, body.external_id)
+        except EntryGone as gone:
+            raise HTTPException(409, str(gone)) from None
         except ChoiceRefused as refused:
             raise HTTPException(422, str(refused)) from None
         await session.commit()
@@ -769,7 +785,11 @@ def create_intake_router(
             if field == "state" and value is None:
                 continue
             if field == "payload" and value is not None and entry.kind == "garment":
-                value = keep_server_keys(entry.payload or {}, value)
+                value = (
+                    merge_edit(entry.payload or {}, value)
+                    if is_link(entry)
+                    else keep_server_keys(entry.payload or {}, value)
+                )
             if field == "payload" and entry.kind == "comic" and value is not None:
                 try:
                     value = edit_book(entry.payload, value)

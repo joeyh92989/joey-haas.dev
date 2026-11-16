@@ -284,7 +284,9 @@ export function fakeIntakeApi({
     }
     if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/choose$/))) {
       const found = findEntry(m[1])
-      const answer = choose ? choose(found, body) : { status: 200, body: found }
+      const answer = choose
+        ? await choose(found, body)
+        : { status: 200, body: found }
       return json(answer.status, answer.body)
     }
     if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/seed-images$/))) {

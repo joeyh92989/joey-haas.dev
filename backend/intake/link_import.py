@@ -37,6 +37,7 @@ from closet_resolver import (
     Fetcher,
     Product,
     Resolution,
+    item_ref,
     link_variant,
     name_from_link,
     normalise,
@@ -44,6 +45,7 @@ from closet_resolver import (
     source_for,
 )
 from intake.seed_file import dup_key
+from intake.seed_import import SERVER_KEYS
 from models import (
     IntakeEntry,
     IntakeEntryState,
@@ -55,6 +57,15 @@ from models import (
 MAX_LINKS = 10
 # At most this many stores are asked at once.
 CONCURRENCY = 4
+# All the links of one paste, together: a link still unanswered then is kept
+# as typed (each link has its own 20 s deadline inside this).
+TOTAL_SECONDS = 45.0
+# Link pieces one sitting holds.
+MAX_ENTRIES = 100
+
+
+class TooManyLinks(Exception):
+    """The sitting would hold more link pieces than MAX_ENTRIES."""
 
 
 @dataclass
@@ -87,16 +98,35 @@ def _usd(currency: str | None, price: str | None) -> str | None:
     return price if currency in (None, "USD") else None
 
 
+def entry_key(payload: dict[str, Any]) -> str:
+    """When two link pieces are one piece: the store, the colour of the
+    product (host, path and colour id) and the size, so another size of one
+    colour is another piece. Rebuilt at commit from the payload as Check left
+    it; `intake.seed_import.imported_keys` rebuilds the same string from the
+    stored row (`store_item_no`, snapshot `size`)."""
+    seed = payload.get("seed") or {}
+    return dup_key(
+        seed.get("source") or "link",
+        None,
+        seed.get("store_item_no"),
+        None,
+        None,
+        payload.get("size"),
+    )
+
+
 def apply_colour(
-    payload: dict[str, Any], product: dict[str, Any], candidate: dict[str, Any]
+    payload: dict[str, Any],
+    product: dict[str, Any],
+    candidate: dict[str, Any],
+    size: str | None = None,
 ) -> dict[str, Any]:
     """`payload` with the colour `candidate` chosen: its store colour (verbatim,
     `color_source` vendor at commit), the family it falls in (blank when it
-    names none, so Check asks), its size when the colour has one size, its
-    price and its photo, which is fetched again. The seed key follows the
-    colour so the same colour of the same product is one piece."""
+    names none, so Check asks), its size when the colour has one size or the
+    link named one, its price and its photo, which is fetched again. A size
+    the owner typed stays unless the colour lists sizes without it."""
     seed = dict(payload["seed"])
-    source = seed["source"]
     name = candidate.get("color_name")
     out = {k: v for k, v in payload.items() if k not in ("color_name", "primary_color")}
     if name:
@@ -104,37 +134,39 @@ def apply_colour(
         if family := colour_family(name):
             out["primary_color"] = family
     sizes = [s["size"] for s in candidate.get("sizes") or [] if s.get("size")]
-    if len(sizes) == 1:
+    if size and size in sizes:
+        out["size"] = size
+    elif len(sizes) == 1:
         out["size"] = sizes[0]
-    elif out.get("size") not in sizes:
+    elif sizes and out.get("size") not in sizes:
         out.pop("size", None)
     seed.update(
-        store_item_no=candidate["external_id"][:80],
+        store_item_no=item_ref(payload["link"]["url"], candidate["external_id"]),
         price_usd=_usd(product.get("currency"), candidate.get("price")),
         image_url=candidate.get("image_url"),
-        key=dup_key(source, None, candidate["external_id"], None, None, None),
         row={**product, "chosen": candidate["external_id"]},
     )
     out["seed"] = seed
+    seed["key"] = entry_key(out)
     out["image"] = "pending" if seed["image_url"] else "none"
     out.pop("image_error", None)
     return out
 
 
-def _chosen_colour(product: Product, link: str) -> dict[str, Any] | None:
-    """The colour to take without asking: the only one, or the one the
-    link's `?variant=` is a variant of."""
+def _chosen_colour(
+    product: Product, link: str
+) -> tuple[dict[str, Any], str | None] | None:
+    """The colour to take without asking, and the size the link names: the
+    only colour, or the colour the link's `?variant=` is a variant of."""
     shown = [colour.as_json() for colour in product.colours]
-    if len(shown) == 1:
-        return shown[0]
     wanted = link_variant(link)
     for colour in shown:
-        ids = {colour["external_id"]} | {
-            s["variant_id"] for s in colour["sizes"] if s["variant_id"]
-        }
-        if wanted and wanted in ids:
-            return colour
-    return None
+        for size in colour["sizes"]:
+            if wanted and wanted == size["variant_id"]:
+                return colour, size["size"]
+        if wanted and wanted == colour["external_id"]:
+            return colour, None
+    return (shown[0], None) if len(shown) == 1 else None
 
 
 def draft(resolution: Resolution, now: datetime) -> tuple[dict, list[dict]]:
@@ -156,10 +188,11 @@ def draft(resolution: Resolution, now: datetime) -> tuple[dict, list[dict]]:
             "seed": {
                 "source": source,
                 "order_id": None,
-                "store_item_no": None,
+                # A kept link is one piece by its address.
+                "store_item_no": item_ref(url, ""),
                 "price_usd": None,
                 "image_url": None,
-                "key": dup_key(source, None, None, url, None, None),
+                "key": None,
                 "not_owned_key": None,
                 "url": url,
                 "fetched_at": now.isoformat(),
@@ -167,6 +200,7 @@ def draft(resolution: Resolution, now: datetime) -> tuple[dict, list[dict]]:
             },
             "image": "none",
         }
+        payload["seed"]["key"] = entry_key(payload)
         return payload, []
     shown = product.as_json()
     first = shown["colours"][0]
@@ -185,7 +219,7 @@ def draft(resolution: Resolution, now: datetime) -> tuple[dict, list[dict]]:
             "store_item_no": None,
             "price_usd": _usd(product.currency, first.get("price")),
             "image_url": first.get("image_url"),
-            "key": dup_key(source, None, first["external_id"], None, None, None),
+            "key": None,
             "not_owned_key": None,
             "url": url,
             "fetched_at": now.isoformat(),
@@ -195,9 +229,11 @@ def draft(resolution: Resolution, now: datetime) -> tuple[dict, list[dict]]:
     if product.brand:
         payload["brand"] = product.brand[:80]
     payload["image"] = "pending" if payload["seed"]["image_url"] else "none"
+    # With several colours none is chosen yet: the commit asks first.
+    payload["seed"]["key"] = entry_key(payload)
     chosen = _chosen_colour(product, url)
     if chosen is not None:
-        payload = apply_colour(payload, shown, chosen)
+        payload = apply_colour(payload, shown, *chosen)
     return payload, shown["colours"]
 
 
@@ -214,7 +250,9 @@ async def import_links(
             IntakeEntry.state != IntakeEntryState.IGNORED,
         )
     )
+    held = list(held)
     seen = {((e.payload or {}).get("link") or {}).get("url") for e in held} - {None}
+    held_links = len(seen)
     wanted: list[str] = []
     for text in urls:
         link = normalise(text)
@@ -231,6 +269,10 @@ async def import_links(
             wanted.append(link)
     if not wanted:
         return result
+    if held_links + len(wanted) > MAX_ENTRIES:
+        raise TooManyLinks(
+            f"A sitting holds at most {MAX_ENTRIES} links; commit it or start another"
+        )
     gate = asyncio.Semaphore(CONCURRENCY)
     async with Fetcher() as fetcher:
 
@@ -238,7 +280,21 @@ async def import_links(
             async with gate:
                 return await resolve(link, fetcher=fetcher)
 
-        answers = await asyncio.gather(*(one(link) for link in wanted))
+        tasks = [asyncio.create_task(one(link)) for link in wanted]
+        await asyncio.wait(tasks, timeout=TOTAL_SECONDS)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    answers = [
+        task.result()
+        if task.done() and not task.cancelled() and task.exception() is None
+        else Resolution(
+            link,
+            code="timeout",
+            message="The store took too long; the link is kept as typed",
+        )
+        for link, task in zip(wanted, tasks, strict=True)
+    ]
     now = datetime.now(UTC)
     for index, resolution in enumerate(answers):
         payload, candidates = draft(resolution, now)
@@ -265,12 +321,33 @@ class ChoiceRefused(Exception):
     """The choice is not one this entry offers; the message is the owner's."""
 
 
+class EntryGone(Exception):
+    """The entry was removed or already written; nothing can change it."""
+
+
+def merge_edit(old: dict[str, Any], edit: dict[str, Any]) -> dict[str, Any]:
+    """A Check edit of a link piece: only the keys sent change (a blank
+    removes one) and the server's own keys stay. A save sent before a colour
+    choice therefore cannot put the old colour's fields back."""
+    merged = dict(old)
+    for key, value in edit.items():
+        if key in SERVER_KEYS:
+            continue
+        if value is None or (isinstance(value, str) and not value.strip()):
+            merged.pop(key, None)
+        else:
+            merged[key] = value
+    return merged
+
+
 async def choose_colour(
     session: AsyncSession, entry: IntakeEntry, external_id: str
 ) -> IntakeEntry:
     """Chooses one of the entry's colours. The photo held for the old choice
     is dropped (the new colour's is fetched next); the entry's candidates are
     the server's, so the page can only pick among them. Does not commit."""
+    if entry.state is IntakeEntryState.IGNORED or entry.garment_id is not None:
+        raise EntryGone("That piece was removed from the sitting")
     payload = entry.payload or {}
     link = payload.get("link") or {}
     if link.get("state") != "resolved" or not isinstance(payload.get("seed"), dict):

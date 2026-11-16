@@ -183,17 +183,16 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
  * @param {object} props.kind The garment kind from `GET /api/intake/kinds`.
  * @param {object[]} props.entries The sitting's live seed entries.
  * @param {(entry: object) => void} props.onEntry An entry the API answered with.
+ * @param {{pending: number, failed: boolean}} [props.images] The photo
+ *   fetching, when the page runs it once for every piece in the sitting.
  */
-export default function SeedCheck({ sitting, kind, entries, onEntry }) {
+export default function SeedCheck({ sitting, kind, entries, onEntry, images }) {
   const [notice, setNotice] = useState('')
   const fields = SEED_FIELD_KEYS.map((key) =>
     kind.fields.find((field) => field.key === key),
   ).filter(Boolean)
-  const { pending, failed: photosFailed } = useSeedImages(
-    sitting,
-    entries,
-    onEntry,
-  )
+  const own = useSeedImages(sitting, entries, onEntry, !images)
+  const { pending, failed: photosFailed } = images ?? own
 
   return (
     <section className="intake-seed-check" aria-label="Pieces from the file">

@@ -37,6 +37,18 @@ DUER = "https://www.duer.com/products/no-sweat-athletic-taper-chestnut"
 MULTI = "https://small-brand.test/products/test-crew"
 REFUSED = "https://refuses.test/products/x"
 MISSING_PHOTO = "https://cdn.test/blue.jpg"
+PLAIN_A = "https://plain.test/p/hat-a"
+PLAIN_B = "https://plain.test/p/hat-b"
+
+
+def skuless(name: str) -> str:
+    """SYNTHETIC: a page whose JSON-LD Product has no sku and no colour, so
+    its colour id falls back to c0 on every such page."""
+    return (
+        '<script type="application/ld+json">'
+        f'{{"@type":"Product","name":"{name}","offers":{{"price":"20"}}}}'
+        "</script>"
+    )
 
 
 def recorded(name: str) -> dict:
@@ -51,12 +63,14 @@ def network(monkeypatch):
         ML: cr.parse_shopify_json(recorded("marinelayer"), ML),
         DUER: cr.parse_shopify_json(recorded("duer"), DUER),
         MULTI: cr.parse_shopify_json(shopify(), MULTI),
+        PLAIN_A: cr.parse_jsonld(skuless("Hat A"), PLAIN_A),
+        PLAIN_B: cr.parse_jsonld(skuless("Hat B"), PLAIN_B),
     }
 
     async def fake(url, *, fetcher=None):
         url = cr.normalise(url)
-        if url in answers:
-            return cr.Resolution(url, product=answers[url])
+        if url.split("?")[0] in answers:
+            return cr.Resolution(url, product=answers[url.split("?")[0]])
         return cr.Resolution(
             url,
             code="robots",
@@ -218,7 +232,10 @@ async def test_several_colours_wait_for_a_choice_and_the_choice_swaps_the_photo(
         p = body["payload"]
         assert (p["color_name"], p["primary_color"]) == ("Blue", "blue")
         assert p["seed"]["image_url"] == "https://cdn.test/blue.jpg"
-        assert p["seed"]["store_item_no"] == "13" and p["seed"]["price_usd"] == "40.00"
+        assert (
+            p["seed"]["store_item_no"] == "small-brand.test/products/test-crew|13"
+            and p["seed"]["price_usd"] == "40.00"
+        )
         # The red photo is dropped; the blue one is fetched next.
         assert body["photo_id"] is None and p["image"] == "pending"
         # A colour the link never offered, and an entry with no colours.
@@ -256,7 +273,7 @@ def test_a_variant_in_the_link_chooses_its_colour():
         cr.Resolution(link, product=product), datetime.now(UTC)
     )
     assert payload["color_name"] == "Blue" and len(candidates) == 2
-    assert payload["seed"]["store_item_no"] == "13"
+    assert payload["seed"]["store_item_no"].endswith("|13")
     # A link naming no variant leaves several colours to Check.
     plain, _ = link_import.draft(
         cr.Resolution(MULTI, product=product), datetime.now(UTC)
@@ -395,3 +412,205 @@ async def test_the_routes_need_an_admin(sessionmaker_for_test):
             json={"external_id": "1"},
         )
     assert links.status_code in (401, 403) and choose.status_code in (401, 403)
+
+
+# --- review findings ----------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_two_products_with_no_sku_are_two_pieces(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        entries = (await paste(client, sitting_id, [PLAIN_A, PLAIN_B])).json()[
+            "entries"
+        ]
+        refs = {e["payload"]["seed"]["store_item_no"] for e in entries}
+        response = await client.post(
+            f"/api/intake/sittings/{sitting_id}/commit", json={}
+        )
+        again = await start(client)
+        await paste(client, again, [PLAIN_A])
+        second = await client.post(f"/api/intake/sittings/{again}/commit", json={})
+    assert len(refs) == 2 and all(len(r) <= 80 for r in refs)
+    assert (response.json()["added"], response.json()["already_owned"]) == (2, 0)
+    # The same product again is the same piece.
+    assert (second.json()["added"], second.json()["already_owned"]) == (0, 1)
+    async with sessionmaker_for_test() as session:
+        assert await session.scalar(select(func.count()).select_from(Garment)) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_photo_for_a_colour_no_longer_chosen_is_not_kept(
+    sessionmaker_for_test, monkeypatch
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        [entry] = (await paste(client, sitting_id, [MULTI + "?variant=11"])).json()[
+            "entries"
+        ]
+
+        async def slow(url, **_):
+            # The owner picks blue while the red photo is on its way.
+            await client.post(
+                f"/api/intake/entries/{entry['id']}/choose",
+                json={"external_id": "13"},
+            )
+            return jpeg(1600, 1200)
+
+        monkeypatch.setattr(seed_import, "fetch_image", slow)
+        first = (
+            await client.post(f"/api/intake/sittings/{sitting_id}/seed-images")
+        ).json()
+        assert first["entries"] == [] and first["pending"] == 1
+        monkeypatch.setattr(seed_import, "fetch_image", photo_ok)
+        await fetch_all(client, sitting_id)
+        [shown] = (await client.get(f"/api/intake/sittings/{sitting_id}")).json()[
+            "entries"
+        ]
+    assert shown["payload"]["color_name"] == "Blue"
+    assert shown["payload"]["image"] == "held" and shown["photo_id"]
+    async with sessionmaker_for_test() as session:
+        assert await session.scalar(select(func.count()).select_from(IntakePhoto)) == 1
+
+
+async def photo_ok(url, **_):
+    return jpeg(1600, 1200)
+
+
+@pytest.mark.asyncio
+async def test_a_kept_link_is_one_piece_however_often_it_is_pasted(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        one = await start(client)
+        await paste(client, one, [REFUSED])
+        await client.post(f"/api/intake/sittings/{one}/commit", json={})
+        two = await start(client)
+        await paste(client, two, [REFUSED])
+        second = await client.post(f"/api/intake/sittings/{two}/commit", json={})
+    assert (second.json()["added"], second.json()["already_owned"]) == (0, 1)
+    async with sessionmaker_for_test() as session:
+        assert await session.scalar(select(func.count()).select_from(Garment)) == 1
+
+
+@pytest.mark.asyncio
+async def test_commit_refuses_a_multi_colour_piece_with_no_colour_chosen(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        [entry] = (await paste(client, sitting_id, [MULTI])).json()["entries"]
+        refused = await client.post(
+            f"/api/intake/sittings/{sitting_id}/commit", json={}
+        )
+        await client.post(
+            f"/api/intake/entries/{entry['id']}/choose", json={"external_id": "11"}
+        )
+        fine = await client.post(f"/api/intake/sittings/{sitting_id}/commit", json={})
+    assert refused.status_code == 422
+    assert refused.json()["refused"][0]["field"] == "color_name"
+    assert fine.status_code == 200 and fine.json()["added"] == 1
+
+
+@pytest.mark.asyncio
+async def test_a_different_size_of_one_colour_is_a_different_piece(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        entries = (
+            await paste(
+                client,
+                sitting_id,
+                [
+                    MULTI + "?variant=11",
+                    MULTI + "?variant=12",
+                    MULTI + "?variant=11&x=1",
+                ],
+            )
+        ).json()["entries"]
+        sizes = [e["payload"].get("size") for e in entries]
+        response = await client.post(
+            f"/api/intake/sittings/{sitting_id}/commit", json={}
+        )
+    assert sizes == ["S", "M", "S"]  # the link's variant names the size
+    # S and M are two pieces; the third link is S again, counted not silent.
+    assert (response.json()["added"], response.json()["already_owned"]) == (2, 1)
+
+
+def test_a_typed_size_survives_a_colour_with_no_sizes():
+    payload = {
+        "seed": {"source": "link"},
+        "link": {"url": "https://shop.test/products/p"},
+        "size": "XL",
+    }
+    colour = {"external_id": "9", "color_name": "Plain", "sizes": []}
+    out = link_import.apply_colour(payload, {"currency": "USD"}, colour)
+    assert out["size"] == "XL"
+    listed = {**colour, "sizes": [{"size": "S"}, {"size": "M"}]}
+    assert "size" not in link_import.apply_colour(payload, {}, listed)
+
+
+@pytest.mark.asyncio
+async def test_a_blur_save_cannot_undo_a_colour_choice(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        [entry] = (await paste(client, sitting_id, [MULTI])).json()["entries"]
+        await client.post(
+            f"/api/intake/entries/{entry['id']}/choose", json={"external_id": "13"}
+        )
+        # A save sent before the choice carries only the field it edits.
+        patched = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {"name": "Renamed", "brand": ""}},
+        )
+    p = patched.json()["payload"]
+    assert (p["name"], p["color_name"]) == ("Renamed", "Blue")
+    assert "brand" not in p and p["seed"]["row"]["chosen"] == "13"
+
+
+@pytest.mark.asyncio
+async def test_a_removed_piece_cannot_be_given_a_colour(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        [entry] = (await paste(client, sitting_id, [MULTI])).json()["entries"]
+        await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"state": "ignored"}
+        )
+        response = await client.post(
+            f"/api/intake/entries/{entry['id']}/choose", json={"external_id": "13"}
+        )
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_a_sitting_holds_at_most_so_many_links(
+    sessionmaker_for_test, monkeypatch
+):
+    monkeypatch.setattr(link_import, "MAX_ENTRIES", 3)
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        await paste(client, sitting_id, [ML, DUER])
+        over = await paste(client, sitting_id, [MULTI, PLAIN_A])
+        ok = await paste(client, sitting_id, [MULTI])
+    assert over.status_code == 422 and "at most 3" in over.json()["detail"]
+    assert ok.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_a_slow_store_is_kept_as_typed_not_waited_for(
+    sessionmaker_for_test, monkeypatch
+):
+    import asyncio
+
+    async def hang(url, *, fetcher=None):
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(link_import, "resolve", hang)
+    monkeypatch.setattr(link_import, "TOTAL_SECONDS", 0.05)
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        response = await paste(client, sitting_id, [ML])
+    [entry] = response.json()["entries"]
+    assert entry["payload"]["link"]["state"] == "kept"
+    assert entry["payload"]["link"]["code"] == "timeout"

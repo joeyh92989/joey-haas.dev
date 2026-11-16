@@ -164,7 +164,8 @@ describe('SeedCheck', () => {
         },
       },
     )
-    expect(await screen.findByText('Fetching photos · 2 left')).toBeVisible()
+    // One run asks again by itself until none is pending.
+    expect(screen.getByText('Fetching photos · 2 left')).toBeVisible()
     await waitFor(() =>
       expect(api.calls('POST', /seed-images$/)).toHaveLength(2),
     )

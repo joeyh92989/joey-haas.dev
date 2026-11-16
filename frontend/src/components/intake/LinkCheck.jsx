@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react'
 import { linkIntake as words } from '../../content/linkIntake.js'
 import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import {
+  editedKeys,
   editedPayload,
   entryTitle,
   linkHost,
@@ -63,21 +64,21 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
 
   async function save(extra = {}) {
     const sent = { ...edits, ...extra }
-    if (Object.keys(sent).length === 0) return
+    if (Object.keys(sent).length === 0) return true
     setError(null)
     try {
       const response = await apiFetch(`/api/intake/entries/${entry.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload: editedPayload(payload, sent) }),
+        body: JSON.stringify({ payload: editedKeys(sent) }),
       })
-      if (leaving.current) return
+      if (leaving.current) return false
       if (!response.ok) {
         setError(await errorMessage(response, { ownConflicts: true }))
-        return
+        return false
       }
       const saved = await response.json()
-      if (leaving.current) return
+      if (leaving.current) return false
       onSaved(saved)
       setEdits((old) => {
         const rest = { ...old }
@@ -107,7 +108,6 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
         setError(await errorMessage(response, { ownConflicts: true }))
         return
       }
-      setEdits({})
       onSaved(await response.json())
     } catch {
       setError(words.noAnswer)
@@ -191,36 +191,42 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             save()
           }}
         >
-          <KindFields
-            kindKey="garment"
-            fields={
-              sizes.length > 0 ? shown : [...shown, sizeField].filter(Boolean)
-            }
-            values={values}
-            onChange={(key, value) =>
-              setEdits((old) => ({ ...old, [key]: value }))
-            }
-            onBlur={() => save()}
-            idPrefix={`link-${entry.id}`}
-          />
-          {sizes.length > 0 && (
-            <div className="intake-field">
-              <label htmlFor={`link-${entry.id}-size`}>{words.size}</label>
-              <select
-                id={`link-${entry.id}-size`}
-                value={values.size ?? ''}
-                onChange={(event) => save({ size: event.target.value })}
-              >
-                <option value="">{words.chooseSize}</option>
-                {sizes.map((size) => (
-                  <option key={size.variant_id ?? size.size} value={size.size}>
-                    {size.size}
-                    {size.available === false ? ` (${words.soldOut})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* Disabled while a colour is being chosen, so no edit can race it. */}
+          <fieldset className="intake-link-fields" disabled={busy}>
+            <KindFields
+              kindKey="garment"
+              fields={
+                sizes.length > 0 ? shown : [...shown, sizeField].filter(Boolean)
+              }
+              values={values}
+              onChange={(key, value) =>
+                setEdits((old) => ({ ...old, [key]: value }))
+              }
+              onBlur={() => save()}
+              idPrefix={`link-${entry.id}`}
+            />
+            {sizes.length > 0 && (
+              <div className="intake-field">
+                <label htmlFor={`link-${entry.id}-size`}>{words.size}</label>
+                <select
+                  id={`link-${entry.id}-size`}
+                  value={values.size ?? ''}
+                  onChange={(event) => save({ size: event.target.value })}
+                >
+                  <option value="">{words.chooseSize}</option>
+                  {sizes.map((size) => (
+                    <option
+                      key={size.variant_id ?? size.size}
+                      value={size.size}
+                    >
+                      {size.size}
+                      {size.available === false ? ` (${words.soldOut})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </fieldset>
         </form>
         {needs.length > 0 && (
           <p className="intake-garment-missing">{words.needs(needs)}</p>
@@ -277,14 +283,17 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
  * @param {object} props.kind The garment kind from `GET /api/intake/kinds`.
  * @param {object[]} props.entries The sitting's live link entries.
  * @param {(entry: object) => void} props.onEntry An entry the API answered with.
+ * @param {{pending: number, failed: boolean}} [props.images] The photo
+ *   fetching, when the page runs it once for every piece in the sitting.
  */
-export default function LinkCheck({ sitting, kind, entries, onEntry }) {
+export default function LinkCheck({ sitting, kind, entries, onEntry, images }) {
   const [notice, setNotice] = useState('')
   const fields = [...LINK_FIELD_KEYS, 'size']
     .map((key) => kind.fields.find((field) => field.key === key))
     .filter(Boolean)
   const sizeField = fields.find((field) => field.key === 'size')
-  const { pending, failed } = useSeedImages(sitting, entries, onEntry)
+  const own = useSeedImages(sitting, entries, onEntry, !images)
+  const { pending, failed } = images ?? own
 
   return (
     <section className="intake-seed-check" aria-label="Pieces from links">

@@ -606,3 +606,94 @@ async def test_hosts_are_spaced_by_the_throttle():
         await resolve("https://shop.test/shop/x", fetcher=f)
     # robots.txt and the page each wait their turn.
     assert waited == ["shop.test", "shop.test"]
+
+
+# --- one odd link never breaks a paste ----------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://shop.test/products/a%00b",
+        "https://shop.test/products/%0d%0aX-Evil:1",
+        "https://shop.test/products/a b",
+    ],
+)
+async def test_control_characters_in_a_handle_never_reach_the_request(url):
+    store = Store({"/products/x": (200, "text/html", "<p>x</p>")})
+    async with fetcher(store) as f:
+        found = await resolve(url, fetcher=f)
+    assert found.product is None
+    assert found.code == "not_a_link"
+    assert store.asked == []
+
+
+@pytest.mark.asyncio
+async def test_an_invalid_url_error_is_a_kept_link():
+    def boom(request):
+        raise httpx2.InvalidURL("bad")
+
+    client = httpx2.AsyncClient(transport=httpx2.MockTransport(boom))
+    async with Fetcher(client=client, resolver=public, throttle=None) as f:
+        found = await resolve("https://shop.test/shop/x", fetcher=f)
+    assert found.product is None
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_charset_is_read_as_utf8():
+    store = Store(
+        {
+            "/shop/x": (
+                200,
+                "text/html; charset=no-such-charset",
+                "<title>Fine Page</title>",
+            )
+        }
+    )
+    async with fetcher(store) as f:
+        found = await resolve("https://shop.test/shop/x", fetcher=f)
+    assert found.title == "Fine Page"
+
+
+@pytest.mark.asyncio
+async def test_json_nested_past_the_recursion_limit_is_not_a_product():
+    store = Store(
+        {
+            "/products/t.json": (200, "application/json", "[" * 200000),
+            "/products/t": (200, "text/html", "<p>none</p>"),
+        }
+    )
+    async with fetcher(store) as f:
+        found = await resolve("https://shop.test/products/t", fetcher=f)
+    assert found.product is None and found.code == "not_product"
+
+
+@pytest.mark.asyncio
+async def test_any_unexpected_error_is_a_kept_link(monkeypatch):
+    async def explode(self, url, accept, *, own_site=True):
+        raise RuntimeError("surprise")
+
+    monkeypatch.setattr(Fetcher, "get", explode)
+    async with fetcher(Store({})) as f:
+        found = await resolve("https://shop.test/products/t", fetcher=f)
+    assert found.code == "unreadable"
+
+
+def test_nat64_and_mapped_addresses_are_not_public():
+    from intake.seed_image import _public
+
+    assert not _public("64:ff9b::7f00:1")  # NAT64 for 127.0.0.1
+    assert not _public("64:ff9b::808:808")
+    assert not _public("::ffff:10.0.0.5")
+    assert _public("93.184.216.34")
+
+
+def test_scoped_ids_differ_by_product_and_stay_within_the_column():
+    a = cr.item_ref("https://shop.test/products/a", "c0")
+    b = cr.item_ref("https://shop.test/products/b", "c0")
+    assert a != b
+    assert a == cr.item_ref("https://www.shop.test/products/a?variant=1", "c0")
+    long = cr.item_ref("https://shop.test/products/" + "x" * 300, "c0")
+    assert len(long) <= 80
+    assert long != cr.item_ref("https://shop.test/products/" + "x" * 301, "c0")

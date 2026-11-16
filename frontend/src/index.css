@@ -12976,3 +12976,10 @@ a.btn.sm {
   font-size: var(--fs-13);
   padding: 0;
 }
+
+.intake-link-fields {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}

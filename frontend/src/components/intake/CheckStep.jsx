@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { comicIntake } from '../../content/comicIntake.js'
+import { useSeedImages } from '../../lib/useSeedImages.js'
 import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
 import { isBook, needsNumber, repeats } from '../../lib/comicBooks.js'
@@ -106,6 +107,8 @@ export default function CheckStep({
   const seeds = closet ? live(sitting.entries).filter(isSeedEntry) : []
   // Pieces made from pasted product links, likewise.
   const links = closet ? live(sitting.entries).filter(isLinkEntry) : []
+  // One photo-fetching loop for the sitting, whatever mix of pieces it holds.
+  const images = useSeedImages(sitting, [...seeds, ...links], onEntry)
   const kindOf = (key) =>
     kinds.find((kind) => kind.key === key) ?? {
       key,
@@ -279,6 +282,7 @@ export default function CheckStep({
           kind={kindOf('garment')}
           entries={seeds}
           onEntry={onEntry}
+          images={images}
         />
       )}
       {links.length > 0 && (
@@ -287,6 +291,7 @@ export default function CheckStep({
           kind={kindOf('garment')}
           entries={links}
           onEntry={onEntry}
+          images={images}
         />
       )}
       {closet ? (

@@ -108,27 +108,51 @@ and the entries read from them or typed in.
   `kept` and the reason in `payload.link.message`, never a failed sitting.
   - An entry's payload is the seed file's: the fields Check edits, the
     server-only `seed` record (`source` is `marinelayer`/`duer` by host,
-    else `link`; `store_item_no` the chosen colour's id; `key` for "already
-    imported") and `image`, plus the server-only `link` record
-    (`{url, state resolved|kept, via shopify|jsonld, code, message}`), which
-    `PATCH` keeps like `seed`. The product's **colours are the entry's
-    `candidates`** (`{external_id, title, color_name, image_url, price,
-    sizes: [{size, variant_id, available}]}`; `external_id` is the colour's
-    first variant id, unique in the product). One colour, or the colour of a
+    else `link`) and `image`, plus the server-only `link` record
+    (`{url, state resolved|kept, via shopify|jsonld, code, message}`).
+    `PATCH` of a link piece **merges**: only the keys sent change (a blank
+    removes one) and the server's keys stay, so a Check save sent before a
+    colour choice cannot put the old colour back (file pieces still replace
+    the payload). The product's **colours are the entry's `candidates`**
+    (`{external_id, title, color_name, image_url, price, sizes: [{size,
+    variant_id, available}]}`). One colour, or the colour and size of a
     `?variant=` in the link, is chosen at once; with several Check's radio
-    calls `POST /entries/{id}/choose {external_id}`, which can only pick
-    among the stored candidates, sets the store colour verbatim, the family
-    (`closet_colors.colour_family`, blank to be asked), the price and the
-    photo (the old held photo is dropped; the new one is fetched next).
-    Size is a plain field edit (a select over the colour's sizes).
+    calls `POST /entries/{id}/choose {external_id}` (row locked; 409 for a
+    removed or written piece; only a stored candidate can be picked), which
+    sets the store colour verbatim, the family (`closet_colors.colour_family`,
+    blank to be asked), the price and the photo (the old held photo is
+    dropped; the new one is fetched next). A size the owner typed stays
+    unless the new colour lists sizes without it. Size is a select over the
+    colour's sizes.
+  - **One piece is one product, colour and size.** The store's own ids are
+    only unique inside a product (a JSON-LD page with no sku is `c0`
+    everywhere), so `store_item_no` is `closet_resolver.item_ref`: host,
+    path and colour id, cut to 80 characters and hashed past that. A kept
+    link's is its address. The "already imported" key is
+    `source|item|<store_item_no>|<size>`, rebuilt **at commit** from the
+    payload as Check left it (`link_import.entry_key`); the product's
+    snapshot stores the piece's `size` so `imported_keys` rebuilds the same
+    string. Another size of one colour is another piece; a repeat is
+    counted `already_owned`, never silent. A piece offering several colours
+    with none chosen is **refused at commit** (422, field `color_name`).
+  - Limits: a paste is 10 links; a sitting holds 100 link pieces (422); all
+    the links of a paste share 45 s, after which unanswered ones are kept as
+    typed (`timeout`); one link that raises anything is kept as typed
+    (`unreadable`), never a 500. A link with control characters or
+    whitespace after decoding is not requested. Addresses in
+    `64:ff9b::/96` (NAT64) and IPv4-mapped IPv6 are checked or refused with
+    the other non-public ones, in `seed_image._public` for both fetchers.
   - **Photos** are the seed file's: `POST /sittings/{id}/seed-images` fetches
     each once through `seed_image.fetch_image` into a held 800 px
-    `intake_photos` row.
+    `intake_photos` row. A photo is written only if its address is still the
+    entry's (`fetch_pending` re-reads the locked row), so a colour chosen
+    while it was coming is not overwritten by the old colour's photo. The
+    page runs one loop per sitting (`lib/useSeedImages.js`) that asks until
+    nothing is pending.
   - **Commit** is the seed file's (`_seed_garment`): a garment `untagged`,
     `tag_source` NULL, `color_source` vendor, plus its `garment_products`
     row with `url` the link as pasted, `title`, `price`, `snapshot` the
     **parsed product** (never the raw page) and `fetched_at` the read time.
-    A piece already imported (same source, colour id) is `already_owned`.
     "Don't own this" is the file's alone (409 for a link piece); a link
     piece is removed from the sitting instead.
   Tests run offline against fixtures recorded by

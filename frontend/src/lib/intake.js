@@ -317,3 +317,17 @@ export function editedPayload(payload, edits) {
   }
   return next
 }
+
+/**
+ * The keys a link piece's Check edit sends: trimmed, a blank as '' (the
+ * server removes it). Only these change on the server, so a save made
+ * before a colour choice cannot put the old colour's fields back.
+ */
+export function editedKeys(edits) {
+  return Object.fromEntries(
+    Object.entries(edits).map(([key, value]) => [
+      key,
+      String(value ?? '').trim(),
+    ]),
+  )
+}

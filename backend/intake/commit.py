@@ -61,6 +61,8 @@ from comics import (
 from comics_routes import got_issues
 from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
+from intake.link_import import entry_key as link_key
+from intake.link_import import is_link
 from intake.seed_import import imported_keys, take_summary
 from intake.shelf_kinds import book_edition
 from items import ItemIn, RowRefused, _write_fields, commit_items
@@ -336,6 +338,15 @@ def _seed_record(entry: IntakeEntry) -> tuple[dict[str, Any], str] | str:
     return seed, source
 
 
+def _unchosen_colour(entry: IntakeEntry) -> Refusal | None:
+    """A refusal for a pasted link that offers several colours and has none
+    chosen: which colour was bought is not a guess."""
+    row = ((entry.payload or {}).get("seed") or {}).get("row") or {}
+    if len(entry.candidates or []) > 1 and not row.get("chosen"):
+        return Refusal(entry.id, "color_name", "Choose this piece's colour first")
+    return None
+
+
 def _fetched_at(seed: dict[str, Any], now: datetime) -> datetime:
     """When a pasted link's store was read (the seed record says), else now."""
     try:
@@ -396,6 +407,9 @@ def _seed_garment(
     row.tag_source = None
     row.color_source = GarmentColorSource.VENDOR if row.color_name else None
     snapshot = seed.get("row") if isinstance(seed.get("row"), dict) else {}
+    if payload.get("link"):
+        # The size is the piece's own: the stored row rebuilds the same key.
+        snapshot = {**snapshot, "size": payload.get("size")}
     named = snapshot.get("name") or snapshot.get("title")
     product = GarmentProduct(
         garment_id=row.id,
@@ -788,6 +802,13 @@ async def commit_sitting(
             if is_seed(entry):
                 record = _seed_record(entry)
                 seed_key = None if isinstance(record, str) else record[0].get("key")
+                if is_link(entry):
+                    unchosen = _unchosen_colour(entry)
+                    if unchosen is not None:
+                        outcome.refused.append(unchosen)
+                        continue
+                    # The size is part of the key, and Check may have changed it.
+                    seed_key = link_key(entry.payload)
                 if seed_key is not None and (
                     seed_key in imported or seed_key in seed_seen
                 ):

@@ -28,6 +28,7 @@ The parsers (`parse_shopify_json`, `parse_jsonld`, `page_title`) are pure.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import ipaddress
 import json
@@ -37,7 +38,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from typing import Any
-from urllib.parse import parse_qs, unquote, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlsplit, urlunsplit
 
 import httpx2
 
@@ -175,9 +176,26 @@ def shopify_handle(url: str) -> tuple[str, str] | None:
     if at + 1 >= len(segments):
         return None
     handle = unquote(segments[at + 1]).removesuffix(".json").removesuffix(".js")
-    if not handle or "/" in handle:
+    if (
+        not handle
+        or "/" in handle
+        or any(c.isspace() or not c.isprintable() for c in handle)
+    ):
         return None
     return f"{parts.scheme}://{parts.netloc}", handle
+
+
+def item_ref(url: str, external_id: str) -> str:
+    """The `garment_products.store_item_no` of one colour of one linked
+    product: the store's own ids are only unique inside a product (a JSON-LD
+    page without a sku is `c0` everywhere), so the host and path scope them.
+    Cut to the column's 80 characters, hashed when it would overflow."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower().removeprefix("www.")
+    full = f"{host}{parts.path.rstrip('/').lower()}|{external_id}"
+    if len(full) <= 80:
+        return full
+    return f"{host[:30]}|{hashlib.sha1(full.encode()).hexdigest()}"
 
 
 def link_variant(url: str) -> str | None:
@@ -422,7 +440,7 @@ def parse_jsonld(page: str, url: str) -> Product | None:
     for match in _LDJSON.finditer(page):
         try:
             roots.extend(_nodes(json.loads(match.group(1).strip())))
-        except ValueError:
+        except (ValueError, RecursionError):
             continue
     candidates = [n for n in roots if _types(n) & {"Product", "ProductGroup"}]
     if not candidates:
@@ -534,6 +552,9 @@ async def check_url(url: str, resolver: Resolver = resolve_host) -> str:
         raise LinkError("not_a_link", "That is not a valid link") from None
     if not parts.scheme or not parts.hostname:
         raise LinkError("not_a_link", "That is not a valid link")
+    decoded = unquote(url)
+    if any(c.isspace() or not c.isprintable() for c in decoded):
+        raise LinkError("not_a_link", "That link has characters a link cannot hold")
     if parts.scheme != "https":
         raise LinkError(
             "not_https", "Only https links are read; the link is kept as typed"
@@ -563,7 +584,10 @@ class Answer:
 
     @property
     def text(self) -> str:
-        return self.content.decode(self.encoding, errors="replace")
+        try:
+            return self.content.decode(self.encoding, errors="replace")
+        except LookupError:
+            return self.content.decode("utf-8", errors="replace")
 
 
 def _same_site(host: str, other: str | None) -> bool:
@@ -635,7 +659,7 @@ class Fetcher:
                     url,
                     encoding=response.charset_encoding or "utf-8",
                 )
-        except httpx2.HTTPError as error:
+        except (httpx2.HTTPError, httpx2.InvalidURL) as error:
             raise LinkError(
                 "unreachable",
                 f"The store could not be reached ({type(error).__name__})",
@@ -714,7 +738,7 @@ async def _shopify(fetcher: Fetcher, url: str) -> Product | None:
     origin, handle = found
     try:
         answer = await fetcher.get(
-            f"{origin}/products/{handle}.json", "application/json"
+            f"{origin}/products/{quote(handle, safe='')}.json", "application/json"
         )
     except LinkError as error:
         if error.code == "robots":
@@ -724,7 +748,7 @@ async def _shopify(fetcher: Fetcher, url: str) -> Product | None:
         return None
     try:
         return parse_shopify_json(json.loads(answer.text), url)
-    except ValueError:
+    except (ValueError, RecursionError):
         return None
 
 
@@ -771,4 +795,10 @@ async def resolve(url: str, *, fetcher: Fetcher | None = None) -> Resolution:
     except TimeoutError:
         return Resolution(
             url, code="timeout", message="The store took too long; the link is kept"
+        )
+    except Exception:  # noqa: BLE001  one odd link must never fail a paste
+        return Resolution(
+            url,
+            code="unreadable",
+            message="That link could not be read; it is kept as typed",
         )

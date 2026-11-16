@@ -201,4 +201,53 @@ describe('LinkCheck', () => {
     )
     expect(api.calls('POST', /seed-images$/)).toHaveLength(1)
   })
+
+  it('sends only the keys that were edited, so a stale save cannot undo a choice', async () => {
+    const user = userEvent.setup()
+    const { api } = show([linkEntry('e1')])
+    const name = await screen.findByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'Crew')
+    await user.tab()
+    await waitFor(() =>
+      expect(api.calls('PATCH', /entries\/e1$/)).toHaveLength(1),
+    )
+    expect(api.calls('PATCH', /entries\/e1$/)[0].body).toEqual({
+      payload: { name: 'Crew' },
+    })
+  })
+
+  it('saves a pending edit before the colour is chosen, in that order', async () => {
+    const user = userEvent.setup()
+    const { api } = show([linkEntry('e1')])
+    const name = await screen.findByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'Crew')
+    await user.click(screen.getByRole('radio', { name: 'Blue' }))
+    await waitFor(() => expect(api.calls('POST', /choose$/)).toHaveLength(1))
+    const order = api.fetch.mock.calls
+      .map(([url, options]) => `${options?.method ?? 'GET'} ${url}`)
+      .filter((call) => /entries\/e1/.test(call))
+    expect(order).toEqual([
+      'PATCH /api/intake/entries/e1',
+      'POST /api/intake/entries/e1/choose',
+    ])
+  })
+
+  it('keeps the fields still while a colour is being chosen', async () => {
+    const user = userEvent.setup()
+    let release
+    const gate = new Promise((resolve) => (release = resolve))
+    const { api } = show([linkEntry('e1')], {
+      choose: async (found) => {
+        await gate
+        return { status: 200, body: found }
+      },
+    })
+    await user.click(await screen.findByRole('radio', { name: 'Blue' }))
+    expect(screen.getByLabelText('Name')).toBeDisabled()
+    release()
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeEnabled())
+    expect(api.calls('POST', /choose$/)).toHaveLength(1)
+  })
 })
