@@ -3,6 +3,7 @@
 import asyncio
 import io
 import json
+import re
 import uuid
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -936,3 +937,138 @@ async def test_not_this_on_a_stale_plan_skips_the_deleted_garment(
     assert response.status_code == 200
     rows = await declined_rows(sessionmaker_for_test)
     assert all(gone not in ids for _, ids in rows)
+
+
+# --- the ranker sees the shortlist's thumbnails (#401) ------------------------
+
+
+class ImageProvider(FakeProvider):
+    """FakeProvider that keeps the images each call was sent."""
+
+    def __init__(self, *answers):
+        super().__init__(*answers)
+        self.sent: list[list] = []
+
+    async def complete_json(self, prompt, schema, images=None):
+        self.sent.append(list(images or []))
+        return await super().complete_json(prompt, schema, images)
+
+
+def colour_of(image) -> tuple[int, int, int]:
+    return PILImage.open(io.BytesIO(image.data)).convert("RGB").getpixel((0, 0))
+
+
+async def paint(factory, ids: dict[str, str], skip=()) -> dict[str, tuple]:
+    """Give each garment an 800px photo of its own colour (none for `skip`)."""
+    colours = {}
+    async with factory() as session:
+        for i, (name, gid) in enumerate(sorted(ids.items())):
+            row = await session.get(GarmentImage, uuid.UUID(gid))
+            if name in skip:
+                await session.delete(row)
+                continue
+            colours[name] = (10 + i * 20, 200 - i * 10, 50)
+            out = io.BytesIO()
+            PILImage.new("RGB", (800, 600), colours[name]).save(
+                out, format="WEBP", lossless=True
+            )
+            row.webp = out.getvalue()
+        await session.commit()
+    return colours
+
+
+async def switch_on(factory, enabled=True):
+    async with factory() as session:
+        session.add(ClosetSetting(key="rank.images", value={"enabled": enabled}))
+        await session.commit()
+
+
+async def test_images_are_off_by_default(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    provider = ImageProvider(None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.get("/api/closet/today")
+    assert provider.sent == [[]]
+    assert "[image" not in provider.calls[0][0]
+
+
+async def test_each_image_is_the_piece_the_prompt_says(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    colours = await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.get("/api/closet/today")
+    prompt = provider.calls[0][0]
+    images = provider.sent[0]
+    garments = numbers(prompt)
+    by_number = {n: name for name, n in garments.items()}
+    # the shortlist is 2 coats, 2 mids, 3 tops, 2 bottoms, 2 shoes: all fit
+    assert len(images) == len(garments) == 11
+    for k, image in enumerate(images, start=1):
+        n = int(re.search(rf"image {k} is garment (\d+)", prompt).group(1))
+        assert colour_of(image) == pytest.approx(colours[by_number[n]], abs=6)
+        assert f"[image {k}]" in prompt.split(f"\n{n}. ", 1)[1].splitlines()[0]
+        assert max(PILImage.open(io.BytesIO(image.data)).size) <= 400
+
+
+async def test_at_most_four_images_per_slot_and_a_missing_photo_is_text(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids, skip={"wool coat"})
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.get("/api/closet/today")
+    prompt = provider.calls[0][0]
+    assert "wool coat" in prompt
+    coat = next(ln for ln in prompt.splitlines() if "wool coat (" in ln)
+    assert "[image" not in coat
+    assert len(provider.sent[0]) == 10
+
+
+async def test_a_refused_payload_retries_text_only_once(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(
+        LLMError("request too large"),
+        choose(
+            (["wool coat", "grey sweater", "navy oxford", "chinos", "sneakers"], "Ok.")
+        ),
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert [len(s) for s in provider.sent] == [11, 0]
+    assert "[image" in provider.calls[0][0] and "[image" not in provider.calls[1][0]
+    assert plan["ranked_by"] == "model"
+
+
+async def test_images_and_text_both_failing_falls_back_to_the_template(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(LLMError("nope"), LLMError("still nope"), None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert len(provider.sent) == 2  # once with, once without, never a third
+    assert plan["ranked_by"] == "template"
+    assert plan["model_note"]
+
+
+async def test_the_nightly_job_and_a_replan_send_images_too(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(*[None] * 10)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/plan", json={})
+        replanned = len(provider.sent)
+        await client.post("/api/closet/jobs/plan")
+    assert replanned == 1 and provider.sent[0]
+    assert len(provider.sent) > replanned
+    assert all(sent for sent in provider.sent)
