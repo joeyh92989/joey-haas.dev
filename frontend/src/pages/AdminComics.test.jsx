@@ -1,3 +1,4 @@
+import { adminCopy } from '../content/adminCopy.js'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -297,7 +298,7 @@ describe('AdminComics', () => {
     })
     await renderPage()
     await userEvent.click(
-      screen.getByRole('button', { name: 'Refresh comic metadata' }),
+      screen.getByRole('button', { name: adminCopy.comics.refreshMetadata }),
     )
     expect(
       await screen.findByText('Updated 2 · skipped 0 · failed 0'),

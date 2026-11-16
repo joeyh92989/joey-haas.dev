@@ -767,6 +767,21 @@ the phone and finish at the desk.
   and `probable` (`GET /api/intake/counts`), loaded by `AdminLayout` and refreshed by a sitting
   through `refreshIntakeCounts`.
 
+### Admin copy scan
+
+`frontend/src/adminCopyScan.test.js` is a ratchet for #300: admin words belong
+in `frontend/src/content/adminCopy.js`. It scans `pages/Admin*.jsx` and
+`components/Admin*.jsx` (not tests) for inline JSX text and string-literal
+`title`, `aria-label`, `placeholder` and `alt` props, and compares the count per
+file with `frontend/src/adminCopyBaseline.json`. A file that gains a string
+fails, and the message says to move the words verbatim into `adminCopy` and
+render `adminCopy.<key>`; a file that loses one fails until the baseline is
+lowered, so the baseline only shrinks. List what remains with
+`cd frontend && ADMIN_COPY_LIST=1 npx vitest run src/adminCopyScan.test.js`.
+The scan is a regex, not a parser: it misses strings built in JavaScript
+(template literals, ternaries, variables) and other props, and can count text
+after a `>` operator, so treat the numbers as a floor to ratchet, not a census.
+
 ## Smoke test
 
 After a deploy:

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
@@ -417,7 +418,7 @@ export default function AdminComic() {
       <section>
         {header}
         <p className="admin-error" role="alert">
-          No item with that id.
+          {adminCopy.itemMissing}
         </p>
       </section>
     )

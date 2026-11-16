@@ -1,3 +1,4 @@
+import { adminCopy } from '../content/adminCopy.js'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -1219,7 +1220,7 @@ describe('AdminCollection metadata refresh', () => {
     )
 
     expect(
-      screen.queryByRole('button', { name: 'Refresh comic metadata' }),
+      screen.queryByRole('button', { name: adminCopy.comics.refreshMetadata }),
     ).toBeNull()
     expect(
       screen.queryByRole('button', { name: 'Refresh movie metadata' }),
