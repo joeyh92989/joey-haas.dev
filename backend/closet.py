@@ -226,6 +226,7 @@ class Piece:
     category: str
     subtype: str | None = None
     primary_color: str | None = None
+    color_name: str | None = None
     primary_hex: str | None = None
     secondary_hex: str | None = None
     pattern: str | None = None

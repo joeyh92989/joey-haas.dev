@@ -111,9 +111,8 @@ def summarise_not_this(reasons: Iterable[str | None]) -> str | None:
 
 
 def _describe(piece: Piece, day: date) -> str:
-    look = ", ".join(
-        part for part in (piece.primary_color, piece.pattern, piece.material) if part
-    )
+    colour = piece.color_name or piece.primary_color
+    look = ", ".join(part for part in (colour, piece.pattern, piece.material) if part)
     bits = [piece.subtype or "", look]
     if piece.warmth is not None:
         bits.append(f"warmth {piece.warmth}")

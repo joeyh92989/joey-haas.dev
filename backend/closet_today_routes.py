@@ -144,6 +144,7 @@ def _piece(row: Garment, last_worn: date | None, wears_30: int) -> closet.Piece:
         category=category,
         subtype=row.subtype,
         primary_color=row.primary_color,
+        color_name=row.color_name,
         primary_hex=row.primary_hex,
         secondary_hex=row.secondary_hex,
         pattern=row.pattern,

@@ -57,7 +57,7 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -874,6 +874,31 @@ def create_closet_router(
         for garment_id, entry in zip(ids, tagged, strict=True):
             values = dict(entry.attributes)
             values["category"] = GarmentCategory(values["category"])
+            # A colour from a store or a hand edit is kept, and so is a
+            # brand already set; decided in SQL so a save that lands during
+            # the model call is respected too.
+            fixed = Garment.color_source.in_(
+                (GarmentColorSource.VENDOR, GarmentColorSource.MANUAL)
+            )
+            for field in closet_tag.COLOUR_FIELDS:
+                values[field] = case(
+                    (fixed, getattr(Garment, field)), else_=values[field]
+                )
+            values["brand"] = case(
+                (fixed & Garment.brand.is_not(None), Garment.brand),
+                else_=values["brand"],
+            )
+            # A store's own title is kept too (vendor only; manual keeps
+            # just the colour).
+            values["name"] = case(
+                (
+                    (Garment.color_source == GarmentColorSource.VENDOR)
+                    & Garment.name.is_not(None)
+                    & (Garment.name != ""),
+                    Garment.name,
+                ),
+                else_=values["name"],
+            )
             result = await session.execute(
                 update(Garment)
                 .where(
@@ -883,6 +908,10 @@ def create_closet_router(
                 )
                 .values(
                     **values,
+                    color_source=case(
+                        (Garment.color_source.is_(None), GarmentColorSource.MODEL),
+                        else_=Garment.color_source,
+                    ),
                     tag_source=GarmentTagSource.MODEL,
                     status=GarmentStatus.ACTIVE,
                     updated_at=func.now(),
