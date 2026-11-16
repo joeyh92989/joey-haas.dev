@@ -1,5 +1,21 @@
 # Learnings
 
+### 2026-11-16 · lesson · A proof run on a stale install proves nothing
+The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
+PR #378
+
+### 2026-11-16 · lesson · Briefs for implementer agents list every CI gate
+#372 failed the frontend job on Lint (`process` not imported in a test) after the agent ran format, tests and build but not `npm run lint`. Every later brief named each step of the CI job to run locally (lint, format, build, audit, ruff, pip-audit), and none of those PRs failed on a gate. Name the gates in the brief; "run the checks" is not enough.
+PR #372
+
+### 2026-11-16 · lesson · Count with the real tool before sizing a follow-up
+#300 said about 29 inline admin strings and #301 about 108 routes without a `response_model`. A scan over the code found 237 strings and about 99 routes (decorators sit indented inside router factories, so the first grep found none). Both were split into batches after counting. Size from a real scan, and write the scan so it can stay as a ratchet (`adminCopyScan.test.js`).
+PR #372
+
+### 2026-11-16 · lesson · Branch protection requires backend and frontend, and an up-to-date branch
+CLAUDE.md said no check was required, and a merge of #368 was refused as BEHIND after #367 merged. `main` requires `backend` and `frontend` with `strict: true`: after each merge, `gh pr update-branch` the next PR, wait for CI, merge, one at a time. A baseline-update commit pushed by `GITHUB_TOKEN` starts no CI; push an empty commit after it.
+PR #378
+
 ### 2026-11-15 · lesson · A focus test in AdminLayout flaked on CI
 `AdminLayout.test.jsx > offers sign-in again after a sign-out the server confirmed` failed with `expected <body> to be <main id="main">` on a PR that only changed `render.yaml` (run 43726434998) and passed on a rerun of the same commit. A third flaky test after #237's two: a focus assertion racing the runner. One rerun confirmed it; if it recurs, freeze the timing it waits on like #237 did, not retry.
 PR #258
