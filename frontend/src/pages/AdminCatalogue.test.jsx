@@ -9,6 +9,9 @@ import AdminCatalogue, {
   showingWords,
   unmatchedWords,
 } from './AdminCatalogue.jsx'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.catalogue
 
 function run(source, fields = {}) {
   return {
@@ -155,7 +158,7 @@ describe('AdminCatalogue', () => {
   it('shows one row per source with its state in words', async () => {
     stubApi()
     renderPage()
-    const table = await screen.findByRole('table', { name: 'Sources' })
+    const table = await screen.findByRole('table', { name: copy.sources })
     const rows = within(table).getAllByRole('row')
     expect(rows).toHaveLength(5)
     // Registries first, then stores, then the platform ingest.
@@ -184,9 +187,9 @@ describe('AdminCatalogue', () => {
         json({ runs: [], unresolved_remaining: 7 }),
     })
     renderPage()
-    await screen.findByRole('table', { name: 'Sources' })
+    await screen.findByRole('table', { name: copy.sources })
     await userEvent.click(
-      screen.getByRole('button', { name: 'Refresh stores' }),
+      screen.getByRole('button', { name: copy.refreshStores }),
     )
     expect(await screen.findByText('7 left to resolve')).toBeInTheDocument()
     const refresh = calls.find((call) => call.path === '/api/physical/refresh')
@@ -226,12 +229,12 @@ describe('AdminCatalogue', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Refresh registry' }),
+      await screen.findByRole('button', { name: copy.refreshRegistry }),
     )
     expect(
       await screen.findByText('2 copies synced; 3 left to resolve'),
     ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh N64' }))
+    await userEvent.click(screen.getByRole('button', { name: copy.refreshN64 }))
     expect(await screen.findByText('N64: 234 games')).toBeInTheDocument()
     expect(calls.map((call) => call.path)).toContain(
       '/api/physical/refresh-platform?platform_id=4',
@@ -252,7 +255,7 @@ describe('AdminCatalogue', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Resolve' }),
+      await screen.findByRole('button', { name: copy.resolve }),
     )
     expect(
       await screen.findByText('Everything is resolved'),
@@ -280,7 +283,7 @@ describe('AdminCatalogue', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Resolve' }),
+      await screen.findByRole('button', { name: copy.resolve }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'IGDB rate limit; press again',
@@ -296,7 +299,7 @@ describe('AdminCatalogue', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Resolve' }),
+      await screen.findByRole('button', { name: copy.resolve }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent('Bad gateway')
   })
@@ -308,7 +311,7 @@ describe('AdminCatalogue', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Refresh stores' }),
+      await screen.findByRole('button', { name: copy.refreshStores }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'A refresh is already running',
@@ -327,7 +330,7 @@ describe('AdminCatalogue', () => {
     up = true
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('table', { name: 'Sources' }),
+      await screen.findByRole('table', { name: copy.sources }),
     ).toBeInTheDocument()
     expect(screen.queryByText(LOAD_ERROR)).toBeNull()
   })
@@ -339,7 +342,7 @@ describe('AdminCatalogue', () => {
     })
     renderPage({ signedIn: false })
     expect(
-      await screen.findByRole('link', { name: 'Sign in' }),
+      await screen.findByRole('link', { name: copy.signIn }),
     ).toHaveAttribute('href', '/admin')
   })
 })
@@ -375,7 +378,7 @@ describe('Needs match', () => {
   it('lists each key with its candidates, and a platform choice only when it has none', async () => {
     stubApi({ 'GET /api/physical/needs-match': () => json(NEEDS) })
     renderPage()
-    const panel = await screen.findByRole('region', { name: 'Needs match' })
+    const panel = await screen.findByRole('region', { name: copy.needsMatch })
     const [starFox, heMan] = await within(panel)
       .findAllByRole('listitem', {
         name: '',
@@ -431,7 +434,9 @@ describe('Needs match', () => {
       await screen.findByRole('combobox', { name: /Platform for He-Man/ }),
       '130',
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Set platform' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: copy.setPlatform }),
+    )
     await userEvent.click(
       screen.getByRole('button', { name: 'Ignore Star Fox' }),
     )
@@ -495,7 +500,7 @@ describe('Registry disagreements', () => {
     })
     renderPage()
     const panel = await screen.findByRole('region', {
-      name: 'Registry disagreements',
+      name: copy.disagreements,
     })
     expect(
       await within(panel).findByRole('link', { name: 'A Game' }),
@@ -508,9 +513,7 @@ describe('Registry disagreements', () => {
   it('says so in one line when there are none', async () => {
     stubApi()
     renderPage()
-    expect(
-      await screen.findByText('No copy disagrees with the registry.'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(copy.noDisagreements)).toBeInTheDocument()
   })
 })
 
@@ -571,7 +574,7 @@ describe('finish-gate review', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Resolve' }),
+      await screen.findByRole('button', { name: copy.resolve }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Stopped with 5 left: a batch changed nothing',
@@ -597,7 +600,7 @@ describe('finish-gate review', () => {
       'POST /api/physical/matches': () => json({ action: 'linked', moved: 0 }),
     })
     renderPage()
-    const panel = await screen.findByRole('region', { name: 'Needs match' })
+    const panel = await screen.findByRole('region', { name: copy.needsMatch })
     const [search] = await within(panel).findAllByLabelText(/look up/i)
     await userEvent.type(search, 'Star Fox 2')
     await userEvent.click(
@@ -628,10 +631,8 @@ describe('finish-gate review', () => {
       },
     })
     renderPage()
-    expect(
-      await screen.findByText('Nothing needs a match.'),
-    ).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Resolve' }))
+    expect(await screen.findByText(copy.nothingNeedsMatch)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: copy.resolve }))
     expect(
       await screen.findByText('Star Fox', { selector: 'strong' }),
     ).toBeInTheDocument()
@@ -662,7 +663,7 @@ describe('Switch 1 registry', () => {
       await screen.findByText('688 Switch 1 titles unmatched'),
     ).toBeInTheDocument()
     await userEvent.click(
-      screen.getByRole('button', { name: 'Refresh Switch 1' }),
+      screen.getByRole('button', { name: copy.refreshSwitch1 }),
     )
     expect(
       await screen.findByText('Switch 1: 4210 editions'),
@@ -691,7 +692,7 @@ describe('Switch 1 registry', () => {
     })
     renderPage()
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Refresh Switch 1' }),
+      await screen.findByRole('button', { name: copy.refreshSwitch1 }),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Switch 1 refresh failed: IGDB rate limit; press again',
@@ -702,7 +703,7 @@ describe('Switch 1 registry', () => {
   it('says nothing about unmatched titles when there are none', async () => {
     stubApi()
     renderPage()
-    await screen.findByRole('table', { name: 'Sources' })
+    await screen.findByRole('table', { name: copy.sources })
     expect(screen.queryByText(/Switch 1 titles? unmatched/)).toBeNull()
   })
 })

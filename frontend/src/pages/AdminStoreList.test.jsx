@@ -5,6 +5,9 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminStoreList from './AdminStoreList.jsx'
 import { spine } from '../content/spine.js'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.storeList
 
 function row(id, fields = {}) {
   return {
@@ -410,9 +413,9 @@ describe('AdminStoreList', () => {
     })
     renderPage()
     expect(
-      await screen.findByRole('link', { name: 'Discover' }),
+      await screen.findByRole('link', { name: copy.discover }),
     ).toHaveAttribute('href', '/admin/discover')
-    expect(screen.getByRole('link', { name: 'Radar' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: copy.radar })).toHaveAttribute(
       'href',
       '/admin/radar',
     )
@@ -437,7 +440,7 @@ describe('AdminStoreList', () => {
     })
     renderPage()
     expect(
-      await screen.findByRole('link', { name: 'Sign in' }),
+      await screen.findByRole('link', { name: copy.signInLink }),
     ).toHaveAttribute('href', '/admin')
   })
 
@@ -446,7 +449,7 @@ describe('AdminStoreList', () => {
       'GET /api/recommendations/store-list': () => json({}, 401),
     })
     const view = render(page(false))
-    await screen.findByRole('link', { name: 'Sign in' })
+    await screen.findByRole('link', { name: copy.signInLink })
     let answer
     const waiting = new Promise((resolve) => {
       answer = resolve
@@ -456,7 +459,7 @@ describe('AdminStoreList', () => {
     })
     view.rerender(page(true))
     expect(screen.getByText('Loading the list…')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull()
+    expect(screen.queryByRole('link', { name: copy.signInLink })).toBeNull()
     answer(json(LIST))
     expect(
       await screen.findByRole('heading', { name: spine.next.sections.buy_now }),

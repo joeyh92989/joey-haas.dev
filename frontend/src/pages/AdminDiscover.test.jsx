@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminDiscover, { emptyWords, rankingWords } from './AdminDiscover.jsx'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.discover
 
 function pick(id, fields = {}) {
   return {
@@ -119,7 +122,7 @@ describe('AdminDiscover', () => {
       within(card).getByText('2021 · Nintendo Switch · Full game on cartridge'),
     ).toBeInTheDocument()
     expect(screen.getByText('Ranked by Gemini.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Needs match →' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: copy.needsMatch })).toHaveAttribute(
       'href',
       '/admin/catalogue',
     )
@@ -417,7 +420,7 @@ describe('AdminDiscover', () => {
     )
     renderPage({ signedIn: false })
     expect(
-      await screen.findByRole('link', { name: 'Sign in' }),
+      await screen.findByRole('link', { name: copy.signIn }),
     ).toHaveAttribute('href', '/admin')
   })
 
@@ -438,7 +441,7 @@ describe('AdminDiscover', () => {
       .setup()
       .click(within(alert).getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('heading', { name: 'Picks' }),
+      await screen.findByRole('heading', { name: copy.picks }),
     ).toBeInTheDocument()
     await waitFor(() =>
       expect(screen.queryByRole('alert')).not.toBeInTheDocument(),

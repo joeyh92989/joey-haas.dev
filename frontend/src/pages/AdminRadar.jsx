@@ -10,6 +10,9 @@ import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.radar
 
 /** "2 hours ago", or "never". */
 export function ago(timestamp, now = Date.now()) {
@@ -241,9 +244,9 @@ export default function AdminRadar() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <AdminPageHeader title="Radar" />
+        <AdminPageHeader title={copy.title} />
         <p>
-          <Link to="/admin">Sign in</Link> to see the radar.
+          <Link to="/admin">{copy.signIn}</Link> {copy.toSeeRadar}
         </p>
       </section>
     )
@@ -263,7 +266,7 @@ export default function AdminRadar() {
   return (
     <section className="radar">
       <AdminPageHeader
-        title="Radar"
+        title={copy.title}
         description="Upcoming physical releases and open pre-orders from the sources, ranked by your taste profile."
       >
         <button
@@ -294,10 +297,7 @@ export default function AdminRadar() {
       </div>
 
       {radar && radar.personalised === false && (
-        <p className="muted">
-          Ranked by anticipation: rate, finish or favorite a few games to
-          personalize.
-        </p>
+        <p className="muted">{copy.notPersonalised}</p>
       )}
       {message && <p role="status">{message}</p>}
       {error && state !== 'error' && <p role="alert">{error}</p>}
@@ -312,7 +312,7 @@ export default function AdminRadar() {
         }}
       />
 
-      <h2>Wanted, still to come</h2>
+      <h2>{copy.wantedStillToCome}</h2>
       {watching.length ? (
         <PosterGrid
           items={watching.map((row) => ({
@@ -330,13 +330,11 @@ export default function AdminRadar() {
           )}
         />
       ) : (
-        <p className="muted">Nothing wanted is still to come.</p>
+        <p className="muted">{copy.nothingWanted}</p>
       )}
 
-      <h2>Suggested</h2>
-      {nothing && (
-        <p className="muted">Nothing yet. Generate to read the sources.</p>
-      )}
+      <h2>{copy.suggested}</h2>
+      {nothing && <p className="muted">{copy.nothingYet}</p>}
       {byMonth(sections.suggested, localToday()).map(([group, rows]) => (
         <section key={group} aria-label={group}>
           <h3 className="radar-month">{group}</h3>
@@ -344,11 +342,11 @@ export default function AdminRadar() {
         </section>
       ))}
 
-      <h2>Dated later</h2>
+      <h2>{copy.datedLater}</h2>
       {sections.dated_later.length ? (
         <Cards rows={sections.dated_later} busy={busy} onAnswer={answer} />
       ) : (
-        <p className="muted">Nothing dated only by year or quarter.</p>
+        <p className="muted">{copy.nothingDatedLater}</p>
       )}
 
       <details className="radar-digital">
@@ -357,9 +355,7 @@ export default function AdminRadar() {
             Digital so far ({sections.digital.length})
           </h2>
         </summary>
-        <p className="muted">
-          Upcoming on your platforms with no physical edition announced yet.
-        </p>
+        <p className="muted">{copy.digitalNote}</p>
         <Cards rows={sections.digital} busy={busy} onAnswer={answer} />
       </details>
     </section>

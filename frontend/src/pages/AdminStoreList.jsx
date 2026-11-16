@@ -7,11 +7,13 @@ import { spine } from '../content/spine.js'
 import { groupByPlatform } from '../lib/next.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import { storeLabel } from '../lib/storeLines.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
 
 const copy = spine.storeList
+const pageCopy = adminCopy.storeList
 
 const CURRENCY_SIGNS = { USD: '$', EUR: '€', GBP: '£' }
 
@@ -191,7 +193,7 @@ export default function AdminStoreList() {
       <section>
         <AdminPageHeader title={copy.title} />
         <p>
-          <Link to="/admin">Sign in</Link> {copy.signIn}
+          <Link to="/admin">{pageCopy.signInLink}</Link> {copy.signIn}
         </p>
       </section>
     )
@@ -245,9 +247,9 @@ export default function AdminStoreList() {
       {state === 'loading' && <p className="muted">{copy.loading}</p>}
       {empty && (
         <p className="muted">
-          {copy.empty.before} <Link to="/admin/discover">Discover</Link>{' '}
-          {copy.empty.and} <Link to="/admin/radar">Radar</Link>{' '}
-          {copy.empty.after}
+          {copy.empty.before}{' '}
+          <Link to="/admin/discover">{pageCopy.discover}</Link> {copy.empty.and}{' '}
+          <Link to="/admin/radar">{pageCopy.radar}</Link> {copy.empty.after}
         </p>
       )}
       {sections &&
