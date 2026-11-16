@@ -37,6 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import Config
 from intake.budget import budget_state
 from intake.reader import read_next, retry_reading
+from intake.seed_import import summary_key
 from llm import LLMError, LLMProvider
 from models import (
     IntakeArea,
@@ -87,6 +88,12 @@ async def expire_sittings(session: AsyncSession, now: datetime) -> tuple[int, in
         .where(IntakePhoto.sitting_id.in_(ids))
     )
     await session.execute(delete(IntakeSitting).where(IntakeSitting.id.in_(ids)))
+    # A seed file's counts (`file.<sitting id>`) go with their sitting.
+    await session.execute(
+        delete(IntakeSetting).where(
+            IntakeSetting.key.in_([summary_key(sitting_id) for sitting_id in ids])
+        )
+    )
     return len(ids), photos or 0
 
 

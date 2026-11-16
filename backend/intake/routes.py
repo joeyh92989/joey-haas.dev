@@ -52,17 +52,27 @@ from intake.schemas import (
     CommitOut,
     CommitRefusedOut,
     EntryOut,
+    FileImportOut,
     KindOut,
     NightlySummaryOut,
     PhotoOut,
     ReadNextOut,
     RefusedOut,
     SearchOut,
+    SeedImagesOut,
     SittingOut,
     SittingSummaryOut,
     StatusBody,
 )
 from intake.search import search_area
+from intake.seed_file import MAX_FILE_BYTES, SeedFileError, parse_seed
+from intake.seed_import import (
+    add_not_owned,
+    drop_summary,
+    fetch_pending,
+    import_rows,
+    keep_server_keys,
+)
 from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
 from models import (
@@ -126,6 +136,8 @@ class AddIn(BaseModel):
 
 
 CHOSEN_REFUSED = "A chosen result needs its external_source and external_id"
+
+NOT_FROM_A_FILE = "Only a piece from a seed file can be marked not owned"
 
 TAG_AGAIN_REFUSED = "Only a piece the tagger gave up on can be tagged again"
 
@@ -399,6 +411,7 @@ def create_intake_router(
     ) -> Response:
         """Discard a sitting. Garments its photos made stay in the tag queue."""
         sitting = await _sitting_or_404(session, sitting_id)
+        await drop_summary(session, sitting.id)
         await session.delete(sitting)
         await session.commit()
         return Response(status_code=204)
@@ -537,6 +550,58 @@ def create_intake_router(
         }
 
     @router.post(
+        "/sittings/{sitting_id}/file", status_code=201, response_model=FileImportOut
+    )
+    async def upload_file(
+        sitting_id: uuid.UUID,
+        file: UploadFile = File(...),
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """The closet's "From a file": a seed CSV (`intake/seed_file.py`)
+        becomes one draft garment entry per piece still owned and not
+        already known, and the sitting moves to Check. Nothing reaches the
+        closet until the sitting is committed. The skipped rows are counted,
+        not listed (Done shows the counts). 413 over the size limit, 422 for
+        a file that cannot be read as a seed file, 409 for a shelf sitting."""
+        sitting = await _sitting_or_404(session, sitting_id)
+        if sitting.area is not IntakeArea.CLOSET or sitting.kind not in (
+            None,
+            "garment",
+        ):
+            await file.close()
+            raise HTTPException(409, "A file can only be added to a closet sitting")
+        try:
+            data = await file.read(MAX_FILE_BYTES + 1)
+        finally:
+            await file.close()
+        if len(data) > MAX_FILE_BYTES:
+            raise HTTPException(
+                413, f"That file is too large: at most {MAX_FILE_BYTES // 1024} KB"
+            )
+        try:
+            parsed = parse_seed(data)
+        except SeedFileError as error:
+            raise HTTPException(422, str(error)) from error
+        result = await import_rows(session, sitting.id, parsed)
+        sitting.step = "check"
+        sitting.updated_at = func.now()
+        await session.commit()
+        return {**result.counts(), "problems": result.problems or []}
+
+    @router.post("/sittings/{sitting_id}/seed-images", response_model=SeedImagesOut)
+    async def fetch_seed_images(
+        sitting_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """Fetch the photos of the next few file pieces (once each; the page
+        asks again until `pending` is 0). A photo that cannot be fetched is
+        recorded on its entry (`image` failed, with `image_error`) and the
+        piece goes on without one."""
+        await _sitting_or_404(session, sitting_id)
+        changed, pending = await fetch_pending(session, sitting_id)
+        await session.commit()
+        return {"entries": await entries_json(session, changed), "pending": pending}
+
+    @router.post(
         "/sittings/{sitting_id}/entries", status_code=201, response_model=EntryOut
     )
     async def add_entry(
@@ -633,6 +698,12 @@ def create_intake_router(
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
+            if (
+                field == "payload"
+                and value is not None
+                and (entry.payload or {}).get("seed")
+            ):
+                value = keep_server_keys(entry.payload, value)
             if field == "payload" and entry.kind == "comic" and value is not None:
                 try:
                     value = edit_book(entry.payload, value)
@@ -641,6 +712,34 @@ def create_intake_router(
                         422, {"message": str(error), "field": error.field}
                     ) from error
             setattr(entry, field, value)
+        await session.commit()
+        [shown] = await entries_json(session, [entry])
+        return shown
+
+    @router.post("/entries/{entry_id}/not-owned", response_model=EntryOut)
+    async def not_owned(
+        entry_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """Check's "Don't own this": the file piece leaves the sitting, and
+        its key joins `closet_settings["import.not_owned"]`, so no later file
+        asks about it again (design D7). 409 for an entry no file made."""
+        entry = await session.get(IntakeEntry, entry_id)
+        if entry is None:
+            raise HTTPException(404, "No such entry")
+        seed = (entry.payload or {}).get("seed")
+        if not seed:
+            raise HTTPException(409, NOT_FROM_A_FILE)
+        await add_not_owned(session, [seed["not_owned_key"]])
+        payload = {
+            k: v for k, v in entry.payload.items() if k not in ("unticked", "was")
+        }
+        entry.state = IntakeEntryState.IGNORED
+        entry.payload = payload
+        if entry.photo_id is not None:
+            photo = await session.get(IntakePhoto, entry.photo_id)
+            entry.photo_id = None
+            if photo is not None:
+                await session.delete(photo)
         await session.commit()
         [shown] = await entries_json(session, [entry])
         return shown

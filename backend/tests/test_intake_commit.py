@@ -133,6 +133,8 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
         "skipped_kept": 0,
         "photos_empty": 0,
         "photos_waiting": 0,
+        "images_missing": 0,
+        "file_import": None,
         "refused": [],
     }
     rows = await _items(sessionmaker_for_test)
@@ -259,6 +261,8 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         "skipped_kept": 3,
         "photos_empty": 2,
         "photos_waiting": 0,
+        "images_missing": 0,
+        "file_import": None,
         "refused": [],
     }
     assert await _count(sessionmaker_for_test, Item) == 1 + body["added"]
