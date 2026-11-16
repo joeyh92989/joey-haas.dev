@@ -971,4 +971,94 @@ describe('AdminClosetToday', () => {
     await within(card()).findByText('Worn ✓')
     expect(calls.at(-1).body.source).toBe('swapped')
   })
+
+  describe('the outfit board', () => {
+    const SHOW = {
+      garments: [
+        tile('shoes', 's1', 'white sneakers'),
+        tile('accessory', 'a1', 'brown belt', {
+          image: '/api/closet/a1/image',
+        }),
+        tile('top', 't1', 'navy oxford', { image: '/api/closet/t1/image?v=1' }),
+        tile('bottom', 'b1', 'grey chinos', { primary_hex: null }),
+        tile('outer', 'o1', 'wool coat'),
+      ],
+      reason: 'Layers.',
+      ranked_by: 'model',
+    }
+
+    it('composes the pieces top to bottom with accessories after', async () => {
+      stub({ 'GET /api/closet/today': answer({}, { lead: SHOW }) })
+      renderPage()
+      await screen.findByText('navy oxford')
+      const board = within(card()).getByRole('group', {
+        name: adminCopy.closetToday.outfitBoard,
+      })
+      const names = [...board.querySelectorAll('.outfit-piece-name')].map(
+        (n) => n.textContent,
+      )
+      expect(names).toEqual([
+        'wool coat',
+        'navy oxford',
+        'grey chinos',
+        'white sneakers',
+        'brown belt',
+      ])
+      // The photo is the picture; a piece without one keeps its name text.
+      expect(board.querySelectorAll('img')).toHaveLength(2)
+      expect(within(board).getByText('grey chinos')).toBeInTheDocument()
+    })
+
+    it('reaches every piece by keyboard: Tab goes Swap, Build around', async () => {
+      stub({ 'GET /api/closet/today': answer({}, { lead: SHOW }) })
+      renderPage()
+      await screen.findByText('navy oxford')
+      const swap = within(card()).getByRole('button', {
+        name: 'Swap the wool coat',
+      })
+      swap.focus()
+      await userEvent.tab()
+      expect(
+        within(card()).getByRole('button', {
+          name: 'Build around the wool coat',
+        }),
+      ).toHaveFocus()
+      await userEvent.tab()
+      expect(
+        within(card()).getByRole('button', { name: 'Swap the navy oxford' }),
+      ).toHaveFocus()
+    })
+
+    it("a piece's own Swap opens the sheet on that slot", async () => {
+      const calls = stub({
+        'GET /api/closet/today': answer(),
+        'GET /api/closet/candidates': {
+          slot: 'shoes',
+          candidates: [tile('shoes', 's2', 'loafers')],
+        },
+      })
+      renderPage()
+      await screen.findByText('navy oxford')
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Swap the white sneakers' }),
+      )
+      const sheet = await screen.findByRole('dialog')
+      await within(sheet).findByRole('button', { name: /loafers/ })
+      expect(calls.at(-1).url).toContain('slot=shoes')
+    })
+
+    it('shows each alternative as a small decorative board', async () => {
+      stub({ 'GET /api/closet/today': answer() })
+      renderPage()
+      await screen.findByText('navy oxford')
+      const alts = screen.getByRole('list', {
+        name: adminCopy.closetToday.alternatives,
+      })
+      const boards = alts.querySelectorAll('.outfit-board[data-size="small"]')
+      expect(boards).toHaveLength(2)
+      expect(boards[0]).toHaveAttribute('aria-hidden', 'true')
+      expect(boards[0].querySelectorAll('.outfit-piece')).toHaveLength(3)
+      expect(within(alts).queryByRole('button', { name: /^Swap/ })).toBeNull()
+    })
+  })
 })
