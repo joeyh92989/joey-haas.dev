@@ -3,7 +3,6 @@
 # anywhere else (a Mac) would never match. Run by hand:
 #   gh workflow run update-visual-baselines.yml --ref <branch>
 name: update-visual-baselines
-# regen 2
 
 on:
   workflow_dispatch:
