@@ -75,9 +75,10 @@ before pushing.
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
 - Type and spacing are tokens too: `font-size` is `--fs-*` (`--fs-56` for the
-  display figure). Padding, margin and gap use a `--space-*` step only where
-  the value is exactly one (0.25 to 4rem); off-scale values (0.35rem, 0.6rem,
-  1.25rem) stay literal until #213 maps them. Nothing renders under 12px
+  display figure). Padding, margin and gap are a `--space-*` step (0.25 to 4rem) or
+  their line carries `/* space-exception: <reason> */` (hairline offsets, drawn
+  spines, relative units); `spaceScale.test.js` fails on any other literal, and
+  `docs/planning/2026-11-15-spacing-snap-design.md` holds the snap map. Nothing renders under 12px
   except labels inside drawings that carry an accessible name elsewhere
   (intake demo spines, run-cell marks, map labels), listed by selector in
   `typeScale.test.js`. `typeScale.test.js` and `spaceScale.test.js` enforce it.
