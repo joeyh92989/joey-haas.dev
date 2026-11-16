@@ -1,5 +1,16 @@
 # Learnings
 
+### 2026-11-16 · open question · Would PR stacks cut an epic's merge time? Mostly no; the wait is CI, not dependencies
+The closet products epic (#392) ran seven PRs through one-at-a-time merges. Branch protection requires `backend` and `frontend` and an up-to-date branch (`strict`), so each merge put every open PR behind `main`: `gh pr update-branch`, then a full CI run of about 10 minutes, per PR (#409 needed it twice). That serial CI cycle was most of the elapsed time, not the agents' build time. Stacking does not remove it: each PR in a stack still needs its own CI, and a squash merge of the bottom PR rewrites history, so the next PR needs a retarget and `git rebase --onto` before its own run.
+Where a stack would have helped: real dependency chains. #398 waited on #409 and #399 waits on #398 and #402 only because they edit the same intake and form files, and the #396 review (one 4-commit PR with an SSRF-guarded fetcher) would have read better as layers. Where it would hurt: every merge to `main` deploys and applies migrations, so today each piece reaches production alone (#393's migration was live and confirmed before anything used it); one big merge loses that checkpoint, and a bad layer blocks the layers above it.
+Options to review before the next epic, in rough order of payoff:
+1. A GitHub merge queue on `main` (a repo setting, Joey's call): batches the up-to-date check, which is the actual cost. Check it against the required checks and the `neon-rehearsal` two-at-once root-branch limit.
+2. Independent PRs off `main` for disjoint work (what ran here), and a stack only for a chain of two or three that edit the same files; merge from the bottom, retarget each next PR to `main`, rebase it.
+3. A tool for the rebase-and-retarget step (git-town, Graphite). Not tried here. Whether GitHub's own stacked-PR support is available on this plan was not checked.
+4. A long-lived epic branch with sub-PRs merging into it was rejected: it delays deploy and feedback, and drifts from `main`.
+SDLC pieces to revisit: `sdlc-execution` (one implementer batch, merge order), `sdlc-ship` (merge one PR at a time, update between), and the agents module's "merge one PR at a time" rule, which exists for good reason (each merge puts the rest behind `main`).
+Epic #392 · docs/planning/2026-11-16-closet-products-design.md
+
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
 The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
 PR #378
