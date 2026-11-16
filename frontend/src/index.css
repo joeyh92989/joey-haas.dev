@@ -12762,3 +12762,146 @@ a.btn.sm {
   margin-top: var(--space-1);
 }
 /* ===== end Projects visuals ===== */
+
+/* ===== Print (#292) ===== */
+/* Paper is light whatever theme the visitor browses in: the light tokens are
+   repeated here (keep them in step with [data-theme='light'] above) and the
+   interactive chrome is dropped. */
+@page {
+  margin: 18mm 16mm;
+}
+
+@media print {
+  :root,
+  [data-theme] {
+    --bg: #fcfcfb;
+    --surface: #ffffff;
+    --sunken: #f3f3f0;
+    --line: #e4e4df;
+    --line-strong: #c9c9c2;
+    /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
+       text 15.65, text-2 7.18, text-3 4.61 (the mockup's #7a808a reached
+       only 3.46 to 3.98), accent 5.31. */
+    --text: #15171a;
+    --text-2: #4a4f57;
+    --text-3: #666c75;
+    --accent: #1f5fbf;
+    /* --accent-ink on --accent 6.09; --bg on --text 17.49. */
+    --accent-ink: #ffffff;
+    --accent-soft: #e8f0fc;
+    /* Marks on --surface: ok 5.32, warn 4.24, chart 6.09, chart-2 3.10 (the
+       mockup's #9fbce8 reached 1.94). */
+    --ok: #1f7a4d;
+    --warn: #b26a00;
+    /* --bg on --warn reached only 4.13, short of 4.5 for 9px numerals, so the
+       badge darkens: white on --badge 5.38; the fill on --sunken 4.84. */
+    --badge: #9a5c00;
+    --badge-ink: #ffffff;
+    --chart: #1f5fbf;
+    --chart-2: #7393cb;
+    /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
+       borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
+    --redact: repeating-linear-gradient(
+      135deg,
+      #8a8f98 0 6px,
+      #f3f3f0 6px 12px
+    );
+    /* Comic runs on --surface: 3.25 (--line-strong reached 1.66); the
+       lanes' missing outline on --bg 3.17; --text over the hatch 5.53. */
+    --run-missing: #8a8f98;
+    --hatch: repeating-linear-gradient(
+      135deg,
+      #8a8f98 0 2px,
+      transparent 2px 6px
+    );
+    /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
+       string escapes); on --bg it drops to 4.41. */
+    --code-bg: #ffffff;
+    /* Measured, light, on --surface: finished 13.46, backlog 6.24, active
+       4.58, abandoned 3.22; backlog on --line 4.90; rating 4.24. Darkest
+       first: finished, backlog, active, abandoned; no two closer than
+       1.36:1, and active is the only green. */
+    --rating: var(--warn);
+    --status-active: #2a8556;
+    --status-finished: #2b2f35;
+    --status-backlog: #5b616a;
+    --status-abandoned: #8a9099;
+    --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+    /* Measured in the browser, light: row title 16.15, sub line 4.76, accent
+       bar 5.48 on --search-active; group label 5.29 on --surface. */
+    --search-active: var(--sunken);
+    --skeleton: #ecece8;
+    --grid-gap: 1rem;
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-2);
+    font-size: var(--fs-14);
+    transition: none;
+  }
+
+  .skip-link,
+  .mast,
+  .search-dialog,
+  .site-footer,
+  .post-toc {
+    display: none !important;
+  }
+
+  .site,
+  .page,
+  .page-content,
+  .page-wide {
+    max-width: none;
+    min-height: 0;
+  }
+
+  /* Shiki's dark pass is !important; take the light colors back. */
+  [data-theme='dark'] .shiki,
+  [data-theme='dark'] .shiki span {
+    color: var(--shiki-light) !important;
+    font-style: var(--shiki-light-font-style) !important;
+    font-weight: var(--shiki-light-font-weight) !important;
+    text-decoration: var(--shiki-light-text-decoration) !important;
+  }
+
+  .post-body pre {
+    white-space: pre-wrap;
+  }
+
+  .project-hero__img--dark {
+    display: none;
+  }
+
+  .project-hero__img--light {
+    display: block;
+  }
+
+  /* External links print their address, in About and post prose only. */
+  .about a[href^='http']::after,
+  .post-body a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: var(--fs-12);
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  h1,
+  h2,
+  h3,
+  .timeline-entry,
+  .post-body pre,
+  .post-body figure,
+  .post-body img {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+}
+/* ===== end Print ===== */
