@@ -587,3 +587,44 @@ latency, whether the answer parsed as JSON, the quota id and value from a
 429 (`quotaValue` comes from the error body, which Google does not
 document, so it may be blank), and the API's error message on any error
 (the exception's name when no response came back). The key goes only in the request header and is never printed.
+
+## closet_rank_images_probe.py
+
+Measures the closet ranker with and without the shortlist's thumbnails
+(spike #400, the tooling half; the feature is #401).
+
+**Why:** `closet_today_routes.shortlist_images` can send up to four 400px
+thumbnails per slot with the ranking prompt, but only when
+`closet_settings["rank.images"]` is `{"enabled": true}`. It stays off until
+this probe shows the latency and request size are acceptable. **Not yet
+measured:** the closet has no photos yet, so there is no report and the
+setting is off.
+
+**Run** from `backend/`, against a local database with garments that have
+photos (`--database-url` or `PROBE_DATABASE_URL`; a non-local host is
+refused unless `--allow-remote`):
+
+```bash
+./.venv/bin/python scripts/closet_rank_images_probe.py \
+    --database-url postgresql+asyncpg://localhost/stats_dev
+```
+
+Options: `--out PATH` (default `~/Developer/closet-seed/rank-images-report.json`,
+outside the repo because the report carries real prompt sizes), `--day`,
+`--occasion` (default `office`), `--bike`.
+
+**Needs** `GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY` in the main checkout's
+`backend/.env`. **Costs:** per provider, two requests (text only, then with
+images): the Gemini chain from the free daily quota, Haiku billed. Run it
+once, not in a loop.
+
+**Writes** one JSON report: the shortlist size, garments with photos, images
+sent, and for each provider and each of `text_only` / `with_images`: seconds,
+`prompt_bytes`, `images`, `image_bytes`, `image_bytes_base64`, `ok`, outfit
+count or the error. `usage` is always null: the providers' `complete_json`
+returns the answer only, not token counts.
+
+To turn the feature on after a good measurement, set the row in
+`closet_settings` (key `rank.images`, value `{"enabled": true}`). There is no
+admin screen for it. Tests never call a real provider; they use fakes
+(`tests/test_closet_rank_images_probe.py`).
