@@ -143,6 +143,8 @@ class TileOut(BaseModel):
     slot: str
     id: str
     name: str
+    primary_color: str | None
+    color_name: str | None
     primary_hex: str | None
     secondary_hex: str | None
     image: str | None
