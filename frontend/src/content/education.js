@@ -1,5 +1,5 @@
 /**
- * Schooling and certifications for the About page, newest first.
+ * Schooling, certifications and awards for the About page, newest first.
  *
  * Separate from experience.js because the shape differs — a credential has an
  * issuing school rather than a role and an employer — even though both render
@@ -27,6 +27,9 @@ export const education = [
 
 /** Rendered as a chip row beneath the education timeline, in this order. */
 export const certifications = [
-  'Certified Scrum Product Owner',
-  'Pragmatic Marketing Certified',
+  'Certified Scrum Product Owner · Scrum Alliance',
+  'Pragmatic Marketing Certified · Pragmatic Institute',
 ]
+
+/** Rendered as a chip row after the certifications on the About page. */
+export const awards = ['Charter Champion Award']

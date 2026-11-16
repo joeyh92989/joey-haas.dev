@@ -81,7 +81,7 @@ export const STATIC_PAGES = [
     '/colophon',
     'Colophon',
     `Colophon · ${profile.name}`,
-    `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render's free tier.`,
+    `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render’s free tier.`,
   ),
   row(
     '/stats',
