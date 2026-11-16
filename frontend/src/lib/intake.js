@@ -213,3 +213,62 @@ export function comicDetails(result) {
       : null,
   ].filter(Boolean)
 }
+
+/** A garment field the seed file or the add bar fills, not the tagger. */
+export const PRODUCT_FIELD_KEYS = ['brand', 'color_name', 'size']
+
+/** Fields a seed piece's card edits, in order. */
+export const SEED_FIELD_KEYS = [
+  'name',
+  'brand',
+  'color_name',
+  'size',
+  'category',
+  'primary_color',
+]
+
+/** The seed file's size limit, as the server holds it (intake/seed_file.py). */
+export const MAX_SEED_BYTES = 1024 * 1024
+
+/** An entry made from a seed file row: the server's own `seed` record. */
+export function isSeedEntry(entry) {
+  return entry.kind === 'garment' && Boolean(entry.payload?.seed)
+}
+
+/**
+ * A seed file the server would refuse, in words naming it, or null.
+ *
+ * @param {File} file
+ * @param {{tooLarge: (name: string, kb: number) => string,
+ *   notCsv: (name: string) => string}} words
+ */
+export function refuseSeedFile(file, words) {
+  if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') {
+    return words.notCsv(file.name)
+  }
+  if (file.size > MAX_SEED_BYTES) {
+    return words.tooLarge(file.name, MAX_SEED_BYTES / 1024)
+  }
+  return null
+}
+
+/** The labels a seed piece still needs the owner to give. */
+export function seedNeeds(fields, payload) {
+  return ['category', 'primary_color']
+    .filter((key) => !payload[key])
+    .map((key) => fields.find((field) => field.key === key)?.label ?? key)
+}
+
+/**
+ * An entry's payload with the edits applied: text trimmed, a blank removed.
+ * The server keeps its own keys (`seed`, `image`) whatever is sent.
+ */
+export function editedPayload(payload, edits) {
+  const next = { ...payload }
+  for (const [key, value] of Object.entries(edits)) {
+    const text = String(value ?? '').trim()
+    if (text === '') delete next[key]
+    else next[key] = text
+  }
+  return next
+}

@@ -10,6 +10,7 @@ import {
   fieldPayload,
   garmentNeedsCheck,
   missingFields,
+  PRODUCT_FIELD_KEYS,
 } from '../../lib/intake.js'
 import KindFields from './KindFields.jsx'
 
@@ -225,8 +226,12 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
             <p className="muted">
               <span className="intake-garment-missing">
                 Check ·{' '}
-                {missingFields(kind.fields, current.garment).join(' and ') ||
-                  'nothing'}{' '}
+                {missingFields(
+                  kind.fields.filter(
+                    (field) => !PRODUCT_FIELD_KEYS.includes(field.key),
+                  ),
+                  current.garment,
+                ).join(' and ') || 'nothing'}{' '}
                 missing
               </span>
             </p>
