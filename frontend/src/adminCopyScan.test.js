@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { scanSource } from './adminCopyScan.js'
