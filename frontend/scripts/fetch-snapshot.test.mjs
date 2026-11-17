@@ -418,9 +418,7 @@ describe('fetchSnapshot', () => {
   })
 
   it('declares comic-issues as optional, builds without it', async () => {
-    const body = [
-      { item_id: 'a', series_title: 'Saga', issues: [], editions: [] },
-    ]
+    const body = [{ item_id: 'a', series_title: 'Saga', issues: [] }]
     expect(SNAPSHOTS['comic-issues'].path).toBe('/api/public/comic-issues')
     expect(SNAPSHOTS['comic-issues'].required).toBe(false)
     expect(SNAPSHOTS['comic-issues'].valid(body)).toBe(true)

@@ -42,7 +42,6 @@ from public import (
 from public_comics import PublicComicsOut
 from public_issues import (
     PublicComicIndex,
-    PublicEditionPage,
     PublicIssuePage,
     PublicVolumePage,
     PublicWall,
@@ -861,7 +860,6 @@ PUBLIC_MODELS = (
     PublicComicsOut,
     PublicWall,
     PublicIssuePage,
-    PublicEditionPage,
     PublicComicIndex,
     PublicVolumePage,
 )

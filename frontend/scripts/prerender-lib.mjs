@@ -15,7 +15,7 @@ import { MIN_POOL, dailyPool } from '../src/lib/daily.js'
 import { finishDates, finishRows } from '../src/lib/finishes.js'
 import { clip } from '../src/lib/clip.js'
 import { isHiddenPath } from '../src/lib/snapshotPresence.js'
-import { editionPath, issuePath, itemPath } from '../src/lib/spinePaths.js'
+import { issuePath, itemPath, volumePath } from '../src/lib/spinePaths.js'
 import {
   finishYears,
   ownedFinishes,
@@ -307,7 +307,7 @@ export function itemLabels(items) {
  *   frontmatter: object}[]} [input.trips] Published trips.
  * @param {object[]} input.items The snapshot's public items.
  * @param {object[]} [input.comicIssues] The comic-issues snapshot: per public
- *   series, the issues and editions that have a page. Absent or empty adds
+ *   series, the issues and volumes (books) that have a page. Absent or empty adds
  *   no pages.
  * @param {string[]} [input.hidden] Static paths whose page has nothing on it
  *   (#183): marked `noindex`, so the head says so and the sitemap skips them.
@@ -463,7 +463,8 @@ export function publicRoutes({
         : DEFAULT_IMAGE,
     })
   }
-  // Issue and edition pages of public comic series. Like item pages they stay
+  // Issue and volume pages of public comic series (the old `ed-*` edition
+  // URLs are volumes that kept their slug). Like item pages they stay
   // on the catch-all (slash form only), and they had no /spine URL, so no
   // `legacy` mirror.
   for (const series of Array.isArray(comicIssues) ? comicIssues : []) {
@@ -492,18 +493,24 @@ export function publicRoutes({
         image: cover(issue.cover_url, `Cover of ${label}`),
       })
     }
-    for (const edition of series.editions ?? []) {
-      if (!edition?.slug || !edition.label) continue
-      const label = `${seriesName}, ${edition.label}`
+    for (const volume of series.volumes ?? []) {
+      if (!volume?.slug || !volume.label) continue
+      const label = `${seriesName}, ${volume.label}`
+      const kinds = spine.comics.volume.kinds
+      const format = (kinds[volume.kind] ?? volume.kind ?? 'book').toLowerCase()
+      const number = Number.isInteger(volume.line_number)
+        ? `, ${spine.comics.volume.number(volume.line_number)}`
+        : ''
+      const article = kinds[volume.kind] ? 'a ' : ''
       routes.push({
         ...page(
-          bare(editionPath(series.item_id, edition.slug)),
+          bare(volumePath(series.item_id, volume.slug)),
           `${label} · ${spine.name}`,
-          `${label}, a collected edition on ${profile.name}’s comic shelf on ${spine.name}.`,
+          `${label}: ${article}${format}${number}, from ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
         slash: true,
         ...seriesMod,
-        image: cover(edition.cover_url, `Cover of ${label}`),
+        image: cover(volume.cover_url, `Cover of ${label}`),
       })
     }
   }

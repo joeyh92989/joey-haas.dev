@@ -10,7 +10,7 @@ A stand-in for `public/snapshot/`, which `scripts/fetch-snapshot.mjs` writes
 on Render. The e2e job in `.github/workflows/ci.yml` copies these files to
 `frontend/public/snapshot/` before `npm run build`. `fetch-snapshot.mjs` does
 nothing without an API URL and leaves that folder alone, so the build
-prerenders an item, a year, a month, an issue and an edition page, which
+prerenders an item, a year, a month, an issue and a volume page, which
 `e2e/dynamic.spec.js` then samples from `dist/sitemap.xml`.
 
 To try it locally, copy the files in, build, then delete them again (the
@@ -28,7 +28,7 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
   (`MIN_POOL` in `src/lib/daily.js`).
 - `stats.json` carries the full shape `Games.jsx` reads, not just the
   fields the shape check requires.
-- `comic-issues.json` feeds the issue, edition and volume pages' heads; its
+- `comic-issues.json` feeds the issue and volume pages' heads; its
   `volumes` mirror `PublicComicIndexVolume` (the old `ed-1-1` edition is also
   the volume `ed-1-1`).
 - Shapes mirror `SNAPSHOTS` in `scripts/fetch-snapshot.mjs`.
@@ -37,8 +37,12 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
 
 ## api/
 
-Responses for the two live endpoints the issue and edition pages call,
-`/api/public/items/<id>/issues/<n>` and `.../editions/<slug>`. The spec
+Responses for the two live endpoints the issue and volume pages call,
+`/api/public/items/<id>/issues/<n>` and `.../volumes/<slug>`. The spec
 fulfils them with `page.route`. They mirror the shapes `ComicIssue.jsx` and
-`ComicEdition.jsx` read, and must change with those endpoints. Their
-series, issue and edition match `snapshot/comic-issues.json`.
+`ComicVolume.jsx` read, and must change with those endpoints. `volume.json`
+was written from the backend's own `PublicVolumePage` model
+(`model_dump_json`), so its keys cannot drift from the real body; regenerate
+it the same way when the model changes. Their series, issue and volume match
+`snapshot/comic-issues.json` (`ed-1-1` is the old edition URL, kept as a
+volume slug).

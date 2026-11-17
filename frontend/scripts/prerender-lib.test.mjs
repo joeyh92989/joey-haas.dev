@@ -21,7 +21,7 @@ import {
   strayTripDirs,
   useFallbackImage,
 } from './prerender-lib.mjs'
-import { editionPath, issuePath } from '../src/lib/spinePaths.js'
+import { issuePath, volumePath } from '../src/lib/spinePaths.js'
 import { readPublished } from './markdown-lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -310,7 +310,7 @@ describe('renderHead', () => {
   })
 })
 
-describe('comic issue and edition pages', () => {
+describe('comic issue and volume pages', () => {
   const SAGA = '6f1c2c1e-0000-4000-8000-0000000000aa'
   const COMIC_ISSUES = [
     {
@@ -320,14 +320,31 @@ describe('comic issue and edition pages', () => {
         { number: 58, name: 'Chapter 58', cover_url: 'https://cv.test/58.jpg' },
         { number: 59, name: null, cover_url: null },
       ],
-      editions: [
+      volumes: [
         {
           slug: 'ed-55-60',
           label: 'Volume Ten',
+          kind: 'trade',
+          line_number: 10,
           cover_url: 'https://cv.test/v10.jpg',
         },
-        { slug: 'ed-1-6', label: 'Deluxe', cover_url: 'http://cv.test/x.jpg' },
+        {
+          slug: 'ed-1-6',
+          label: 'Deluxe',
+          kind: 'hardcover',
+          line_number: null,
+          cover_url: 'http://cv.test/x.jpg',
+        },
+        {
+          slug: 'vol-3',
+          label: 'Odd Book',
+          kind: 'something-new',
+          line_number: 3,
+          cover_url: null,
+        },
       ],
+      // The old field: no longer read, so no page comes of it.
+      editions: [{ slug: 'ed-9-9', label: 'Old', cover_url: null }],
     },
   ]
   const routes = publicRoutes({
@@ -359,14 +376,29 @@ describe('comic issue and edition pages', () => {
     expect(insecure.image.url).toBe(bare.image.url)
   })
 
-  it('emits an edition page titled by series and label', () => {
+  it('emits a volume page titled by series and label, from `volumes`', () => {
     const page = routeAt(routes, `/shelf/${SAGA}/ed-55-60`)
     expect(page.title).toBe('Saga, Volume Ten · My Shelf')
     expect(page.slash).toBe(true)
+    expect(page.legacy).toBeUndefined()
     expect(page.image.url).toBe('https://cv.test/v10.jpg')
+    expect(page.description).toBe(
+      'Saga, Volume Ten: a trade paperback, Vol. 10, from Joey Haas’s comic shelf on My Shelf.',
+    )
+    expect(routes.some((r) => r.path === `/shelf/${SAGA}/ed-9-9`)).toBe(false)
     expect(renderHead(SHELL, page)).toContain(
       `<link rel="canonical" href="https://joey-haas.dev/shelf/${SAGA}/ed-55-60/" />`,
     )
+  })
+
+  it('names a book with no number or a new kind without guessing', () => {
+    expect(routeAt(routes, `/shelf/${SAGA}/ed-1-6`).description).toBe(
+      'Saga, Deluxe: a hardcover, from Joey Haas’s comic shelf on My Shelf.',
+    )
+    expect(routeAt(routes, `/shelf/${SAGA}/vol-3`).description).toBe(
+      'Saga, Odd Book: something-new, Vol. 3, from Joey Haas’s comic shelf on My Shelf.',
+    )
+    expect(routeAt(routes, `/shelf/${SAGA}/vol-3`).slash).toBe(true)
   })
 
   it('has the URLs the SPA links to, for an id that needs encoding', () => {
@@ -379,14 +411,16 @@ describe('comic issue and edition pages', () => {
           item_id: id,
           series_title: 'Odd',
           issues: [{ number: 7, name: null, cover_url: null }],
-          editions: [{ slug: 'ed-1-6', label: 'One', cover_url: null }],
+          volumes: [
+            { slug: 'vol-1', label: 'One', kind: 'trade', line_number: 1 },
+          ],
         },
       ],
     })
     const [issue, edition] = rows.filter((r) => r.path.startsWith('/shelf/a'))
     expect(routeUrl(issue)).toBe(`https://joey-haas.dev${issuePath(id, 7)}`)
     expect(routeUrl(edition)).toBe(
-      `https://joey-haas.dev${editionPath(id, 'ed-1-6')}`,
+      `https://joey-haas.dev${volumePath(id, 'vol-1')}`,
     )
   })
 
@@ -673,11 +707,18 @@ describe('render.yaml rewrites', () => {
         item_id: 'abc',
         series_title: 'Saga',
         issues: [{ number: 1, name: null, cover_url: null }],
-        editions: [{ slug: 'ed-1-2', label: 'Volume One', cover_url: null }],
+        volumes: [
+          {
+            slug: 'ed-1-2',
+            label: 'Volume One',
+            kind: 'trade',
+            line_number: 1,
+          },
+        ],
       },
     ],
   })
-  // Slash pages (item, year, month, issue, edition) stay on the catch-all.
+  // Slash pages (item, year, month, issue, volume) stay on the catch-all.
   const pages = [...built, ...legacyRoutes(built)]
     .filter((route) => !route.slash)
     .map((route) => route.path)
@@ -871,7 +912,7 @@ describe('the audit fixes (#266 #267 #268 #269 #290)', () => {
         item_id: i.id,
         series_title: i.title,
         issues: [{ number: 1 }],
-        editions: [],
+        volumes: [],
       }))
     const routes = publicRoutes({ posts: [], items, comicIssues })
     const titles = routes.map(titleOf)

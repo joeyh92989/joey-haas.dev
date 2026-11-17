@@ -1,0 +1,45 @@
+{
+  "title": {
+    "id": "22222222-bbbb-4bbb-8bbb-000000000002",
+    "title": "Paper Moons",
+    "cover_url": null,
+    "publisher": "Fixture Press",
+    "year": 2025
+  },
+  "volume": {
+    "slug": "ed-1-1",
+    "label": "Volume One",
+    "kind": "trade",
+    "line_number": 1,
+    "isbn": "9780000000002",
+    "pages": 128,
+    "description": ["An invented book for the test fixture."],
+    "cover_url": null,
+    "large_url": null,
+    "owned": true,
+    "read": false
+  },
+  "collects": [
+    {
+      "series_name": "Paper Moons",
+      "issue_text": "#1",
+      "link": {
+        "item_id": "22222222-bbbb-4bbb-8bbb-000000000002",
+        "from_number": 1,
+        "to_number": 1
+      }
+    },
+    {
+      "series_name": "Paper Moons",
+      "issue_text": "Annual 1",
+      "link": null
+    }
+  ],
+  "prev": null,
+  "next": {
+    "slug": "vol-2",
+    "label": "Volume Two",
+    "line_number": 2
+  },
+  "source_url": "https://comicvine.gamespot.com/"
+}

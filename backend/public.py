@@ -52,11 +52,9 @@ from public_comics import (
 )
 from public_issues import (
     PublicComicIndex,
-    PublicEditionPage,
     PublicIssuePage,
     PublicVolumePage,
     PublicWall,
-    build_edition_page,
     build_issue_page,
     build_volume_page,
     build_wall,
@@ -745,20 +743,6 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             raise HTTPException(status_code=404, detail="Not found")
         return page
 
-    @router.get("/items/{item_id}/editions/{slug}", response_model=PublicEditionPage)
-    async def public_edition_page(
-        item_id: uuid.UUID,
-        slug: str,
-        session: AsyncSession = Depends(get_session),
-    ) -> PublicEditionPage:
-        """One collected edition of a public comic series."""
-        page = await build_edition_page(
-            session, item_id, slug, datetime.now(UTC).date()
-        )
-        if page is None:
-            raise HTTPException(status_code=404, detail="Not found")
-        return page
-
     @router.get("/items/{item_id}/volumes/{slug}", response_model=PublicVolumePage)
     async def public_volume_page(
         item_id: uuid.UUID,
@@ -767,7 +751,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     ) -> PublicVolumePage:
         """One owned volume (book) of a public comic title. Private, unknown
         and not-owned all answer the same 404."""
-        page = await build_volume_page(session, item_id, slug)
+        page = await build_volume_page(session, item_id, slug, datetime.now(UTC).date())
         if page is None:
             raise HTTPException(status_code=404, detail="Not found")
         return page

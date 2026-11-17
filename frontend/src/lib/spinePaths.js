@@ -37,7 +37,7 @@ export function issuePath(id, n) {
   return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(n)}/`
 }
 
-/** `/shelf/<id>/<slug>/`, one edition's page (`ed-<from>-<to>`). */
-export function editionPath(id, slug) {
+/** `/shelf/<id>/<slug>/`, one book's page (`vol-<n>` or `ed-<from>-<to>`). */
+export function volumePath(id, slug) {
   return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(slug)}/`
 }

@@ -317,6 +317,7 @@ a:hover {
 .intake-demo-fine a,
 .attribution a,
 .comic-issue-attribution a,
+.volume-collects a,
 p.muted a,
 .now-finished a,
 .job-summary a {
@@ -12637,6 +12638,13 @@ a.state-pill:focus-visible {
   flex-basis: auto;
 }
 
+.volume-collects {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
 .edition-neighbours {
   display: flex;
   flex-wrap: wrap;
@@ -12720,7 +12728,7 @@ a.btn.sm {
   width: 27px;
 }
 
-.comic-edition {
+.comic-volume {
   display: grid;
   gap: var(--space-1);
 }

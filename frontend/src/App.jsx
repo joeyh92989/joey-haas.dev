@@ -19,7 +19,7 @@ import { gamesPath, itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 // shipping to every visitor in the main chunk. RootLayout's Suspense
 // boundary covers the layout's wait, and AdminLayout's each page's.
 const Comics = lazy(() => import('./pages/Comics.jsx'))
-const ComicEdition = lazy(() => import('./pages/ComicEdition.jsx'))
+const ComicVolume = lazy(() => import('./pages/ComicVolume.jsx'))
 const ComicIssue = lazy(() => import('./pages/ComicIssue.jsx'))
 const Daily = lazy(() => import('./pages/Daily.jsx'))
 const Games = lazy(() => import('./pages/Games.jsx'))
@@ -95,9 +95,12 @@ const ISSUE_PART = /^[1-9][0-9]{0,3}$/
 /** A canonical edition slug: `ed-<from>-<to>`, `-2`... on a repeat. */
 const EDITION_PART = /^ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(-[2-9][0-9]*)?$/
 
+/** A canonical new-book slug: `vol-<n>` (the same shape analytics allows). */
+const VOLUME_PART = /^vol-[1-9][0-9]{0,3}$/
+
 /**
- * /shelf/:id/:part: an issue's page for a canonical number, or an edition's
- * for a canonical `ed-...` slug, remounted per page. Anything else, a
+ * /shelf/:id/:part: an issue's page for a canonical number, or a book's for a
+ * canonical `ed-...` or `vol-...` slug, remounted per page. Anything else, a
  * leading zero or a stray suffix included, is NotFound rather than a second
  * address for the same page.
  */
@@ -106,8 +109,8 @@ function ShelfPart() {
   if (ISSUE_PART.test(part)) {
     return <ComicIssue key={`${id}/${part}`} id={id} n={Number(part)} />
   }
-  if (EDITION_PART.test(part)) {
-    return <ComicEdition key={`${id}/${part}`} id={id} slug={part} />
+  if (EDITION_PART.test(part) || VOLUME_PART.test(part)) {
+    return <ComicVolume key={`${id}/${part}`} id={id} slug={part} />
   }
   return <NotFound />
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  editionPath,
+  volumePath,
   issuePath,
   itemPath,
   monthPath,
@@ -18,8 +18,9 @@ describe('spine paths', () => {
     expect(itemPath('a/b')).toBe('/shelf/a%2Fb/')
   })
 
-  it('builds issue and edition paths', () => {
+  it('builds issue and book paths', () => {
     expect(issuePath(5, 58)).toBe('/shelf/5/58/')
-    expect(editionPath(5, 'ed-1-6')).toBe('/shelf/5/ed-1-6/')
+    expect(volumePath(5, 'ed-1-6')).toBe('/shelf/5/ed-1-6/')
+    expect(volumePath(5, 'vol-3')).toBe('/shelf/5/vol-3/')
   })
 })
