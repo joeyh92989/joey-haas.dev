@@ -76,6 +76,19 @@ async def test_it_measures_each_provider_with_and_without_images(
     assert "payload refused" in bad["with_images"]["error"]
 
 
+def test_it_names_the_pieces_an_answer_points_at():
+    class Piece:
+        def __init__(self, name):
+            self.name = name
+
+    listed = [("top", Piece("tee")), ("bottom", Piece("jeans"))]
+    answer = {"outfits": [{"indices": [0, 1, 7], "reason": "easy"}]}
+    assert probe._named(answer, listed) == [
+        {"pieces": ["top: tee", "bottom: jeans", "?7"], "reason": "easy"}
+    ]
+    assert probe._named(None, listed) == []
+
+
 async def test_it_refuses_a_remote_database():
     with pytest.raises(SystemExit):
         probe._check_local("postgresql+asyncpg://u:p@db.neon.tech/x", False)

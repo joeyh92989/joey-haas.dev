@@ -622,9 +622,11 @@ Measures the closet ranker with and without the shortlist's thumbnails
 **Why:** `closet_today_routes.shortlist_images` can send up to four 400px
 thumbnails per slot with the ranking prompt, but only when
 `closet_settings["rank.images"]` is `{"enabled": true}`. It stays off until
-this probe shows the latency and request size are acceptable. **Not yet
-measured:** the closet has no photos yet, so there is no report and the
-setting is off.
+this probe shows the latency and request size are acceptable. **Measured
+2026-11-16** on a 50-piece closet (Gemini chain only): thumbnails add about
+115 KB (10 to 16 images) and take about 25 s a call against 1.5 to 9 s for
+text only, repeatably. Whether the picks improve is read by hand from
+`picks`. The setting is off.
 
 **Run** from `backend/`, against a local database with garments that have
 photos (`--database-url` or `PROBE_DATABASE_URL`; a non-local host is
@@ -637,17 +639,21 @@ refused unless `--allow-remote`):
 
 Options: `--out PATH` (default `~/Developer/closet-seed/rank-images-report.json`,
 outside the repo because the report carries real prompt sizes), `--day`,
-`--occasion` (default `office`), `--bike`.
+`--occasion` (default `office`; several with commas, `office,weekend`),
+`--repeat N` (calls per occasion, since timing varies), `--bike`.
 
 **Needs** `GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY` in the main checkout's
 `backend/.env`. **Costs:** per provider, two requests (text only, then with
-images): the Gemini chain from the free daily quota, Haiku billed. Run it
-once, not in a loop.
+images): the Gemini chain from the free daily quota, Haiku billed. Two
+requests per occasion and repeat, so keep both small.
 
-**Writes** one JSON report: the shortlist size, garments with photos, images
+**Writes** one JSON report, `{"runs": [...]}`, one entry per occasion and
+repeat. Each run has the shortlist size, garments with photos, images
 sent, and for each provider and each of `text_only` / `with_images`: seconds,
 `prompt_bytes`, `images`, `image_bytes`, `image_bytes_base64`, `ok`, outfit
-count or the error. `usage` is always null: the providers' `complete_json`
+count or the error, and `picks`: the outfits the model chose with each
+index replaced by the piece's slot and name (so the two answers can be read
+side by side) and its reason. `usage` is always null: the providers' `complete_json`
 returns the answer only, not token counts.
 
 To turn the feature on after a good measurement, set the row in

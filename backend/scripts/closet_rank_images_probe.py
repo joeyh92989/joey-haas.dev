@@ -55,7 +55,23 @@ def _bytes(prompt: str, images) -> dict[str, int]:
     }
 
 
-async def _call(provider, prompt: str, schema: dict, images) -> dict:
+def _named(answer, listed) -> list[dict]:
+    """The answer's outfits with each index replaced by the piece it points
+    at (`listed` is `closet_rank.numbered(found)`), so two answers can be read
+    side by side. An index outside the list is kept as text."""
+    out = []
+    for entry in (answer or {}).get("outfits") or []:
+        pieces = []
+        for index in entry.get("indices") or []:
+            ok = isinstance(index, int) and 0 <= index < len(listed)
+            pieces.append(
+                f"{listed[index][0]}: {listed[index][1].name}" if ok else f"?{index}"
+            )
+        out.append({"pieces": pieces, "reason": entry.get("reason")})
+    return out
+
+
+async def _call(provider, prompt: str, schema: dict, images, listed=()) -> dict:
     """One timed call; an error is a result, not an exception."""
     started = monotonic()
     row = {**_bytes(prompt, images), "usage": None}
@@ -72,6 +88,7 @@ async def _call(provider, prompt: str, schema: dict, images) -> dict:
         seconds=round(monotonic() - started, 2),
         ok=True,
         outfits=len((answer or {}).get("outfits") or []),
+        picks=_named(answer, listed),
     )
     return row
 
@@ -99,6 +116,7 @@ async def measure(session, providers: dict, day: date, occasion: str, bike: bool
     found = closet.candidates(pieces, request, read)
     sentence = closet.read_sentence(read, bike, f"{day:%B}")
     args = (found, request, read, sentence, profile, ())
+    listed = closet_rank.numbered(found)
     picks, images = await shortlist_images(session, found)
     text_prompt = closet_rank.build_prompt(*args)
     image_prompt = closet_rank.build_prompt(*args, images=picks)
@@ -106,16 +124,18 @@ async def measure(session, providers: dict, day: date, occasion: str, bike: bool
         "day": day.isoformat(),
         "occasion": occasion,
         "bike": bike,
-        "candidates": len(closet_rank.numbered(found)),
+        "candidates": len(listed),
         "garments_with_photos": len(_photos),
         "images_sent": len(images),
         "providers": {},
     }
     for name, provider in providers.items():
         report["providers"][name] = {
-            "text_only": await _call(provider, text_prompt, closet_rank.SCHEMA, []),
+            "text_only": await _call(
+                provider, text_prompt, closet_rank.SCHEMA, [], listed
+            ),
             "with_images": await _call(
-                provider, image_prompt, closet_rank.SCHEMA, images
+                provider, image_prompt, closet_rank.SCHEMA, images, listed
             ),
         }
     return report
@@ -160,9 +180,14 @@ async def run(args) -> Path:
     engine = create_async_engine(url, connect_args=connect_args_for(url))
     try:
         async with async_sessionmaker(engine)() as session:
-            report = await measure(
-                session, providers, args.day, args.occasion, args.bike
-            )
+            report = {"runs": []}
+            for occasion in args.occasion.split(","):
+                for _ in range(args.repeat):
+                    report["runs"].append(
+                        await measure(
+                            session, providers, args.day, occasion.strip(), args.bike
+                        )
+                    )
     finally:
         await engine.dispose()
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -179,7 +204,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--day", type=date.fromisoformat, default=date.today())
-    parser.add_argument("--occasion", default="office")
+    parser.add_argument(
+        "--occasion",
+        default="office",
+        help="one occasion, or several separated by commas (office,weekend)",
+    )
+    parser.add_argument(
+        "--repeat", type=int, default=1, help="calls per occasion (timing varies)"
+    )
     parser.add_argument("--bike", action="store_true")
     parser.add_argument("--allow-remote", action="store_true")
     args = parser.parse_args(argv)
