@@ -43,13 +43,13 @@ re-runs. The train removes the gaps; it cannot remove the cycle (that needs
 ```
 
 For each PR, in the order given: stop unless it is open and not a draft;
-`gh pr update-branch` if it is behind `main` (read from the compare API's
-`behind_by`, since a PR that is behind and also waiting on checks can show
-`BLOCKED`, not `BEHIND`); wait for the **required** checks (all of them: the names are read from branch
+(only when `strict` is on) `gh pr update-branch` if it is behind `main` (read
+from the compare API's `behind_by`, since a PR that is behind and also waiting
+on checks can show `BLOCKED`, not `BEHIND`); wait for the **required** checks (all of them: the names are read from branch
 protection, since GitHub registers them one at a time after a push);
 `gh pr merge --squash`; confirm it is `MERGED`; next. If a merge lands while
 the checks run and the PR falls behind again, it goes round again (three
-rounds at most).
+rounds at most; with `strict` off it never goes round for that reason).
 
 Before each merge it prints a WARNING for any non-required check that is not
 green (`e2e`, `e2e-admin`, `neon-rehearsal`); it does not stop for one, so read
