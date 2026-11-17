@@ -507,7 +507,10 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
     starts owned and unread; an existing one keeps its `owned` and `read`, so
     a volume marked on the volume route stays marked. Volumes whose edition is
     gone are deleted. A volume with any other slug (`vol-*`, made by hand or
-    intake) is never touched. Idempotent, writes only what differs, flushes,
+    intake) is never touched, and neither is a volume with `edited` true (#334:
+    the admin changed it by hand): no field written, no reposition, no delete
+    when its edition vanishes, and its edition (still in `items.editions`) does
+    not make a second volume under the same slug. Idempotent, writes only what differs, flushes,
     never commits. A row that is not a comic has none.
     """
     import uuid
@@ -521,14 +524,17 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
     wanted = (
         [e for e in wanted if isinstance(e, dict)] if isinstance(wanted, list) else []
     )
-    existing = {
-        v.slug: v
-        for v in await session.scalars(
+    every = list(
+        await session.scalars(
             select(ComicVolume).where(
                 ComicVolume.item_id == item.id, ComicVolume.slug.startswith("ed-")
             )
         )
-    }
+    )
+    # An edited volume is the admin's: it is matched to nothing, and its slug
+    # is reserved so no edition makes a second volume under it.
+    fixed = {v.slug: v for v in every if v.edited}
+    existing = {v.slug: v for v in every if not v.edited}
     collects: dict[object, list[ComicVolumeCollect]] = {}
     if existing:
         for collect in await session.scalars(
@@ -543,6 +549,12 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
 
     slugs = edition_slugs(wanted)
     assigned = _match_volumes(wanted, slugs, existing, text)
+    skip = {i for i, slug in enumerate(slugs) if i not in assigned and slug in fixed}
+    for i in [
+        i for i, v in assigned.items() if slugs[i] in fixed and v.slug != slugs[i]
+    ]:
+        skip.add(i)  # its slug is an edited volume's: leave this one as it is
+    protected = {assigned.pop(i).id for i in list(assigned) if i in skip}
     # Two volumes may swap slugs: park every rename first, so the unique
     # (item, slug) index is never hit mid-flush.
     renamed = [
@@ -555,6 +567,8 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
     for volume, slug in renamed:
         volume.slug = slug
     for position, (slug, edition) in enumerate(zip(slugs, wanted, strict=True)):
+        if position in skip:
+            continue
         raw = edition.get("kind")
         raw = raw if isinstance(raw, str) and raw else None
         low, high = _bound(edition.get("from")), _bound(edition.get("to"))
@@ -621,7 +635,7 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
             for key, value in link.items():
                 if getattr(mine, key) != value:
                     setattr(mine, key, value)
-    kept = {v.id for v in assigned.values()}
+    kept = {v.id for v in assigned.values()} | protected
     for volume in existing.values():
         if volume.id in kept:
             continue
