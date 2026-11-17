@@ -596,6 +596,29 @@ describe('AdminComicVolume: read the contents from the description', () => {
     ).toBeVisible()
   })
 
+  it('says so when earlier read entries were removed and nothing new was found', async () => {
+    stubApi({
+      parse: {
+        entries_added: 0,
+        entries_replaced: 0,
+        entries_removed: 2,
+        used_model: false,
+        reason: null,
+        collects: view.collects,
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(
+      screen.getByRole('button', { name: 'Read from description' }),
+    )
+    expect(
+      await screen.findByText('Removed 2 earlier entries; nothing new found.'),
+    ).toBeVisible()
+    expect(screen.queryByText('Nothing new to add.')).toBeNull()
+  })
+
   it.each([
     ['no_match', 'Found nothing in the description.'],
     ['budget', 'Today’s model budget is used up; add the contents by hand.'],

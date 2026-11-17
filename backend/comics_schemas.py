@@ -531,6 +531,8 @@ class ContentsParseOut(BaseModel):
 
     entries_added: int
     entries_replaced: int
+    # Earlier parsed entries deleted with no new one in their place.
+    entries_removed: int = 0
     used_model: bool
     reason: Literal["budget", "no_match", "model_error", "no_text"] | None
     collects: list[CollectOut]

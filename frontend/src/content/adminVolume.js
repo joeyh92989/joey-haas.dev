@@ -120,6 +120,8 @@ export const volume = {
           replaced > 0 ? `, replacing ${replaced} read earlier` : ''
         }${usedModel ? ', read by the model' : ''}.`,
       nothingNew: 'Nothing new to add.',
+      removed: (n) =>
+        `Removed ${n} earlier ${n === 1 ? 'entry' : 'entries'}; nothing new found.`,
       reasons: {
         no_match: 'Found nothing in the description.',
         budget: 'Today’s model budget is used up; add the contents by hand.',

@@ -38,16 +38,19 @@ class Entry:
 
     series_name: str
     issue_text: str
+    # A year the text put in brackets after the series ("Batman (2016)").
+    year: int | None = None
 
 
 def normalize_name(name: object) -> str:
     """A series name for comparing: lower case, `&` as `and`, no year in
-    brackets, spaces collapsed."""
+    brackets, spaces collapsed, no leading "the"."""
     if not isinstance(name, str):
         return ""
     text = re.sub(r"\(\s*\d{4}(?:\s*-\s*(?:\d{4})?)?\s*\)", " ", name.lower())
     text = text.replace("&", " and ")
-    return re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
+    return re.sub(r"^the\s+", "", text)
 
 
 _PLAIN = re.compile(r"^#?\s*(\d{1,4})(?:\s*-\s*(\d{1,4}))?$")
@@ -138,31 +141,48 @@ _FILLER = {
     "of",
     "collected",
 }
-_LEAD = re.compile(r"^(?:[\s,;:&+\-]|and\b|plus\b|as well as\b|with\b)+", re.IGNORECASE)
+_LEAD = re.compile(
+    r"^(?:[\s,;:&+\-/\\|•·]|and\b|plus\b|as well as\b|with\b)+", re.IGNORECASE
+)
 
 
 def _strip_leading(gap: str) -> str:
-    """The gap without leading separators and filler words."""
+    """The gap without leading separators and filler words. "The" is filler
+    only before another filler word ("the complete Saga"), never at the start
+    of a title ("The Walking Dead")."""
     while True:
         before = gap
         gap = _LEAD.sub("", gap)
         words = gap.split(" ", 1)
-        if words and words[0].lower().strip(".,:;") in _FILLER:
-            gap = words[1] if len(words) > 1 else ""
+        first = words[0].lower().strip(".,:;")
+        rest = words[1] if len(words) > 1 else ""
+        if first == "the":
+            nxt = rest.split(" ", 1)[0].lower().strip(".,:;")
+            if nxt in _FILLER - {"the"}:
+                gap = rest
+        elif first in _FILLER:
+            gap = rest
         if gap == before:
             return gap.strip()
 
 
-def _clean_series(gap: str) -> str | None:
-    """The series a gap names: '' for none, None when the gap is not a title."""
+def _clean_series(gap: str) -> tuple[str, int | None] | None:
+    """The (series, year) a gap names: ('', None) for none, None when the gap
+    is not a title (a sentence, a bare number, stray marks)."""
     text = _strip_leading(gap)
+    year = None
+    found_year = re.search(r"\(\s*(\d{4})(?:\s*-\s*(?:\d{4})?)?\s*\)", text)
+    if found_year:
+        year = int(found_year.group(1))
     text = re.sub(r"\(\s*\d{4}(?:\s*-\s*(?:\d{4})?)?\s*\)", " ", text)
     text = re.sub(r"\bvol(?:ume)?\.?\s*\d+\b", " ", text, flags=re.IGNORECASE)
-    text = text.strip(" \t,;:-&+\"'“”")
+    text = text.strip(" \t,;:-&+/\\|•·\"'“”")
     text = re.sub(r"\s+(?:and|&|of|the)$", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip()
-    if not text:
-        return ""
+    if not text or text.lower() in _CONNECTORS | _FILLER:
+        return "", None
+    if not text[0].isalnum() or not any(ch.isalpha() for ch in text):
+        return None  # "2013" or "#" is never a title
     words = text.split(" ")
     if len(words) > _MAX_SERIES_WORDS or len(text) > MAX_SERIES:
         return None
@@ -174,7 +194,7 @@ def _clean_series(gap: str) -> str | None:
                 return None
         if "(" in word or ")" in word or "[" in word:
             return None
-    return text
+    return text, year
 
 
 def _kind_text(kind: str) -> str:
@@ -187,15 +207,15 @@ def _read_clause(clause: str) -> list[Entry] | None:
     line: a clause is trusted whole or not at all."""
     entries: list[Entry] = []
     previous_end = 0
-    series = ""
+    series, year = "", None
     found_any = False
     for spec in _SPEC.finditer(clause):
         gap = clause[previous_end : spec.start()]
-        named = _clean_series(gap)
-        if named is None:
+        cleaned = _clean_series(gap)
+        if cleaned is None:
             return None
-        if named or not found_any:
-            series = named
+        if cleaned[0] or not found_any:
+            series, year = cleaned
         # What follows the spec must end the entry, not carry on in prose.
         tail = clause[spec.end() :].lstrip()
         first = re.match(r"[A-Za-z]+", tail)
@@ -209,18 +229,29 @@ def _read_clause(clause: str) -> list[Entry] | None:
             if spec.group("kn") is None:
                 if not series:
                     return None  # a bare "Special" with no book is not contents
-                entries.append(Entry(series, kind))
+                entries.append(Entry(series, kind, year))
                 continue
             for text in _items(spec.group("kn")) or []:
-                entries.append(Entry(series, f"{kind} {text}"))
+                entries.append(Entry(series, f"{kind} {text}", year))
             if _items(spec.group("kn")) is None:
                 return None
             continue
         items = _items(spec.group("list"))
         if items is None:
             return None
-        entries.extend(Entry(series, text) for text in items)
-    return entries if found_any else []
+        entries.extend(Entry(series, text, year) for text in items)
+    if not found_any:
+        return []
+    if any(not entry.series_name for entry in entries):
+        # An unnamed run takes the title only when the text names nothing
+        # else: no series anywhere in the clause and nothing after the last
+        # range but punctuation or a bracket ("of Aquaman", "plus Hellboy #3"
+        # and "from the Hellboy series" all say something more).
+        trailing = re.sub(r"\([^)]*\)", " ", clause[previous_end:])
+        trailing = re.sub(r"[\s.,;:!?]+", "", trailing)
+        if trailing or any(entry.series_name for entry in entries):
+            return None
+    return entries
 
 
 def _items(text: str) -> list[str] | None:
@@ -300,22 +331,67 @@ INSTRUCTIONS = (
 )
 
 
+def model_source(description: object, note: object) -> str:
+    """The text the model sees and its answer is checked against: the owner's
+    pasted note first, then the description, cut to MAX_SOURCE. The note is
+    never the part that gets cut."""
+    parts = [
+        part.strip()
+        for part in (note, description)
+        if isinstance(part, str) and part.strip()
+    ]
+    return "\n\n".join(parts)[:MAX_SOURCE]
+
+
 def model_prompt(text: str) -> str:
-    """The one prompt the fallback sends: the question, then the text."""
+    """The one prompt the fallback sends: the question, then the text (already
+    cut by `model_source`)."""
     return f"{INSTRUCTIONS}\n\nText:\n{text.strip()[:MAX_SOURCE]}"
+
+
+_RANGE_WORDS = r"(?:-|to|through|thru)"
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"\s+", " ", text.translate(_DASHES)).strip()
+
+
+def _grounded(clause: str, source: str) -> bool:
+    """Whether one issue-text clause (`#1-6`, `#7`, `Annual #1`) can be read
+    off `source` (dashes and spaces squashed, any case): the exact text is
+    there, or for a plain range or number the source words it as "1 to 6" or
+    "issue 7". The numbers alone being somewhere in the text is not enough."""
+    low, text = clause.lower(), source.lower()
+    exact = rf"(?<!\d){re.escape(low)}(?!\d)"
+    if re.search(exact, text):
+        return True
+    ranged = re.fullmatch(r"#(\d+)-(\d+)", low)
+    if ranged:
+        a, b = ranged.groups()
+        return bool(re.search(rf"(?<!\d){a}\s*{_RANGE_WORDS}\s*{b}(?!\d)", text))
+    single = re.fullmatch(r"#(\d+)", low)
+    if single:
+        n = single.group(1)
+        return bool(re.search(rf"(?:\bissues?\s+|\bnos?\.?\s*)(?<!\d){n}(?!\d)", text))
+    return False
 
 
 def validate_model(payload: object, source: str) -> list[Entry]:
     """A model answer as entries, or `[]`. Hard: one bad entry discards the
-    whole answer. Every entry needs a number in its issue text, every number
-    must stand in `source` as a whole number, the series name must be empty
-    or appear in `source` (any case), and lengths and the count are capped."""
+    whole answer. Each entry must be reproducible from `source`: every clause
+    of its issue text must be readable in it (`_grounded`), ranges may not run
+    backwards or pass LINK_MAX, the series name must appear in it (any case),
+    and an empty series name is allowed only when the source has a contents
+    phrase (collects, reprints...) that the numbers follow. Caps hold. These
+    entries are text only: the route never links one."""
     if not isinstance(payload, dict):
         return []
     raw = payload.get("entries")
     if not isinstance(raw, list) or not raw or len(raw) > MAX_ENTRIES:
         return []
-    haystack = source.lower()
+    squashed = _squash(source)
+    haystack = squashed.lower()
+    has_trigger = _TRIGGER.search(squashed) is not None
     entries: list[Entry] = []
     for item in raw:
         if not isinstance(item, dict):
@@ -323,16 +399,23 @@ def validate_model(payload: object, source: str) -> list[Entry]:
         series, issue = item.get("series_name"), item.get("issue_text")
         if not isinstance(series, str) or not isinstance(issue, str):
             return []
-        series, issue = series.strip(), issue.strip()
+        series, issue = series.strip(), _squash(issue)
         if len(series) > MAX_SERIES or not issue or len(issue) > MAX_ISSUE_TEXT:
             return []
-        numbers = re.findall(r"\d+", issue)
-        if not numbers:
+        if not re.search(r"\d", issue):
             return []
-        for number in numbers:
-            if not re.search(rf"(?<!\d){re.escape(number)}(?!\d)", source):
+        for low, high in re.findall(r"(\d+)\s*-\s*(\d+)", issue):
+            if int(low) > int(high):
                 return []
-        if series and series.lower() not in haystack:
+        if any(int(n) > LINK_MAX for n in re.findall(r"\d+", issue)):
+            return []
+        clauses = [c.strip() for c in issue.split(",") if c.strip()]
+        if not clauses or not all(_grounded(c, squashed) for c in clauses):
+            return []
+        if series:
+            if series.lower() not in haystack:
+                return []
+        elif not has_trigger:
             return []
         entry = Entry(series, issue)
         if entry not in entries:

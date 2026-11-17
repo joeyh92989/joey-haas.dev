@@ -52,6 +52,7 @@ async def client_for(factory, provider=None, source=None):
 
 
 async def volume_with(factory, description=DESCRIPTION, title="Saga", **fields):
+    fields.setdefault("source_metadata", {"issue_count": 50})
     item_id = await make(factory, title=title, **fields)
     volume_id = await add_volume(factory, item_id, slug="vol-1", owned=True)
     async with factory() as session:
@@ -107,7 +108,7 @@ async def test_rules_fill_the_list_and_link_only_the_titles_own_series(
     assert hellboy["link"] is None  # another series is text only
     # The owned volume's linked range now marks the title's issues.
     assert set(await marks(factory, item_id)) == {1, 2, 3}
-    assert (await get_volume(factory, volume_id)).edited is True
+    assert (await get_volume(factory, volume_id)).edited is False  # never set here
 
 
 async def test_an_entry_with_no_series_takes_the_titles_name_and_links(
@@ -146,7 +147,10 @@ async def test_a_reparse_never_touches_typed_migrated_or_photo_entries(
         first = (await client.post(path(volume_id), json={})).json()
         second = (await client.post(path(volume_id), json={})).json()
     assert first["entries_added"] == 2
-    assert (second["entries_added"], second["entries_replaced"]) == (2, 2)
+    # Found again, identical: kept as they are, nothing deleted or re-added.
+    assert (second["entries_added"], second["entries_replaced"]) == (0, 0)
+    assert second["entries_removed"] == 0
+    assert [c["id"] for c in second["collects"]] == [c["id"] for c in first["collects"]]
     stored = rows(await collects_of(factory, volume_id))
     assert stored[:3] == [
         ("Mine", "#9", "typed"),
@@ -227,7 +231,7 @@ async def test_unknown_volume_is_404_and_a_game_less_route_needs_admin(
 
 # --- The model fallback --------------------------------------------------------
 
-PROSE = "A trade of Saga issues 1 to 6, the whole first arc."
+PROSE = "A trade of Saga issues 1 to 6, the whole first arc. Collect them all."
 
 
 async def test_the_model_is_asked_only_when_the_rules_find_nothing(
@@ -248,6 +252,9 @@ async def test_the_model_is_asked_only_when_the_rules_find_nothing(
         1,
     )
     assert rows(await collects_of(factory, volume_id)) == [("Saga", "#1-6", "parsed")]
+    # A model entry is text only, even for the title's own series.
+    (entry,) = body["collects"]
+    assert entry["link"] is None
 
 
 async def test_a_hallucinated_answer_writes_nothing(sessionmaker_for_test):
@@ -388,3 +395,225 @@ async def test_the_route_is_admin_only(sessionmaker_for_test):
         response = await client.post(path(uuid.uuid4()), json={})
     assert response.status_code == 401
     _ = (select, Item)
+
+
+# --- Review fixes (#327) ------------------------------------------------------
+
+
+async def parse(factory, volume_id, provider=None, note=None):
+    async with client_for(factory, provider or StubProvider()) as client:
+        return (
+            await client.post(path(volume_id), json={"note": note} if note else {})
+        ).json()
+
+
+async def test_a_range_past_the_known_issue_count_is_not_linked(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    item_id, volume_id = await volume_with(
+        factory,
+        "Collects Saga #1-3 and Saga #40-9999.",
+        source_metadata={"issue_count": 50},
+    )
+    body = await parse(factory, volume_id)
+    by_text = {c["issue_text"]: c["link"] for c in body["collects"]}
+    assert by_text["#1-3"] is not None
+    assert by_text["#40-9999"] is None
+    assert set(await marks(factory, item_id)) == {1, 2, 3}
+
+
+@pytest.mark.parametrize("metadata", [None, {}, {"issue_count": 0}])
+async def test_an_unknown_issue_count_never_links(sessionmaker_for_test, metadata):
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(
+        factory, "Collects Saga #1-3.", source_metadata=metadata
+    )
+    body = await parse(factory, volume_id)
+    assert [c["link"] for c in body["collects"]] == [None]
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Collects issues #1-6 of Aquaman",
+        "Collects issues #1-6 plus Hellboy #3",
+        "Collects issues #1-6 from the Hellboy series",
+    ],
+)
+async def test_an_unnamed_run_with_more_said_after_it_takes_no_title(
+    sessionmaker_for_test, description
+):
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(factory, description, title="Justice League")
+    body = await parse(factory, volume_id, StubProvider({"entries": []}))
+    assert body["collects"] == []
+    assert all(
+        c.series_name != "Justice League" for c in await collects_of(factory, volume_id)
+    )
+
+
+async def test_a_year_that_differs_from_the_titles_keeps_the_entry_as_text(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    _, other = await volume_with(factory, "Collects Saga (2012) #1-3.", year=2014)
+    _, same = await volume_with(factory, "Collects Saga (2014) #1-3.", year=2014)
+    _, unknown = await volume_with(factory, "Collects Saga (2014) #1-3.")
+    _, plain = await volume_with(factory, "Collects Saga #1-3.", year=2014)
+    links = {}
+    for name, vid in (
+        ("other", other),
+        ("same", same),
+        ("unknown", unknown),
+        ("plain", plain),
+    ):
+        body = await parse(factory, vid)
+        links[name] = body["collects"][0]["link"] is not None
+    assert links == {"other": False, "same": True, "unknown": False, "plain": True}
+
+
+async def test_a_leading_the_is_ignored_for_the_own_title_check_and_duplicates(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    item_id, volume_id = await volume_with(
+        factory,
+        "Collects Walking Dead #1-6 and The Walking Dead #7.",
+        title="The Walking Dead",
+    )
+    await add_collect(factory, volume_id, 0, "typed", "The Walking Dead", "#7")
+    body = await parse(factory, volume_id)
+    assert body["entries_added"] == 1  # "#7" was already typed, "the" aside
+    added = [c for c in body["collects"] if c["source"] == "parsed"]
+    assert [(c["series_name"], c["issue_text"]) for c in added] == [
+        ("Walking Dead", "#1-6")
+    ]
+    assert added[0]["link"]["item_id"] == str(item_id)  # same series as the title
+
+
+async def test_the_model_sees_the_note_first_and_is_checked_on_what_it_saw(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    tail = "Saga issues 1 to 6"
+    _, volume_id = await volume_with(factory, ("Filler words. " * 400) + tail)
+    provider = StubProvider(
+        {"entries": [{"series_name": "Saga", "issue_text": "#1-6"}]}
+    )
+    body = await parse(factory, volume_id, provider, note="Reprint line: Collect them")
+    (prompt,) = provider.prompts
+    assert prompt.split("Text:\n", 1)[1].startswith("Reprint line: Collect them")
+    assert tail not in prompt  # the description was the part that was cut
+    # The answer is grounded only in the cut-off part, so it is discarded.
+    assert (body["used_model"], body["reason"], body["entries_added"]) == (
+        True,
+        "no_match",
+        0,
+    )
+
+
+async def test_a_parse_and_the_link_leave_edited_as_it_was(sessionmaker_for_test):
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(factory, None)
+    source = PagingComicVine()
+    issue = _cv(99, 1)
+    source.linkable[99] = type(issue)(
+        **{**issue.__dict__, "description": ["Collects Saga #1-3."]}
+    )
+    async with client_for(factory, StubProvider(), source) as client:
+        await client.put(f"{BASE}/volumes/{volume_id}/link", json={"cv_id": 99})
+    # The link itself marks the volume edited; undo that to watch the parse.
+    async with factory() as session:
+        (await session.get(ComicVolume, volume_id)).edited = False
+        await session.commit()
+    async with client_for(factory, StubProvider(), source) as client:
+        await client.post(path(volume_id), json={"note": "Collects Saga #4."})
+    assert (await get_volume(factory, volume_id)).edited is False
+
+
+async def test_rows_removed_by_a_reparse_are_reported_not_hidden(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(factory, "Collects Saga #1-3 and Saga #4.")
+    await add_collect(factory, volume_id, 0, "parsed", "Old Series", "#9")
+    await add_collect(factory, volume_id, 1, "typed", "Saga", "#1-3")
+    await add_collect(factory, volume_id, 2, "typed", "Saga", "#4")
+    body = await parse(factory, volume_id)
+    assert (body["entries_added"], body["entries_replaced"]) == (0, 0)
+    assert body["entries_removed"] == 1
+    assert body["reason"] is None
+    assert [c["source"] for c in body["collects"]] == ["typed", "typed"]
+
+
+async def test_a_reparse_keeps_identical_rows_and_their_positions(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(factory, "Collects Saga #1-3 and Hellboy #4.")
+    first = await parse(factory, volume_id)
+    async with factory() as session:
+        row = await session.get(ComicVolume, volume_id)
+        row.description = "Collects Saga #1-3 and Hellboy #4 and Saga #8."
+        await session.commit()
+    second = await parse(factory, volume_id)
+    assert (second["entries_added"], second["entries_removed"]) == (1, 0)
+    kept = [c["id"] for c in second["collects"][:2]]
+    assert kept == [c["id"] for c in first["collects"]]
+    assert [c["position"] for c in second["collects"]] == [0, 1, 2]
+
+
+async def test_a_9999_range_typed_by_hand_saves_without_a_500(
+    sessionmaker_for_test,
+):
+    from tests.test_comic_volume_admin import create, link, put_body
+
+    factory = sessionmaker_for_test
+    item_id = await make(factory)
+    async with client_for(factory, StubProvider()) as client:
+        volume = await create(client, item_id)
+        response = await client.put(
+            f"{BASE}/volumes/{volume['id']}",
+            json=put_body(
+                collects=[
+                    {
+                        "series_name": "Saga",
+                        "issue_text": "#1-9999",
+                        "link": link(item_id, 1, 9999),
+                    }
+                ]
+            ),
+        )
+    assert response.status_code == 200, response.text
+    assert len(await marks(factory, item_id)) == 9999
+
+
+async def test_a_failure_after_a_partial_write_rolls_back_and_keeps_the_link(
+    sessionmaker_for_test, monkeypatch
+):
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    factory = sessionmaker_for_test
+    _, volume_id = await volume_with(factory, None)
+    await add_collect(factory, volume_id, 0, "parsed", "Old Series", "#9")
+    source = PagingComicVine()
+    issue = _cv(99, 1)
+    source.linkable[99] = type(issue)(
+        **{**issue.__dict__, "description": ["Collects Saga #1-3."]}
+    )
+
+    def boom(self, instances):
+        raise RuntimeError("insert broke")
+
+    monkeypatch.setattr(AsyncSession, "add_all", boom)
+    async with client_for(factory, None, source) as client:
+        response = await client.put(
+            f"{BASE}/volumes/{volume_id}/link", json={"cv_id": 99}
+        )
+    assert response.status_code == 200
+    assert (await get_volume(factory, volume_id)).cv_id == 99  # the link stands
+    # The old row was deleted inside the savepoint, then restored by it.
+    assert rows(await collects_of(factory, volume_id)) == [
+        ("Old Series", "#9", "parsed")
+    ]

@@ -1486,15 +1486,21 @@ def create_comics_router(
         volume: ComicVolume,
         title: Item,
         found: list[comic_contents.Entry],
+        *,
+        may_link: bool,
     ) -> tuple[int, int]:
-        """Replaces this volume's `parsed` entries with `found`; returns
-        (added, replaced). Typed, migrated and photo entries are never read
-        for change or removed, and a new entry equal to one of them (same
-        normalised series, same issue text) is skipped. An entry with no
-        series takes the title's name; one of the title's own series with
-        one plain range or number is linked to the title (the only
-        auto-link), everything else is text. Nothing found changes nothing,
-        so an earlier parse is never lost to a worse one."""
+        """Reconciles this volume's `parsed` entries with `found`; returns
+        (added, removed). Typed, migrated and photo entries are never touched,
+        and a new entry equal to one of them (same normalised series, "the"
+        aside, and issue text) is skipped. A parsed entry found again is kept
+        as it is (same row, same position); one no longer found is deleted;
+        the rest are appended. An entry with no series takes the title's name.
+        Only a RULES entry (`may_link`) of the title's own series, whose issue
+        text is one plain range or number within the title's known issue
+        count and whose bracketed year, if any, is the title's, is linked to
+        the title: the only auto-link. A model entry, and everything else, is
+        text. Nothing found changes nothing, so an earlier parse is never lost
+        to a worse one."""
         if not found:
             return 0, 0
         existing = list(
@@ -1512,17 +1518,52 @@ def create_comics_router(
                 issues.lower().split()
             )
 
+        metadata = title.source_metadata or {}
+        count = metadata.get("issue_count")
+        count = count if isinstance(count, int) and not isinstance(count, bool) else 0
+        start_year = title.year or metadata.get("start_year")
+        try:
+            start_year = int(start_year) if start_year else None
+        except (TypeError, ValueError):
+            start_year = None
+
+        def link_of(entry: comic_contents.Entry, series: str):
+            plain = comic_contents.plain_range(entry.issue_text)
+            if (
+                not may_link
+                or plain is None
+                or count <= 0
+                or plain[1] > count
+                or comic_contents.normalize_name(series)
+                != comic_contents.normalize_name(title.title)
+                or (entry.year is not None and entry.year != start_year)
+            ):
+                return None, None, None
+            return title.id, plain[0], plain[1]
+
         taken = {key(row.series_name, row.issue_text) for row in kept}
-        own = comic_contents.normalize_name(title.title)
-        position = max((row.position for row in kept), default=-1) + 1
+        old_by_key = {key(r.series_name, r.issue_text): r for r in reversed(old)}
+        position = max((row.position for row in existing), default=-1) + 1
         fresh: list[ComicVolumeCollect] = []
+        reused: set = set()
         for entry in found:
             series = entry.series_name or title.title
-            if key(series, entry.issue_text) in taken:
+            wanted = key(series, entry.issue_text)
+            if wanted in taken:
                 continue
-            taken.add(key(series, entry.issue_text))
-            plain = comic_contents.plain_range(entry.issue_text)
-            linked = plain is not None and comic_contents.normalize_name(series) == own
+            taken.add(wanted)
+            item_id, low, high = link_of(entry, series)
+            row = old_by_key.get(wanted)
+            if row is not None:
+                reused.add(row.id)
+                for field, value in (
+                    ("item_id", item_id),
+                    ("from_number", low),
+                    ("to_number", high),
+                ):
+                    if getattr(row, field) != value:
+                        setattr(row, field, value)
+                continue
             fresh.append(
                 ComicVolumeCollect(
                     id=uuid.uuid4(),
@@ -1531,19 +1572,20 @@ def create_comics_router(
                     series_name=series,
                     issue_text=entry.issue_text,
                     source="parsed",
-                    item_id=title.id if linked else None,
-                    from_number=plain[0] if linked else None,
-                    to_number=plain[1] if linked else None,
+                    item_id=item_id,
+                    from_number=low,
+                    to_number=high,
                 )
             )
             position += 1
-        for row in old:
+        gone = [row for row in old if row.id not in reused]
+        for row in gone:
             await session.delete(row)
         await session.flush()
-        session.add_all(fresh)
-        volume.edited = True
+        if fresh:
+            session.add_all(fresh)
         await session.flush()
-        return len(fresh), len(old)
+        return len(fresh), len(gone)
 
     async def _model_contents(
         session: AsyncSession, text: str
@@ -1595,32 +1637,38 @@ def create_comics_router(
             if part and part.strip()
         )
         found: list[comic_contents.Entry] = []
-        used_model, reason = False, None
+        used_model, reason, rules = False, None, True
         if not text:
             reason = "no_text"
         else:
             found = comic_contents.parse_contents(text)
             if not found:
-                found, used_model, reason = await _model_contents(session, text)
-        added = replaced = 0
+                rules = False  # model entries are text only, never linked
+                source_text = comic_contents.model_source(peek.description, body.note)
+                found, used_model, reason = await _model_contents(session, source_text)
+        added = removed = 0
         volume, items = await _lock_volume(session, volume_id)
         if reason is None or reason == "no_match":
             title = items.get(volume.item_id)
             if title is not None:
-                added, replaced = await _apply_parsed(session, volume, title, found)
+                added, removed = await _apply_parsed(
+                    session, volume, title, found, may_link=rules
+                )
             if not found:
                 reason = "no_match"
-        if added or replaced:
+        if found:
             await _finish(session, items)
             await session.refresh(volume)
         else:
             await session.commit()  # keep what the shim did
         view = await _view(session, volume)
+        replaced = min(added, removed)
         return {
             "entries_added": added,
             "entries_replaced": replaced,
+            "entries_removed": removed - replaced,
             "used_model": used_model,
-            "reason": reason if not (added or replaced) else None,
+            "reason": reason if not found else None,
             "collects": view["collects"],
         }
 
@@ -1963,6 +2011,7 @@ def create_comics_router(
                         volume,
                         title,
                         comic_contents.parse_contents(volume.description),
+                        may_link=True,
                     )
             except Exception:  # noqa: BLE001 -- the link stands without it
                 logger.warning("comic contents: link parse failed", exc_info=True)

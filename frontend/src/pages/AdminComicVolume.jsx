@@ -292,8 +292,8 @@ export default function AdminComicVolume() {
       setVolume((current) => ({
         ...current,
         collects: result.collects,
-        edited: current.edited || result.entries_added > 0,
       }))
+      const removed = result.entries_removed ?? 0
       const words = COPY.collects.read
       setLine({
         area: 'collects',
@@ -301,10 +301,12 @@ export default function AdminComicVolume() {
           result.entries_added > 0
             ? words.added(
                 result.entries_added,
-                result.entries_replaced,
+                result.entries_replaced + removed,
                 result.used_model,
               )
-            : (words.reasons[result.reason] ?? words.nothingNew),
+            : removed > 0
+              ? words.removed(removed)
+              : (words.reasons[result.reason] ?? words.nothingNew),
       })
       return null
     })

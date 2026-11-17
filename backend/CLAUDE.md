@@ -577,41 +577,59 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `editions` PATCH keep working until a later PR drops them.
   **Contents parse (#327, PR 5, no migration):** `comic_contents.py` (pure,
   in `test_physical_imports.py`'s purity list) turns a description or reprint
-  note into `Entry{series_name, issue_text}`. `parse_contents` is rules only
-  and never guesses: it needs a trigger (collects, reprints, includes,
+  note into `Entry{series_name, issue_text, year}`. `parse_contents` is rules
+  only and never guesses: it needs a trigger (collects, reprints, includes,
   contains, originally published in) and reads `#1-6`, lists, "issues 1-5",
-  "No.", "Vol. N" (dropped from the series), en/em dashes, `&`/and/commas/
-  semicolons between runs and `Annual`/`Special` (kept as issue text, one
-  entry per range element). A clause with anything that is not a title before
-  a number, or prose after it ("#1 sold 1 million"), is dropped whole. Caps:
-  20 entries, series 120, issue text 200. No series named means `''`.
-  `POST /api/comics/volumes/{id}/contents/parse` `{note?: <=2000}` (admin):
-  text = description + note; rules, then ONLY if they find nothing, the text
-  is non-empty and `intake/budget.remaining` > 0, one `complete_json` call on
-  the Gemini-only provider (`provider_factory`, 40 s, `CONTENTS_CALL_SECONDS`,
-  usage recorded by the provider's recorder like the tag job's; no retry).
-  The answer passes `comic_contents.validate_model`: every number in an issue
-  text must stand in the source as a whole number, a series name must appear
-  in it (any case) or be empty, caps hold; one bad entry discards the whole
-  answer. Response `{entries_added, entries_replaced, used_model, reason:
-  null|budget|no_match|model_error|no_text, collects}`. No provider or a model
-  error is `model_error`, a spent budget `budget` (model not called). The
-  model call runs before any row lock; the write then locks items, then the
-  volume (`_lock_volume`). `_apply_parsed` replaces only this volume's
-  `parsed` entries (typed, migrated and photo are never touched; a new entry
-  equal to one of them by normalised series and issue text is skipped; a parse
-  that finds nothing deletes nothing), gives an empty series the title's name,
-  and links an entry to the title only when its normalised series equals the
-  title's and its text is one plain range or number 1..9999 (the only
-  auto-link; marks then derive through `sync_marks`); sets `edited`. `PUT
-  /volumes/{id}/link` runs the same replace with RULES ONLY on the copied
-  description (never the model, never budget), in a savepoint so a failure
-  cannot fail the link. **Reprint note from a photo:** the comic intake
-  schema's optional `reprint_note` (<=300 chars) lands in a collected book's
-  entry payload when non-empty; PATCH checks it (`comic_books.edit_book`) and
-  keeps it when a payload omits it. Nothing consumes it at commit yet: story
-  #328 will pass it to `parse_contents` and write the entries with source
-  `photo`.
+  "No.", "Vol. N" (dropped from the series), a bracketed year (kept on the
+  entry, not the name), en/em dashes, `&`/and/commas/semicolons between runs
+  and `Annual`/`Special` (kept as issue text, one entry per range element). A
+  clause with anything that is not a title before a number (a stray `/`, a
+  bare year), or prose after it ("#1 sold 1 million"), is dropped whole; an
+  unnamed run ("Collects issues #1-5") counts only when nothing else is said
+  in the clause ("of Aquaman", "plus Hellboy #3" drop it). Caps: 20 entries,
+  series 120, issue text 200. `normalize_name` ignores case, `&`, a bracketed
+  year and a leading "the" on both sides of every comparison; the displayed
+  name keeps its "The". `POST /api/comics/volumes/{id}/contents/parse`
+  `{note?: <=2000}` (admin): text = description + note; rules, then ONLY if
+  they find nothing, the text is non-empty and `intake/budget.remaining` > 0,
+  one `complete_json` call on the Gemini-only provider (`provider_factory`,
+  40 s, `CONTENTS_CALL_SECONDS`, usage recorded by the provider's recorder
+  like the tag job's; no retry). The model sees `model_source` (note FIRST,
+  then the description, cut to 4000) and its answer is checked against that
+  same text by `comic_contents.validate_model`: every clause of an issue text
+  must be reproducible from it (the exact `#1-6`/`#7`/`Annual #2`, or "1 to
+  6"/"issue 7" for a plain range or number; numbers merely being present is
+  not enough), no backwards range, nothing over 9999, a series name that is in
+  the text, an empty one only when the text has a contents phrase; one bad
+  entry discards the whole answer. Model entries are TEXT ONLY, never linked.
+  Response `{entries_added, entries_replaced, entries_removed, used_model,
+  reason: null|budget|no_match|model_error|no_text, collects}`. No provider
+  or a model error is `model_error`, a spent budget `budget` (model not
+  called). The model call runs before any row lock; the write then locks
+  items, then the volume (`_lock_volume`). `_apply_parsed` reconciles only
+  this volume's `parsed` entries: typed, migrated and photo are never touched,
+  a new entry equal to one of them is skipped, a parsed entry found again keeps
+  its row and position, one no longer found is deleted (`entries_removed` is
+  those with nothing replacing them), the rest are appended, and a parse that
+  finds nothing deletes nothing. An empty series takes the title's name. A
+  RULES entry is linked to the title only when its normalised series equals
+  the title's, its text is one plain range or number 1..9999 **within the
+  title's known issue count** (`source_metadata.issue_count`; unknown or 0
+  means no link), and any bracketed year equals the title's year (unknown
+  title year means no link): the only auto-link (marks then derive through
+  `sync_marks`). A parse does NOT set `edited`. `PUT /volumes/{id}/link` runs
+  the same with RULES ONLY on the copied description (never the model, never
+  budget), in a savepoint so a failure cannot fail the link or leave a partial
+  write. `sync_marks` inserts its stub rows in chunks of `INSERT_CHUNK` (1000)
+  so a large range cannot pass asyncpg's bind limit. **Reprint note from a
+  photo:** the comic intake schema's optional `reprint_note` (<=300 chars)
+  lands in a collected book's entry payload when non-empty; PATCH checks it
+  (`comic_books.edit_book`) and keeps it when a payload omits it. Nothing
+  consumes it at commit yet: story #328 will pass it to `parse_contents` and
+  write the entries with source `photo`. **Known limits:** a no-trigger
+  description that the rules cannot read costs one model call on every click
+  (no memo of `no_match`); the 12-call reserve protects intake, and two tabs
+  clicking at once can overspend the budget by one.
   **Public read (#335 book-page slice, #329):** `GET
   /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)
   serves one OWNED volume of a PUBLIC comic title, `ed-*` slugs included (old
