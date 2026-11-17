@@ -1560,6 +1560,65 @@ async def test_0021_malformed_editions_are_copied_not_dropped(clean_database):
 
 
 @pytest.mark.asyncio
+async def test_0021_backfill_survives_editions_that_are_not_lists(clean_database):
+    """Production's first 0021 run failed with "cannot get array length of a
+    scalar": the old WHERE clause relied on `jsonb_typeof(...) = 'array'`
+    running before `jsonb_array_length`, and Postgres does not order AND.
+    Any non-list `editions` value must be skipped, not fatal."""
+    import json
+    import uuid
+
+    assert _alembic("upgrade", "0020").returncode == 0
+    odd = {
+        "scalar number": "5",
+        "scalar string": json.dumps("trade"),
+        "json null": "null",
+        "object": json.dumps({"kind": "Trade", "from": 1, "to": 2}),
+        "empty list": "[]",
+    }
+    good_id = str(uuid.uuid4())
+    async with clean_database.begin() as connection:
+        for title, value in odd.items():
+            await connection.execute(
+                text(
+                    "INSERT INTO items (id, type, title, status, editions) VALUES "
+                    "(CAST(:id AS uuid), 'comic', :title, 'backlog', "
+                    "CAST(:editions AS jsonb))"
+                ),
+                {"id": str(uuid.uuid4()), "title": title, "editions": value},
+            )
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status, editions) VALUES "
+                "(CAST(:id AS uuid), 'comic', 'Good', 'backlog', "
+                "CAST(:editions AS jsonb))"
+            ),
+            {
+                "id": good_id,
+                "editions": json.dumps(
+                    [{"kind": "Trade", "label": "Vol 1", "from": 1, "to": 6}]
+                ),
+            },
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) "
+                "VALUES (CAST(:id AS uuid), 'comic', 'Null', 'backlog')"
+            ),
+            {"id": str(uuid.uuid4())},
+        )
+    result = _alembic("upgrade", "0021")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        rows = (
+            await connection.execute(
+                text("SELECT item_id::text, slug FROM comic_volumes")
+            )
+        ).all()
+    assert [tuple(r) for r in rows] == [(good_id, "ed-1-6")]
+
+
+@pytest.mark.asyncio
 async def test_0021_cascades_and_keeps_issue_rows(clean_database):
     assert _alembic("upgrade", "0020").returncode == 0
     await _seed_editions(clean_database)
