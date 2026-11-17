@@ -85,6 +85,7 @@ const send = (method, body) => ({
 })
 
 const enc = encodeURIComponent
+const COPY_PARSE_FAILED = 'Couldn’t read the contents.'
 
 /** A title's books, in line order. */
 export const listVolumes = (itemId) =>
@@ -107,6 +108,18 @@ export const replaceVolume = (volumeId, body) =>
     `/volumes/${enc(volumeId)}`,
     send('PUT', body),
     'Couldn’t save that book.',
+  )
+
+/**
+ * Reads the book's contents from its description and an optional pasted
+ * reprint note. Answers `{entries_added, entries_replaced, used_model,
+ * reason, collects}`; typed entries are never touched by the server.
+ */
+export const parseContents = (volumeId, note) =>
+  call(
+    `/volumes/${enc(volumeId)}/contents/parse`,
+    send('POST', note ? { note } : {}),
+    COPY_PARSE_FAILED,
   )
 
 /** Owned and/or read, one write. */

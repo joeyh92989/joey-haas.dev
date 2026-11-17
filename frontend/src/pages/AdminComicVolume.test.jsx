@@ -59,7 +59,7 @@ function applyPut(current, body) {
   }
 }
 
-function stubApi({ fail = {}, current = view } = {}) {
+function stubApi({ fail = {}, current = view, parse = null } = {}) {
   const writes = []
   let stored = current
   const fetch = vi.fn(async (url, options = {}) => {
@@ -95,6 +95,17 @@ function stubApi({ fail = {}, current = view } = {}) {
       `${method} ${path}`.includes(key),
     )
     if (refusal) return reply(refusal[1].body, refusal[1].status)
+    if (method === 'POST' && path.endsWith('/contents/parse')) {
+      const result = parse ?? {
+        entries_added: 0,
+        entries_replaced: 0,
+        used_model: false,
+        reason: 'no_match',
+        collects: stored.collects,
+      }
+      stored = { ...stored, collects: result.collects }
+      return reply(result)
+    }
     if (method === 'PATCH') {
       stored = { ...stored, ...body }
       return reply({ ...state, ...body })
@@ -523,6 +534,158 @@ describe('AdminComicVolume: collects', () => {
     expect(screen.getByLabelText('Series as printed')).toHaveValue(
       'Paper Moons',
     )
+  })
+})
+
+const PARSED = {
+  id: 'cccccccc-0000-0000-0000-000000000009',
+  position: 3,
+  series_name: 'Hellboy',
+  issue_text: '#4',
+  source: 'parsed',
+  link: null,
+}
+
+describe('AdminComicVolume: read the contents from the description', () => {
+  const parsePath = `/api/comics/volumes/${VOL}/contents/parse`
+
+  it('posts the route with no body, says what was added and shows the new entry', async () => {
+    const { writes } = stubApi({
+      parse: {
+        entries_added: 2,
+        entries_replaced: 0,
+        used_model: false,
+        reason: null,
+        collects: [...view.collects, PARSED],
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(
+      screen.getByRole('button', { name: 'Read from description' }),
+    )
+    expect(await screen.findByText('Added 2 entries.')).toBeVisible()
+    expect(writes).toEqual([['POST', parsePath, {}]])
+    const list = screen.getByRole('list', { name: 'What is inside' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(list).getByText('Hellboy')).toBeVisible()
+    expect(within(list).getByText(/Source: Read from text/)).toBeVisible()
+  })
+
+  it('says when the model read it and when earlier reads were replaced', async () => {
+    stubApi({
+      parse: {
+        entries_added: 1,
+        entries_replaced: 1,
+        used_model: true,
+        reason: null,
+        collects: view.collects,
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(
+      screen.getByRole('button', { name: 'Read from description' }),
+    )
+    expect(
+      await screen.findByText(
+        'Added 1 entry, replacing 1 read earlier, read by the model.',
+      ),
+    ).toBeVisible()
+  })
+
+  it.each([
+    ['no_match', 'Found nothing in the description.'],
+    ['budget', 'Today’s model budget is used up; add the contents by hand.'],
+    [
+      'model_error',
+      'The model couldn’t read it just now; add the contents by hand.',
+    ],
+    [
+      'no_text',
+      'There is no description to read. Paste the reprint note, or add the contents by hand.',
+    ],
+  ])(
+    'says %s in plain words and leaves the list alone',
+    async (reason, text) => {
+      stubApi({
+        parse: {
+          entries_added: 0,
+          entries_replaced: 0,
+          used_model: false,
+          reason,
+          collects: view.collects,
+        },
+      })
+      const user = userEvent.setup()
+      renderPage()
+      await ready()
+      await user.click(
+        screen.getByRole('button', { name: 'Read from description' }),
+      )
+      expect(await screen.findByText(text)).toBeVisible()
+      expect(
+        within(
+          screen.getByRole('list', { name: 'What is inside' }),
+        ).getAllByRole('listitem'),
+      ).toHaveLength(3)
+    },
+  )
+
+  it('sends a pasted reprint note, and only when the box is open', async () => {
+    const { writes } = stubApi()
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    expect(screen.queryByLabelText('Reprint note')).toBeNull()
+    await user.click(
+      screen.getByRole('button', { name: 'Paste the reprint note' }),
+    )
+    await user.type(screen.getByLabelText('Reprint note'), 'Collects Saga #1-6')
+    await user.click(
+      screen.getByRole('button', { name: 'Read from description' }),
+    )
+    await screen.findByText('Found nothing in the description.')
+    expect(writes).toEqual([
+      ['POST', parsePath, { note: 'Collects Saga #1-6' }],
+    ])
+    await user.click(
+      screen.getByRole('button', { name: 'Hide the reprint note' }),
+    )
+    expect(screen.queryByLabelText('Reprint note')).toBeNull()
+  })
+
+  it('shows the server’s refusal and keeps the list', async () => {
+    stubApi({
+      fail: {
+        'contents/parse': { status: 404, body: { detail: 'No such volume' } },
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(
+      screen.getByRole('button', { name: 'Read from description' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('No such volume')
+    expect(
+      within(screen.getByRole('list', { name: 'What is inside' })).getAllByRole(
+        'listitem',
+      ),
+    ).toHaveLength(3)
+  })
+
+  it('has no axe violations with the note box open', async () => {
+    stubApi()
+    const user = userEvent.setup()
+    const { container } = renderPage()
+    await ready()
+    await user.click(
+      screen.getByRole('button', { name: 'Paste the reprint note' }),
+    )
+    expect(await axeViolations(container)).toEqual([])
   })
 })
 

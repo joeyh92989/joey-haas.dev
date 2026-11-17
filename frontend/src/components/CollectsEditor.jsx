@@ -265,9 +265,20 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
  * @param {{status: string, list: object[]}} props.titles - The comics on the shelf.
  * @param {boolean} props.busy - A write is in flight.
  * @param {(list: object[], line: string, undo?: object[]) => Promise<object|null>} props.onSave
+ * @param {(note: string) => Promise<unknown>} [props.onParse] - Reads the
+ *   contents from the description and the pasted note; the page shows the result.
  */
-export default function CollectsEditor({ entries, titles, busy, onSave }) {
+export default function CollectsEditor({
+  entries,
+  titles,
+  busy,
+  onSave,
+  onParse,
+}) {
+  const noteId = useId()
   const [editing, setEditing] = useState(null) // an entry id, or 'new'
+  const [noting, setNoting] = useState(false)
+  const [note, setNote] = useState('')
   const saved = entries.map(collectBody)
 
   async function saveDraft(draft, entry) {
@@ -292,6 +303,44 @@ export default function CollectsEditor({ entries, titles, busy, onSave }) {
 
   return (
     <>
+      {onParse && (
+        <div className="admin-collect-read">
+          <div className="admin-collect-actions">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onParse(noting ? note : '')}
+            >
+              {busy ? C.read.reading : C.read.button}
+            </button>
+            <button
+              type="button"
+              className="link-button"
+              aria-expanded={noting}
+              onClick={() => setNoting((on) => !on)}
+            >
+              {noting ? C.read.noteHide : C.read.noteToggle}
+            </button>
+          </div>
+          <p className="muted comic-hint">{C.read.hint}</p>
+          {noting && (
+            <div className="admin-collect-field">
+              <label htmlFor={noteId}>{C.read.noteLabel}</label>
+              <textarea
+                id={noteId}
+                rows={3}
+                maxLength={2000}
+                aria-describedby={`${noteId}-hint`}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+              />
+              <p id={`${noteId}-hint`} className="muted comic-hint">
+                {C.read.noteHint}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
       {entries.length === 0 ? (
         <p className="muted">{C.empty}</p>
       ) : (

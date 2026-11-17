@@ -106,6 +106,29 @@ export const volume = {
       migrated: 'Carried over',
     },
     sourceLabel: 'Source',
+    read: {
+      button: 'Read from description',
+      reading: 'Reading…',
+      hint: 'Fills in what the description or a reprint note says this book collects. It never changes an entry you typed.',
+      noteToggle: 'Paste the reprint note',
+      noteHide: 'Hide the reprint note',
+      noteLabel: 'Reprint note',
+      noteHint: 'The “Collects …” line from the back cover or the indicia.',
+      failed: 'Couldn’t read the contents.',
+      added: (n, replaced, usedModel) =>
+        `Added ${n} ${n === 1 ? 'entry' : 'entries'}${
+          replaced > 0 ? `, replacing ${replaced} read earlier` : ''
+        }${usedModel ? ', read by the model' : ''}.`,
+      nothingNew: 'Nothing new to add.',
+      reasons: {
+        no_match: 'Found nothing in the description.',
+        budget: 'Today’s model budget is used up; add the contents by hand.',
+        model_error:
+          'The model couldn’t read it just now; add the contents by hand.',
+        no_text:
+          'There is no description to read. Paste the reprint note, or add the contents by hand.',
+      },
+    },
     moved: (name) => `Moved “${name}”.`,
     added: (name) => `Added “${name}”.`,
     saved: (name) => `Saved “${name}”.`,
