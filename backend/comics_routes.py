@@ -67,8 +67,18 @@ from comics_schemas import (
     RefreshAllOut,
     TagsGenerateOut,
     UnfollowRemovedOut,
+    UnheldOut,
+    VolumeAdminOut,
+    VolumeCreateIn,
+    VolumeDeletedOut,
+    VolumeDeletePreviewOut,
     VolumeHitOut,
+    VolumeLinkIn,
+    VolumeLinkOut,
     VolumeMarkIn,
+    VolumeMoveIn,
+    VolumeMoveOut,
+    VolumeReplaceIn,
     VolumeStateOut,
     WallOut,
 )
@@ -88,7 +98,7 @@ from models import (
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
 from public_comics import comic_detail, read_marks_count
-from public_issues import build_wall
+from public_issues import _line_order, build_wall
 from sources.base import SourceError
 from sources.cv_text import paragraphs
 from sources.registry import adapter_for
@@ -197,6 +207,26 @@ def _state(item: Item, held: list[dict] | None = None) -> dict:
 async def _state_of(session: AsyncSession, item: Item) -> dict:
     """`_state` over the item's owned volumes."""
     return _state(item, held_ranges(await load_holds(session, item.id)))
+
+
+async def _follow_read_to(
+    session: AsyncSession, item: Item, result: MarksResult
+) -> None:
+    """`read_to` is derived from the marks: after a re-sync that changed any,
+    recompute it from the rows (the volume routes' tail)."""
+    if not (result.rows_changed or result.stubs_added or result.stubs_removed):
+        return
+    rows = (
+        await session.execute(
+            select(ComicIssue.number, ComicIssue.owned, ComicIssue.read).where(
+                ComicIssue.item_id == item.id
+            )
+        )
+    ).all()
+    item.read_to = read_to_of(
+        [n for n, owned, _ in rows if owned],
+        [n for n, owned, read in rows if owned and read],
+    )
 
 
 def _exception_error(error: BaseException) -> dict:
@@ -1241,18 +1271,7 @@ def create_comics_router(
                 result = await sync_marks(session, item, reads=reads)
             else:
                 result = await sync_marks(session, item)
-            if result.rows_changed or result.stubs_added or result.stubs_removed:
-                rows = (
-                    await session.execute(
-                        select(
-                            ComicIssue.number, ComicIssue.owned, ComicIssue.read
-                        ).where(ComicIssue.item_id == item.id)
-                    )
-                ).all()
-                item.read_to = read_to_of(
-                    [n for n, owned, _ in rows if owned],
-                    [n for n, owned, read in rows if owned and read],
-                )
+            await _follow_read_to(session, item, result)
         own = next((i for i in items if i.id == volume.item_id), None)
         run = None
         if own is not None:
@@ -1275,6 +1294,484 @@ def create_comics_router(
             "read": volume.read,
             "comic_run": run,
             "touched": [str(i.id) for i in items],
+        }
+
+    # --- The admin volume editor (#334) ---------------------------------------
+    # Every write locks the touched `items` rows first, in sorted id order,
+    # then the volume (the order PATCH /volumes/{id} and the item routes use),
+    # runs the compat shim on each touched title before reading volumes, and
+    # ends in `sync_marks` for every touched title: the old and the new link
+    # targets, the old and the new title.
+
+    async def _linked_ids(session: AsyncSession, volume_id: uuid.UUID) -> set:
+        return set(
+            await session.scalars(
+                select(ComicVolumeCollect.item_id).where(
+                    ComicVolumeCollect.volume_id == volume_id,
+                    ComicVolumeCollect.item_id.is_not(None),
+                )
+            )
+        )
+
+    async def _lock_titles(session: AsyncSession, ids: set) -> dict:
+        """Locks the comic rows among `ids` in sorted order and runs the shim
+        on each; returns {id: Item} for those that exist and are comics."""
+        items: dict = {}
+        for each in sorted(ids, key=str):
+            row = await session.get(Item, each, with_for_update=True)
+            if row is not None and row.type == ItemType.COMIC:
+                await sync_volumes_from_editions(session, row)
+                items[each] = row
+        return items
+
+    async def _lock_volume(
+        session: AsyncSession, volume_id: uuid.UUID, extra: set = frozenset()
+    ) -> tuple[ComicVolume, dict]:
+        """Items first (the volume's title, its collects' targets, `extra`),
+        then the volume. 404 when the volume is gone, also after the shim
+        dropped it; 409 when it moved to another title meanwhile."""
+        peek = await session.get(ComicVolume, volume_id)
+        if peek is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        linked = await _linked_ids(session, volume_id)
+        items = await _lock_titles(session, {peek.item_id, *linked, *extra})
+        volume = await session.get(
+            ComicVolume, volume_id, with_for_update=True, populate_existing=True
+        )
+        if volume is None:
+            await session.commit()  # keep what the shim did
+            raise HTTPException(status_code=404, detail="No such volume")
+        if volume.item_id != peek.item_id or not (
+            await _linked_ids(session, volume_id) <= set(items) | {None}
+        ):
+            await session.rollback()
+            raise HTTPException(
+                status_code=409, detail="The volume changed meanwhile; reload it"
+            )
+        return volume, items
+
+    async def _finish(session: AsyncSession, items: dict) -> list[str]:
+        """sync_marks for every touched title (sorted), then commit."""
+        for each in sorted(items, key=str):
+            result = await sync_marks(session, items[each])
+            await _follow_read_to(session, items[each], result)
+        await session.commit()
+        return [str(each) for each in sorted(items, key=str)]
+
+    def _drop_edition_entry(item: Item, volume: ComicVolume) -> bool:
+        """An edition-origin volume (`ed-*`, edited or not) stands for an entry
+        of `items.editions`: take the entry out, so the shim cannot recreate
+        the volume where it was. The entry is the one `edition_slugs` gives
+        the volume's slug over the CURRENT list; none matching (range edited
+        away, already removed) is a quiet False."""
+        if not volume.slug.startswith("ed-"):
+            return False
+        editions = [dict(e) for e in item.editions or [] if isinstance(e, dict)]
+        slugs = edition_slugs(editions)
+        if volume.slug not in slugs:
+            return False
+        del editions[slugs.index(volume.slug)]
+        item.editions = editions
+        return True
+
+    async def _free_slug(session: AsyncSession, item_id: uuid.UUID) -> str:
+        taken = set(
+            await session.scalars(
+                select(ComicVolume.slug).where(ComicVolume.item_id == item_id)
+            )
+        )
+        n = 1
+        while f"vol-{n}" in taken:
+            n += 1
+        return f"vol-{n}"
+
+    async def _next_position(session: AsyncSession, item_id: uuid.UUID) -> int:
+        top = await session.scalar(
+            select(func.max(ComicVolume.position)).where(ComicVolume.item_id == item_id)
+        )
+        return 0 if top is None else top + 1
+
+    async def _view(session: AsyncSession, volume: ComicVolume) -> dict:
+        title = await session.get(Item, volume.item_id)
+        rows = (
+            await session.execute(
+                select(ComicVolumeCollect, Item)
+                .outerjoin(Item, Item.id == ComicVolumeCollect.item_id)
+                .where(ComicVolumeCollect.volume_id == volume.id)
+                .order_by(ComicVolumeCollect.position)
+            )
+        ).all()
+        line = sorted(
+            await session.scalars(
+                select(ComicVolume).where(ComicVolume.item_id == volume.item_id)
+            ),
+            key=_line_order,
+        )
+        index = next(i for i, v in enumerate(line) if v.id == volume.id)
+
+        def neighbour(other: ComicVolume | None) -> dict | None:
+            if other is None:
+                return None
+            return {
+                "id": str(other.id),
+                "slug": other.slug,
+                "label": other.label,
+                "line_number": other.line_number,
+                "owned": other.owned,
+            }
+
+        mine = next(
+            (h for h in await load_holds(session, volume.item_id)
+             if h.volume_id == volume.id),
+            None,
+        )  # fmt: skip
+        ranges = mine.ranges if mine is not None else ()
+        return {
+            "id": str(volume.id),
+            "item_id": str(volume.item_id),
+            "slug": volume.slug,
+            "position": volume.position,
+            "label": volume.label,
+            "kind": volume.kind,
+            "kind_raw": volume.kind_raw,
+            "line_number": volume.line_number,
+            "isbn": volume.isbn,
+            "pages": volume.pages,
+            "description": volume.description,
+            "cover_url": volume.cover_url,
+            "large_url": volume.large_url,
+            "cv_id": volume.cv_id,
+            "owned": volume.owned,
+            "read": volume.read,
+            "edited": volume.edited,
+            "created_at": volume.created_at.isoformat(),
+            "title": {
+                "id": str(title.id),
+                "title": title.title,
+                "is_public": title.is_public,
+            },
+            "collects": [
+                {
+                    "id": str(collect.id),
+                    "position": collect.position,
+                    "series_name": collect.series_name,
+                    "issue_text": collect.issue_text,
+                    "source": collect.source,
+                    "link": None
+                    if target is None
+                    else {
+                        "item_id": str(target.id),
+                        "title": target.title,
+                        "from_number": collect.from_number,
+                        "to_number": collect.to_number,
+                        "is_public": target.is_public,
+                    },
+                }
+                for collect, target in rows
+            ],
+            "prev": neighbour(line[index - 1] if index > 0 else None),
+            "next": neighbour(line[index + 1] if index + 1 < len(line) else None),
+            "held_issues": format_ranges(ranges) or None,
+            "held_count": len(expand(ranges)),
+        }
+
+    @router.get("/volumes/{volume_id}", response_model=VolumeAdminOut)
+    async def get_volume(
+        volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """The whole admin view of one volume, private data included."""
+        volume = await session.get(ComicVolume, volume_id)
+        if volume is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        return await _view(session, volume)
+
+    @router.post("/{item_id}/volumes", status_code=201, response_model=VolumeAdminOut)
+    async def create_volume(
+        item_id: uuid.UUID,
+        body: VolumeCreateIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Adds a book to a comic title by hand: slug `vol-<n>` (the smallest
+        free n), last in the order, `edited` from the start."""
+        items = await _lock_titles(session, {item_id})
+        if item_id not in items:
+            raise HTTPException(status_code=404, detail="No such comic")
+        volume = ComicVolume(
+            id=uuid.uuid4(),
+            item_id=item_id,
+            slug=await _free_slug(session, item_id),
+            position=await _next_position(session, item_id),
+            edited=True,
+            **body.model_dump(),
+        )
+        session.add(volume)
+        await session.flush()
+        await _finish(session, items)
+        await session.refresh(volume)
+        return await _view(session, volume)
+
+    def _refuse(index: int, tail: list, message: str) -> HTTPException:
+        """A 422 shaped like FastAPI's own, so the UI reads one format."""
+        return HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "loc": ["body", "collects", index, *tail],
+                    "msg": message,
+                    "type": "value_error",
+                }
+            ],
+        )
+
+    @router.put("/volumes/{volume_id}", response_model=VolumeAdminOut)
+    async def replace_volume(
+        volume_id: uuid.UUID,
+        body: VolumeReplaceIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Replaces the editable fields and the whole contents list. An entry
+        sent back with its id and unchanged keeps its stored source; a new or
+        changed one is `typed`. Order is the array's. Every touched title is
+        re-synced, the old and the new link targets alike."""
+        wanted = {c.link.item_id for c in body.collects if c.link is not None}
+        volume, items = await _lock_volume(session, volume_id, wanted)
+        for index, entry in enumerate(body.collects):
+            if entry.link is not None and entry.link.item_id not in items:
+                raise _refuse(index, ["link", "item_id"], "No such comic to link to")
+        stored = {
+            c.id: c
+            for c in await session.scalars(
+                select(ComicVolumeCollect).where(
+                    ComicVolumeCollect.volume_id == volume.id
+                )
+            )
+        }
+
+        def same(row: ComicVolumeCollect, entry) -> bool:
+            target = entry.link
+            return (
+                row.series_name == entry.series_name
+                and row.issue_text == entry.issue_text
+                and row.item_id == (target.item_id if target else None)
+                and row.from_number == (target.from_number if target else None)
+                and row.to_number == (target.to_number if target else None)
+            )
+
+        plan: list[tuple[ComicVolumeCollect | None, str]] = []
+        seen_ids: set = set()
+        for index, entry in enumerate(body.collects):
+            row = None
+            if entry.id is not None:
+                if entry.id in seen_ids:
+                    raise _refuse(index, ["id"], "This entry is listed twice")
+                seen_ids.add(entry.id)
+                row = stored.get(entry.id)
+                if row is None:
+                    raise _refuse(index, ["id"], "No such entry on this volume")
+            unchanged = row is not None and same(row, entry)
+            if not unchanged and entry.source not in (None, "typed"):
+                raise _refuse(
+                    index, ["source"], "An entry you add or change is 'typed'"
+                )
+            plan.append((row, row.source if unchanged else "typed"))
+        if body.kind != volume.kind:
+            volume.kind_raw = None  # the original text no longer describes it
+        for field, value in body.model_dump(exclude={"collects"}).items():
+            setattr(volume, field, value)
+        volume.edited = True
+        keep = {row.id for row, _ in plan if row is not None}
+        for row in stored.values():
+            if row.id not in keep:
+                await session.delete(row)
+        await session.flush()
+        for index, (entry, (row, source)) in enumerate(
+            zip(body.collects, plan, strict=True)
+        ):
+            target = entry.link
+            fields = {
+                "position": index,
+                "series_name": entry.series_name,
+                "issue_text": entry.issue_text,
+                "source": source,
+                "item_id": target.item_id if target else None,
+                "from_number": target.from_number if target else None,
+                "to_number": target.to_number if target else None,
+            }
+            if row is None:
+                session.add(
+                    ComicVolumeCollect(id=uuid.uuid4(), volume_id=volume.id, **fields)
+                )
+            else:
+                for key, value in fields.items():
+                    if getattr(row, key) != value:
+                        setattr(row, key, value)
+        await session.flush()
+        # Every touched title: the old targets (locked above) and the new.
+        await _finish(session, items)
+        await session.refresh(volume)
+        return await _view(session, volume)
+
+    @router.post("/volumes/{volume_id}/move", response_model=VolumeMoveOut)
+    async def move_volume(
+        volume_id: uuid.UUID,
+        body: VolumeMoveIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Moves a book to another comic title. It keeps its slug unless the
+        new title already has it (then `vol-<n>`), goes last, and counts as
+        edited. An un-edited `ed-*` book also leaves the old title's
+        `items.editions`, or the shim would recreate it there."""
+        volume, items = await _lock_volume(session, volume_id, {body.item_id})
+        target = items.get(body.item_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail="No such comic")
+        if volume.item_id == body.item_id:
+            raise HTTPException(status_code=422, detail="Already on that title")
+        old = items[volume.item_id]
+        previous = volume.slug
+        _drop_edition_entry(old, volume)
+        taken = set(
+            await session.scalars(
+                select(ComicVolume.slug).where(ComicVolume.item_id == body.item_id)
+            )
+        )
+        slug = (
+            previous
+            if previous not in taken
+            else await _free_slug(session, body.item_id)
+        )
+        volume.position = await _next_position(session, body.item_id)
+        volume.slug = slug
+        volume.item_id = body.item_id
+        volume.edited = True
+        await session.flush()
+        touched = await _finish(session, items)
+        await session.refresh(volume)
+        return {
+            "volume": await _view(session, volume),
+            "previous_slug": previous,
+            "slug_kept": slug == previous,
+            "touched": touched,
+        }
+
+    @router.get(
+        "/volumes/{volume_id}/delete-preview", response_model=VolumeDeletePreviewOut
+    )
+    async def volume_delete_preview(
+        volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Read-only: what deleting the volume takes with it. Per touched
+        title, the issues nothing else would hold (a loose single or another
+        owned volume keeps its issues), and how many read marks go with them."""
+        volume = await session.get(ComicVolume, volume_id)
+        if volume is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        title = await session.get(Item, volume.item_id)
+        count = await session.scalar(
+            select(func.count())
+            .select_from(ComicVolumeCollect)
+            .where(ComicVolumeCollect.volume_id == volume_id)
+        )
+        unheld: list[UnheldOut] = []
+        lost = 0
+        ids = {volume.item_id, *await _linked_ids(session, volume_id)}
+        holds_by = await load_holds_many(session, ids)
+        for each in sorted(ids, key=str):
+            item = await session.get(Item, each)
+            if item is None or item.type != ItemType.COMIC:
+                continue
+            holds = holds_by[each]
+            singles = expand(parse_ranges(item.issues_owned))
+            others = [h for h in holds if h.volume_id != volume_id]
+            now = singles | expand(pair for h in holds if h.owned for pair in h.ranges)
+            after = singles | expand(
+                pair for h in others if h.owned for pair in h.ranges
+            )
+            gone = now - after
+            if not gone:
+                continue
+            reads = await session.scalar(
+                select(func.count())
+                .select_from(ComicIssue)
+                .where(
+                    ComicIssue.item_id == each,
+                    ComicIssue.number.in_(gone),
+                    ComicIssue.read.is_(True),
+                )
+            )
+            lost += reads or 0
+            unheld.append(
+                UnheldOut(
+                    item_id=str(each),
+                    title=item.title,
+                    numbers=format_ranges(gone),
+                    count=len(gone),
+                )
+            )
+        return {
+            "label": volume.label,
+            "title": title.title,
+            "collects_count": count or 0,
+            "issues_unheld": unheld,
+            "read_marks_lost": lost,
+        }
+
+    @router.delete("/volumes/{volume_id}", response_model=VolumeDeletedOut)
+    async def delete_volume(
+        volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Deletes the volume (its collects go with it). An un-edited `ed-*`
+        book also leaves `items.editions`, so the shim cannot bring it back.
+        Every title its collects touched is re-synced (the link targets too),
+        and loose issue records stay except what the marks recompute."""
+        volume, items = await _lock_volume(session, volume_id)
+        item_id = volume.item_id
+        _drop_edition_entry(items[item_id], volume)
+        for collect in await session.scalars(
+            select(ComicVolumeCollect).where(ComicVolumeCollect.volume_id == volume_id)
+        ):
+            session.expunge(collect)  # the delete cascades in the database
+        await session.delete(volume)
+        await session.flush()
+        touched = await _finish(session, items)
+        return {"id": str(volume_id), "item_id": str(item_id), "touched": touched}
+
+    @router.put("/volumes/{volume_id}/link", response_model=VolumeLinkOut)
+    async def link_volume(
+        volume_id: uuid.UUID,
+        body: VolumeLinkIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Links a volume to a Comic Vine issue (or unlinks it): cover and
+        description come from Comic Vine here, never from the client."""
+        await _lock_volume(session, volume_id)
+        issue = None
+        if body.cv_id is not None:
+            await session.rollback()  # no row lock across the request
+            try:
+                issue = await source().fetch_issue(body.cv_id)
+            except SourceError as error:
+                raise _http_error_for(error) from error
+            if issue is None:
+                raise HTTPException(
+                    status_code=422, detail="Comic Vine has no such issue"
+                )
+        volume, items = await _lock_volume(session, volume_id)  # may have changed
+        volume.cv_id = issue.cv_id if issue else None
+        volume.cover_url = issue.cover_url if issue else None
+        volume.large_url = issue.large_url if issue else None
+        volume.description = "\n\n".join(issue.description) or None if issue else None
+        volume.edited = True
+        await session.flush()
+        await _finish(session, items)
+        await session.refresh(volume)
+        return {
+            "id": str(volume.id),
+            "cv_id": volume.cv_id,
+            "cover_url": volume.cover_url,
+            "large_url": volume.large_url,
+            "description": volume.description,
+            "edited": volume.edited,
         }
 
     @router.put("/{item_id}/editions/{slug}/link", response_model=EditionLinkOut)

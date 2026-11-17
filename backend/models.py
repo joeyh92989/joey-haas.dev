@@ -1619,6 +1619,11 @@ class ComicVolume(Base):
     read: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+    # Migration 0022: true once the admin edited the volume by hand; the
+    # compat shim never overwrites, repositions or deletes such a volume.
+    edited: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

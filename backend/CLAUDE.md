@@ -538,17 +538,40 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   owned volumes (`load_holds_many`); the public wall and issue
   page still read `items.editions`, the mirror; the volume page and the index
   read the volumes only, so an un-owned `ed-*` volume no longer shows on a book
-  page. **Known limits (follow-ups):** (1) a cross-series
-  re-sync has no trigger when a collects row is deleted or repointed or a
-  volume is deleted (no delete route yet), so #334 must re-sync every touched
-  item; (2) the shim overwrites an `ed-*` volume's label, kind, description,
-  covers and position on every sync, so the volume editor (#327, #334) must
-  stop it owning those fields once a volume is hand-edited (a `source` or
-  edited flag); (3) un-reading a volume keeps issues that are singles or read
+  page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
   through another volume, but `read_to` cannot protect them (it is derived from
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
   `scripts/audit_comics.py` is the read-only pre-migration report.
+  **Admin volume editor (#334, PR 4a, migration `0022`):** `comic_volumes.edited`
+  (default false) is set by every hand edit (create, replace, move, link). The
+  shim (`sync_volumes_from_editions`) never writes, repositions or deletes an
+  `edited` volume, and an edition whose volume is edited makes no second volume
+  under the same slug; un-edited `ed-*` volumes follow `items.editions` exactly
+  as before (intake commit still writes editions until #328). Routes in
+  `comics_routes.py`, all admin-only with response models: `GET
+  /volumes/{id}` (full view, private titles included: `edited`, title with
+  `is_public`, collects with `link {item_id, title, from/to, is_public}`,
+  `prev`/`next` in the line owned or not, `held_issues`), `POST
+  /{item_id}/volumes` (slug `vol-<smallest free n>`, position max+1), `PUT
+  /volumes/{id}` (fields plus the whole collects list; an entry sent back by
+  `id` unchanged keeps its source, a new or changed one is `typed`, an unknown
+  id is a 422; 422 `detail` is FastAPI-shaped, `loc` `["body","collects",i,...]`),
+  `POST /volumes/{id}/move` (keeps the slug unless the new title has it;
+  answers `slug_kept`/`previous_slug`; marks the volume edited, because an
+  unedited `ed-*` volume on a title with no matching edition would be deleted
+  by the shim), `GET /volumes/{id}/delete-preview` (`issues_unheld` per title,
+  `read_marks_lost`), `DELETE /volumes/{id}`, `PUT /volumes/{id}/link`
+  (Comic Vine cover and description fetched server-side, never from the
+  client). Every write locks the touched `items` rows first in sorted id
+  order, then the volume, runs the shim on each touched title, and ends in
+  `sync_marks` for every touched title (old and new title, old and new link
+  targets) plus the `read_to` follow-up, in one commit. **Mirror removal:**
+  deleting or moving any `ed-*` volume, edited or not, also removes its
+  entry from the old title's `items.editions` (the entry `edition_slugs` gives
+  its slug over the current list; none matching is a no-op), or the shim would
+  recreate it; a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` and the
+  `editions` PATCH keep working until a later PR drops them.
   **Public read (#335 book-page slice, #329):** `GET
   /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)
   serves one OWNED volume of a PUBLIC comic title, `ed-*` slugs included (old
