@@ -34,7 +34,7 @@ async def test_every_json_route_declares_a_response_model(sessionmaker_for_test)
             schema = ok.get("content", {}).get("application/json", {}).get("schema")
             if schema in (None, {}) or schema == {"type": "object"}:
                 unpinned.append(f"{method.upper()} {path}")
-    assert seen == 25  # 18 + the seven volume-editor routes (#334)
+    assert seen == 26  # 18 + the eight volume-editor routes (#334)
     assert unpinned == []
 
 

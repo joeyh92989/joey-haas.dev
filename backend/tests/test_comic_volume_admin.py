@@ -93,6 +93,7 @@ async def test_every_volume_route_is_admin_only_and_auth_precedes_validation(
     some = uuid.uuid4()
     calls = [
         ("get", f"{BASE}/volumes/{some}", None),
+        ("get", f"{BASE}/{some}/volumes", None),
         ("post", f"{BASE}/{some}/volumes", {}),
         ("put", f"{BASE}/volumes/{some}", {}),
         ("post", f"{BASE}/volumes/{some}/move", {}),
@@ -127,6 +128,38 @@ async def test_create_names_the_smallest_free_vol_slug_and_appends(
     assert third["position"] == 2  # max + 1, never reused
     assert (first["owned"], first["read"], first["edited"]) == (True, False, True)
     assert second["kind_raw"] is None and second["pages"] == 96
+
+
+async def test_list_gives_the_line_in_order_with_counts_and_private_rows(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    item_id = await make(factory)
+    async with client_for(factory, PagingComicVine()) as client:
+        loose = await create(client, item_id, label="Extras")
+        two = await create(client, item_id, label="Two", line_number=2)
+        one = await create(client, item_id, label="One", line_number=1)
+        await client.put(
+            f"{BASE}/volumes/{two['id']}",
+            json=put_body(
+                label="Two",
+                line_number=2,
+                owned=False,
+                collects=[{"series_name": "X", "issue_text": "#1-6"}],
+            ),
+        )
+        listed = await client.get(f"{BASE}/{item_id}/volumes")
+        missing = await client.get(f"{BASE}/{uuid.uuid4()}/volumes")
+    assert listed.status_code == 200
+    rows = listed.json()
+    assert [r["id"] for r in rows] == [one["id"], two["id"], loose["id"]]
+    assert set(rows[0]) == {
+        "id", "slug", "label", "kind", "line_number", "owned", "read", "edited",
+        "collects_count", "cover_url",
+    }  # fmt: skip
+    assert [r["collects_count"] for r in rows] == [0, 1, 0]
+    assert rows[1]["owned"] is False and rows[1]["edited"] is True
+    assert missing.status_code == 404
 
 
 async def test_create_422_and_404(sessionmaker_for_test):

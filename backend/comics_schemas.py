@@ -449,6 +449,23 @@ class VolumeAdminOut(BaseModel):
     held_count: int
 
 
+class VolumeListItemOut(BaseModel):
+    """One row of `GET /{item_id}/volumes`: a book of the title, for the Books
+    panel. `cover_url` is the thumb-size cover; `collects_count` is the
+    number of contents entries."""
+
+    id: str
+    slug: str
+    label: str
+    kind: str
+    line_number: int | None
+    owned: bool
+    read: bool
+    edited: bool
+    collects_count: int
+    cover_url: str | None
+
+
 class VolumeMoveOut(BaseModel):
     """`POST /volumes/{id}/move`: `slug_kept` says whether the old slug
     survived (no collision on the new title); `previous_slug` is the old one."""
