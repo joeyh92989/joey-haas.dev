@@ -273,6 +273,14 @@ and the entries read from them or typed in.
   (the add bar says "Added N issues to <title>"); a series gaining nothing
   is `already_owned: 1`, `issues_added: 0`. Every answer carries
   `issues_added` and `series_grew` (that series' report, as a sitting's).
+  **Reprint note (#327):** a comic sitting's one request per photo may also
+  read a collected book's printed "Collects ..." / "Reprints ..." text
+  (`reprint_note` in `importer.COMIC_DETECTION_SCHEMA`, not required, at most
+  300 characters, empty when none). `reader._book_payload` stores it on the
+  entry payload only when non-empty, so older entries look the same. PATCH
+  checks it (`comic_books.edit_book`: a string up to 300 characters, kept
+  when a payload omits it). Nothing consumes it at commit yet: story #328
+  hands it to `comic_contents.parse_contents` as the volume's collects.
   Before any commit, `series_on_shelf_for()` marks each comic entry whose
   series is already an item (by the commit's own key) with that series'
   run as it stands: every route that answers with entries (the sitting,

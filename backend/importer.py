@@ -128,6 +128,7 @@ COMIC_DETECTION_SCHEMA = {
                     "issue_number_seen": {"type": "boolean"},
                     "format": {"type": "string", "enum": list(COMIC_FORMATS)},
                     "volume_range": {"type": "string"},
+                    "reprint_note": {"type": "string"},
                     "publisher": {"type": "string"},
                 },
                 "required": ["series", "issue_number_seen", "format"],
@@ -157,8 +158,15 @@ For each book:
   hardcover or omnibus, "unknown" if you cannot tell (a spine only).
 - volume_range: for a collected edition, the issues it collects if printed
   ("1-6"); otherwise leave it out.
+- reprint_note: for a collected edition, the printed "Collects ..." or
+  "Reprints ..." text (back cover or indicia), copied as printed, at most
+  300 characters; leave it empty when none is printed. Never write one from
+  the cover art or from what you know of the series.
 - publisher: if printed.
 """
+
+# The longest reprint note kept (the prompt says the same number).
+MAX_REPRINT_NOTE = 300
 
 _ISSUE_NUMBER = re.compile(
     r"^(?:(?:no\.?|number|issue)\s*)?#?\s*(\d{1,5})\s*(?:of\s*\d+)?$", re.IGNORECASE
@@ -193,6 +201,9 @@ class Detection:
     format: str | None = None
     collects_from: int | None = None
     collects_to: int | None = None
+    # A collected edition's printed "Collects ..." text, <= MAX_REPRINT_NOTE
+    # characters, empty when none. Story #328 reads it at commit.
+    reprint_note: str = ""
 
 
 def _candidate_json(source_name: str, result: SourceResult) -> dict:
@@ -283,7 +294,11 @@ def parse_books(payload: dict) -> list[Detection]:
             book_format = "unknown"
         number = None
         low = high = None
+        note = ""
         if book_format == "collected":
+            raw_note = raw.get("reprint_note")
+            if isinstance(raw_note, str):
+                note = raw_note.strip()[:MAX_REPRINT_NOTE].strip()
             try:
                 ranges = parse_ranges(str(raw.get("volume_range") or ""))
             except RangeError:
@@ -303,6 +318,7 @@ def parse_books(payload: dict) -> list[Detection]:
                 format=book_format,
                 collects_from=low,
                 collects_to=high,
+                reprint_note=note,
             )
         )
     return books
