@@ -155,6 +155,32 @@ def edition_slugs(editions: Sequence[dict]) -> list[str]:
     return slugs
 
 
+def volume_kind_from_edition(text: str | None) -> str:
+    """The `comic_volumes.kind` an edition's free-text kind maps to.
+
+    Trade, Hardcover and Omnibus (any case, surrounding space ignored) keep
+    their meaning; anything else, `Compendium TPB` included, is `trade`. The
+    original text is kept in `kind_raw`, so nothing is lost by the mapping.
+    Migration 0021 inlines the same rule on purpose; this is the one the app
+    uses.
+    """
+    kind = (text or "").strip().lower()
+    return kind if kind in ("trade", "hardcover", "omnibus") else "trade"
+
+
+def title_kind(volume_count: int, issue_count: int) -> str:
+    """What a title is, derived from its contents (never stored):
+    `run` (issues only, or nothing yet), `book_line` (two or more volumes, no
+    issues), `single_book` (one volume, no issues) or `both` (volumes and
+    issues). A stored kind would go stale the moment a row is added or
+    deleted."""
+    if volume_count <= 0:
+        return "run"
+    if issue_count > 0:
+        return "both"
+    return "book_line" if volume_count >= 2 else "single_book"
+
+
 def _server_keys(entry: dict) -> dict:
     """The server-written link keys of an edition entry, cleaned; absent or
     malformed ones are left out."""
