@@ -393,7 +393,7 @@ describe('ComicIssue, signed in', () => {
       await screen.findByRole('button', { name: 'Owned ✓' }),
     ).toBeDisabled()
     expect(
-      screen.getByText('In Volume Nine. Edit editions on the comic’s page.'),
+      screen.getByText('In Volume Nine. Change that on the book’s page.'),
     ).toBeVisible()
     await userEvent.click(
       screen.getByRole('button', { name: 'I’ve read this' }),

@@ -1,0 +1,14 @@
+{
+  "label": "Saga, Book Two",
+  "title": "Saga",
+  "collects_count": 3,
+  "issues_unheld": [
+    {
+      "item_id": "11111111-1111-1111-1111-111111111111",
+      "title": "Saga",
+      "numbers": "7-12",
+      "count": 6
+    }
+  ],
+  "read_marks_lost": 2
+}

@@ -210,9 +210,20 @@ to `/admin/shelf/comics/:id` (item 5c; a game keeps its path).
 **The admin twin of a detail page** (comics 5c): the area rail, a
 breadcrumb (Shelf › Comics › the series), `AdminPageHeader` with the page's
 actions (a link to the public page when there is one), then `Panel`s in the
-public page's order: Series, Issues (the same wall, with taps), Editions,
-the source match, Delete. It carries every field the public page shows and
-the private ones besides.
+public page's order: Series, Issues (the same wall, with taps), Books (each
+book has its own admin page, below), the source match, Delete. It carries
+every field the public page shows and the private ones besides.
+
+**The admin twin of a Book page** (#334): breadcrumb Shelf › Comics › the
+title › the book; the cover and `AdminPageHeader` (the name, with the Comic
+Vine link under it); then `Panel`s in the public page's order: On the shelf
+(Owned and Read), Facts, Collects, the neighbouring books (owned or not),
+then the owner's tools Move to another title and Delete, and a View public
+page link when the book is owned and its title public. The admin sees what
+the public page shows plus the private rows: a collects entry linked to a
+title that is not public carries a **Private** tag, and each entry shows
+where it came from. Owned and Read save at once with a status line and Undo;
+Delete is `ShelfConfirm` reading the book's own preview.
 
 **The public mirror**: a public detail page shows what its admin twin shows,
 minus the edit controls and the private fields (notes, skips, prices,
@@ -263,6 +274,7 @@ it up).
 | `/admin/collection` | redirect to `/admin/shelf/games` | — | live (legacy path) |
 | `/admin/collection/:id` | Edit game (a comic redirects) | detail | live |
 | `/admin/shelf/comics/:id` | Edit comic (the twin of `/shelf/:id`) | detail | live |
+| `/admin/shelf/comics/:id/:slug` | Edit book (the twin of `/shelf/:id/:part` for a book) | sub-detail | live |
 | `/admin/collection/add`, `…/add/:sittingId`, `/admin/import` | Add, sitting (redirect from import) | tool | live |
 | `/admin/play-next` | Play Next | tool | live |
 | `/admin/discover`, `/admin/radar` | Discover, Radar | tool | live |

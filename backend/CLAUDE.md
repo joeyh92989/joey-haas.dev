@@ -550,6 +550,9 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   under the same slug; un-edited `ed-*` volumes follow `items.editions` exactly
   as before (intake commit still writes editions until #328). Routes in
   `comics_routes.py`, all admin-only with response models: `GET
+  /{item_id}/volumes` (the Books panel: a title's books in line order, owned
+  or not, each `id, slug, label, kind, line_number, owned, read, edited,
+  collects_count, cover_url`; 404 for an unknown title), `GET
   /volumes/{id}` (full view, private titles included: `edited`, title with
   `is_public`, collects with `link {item_id, title, from/to, is_public}`,
   `prev`/`next` in the line owned or not, `held_issues`), `POST

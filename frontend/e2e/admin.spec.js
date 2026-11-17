@@ -100,3 +100,83 @@ test('every known a11y entry on an admin page still applies', async ({
     ).toBe(true)
   }
 })
+
+// A book, end to end (#334): add one to a comic, put an entry in it, flip a
+// mark, delete it. The comic is made through the API with the signed-in
+// session and removed again, so a rerun starts clean. Set E2E_SHOT_DIR to
+// also save a full-page screenshot of the book page (the review shots).
+test('a book: add it to a comic, add an entry, toggle owned, delete it', async ({
+  page,
+}, testInfo) => {
+  const title = `E2E books (${testInfo.project.name})`
+  const made = await page.request.post('/api/items', {
+    data: { type: 'comic', title, status: 'backlog', is_public: true },
+  })
+  expect(made.status()).toBe(201)
+  const { id } = await made.json()
+  try {
+    await page.goto(`/admin/shelf/comics/${id}`)
+    await expect(
+      page.getByRole('heading', { level: 1, name: title }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('No books on this title yet. Add the first one below.'),
+    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Editions' })).toHaveCount(0)
+
+    await page.getByLabel('Name', { exact: true }).fill('Deluxe One')
+    await page.getByLabel('Number in its line').fill('1')
+    await page.getByRole('button', { name: 'Add book' }).click()
+    await expect(page).toHaveURL(new RegExp(`/admin/shelf/comics/${id}/vol-1$`))
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Deluxe One' }),
+    ).toBeVisible()
+
+    await page.getByRole('button', { name: 'Add entry' }).click()
+    await page.getByLabel('Series as printed').fill('E2E Saga')
+    await page.getByLabel('Issues as printed').fill('#1-6')
+    await page.getByRole('button', { name: 'Save entry' }).click()
+    await expect(page.getByText('Added “E2E Saga”.')).toBeVisible()
+    await expect(
+      page.getByRole('list', { name: 'What is inside' }).getByRole('listitem'),
+    ).toHaveCount(1)
+
+    const owned = page.getByRole('button', { name: 'Owned', exact: true })
+    await expect(owned).toHaveAttribute('aria-pressed', 'true')
+    await owned.click()
+    await expect(page.getByText('Deluxe One: Owned off.')).toBeVisible()
+    await expect(owned).toHaveAttribute('aria-pressed', 'false')
+    await expect(
+      page.getByRole('link', { name: 'View public page' }),
+    ).toHaveCount(0)
+
+    if (testInfo.project.name === 'desktop') {
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      expect(
+        results.violations
+          .filter((v) => GATED.includes(v.impact))
+          .map(describe),
+      ).toEqual([])
+    }
+    if (process.env.E2E_SHOT_DIR) {
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/admin-volume-${testInfo.project.name}.png`,
+        fullPage: true,
+      })
+    }
+
+    await page.getByRole('button', { name: 'Delete Deluxe One' }).click()
+    await expect(page.getByText(/goes with 1 contents entry/)).toBeVisible()
+    await page
+      .getByRole('button', { name: 'Delete Deluxe One for good' })
+      .click()
+    await expect(page).toHaveURL(new RegExp(`/admin/shelf/comics/${id}$`))
+    await expect(
+      page.getByText('No books on this title yet. Add the first one below.'),
+    ).toBeVisible()
+  } finally {
+    await page.request.delete(`/api/items/${id}`)
+  }
+})

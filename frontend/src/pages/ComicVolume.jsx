@@ -13,6 +13,7 @@ import { issuePath, itemPath, volumePath } from '../lib/spinePaths.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useRefreshAfterWrite } from '../lib/useRefreshAfterWrite.js'
+import { adminVolumePath } from '../lib/volumeEdits.js'
 import NotFound from './NotFound.jsx'
 
 const COPY = spine.comics.volume
@@ -22,10 +23,9 @@ const COMIC_VINE_HOME = 'https://comicvine.gamespot.com/'
 
 /**
  * The owner's buttons: Read to the end (when the book has a linked range on
- * this title) and the way to edit. The write tools for a volume itself come
- * with the admin page.
+ * this title) and the way to edit, which opens the book's admin page.
  */
-function OwnerBox({ id, range, read, onChanged }) {
+function OwnerBox({ id, slug, range, read, onChanged }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
@@ -56,10 +56,7 @@ function OwnerBox({ id, range, read, onChanged }) {
             {read ? COPY.owner.readDone : COPY.owner.readToEnd}
           </button>
         )}
-        <Link
-          className="btn sm"
-          to={`/admin/shelf/comics/${encodeURIComponent(id)}`}
-        >
+        <Link className="btn sm" to={adminVolumePath(id, slug)}>
           {COPY.owner.edit}
         </Link>
       </div>
@@ -237,6 +234,7 @@ export default function ComicVolume({ id, slug }) {
           {signedIn && (
             <OwnerBox
               id={id}
+              slug={slug}
               range={range}
               read={volume.read}
               onChanged={refresh}

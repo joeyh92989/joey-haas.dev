@@ -745,15 +745,13 @@ export const spine = {
       addRange: 'Issue numbers are whole numbers from 1 to 9999.',
       issuesHint:
         'Tap a cover to mark it owned, read or missing. Skips are set on the issue page. Issue numbers are whole numbers; #0, #½ and annuals can’t be recorded yet.',
-      editions: 'Editions',
-      saveEditions: 'Save editions',
       match: 'Comic Vine match',
       refresh: 'Refresh from Comic Vine',
       unlinked: 'Not linked to Comic Vine.',
       relinkLine: 'Wrong series? Search Comic Vine and link another.',
       delete: 'Delete',
       deleteLine:
-        'Removes the series, its issue records and its editions for good.',
+        'Removes the series, its issue records and its books for good.',
     },
     pills: { following: 'Following', want: 'Want' },
     chips: {
@@ -871,7 +869,7 @@ export const spine = {
         },
         undo: 'Undo',
         /** The server's words for a book held only in an edition. */
-        inEdition: (label) => `In ${label}. Edit editions on the comic’s page.`,
+        inEdition: (label) => `In ${label}. Change that on the book’s page.`,
       },
     },
     /** The public book page, /shelf/:id/<slug>/ (`vol-<n>` and `ed-<from>-<to>`). */

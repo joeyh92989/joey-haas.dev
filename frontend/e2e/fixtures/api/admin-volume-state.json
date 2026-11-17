@@ -1,0 +1,11 @@
+{
+  "id": "aaaaaaaa-0000-0000-0000-000000000002",
+  "item_id": "11111111-1111-1111-1111-111111111111",
+  "slug": "vol-2",
+  "label": "Saga, Book Two",
+  "kind": "hardcover",
+  "owned": true,
+  "read": true,
+  "comic_run": null,
+  "touched": ["11111111-1111-1111-1111-111111111111"]
+}

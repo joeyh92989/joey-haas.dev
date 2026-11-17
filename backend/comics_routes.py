@@ -75,6 +75,7 @@ from comics_schemas import (
     VolumeHitOut,
     VolumeLinkIn,
     VolumeLinkOut,
+    VolumeListItemOut,
     VolumeMarkIn,
     VolumeMoveIn,
     VolumeMoveOut,
@@ -1484,6 +1485,46 @@ def create_comics_router(
         if volume is None:
             raise HTTPException(status_code=404, detail="No such volume")
         return await _view(session, volume)
+
+    @router.get("/{item_id}/volumes", response_model=list[VolumeListItemOut])
+    async def list_volumes(
+        item_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> list[dict]:
+        """A title's books in line order (numbered books by number, the rest
+        after them), owned or not, for the admin Books panel."""
+        if await session.get(Item, item_id) is None:
+            raise HTTPException(status_code=404, detail="No such comic")
+        counts = dict(
+            (
+                await session.execute(
+                    select(ComicVolumeCollect.volume_id, func.count())
+                    .join(ComicVolume, ComicVolume.id == ComicVolumeCollect.volume_id)
+                    .where(ComicVolume.item_id == item_id)
+                    .group_by(ComicVolumeCollect.volume_id)
+                )
+            ).all()
+        )
+        volumes = sorted(
+            await session.scalars(
+                select(ComicVolume).where(ComicVolume.item_id == item_id)
+            ),
+            key=_line_order,
+        )
+        return [
+            {
+                "id": str(v.id),
+                "slug": v.slug,
+                "label": v.label,
+                "kind": v.kind,
+                "line_number": v.line_number,
+                "owned": v.owned,
+                "read": v.read,
+                "edited": v.edited,
+                "collects_count": counts.get(v.id, 0),
+                "cover_url": v.cover_url,
+            }
+            for v in volumes
+        ]
 
     @router.post("/{item_id}/volumes", status_code=201, response_model=VolumeAdminOut)
     async def create_volume(
