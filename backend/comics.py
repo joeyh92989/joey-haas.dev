@@ -333,13 +333,16 @@ def holds_covering(holds: Iterable[VolumeHold] | None, number: int) -> list[dict
 
 
 def volume_counts(
-    holds: Iterable[VolumeHold] | None, read_numbers: Iterable[int]
+    holds: Iterable[VolumeHold] | None,
+    read_numbers: Iterable[int],
+    read_to: int | None = None,
 ) -> tuple[int, int]:
     """(owned, read) volumes of this row's own title, for `shown_status`.
 
     A volume is read when its flag says so, or when it links issues of this
-    row and every one of them is read (so a title whose issues were read
-    through `read_to` before volumes carried a flag keeps its status)."""
+    row and every one of them is read: by the marks (`read_numbers`) or at or
+    below `read_to`. So a title whose issues were read through `read_to`
+    before volumes carried a flag keeps its status."""
     read_set = set(read_numbers)
     owned = read = 0
     for hold in holds or []:
@@ -347,48 +350,75 @@ def volume_counts(
             continue
         owned += 1
         linked = expand(hold.ranges)
-        if hold.read or (linked and linked <= read_set):
+        covered = bool(linked) and all(
+            n in read_set or (read_to is not None and n <= read_to) for n in linked
+        )
+        if hold.read or covered:
             read += 1
     return owned, read
+
+
+async def load_holds_many(
+    session: AsyncSession, item_ids: Iterable[object]
+) -> dict[object, list[VolumeHold]]:
+    """`load_holds` for several rows in one query, keyed by item id (every
+    asked id is a key, empty when it has no volumes)."""
+    from sqlalchemy import or_, select
+
+    from models import ComicVolume, ComicVolumeCollect
+
+    ids = list(item_ids)
+    out: dict[object, list[VolumeHold]] = {i: [] for i in ids}
+    if not ids:
+        return out
+    rows = await session.execute(
+        select(ComicVolume, ComicVolumeCollect)
+        .outerjoin(ComicVolumeCollect, ComicVolumeCollect.volume_id == ComicVolume.id)
+        .where(
+            or_(
+                ComicVolume.item_id.in_(ids),
+                ComicVolumeCollect.item_id.in_(ids),
+            )
+        )
+        .order_by(ComicVolume.position, ComicVolume.slug, ComicVolumeCollect.position)
+    )
+    wanted = set(ids)
+    volumes: dict[object, ComicVolume] = {}
+    ranges: dict[tuple[object, object], list[tuple[int, int]]] = {}
+    for volume, collect in rows:
+        volumes[volume.id] = volume
+        if (
+            collect is not None
+            and collect.item_id in wanted
+            and collect.from_number is not None
+            and collect.to_number is not None
+        ):
+            ranges.setdefault((volume.id, collect.item_id), []).append(
+                (collect.from_number, collect.to_number)
+            )
+    for volume in volumes.values():
+        for item_id in wanted:
+            mine = ranges.get((volume.id, item_id), [])
+            if volume.item_id != item_id and not mine:
+                continue
+            out[item_id].append(
+                VolumeHold(
+                    volume_id=volume.id,
+                    slug=volume.slug,
+                    label=volume.label,
+                    owned=volume.owned,
+                    read=volume.read,
+                    own=volume.item_id == item_id,
+                    ranges=tuple(merge(mine)),
+                )
+            )
+    return out
 
 
 async def load_holds(session: AsyncSession, item_id: object) -> list[VolumeHold]:
     """Every volume that can hold issues of this row: its own, and any other
     title's volume with a collects entry linked to it. One query."""
-    from sqlalchemy import or_, select
-
-    from models import ComicVolume, ComicVolumeCollect
-
-    rows = await session.execute(
-        select(ComicVolume, ComicVolumeCollect)
-        .outerjoin(ComicVolumeCollect, ComicVolumeCollect.volume_id == ComicVolume.id)
-        .where(
-            or_(ComicVolume.item_id == item_id, ComicVolumeCollect.item_id == item_id)
-        )
-        .order_by(ComicVolume.position, ComicVolume.slug, ComicVolumeCollect.position)
-    )
-    grouped: dict[object, tuple[ComicVolume, list[tuple[int, int]]]] = {}
-    for volume, collect in rows:
-        _, ranges = grouped.setdefault(volume.id, (volume, []))
-        if (
-            collect is not None
-            and collect.item_id == item_id
-            and collect.from_number is not None
-            and collect.to_number is not None
-        ):
-            ranges.append((collect.from_number, collect.to_number))
-    return [
-        VolumeHold(
-            volume_id=volume.id,
-            slug=volume.slug,
-            label=volume.label,
-            owned=volume.owned,
-            read=volume.read,
-            own=volume.item_id == item_id,
-            ranges=tuple(merge(ranges)),
-        )
-        for volume, ranges in grouped.values()
-    ]
+    return (await load_holds_many(session, [item_id]))[item_id]
 
 
 async def held_through(
@@ -408,14 +438,72 @@ def _bound(value: object) -> int | None:
     return value if 0 <= value <= SMALLINT_MAX else None
 
 
+def _edition_base(slug: str) -> str:
+    """`ed-1-3` for `ed-1-3` and `ed-1-3-2`."""
+    parts = slug.split("-")
+    return "-".join(parts[:3])
+
+
+def _match_volumes(wanted, slugs, existing, text) -> dict:
+    """Which existing edition-origin volume stands for which edition (index
+    to volume), so owned and read follow the book, not its slug: a range
+    change renames the slug and a removed duplicate shifts the `-2` ones.
+
+    In order: the same range with the same label, then the same slug, then the
+    same Comic Vine issue, then (when the leftovers pair up one to one) by
+    position. An edition left without a volume is new; a volume left without
+    an edition is deleted."""
+    claimed: dict[int, object] = {}
+    free = dict(existing)  # slug -> volume
+
+    def take(index: int, volume) -> None:
+        claimed[index] = volume
+        free.pop(volume.slug, None)
+
+    def label_of(edition) -> str | None:
+        return text(edition.get("label"))
+
+    def cv_of(edition) -> int | None:
+        cv_id = edition.get("cv_id")
+        return cv_id if isinstance(cv_id, int) and not isinstance(cv_id, bool) else None
+
+    for i, edition in enumerate(wanted):
+        same = [
+            v
+            for v in free.values()
+            if _edition_base(v.slug) == _edition_base(slugs[i])
+            and v.label == (label_of(edition) or None)
+        ]
+        if same:
+            take(i, same[0])
+    for i, slug in enumerate(slugs):
+        if i not in claimed and slug in free:
+            take(i, free[slug])
+    for i, edition in enumerate(wanted):
+        cv_id = cv_of(edition)
+        if i in claimed or cv_id is None:
+            continue
+        match = next((v for v in free.values() if v.cv_id == cv_id), None)
+        if match is not None:
+            take(i, match)
+    left = [i for i in range(len(wanted)) if i not in claimed]
+    if left and len(left) == len(free):
+        for i, volume in zip(left, sorted(free.values(), key=lambda v: v.position)):
+            take(i, volume)
+    return claimed
+
+
 async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
     """Compat shim (design call 6): keeps the row's EDITION-ORIGIN volumes
     (slug `ed-*`) in step with `items.editions`, which stays written as a
     mirror until the destructive drop.
 
-    Upserts by slug: label, kind (`volume_kind_from_edition`, the raw text in
-    `kind_raw`), covers, description, cv_id, position, and the one `migrated`
-    collects entry (the title, `#from-to`, linked to this row). A new volume
+    Matches each edition to its volume (`_match_volumes`: same range and label,
+    then slug, then Comic Vine issue, then by position when the leftovers pair
+    up, so a range change keeps `owned` and `read`) and upserts: label, kind
+    (`volume_kind_from_edition`, the raw text in `kind_raw`), covers,
+    description, cv_id, position, and the one `migrated` collects entry (the
+    title, `#from-to`, linked to this row). A new volume
     starts owned and unread; an existing one keeps its `owned` and `read`, so
     a volume marked on the volume route stays marked. Volumes whose edition is
     gone are deleted. A volume with any other slug (`vol-*`, made by hand or
@@ -454,6 +542,18 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
         return (value.strip() or None) if isinstance(value, str) else None
 
     slugs = edition_slugs(wanted)
+    assigned = _match_volumes(wanted, slugs, existing, text)
+    # Two volumes may swap slugs: park every rename first, so the unique
+    # (item, slug) index is never hit mid-flush.
+    renamed = [
+        (volume, slugs[i]) for i, volume in assigned.items() if volume.slug != slugs[i]
+    ]
+    for volume, _ in renamed:
+        volume.slug = f"tmp-{volume.id}"
+    if renamed:
+        await session.flush()
+    for volume, slug in renamed:
+        volume.slug = slug
     for position, (slug, edition) in enumerate(zip(slugs, wanted, strict=True)):
         raw = edition.get("kind")
         raw = raw if isinstance(raw, str) and raw else None
@@ -482,7 +582,7 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
             if isinstance(cv_id, int) and not isinstance(cv_id, bool)
             else None,
         }
-        volume = existing.get(slug)
+        volume = assigned.get(position)
         if volume is None:
             volume = ComicVolume(
                 id=uuid.uuid4(),
@@ -521,8 +621,9 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
             for key, value in link.items():
                 if getattr(mine, key) != value:
                     setattr(mine, key, value)
-    for slug, volume in existing.items():
-        if slug in slugs:
+    kept = {v.id for v in assigned.values()}
+    for volume in existing.values():
+        if volume.id in kept:
             continue
         for collect in collects.get(volume.id, []):
             session.expunge(collect)  # the volume's delete cascades in the database

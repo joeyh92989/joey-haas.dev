@@ -533,8 +533,19 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `{owned?, read?}` is the volume's own write: it re-syncs every title the
   collects touch and keeps `read_to` in step. `shown_status` takes
   `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
-  `comics.volume_counts`); only the admin wall passes them until #329. Public
-  bodies still read `items.editions`, the mirror. `comics.title_kind(volumes, issues)` derives a
+  `comics.volume_counts`); only the admin wall passes them until #329. Admin
+  surfaces (`_state`, the pull list, the item list's `comic_run`) count the
+  owned volumes (`load_holds_many`); the public readers stay on
+  `items.editions`, the mirror, until #329, so an un-owned `ed-*` volume still
+  shows publicly until then. **Known limits (follow-ups):** (1) a cross-series
+  re-sync has no trigger when a collects row is deleted or repointed or a
+  volume is deleted (no delete route yet), so #334 must re-sync every touched
+  item; (2) the shim overwrites an `ed-*` volume's label, kind, description,
+  covers and position on every sync, so the volume editor (#327, #334) must
+  stop it owning those fields once a volume is hand-edited (a `source` or
+  edited flag); (3) un-reading a volume keeps issues that are singles or read
+  through another volume, but `read_to` cannot protect them (it is derived from
+  the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
   `scripts/audit_comics.py` is the read-only pre-migration report.
 - **Issue marks** (migration `0017`, comics-book design 5b): each

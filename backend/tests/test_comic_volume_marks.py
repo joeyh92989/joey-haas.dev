@@ -507,3 +507,114 @@ async def test_volume_route_errors(sessionmaker_for_test):
         404,
         422,
     )
+
+
+# --- review fixes ---------------------------------------------------------------
+
+
+async def patch_volume(factory, volume_id, **body):
+    async with client_for(factory, FakeComicVine()) as client:
+        return await client.patch(f"/api/comics/volumes/{volume_id}", json=body)
+
+
+async def edit_editions(factory, item_id, editions):
+    async with factory() as session:
+        item = await session.get(Item, item_id)
+        item.editions = editions
+        await sync_marks(session, item)
+        await session.commit()
+
+
+async def test_admin_state_and_pull_list_follow_an_unowned_volume(
+    sessionmaker_for_test,
+):
+    item_id = await make(
+        sessionmaker_for_test,
+        issues_owned="1",
+        following=True,
+        editions=[ed("Book 1", 3, 4)],
+    )
+    (volume,) = await volumes(sessionmaker_for_test, item_id)
+    response = await patch_volume(sessionmaker_for_test, volume.id, owned=False)
+    assert response.json()["comic_run"]["owned"] == 1
+    async with client_for(sessionmaker_for_test, FakeComicVine()) as client:
+        listed = await client.get("/api/items")
+        got = await client.post(f"/api/comics/{item_id}/issues/9/skip")
+        pulled = await client.get("/api/comics/pull-list")
+    assert got.json()["comic_run"]["owned"] == 1
+    assert pulled.status_code == 200
+    row = next(i for i in listed.json() if i["id"] == str(item_id))
+    assert row["comic_run"]["owned"] == 1
+
+
+async def test_owned_and_read_survive_a_changed_range(sessionmaker_for_test):
+    item_id = await make(sessionmaker_for_test, editions=[ed("Book 1", 1, 3)])
+    (volume,) = await volumes(sessionmaker_for_test, item_id)
+    await patch_volume(sessionmaker_for_test, volume.id, owned=False)
+    await edit_editions(sessionmaker_for_test, item_id, [ed("Book 1", 1, 4)])
+    (after,) = await volumes(sessionmaker_for_test, item_id)
+    assert (after.id, after.slug, after.owned) == (volume.id, "ed-1-4", False)
+    assert await marks(sessionmaker_for_test, item_id) == {}
+    await patch_volume(sessionmaker_for_test, volume.id, owned=True, read=True)
+    await edit_editions(sessionmaker_for_test, item_id, [ed("Renamed", 2, 5)])
+    (again,) = await volumes(sessionmaker_for_test, item_id)
+    assert (again.id, again.slug, again.read, again.owned) == (
+        volume.id, "ed-2-5", True, True,
+    )  # fmt: skip
+    assert set(await marks(sessionmaker_for_test, item_id)) == {2, 3, 4, 5}
+
+
+async def test_same_range_duplicates_keep_their_flags_when_reordered(
+    sessionmaker_for_test,
+):
+    a, b = ed("A", 1, 3, cv_id=None), ed("B", 1, 3)
+    item_id = await make(sessionmaker_for_test, editions=[a, b])
+    first, second = await volumes(sessionmaker_for_test, item_id)
+    await patch_volume(sessionmaker_for_test, second.id, owned=False)
+    await edit_editions(sessionmaker_for_test, item_id, [b, a])
+    rows = {v.label: v for v in await volumes(sessionmaker_for_test, item_id)}
+    assert rows["B"].id == second.id and rows["B"].owned is False
+    assert rows["A"].id == first.id and rows["A"].owned is True
+    assert sorted(v.slug for v in rows.values()) == ["ed-1-3", "ed-1-3-2"]
+
+
+async def test_volume_route_404s_when_the_shim_drops_the_volume(
+    sessionmaker_for_test,
+):
+    item_id = await make(sessionmaker_for_test, editions=[ed("Book 1", 1, 3)])
+    (volume,) = await volumes(sessionmaker_for_test, item_id)
+    async with sessionmaker_for_test() as session:  # drift: no sync after
+        item = await session.get(Item, item_id)
+        item.editions = None
+        await session.commit()
+    response = await patch_volume(sessionmaker_for_test, volume.id, read=True)
+    assert response.status_code == 404
+
+
+async def test_reading_an_unowned_volume_marks_nothing(sessionmaker_for_test):
+    item_id = await make(sessionmaker_for_test, issues_owned="1")
+    volume_id = await add_volume(
+        sessionmaker_for_test, item_id, links=[(item_id, 3, 4)], owned=False
+    )
+    response = await patch_volume(sessionmaker_for_test, volume_id, read=True)
+    assert response.status_code == 200
+    assert await marks(sessionmaker_for_test, item_id) == {1: (True, False, False)}
+
+
+async def test_unreading_a_volume_keeps_what_singles_still_read(
+    sessionmaker_for_test,
+):
+    item_id = await make(sessionmaker_for_test, issues_owned="1-4", read_to=4)
+    volume_id = await add_volume(
+        sessionmaker_for_test, item_id, links=[(item_id, 3, 4)]
+    )
+    await patch_volume(sessionmaker_for_test, volume_id, read=True)
+    await patch_volume(sessionmaker_for_test, volume_id, read=False)
+    assert all(m[1] for m in (await marks(sessionmaker_for_test, item_id)).values())
+
+
+async def test_volume_counts_count_read_to_without_read_rows(sessionmaker_for_test):
+    holds = [hold("a", ranges=[(1, 3)])]
+    assert volume_counts(holds, set(), read_to=3) == (1, 1)
+    assert volume_counts(holds, set(), read_to=2) == (1, 0)
+    assert volume_counts(holds, set()) == (1, 0)

@@ -25,6 +25,8 @@ from comics import (
     ISSUE_SNAPSHOT_KEYS,
     RangeError,
     apply_comic_fields,
+    held_ranges,
+    load_holds_many,
     row_run,
     sync_marks,
 )
@@ -969,12 +971,15 @@ def create_items_router(
         """
         if not items:
             return
+        holds = await load_holds_many(
+            session, [i.id for i in items if i.type == ItemType.COMIC]
+        )
         for item in items:
             item.comic_run = (
                 row_run(
                     item.issues_owned,
                     item.issues_skipped,
-                    item.editions,
+                    held_ranges(holds[item.id]),
                     item.read_to,
                     item.source_metadata,
                 )

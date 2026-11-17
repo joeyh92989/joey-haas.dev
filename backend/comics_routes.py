@@ -41,6 +41,7 @@ from comics import (
     format_ranges,
     held_ranges,
     load_holds,
+    load_holds_many,
     mark_mismatches,
     owned_set,
     parse_ranges,
@@ -170,8 +171,10 @@ class MarkBody(BaseModel):
     to: Annotated[int, Field(ge=1, le=MAX_ISSUE)] | None = None
 
 
-def _state(item: Item) -> dict:
-    """A row's comic state after a write, for the page to redraw in place."""
+def _state(item: Item, held: list[dict] | None = None) -> dict:
+    """A row's comic state after a write, for the page to redraw in place.
+    `held` is the owned volumes' `held_ranges`; the routes pass it through
+    `_state_of`, so the run counts volumes (#326), not the `editions` mirror."""
     return {
         "item_id": str(item.id),
         "title": item.title,
@@ -184,11 +187,16 @@ def _state(item: Item) -> dict:
         "comic_run": row_run(
             item.issues_owned,
             item.issues_skipped,
-            item.editions,
+            item.editions if held is None else held,
             item.read_to,
             item.source_metadata,
         ),
     }
+
+
+async def _state_of(session: AsyncSession, item: Item) -> dict:
+    """`_state` over the item's owned volumes."""
+    return _state(item, held_ranges(await load_holds(session, item.id)))
 
 
 def _exception_error(error: BaseException) -> dict:
@@ -434,7 +442,7 @@ def create_comics_router(
             item.following = True
             await session.commit()
             await session.refresh(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.post("/unfollow", response_model=ComicStateOut | UnfollowRemovedOut)
     async def unfollow(body: VolumeIn, session: AsyncSession = Depends(get_session)):
@@ -463,7 +471,7 @@ def create_comics_router(
         item.following = False
         await session.commit()
         await session.refresh(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.post("/want", status_code=201, response_model=ComicStateOut)
     async def want(body: VolumeIn, session: AsyncSession = Depends(get_session)):
@@ -474,13 +482,13 @@ def create_comics_router(
             item = await _create(
                 session, body.external_id, public=True, following=False
             )
-            return _state(item)
+            return await _state_of(session, item)
         if item.owned_format != OwnedFormat.NONE:
             raise HTTPException(status_code=409, detail="Already on your shelf")
         item.is_public = True
         await session.commit()
         await session.refresh(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.get("/pull-list", response_model=PullListOut)
     async def pull_list(session: AsyncSession = Depends(get_session)) -> dict:
@@ -494,6 +502,7 @@ def create_comics_router(
             )
         )
         by_id = {str(row.id): row for row in rows}
+        holds = await load_holds_many(session, [row.id for row in rows])
         series = [
             series_from_row(
                 str(row.id),
@@ -501,7 +510,7 @@ def create_comics_router(
                 (row.source_metadata or {}).get("publisher") or row.creator,
                 row.issues_owned,
                 row.issues_skipped,
-                row.editions,
+                held_ranges(holds[row.id]),
                 row.read_to,
                 row.source_metadata,
                 row.owned_format != OwnedFormat.NONE,
@@ -557,7 +566,7 @@ def create_comics_router(
         await got_issues(session, item, {number}, date.today())
         await session.commit()
         await session.refresh(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.post("/{item_id}/issues/{number}/skip", response_model=ComicStateOut)
     async def skip(
@@ -578,7 +587,7 @@ def create_comics_router(
         await sync_marks(session, item)
         await session.commit()
         await session.refresh(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.post("/{item_id}/issues/{number}/mark", response_model=MarkOut)
     async def mark(
@@ -634,7 +643,7 @@ def create_comics_router(
         }
         # What the tap moved on the series itself (a Want becomes owned, To
         # read), so Undo can put it back.
-        return _state(item) | {
+        return (await _state_of(session, item)) | {
             "number": number,
             "state": body.state,
             "previous": {k: v for k, v in before.items() if after[k] != v} or None,
@@ -669,7 +678,7 @@ def create_comics_router(
                 item,
                 today,
                 await read_marks_count(session, item_id),
-                volumes=volume_counts(holds, read_numbers),
+                volumes=volume_counts(holds, read_numbers, item.read_to),
             ),
         }
 
@@ -846,7 +855,7 @@ def create_comics_router(
         await session.commit()
         await session.refresh(item)
         await _sync_quietly(item)
-        return _state(item)
+        return await _state_of(session, item)
 
     @router.get("/issues/search", response_model=list[IssueHitOut])
     async def search_issues(q: str) -> list[dict]:
@@ -1178,31 +1187,41 @@ def create_comics_router(
         changes = body.model_dump(exclude_none=True)
         if not changes:
             raise HTTPException(status_code=422, detail="Send owned or read")
-        volume = await session.get(ComicVolume, volume_id, with_for_update=True)
-        if volume is None:
+        # Items first, in id order, then the volume: the order the sibling
+        # routes lock in. The volume is peeked unlocked to learn which items.
+        peek = await session.get(ComicVolume, volume_id)
+        if peek is None:
             raise HTTPException(status_code=404, detail="No such volume")
         linked = await session.scalars(
             select(ComicVolumeCollect.item_id).where(
-                ComicVolumeCollect.volume_id == volume.id,
+                ComicVolumeCollect.volume_id == volume_id,
                 ComicVolumeCollect.item_id.is_not(None),
                 ComicVolumeCollect.from_number.is_not(None),
                 ComicVolumeCollect.to_number.is_not(None),
             )
         )
-        touched = sorted({volume.item_id, *linked}, key=str)
+        touched = sorted({peek.item_id, *linked}, key=str)
         items = []
-        for each in touched:  # a fixed order, so two writes cannot deadlock
+        for each in touched:
             row = await session.get(Item, each, with_for_update=True)
             if row is not None and row.type == ItemType.COMIC:
+                # The volume may be one the shim is about to drop or rename.
+                await sync_volumes_from_editions(session, row)
                 items.append(row)
+        volume = await session.get(
+            ComicVolume, volume_id, with_for_update=True, populate_existing=True
+        )
+        if volume is None:
+            await session.commit()
+            raise HTTPException(status_code=404, detail="No such volume")
         read_changed = "read" in changes and changes["read"] != volume.read
         for field, value in changes.items():
             setattr(volume, field, value)
         await session.flush()
         for item in items:
             holds = await load_holds(session, item.id)
-            if read_changed:
-                mine = next(h for h in holds if h.volume_id == volume.id)
+            mine = next((h for h in holds if h.volume_id == volume.id), None)
+            if read_changed and mine is not None:
                 covered = expand(mine.ranges)
                 reads = set(
                     await session.scalars(
@@ -1212,11 +1231,13 @@ def create_comics_router(
                         )
                     )
                 )
-                if volume.read:
+                if volume.read and volume.owned:
                     reads |= covered
-                else:
-                    reads -= covered
-                    reads |= volume_reads(holds)
+                elif not volume.read:
+                    # Only what nothing else still reads: a single of its own,
+                    # or another owned volume that is read.
+                    keep = expand(parse_ranges(item.issues_owned)) | volume_reads(holds)
+                    reads -= covered - keep
                 result = await sync_marks(session, item, reads=reads)
             else:
                 result = await sync_marks(session, item)
