@@ -510,8 +510,8 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
     intake) is never touched, and neither is a volume with `edited` true (#334:
     the admin changed it by hand): no field written, no reposition, no delete
     when its edition vanishes, and its edition (still in `items.editions`) does
-    not make a second volume under the same slug. Idempotent, writes only what differs, flushes,
-    never commits. A row that is not a comic has none.
+    not make a second volume under the same slug. Idempotent, writes only what
+    differs, flushes, never commits. A row that is not a comic has none.
     """
     import uuid
 
