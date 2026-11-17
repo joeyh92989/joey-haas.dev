@@ -322,9 +322,9 @@ def test_an_edit_to_the_reprint_note_is_checked_and_an_absent_one_is_kept():
     assert edit_book(old, {"format": "collected"})["reprint_note"] == (
         "Collects Saga #1-6"
     )
-    assert edit_book(old, {"reprint_note": " Collects Saga #1-3 "})[
-        "reprint_note"
-    ] == ("Collects Saga #1-3")
+    assert edit_book(old, {"reprint_note": " Collects Saga #1-3 "})["reprint_note"] == (
+        "Collects Saga #1-3"
+    )
     assert edit_book(old, {"reprint_note": ""})["reprint_note"] == ""
     for bad in ("x" * 301, 5, ["a"]):
         with pytest.raises(BookEditError) as caught:
