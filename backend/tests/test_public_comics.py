@@ -23,12 +23,19 @@ from public_issues import (
     PublicComicIndex,
     PublicComicIndexEdition,
     PublicComicIndexIssue,
+    PublicComicIndexVolume,
     PublicEditionLink,
     PublicEditionNext,
     PublicEditionPage,
     PublicIssueEdition,
     PublicIssuePage,
     PublicNeighbour,
+    PublicVolumeBody,
+    PublicVolumeCollect,
+    PublicVolumeLink,
+    PublicVolumeNeighbour,
+    PublicVolumePage,
+    PublicVolumeTitle,
     PublicWall,
     PublicWallEdition,
     PublicWallIssue,
@@ -44,7 +51,7 @@ NOW = datetime(2026, 11, 6, 15, 0, tzinfo=UTC)
 COMIC_FORBIDDEN = {
     "issues_skipped", "skipped", "notes", "owned_format", "acquired_at",
     "source_metadata", "is_public", "price", "store", "url", "external_id",
-    "following",
+    "following", "source",
 }  # fmt: skip
 
 ROW_FIELDS = {
@@ -221,7 +228,29 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "state", "read", "read_to", "inside", "prev", "next", "source_url",
     }  # fmt: skip
     assert set(PublicComicIndex.model_fields) == {
-        "item_id", "series_title", "issues", "editions",
+        "item_id", "series_title", "issues", "editions", "volumes",
+    }  # fmt: skip
+    assert set(PublicComicIndexVolume.model_fields) == {
+        "slug", "label", "kind", "line_number", "cover_url",
+    }  # fmt: skip
+    assert set(PublicVolumePage.model_fields) == {
+        "title", "volume", "collects", "prev", "next", "source_url",
+    }  # fmt: skip
+    assert set(PublicVolumeTitle.model_fields) == {
+        "id", "title", "cover_url", "publisher", "year",
+    }  # fmt: skip
+    assert set(PublicVolumeBody.model_fields) == {
+        "slug", "label", "kind", "line_number", "isbn", "pages", "description",
+        "cover_url", "large_url", "owned", "read",
+    }  # fmt: skip
+    assert set(PublicVolumeCollect.model_fields) == {
+        "series_name", "issue_text", "link",
+    }  # fmt: skip
+    assert set(PublicVolumeLink.model_fields) == {
+        "item_id", "from_number", "to_number",
+    }  # fmt: skip
+    assert set(PublicVolumeNeighbour.model_fields) == {
+        "slug", "label", "line_number",
     }  # fmt: skip
     assert set(PublicComicIndexIssue.model_fields) == {"number", "name", "cover_url"}
     assert set(PublicComicIndexEdition.model_fields) == {"slug", "label", "cover_url"}
@@ -229,7 +258,9 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         PublicComicIndex, PublicComicIndexIssue, PublicComicIndexEdition,
         PublicWall, PublicWallIssue, PublicWallEdition, PublicNeighbour,
         PublicIssueEdition, PublicIssuePage, PublicEditionLink,
-        PublicEditionNext, PublicEditionPage,
+        PublicEditionNext, PublicEditionPage, PublicComicIndexVolume,
+        PublicVolumePage, PublicVolumeTitle, PublicVolumeBody,
+        PublicVolumeCollect, PublicVolumeLink, PublicVolumeNeighbour,
     ):  # fmt: skip
         assert COMIC_FORBIDDEN.isdisjoint(set(model.model_fields)), model
 

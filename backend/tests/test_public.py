@@ -44,6 +44,7 @@ from public_issues import (
     PublicComicIndex,
     PublicEditionPage,
     PublicIssuePage,
+    PublicVolumePage,
     PublicWall,
 )
 from public_outputs import PublicNextOut, PublicStatusOut
@@ -862,6 +863,7 @@ PUBLIC_MODELS = (
     PublicIssuePage,
     PublicEditionPage,
     PublicComicIndex,
+    PublicVolumePage,
 )
 
 
