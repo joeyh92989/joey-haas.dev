@@ -506,6 +506,20 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `lib/comicEdits.js`. **Deploy order:** apply `0016` to Neon, merge, then
   run the sync once by hand (`POST /api/comics/issues/sync` with the job
   token) or wait for the nightly.
+- **Comic volumes** (migration `0021`, book-first epic #323, design
+  `docs/planning/2026-11-17-comics-book-first-design.md`): `comic_volumes` is
+  one book of a title (an `items` row), `ON DELETE CASCADE`, with `slug`
+  (unique per title; `ed-<from>-<to>` for rows copied from `items.editions`,
+  `vol-<n>` for new ones), `kind` (check: trade, hardcover, omnibus,
+  compendium, ogn) beside `kind_raw` (the original free text), `line_number`,
+  `isbn`, `pages`, `owned`, `read`. `comic_volume_collects` lists its
+  contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo,
+  an optional link `item_id` SET NULL + `from_number`/`to_number`). The
+  migration copied every `editions` entry into a volume plus one collects row;
+  `items.editions` is untouched until a later, destructive drop. Nothing reads
+  the tables yet (PR 2, #326). `comics.title_kind(volumes, issues)` derives a
+  title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
+  `scripts/audit_comics.py` is the read-only pre-migration report.
 - **Issue marks** (migration `0017`, comics-book design 5b): each
   `comic_issues` row carries `owned`, `read` and `skipped`, and a row with a
   null `cv_id` is a stub, a held or skipped book Comic Vine has not synced.
