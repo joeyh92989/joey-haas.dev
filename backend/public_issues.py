@@ -1,4 +1,5 @@
-"""The public wall, issue page and collected-edition page of a comic series.
+"""The public wall, issue page, collected-edition page and volume page of a
+comic series.
 
 An allowlist like public_comics.py: every field is named by hand, and a row is
 looked up by id (never by loading every public row) and then held to the same
@@ -19,7 +20,7 @@ from datetime import date
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 
@@ -32,7 +33,13 @@ from comics import (
     next_issue,
     parse_ranges,
 )
-from models import ComicIssue, Item, ItemType
+from models import (
+    ComicIssue,
+    ComicVolume,
+    ComicVolumeCollect,
+    Item,
+    ItemType,
+)
 from public_comics import _editions, public_comic_items, series_of
 
 COMIC_VINE_HOST = "comicvine.gamespot.com"
@@ -156,14 +163,80 @@ class PublicComicIndexEdition(BaseModel):
     cover_url: str | None
 
 
+class PublicComicIndexVolume(BaseModel):
+    slug: str
+    label: str
+    kind: str
+    line_number: int | None
+    cover_url: str | None
+
+
 class PublicComicIndex(BaseModel):
-    """GET /api/public/comic-issues: the build's list of issue and edition
-    pages, for their link-preview heads. No state, ownership or skip."""
+    """GET /api/public/comic-issues: the build's list of issue, edition and
+    volume pages, for their link-preview heads. No state, ownership or skip.
+    `editions` stays until the prerender reads `volumes` (a later cleanup)."""
 
     item_id: uuid.UUID
     series_title: str
     issues: list[PublicComicIndexIssue]
     editions: list[PublicComicIndexEdition]
+    volumes: list[PublicComicIndexVolume]
+
+
+class PublicVolumeTitle(BaseModel):
+    id: uuid.UUID
+    title: str
+    cover_url: str | None
+    publisher: str | None
+    year: int | None
+
+
+class PublicVolumeBody(BaseModel):
+    slug: str
+    label: str
+    kind: str
+    line_number: int | None
+    isbn: str | None
+    pages: int | None
+    # Paragraphs, like the edition page's description.
+    description: list[str]
+    cover_url: str | None
+    large_url: str | None
+    owned: bool
+    read: bool
+
+
+class PublicVolumeLink(BaseModel):
+    """A collects entry linked to a public series with synced issues: the
+    numbers the issue pages are built from."""
+
+    item_id: uuid.UUID
+    from_number: int
+    to_number: int
+
+
+class PublicVolumeCollect(BaseModel):
+    series_name: str
+    issue_text: str
+    link: PublicVolumeLink | None
+
+
+class PublicVolumeNeighbour(BaseModel):
+    slug: str
+    label: str
+    line_number: int | None
+
+
+class PublicVolumePage(BaseModel):
+    """GET /api/public/items/{id}/volumes/{slug}: one owned book of a public
+    title. No skip, follow, price, store or collects `source`."""
+
+    title: PublicVolumeTitle
+    volume: PublicVolumeBody
+    collects: list[PublicVolumeCollect]
+    prev: PublicVolumeNeighbour | None
+    next: PublicVolumeNeighbour | None
+    source_url: str | None
 
 
 async def _public_comic(
@@ -485,6 +558,124 @@ async def build_edition_page(
     )
 
 
+def _line_order(volume: ComicVolume) -> tuple:
+    """A book's place in its title's line: numbered books by number, the rest
+    after them, ties by position."""
+    return (
+        volume.line_number is None,
+        volume.line_number or 0,
+        volume.position,
+        volume.slug,
+    )
+
+
+def _neighbour(volume: ComicVolume | None) -> PublicVolumeNeighbour | None:
+    if volume is None:
+        return None
+    return PublicVolumeNeighbour(
+        slug=volume.slug, label=volume.label, line_number=volume.line_number
+    )
+
+
+def _paragraphs(text: str | None) -> list[str]:
+    return [p.strip() for p in (text or "").split("\n\n") if p.strip()]
+
+
+async def _linkable_items(
+    session: AsyncSession, item_ids: set[uuid.UUID]
+) -> set[uuid.UUID]:
+    """Of these titles, the public comics with at least one synced issue row
+    (a Comic Vine id): the only ones a collects entry may link to."""
+    if not item_ids:
+        return set()
+    synced = exists().where(
+        ComicIssue.item_id == Item.id, ComicIssue.cv_id.is_not(None)
+    )
+    result = await session.scalars(
+        select(Item.id).where(
+            Item.id.in_(item_ids),
+            Item.is_public.is_(True),
+            Item.type == ItemType.COMIC,
+            synced,
+        )
+    )
+    return set(result)
+
+
+def _link(
+    entry: ComicVolumeCollect, linkable: set[uuid.UUID]
+) -> PublicVolumeLink | None:
+    low, high = entry.from_number, entry.to_number
+    if entry.item_id is None or entry.item_id not in linkable:
+        return None
+    if low is None or high is None or not 1 <= low <= high <= MAX_ISSUE:
+        return None
+    return PublicVolumeLink(item_id=entry.item_id, from_number=low, to_number=high)
+
+
+async def build_volume_page(
+    session: AsyncSession, item_id: uuid.UUID, slug: str
+) -> PublicVolumePage | None:
+    """One owned volume of a public comic title. None (a 404) for a private
+    or unknown title, an unknown slug or a volume that is not owned, all alike."""
+    item = await _public_comic(session, item_id)
+    if item is None:
+        return None
+    result = await session.scalars(
+        select(ComicVolume).where(
+            ComicVolume.item_id == item.id, ComicVolume.owned.is_(True)
+        )
+    )
+    line = sorted(result, key=_line_order)
+    index = next((i for i, v in enumerate(line) if v.slug == slug), None)
+    if index is None:
+        return None
+    volume = line[index]
+    entries = list(
+        await session.scalars(
+            select(ComicVolumeCollect)
+            .where(ComicVolumeCollect.volume_id == volume.id)
+            .order_by(ComicVolumeCollect.position, ComicVolumeCollect.id)
+        )
+    )
+    linkable = await _linkable_items(
+        session, {e.item_id for e in entries if e.item_id is not None}
+    )
+    return PublicVolumePage(
+        title=PublicVolumeTitle(
+            id=item.id,
+            title=item.title,
+            cover_url=item.cover_url,
+            publisher=series_of(item).publisher,
+            year=item.year,
+        ),
+        volume=PublicVolumeBody(
+            slug=volume.slug,
+            label=volume.label,
+            kind=volume.kind,
+            line_number=volume.line_number,
+            isbn=volume.isbn,
+            pages=volume.pages,
+            description=_paragraphs(volume.description),
+            cover_url=volume.cover_url,
+            large_url=volume.large_url,
+            owned=volume.owned,
+            read=volume.read,
+        ),
+        collects=[
+            PublicVolumeCollect(
+                series_name=e.series_name,
+                issue_text=e.issue_text,
+                link=_link(e, linkable),
+            )
+            for e in entries
+        ],
+        prev=_neighbour(line[index - 1] if index > 0 else None),
+        next=_neighbour(line[index + 1] if index + 1 < len(line) else None),
+        source_url=_comic_vine_url(item),
+    )
+
+
 async def load_comic_index(
     session: AsyncSession, today: date
 ) -> list[PublicComicIndex]:
@@ -503,6 +694,14 @@ async def load_comic_index(
         )
         for row in result:
             by_item[row.item_id][row.number] = row
+    volumes: dict[uuid.UUID, list[ComicVolume]] = {item.id: [] for item in items}
+    if items:
+        for volume in await session.scalars(
+            select(ComicVolume).where(
+                ComicVolume.item_id.in_(list(volumes)), ComicVolume.owned.is_(True)
+            )
+        ):
+            volumes[volume.item_id].append(volume)
     out = []
     for item in sorted(items, key=lambda i: (i.title, str(i.id))):
         series = series_of(item)
@@ -535,6 +734,16 @@ async def load_comic_index(
                     for slug, edition in zip(
                         edition_slugs(editions), editions, strict=True
                     )
+                ],
+                volumes=[
+                    PublicComicIndexVolume(
+                        slug=v.slug,
+                        label=v.label,
+                        kind=v.kind,
+                        line_number=v.line_number,
+                        cover_url=v.cover_url,
+                    )
+                    for v in sorted(volumes[item.id], key=_line_order)
                 ],
             )
         )

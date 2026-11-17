@@ -623,3 +623,52 @@ async def test_a_tag_write_moves_the_fingerprint(sessionmaker_for_test, seeded):
     async with sessionmaker_for_test() as session:
         after = await next_fingerprint(session, NOW)
     assert before != after
+
+
+async def test_a_volume_or_collects_write_moves_the_fingerprint(
+    sessionmaker_for_test, seeded
+):
+    """Volumes and their collects are public outputs (the volume page and the
+    index): both tables are in the fingerprint, SQL by hand included."""
+    from models import ComicVolume, ComicVolumeCollect, ItemType
+
+    async with sessionmaker_for_test() as session:
+        comic = Item(
+            type=ItemType.COMIC, title="Saga", status=ItemStatus.BACKLOG, is_public=True
+        )
+        session.add(comic)
+        await session.flush()
+        volume = ComicVolume(
+            item_id=comic.id, position=1, slug="vol-1", label="One", kind="trade"
+        )
+        session.add(volume)
+        await session.flush()
+        entry = ComicVolumeCollect(
+            volume_id=volume.id,
+            position=1,
+            series_name="Saga",
+            issue_text="#1",
+            source="typed",
+        )
+        session.add(entry)
+        await session.commit()
+        start = await next_fingerprint(session, NOW)
+    async with sessionmaker_for_test() as session:
+        await session.execute(text("UPDATE comic_volumes SET label = 'Uno'"))
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        after_volume = await next_fingerprint(session, NOW)
+    assert after_volume != start
+    async with sessionmaker_for_test() as session:
+        await session.execute(
+            text("UPDATE comic_volume_collects SET issue_text = '#1-2'")
+        )
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        after_collect = await next_fingerprint(session, NOW)
+    assert after_collect != after_volume
+    async with sessionmaker_for_test() as session:
+        await session.execute(text("DELETE FROM comic_volume_collects"))
+        await session.commit()
+    async with sessionmaker_for_test() as session:
+        assert await next_fingerprint(session, NOW) != after_collect

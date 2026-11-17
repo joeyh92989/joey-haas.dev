@@ -11,7 +11,9 @@ aggregate query:
   day also seeds the picks' jitter and decides which dates are still to
   come;
 - every row of `items`, `recommendations`, `playthroughs`, `play_sessions`
-  and `comic_issues` (Tonight's comic progress counts read marks), as a
+  and `comic_issues` (Tonight's comic progress counts read marks), plus
+  `comic_volumes` and `comic_volume_collects` (the public volume page and the
+  comic index), as a
   count and a digest of each row's id and xmin (the
   Continue card reads the open run and its journal, which touch neither
   the item's xmin nor its updated_at). Postgres gives a row a new xmin on every UPDATE,
@@ -46,6 +48,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import (
     CatalogueRun,
     ComicIssue,
+    ComicVolume,
+    ComicVolumeCollect,
     Item,
     PlaySession,
     Playthrough,
@@ -90,6 +94,8 @@ async def next_fingerprint(session: AsyncSession, now: datetime) -> tuple:
                 *_rows(Playthrough),
                 *_rows(PlaySession),
                 *_rows(ComicIssue, ComicIssue.item_id, ComicIssue.number),
+                *_rows(ComicVolume),
+                *_rows(ComicVolumeCollect),
                 select(func.count(CatalogueRun.finished_at)).scalar_subquery(),
                 select(func.max(CatalogueRun.finished_at)).scalar_subquery(),
             )

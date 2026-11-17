@@ -28,7 +28,9 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
   (`MIN_POOL` in `src/lib/daily.js`).
 - `stats.json` carries the full shape `Games.jsx` reads, not just the
   fields the shape check requires.
-- `comic-issues.json` feeds the issue and edition pages' heads.
+- `comic-issues.json` feeds the issue, edition and volume pages' heads; its
+  `volumes` mirror `PublicComicIndexVolume` (the old `ed-1-1` edition is also
+  the volume `ed-1-1`).
 - Shapes mirror `SNAPSHOTS` in `scripts/fetch-snapshot.mjs`.
   `scripts/fixture-snapshot.test.mjs` runs them through its validators, so
   drift fails `npm test`.

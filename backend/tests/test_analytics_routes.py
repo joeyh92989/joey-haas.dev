@@ -466,7 +466,7 @@ async def test_site_stats_never_lists_a_private_series_issue_or_edition(
         session.add_all([shown, hidden])
         await session.commit()
         shown_id, hidden_id = str(shown.id), str(hidden.id)
-    parts = ("1", "12", "ed-1-6", "ed-7-12-2")
+    parts = ("1", "12", "ed-1-6", "ed-7-12-2", "vol-3")
     for series_id in (shown_id, hidden_id):
         for part in parts:
             await _view(factory, today, path=f"/shelf/{series_id}/{part}")
@@ -477,7 +477,7 @@ async def test_site_stats_never_lists_a_private_series_issue_or_edition(
     listed = {row["value"] for row in public["pages"]}
     assert listed == {f"/shelf/{shown_id}/{part}" for part in parts}
     # The views still count; only the private series' paths are withheld.
-    assert public["views"] == 8
+    assert public["views"] == 2 * len(parts)
     assert f"/shelf/{hidden_id}/ed-1-6" in {row["value"] for row in admin["pages"]}
 
 

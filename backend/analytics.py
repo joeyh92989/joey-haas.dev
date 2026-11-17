@@ -84,12 +84,13 @@ _EXACT_PATHS = frozenset(
 )
 _PATTERNS = (
     re.compile(r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
-    # A comic issue (/shelf/<id>/<n>) and a collected edition
-    # (/shelf/<id>/ed-<from>-<to>[-<k>]): exactly what App.jsx's ShelfPart
-    # accepts, so a mistyped part, which renders NotFound, is not counted.
+    # A comic issue (/shelf/<id>/<n>), a collected edition
+    # (/shelf/<id>/ed-<from>-<to>[-<k>]) and a volume (/shelf/<id>/vol-<n>):
+    # exactly what App.jsx's ShelfPart accepts, so a mistyped part, which
+    # renders NotFound, is not counted.
     re.compile(
         r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-        r"/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?)"
+        r"/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?|vol-[1-9][0-9]{0,3})"
     ),
     re.compile(r"/shelf/year/\d{4}"),
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
@@ -127,11 +128,12 @@ PUBLIC_REFERRER_DOMAINS = frozenset(
 # private link was shared, so they fold into "other" like any blog.
 _GOOGLE = re.compile(r"(?:www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})")
 # An item page's path, before and after the /spine -> /shelf rename, with the
-# optional comic suffix: an issue (/<n>) or a collected edition (/ed-...).
+# optional comic suffix: an issue (/<n>), a collected edition (/ed-...) or a
+# volume (/vol-<n>).
 # The group is the item's id.
 ITEM_PATH = re.compile(
     r"/(?:shelf|spine)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-    r"(?:/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?))?"
+    r"(?:/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?|vol-[1-9][0-9]{0,3}))?"
 )
 _HOSTNAME = re.compile(
     r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*"
