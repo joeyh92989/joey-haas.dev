@@ -427,6 +427,43 @@ store date the owner has since retyped to something else is not touched.
 After `--apply`, pressing "Refresh game metadata" on
 `/admin/collection` can refill dates from IGDB.
 
+## audit_comics.py
+
+Reports what the comic rows hold before the book-first migration (`0021`)
+copies them (#324).
+
+**Why:** `items.editions` is hand-editable JSONB with a free-text `kind`, and
+`shelf_format` says nothing about whether a row holds singles, editions or
+both. The migration turns every edition entry into a volume, so the counts
+that should match afterwards, and any entry it can only copy with a fallback,
+need to be known first.
+
+**Run** from `backend/`, in the main checkout or any worktree:
+
+```bash
+./.venv/bin/python scripts/audit_comics.py
+```
+
+It prints: comic rows by only singles / only editions / both / neither
+against public / private / following (public wins, then a followed-only row
+is `following`); every distinct `editions[].kind` with a count and whether it
+maps as is or becomes `trade`; the total edition entries (the number of
+`comic_volumes` rows to expect); rows with overlapping editions, an edition
+`cv_id`, skips, `read_to` set, or stub `comic_issues` rows (null `cv_id`);
+and editions the migration cannot map cleanly (not an object, no kind or
+label, `from`/`to` not whole numbers or backwards, a bad `cv_id`). Such an
+entry is still copied, with its label or the title as fallback.
+
+**Needs** `DATABASE_URL_DIRECT` in the main checkout's `backend/.env`, read
+the way `export_picker_fixture.py` reads it; the URL is never printed.
+
+**Writes** nothing. Only SELECTs run, inside a read-only transaction.
+
+**Limits:** it reads `type = comic` rows only. It reports titles, which are
+the owner's own data, so paste the report into #324 only if that is fine for
+the issue's visibility. After the deploy, `select count(*) from
+comic_volumes` should equal the edition total.
+
 ## migrate_neon.py
 
 Runs Alembic against the production database (Neon) from the main checkout
