@@ -426,6 +426,17 @@ describe('fetchSnapshot', () => {
     expect(SNAPSHOTS['comic-issues'].valid(body)).toBe(true)
     expect(SNAPSHOTS['comic-issues'].valid({})).toBe(false)
     expect(SNAPSHOTS['comic-issues'].valid([{ item_id: 'a' }])).toBe(false)
+    // `volumes` may be missing (an older API) but never another type.
+    const row = body[0]
+    expect(SNAPSHOTS['comic-issues'].valid([{ ...row, volumes: [] }])).toBe(
+      true,
+    )
+    expect(SNAPSHOTS['comic-issues'].valid([{ ...row, volumes: {} }])).toBe(
+      false,
+    )
+    expect(SNAPSHOTS['comic-issues'].valid([{ ...row, volumes: null }])).toBe(
+      false,
+    )
 
     const base = {
       '/api/health': ok({ status: 'ok' }),

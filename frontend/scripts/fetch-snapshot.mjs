@@ -119,9 +119,11 @@ const isSpot = (row) =>
 const isSpotsBody = (body) => Array.isArray(body) && body.every(isSpot)
 
 /**
- * The issue and edition pages' list (comic issue pages spec): one row per
- * public series. Only the prerender reads it, for link-preview heads. Keep in
- * step with nothing in src/: the app never reads this file.
+ * The issue, edition and volume pages' list (comic issue pages spec, comics
+ * book-first #335): one row per public series. Only the prerender reads it,
+ * for link-preview heads. Keep in step with nothing in src/: the app never
+ * reads this file. `volumes` is optional so a build against an API from
+ * before it shipped still passes; when present it is an array.
  */
 const isComicIssuesBody = (body) =>
   Array.isArray(body) &&
@@ -131,7 +133,8 @@ const isComicIssuesBody = (body) =>
       typeof row.item_id === 'string' &&
       typeof row.series_title === 'string' &&
       Array.isArray(row.issues) &&
-      Array.isArray(row.editions),
+      Array.isArray(row.editions) &&
+      (row.volumes === undefined || Array.isArray(row.volumes)),
   )
 
 /**
