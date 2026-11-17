@@ -39,14 +39,20 @@ from comics import (
     edition_slugs,
     expand,
     format_ranges,
+    held_ranges,
+    load_holds,
     mark_mismatches,
     owned_set,
     parse_ranges,
     plan_mark,
     pull_weeks,
+    read_to_of,
     row_run,
     series_from_row,
     sync_marks,
+    sync_volumes_from_editions,
+    volume_counts,
+    volume_reads,
 )
 from comics_schemas import (
     BackfillOut,
@@ -61,12 +67,23 @@ from comics_schemas import (
     TagsGenerateOut,
     UnfollowRemovedOut,
     VolumeHitOut,
+    VolumeMarkIn,
+    VolumeStateOut,
     WallOut,
 )
 from intake.budget import pacific_day, remaining
 from items import _apply_detail, _copy_fields, _http_error_for, require_admin
 from llm import LLMError
-from models import CatalogueRun, ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
+from models import (
+    CatalogueRun,
+    ComicIssue,
+    ComicVolume,
+    ComicVolumeCollect,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+)
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
 from public_comics import comic_detail, read_marks_count
@@ -427,8 +444,14 @@ def create_comics_router(
         item = await _by_volume(session, body.external_id)
         if item is None:
             raise HTTPException(status_code=404, detail="Not following that series")
+        has_volumes = await session.scalar(
+            select(func.count())
+            .select_from(ComicVolume)
+            .where(ComicVolume.item_id == item.id)
+        )
         followed_only = (
-            item.owned_format == OwnedFormat.NONE
+            not has_volumes
+            and item.owned_format == OwnedFormat.NONE
             and not item.is_public
             and not (item.issues_owned or item.issues_skipped or item.editions)
             and item.read_to is None
@@ -544,7 +567,9 @@ def create_comics_router(
     ) -> dict:
         """Records the issue as skipped: off the pull list, a gap on the bar."""
         item = await _comic(session, item_id)
-        if number in owned_set(item.issues_owned, item.editions):
+        await sync_volumes_from_editions(session, item)
+        held = held_ranges(await load_holds(session, item.id))
+        if number in owned_set(item.issues_owned, held):
             raise HTTPException(status_code=409, detail=f"#{number} is already owned")
         skipped = expand(parse_ranges(item.issues_skipped)) | {number}
         changes = _copy_fields({"issues_skipped": format_ranges(skipped)}, item)
@@ -567,6 +592,8 @@ def create_comics_router(
         marks on the issue rows are the record; the range text and `read_to`
         are kept in step from them. Undo posts the previous state back."""
         item = await _comic(session, item_id)
+        await sync_volumes_from_editions(session, item)
+        held = held_ranges(await load_holds(session, item.id))
         reads = set(
             await session.scalars(
                 select(ComicIssue.number).where(
@@ -579,9 +606,7 @@ def create_comics_router(
         try:
             owned, skipped = item.issues_owned, item.issues_skipped
             for each in range(number, (body.to or number) + 1):
-                change = plan_mark(
-                    owned, skipped, item.editions, reads, each, body.state
-                )
+                change = plan_mark(owned, skipped, held, reads, each, body.state)
                 owned, skipped = change.issues_owned, change.issues_skipped
                 reads = set(change.reads)
         except MarkRefused as error:
@@ -628,10 +653,23 @@ def create_comics_router(
             raise HTTPException(status_code=404, detail="No such comic")
         today = _today()
         built = await build_wall(session, item_id, today, public_only=False)
+        read_numbers = set(
+            await session.scalars(
+                select(ComicIssue.number).where(
+                    ComicIssue.item_id == item_id,
+                    ComicIssue.owned.is_(True),
+                    ComicIssue.read.is_(True),
+                )
+            )
+        )
+        holds = await load_holds(session, item_id)
         return {
             "wall": built,
             "comic": comic_detail(
-                item, today, await read_marks_count(session, item_id)
+                item,
+                today,
+                await read_marks_count(session, item_id),
+                volumes=volume_counts(holds, read_numbers),
             ),
         }
 
@@ -678,7 +716,7 @@ def create_comics_router(
                 [tuple(r) for r in rows],
                 item.issues_owned,
                 item.issues_skipped,
-                item.editions,
+                held_ranges(await load_holds(session, item.id)),
                 item.read_to,
             )
             if wrong:
@@ -1124,6 +1162,98 @@ def create_comics_router(
             "issues.last_run": issues_run_summary(run),
             "refresh.last_run": issues_run_summary(refresh),
             "tags.last_run": tags_run_summary(tags, gave_up=given_up or 0),
+        }
+
+    @router.patch("/volumes/{volume_id}", response_model=VolumeStateOut)
+    async def mark_volume(
+        volume_id: uuid.UUID,
+        body: VolumeMarkIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Owns, disowns, reads or unreads a volume: its own write, kept across
+        reloads. The marks follow (#326): every row the volume's linked
+        collects touch is re-synced, its own title and any other series it
+        links into, and a volume marked read marks those issues read (unread
+        takes them back, unless another read volume still covers them)."""
+        changes = body.model_dump(exclude_none=True)
+        if not changes:
+            raise HTTPException(status_code=422, detail="Send owned or read")
+        volume = await session.get(ComicVolume, volume_id, with_for_update=True)
+        if volume is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        linked = await session.scalars(
+            select(ComicVolumeCollect.item_id).where(
+                ComicVolumeCollect.volume_id == volume.id,
+                ComicVolumeCollect.item_id.is_not(None),
+                ComicVolumeCollect.from_number.is_not(None),
+                ComicVolumeCollect.to_number.is_not(None),
+            )
+        )
+        touched = sorted({volume.item_id, *linked}, key=str)
+        items = []
+        for each in touched:  # a fixed order, so two writes cannot deadlock
+            row = await session.get(Item, each, with_for_update=True)
+            if row is not None and row.type == ItemType.COMIC:
+                items.append(row)
+        read_changed = "read" in changes and changes["read"] != volume.read
+        for field, value in changes.items():
+            setattr(volume, field, value)
+        await session.flush()
+        for item in items:
+            holds = await load_holds(session, item.id)
+            if read_changed:
+                mine = next(h for h in holds if h.volume_id == volume.id)
+                covered = expand(mine.ranges)
+                reads = set(
+                    await session.scalars(
+                        select(ComicIssue.number).where(
+                            ComicIssue.item_id == item.id,
+                            ComicIssue.read.is_(True),
+                        )
+                    )
+                )
+                if volume.read:
+                    reads |= covered
+                else:
+                    reads -= covered
+                    reads |= volume_reads(holds)
+                result = await sync_marks(session, item, reads=reads)
+            else:
+                result = await sync_marks(session, item)
+            if result.rows_changed or result.stubs_added or result.stubs_removed:
+                rows = (
+                    await session.execute(
+                        select(
+                            ComicIssue.number, ComicIssue.owned, ComicIssue.read
+                        ).where(ComicIssue.item_id == item.id)
+                    )
+                ).all()
+                item.read_to = read_to_of(
+                    [n for n, owned, _ in rows if owned],
+                    [n for n, owned, read in rows if owned and read],
+                )
+        own = next((i for i in items if i.id == volume.item_id), None)
+        run = None
+        if own is not None:
+            run = row_run(
+                own.issues_owned,
+                own.issues_skipped,
+                held_ranges(await load_holds(session, own.id)),
+                own.read_to,
+                own.source_metadata,
+            )
+        await session.commit()
+        await session.refresh(volume)
+        return {
+            "id": str(volume.id),
+            "item_id": str(volume.item_id),
+            "slug": volume.slug,
+            "label": volume.label,
+            "kind": volume.kind,
+            "owned": volume.owned,
+            "read": volume.read,
+            "comic_run": run,
+            "touched": [str(i.id) for i in items],
         }
 
     @router.put("/{item_id}/editions/{slug}/link", response_model=EditionLinkOut)

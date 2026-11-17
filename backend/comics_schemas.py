@@ -73,6 +73,30 @@ class MarkOut(ComicStateOut):
     previous: dict[str, str | None] | None
 
 
+class VolumeMarkIn(BaseModel):
+    """`PATCH /volumes/{id}`: at least one of the two."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    owned: bool | None = None
+    read: bool | None = None
+
+
+class VolumeStateOut(BaseModel):
+    """`PATCH /volumes/{id}`: the volume after the write, the run of its own
+    title, and the ids of every row whose marks were re-synced."""
+
+    id: str
+    item_id: str
+    slug: str
+    label: str
+    kind: str
+    owned: bool
+    read: bool
+    comic_run: ComicRunOut | None
+    touched: list[str]
+
+
 class VolumeHitOut(BaseModel):
     """`GET /search`: a Comic Vine volume marked with what the shelf holds."""
 

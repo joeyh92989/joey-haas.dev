@@ -283,7 +283,10 @@ def _row(
 
 
 def derived_status(
-    item: Item, series: ComicSeries, read_marks: int
+    item: Item,
+    series: ComicSeries,
+    read_marks: int,
+    volumes: tuple[int, int] = (0, 0),
 ) -> tuple[ItemStatus, bool]:
     """`comics.shown_status` for a row: the one place the stored status, the
     run and the read count meet. Read counts the marks and read_to, as the
@@ -297,6 +300,8 @@ def derived_status(
         released=series.released,
         ongoing=series.ongoing,
         missing=run.missing,
+        volumes_owned=volumes[0],
+        volumes_read=volumes[1],
     )
     return ItemStatus(status), caught_up
 
@@ -383,13 +388,18 @@ def comic_weeks(items: Iterable[Item], today: date) -> PublicComicWeeks:
 
 
 def comic_detail(
-    item: Item, today: date, read_marks: int | None = None
+    item: Item,
+    today: date,
+    read_marks: int | None = None,
+    volumes: tuple[int, int] = (0, 0),
 ) -> PublicComicDetail:
     """`read_marks` is the count of owned issues whose row says read (5c: read
-    is per book); `read_to` still counts for a row the marks have not reached."""
+    is per book); `read_to` still counts for a row the marks have not reached.
+    `volumes` is (owned, read) volumes of the title for `shown_status`; the
+    public callers leave it (0, 0) until the public volume read (#329)."""
     series = series_of(item)
     run = series.run()
-    status, caught_up = derived_status(item, series, read_marks or 0)
+    status, caught_up = derived_status(item, series, read_marks or 0, volumes)
     fetched = (item.source_metadata or {}).get("fetched_on")
     try:
         as_of = date.fromisoformat(fetched) if isinstance(fetched, str) else None
