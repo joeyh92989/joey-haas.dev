@@ -82,6 +82,8 @@ esac
 FAKE
 chmod +x "$tmp/bin/gh"
 
+# Limits: tests that expect a timeout set GRACE=1 MAXW=1 (SECONDS is a whole-second
+# counter, so such a limit can expire in milliseconds); the rest get generous ones.
 fails=0
 # new_pr <n> <merge> <checks>
 new_pr() {
@@ -89,7 +91,7 @@ new_pr() {
   echo "$2" >"$FAKE_DIR/$1.merge"; echo "$3" >"$FAKE_DIR/$1.checks"
   echo MERGEABLE >"$FAKE_DIR/$1.mergeable"; echo "sha$1" >"$FAKE_DIR/$1.head"
 }
-run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0 GRACE_SECONDS=1 MAX_WAIT_SECONDS=2 "$here/merge-train.sh" "$@" 2>"$FAKE_DIR/err" >"$FAKE_DIR/out"; echo $?; }
+run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0 GRACE_SECONDS="${GRACE:-20}" MAX_WAIT_SECONDS="${MAXW:-30}" "$here/merge-train.sh" "$@" 2>"$FAKE_DIR/err" >"$FAKE_DIR/out"; echo $?; }
 check() { # name expected actual
   if [ "$2" = "$3" ]; then echo "ok    $1"; else echo "FAIL  $1: expected '$2', got '$3'"; fails=$((fails + 1)); fi
 }
@@ -129,10 +131,10 @@ check "pending then pass exits 0" 0 "$(run 1)"
 
 # 5. The risky branches.
 fresh t8; new_pr 1 CLEAN none
-check "no checks ever reported stops" 1 "$(run 1)"
+check "no checks ever reported stops" 1 "$(GRACE=1 MAXW=1 run 1)"
 check "...and says so" 1 "$(grep -c 'no required checks appeared' "$FAKE_DIR/err")"
 fresh t9; new_pr 1 CLEAN partial
-check "a required check that never reports stops" 1 "$(run 1)"
+check "a required check that never reports stops" 1 "$(GRACE=1 MAXW=1 run 1)"
 check "...and names it" 1 "$(grep -c 'not yet reported: frontend' "$FAKE_DIR/err")"
 check "...without merging" 0 "$(count 'pr merge')"
 fresh t9b; new_pr 1 CLEAN late:3
