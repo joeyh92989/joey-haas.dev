@@ -84,10 +84,19 @@ export const KINDS = [
     key: 'garment',
     area: 'closet',
     label: 'Garment',
-    ways_in: ['photo', 'type'],
+    ways_in: ['photo', 'type', 'file', 'link'],
     has_details: false,
     source_state: null,
-    fields: [field('name', 'Name', 'text')],
+    fields: [
+      field('name', 'Name', 'text'),
+      field('brand', 'Brand', 'text'),
+      field('color_name', 'Store colour', 'text'),
+      field('size', 'Size', 'text'),
+      field('category', 'Category', 'select', {
+        options: ['top', 'bottom', 'outer'],
+      }),
+      field('primary_color', 'Colour', 'text'),
+    ],
   },
 ]
 
@@ -144,6 +153,10 @@ const json = (status, body) => ({
  * @param {(body: object) => {status: number, body: object}} [options.add]
  *   `POST /api/intake/add`'s answer; by default one item added.
  * @param {Array<object>} [options.garments] The Closet's garments.
+ * @param {(sitting: object, file: File) => {status: number, body: object}}
+ *   [options.file] `POST .../file`'s answer; by default two pieces added.
+ * @param {(sitting: object) => {entries: object[], pending: number}}
+ *   [options.seedImages] `POST .../seed-images`'s answer; by default none pending.
  * @returns {{fetch: import('vitest').Mock, state: object, calls: (method:
  *   string, pattern: RegExp) => Array<{url: string, body: unknown}>}}
  */
@@ -155,6 +168,10 @@ export function fakeIntakeApi({
   search = () => ({ results: [], sources: [] }),
   add,
   garments = [],
+  file,
+  links,
+  choose,
+  seedImages,
 } = {}) {
   const state = {
     garments: structuredClone(garments),
@@ -231,6 +248,59 @@ export function fakeIntakeApi({
         created: body.kind === 'garment' ? [] : ['item-new'],
         garment_id: body.kind === 'garment' ? 'garment-new' : null,
       })
+    }
+    if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/file$/))) {
+      const sitting = state.sittings[m[1]]
+      const answer = file
+        ? file(sitting, options.body.get('file'))
+        : {
+            status: 201,
+            body: {
+              added: 2,
+              skipped_not_owned: 0,
+              skipped_known_not_owned: 0,
+              already_imported: 0,
+              duplicates: 0,
+              unreadable: 0,
+              problems: [],
+            },
+          }
+      return json(answer.status, answer.body)
+    }
+    if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/links$/))) {
+      const answer = links
+        ? links(state.sittings[m[1]], body)
+        : {
+            status: 201,
+            body: {
+              entries: [],
+              read: 1,
+              kept: 0,
+              not_links: 0,
+              duplicates: 0,
+            },
+          }
+      return json(answer.status, answer.body)
+    }
+    if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/choose$/))) {
+      const found = findEntry(m[1])
+      const answer = choose
+        ? await choose(found, body)
+        : { status: 200, body: found }
+      return json(answer.status, answer.body)
+    }
+    if ((m = path.match(/^\/api\/intake\/sittings\/([\w-]+)\/seed-images$/))) {
+      return json(
+        200,
+        seedImages
+          ? seedImages(state.sittings[m[1]])
+          : { entries: [], pending: 0 },
+      )
+    }
+    if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/not-owned$/))) {
+      const found = findEntry(m[1])
+      Object.assign(found, { state: 'ignored', photo_id: null })
+      return json(200, found)
     }
     if ((m = path.match(/^\/api\/intake\/entries\/([\w-]+)\/tag-again$/))) {
       const found = findEntry(m[1])

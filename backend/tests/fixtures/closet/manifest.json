@@ -1,0 +1,17 @@
+{
+  "recorded_on": "2026-11-16",
+  "stores": {
+    "marinelayer": {
+      "link": "https://www.marinelayer.com/products/chalet-lounge-pant",
+      "json": "https://www.marinelayer.com/products/chalet-lounge-pant.json",
+      "title": "Chalet Lounge Pant",
+      "variants": 5
+    },
+    "duer": {
+      "link": "https://www.duer.com/products/no-sweat-athletic-taper-chestnut",
+      "json": "https://www.duer.com/products/no-sweat-athletic-taper-chestnut.json",
+      "title": "No Sweat Athletic Taper - Chestnut",
+      "variants": 16
+    }
+  }
+}

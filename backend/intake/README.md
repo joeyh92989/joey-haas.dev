@@ -21,7 +21,182 @@ and the entries read from them or typed in.
   chosen match's metadata plus the payload's `ItemIn` fields, and records a
   physical copy. Board games are typed only while BGG needs a token.
 - `garment_kind.py` — the closet's garment: no source, no details step;
-  `to_row` keeps only `GarmentFields` keys.
+  `to_row` keeps only `GarmentFields` keys. Ways in: photo, type,
+  **file** (the seed file below) and **link** (`link_import.py`). Its fields include brand, store colour
+  and size.
+- `seed_file.py` (pure), `seed_import.py`, `seed_image.py` — the closet's
+  **From a file** way in (issue #396, `docs/planning/2026-11-16-closet-products-design.md`
+  D3, D5-D8). A seed CSV (UTF-8, header row; columns `n, source, order_id,
+  date, date_basis, brand, name, color_name, size, price_usd, category_hint,
+  store_item_no, still_owned, image_url`; only `source`, `name`,
+  `still_owned` are required; at most 500 lines and 1 MB) becomes one
+  `typed` garment entry per piece, with **no model call and no photograph**:
+  - A row's fate, in this order: `still_owned` no is **skipped, not
+    owned**; a key in `closet_settings["import.not_owned"]` is **skipped,
+    marked not owned before**; a row already in `garment_products` (same
+    source, item number and size, else the same order line: order, name,
+    colour, size) is **already imported**, which is also what makes uploading the
+    same file again harmless; a row repeated in the file or already in the
+    sitting is a **duplicate**; a line that cannot be read (unknown
+    source, no name, a field too long for the closet) is **unreadable**,
+    worded for the first five. The counts are kept in
+    `intake_settings["file.<sitting id>"]`, reported once by the commit
+    as `file_import` (Done's tiles), and removed with the sitting.
+  - An entry's payload holds the fields Check edits (name, brand, store
+    colour `color_name`, size, category from `category_hint` or none,
+    `primary_color` from `closet_colors.colour_family`, `acquired_on`) and
+    two keys only the server writes: `seed` (the row, its keys and its
+    `image_url`) and `image` (`pending`, `held`, `failed` with
+    `image_error`, or `none`). `PATCH` keeps those keys whatever the page
+    sends, so a Check edit can never change the address the server fetches.
+  - **Photos** are fetched once each, a few per request, by
+    `POST /sittings/{id}/seed-images` (the Check page asks until none is
+    pending). `seed_image.fetch_image` takes only https on port 443,
+    refuses any host that resolves to a non-public address, follows
+    redirects by hand and checks every hop, times out at 8 s per request and
+    20 s in all, asks for no compression and refuses a compressed answer,
+    takes only JPEG, PNG or WebP and stops reading at 6 MB; requests to a host are
+    spaced. The result is made 800px (`make_garment_image`) and **held** as
+    an `intake_photos` row the entry points at (served by the existing
+    `GET /photos/{id}/image`), so nothing reaches the closet before the
+    commit. Residual risk: the host is resolved for the check and again to
+    connect (DNS rebinding); the route is admin-only and only ever decodes
+    the answer as an image.
+  - **Commit** writes, for each seed entry, the garment (`untagged`,
+    `tag_source` NULL so the tag queue takes it for warmth, formality and
+    seasons; `color_name` verbatim with `color_source` vendor; `primary_hex`
+    NULL; `acquired_on` the purchase date), its `garment_products` row
+    (source, `order_ref`, `store_item_no`, title, price, the row as the
+    snapshot, `fetched_at`) and the held photo as its image. A piece
+    without a photo (never fetched, or failed) is written anyway and
+    counted as `images_missing`. A piece imported since the file was read
+    is `already_owned`.
+  - **Don't own this** (`POST /entries/{id}/not-owned`) ignores the entry,
+    drops its held photo and adds its key (`source|order_id|store_item_no`,
+    or `source|order_id|name+colour+size`, lower case) to
+    `closet_settings["import.not_owned"]` through
+    `seed_import.add_not_owned`, which is also the way to seed the list
+    from code. Known limit: two sittings committing the same rows at the
+    same instant can write them twice (no unique index backs the "already
+    imported" check; one would need a migration). There is no undo route; the list is plain JSON in
+    `closet_settings` (`{"keys": [...]}`).
+- `closet_product.py` (backend root; issue #399) — the same resolver for a
+  garment that already exists, from the garment's edit page (`/admin/closet/:id`),
+  outside any sitting. All three routes are in the admin-only closet router:
+  - `POST /api/closet/garments/{id}/photo` (multipart `photo`): adds or
+    replaces the photo (800px WebP, the upload's size, type and decode
+    guards: 415/413/422) and moves `updated_at`, which versions the image
+    URL and ETag. It touches no other field, status or source and never
+    retags. Answers the `GarmentOut`.
+  - `POST /api/closet/garments/{id}/product` `{url}`: reads the link and
+    answers `state` `read` (title, brand, currency, colours with sizes and
+    price, the garment's current product and whether it has a photo) or
+    `refused` with the reason (robots, no product, timeout...), a 200 either
+    way. **Writes nothing.**
+  - `PATCH /api/closet/garments/{id}/product` `{url, external_id, size,
+    replace_brand, replace_color, replace_size, replace_product}` (PATCH because the API's CORS policy
+    allows no PUT): reads the link **again** and takes the colour whose
+    `external_id` it offers (422 otherwise); a size must be one of that
+    colour's (422), or it is left alone. The client never sends a colour
+    name, a price or an image address. It sets `color_name` (`color_source`
+    vendor; a colour typed by hand is kept unless `replace_color`), `brand`
+    (only when empty or `replace_brand`), `size` (an existing size is kept
+    unless `replace_size`; a lone size only fills an empty one; `kept` in the
+    answer lists `colour` / `size` when the owner's value stood),
+    `primary_color` (its `colour_family`, only when empty: a changed vendor
+    colour does not update a colour family the tagger or the owner already
+    set) and writes the
+    garment's one `garment_products` row (source from the host, url, title,
+    dollar price, `store_item_no` as `item_ref`, snapshot = the parsed
+    product plus `chosen` and `size`). A garment that already has a product
+    answers 409 until `replace_product` is sent. No connection is held across
+    the network: the garment is looked at, the link and photo are fetched with
+    no open transaction, then the garment is locked (`FOR UPDATE`) and read
+    again before anything is written, so a photo added meanwhile is never
+    overwritten and a garment deleted meanwhile is a 404; a unique-key failure
+    at commit is rolled back and answered 409. A garment with no photo gets
+    the colour's photo through `seed_image.fetch_image` (guarded again); one
+    with a photo keeps it; a failed photo does not fail the attach (`photo`
+    `failed`, with `photo_error`). `status` and `tag_source` are untouched.
+  A colour typed by hand is `manual`; one sent back unchanged by the edit
+  form keeps its source.
+- `closet_resolver.py` (backend root), `link_import.py` — the closet's
+  **From links** way in (issue #398, design D11). Paste up to 10 product
+  addresses (the add bar's **From links**, or one link typed into the bar);
+  `POST /sittings/{id}/links` makes one `typed` garment entry per link, with
+  **no model call**. `closet_resolver.resolve(url)` reads a link in this
+  order and never raises for a store's behaviour:
+  1. **Shopify's per-product JSON**, `<origin>/products/<handle>.json` (also
+     behind `/collections/x/` or a locale prefix): title, vendor (brand),
+     options, variants (id, option values, price, available, image), images.
+     Colours are the variants grouped by the `Color` option; a product with
+     no such option (Duer lists one product per colour) takes its colour
+     from the `color_` tag, else the title after " - "; a size is the other
+     option values joined by " / ". Marine Layer and Duer both answer this.
+  2. **JSON-LD** `Product` / `ProductGroup` (`hasVariant`, `@graph` arrays):
+     name, brand, `color`, `size`, image, `offers.price`, sku, url.
+  3. Otherwise the link is **kept as typed** (name from `og:title`/`<title>`
+     or the handle) with the link saved.
+  Every fetch is guarded as `seed_image.py` (https on 443 only, every
+  address public, redirects by hand, 3 MB cap, 20 s in all, no
+  compression), a redirect may only stay on the store's own site, requests
+  to a host are spaced two a second (`HostThrottle`) and `robots.txt` is
+  read per RFC 9309 before any path (`courtesy.robots_for`; an unreachable
+  file is a disallow; only the `.json` disallowed falls back to the page).
+  A store that refuses (robots, 403/429, timeout, non-https, private
+  address, not a product page) leaves an entry with `payload.link.state`
+  `kept` and the reason in `payload.link.message`, never a failed sitting.
+  - An entry's payload is the seed file's: the fields Check edits, the
+    server-only `seed` record (`source` is `marinelayer`/`duer` by host,
+    else `link`) and `image`, plus the server-only `link` record
+    (`{url, state resolved|kept, via shopify|jsonld, code, message}`).
+    `PATCH` of a link piece **merges**: only the keys sent change (a blank
+    removes one) and the server's keys stay, so a Check save sent before a
+    colour choice cannot put the old colour back (file pieces still replace
+    the payload). The product's **colours are the entry's `candidates`**
+    (`{external_id, title, color_name, image_url, price, sizes: [{size,
+    variant_id, available}]}`). One colour, or the colour and size of a
+    `?variant=` in the link, is chosen at once; with several Check's radio
+    calls `POST /entries/{id}/choose {external_id}` (row locked; 409 for a
+    removed or written piece; only a stored candidate can be picked), which
+    sets the store colour verbatim, the family (`closet_colors.colour_family`,
+    blank to be asked), the price and the photo (the old held photo is
+    dropped; the new one is fetched next). A size the owner typed stays
+    unless the new colour lists sizes without it. Size is a select over the
+    colour's sizes.
+  - **One piece is one product, colour and size.** The store's own ids are
+    only unique inside a product (a JSON-LD page with no sku is `c0`
+    everywhere), so `store_item_no` is `closet_resolver.item_ref`: host,
+    path and colour id, cut to 80 characters and hashed past that. A kept
+    link's is its address. The "already imported" key is
+    `source|item|<store_item_no>|<size>`, rebuilt **at commit** from the
+    payload as Check left it (`link_import.entry_key`); the product's
+    snapshot stores the piece's `size` so `imported_keys` rebuilds the same
+    string. Another size of one colour is another piece; a repeat is
+    counted `already_owned`, never silent. A piece offering several colours
+    with none chosen is **refused at commit** (422, field `color_name`).
+  - Limits: a paste is 10 links; a sitting holds 100 link pieces (422); all
+    the links of a paste share 45 s, after which unanswered ones are kept as
+    typed (`timeout`); one link that raises anything is kept as typed
+    (`unreadable`), never a 500. A link with control characters or
+    whitespace after decoding is not requested. Addresses in
+    `64:ff9b::/96` (NAT64) and IPv4-mapped IPv6 are checked or refused with
+    the other non-public ones, in `seed_image._public` for both fetchers.
+  - **Photos** are the seed file's: `POST /sittings/{id}/seed-images` fetches
+    each once through `seed_image.fetch_image` into a held 800 px
+    `intake_photos` row. A photo is written only if its address is still the
+    entry's (`fetch_pending` re-reads the locked row), so a colour chosen
+    while it was coming is not overwritten by the old colour's photo. The
+    page runs one loop per sitting (`lib/useSeedImages.js`) that asks until
+    nothing is pending.
+  - **Commit** is the seed file's (`_seed_garment`): a garment `untagged`,
+    `tag_source` NULL, `color_source` vendor, plus its `garment_products`
+    row with `url` the link as pasted, `title`, `price`, `snapshot` the
+    **parsed product** (never the raw page) and `fetched_at` the read time.
+    "Don't own this" is the file's alone (409 for a link piece); a link
+    piece is removed from the sitting instead.
+  Tests run offline against fixtures recorded by
+  `scripts/record_closet_fixtures.py` (`tests/fixtures/closet/`).
 - `routes.py` — `create_intake_router()`, admin only, under `/api/intake`.
 - `reader.py` — `read_next()`, behind `POST /api/intake/sittings/{id}/read-next`.
   One call claims the sitting's oldest `uploaded` shelf photo in one
@@ -148,6 +323,9 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
 | `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |
 | `POST /add` | One thing from the add bar, through the commit service |
+| `POST /sittings/{id}/file` | The closet's From a file: a seed CSV (multipart `file`, at most 1 MB) into the sitting's draft entries; answers this file's counts and `problems`; moves the sitting to Check. 409 for a shelf sitting, 413 over the limit, 422 for a file that is not a seed file |
+| `POST /sittings/{id}/seed-images` | Fetch the next few file pieces' photos (once each); answers the entries it changed and `pending` |
+| `POST /entries/{id}/not-owned` | Check's Don't own this (file pieces only; 409 otherwise) |
 | `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
 | `GET /counts`, `GET /budget` | Entries to check or confirm (`check` and `probable`) per area; today's free reads |
@@ -219,7 +397,10 @@ change nothing, every entry left still to check, is a 409 too
 (`NOTHING_TO_ADD`). The reader's `chosen` is the importer's candidate, whose
 cover is `thumbnail_url`: `shelf_kinds.to_row` maps it to `cover_url`.
 Garments from photos are already real and are only counted; a typed garment
-is created as `POST /api/closet/garments` creates one. After the commit,
+is created as `POST /api/closet/garments` creates one, and a seed-file entry
+is created at commit with its product and photo (see `seed_import.py`
+above). The answer also carries `images_missing` and `file_import`
+(the seed file's counts, null for a sitting no file was added to). After the commit,
 covers and creators are filled in as `/bulk` does (`items._enrich`, best
 effort).
 

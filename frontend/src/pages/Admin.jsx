@@ -23,6 +23,7 @@ import { dashboardCounts } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /** What a card says in place of a figure or lead it could not read. */
 const COULDNT_READ = 'Couldn’t read'
@@ -182,7 +183,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
   return (
     <>
       <AreaCard
-        title="Closet"
+        title={adminCopy.dashboard.closet}
         to="/admin/closet/today"
         linkLabel="Today"
         lead={
@@ -211,7 +212,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
                 className="link-button"
                 onClick={() => setChanging(true)}
               >
-                Change
+                {adminCopy.dashboard.change}
               </button>
             </>
           ) : (
@@ -222,7 +223,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
                 disabled={busy}
                 onClick={wore}
               >
-                Wore this
+                {adminCopy.dashboard.woreThis}
               </button>
               <button
                 type="button"
@@ -230,7 +231,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
                 disabled={busy}
                 onClick={() => setSwapOpen(true)}
               >
-                Swap
+                {adminCopy.dashboard.swap}
               </button>
               {error && (
                 <span className="admin-error" role="alert">
@@ -351,11 +352,11 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
             })
           }
         >
-          Wrap up
+          {adminCopy.dashboard.wrapUp}
         </button>
         {logError && (
           <span className="admin-error" role="alert">
-            Couldn’t log tonight.
+            {adminCopy.dashboard.logError}
           </span>
         )}
       </>
@@ -371,13 +372,13 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
   } else if (continuingFailed) {
     lead = <p className="muted">{COULDNT_READ}</p>
   } else if (continuing === undefined) {
-    lead = <p className="muted">Loading…</p>
+    lead = <p className="muted">{adminCopy.dashboard.loading}</p>
   }
 
   return (
     <>
       <AreaCard
-        title="Shelf"
+        title={adminCopy.dashboard.shelf}
         to="/admin/play-next"
         linkLabel="Play next"
         lead={lead}
@@ -445,7 +446,7 @@ function DenverCard({ round, onFailure }) {
 
   return (
     <AreaCard
-      title="Denver"
+      title={adminCopy.dashboard.denver}
       to="/admin/weekend"
       linkLabel="Weekend"
       lead={lead}
@@ -456,7 +457,7 @@ function DenverCard({ round, onFailure }) {
       actions={
         queued ? (
           <Link className="btn sm" to="/admin/spots">
-            Review candidates
+            {adminCopy.dashboard.reviewCandidates}
           </Link>
         ) : null
       }
@@ -475,7 +476,7 @@ function SiteCard({ nightly, round, onFailure }) {
 
   return (
     <AreaCard
-      title="Site"
+      title={adminCopy.dashboard.site}
       to="/admin/analytics"
       linkLabel="Analytics"
       lead={
@@ -492,7 +493,7 @@ function SiteCard({ nightly, round, onFailure }) {
       ]}
       actions={
         <Link className="btn sm" to="/admin/jobs">
-          Jobs
+          {adminCopy.dashboard.jobs}
         </Link>
       }
     />
@@ -529,7 +530,7 @@ export default function Admin() {
 
   return (
     <section className="dashboard">
-      <AdminPageHeader title="Home">
+      <AdminPageHeader title={adminCopy.dashboard.home}>
         <NightlyStatus nightly={nightly} />
       </AdminPageHeader>
 
@@ -567,7 +568,7 @@ export default function Admin() {
         nightly={nightly}
         action={
           <Link to="/admin/jobs">
-            Jobs <span aria-hidden="true">→</span>
+            {adminCopy.dashboard.jobs} <span aria-hidden="true">→</span>
           </Link>
         }
       />

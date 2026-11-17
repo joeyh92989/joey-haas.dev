@@ -5,6 +5,7 @@ import Panel from '../components/Panel.jsx'
 import { useNightly } from '../lib/adminJobs.js'
 import { recentChanges } from '../lib/dashboard.js'
 import { whenWords } from '../lib/nightly.js'
+import { adminCopy } from '../content/adminCopy.js'
 
 /**
  * Jobs, at /admin/jobs: the API and nightly state, every nightly job with
@@ -17,17 +18,17 @@ export default function AdminJobs() {
 
   return (
     <section className="dashboard">
-      <AdminPageHeader title="Jobs">
+      <AdminPageHeader title={adminCopy.jobs.title}>
         <NightlyStatus nightly={nightly} />
       </AdminPageHeader>
 
       <JobsList nightly={nightly} />
 
       <Panel
-        title="Recent changes"
+        title={adminCopy.jobs.recentChanges}
         action={
           <Link to="/admin/shelf/games">
-            Shelf <span aria-hidden="true">→</span>
+            {adminCopy.jobs.shelf} <span aria-hidden="true">→</span>
           </Link>
         }
       >
@@ -36,9 +37,9 @@ export default function AdminJobs() {
             <table className="item-table recent-table">
               <thead>
                 <tr>
-                  <th scope="col">Item</th>
-                  <th scope="col">Change</th>
-                  <th scope="col">When</th>
+                  <th scope="col">{adminCopy.jobs.item}</th>
+                  <th scope="col">{adminCopy.jobs.change}</th>
+                  <th scope="col">{adminCopy.jobs.when}</th>
                 </tr>
               </thead>
               <tbody>

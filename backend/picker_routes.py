@@ -363,7 +363,8 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             profile_size=result.profile_size,
         )
 
-    @router.post("/events", status_code=204)
+    # No body: a 204 answers with an empty Response.
+    @router.post("/events", status_code=204, response_model=None)
     async def record_event(
         payload: PickEventIn,
         session: AsyncSession = Depends(get_session),
@@ -377,7 +378,8 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         await session.commit()
         return Response(status_code=204)
 
-    @router.delete("/events/{item_id}/never", status_code=204)
+    # No body: a 204 answers with an empty Response.
+    @router.delete("/events/{item_id}/never", status_code=204, response_model=None)
     async def restore(
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
@@ -426,7 +428,8 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         ).scalars()
         return SkippedTodayOut(item_ids=list(item_ids))
 
-    @router.delete("/events/{item_id}/skipped", status_code=204)
+    # No body: a 204 answers with an empty Response.
+    @router.delete("/events/{item_id}/skipped", status_code=204, response_model=None)
     async def undo_skip(
         item_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),

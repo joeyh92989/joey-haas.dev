@@ -1,5 +1,42 @@
 # Learnings
 
+### 2026-11-17 · decision · `strict` is off; the deploy waits for that commit's CI instead
+Epic merges were serial because `strict` re-ran CI on every PR behind `main` (#418 needed two full cycles after another PR merged under it). Dropped it (Joey's call) after shipping `wait-for-ci` (#419): Deploy API waits for `backend` and `frontend` on the pushed commit, so a combination no CI saw cannot deploy; the cost is about 5 minutes before each deploy starts, and a red `main` blocks deploys until fixed. A required check that is an aggregate job (`backend`) appears late, so a guard must wait for it, not time it out (#418). Restore: `required_status_checks` `strict=true`.
+PRs #414 #416 #418 #419 · docs/planning/2026-11-16-deploy-gate-design.md
+
+### 2026-11-16 · lesson · Merging an epic is serial under `strict`; stacks do not fix that, a train and a faster `backend` do
+Epic #392 (seven PRs, 80 minutes): `main` requires `backend` and `frontend` and an up-to-date branch (`strict`), so each merge put the rest behind it. CI is 5 to 7 minutes a run (`backend` 4.5 to 6.7, `frontend` 2 to 3.5; `e2e`, `e2e-admin` under 2.5, not required), not the 10 first written here. An `update-branch` re-ran 6 of 7 PRs; five merged about 7 minutes apart, one CI cycle each, and idle gaps (#404 about 22 minutes behind `main`, #410 9 minutes green before a merge) cost as much as the re-runs.
+Stacks do not remove per-PR CI or the `strict` cycle (docs: squash supported, CI runs on every PR in a stack, same repo only; plan availability not stated in GitHub's docs); they help real chains (#398 on #409). A merge queue is likely unavailable on a user-owned repo (third-party reports; GitHub's docs pages do not say; check Settings, Rules, New ruleset). Doing: `scripts/merge-train.sh` (no idle gaps) and a `backend` profile (pytest is 328 s of a 6-minute job). Not done: dropping `strict` (risk: two green PRs break main together, and `deploy.yml` does not wait for CI). The merge-order rule lives in `agents.md` and the repo `CLAUDE.md`, not in `sdlc-execution` or `sdlc-ship`.
+Epic #392 · docs/planning/2026-11-16-closet-products-design.md
+
+### 2026-11-16 · lesson · A cold review of every PR that fetches a user-supplied address found a real bug each time
+#409 (seed file), #413 (link way in) and #415 (attach a product) each got a read-only reviewer that had not seen the author's report. All three found something the author's local gates passed: a client could plant the address the server later fetches (#409); two products with no SKU shared an id and the second was silently dropped as already owned, and a stale photo attached after a colour change (#413); a photo added while a link resolved was overwritten, and concurrent writes returned a 500 (#415). The SSRF guard itself held each time. Every fix went back to the author with a failing test first, except that the #415 race tests were written after the code and not shown failing on the old code. Keep the cold review for PRs that fetch, write on an address the client chose, or race a second writer; skip it for pure UI.
+PR #409 · PR #413 · PR #415
+
+### 2026-11-16 · lesson · Check the data and the live screen yourself before telling Joey how to use a feature
+The #396 agent never opened the real seed file, so I parsed it with the new parser before the upload (63 rows, 0 problems, only two colour names left for Check). I also told Joey a photo could be replaced from the garment page; the page only showed the photo, so #399 grew an add-or-replace control. Run the parser on the real file in a scratch process and open the live page before writing steps for Joey, and keep the file itself out of the repo (it is purchase history).
+PR #409 · PR #415
+
+### 2026-11-16 · lesson · A branch-guard hook blocks `git push origin HEAD`; agents need the refspec in the brief
+Several agents' first push was refused; they recovered with `git push origin HEAD:<branch>`. Put the explicit refspec in every implementer brief, as `agents.md` already says for pushes.
+PR #405
+
+### 2026-11-16 · lesson · A proof run on a stale install proves nothing
+The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
+PR #378
+
+### 2026-11-16 · lesson · Briefs for implementer agents list every CI gate
+#372 failed the frontend job on Lint (`process` not imported in a test) after the agent ran format, tests and build but not `npm run lint`. Every later brief named each step of the CI job to run locally (lint, format, build, audit, ruff, pip-audit), and none of those PRs failed on a gate. Name the gates in the brief; "run the checks" is not enough.
+PR #372
+
+### 2026-11-16 · lesson · Count with the real tool before sizing a follow-up
+#300 said about 29 inline admin strings and #301 about 108 routes without a `response_model`. A scan over the code found 237 strings and about 99 routes (decorators sit indented inside router factories, so the first grep found none). Both were split into batches after counting. Size from a real scan, and write the scan so it can stay as a ratchet (`adminCopyScan.test.js`).
+PR #372
+
+### 2026-11-16 · lesson · Branch protection requires backend and frontend, and an up-to-date branch
+CLAUDE.md said no check was required, and a merge of #368 was refused as BEHIND after #367 merged. `main` requires `backend` and `frontend` with `strict: true`: after each merge, `gh pr update-branch` the next PR, wait for CI, merge, one at a time. A baseline-update commit pushed by `GITHUB_TOKEN` starts no CI; push an empty commit after it.
+PR #378
+
 ### 2026-11-15 · lesson · A focus test in AdminLayout flaked on CI
 `AdminLayout.test.jsx > offers sign-in again after a sign-out the server confirmed` failed with `expected <body> to be <main id="main">` on a PR that only changed `render.yaml` (run 43726434998) and passed on a rerun of the same commit. A third flaky test after #237's two: a focus assertion racing the runner. One rerun confirmed it; if it recurs, freeze the timing it waits on like #237 did, not retry.
 PR #258

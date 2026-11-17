@@ -36,6 +36,12 @@ from closet import Candidates, Outfit, Piece, Request, WeatherRead
 MAX_REASON = 300
 NOT_THIS_RECENT = 5
 
+# Thumbnails sent with the text (decision D9): the top of each slot's
+# shortlist, and a total kept well under llm.MAX_REQUEST_BYTES (20 MB of
+# base64) so the prompt and the answer have room.
+IMAGES_PER_SLOT = 4
+IMAGE_BUDGET_BYTES = 16 * 1024 * 1024
+
 NOT_THIS = {
     "too_warm": "too warm",
     "too_cold": "too cold",
@@ -111,9 +117,8 @@ def summarise_not_this(reasons: Iterable[str | None]) -> str | None:
 
 
 def _describe(piece: Piece, day: date) -> str:
-    look = ", ".join(
-        part for part in (piece.primary_color, piece.pattern, piece.material) if part
-    )
+    colour = piece.color_name or piece.primary_color
+    look = ", ".join(part for part in (colour, piece.pattern, piece.material) if part)
     bits = [piece.subtype or "", look]
     if piece.warmth is not None:
         bits.append(f"warmth {piece.warmth}")
@@ -130,6 +135,34 @@ def _describe(piece: Piece, day: date) -> str:
     return f"{piece.name} ({detail})" if detail else piece.name
 
 
+def image_picks(
+    found: Candidates, with_image: Iterable[str], per_slot: int = IMAGES_PER_SLOT
+) -> list[int]:
+    """The numbers (`numbered` order) whose photos go with the prompt: the
+    top `per_slot` of each slot's shortlist, those that have a photo. A piece
+    outside the top, or without a photo, is ranked from its text."""
+    have = set(with_image)
+    taken: Counter[str] = Counter()
+    picks = []
+    for index, (slot, piece) in enumerate(numbered(found)):
+        taken[slot] += 1
+        if taken[slot] <= per_slot and piece.id in have:
+            picks.append(index)
+    return picks
+
+
+def within_budget(
+    picks: Sequence[int],
+    sizes: dict[int, int],
+    budget: int = IMAGE_BUDGET_BYTES,
+) -> list[int]:
+    """`picks` cut from the end until their base64 size (4 bytes per 3) fits."""
+    kept = list(picks)
+    while kept and sum(-(-sizes[i] * 4 // 3) for i in kept) > budget:
+        kept.pop()
+    return kept
+
+
 def build_prompt(
     found: Candidates,
     request: Request,
@@ -137,8 +170,13 @@ def build_prompt(
     sentence: str,
     profile: dict[str, Any],
     not_this: Sequence[str | None] = (),
+    images: Sequence[int] = (),
 ) -> str:
-    """The one prompt for one plan."""
+    """The one prompt for one plan.
+
+    `images` are the garment numbers whose photos are sent, in the order
+    they are sent: the garment's line ends "[image k]" and a closing line
+    lists "image k is garment n", so a photo is always named with its piece."""
     occasion = request.occasion + (", riding a bike there" if request.bike else "")
     lines = [
         INSTRUCTIONS,
@@ -174,9 +212,20 @@ def build_prompt(
         )
     open_slots = [s for s in found.slots if s != (found.fixed and found.fixed.category)]
     lines.append("Slots to fill: " + ", ".join(open_slots) + ".")
+    position = {index: k for k, index in enumerate(images, start=1)}
+    if position:
+        lines.append(
+            "Photos of some garments are attached, in order: "
+            + "; ".join(f"image {k} is garment {i}" for i, k in position.items())
+            + ". A garment with no image is described by its text alone. "
+            "Answer with garment numbers, never image numbers."
+        )
     lines.append("Garments:")
     for index, (slot, piece) in enumerate(numbered(found)):
-        lines.append(f"{index}. {slot}: {_describe(piece, request.day)}")
+        line = f"{index}. {slot}: {_describe(piece, request.day)}"
+        if index in position:
+            line += f" [image {position[index]}]"
+        lines.append(line)
     return "\n".join(lines)
 
 

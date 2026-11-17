@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router'
+import { linkIntake } from '../../content/linkIntake.js'
+import { seedIntake } from '../../content/seedIntake.js'
 import { discardAsk } from '../../content/shelfDelete.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import {
   addPath,
   fieldPayload,
+  linesOf,
   localToday,
+  looksLikeLink,
+  MAX_LINKS,
   meterCounts,
+  refuseSeedFile,
   sittingLabel,
+  startedAt,
 } from '../../lib/intake.js'
 import { useMediaQuery } from '../../lib/useMediaQuery.js'
 import AddBar from './AddBar.jsx'
@@ -143,6 +150,8 @@ export default function AddSection({ area, onAdded, children }) {
   const [adding, setAdding] = useState(false)
   const [drawerError, setDrawerError] = useState(null)
   const [refusals, setRefusals] = useState({})
+  const [linksOpen, setLinksOpen] = useState(false)
+  const [linksText, setLinksText] = useState('')
   const context = useOutletContext() ?? {}
 
   useEffect(() => {
@@ -177,6 +186,7 @@ export default function AddSection({ area, onAdded, children }) {
   const byKey = Object.fromEntries(areaKinds.map((kind) => [kind.key, kind]))
   const searchable = areaKinds.some((kind) => kind.ways_in.includes('search'))
   const typedKinds = areaKinds.filter((kind) => kind.ways_in.includes('type'))
+  const linkKind = areaKinds.find((kind) => kind.ways_in.includes('link'))
 
   /** Discards the one unfinished sitting; true when it is gone. */
   async function discard(sitting) {
@@ -215,6 +225,11 @@ export default function AddSection({ area, onAdded, children }) {
     const text = query.trim()
     setError(null)
     setNotice('')
+    if (linkKind && !searchable && looksLikeLink(text)) {
+      // A pasted product link in the Closet's bar is "From links" for one.
+      await fromLinks([text])
+      return
+    }
     if (!searchable) {
       // The Closet: type-only, so submitting is the drawer for its one kind.
       if (typedKinds.length > 0) {
@@ -270,6 +285,100 @@ export default function AddSection({ area, onAdded, children }) {
       }
       const sitting = await response.json()
       navigate(`${addPath(area)}/${sitting.id}`)
+    } catch {
+      setError(NO_ANSWER)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** "From a file": a sitting, the file into it, then on to its Check. */
+  async function fromFile(file) {
+    const refused = refuseSeedFile(file, seedIntake)
+    setError(refused)
+    if (refused) return
+    const [kind] = areaKinds.filter((k) => k.ways_in.includes('file'))
+    setBusy(true)
+    setNotice('')
+    try {
+      const created = await apiFetch('/api/intake/sittings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          area,
+          kind: kind.key,
+          label: seedIntake.label(startedAt(new Date())),
+        }),
+      })
+      if (!created.ok) {
+        setError(await errorMessage(created, { ownConflicts: true }))
+        return
+      }
+      const sittingId = (await created.json()).id
+      const form = new FormData()
+      form.append('file', file)
+      const sent = await apiFetch(`/api/intake/sittings/${sittingId}/file`, {
+        method: 'POST',
+        body: form,
+      })
+      if (!sent.ok) {
+        setError(await errorMessage(sent, { ownConflicts: true }))
+        // A file the server refused leaves no empty sitting behind.
+        await apiFetch(`/api/intake/sittings/${sittingId}`, {
+          method: 'DELETE',
+        })
+        return
+      }
+      context.refreshIntakeCounts?.()
+      navigate(`${addPath(area)}/${sittingId}`)
+    } catch {
+      setError(NO_ANSWER)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** "From links": a sitting, the pasted addresses into it, then Check. */
+  async function fromLinks(urls) {
+    if (urls.length > MAX_LINKS) {
+      setError(linkIntake.tooMany(MAX_LINKS))
+      return
+    }
+    setBusy(true)
+    setNotice('')
+    setError(null)
+    try {
+      const created = await apiFetch('/api/intake/sittings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          area,
+          kind: linkKind.key,
+          label: linkIntake.label(startedAt(new Date())),
+        }),
+      })
+      if (!created.ok) {
+        setError(await errorMessage(created, { ownConflicts: true }))
+        return
+      }
+      const sittingId = (await created.json()).id
+      const sent = await apiFetch(`/api/intake/sittings/${sittingId}/links`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls }),
+      })
+      if (!sent.ok) {
+        setError(await errorMessage(sent, { ownConflicts: true }))
+        // Nothing pasted was an address: no empty sitting is left behind.
+        await apiFetch(`/api/intake/sittings/${sittingId}`, {
+          method: 'DELETE',
+        })
+        return
+      }
+      setLinksOpen(false)
+      setLinksText('')
+      context.refreshIntakeCounts?.()
+      navigate(`${addPath(area)}/${sittingId}`)
     } catch {
       setError(NO_ANSWER)
     } finally {
@@ -359,9 +468,53 @@ export default function AddSection({ area, onAdded, children }) {
         onChange={setQuery}
         onSubmit={submit}
         onPhotos={photos}
+        onFile={
+          areaKinds.some((kind) => kind.ways_in.includes('file'))
+            ? fromFile
+            : undefined
+        }
+        onLinks={linkKind ? () => setLinksOpen((open) => !open) : undefined}
+        linksOpen={linksOpen}
         busy={busy || !kinds}
         inputRef={inputRef}
       />
+      {linksOpen && linkKind && (
+        <form
+          className="intake-links"
+          aria-label={linkIntake.panelLabel}
+          onSubmit={(event) => {
+            event.preventDefault()
+            const urls = linesOf(linksText)
+            if (urls.length > 0) fromLinks(urls)
+          }}
+        >
+          <label htmlFor="intake-links-text">{linkIntake.fieldLabel}</label>
+          <textarea
+            id="intake-links-text"
+            rows={4}
+            placeholder={linkIntake.placeholder}
+            value={linksText}
+            onChange={(event) => setLinksText(event.target.value)}
+          />
+          <p className="muted">{linkIntake.help(MAX_LINKS)}</p>
+          <div className="intake-drawer-actions">
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={busy || linesOf(linksText).length === 0}
+            >
+              {busy ? linkIntake.reading : linkIntake.read}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => setLinksOpen(false)}
+            >
+              {linkIntake.cancel}
+            </button>
+          </div>
+        </form>
+      )}
       <p className="visually-hidden" role="status">
         {busy ? 'Searching…' : notice}
       </p>

@@ -17,10 +17,12 @@ from pillow_heif import from_pillow
 import closet_images
 import importer
 from closet_images import (
+    GARMENT_LONG_EDGE,
     LONG_EDGE,
     MAX_PHOTO_BYTES,
     READING_LONG_EDGE,
     ClosetImageError,
+    make_garment_image,
     make_reading_copy,
     make_thumbnail,
     read_capped,
@@ -239,3 +241,11 @@ def test_the_reading_copy_refuses_an_oversize_photo():
 def test_the_reading_copy_refuses_what_is_not_a_photo():
     with pytest.raises(ClosetImageError, match="could not be read"):
         make_reading_copy(b"not a photo")
+
+
+def test_a_garment_image_keeps_800px_and_a_thumbnail_stays_400():
+    source = _jpeg_with_orientation(3000, 2000, 1)
+    stored = _decode(make_garment_image(source))
+    assert GARMENT_LONG_EDGE == 800
+    assert stored.size == (800, 533)
+    assert max(_decode(make_thumbnail(source)).size) == LONG_EDGE

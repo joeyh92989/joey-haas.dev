@@ -46,4 +46,17 @@ describe('GarmentForm state', () => {
     expect(bodyFrom(packed).back_on).toBe('2027-05-01')
     expect(bodyFrom({ ...packed, status: 'active' }).back_on).toBeNull()
   })
+
+  it('carries brand, store colour and size, blanks as null', () => {
+    const form = formFrom({ ...garment, color_name: 'Grey Twill', size: 'M' })
+    expect(bodyFrom(form)).toMatchObject({
+      brand: 'Uniqlo',
+      color_name: 'Grey Twill',
+      size: 'M',
+    })
+    expect(bodyFrom({ ...form, color_name: ' ', size: '' })).toMatchObject({
+      color_name: null,
+      size: null,
+    })
+  })
 })

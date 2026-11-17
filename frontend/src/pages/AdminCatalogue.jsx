@@ -9,6 +9,9 @@ import { ACTION_ERROR } from '../content/status.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { DAY_YEAR_TIME } from '../lib/formatDate.js'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.catalogue
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -117,7 +120,7 @@ function SourceRow({ source, busy, onRefreshStore }) {
             onClick={() => onRefreshStore(source.source)}
             aria-label={`Refresh ${source.name}`}
           >
-            Refresh
+            {copy.refresh}
           </button>
         )}
       </td>
@@ -166,7 +169,7 @@ function NeedsMatchRow({ entry, onDecide }) {
               onChange={(event) => setPlatform(event.target.value)}
               aria-label={`Platform for ${entry.title}`}
             >
-              <option value="">Choose…</option>
+              <option value="">{copy.choose}</option>
               {PLATFORM_CHOICES.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
@@ -179,7 +182,7 @@ function NeedsMatchRow({ entry, onDecide }) {
             disabled={busy || !platform}
             onClick={() => decide({ new_platform_id: Number(platform) })}
           >
-            Set platform
+            {copy.setPlatform}
           </button>
         </p>
       ) : (
@@ -216,7 +219,7 @@ function NeedsMatchRow({ entry, onDecide }) {
           onClick={() => decide({ ignored: true })}
           aria-label={`Ignore ${entry.title}`}
         >
-          Ignore
+          {copy.ignore}
         </button>
       </p>
       {error && (
@@ -276,10 +279,10 @@ function NeedsMatch({ onChange, noPlatform = 0 }) {
 
   return (
     <section className="needs-match" aria-labelledby="needs-match-heading">
-      <h2 id="needs-match-heading">Needs match</h2>
+      <h2 id="needs-match-heading">{copy.needsMatch}</h2>
       <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
       {data && keys.length === 0 && (
-        <p className="muted">Nothing needs a match.</p>
+        <p className="muted">{copy.nothingNeedsMatch}</p>
       )}
       {data && total > keys.length && (
         <p className="muted">{showingWords(keys.length, total, noPlatform)}</p>
@@ -304,10 +307,10 @@ function Disagreements() {
 
   return (
     <section className="disagreements" aria-labelledby="disagreements-heading">
-      <h2 id="disagreements-heading">Registry disagreements</h2>
+      <h2 id="disagreements-heading">{copy.disagreements}</h2>
       <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
       {data && items.length === 0 && (
-        <p className="muted">No copy disagrees with the registry.</p>
+        <p className="muted">{copy.noDisagreements}</p>
       )}
       <ul className="disagreement-list">
         {items.map((item) => (
@@ -485,9 +488,9 @@ export default function AdminCatalogue() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <AdminPageHeader title="Sources" />
+        <AdminPageHeader title={copy.sources} />
         <p>
-          <Link to="/admin">Sign in</Link> to see the sources.
+          <Link to="/admin">{copy.signIn}</Link> {copy.toSeeSources}
         </p>
       </section>
     )
@@ -503,7 +506,7 @@ export default function AdminCatalogue() {
   return (
     <section className="catalogue">
       <AdminPageHeader
-        title="Sources"
+        title={copy.sources}
         description="What exists physically, and in which format: the r/NSCollectors registries for Switch 2 and Switch 1, the boutique stores, and IGDB’s N64 list."
       >
         <button
@@ -512,7 +515,7 @@ export default function AdminCatalogue() {
           disabled={busy}
           onClick={() => refreshStores()}
         >
-          Refresh stores
+          {copy.refreshStores}
         </button>
         <button
           type="button"
@@ -520,7 +523,7 @@ export default function AdminCatalogue() {
           disabled={busy}
           onClick={refreshRegistry}
         >
-          Refresh registry
+          {copy.refreshRegistry}
         </button>
         <button
           type="button"
@@ -528,7 +531,7 @@ export default function AdminCatalogue() {
           disabled={busy}
           onClick={refreshN64}
         >
-          Refresh N64
+          {copy.refreshN64}
         </button>
         <button
           type="button"
@@ -536,7 +539,7 @@ export default function AdminCatalogue() {
           disabled={busy}
           onClick={refreshSwitch1}
         >
-          Refresh Switch 1
+          {copy.refreshSwitch1}
         </button>
         <button
           type="button"
@@ -544,7 +547,7 @@ export default function AdminCatalogue() {
           disabled={busy}
           onClick={resolveAll}
         >
-          Resolve
+          {copy.resolve}
         </button>
       </AdminPageHeader>
 
@@ -583,15 +586,15 @@ export default function AdminCatalogue() {
 
           <div className="item-table-wrap">
             <table className="item-table catalogue-table">
-              <caption className="visually-hidden">Sources</caption>
+              <caption className="visually-hidden">{copy.sources}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Source</th>
-                  <th scope="col">Last refreshed</th>
-                  <th scope="col">Rows</th>
-                  <th scope="col">State</th>
+                  <th scope="col">{copy.source}</th>
+                  <th scope="col">{copy.lastRefreshed}</th>
+                  <th scope="col">{copy.rows}</th>
+                  <th scope="col">{copy.state}</th>
                   <th scope="col">
-                    <span className="visually-hidden">Actions</span>
+                    <span className="visually-hidden">{copy.actions}</span>
                   </th>
                 </tr>
               </thead>

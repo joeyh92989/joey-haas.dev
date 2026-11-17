@@ -9,20 +9,22 @@ import Sheet from './Sheet.jsx'
  * reminder to look it over when there is none.
  *
  * @param {object} garment A `GarmentOut`.
- * @param {string|null} size The profile's size for its category.
+ * @param {string|null} size The size the deck card carries: the garment's
+ * own, else the profile's for its category. The garment's own always wins,
+ * so a card from an older server still reads right.
  */
 export function listingLines(garment, size) {
   return [
     ['Item', garmentTitle(garment)],
     ['Brand', garment.brand || 'Unknown'],
-    ['Size', size || 'Not on the profile'],
+    ['Size', garment.size || size || 'Not on the profile'],
     ['Condition', garment.notes || 'No notes: look it over'],
     ['Material', garment.material || 'Unknown'],
   ]
 }
 
 /**
- * Sell: the listing checklist (brand, size from the profile, condition
+ * Sell: the listing checklist (brand, the garment's own size or the profile's, condition
  * from the notes, material, the photo already on file) with Copy listing,
  * then List it, which marks the garment `listed`. Copying is optional: the
  * clipboard can be refused, and the listing is the owner's to write.

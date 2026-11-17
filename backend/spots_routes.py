@@ -25,6 +25,7 @@ import spots
 from items import require_admin
 from models import CandidateSource, Spot, SpotSetting, Visit
 from public import OWNER_TZ
+from spots_schemas import SpotsStatusOut
 
 MAX_NAME = 200
 MAX_NEIGHBOURHOOD = 100
@@ -269,7 +270,8 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         await session.refresh(row)
         return await _read(session, row)
 
-    @router.delete("/{spot_id}", status_code=204)
+    # No body: a 204 answers nothing.
+    @router.delete("/{spot_id}", status_code=204, response_model=None)
     async def delete_spot(
         spot_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> None:
@@ -303,7 +305,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
             id=row.id, spot_id=row.spot_id, visited_on=row.visited_on, note=row.note
         )
 
-    @router.get("/status")
+    @router.get("/status", response_model=SpotsStatusOut)
     async def job_status(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:

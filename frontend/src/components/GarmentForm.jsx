@@ -9,9 +9,14 @@ import {
 const TEXT = [
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
   ['brand', 'Brand'],
+  ['color_name', 'Store colour', 'the store’s name for it'],
+  ['size', 'Size', 'M, 32 / 30'],
   ['pattern', 'Pattern', 'solid, stripe, check'],
   ['material', 'Material', 'cotton, merino, denim'],
 ]
+
+// The API's limits (`GarmentFields`); the rest of the text fields take 60.
+const MAX_LENGTH = { brand: 80, color_name: 80, size: 40 }
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
@@ -23,6 +28,8 @@ export function formFrom(garment) {
     category: garment.category,
     subtype: text(garment.subtype),
     brand: text(garment.brand),
+    color_name: text(garment.color_name),
+    size: text(garment.size),
     primary_color: text(garment.primary_color),
     primary_hex: garment.primary_hex,
     secondary_color: text(garment.secondary_color),
@@ -48,6 +55,8 @@ export function bodyFrom(form) {
     name: blank(form.name.trim()),
     subtype: blank(form.subtype.trim()),
     brand: blank(form.brand.trim()),
+    color_name: blank(form.color_name.trim()),
+    size: blank(form.size.trim()),
     primary_color: blank(form.primary_color.trim()),
     secondary_color: blank(form.secondary_color.trim()),
     pattern: blank(form.pattern.trim()),
@@ -205,7 +214,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
             type="text"
             value={form[key]}
             placeholder={hint}
-            maxLength={key === 'brand' ? 80 : 60}
+            maxLength={MAX_LENGTH[key] ?? 60}
             onChange={(e) => set(key)(e.target.value)}
           />
         </label>

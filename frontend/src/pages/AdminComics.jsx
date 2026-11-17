@@ -132,7 +132,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
             aria-pressed={row.following}
             onClick={() => onFollow(row, !row.following)}
           >
-            Follow
+            {adminCopy.comics.follow}
           </button>
         )}
         <label>
@@ -142,7 +142,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
             aria-label={`Public: ${row.title}`}
             onChange={(event) => onPublish(row, event.target.checked)}
           />
-          <span aria-hidden="true">Public</span>
+          <span aria-hidden="true">{adminCopy.comics.isPublic}</span>
         </label>
         {row.is_public && (
           <Link to={itemPath(row.item_id)}>
@@ -151,7 +151,9 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
               : 'Cover wall'}
           </Link>
         )}
-        <Link to={`/admin/shelf/comics/${row.item_id}`}>Edit</Link>
+        <Link to={`/admin/shelf/comics/${row.item_id}`}>
+          {adminCopy.comics.edit}
+        </Link>
       </div>
       <div className="shelf-actions-row shelf-actions-danger">
         <ShelfConfirm
@@ -384,7 +386,7 @@ export default function AdminComics() {
         View {copy.path} <span aria-hidden="true">↗</span>
       </Link>
       <Link to="/admin/collection/add" className="btn sm">
-        Add comics
+        {adminCopy.comics.addComics}
       </Link>
       {ready && (
         <>
@@ -430,7 +432,8 @@ export default function AdminComics() {
       <section>
         {header}
         <p className="admin-error" role="alert">
-          Not signed in. <Link to="/admin">Go to admin</Link>.
+          {adminCopy.comics.notSignedIn}{' '}
+          <Link to="/admin">{adminCopy.comics.goToAdmin}</Link>.
         </p>
       </section>
     )
@@ -583,7 +586,10 @@ export default function AdminComics() {
         </label>
       </div>
 
-      <section className="shelf-toolbar controls" aria-label="Filter and sort">
+      <section
+        className="shelf-toolbar controls"
+        aria-label={adminCopy.comics.filterAndSort}
+      >
         <FilterChips
           labelled
           groups={groups}

@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { adminCopy } from '../content/adminCopy.js'
 import { localToday } from '../lib/statusMoves.js'
 import { ownerYear } from '../lib/formatDate.js'
 import AdminCollection from './AdminCollection.jsx'
@@ -172,7 +173,7 @@ describe('AdminCollection arriving from the pull list', () => {
       await screen.findByText(/Saved “Absolute Batman”/),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'the Comics page' }),
+      screen.getByRole('link', { name: adminCopy.collection.comicsPage }),
     ).toHaveAttribute('href', '/admin/shelf/comics')
   })
 
@@ -199,7 +200,7 @@ describe('AdminCollection arriving from the pull list', () => {
         <Go />
       </MemoryRouter>,
     )
-    await screen.findByText('Add with the full form')
+    await screen.findByText(adminCopy.collection.addWithFullForm)
     expect(fullFormDetails()).toHaveProperty('open', false)
 
     await userEvent.click(screen.getByRole('button', { name: 'go' }))
@@ -211,16 +212,20 @@ describe('AdminCollection arriving from the pull list', () => {
 })
 
 function fullFormDetails() {
-  return screen.getByText('Add with the full form').closest('details')
+  return screen
+    .getByText(adminCopy.collection.addWithFullForm)
+    .closest('details')
 }
 
 describe('AdminCollection full add form', () => {
   it('is closed by default and opens from its summary', async () => {
     stubApi()
     renderPage()
-    await screen.findByText('Add with the full form')
+    await screen.findByText(adminCopy.collection.addWithFullForm)
     expect(fullFormDetails()).toHaveProperty('open', false)
-    await userEvent.click(screen.getByText('Add with the full form'))
+    await userEvent.click(
+      screen.getByText(adminCopy.collection.addWithFullForm),
+    )
     expect(fullFormDetails()).toHaveProperty('open', true)
   })
 })
@@ -891,7 +896,9 @@ describe('AdminCollection nudge', () => {
     stubApi({ items: UNRATED })
     await renderShelf()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Show them' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.collection.showThem }),
+    )
 
     const titles = [
       ...document.querySelectorAll('.poster-grid .poster-title'),
@@ -906,7 +913,9 @@ describe('AdminCollection nudge', () => {
     stubApi({ items: UNRATED })
     await renderShelf()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.collection.dismiss }),
+    )
 
     expect(screen.queryByText(/have no rating/)).not.toBeInTheDocument()
   })
@@ -1053,7 +1062,9 @@ describe('AdminCollection create form', () => {
     const mock = stubApi()
     renderPage()
 
-    await userEvent.click(await screen.findByText('Add with the full form'))
+    await userEvent.click(
+      await screen.findByText(adminCopy.collection.addWithFullForm),
+    )
     await userEvent.type(await screen.findByLabelText('Title'), 'Donkey Kong')
     await userEvent.selectOptions(
       screen.getByLabelText('Owned format'),
@@ -1080,7 +1091,9 @@ describe('AdminCollection create form', () => {
     const mock = stubApi()
     renderPage()
 
-    await userEvent.click(await screen.findByText('Add with the full form'))
+    await userEvent.click(
+      await screen.findByText(adminCopy.collection.addWithFullForm),
+    )
     await userEvent.type(await screen.findByLabelText('Title'), 'Loose')
     await userEvent.selectOptions(
       screen.getByLabelText('Owned format'),
@@ -1110,10 +1123,12 @@ describe('AdminCollection bulk set', () => {
     expect(screen.getByText('2 selected')).toBeInTheDocument()
 
     await userEvent.selectOptions(
-      screen.getByLabelText('Set platform'),
+      screen.getByLabelText(adminCopy.collection.setPlatform),
       'Nintendo Switch 2',
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.collection.apply }),
+    )
 
     await waitFor(() => {
       const [url, options] = writeCalls(mock)[0]
@@ -1130,7 +1145,9 @@ describe('AdminCollection bulk set', () => {
     stubApi()
     renderPage()
 
-    await userEvent.click(await screen.findByLabelText('Select all'))
+    await userEvent.click(
+      await screen.findByLabelText(adminCopy.collection.selectAll),
+    )
 
     expect(screen.getByText('2 selected')).toBeInTheDocument()
     expect(screen.getByLabelText('Select Dune')).toBeChecked()
@@ -1142,7 +1159,9 @@ describe('AdminCollection bulk set', () => {
 
     await userEvent.click(await screen.findByLabelText('Select Dune'))
 
-    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: adminCopy.collection.apply }),
+    ).toBeDisabled()
   })
 
   it('keeps the selection and says why when the server refuses', async () => {
@@ -1159,10 +1178,12 @@ describe('AdminCollection bulk set', () => {
 
     await userEvent.click(await screen.findByLabelText('Select Star Fox'))
     await userEvent.selectOptions(
-      screen.getByLabelText('Set format'),
+      screen.getByLabelText(adminCopy.collection.setFormat),
       'game_card',
     )
-    await userEvent.click(screen.getByRole('button', { name: 'Apply' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: adminCopy.collection.apply }),
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(detail)
     expect(screen.getByLabelText('Select Star Fox')).toBeChecked()
@@ -1219,7 +1240,7 @@ describe('AdminCollection metadata refresh', () => {
     )
 
     expect(
-      screen.queryByRole('button', { name: 'Refresh comic metadata' }),
+      screen.queryByRole('button', { name: adminCopy.comics.refreshMetadata }),
     ).toBeNull()
     expect(
       screen.queryByRole('button', { name: 'Refresh movie metadata' }),
@@ -1292,10 +1313,9 @@ describe('AdminCollection is the Games twin', () => {
     expect(
       await screen.findByRole('link', { name: /View \/shelf\/games/ }),
     ).toHaveAttribute('href', '/shelf/games')
-    expect(screen.getByRole('link', { name: 'Add games' })).toHaveAttribute(
-      'href',
-      '/admin/collection/add',
-    )
+    expect(
+      screen.getByRole('link', { name: adminCopy.collection.addGames }),
+    ).toHaveAttribute('href', '/admin/collection/add')
   })
 })
 
@@ -1365,7 +1385,9 @@ describe('AdminCollection delete, bulk delete and redo', () => {
     })
     renderPage()
 
-    await userEvent.click(await screen.findByLabelText('Select all'))
+    await userEvent.click(
+      await screen.findByLabelText(adminCopy.collection.selectAll),
+    )
     await userEvent.click(
       screen.getByRole('button', { name: 'Delete 2 items' }),
     )

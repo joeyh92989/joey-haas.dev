@@ -1,7 +1,9 @@
 """The closet's one kind: a garment.
 
 A garment has no source to match against, and its photo is the garment's
-own picture, so there is no details step: the tag queue reads it later.
+own picture, so there is no details step: the tag queue reads it later. A
+seed file ("file") makes drafts without a photograph (`intake/seed_import.py`),
+and so does a product link ("link", `intake/link_import.py`).
 """
 
 from __future__ import annotations
@@ -27,11 +29,14 @@ register(
         key="garment",
         area=IntakeArea.CLOSET,
         label="Garment",
-        ways_in=("photo", "type"),
+        ways_in=("photo", "type", "file", "link"),
         source=None,
         has_details=False,
         fields=(
             FieldSpec("name", "Name", "text"),
+            FieldSpec("brand", "Brand", "text"),
+            FieldSpec("color_name", "Store colour", "text"),
+            FieldSpec("size", "Size", "text"),
             FieldSpec("category", "Category", "select", select(GarmentCategory)),
             FieldSpec("primary_color", "Colour", "text"),
             FieldSpec("material", "Material", "text"),

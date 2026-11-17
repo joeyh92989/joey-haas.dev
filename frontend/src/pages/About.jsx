@@ -1,7 +1,7 @@
 import joeyPhoto from '../assets/joey.jpg'
 import ContactLine from '../components/ContactLine.jsx'
 import Kicker from '../components/Kicker.jsx'
-import { certifications, education } from '../content/education.js'
+import { awards, certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
 import { profile } from '../content/profile.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -116,6 +116,11 @@ export default function About() {
           <ul className="chip-list" aria-label="Certifications" role="list">
             {certifications.map((certification) => (
               <li key={certification}>{certification}</li>
+            ))}
+          </ul>
+          <ul className="chip-list" aria-label="Awards" role="list">
+            {awards.map((award) => (
+              <li key={award}>{award}</li>
             ))}
           </ul>
         </section>

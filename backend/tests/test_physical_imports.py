@@ -39,6 +39,7 @@ PURE_MODULES = sorted(
         "closet",
         "closet_rank",
         "closet_opinion",
+        "closet_colors",
     }
 )
 TOP_LEVEL = {
@@ -58,6 +59,7 @@ TOP_LEVEL = {
     "closet",
     "closet_rank",
     "closet_opinion",
+    "closet_colors",
 }
 
 

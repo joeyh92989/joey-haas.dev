@@ -252,3 +252,56 @@ def test_the_colouring_is_written_as_words_not_a_dict():
     )
     assert "Colouring: hair: dark brown, skin: olive" in prompt
     assert "{" not in prompt.split("Colouring:", 1)[1].splitlines()[0]
+
+
+def test_a_piece_is_described_by_its_store_colour_when_it_has_one():
+    named = piece("t1", "top", primary_color="red", color_name="Burgundy")
+    plain = piece("t2", "top", primary_color="red")
+    assert "Burgundy" in closet_rank._describe(named, DAY)
+    assert "red" not in closet_rank._describe(named, DAY)
+    assert "red" in closet_rank._describe(plain, DAY)
+
+
+def test_image_picks_are_the_top_of_each_slot_that_have_a_photo():
+    found = found_for()
+    every = {p.id for p in PIECES}
+    picks = closet_rank.image_picks(found, every, per_slot=2)
+    per_slot = {}
+    for i in picks:
+        slot = closet_rank.numbered(found)[i][0]
+        per_slot[slot] = per_slot.get(slot, 0) + 1
+    assert set(per_slot.values()) == {2}
+    # no photo: ranked from text, not picked
+    chosen = closet_rank.image_picks(found, {"t1"}, per_slot=4)
+    assert [closet_rank.numbered(found)[i][1].id for i in chosen] == ["t1"]
+
+
+def test_image_picks_take_the_shortlist_top_not_the_next_with_a_photo():
+    found = found_for()
+    top = closet_rank.numbered(found)[0][1].id
+    others = {p.id for p in PIECES} - {top}
+    one = closet_rank.image_picks(found, others, per_slot=1)
+    assert top not in [closet_rank.numbered(found)[i][1].id for i in one]
+
+
+def test_within_budget_cuts_from_the_end():
+    sizes = {0: 300, 1: 300, 2: 300}
+    assert closet_rank.within_budget([0, 1, 2], sizes, budget=10_000) == [0, 1, 2]
+    assert closet_rank.within_budget([0, 1, 2], sizes, budget=800) == [0, 1]
+    assert closet_rank.within_budget([0, 1, 2], sizes, budget=1) == []
+
+
+def test_the_prompt_ties_each_image_to_its_garment_in_order():
+    found = found_for()
+    picks = [index_of(found, "b2"), index_of(found, "t1")]  # sent order, not number
+    prompt = closet_rank.build_prompt(
+        found, Request(DAY, "weekend"), READ, "", {}, images=picks
+    )
+    lines = prompt.split("Garments:\n", 1)[1].splitlines()
+    marked = {ln.split(". ", 1)[0]: ln for ln in lines if "[image" in ln}
+    assert "[image 1]" in marked[str(picks[0])] and "chinos" in marked[str(picks[0])]
+    assert "[image 2]" in marked[str(picks[1])] and "grey tee" in marked[str(picks[1])]
+    assert f"image 1 is garment {picks[0]}" in prompt
+    assert f"image 2 is garment {picks[1]}" in prompt
+    plain = closet_rank.build_prompt(found, Request(DAY, "weekend"), READ, "", {})
+    assert "[image" not in plain and "Photos" not in plain

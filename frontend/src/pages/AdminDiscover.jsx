@@ -9,6 +9,9 @@ import RecommendationCard, {
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
+import { adminCopy } from '../content/adminCopy.js'
+
+const copy = adminCopy.discover
 
 const POPULARITY = [
   ['safe', 'Safe'],
@@ -228,9 +231,9 @@ export default function AdminDiscover() {
   if (state === 'unauthorized') {
     return (
       <section>
-        <AdminPageHeader title="Discover" />
+        <AdminPageHeader title={copy.title} />
         <p>
-          <Link to="/admin">Sign in</Link> to see Discover.
+          <Link to="/admin">{copy.signIn}</Link> {copy.toSeeDiscover}
         </p>
       </section>
     )
@@ -242,7 +245,7 @@ export default function AdminDiscover() {
   return (
     <section className="radar discover">
       <AdminPageHeader
-        title="Discover"
+        title={copy.title}
         description="Released physical games on your platforms that fit your taste and aren’t on your shelf, picked from the sources."
       >
         <button
@@ -271,7 +274,7 @@ export default function AdminDiscover() {
           onChange={setReleased}
         />
         <fieldset className="discover-choice">
-          <legend>Platforms</legend>
+          <legend>{copy.platforms}</legend>
           <div className="chip-row">
             {PLATFORMS.map(([id, label]) => (
               <button
@@ -285,12 +288,7 @@ export default function AdminDiscover() {
               </button>
             ))}
           </div>
-          {!platforms.length && (
-            <p className="muted">
-              No platforms chosen. Candidates come from every platform in your
-              collection.
-            </p>
-          )}
+          {!platforms.length && <p className="muted">{copy.noPlatforms}</p>}
         </fieldset>
       </div>
 
@@ -303,15 +301,12 @@ export default function AdminDiscover() {
           />{' '}
           Include Game-Key Cards
         </label>
-        <Link to="/admin/catalogue">Needs match →</Link>
+        <Link to="/admin/catalogue">{copy.needsMatch}</Link>
       </div>
 
       {ranking && <p className="muted">{ranking}</p>}
       {discover && discover.personalised === false && (
-        <p className="muted">
-          Ranked by the community alone: rate, finish or favorite a few games to
-          personalize.
-        </p>
+        <p className="muted">{copy.notPersonalised}</p>
       )}
       {message && <p role="status">{message}</p>}
       {error && state !== 'error' && <p role="alert">{error}</p>}
@@ -333,7 +328,7 @@ export default function AdminDiscover() {
         }}
       />
 
-      <h2>Picks</h2>
+      <h2>{copy.picks}</h2>
       {discover && !picks.length ? (
         <p className="muted">{emptyWords(discover, emptyNote)}</p>
       ) : (

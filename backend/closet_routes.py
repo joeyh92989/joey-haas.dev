@@ -12,6 +12,11 @@
   `garment_images` alone, with `Cache-Control: private, max-age=86400` and
   an ETag from the garment's `updated_at`, answering 304 to a matching
   `If-None-Match`. No list query loads the bytes.
+- **A photo can be added later.** `POST /garments/{id}/photo` adds or
+  replaces one garment's photo (800px) and moves `updated_at`, so the image
+  URL changes; nothing else about the garment moves. `POST` and `PATCH`
+  `/garments/{id}/product` attach a store product from a pasted link
+  (`closet_product.py`; `intake/README.md`).
 - **The profile is one row** (`closet_profile`, `id = 1`). GET answers the
   defaults before it is first saved; PATCH validates every field it is
   given and writes the row. PATCH rather than PUT because the API's CORS
@@ -45,7 +50,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import (
     APIRouter,
@@ -57,12 +62,31 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import closet_product
+import closet_resolver
 import closet_tag
-from closet_images import ClosetImageError, make_thumbnail, read_capped
+from closet_images import (
+    ClosetImageError,
+    make_garment_image,
+    read_capped,
+    resize_webp,
+)
+from closet_schemas import (
+    GarmentListOut,
+    GarmentOut,
+    JobStatusOut,
+    ProductAttachOut,
+    ProductPreviewOut,
+    ProfileOut,
+    TagJobOut,
+    TagNowOut,
+    UploadOut,
+)
 from importer import ACCEPTED_MEDIA_TYPES
 from items import require_admin
 from llm import Image, LLMError, LLMProvider
@@ -71,6 +95,7 @@ from models import (
     ClosetSetting,
     Garment,
     GarmentCategory,
+    GarmentColorSource,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -135,6 +160,11 @@ class GarmentFields(BaseModel):
     seasons: list[int] | None = Field(default=None, max_length=12)
     notes: str | None = Field(default=None, max_length=MAX_NOTES)
     acquired_on: date | None = None
+    # The purchase date: another name for acquired_on, the column it writes.
+    purchased_on: date | None = None
+    # The store's colour wording, verbatim; set by hand it is `manual`.
+    color_name: str | None = Field(default=None, max_length=80)
+    size: str | None = Field(default=None, max_length=40)
     status: GarmentStatus | None = None
     back_on: date | None = None
 
@@ -147,38 +177,28 @@ TEXT_FIELDS = (
     "secondary_color",
     "pattern",
     "material",
+    "size",
     "notes",
 )
 
 
-class GarmentOut(BaseModel):
-    id: uuid.UUID
-    name: str | None
-    category: GarmentCategory | None
-    subtype: str | None
-    brand: str | None
-    primary_color: str | None
-    primary_hex: str | None
-    secondary_color: str | None
-    secondary_hex: str | None
-    pattern: str | None
-    material: str | None
-    warmth: int | None
-    formality: int | None
-    seasons: list[int]
-    notes: str | None
-    acquired_on: date | None
-    status: GarmentStatus
-    back_on: date | None
-    tag_source: GarmentTagSource | None
-    tag_attempts: int
-    created_at: datetime
-    updated_at: datetime
-    # The photo's URL, versioned by updated_at so a changed garment is
-    # fetched again; null for a garment without one.
-    image: str | None
-    wears_12mo: int
-    last_worn: date | None
+class ProductLink(BaseModel):
+    """The pasted product link (`POST /garments/{id}/product`)."""
+
+    url: str = Field(min_length=1, max_length=closet_resolver.MAX_URL_CHARS)
+
+
+class ProductChoice(ProductLink):
+    """The owner's pick from what the link offered. Only ids: the colour,
+    its price and its photo are read again from the store, never taken from
+    here."""
+
+    external_id: str = Field(min_length=1, max_length=200)
+    size: str | None = Field(default=None, max_length=40)
+    replace_brand: bool = False
+    replace_color: bool = False
+    replace_size: bool = False
+    replace_product: bool = False
 
 
 class ProfileFields(BaseModel):
@@ -298,6 +318,15 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
     for name in ("category", "warmth", "formality", "acquired_on"):
         if name in given:
             setattr(row, name, getattr(fields, name))
+    if "purchased_on" in given:
+        row.acquired_on = fields.purchased_on
+    if "color_name" in given:
+        typed = _clean(fields.color_name)
+        # The edit form sends the colour back on every save: only a colour
+        # that changed is the owner's own wording.
+        if typed != _clean(row.color_name):
+            row.color_name = typed
+            row.color_source = GarmentColorSource.MANUAL if typed is not None else None
     if "seasons" in given:
         row.seasons = _seasons(fields.seasons or [])
     if "back_on" in given:
@@ -344,6 +373,9 @@ def garment_out(
         primary_hex=row.primary_hex,
         secondary_color=row.secondary_color,
         secondary_hex=row.secondary_hex,
+        color_name=row.color_name,
+        color_source=row.color_source,
+        size=row.size,
         pattern=row.pattern,
         material=row.material,
         warmth=row.warmth,
@@ -535,6 +567,15 @@ def create_closet_router(
             raise HTTPException(status_code=404, detail="No such garment")
         return row
 
+    async def _conflict(session: AsyncSession, garment_id: uuid.UUID) -> HTTPException:
+        """What a failed write means: the garment is gone (404) or another
+        write got there first (409)."""
+        if await session.get(Garment, garment_id) is None:
+            return HTTPException(status_code=404, detail="No such garment")
+        return HTTPException(
+            status_code=409, detail="That garment changed meanwhile; try again"
+        )
+
     async def _has_image(session: AsyncSession, garment_id: uuid.UUID) -> bool:
         found = await session.scalar(
             select(GarmentImage.garment_id).where(GarmentImage.garment_id == garment_id)
@@ -558,7 +599,7 @@ def create_closet_router(
             last_worn=last,
         )
 
-    @router.get("/garments")
+    @router.get("/garments", response_model=GarmentListOut)
     async def list_garments(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -605,13 +646,13 @@ def create_closet_router(
             "counts": {"total": len(rows), **counts},
         }
 
-    @router.get("/garments/{garment_id}")
+    @router.get("/garments/{garment_id}", response_model=GarmentOut)
     async def get_garment(
         garment_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> GarmentOut:
         return await _one_out(session, await _found(session, garment_id))
 
-    @router.post("/garments", status_code=201)
+    @router.post("/garments", status_code=201, response_model=GarmentOut)
     async def create_garment(
         fields: GarmentFields, session: AsyncSession = Depends(get_session)
     ) -> GarmentOut:
@@ -628,7 +669,7 @@ def create_closet_router(
         await session.refresh(row)
         return garment_out(row, has_image=False)
 
-    @router.patch("/garments/{garment_id}")
+    @router.patch("/garments/{garment_id}", response_model=GarmentOut)
     async def patch_garment(
         garment_id: uuid.UUID,
         fields: GarmentFields,
@@ -643,7 +684,8 @@ def create_closet_router(
         await session.refresh(row)
         return await _one_out(session, row)
 
-    @router.delete("/garments/{garment_id}", status_code=204)
+    # 204: no body, so no model.
+    @router.delete("/garments/{garment_id}", status_code=204, response_model=None)
     async def delete_garment(
         garment_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> Response:
@@ -654,7 +696,7 @@ def create_closet_router(
         await session.commit()
         return Response(status_code=204)
 
-    @router.post("/garments/photos", status_code=201)
+    @router.post("/garments/photos", status_code=201, response_model=UploadOut)
     async def upload_photos(
         photos: list[UploadFile] = File(),
         session: AsyncSession = Depends(get_session),
@@ -673,7 +715,7 @@ def create_closet_router(
 
         # One photo at a time, off the event loop.
         thumbnails = [
-            (await convert_upload(upload, make_thumbnail))[0] for upload in photos
+            (await convert_upload(upload, make_garment_image))[0] for upload in photos
         ]
 
         # Ascending created_at in upload order, so the queue tags a rack in
@@ -694,16 +736,105 @@ def create_closet_router(
             "garments": [garment_out(row, has_image=True) for row in rows],
         }
 
-    @router.get("/garments/{garment_id}/image")
+    @router.post("/garments/{garment_id}/photo", response_model=GarmentOut)
+    async def set_garment_photo(
+        garment_id: uuid.UUID,
+        photo: UploadFile = File(),
+        session: AsyncSession = Depends(get_session),
+    ) -> GarmentOut:
+        """Adds a photo to a garment, or replaces its photo. Only the photo
+        and `updated_at` (the image URL's version) change: no retag, and no
+        field, status or source moves."""
+        await _found(session, garment_id)
+        check_media_type(photo)
+        [image] = await convert_upload(photo, make_garment_image)
+        try:
+            # Locked and read again: the garment may have gone, or another
+            # photo landed, while the upload was being decoded.
+            row = await session.scalar(
+                select(Garment)
+                .where(Garment.id == garment_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if row is None:
+                raise HTTPException(status_code=404, detail="No such garment")
+            await closet_product.store_photo(session, row, image)
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
+        await session.refresh(row)
+        return await _one_out(session, row)
+
+    @router.post("/garments/{garment_id}/product", response_model=ProductPreviewOut)
+    async def preview_product(
+        garment_id: uuid.UUID,
+        link: ProductLink,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Reads a product link and answers its colours, sizes, price and
+        brand. Writes nothing. A link the store will not give up is a 200
+        with `state` refused and the reason, never an error."""
+        row = await _found(session, garment_id)
+        return await closet_product.preview(
+            session, row, link.url, has_photo=await _has_image(session, row.id)
+        )
+
+    @router.patch("/garments/{garment_id}/product", response_model=ProductAttachOut)
+    async def attach_product(
+        garment_id: uuid.UUID,
+        choice: ProductChoice,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Attaches the chosen colour (see `closet_product.py`). PATCH, not
+        PUT: the API's CORS policy (`main.py`) allows GET, POST, PATCH and
+        DELETE only, and the POST above is the read-only preview."""
+        try:
+            row, photo, product, kept = await closet_product.attach(
+                session,
+                garment_id,
+                url=choice.url,
+                external_id=choice.external_id,
+                size=choice.size,
+                replace_brand=choice.replace_brand,
+                replace_color=choice.replace_color,
+                replace_size=choice.replace_size,
+                replace_product=choice.replace_product,
+            )
+            await session.commit()
+        except closet_product.AttachRefused as refused:
+            await session.rollback()
+            raise HTTPException(
+                status_code=refused.status, detail=refused.message
+            ) from None
+        except IntegrityError:
+            await session.rollback()
+            raise await _conflict(session, garment_id) from None
+        await session.refresh(row)
+        return {
+            "garment": await _one_out(session, row),
+            "photo": photo.state,
+            "photo_error": photo.error,
+            "kept": kept,
+            "product": closet_product.attached(product),
+        }
+
+    # The photo as WebP bytes (or a 304), not JSON.
+    @router.get("/garments/{garment_id}/image", response_model=None)
     async def garment_image(
         garment_id: uuid.UUID,
+        size: Literal["thumb"] | None = None,
         if_none_match: str | None = Header(default=None),
         session: AsyncSession = Depends(get_session),
     ) -> Response:
         """The photo as WebP. Private (it is behind the session) and cached a
-        day; the ETag follows the garment's updated_at."""
+        day; the ETag follows the garment's updated_at, with a `-thumb`
+        suffix for `?size=thumb`, the 400px grid rendition made on read."""
         row = await _found(session, garment_id)
         etag = _etag(row)
+        if size == "thumb":
+            etag = etag[:-1] + '-thumb"'
         headers = {"Cache-Control": "private, max-age=86400", "ETag": etag}
         if if_none_match is not None and etag in {
             tag.strip() for tag in if_none_match.split(",")
@@ -712,15 +843,16 @@ def create_closet_router(
         image = await session.get(GarmentImage, garment_id)
         if image is None:
             raise HTTPException(status_code=404, detail="That garment has no photo")
-        return Response(content=image.webp, media_type="image/webp", headers=headers)
+        body = image.webp if size is None else resize_webp(image.webp)
+        return Response(content=body, media_type="image/webp", headers=headers)
 
-    @router.get("/profile")
+    @router.get("/profile", response_model=ProfileOut)
     async def get_profile(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
         return profile_out(await load_profile(session))
 
-    @router.patch("/profile")
+    @router.patch("/profile", response_model=ProfileOut)
     async def patch_profile(
         fields: ProfileFields, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -734,7 +866,7 @@ def create_closet_router(
         await session.refresh(row)
         return profile_out(row)
 
-    @router.get("/status")
+    @router.get("/status", response_model=JobStatusOut)
     async def job_status(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -866,6 +998,31 @@ def create_closet_router(
         for garment_id, entry in zip(ids, tagged, strict=True):
             values = dict(entry.attributes)
             values["category"] = GarmentCategory(values["category"])
+            # A colour from a store or a hand edit is kept, and so is a
+            # brand already set; decided in SQL so a save that lands during
+            # the model call is respected too.
+            fixed = Garment.color_source.in_(
+                (GarmentColorSource.VENDOR, GarmentColorSource.MANUAL)
+            )
+            for field in closet_tag.COLOUR_FIELDS:
+                values[field] = case(
+                    (fixed, getattr(Garment, field)), else_=values[field]
+                )
+            values["brand"] = case(
+                (fixed & Garment.brand.is_not(None), Garment.brand),
+                else_=values["brand"],
+            )
+            # A store's own title is kept too (vendor only; manual keeps
+            # just the colour).
+            values["name"] = case(
+                (
+                    (Garment.color_source == GarmentColorSource.VENDOR)
+                    & Garment.name.is_not(None)
+                    & (Garment.name != ""),
+                    Garment.name,
+                ),
+                else_=values["name"],
+            )
             result = await session.execute(
                 update(Garment)
                 .where(
@@ -875,6 +1032,10 @@ def create_closet_router(
                 )
                 .values(
                     **values,
+                    color_source=case(
+                        (Garment.color_source.is_(None), GarmentColorSource.MODEL),
+                        else_=Garment.color_source,
+                    ),
                     tag_source=GarmentTagSource.MODEL,
                     status=GarmentStatus.ACTIVE,
                     updated_at=func.now(),
@@ -929,7 +1090,7 @@ def create_closet_router(
         )
         await session.commit()
 
-    @router.post("/tag")
+    @router.post("/tag", response_model=TagNowOut)
     async def tag_now(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The page's Tag now: one batch, whatever the nightly budget says."""
         if run_lock.locked():
@@ -944,7 +1105,7 @@ def create_closet_router(
                 "remaining": await _remaining(session),
             }
 
-    @router.post("/jobs/tag")
+    @router.post("/jobs/tag", response_model=TagJobOut)
     async def tag_job(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
         """The nightly step: batches until the profile's budget of calls is
         spent, a model error stops it, or the queue is empty. Writes its

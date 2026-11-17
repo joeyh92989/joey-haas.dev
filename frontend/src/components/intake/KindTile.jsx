@@ -1,8 +1,8 @@
 /**
  * One kind on the Add page: its name, why its source is off when it is,
  * and the ways in it declared. Pressing it starts a photo sitting of that
- * kind. A kind with no photo way in (board games while BGG needs a token)
- * is a disabled button that says so, never a hidden one.
+ * kind. A kind with no photo way in (board games while BGG needs a token) or
+ * whose source is off (movies without a TMDB token) is a disabled button that says so, never a hidden one.
  *
  * @param {object} props
  * @param {{key: string|null, label: string, ways_in: string[],
@@ -24,7 +24,7 @@ export default function KindTile({ kind, onStart, busy = false }) {
     <button
       type="button"
       className="intake-kind"
-      disabled={!photos || busy}
+      disabled={!photos || busy || Boolean(sourceOff)}
       onClick={() => onStart(kind)}
     >
       <span className="intake-kind-name">{kind.label}</span>

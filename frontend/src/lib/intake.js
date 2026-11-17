@@ -213,3 +213,121 @@ export function comicDetails(result) {
       : null,
   ].filter(Boolean)
 }
+
+/** A garment field the seed file or the add bar fills, not the tagger. */
+export const PRODUCT_FIELD_KEYS = ['brand', 'color_name', 'size']
+
+/** Fields a seed piece's card edits, in order. */
+export const SEED_FIELD_KEYS = [
+  'name',
+  'brand',
+  'color_name',
+  'size',
+  'category',
+  'primary_color',
+]
+
+/** The seed file's size limit, as the server holds it (intake/seed_file.py). */
+export const MAX_SEED_BYTES = 1024 * 1024
+
+/** An entry made from a seed file row: the server's own `seed` record. */
+export function isSeedEntry(entry) {
+  return (
+    entry.kind === 'garment' &&
+    Boolean(entry.payload?.seed) &&
+    !entry.payload?.link
+  )
+}
+
+/** An entry made from a pasted product link: the server's `link` record. */
+export function isLinkEntry(entry) {
+  return entry.kind === 'garment' && Boolean(entry.payload?.link)
+}
+
+/** Product links the server reads in one paste (intake/link_import.py). */
+export const MAX_LINKS = 10
+
+/**
+ * The addresses in pasted text: one per line, blanks dropped, repeats
+ * dropped. Anything is passed on as typed; the server says which lines were
+ * not addresses.
+ *
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function linesOf(text) {
+  return [
+    ...new Set(
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+  ]
+}
+
+/** Whether the add bar's text is a pasted link rather than a piece's name. */
+export function looksLikeLink(text) {
+  return /^https?:\/\/\S+$/i.test(text.trim())
+}
+
+/** The store's host, for a link's kicker; the link itself when unreadable. */
+export function linkHost(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
+/**
+ * A seed file the server would refuse, in words naming it, or null.
+ *
+ * @param {File} file
+ * @param {{tooLarge: (name: string, kb: number) => string,
+ *   notCsv: (name: string) => string}} words
+ */
+export function refuseSeedFile(file, words) {
+  if (!/\.csv$/i.test(file.name) && file.type !== 'text/csv') {
+    return words.notCsv(file.name)
+  }
+  if (file.size > MAX_SEED_BYTES) {
+    return words.tooLarge(file.name, MAX_SEED_BYTES / 1024)
+  }
+  return null
+}
+
+/** The labels a seed piece still needs the owner to give. */
+export function seedNeeds(fields, payload) {
+  return ['category', 'primary_color']
+    .filter((key) => !payload[key])
+    .map((key) => fields.find((field) => field.key === key)?.label ?? key)
+}
+
+/**
+ * An entry's payload with the edits applied: text trimmed, a blank removed.
+ * The server keeps its own keys (`seed`, `image`) whatever is sent.
+ */
+export function editedPayload(payload, edits) {
+  const next = { ...payload }
+  for (const [key, value] of Object.entries(edits)) {
+    const text = String(value ?? '').trim()
+    if (text === '') delete next[key]
+    else next[key] = text
+  }
+  return next
+}
+
+/**
+ * The keys a link piece's Check edit sends: trimmed, a blank as '' (the
+ * server removes it). Only these change on the server, so a save made
+ * before a colour choice cannot put the old colour's fields back.
+ */
+export function editedKeys(edits) {
+  return Object.fromEntries(
+    Object.entries(edits).map(([key, value]) => [
+      key,
+      String(value ?? '').trim(),
+    ]),
+  )
+}

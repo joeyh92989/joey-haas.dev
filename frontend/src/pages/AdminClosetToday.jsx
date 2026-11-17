@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import FilterChips from '../components/FilterChips.jsx'
-import OutfitSwatches, { Swatch } from '../components/OutfitSwatches.jsx'
+import OutfitBoard from '../components/OutfitBoard.jsx'
+import { Swatch } from '../components/OutfitSwatches.jsx'
 import Sheet from '../components/Sheet.jsx'
 import SwapSheet from '../components/SwapSheet.jsx'
 import {
@@ -65,11 +66,14 @@ function todayPath(choice) {
 /** The morning low, the afternoon high, the read and the hours. */
 function WeatherStrip({ weather }) {
   return (
-    <section className="panel today-weather" aria-label="Weather">
+    <section
+      className="panel today-weather"
+      aria-label={adminCopy.closetToday.weather}
+    >
       <p className="today-temps">
         <span className="today-low">{weather.low}°</span>
         <span aria-hidden="true"> → </span>
-        <span className="visually-hidden"> to </span>
+        <span className="visually-hidden"> {adminCopy.closetToday.to} </span>
         <span className="today-high">{weather.high}°</span>
       </p>
       <p className="today-sentence">{weather.sentence}</p>
@@ -83,52 +87,6 @@ function WeatherStrip({ weather }) {
         </ol>
       )}
     </section>
-  )
-}
-
-/**
- * One tile of the lead outfit: the photo (or the colour), the slot, the
- * name and the qualifier. An owned tile carries the Build around pill,
- * revealed on hover and on focus, always shown where there is no hover.
- */
-function OutfitTile({ tile, locked, busy, onLock, onSave, saving }) {
-  return (
-    <li
-      className="today-tile"
-      data-locked={locked ? 'true' : undefined}
-      data-transient={tile.transient ? 'true' : undefined}
-    >
-      <span className="garment-photo">
-        <Swatch garment={tile} className="today-tile-swatch" />
-        <span className="garment-slot">
-          {categoryLabel(tile.slot) ?? tile.slot}
-        </span>
-        {!tile.transient && (
-          <button
-            type="button"
-            className="today-lock"
-            aria-pressed={locked}
-            aria-label={`${locked ? 'Built around' : 'Build around'} the ${tile.name}`}
-            disabled={busy}
-            onClick={() => onLock(tile)}
-          >
-            {locked ? 'Built around' : 'Build around'}
-          </button>
-        )}
-      </span>
-      <span className="garment-name">{tile.name}</span>
-      <span className="garment-stat">{tile.qualifier}</span>
-      {tile.transient && (
-        <button
-          type="button"
-          className="btn sm"
-          disabled={saving || busy}
-          onClick={onSave}
-        >
-          {saving ? 'Saving…' : 'Save as owned'}
-        </button>
-      )}
-    </li>
   )
 }
 
@@ -188,7 +146,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
 
   return (
     <div className="today-sheet-body">
-      <h2 id={titleId}>Match this…</h2>
+      <h2 id={titleId}>{adminCopy.closetToday.matchThis}</h2>
       <div className="today-sheet-modes">
         <button
           type="button"
@@ -197,10 +155,10 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
           data-autofocus
           onClick={() => setMode('closet')}
         >
-          From the closet
+          {adminCopy.closetToday.fromCloset}
         </button>
         <label className="btn btn-file">
-          From a photo
+          {adminCopy.closetToday.fromPhoto}
           <input
             type="file"
             className="visually-hidden"
@@ -216,7 +174,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         </p>
       )}
       {mode === 'closet' && !garments && !error && (
-        <p className="muted">Loading…</p>
+        <p className="muted">{adminCopy.closetToday.loading}</p>
       )}
       {mode === 'closet' && garments?.length === 0 && (
         <EmptyState title={adminCopy.closetNoPieces} />
@@ -244,14 +202,14 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
       )}
       <div className="today-sheet-acts">
         <button type="button" className="btn ghost" onClick={onClose}>
-          Cancel
+          {adminCopy.closetToday.cancel}
         </button>
       </div>
     </div>
   )
 }
 
-/** The lead: four tiles, the reason, and what to do with it. */
+/** The lead: the outfit board, the reason, and what to do with it. */
 function OutfitCard({
   outfit,
   lockId,
@@ -264,6 +222,7 @@ function OutfitCard({
   onWore,
   onChange,
   onSwap,
+  onSwapSlot,
   onMatch,
   onNotThis,
 }) {
@@ -278,21 +237,17 @@ function OutfitCard({
         tabIndex={-1}
         ref={headingRef}
       >
-        Wear this
+        {adminCopy.closetToday.wearThis}
       </p>
-      <ul className="today-tiles">
-        {outfit.garments.map((tile) => (
-          <OutfitTile
-            key={`${tile.slot}-${tile.id}`}
-            tile={tile}
-            locked={tile.id === lockId}
-            busy={busy}
-            saving={saving}
-            onLock={onLock}
-            onSave={onSave}
-          />
-        ))}
-      </ul>
+      <OutfitBoard
+        garments={outfit.garments}
+        lockId={lockId}
+        busy={busy}
+        saving={saving}
+        onLock={onLock}
+        onSwap={onSwapSlot}
+        onSave={onSave}
+      />
       <p className="today-reason">{outfitReason(outfit)}</p>
       {wornState ? (
         <p className="today-worn">
@@ -301,7 +256,7 @@ function OutfitCard({
           </span>
           <span aria-hidden="true"> · </span>
           <button type="button" className="link-button" onClick={onChange}>
-            Change
+            {adminCopy.closetToday.change}
           </button>
         </p>
       ) : (
@@ -312,7 +267,7 @@ function OutfitCard({
             disabled={busy || transient}
             onClick={onWore}
           >
-            Wore this
+            {adminCopy.closetToday.woreThis}
           </button>
           <button
             type="button"
@@ -320,7 +275,7 @@ function OutfitCard({
             disabled={busy}
             onClick={onSwap}
           >
-            Swap a piece
+            {adminCopy.closetToday.swapPiece}
           </button>
           <button
             type="button"
@@ -328,7 +283,7 @@ function OutfitCard({
             disabled={busy}
             onClick={onMatch}
           >
-            Match this…
+            {adminCopy.closetToday.matchThis}
           </button>
           <button
             type="button"
@@ -337,12 +292,16 @@ function OutfitCard({
             disabled={busy}
             onClick={() => setAsking((open) => !open)}
           >
-            Not this…
+            {adminCopy.closetToday.notThis}
           </button>
         </div>
       )}
       {asking && !wornState && (
-        <div className="chip-row" role="group" aria-label="Why not this">
+        <div
+          className="chip-row"
+          role="group"
+          aria-label={adminCopy.closetToday.whyNotThis}
+        >
           {NOT_THIS_REASONS.map((reason) => (
             <button
               key={reason.value}
@@ -363,17 +322,17 @@ function OutfitCard({
   )
 }
 
-/** An alternative: swatches, the names on one line, the reason. */
+/** An alternative: the small board, the names on one line, the reason. */
 function OutfitAlt({ outfit, busy, onWear }) {
   return (
     <li className="panel today-alt">
-      <OutfitSwatches garments={outfit.garments} />
+      <OutfitBoard garments={outfit.garments} small />
       <p className="today-alt-names">
         {outfit.garments.map((g) => g.name).join(' · ')}
       </p>
       <p className="today-alt-reason">{outfitReason(outfit)}</p>
       <button type="button" className="btn sm" disabled={busy} onClick={onWear}>
-        Wear this instead
+        {adminCopy.closetToday.wearThisInstead}
       </button>
     </li>
   )
@@ -407,6 +366,8 @@ export default function AdminClosetToday() {
   const [retryable, setRetryable] = useState(false)
   const elapsed = useElapsed(!answer && !error)
   const [swapOpen, setSwapOpen] = useState(false)
+  // The slot a piece's own Swap opened the sheet on; undefined for Swap a piece.
+  const [swapSlot, setSwapSlot] = useState(undefined)
   const [matchOpen, setMatchOpen] = useState(false)
   // The photo Match this planned around, kept for Save as owned.
   const [photo, setPhoto] = useState(null)
@@ -627,7 +588,10 @@ export default function AdminClosetToday() {
 
   return (
     <section className="today">
-      <AdminPageHeader title="Today" description={description} />
+      <AdminPageHeader
+        title={adminCopy.closetToday.title}
+        description={description}
+      />
 
       {error && (
         <p className="admin-error" role="alert">
@@ -644,7 +608,7 @@ export default function AdminClosetToday() {
             setAttempt((n) => n + 1)
           }}
         >
-          Retry
+          {adminCopy.closetToday.retry}
         </button>
       )}
       {!answer && !error && (
@@ -703,13 +667,20 @@ export default function AdminClosetToday() {
               onSave={saveOwned}
               onWore={wore}
               onChange={() => setChanging(true)}
-              onSwap={() => setSwapOpen(true)}
+              onSwap={() => {
+                setSwapSlot(undefined)
+                setSwapOpen(true)
+              }}
+              onSwapSlot={(slot) => {
+                setSwapSlot(slot)
+                setSwapOpen(true)
+              }}
               onMatch={() => setMatchOpen(true)}
               onNotThis={notThis}
             />
           ) : (
             <section className="panel today-card">
-              <p className="today-kicker">Wear this</p>
+              <p className="today-kicker">{adminCopy.closetToday.wearThis}</p>
               <p className="today-reason">
                 {plan?.model_note ?? 'Nothing is planned for today yet.'}
               </p>
@@ -717,7 +688,10 @@ export default function AdminClosetToday() {
           )}
 
           {lead && alternatives.length > 0 && (
-            <ul className="today-alts" aria-label="Alternatives">
+            <ul
+              className="today-alts"
+              aria-label={adminCopy.closetToday.alternatives}
+            >
               {alternatives.map((outfit, index) => (
                 <OutfitAlt
                   key={`${index}-${outfit.garments.map((g) => g.id).join('-')}`}
@@ -741,6 +715,7 @@ export default function AdminClosetToday() {
             outfit={lead}
             occasion={choice.occasion}
             bike={choice.bike}
+            slot={swapSlot}
             onClose={() => setSwapOpen(false)}
             onChoose={swapped}
           />

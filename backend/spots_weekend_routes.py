@@ -42,6 +42,7 @@ import weather
 from items import require_admin
 from models import Spot, SpotSetting, Visit, WeatherHour
 from public import OWNER_TZ
+from spots_schemas import ConstraintsOut, PlanOut, WeatherRunOut, WeekOut
 
 logger = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ def create_weekend_router(
         logger.info("weather: %s", summary)
         return summary
 
-    @router.post("/weather/refresh")
+    @router.post("/weather/refresh", response_model=WeatherRunOut)
     async def refresh_weather(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
@@ -218,7 +219,7 @@ def create_weekend_router(
             for i, s, n, d in rows
         ]
 
-    @router.get("/plan")
+    @router.get("/plan", response_model=PlanOut)
     async def get_plan(
         seed: int = Query(default=0, ge=0, le=10_000),
         session: AsyncSession = Depends(get_session),
@@ -267,7 +268,7 @@ def create_weekend_router(
             "seed": seed,
         }
 
-    @router.put("/constraints")
+    @router.put("/constraints", response_model=ConstraintsOut)
     async def put_constraints(
         payload: ConstraintsIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -283,7 +284,7 @@ def create_weekend_router(
             raise HTTPException(status_code=404, detail="Spot not found")
         return row
 
-    @router.post("/plan/save")
+    @router.post("/plan/save", response_model=WeekOut)
     async def save(
         payload: SaveIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -311,7 +312,7 @@ def create_weekend_router(
         await session.commit()
         return week
 
-    @router.post("/plan/unsave")
+    @router.post("/plan/unsave", response_model=WeekOut)
     async def unsave(
         payload: UnsaveIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -338,7 +339,7 @@ def create_weekend_router(
         await session.commit()
         return week
 
-    @router.post("/plan/skip")
+    @router.post("/plan/skip", response_model=WeekOut)
     async def skip(
         payload: SkipIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
@@ -346,7 +347,7 @@ def create_weekend_router(
         await _spot(session, payload.spot_id)
         return await _set_skip(session, payload.spot_id, True)
 
-    @router.post("/plan/unskip")
+    @router.post("/plan/unskip", response_model=WeekOut)
     async def unskip(
         payload: SkipIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:

@@ -234,6 +234,32 @@ and its tests mock the content module. The recorder's own tests run on
 `tests/fixtures/intake_demo/provisional.json`, a hand-made model answer and
 search results, never on the public file. Re-record rather than edit.
 
+## record_closet_fixtures.py
+
+Records one Marine Layer and one Duer product link for the closet's link way
+in (`closet_resolver.py`, issue #398) into `tests/fixtures/closet/`: each
+store's per-product JSON (`/products/<handle>.json`) and `robots.txt` byte for
+byte, and an excerpt of the product page (its `<title>`, `og:title` and
+JSON-LD scripts, copied verbatim into a bare document, because the whole page
+is up to 1 MB the parser never reads), plus `manifest.json` with the links
+and the day. All of it is public product data: no sign-in, no cookie.
+
+```
+./.venv/bin/python scripts/record_closet_fixtures.py
+./.venv/bin/python scripts/record_closet_fixtures.py \
+    --marinelayer https://www.marinelayer.com/products/<handle> \
+    --duer https://www.duer.com/products/<handle>
+```
+
+Needs no key. It sends the catalogue's User-Agent, spaces requests two a
+second, reads `robots.txt` first and records nothing a store disallows.
+**Re-record, never hand-edit,** when a store changes its format or a product
+is retired (the defaults are current products and will go); a new link means
+updating the expected title, colour and size counts in
+`tests/test_closet_resolver.py`. `tests/test_closet_resolver.py` and
+`tests/test_intake_link_routes.py` run offline against these files; any body
+in them that is not from these files is marked SYNTHETIC.
+
 ## record_physical_fixtures.py
 
 Records the E7c physical-catalogue sources into `tests/fixtures/physical/`,
@@ -587,3 +613,44 @@ latency, whether the answer parsed as JSON, the quota id and value from a
 429 (`quotaValue` comes from the error body, which Google does not
 document, so it may be blank), and the API's error message on any error
 (the exception's name when no response came back). The key goes only in the request header and is never printed.
+
+## closet_rank_images_probe.py
+
+Measures the closet ranker with and without the shortlist's thumbnails
+(spike #400, the tooling half; the feature is #401).
+
+**Why:** `closet_today_routes.shortlist_images` can send up to four 400px
+thumbnails per slot with the ranking prompt, but only when
+`closet_settings["rank.images"]` is `{"enabled": true}`. It stays off until
+this probe shows the latency and request size are acceptable. **Not yet
+measured:** the closet has no photos yet, so there is no report and the
+setting is off.
+
+**Run** from `backend/`, against a local database with garments that have
+photos (`--database-url` or `PROBE_DATABASE_URL`; a non-local host is
+refused unless `--allow-remote`):
+
+```bash
+./.venv/bin/python scripts/closet_rank_images_probe.py \
+    --database-url postgresql+asyncpg://localhost/stats_dev
+```
+
+Options: `--out PATH` (default `~/Developer/closet-seed/rank-images-report.json`,
+outside the repo because the report carries real prompt sizes), `--day`,
+`--occasion` (default `office`), `--bike`.
+
+**Needs** `GEMINI_API_KEY` and/or `ANTHROPIC_API_KEY` in the main checkout's
+`backend/.env`. **Costs:** per provider, two requests (text only, then with
+images): the Gemini chain from the free daily quota, Haiku billed. Run it
+once, not in a loop.
+
+**Writes** one JSON report: the shortlist size, garments with photos, images
+sent, and for each provider and each of `text_only` / `with_images`: seconds,
+`prompt_bytes`, `images`, `image_bytes`, `image_bytes_base64`, `ok`, outfit
+count or the error. `usage` is always null: the providers' `complete_json`
+returns the answer only, not token counts.
+
+To turn the feature on after a good measurement, set the row in
+`closet_settings` (key `rank.images`, value `{"enabled": true}`). There is no
+admin screen for it. Tests never call a real provider; they use fakes
+(`tests/test_closet_rank_images_probe.py`).

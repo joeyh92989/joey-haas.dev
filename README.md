@@ -67,6 +67,8 @@ snapshot files and never call the API.
 | `/shelf/year`, `/shelf/year/:year` | Year in review | The current year, or a given one, read live from `/api/public/diary` |
 | `/shelf/journal/:month` | Month in review | One month of the play journal |
 | `/shelf/:id` | Item | One game: cover, copy details, description, rating, time to beat, and similar items from the shelf. A comic series shows what's next, its run as lanes over a box of books, issues and bundles, and its collected editions instead |
+| `/shelf/:id/<n>` | Comic issue | One issue of a comic series, for a canonical number (digits, no leading zero, at most four). Served prerendered only at the slash form, `/shelf/<id>/<n>/` |
+| `/shelf/:id/ed-<from>-<to>` | Comic edition | One collected edition, by its canonical slug (`-2` and up on a repeat). Anything else under `/shelf/:id/` is NotFound |
 | `/spine*`, `/collection*` | Redirect | The pre-rename URLs. Each redirects client-side, in one hop, to its `/shelf` page (`/spine` and `/collection` → `/shelf/games`, `/spine/next` → `/shelf/next`, `/spine/:id` and `/collection/:id` → `/shelf/:id/`, and so on). The build also writes link-preview heads at `/spine`, `/spine/next`, `/spine/how` and `/spine/<id>/` (canonical on `/shelf`), and the finishes feed at both `/shelf/feed.xml` and `/spine/feed.xml`, with item GUIDs kept on `/spine` so readers see nothing new |
 | `/admin` | Dashboard | Google sign-in gate, reached from the footer's Sign in link; once signed in, the API and nightly status, headline counts, the nightly jobs, quick actions and recent changes |
 | `/admin/analytics` | Analytics | Page views, visitors, views per day, pages, referrers and devices over 7, 30, 90 days or all time, from the first-party beacon (see [Analytics](#analytics)) |
@@ -74,6 +76,7 @@ snapshot files and never call the API.
 | `/admin/shelf/comics` | Comics | The Comics page's twin: each series with its run, Follow, Public, a link to its cover wall and Edit, Redo and Delete, publish and hide all (comics only), and comic metadata refresh |
 | `/admin/collection/:id` | Edit game | Every field, plus re-linking to a different IGDB match; a comic id redirects to its page below |
 | `/admin/shelf/comics/:id` | Edit comic | The series, its issues as a cover wall with taps, editions, the Comic Vine match and Delete |
+| `/admin/closet/:id` | Edit garment | Every field of one piece by hand, and delete |
 | `/admin/collection/add`, `/admin/closet/add` | Add | Intake: a tile per kind the API registers for the area, and the area's unfinished sittings (see [Intake](#intake)) |
 | `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
 | `/admin/import` | Redirect | Import photos became Add: redirects client-side to `/admin/collection/add` |
@@ -764,6 +767,23 @@ the phone and finish at the desk.
   and `probable` (`GET /api/intake/counts`), loaded by `AdminLayout` and refreshed by a sitting
   through `refreshIntakeCounts`.
 
+### Admin copy scan
+
+`frontend/src/adminCopyScan.test.js` is a ratchet for #300: admin words belong
+in `frontend/src/content/adminCopy.js`. It scans `pages/Admin*.jsx` and
+`components/Admin*.jsx` (not tests) for inline JSX text and string-literal
+`title`, `aria-label`, `placeholder` and `alt` props, and compares the count per
+file with `frontend/src/adminCopyBaseline.json`. A file that gains a string
+fails, and the message says to move the words verbatim into `adminCopy` and
+render `adminCopy.<key>`; a file that loses one fails until the baseline is
+lowered, so the baseline only shrinks. List what remains with
+`cd frontend && ADMIN_COPY_LIST=1 npx vitest run src/adminCopyScan.test.js`.
+The scan is a regex, not a parser: it misses strings built in JavaScript
+(template literals, ternaries, variables) and other props, so it is a floor, not a
+census. With #300 finished the baseline is all zeros and holds no false
+positives (the scan skips code after a `>` operator, text with `&&` or `||`),
+so any new inline admin string fails the test.
+
 ## Smoke test
 
 After a deploy:
@@ -820,6 +840,38 @@ npm run e2e
 running, set `E2E_BASE_URL` instead of building:
 `E2E_BASE_URL=https://joey-haas.dev npm run e2e`. The report is in
 `frontend/playwright-report/`. CI runs the same suite in the `e2e` job.
+
+### Visual baselines
+
+`toHaveScreenshot` compares full-page screenshots of home, about, projects, one
+post, the games shelf, one item, one comic series, the 404 and the daily game,
+each in dark and light at 393 and 1280 wide (36 PNGs in
+`frontend/e2e/visual-baselines/`), built from the fixture snapshot. It is a
+separate run (`npm run e2e:visual`, `playwright.visual.config.js`), so
+`npm run e2e` stays quiet, and the `e2e` job runs it in compare mode.
+
+**Baselines are made on the CI runner only.** Linux and macOS render text
+differently; a Mac-made PNG never matches, and a local `e2e:visual` run fails
+on every page (do not commit its output). To create or update them:
+
+```sh
+gh workflow run update-visual-baselines.yml --ref <your-branch>
+```
+
+The workflow regenerates the set on ubuntu, uploads it as the `visual-baselines`
+artifact and commits it to that branch. A commit made by `GITHUB_TOKEN` does
+not start CI, so push an empty commit (or re-run the PR's jobs) to compare.
+If the commit step is unwanted, download the artifact (`gh run download`) and
+commit `e2e/visual-baselines/` yourself.
+
+A failed compare uploads `test-results-visual/` (expected, actual, diff) with
+the report. **A diff is a real regression** when nobody meant to change that
+page's look: fix the code. It is **intended** when the PR changed the design:
+look at the diff images, then update the baselines as above and review the PNG
+changes in the PR. A diff on a page the PR did not touch, or one that differs
+between reruns, is runner noise: rerun once; if it persists, check the capture
+for something date- or data-dependent (the spec fixes the clock, blocks the
+API, disables animation and waits for fonts and images).
 
 Known problems are tracked, not hidden:
 
@@ -908,7 +960,7 @@ Every pull request runs two jobs, which must both pass before it can merge:
 
 | Job | Runs |
 |---|---|
-| `backend` | `pytest`, then `pip-audit` |
+| `backend` | passes when `backend-tests` (format, lint, `pytest` without the migration tests, then `pip-audit`) and `backend-migrations` (`tests/test_migrations.py`, on its own Postgres) both pass; a red `backend` means open one of those two |
 | `frontend` | `npm test`, `npm run build`, then `npm audit --audit-level=high` |
 
 Audits fail on high and critical advisories only. Moderate and low are reported

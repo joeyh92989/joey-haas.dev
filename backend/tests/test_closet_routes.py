@@ -1,6 +1,7 @@
 """The Closet's admin routes (closet_routes.py): garments, photos, profile."""
 
 import io
+import uuid
 from contextlib import asynccontextmanager
 from datetime import date
 
@@ -119,7 +120,7 @@ async def test_an_upload_of_twelve_makes_twelve_untagged_garments_without_the_mo
         assert await session.scalar(select(func.count(Garment.id))) == 12
         images = (await session.scalars(select(GarmentImage))).all()
         assert len(images) == 12
-        assert all(max(i.width, i.height) == 400 for i in images)
+        assert all(max(i.width, i.height) == 800 for i in images)
         assert all(i.webp[8:12] == b"WEBP" for i in images)
         # Upload order is queue order.
         rows = (
@@ -178,6 +179,38 @@ async def test_the_image_route_caches_privately_and_answers_304(sessionmaker_for
     assert saved.json()["image"] != url
     assert after.status_code == 200
     assert after.headers["etag"] != etag
+
+
+async def test_size_thumb_serves_a_400px_rendition_with_its_own_etag(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/closet/garments/photos", files=photos(1))
+        ).json()
+        url = made["garments"][0]["image"]
+        full = await client.get(url)
+        thumb = await client.get(url, params={"size": "thumb"})
+        assert thumb.status_code == 200
+        assert thumb.headers["content-type"] == "image/webp"
+        assert thumb.headers["cache-control"] == "private, max-age=86400"
+        assert thumb.headers["etag"] != full.headers["etag"]
+        assert max(Image.open(io.BytesIO(thumb.content)).size) <= 400
+        again = await client.get(
+            url,
+            params={"size": "thumb"},
+            headers={"If-None-Match": thumb.headers["etag"]},
+        )
+        assert again.status_code == 304
+        # The full photo's ETag does not answer a thumb request.
+        crossed = await client.get(
+            url,
+            params={"size": "thumb"},
+            headers={"If-None-Match": full.headers["etag"]},
+        )
+        assert crossed.status_code == 200
+        bad = await client.get(url, params={"size": "huge"})
+    assert bad.status_code == 422
 
 
 async def test_a_garment_without_a_photo_is_404_on_the_image_route(
@@ -363,3 +396,143 @@ async def test_the_status_route_reads_the_three_keys(sessionmaker_for_test):
     assert set(body) == set(STATUS_KEYS)
     assert body["tag.last_run"] == {"state": "ok"}
     assert body["plan.last_run"] is None
+
+
+# --- add or replace a photo (#399) -------------------------------------------
+
+
+async def _photo(client, garment_id, data=None, name="new.jpg", kind="image/jpeg"):
+    return await client.post(
+        f"/api/closet/garments/{garment_id}/photo",
+        files={"photo": (name, data or jpeg(1600, 1200), kind)},
+    )
+
+
+async def test_a_photo_is_added_to_a_garment_without_one(sessionmaker_for_test):
+    row = await _garment(
+        sessionmaker_for_test,
+        name="Chalet Pant",
+        brand="Marine Layer",
+        color_name="Grey Twill",
+        color_source="vendor",
+        size="M",
+        status=GarmentStatus.ACTIVE,
+        tag_source=GarmentTagSource.MANUAL,
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _photo(client, row.id)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["image"].startswith(f"/api/closet/garments/{row.id}/image?v=")
+        served = await client.get(body["image"])
+    assert served.status_code == 200
+    with Image.open(io.BytesIO(served.content)) as stored:
+        assert max(stored.size) == 800
+    # Nothing but the photo moved.
+    assert (body["name"], body["brand"], body["color_name"], body["size"]) == (
+        "Chalet Pant",
+        "Marine Layer",
+        "Grey Twill",
+        "M",
+    )
+    assert (body["color_source"], body["tag_source"], body["status"]) == (
+        "vendor",
+        "manual",
+        "active",
+    )
+
+
+async def test_a_photo_replaces_the_old_one_and_changes_the_url(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/closet/garments/photos", files=photos(1))
+        garment = made.json()["garments"][0]
+        first = garment["image"]
+        response = await _photo(client, garment["id"], jpeg(300, 200, (200, 10, 10)))
+        second = response.json()["image"]
+        stale = await client.get(first, headers={"If-None-Match": '"old"'})
+    assert second != first
+    async with sessionmaker_for_test() as session:
+        count = await session.scalar(select(func.count(GarmentImage.garment_id)))
+        stored = await session.get(GarmentImage, uuid.UUID(garment["id"]))
+    assert count == 1
+    assert (stored.width, stored.height) == (300, 200)
+    assert stale.status_code == 200
+    assert response.json()["tag_source"] == garment["tag_source"]
+    assert response.json()["status"] == garment["status"]
+
+
+async def test_a_bad_photo_is_refused_and_keeps_the_old_one(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/closet/garments/photos", files=photos(1))
+        gid = made.json()["garments"][0]["id"]
+        broken = await _photo(client, gid, b"not a photo")
+        wrong = await _photo(client, gid, b"hello", "notes.txt", "text/plain")
+        huge = await _photo(client, gid, b"x" * (15 * 1024 * 1024))
+        missing = await _photo(client, uuid.uuid4())
+        empty = await client.post(f"/api/closet/garments/{gid}/photo")
+    assert (broken.status_code, wrong.status_code, huge.status_code) == (422, 415, 413)
+    assert missing.status_code == 404
+    assert empty.status_code == 422
+    async with sessionmaker_for_test() as session:
+        stored = await session.get(GarmentImage, uuid.UUID(gid))
+    assert stored is not None
+
+
+async def test_the_photo_route_is_admin_only(sessionmaker_for_test):
+    row = await _garment(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, signed_in=False) as client:
+        response = await _photo(client, row.id)
+    assert response.status_code == 401
+    async with sessionmaker_for_test() as session:
+        assert await session.get(GarmentImage, row.id) is None
+
+
+# --- store colour, brand and size by hand (#399) ------------------------------
+
+
+async def test_a_typed_colour_is_manual_and_an_unchanged_one_keeps_its_source(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test, color_name="Grey Twill", color_source="vendor"
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        # The edit form sends every field on save, the colour unchanged.
+        same = await client.patch(
+            f"/api/closet/garments/{row.id}",
+            json={"color_name": "Grey Twill", "size": "M", "brand": "Marine Layer"},
+        )
+        typed = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": "Slate"}
+        )
+        cleared = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": " "}
+        )
+    assert (same.json()["color_name"], same.json()["color_source"]) == (
+        "Grey Twill",
+        "vendor",
+    )
+    assert (same.json()["size"], same.json()["brand"]) == ("M", "Marine Layer")
+    assert (typed.json()["color_name"], typed.json()["color_source"]) == (
+        "Slate",
+        "manual",
+    )
+    assert (cleared.json()["color_name"], cleared.json()["color_source"]) == (
+        None,
+        None,
+    )
+
+
+async def test_a_stored_colour_with_stray_space_is_not_flipped_by_an_untouched_save(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test, color_name="Grey Twill ", color_source="vendor"
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            f"/api/closet/garments/{row.id}", json={"color_name": "Grey Twill"}
+        )
+    assert response.json()["color_source"] == "vendor"

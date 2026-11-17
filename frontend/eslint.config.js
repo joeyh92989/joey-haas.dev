@@ -18,6 +18,8 @@ export default [
       'node_modules/**',
       'test-results/**',
       'playwright-report/**',
+      'playwright-report-visual/**',
+      'test-results-visual/**',
       'e2e-shots/**',
     ],
   },

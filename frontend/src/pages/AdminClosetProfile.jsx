@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { adminCopy } from '../content/adminCopy.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -88,7 +89,7 @@ export default function AdminClosetProfile() {
 
   const header = (
     <AdminPageHeader
-      title="Profile"
+      title={adminCopy.closetProfile.title}
       description="what the tagger and the planner know about me"
     />
   )
@@ -129,7 +130,7 @@ export default function AdminClosetProfile() {
       {header}
       <form className="garment-form" onSubmit={save}>
         <fieldset>
-          <legend>Sizes</legend>
+          <legend>{adminCopy.closetProfile.sizes}</legend>
           {CATEGORIES.map((c) => (
             <label key={c.value}>
               <span className="garment-field-label">{c.plural}</span>
@@ -144,7 +145,7 @@ export default function AdminClosetProfile() {
         </fieldset>
 
         <fieldset>
-          <legend>Colouring</legend>
+          <legend>{adminCopy.closetProfile.colouring}</legend>
           {COLORING.map(([key, label]) => (
             <label key={key}>
               <span className="garment-field-label">{label}</span>
@@ -159,7 +160,9 @@ export default function AdminClosetProfile() {
         </fieldset>
 
         <label>
-          <span className="garment-field-label">Build and fit</span>
+          <span className="garment-field-label">
+            {adminCopy.closetProfile.buildFit}
+          </span>
           <textarea
             rows={2}
             maxLength={500}
@@ -168,28 +171,36 @@ export default function AdminClosetProfile() {
           />
         </label>
         <label>
-          <span className="garment-field-label">Style words</span>
+          <span className="garment-field-label">
+            {adminCopy.closetProfile.styleWords}
+          </span>
           <input
             type="text"
             value={form.style_words}
-            placeholder="minimal, workwear, navy"
+            placeholder={adminCopy.closetProfile.styleWordsPlaceholder}
             onChange={(e) => set('style_words')(e.target.value)}
           />
-          <span className="muted">Comma-separated, up to twelve.</span>
+          <span className="muted">
+            {adminCopy.closetProfile.commaSeparated}
+          </span>
         </label>
         <label>
-          <span className="garment-field-label">Dislikes</span>
+          <span className="garment-field-label">
+            {adminCopy.closetProfile.dislikes}
+          </span>
           <input
             type="text"
             value={form.dislikes}
-            placeholder="logos, skinny fits"
+            placeholder={adminCopy.closetProfile.dislikesPlaceholder}
             onChange={(e) => set('dislikes')(e.target.value)}
           />
-          <span className="muted">Comma-separated, up to twelve.</span>
+          <span className="muted">
+            {adminCopy.closetProfile.commaSeparated}
+          </span>
         </label>
 
         <fieldset className="closet-week">
-          <legend>The usual week</legend>
+          <legend>{adminCopy.closetProfile.usualWeek}</legend>
           {DAYS.map((day, i) => (
             <div key={day} className="closet-week-day">
               <span className="garment-field-label">{day}</span>
@@ -218,7 +229,7 @@ export default function AdminClosetProfile() {
         </fieldset>
 
         <fieldset>
-          <legend>Seasons turn</legend>
+          <legend>{adminCopy.closetProfile.seasonsTurn}</legend>
           {[
             ['spring_turn', 'Spring'],
             ['autumn_turn', 'Autumn'],
@@ -238,7 +249,7 @@ export default function AdminClosetProfile() {
         </fieldset>
 
         <fieldset>
-          <legend>Repeats and tagging</legend>
+          <legend>{adminCopy.closetProfile.repeatsTagging}</legend>
           {number('repeat_top_days', 'Days before a top repeats', 1, 30)}
           {number(
             'repeat_outfit_weeks',
@@ -262,7 +273,7 @@ export default function AdminClosetProfile() {
         )}
         {saved && (
           <p className="muted" role="status">
-            Saved.
+            {adminCopy.closetProfile.saved}
           </p>
         )}
         <div className="garment-form-acts">

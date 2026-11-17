@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOAD_ERROR } from '../content/status.js'
 import { deckStat } from '../components/ReviewDeck.jsx'
 import AdminClosetReview from './AdminClosetReview.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 
 function garment(id, name, extra = {}) {
   return {
@@ -342,7 +343,9 @@ describe('AdminClosetReview', () => {
     expect(within(sheet).getByText('Copied')).toBeInTheDocument()
     await user.click(within(sheet).getByRole('button', { name: 'List it' }))
     expect(
-      await screen.findByRole('region', { name: 'Listed for sale' }),
+      await screen.findByRole('region', {
+        name: adminCopy.closetReview.listedForSale,
+      }),
     ).toBeInTheDocument()
     expect(calls.find((c) => c.method === 'POST').body).toEqual({
       outcome: 'sell',
@@ -364,7 +367,11 @@ describe('AdminClosetReview', () => {
       },
     })
     renderPage()
-    await user.click(await screen.findByRole('button', { name: 'Mark sold' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: adminCopy.closetReview.markSold,
+      }),
+    )
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent('Sold: wool coat'),
     )
@@ -397,7 +404,9 @@ describe('AdminClosetReview', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'never worn' })).toHaveFocus(),
     )
-    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    await user.click(
+      screen.getByRole('button', { name: adminCopy.closetReview.undo }),
+    )
     await screen.findByRole('region', { name: 'Season turn' })
     expect(calls.find((c) => c.path === '/api/closet/undo').body).toEqual({
       token: 'tok',
@@ -424,7 +433,9 @@ describe('AdminClosetReview', () => {
     await screen.findByRole('heading', { name: 'never worn' })
     await user.click(outcome('Keep'))
     await screen.findByRole('heading', { name: 'linen shirt' })
-    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    await user.click(
+      screen.getByRole('button', { name: adminCopy.closetReview.undo }),
+    )
     const never = await screen.findByRole('heading', { name: 'never worn' })
     await waitFor(() => expect(never).toHaveFocus())
     expect(within(deck()).getByText('1 of 3 flagged')).toBeInTheDocument()
@@ -441,14 +452,20 @@ describe('AdminClosetReview', () => {
       'POST /api/closet/unpack-all': { ids: ['g7'], undo: 'tok' },
     })
     renderPage()
-    const due = await screen.findByRole('region', { name: 'Due back' })
+    const due = await screen.findByRole('region', {
+      name: adminCopy.closetReview.dueBack,
+    })
     expect(due).toHaveTextContent('1 piece due back: wool coat.')
-    await user.click(within(due).getByRole('button', { name: 'Unpack all' }))
+    await user.click(
+      within(due).getByRole('button', {
+        name: adminCopy.closetReview.unpackAll,
+      }),
+    )
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Unpacked 1 piece',
     )
     expect(
-      screen.queryByRole('region', { name: 'Due back' }),
+      screen.queryByRole('region', { name: adminCopy.closetReview.dueBack }),
     ).not.toBeInTheDocument()
   })
 
@@ -542,7 +559,9 @@ describe('AdminClosetReview', () => {
     )
     // The card has not left the deck, so it is not counted as decided.
     expect(within(deck()).getByText('1 of 3 flagged')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await user.click(
+      screen.getByRole('button', { name: adminCopy.closetReview.tryAgain }),
+    )
     const linen = await screen.findByRole('heading', { name: 'linen shirt' })
     expect(within(deck()).getByText('2 of 3 flagged')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -625,13 +644,15 @@ describe('AdminClosetReview', () => {
     await screen.findByRole('heading', { name: 'never worn' })
     await user.click(outcome('Keep'))
     await screen.findByRole('heading', { name: 'linen shirt' })
-    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    await user.click(
+      screen.getByRole('button', { name: adminCopy.closetReview.undo }),
+    )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Nothing to undo: that change was replaced',
     )
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Undo' }),
+      screen.queryByRole('button', { name: adminCopy.closetReview.undo }),
     ).not.toBeInTheDocument()
   })
 
@@ -677,6 +698,17 @@ describe('deckStat added date', () => {
       garment: { ...base.garment, created_at: '2026-11-12T02:40:00Z' },
     })
     expect(stat).toBe('Worn 0× in 12 months · added Nov 11')
+  })
+
+  it('prefers the garment’s own size to the profile’s', () => {
+    const own = { ...base.garment, size: 'L' }
+    expect(deckStat({ ...base, size: 'M', garment: own })).toBe(
+      'Worn 0× in 12 months · size L',
+    )
+    expect(deckStat({ ...base, size: 'M' })).toBe(
+      'Worn 0× in 12 months · size M',
+    )
+    expect(deckStat(base)).toBe('Worn 0× in 12 months')
   })
 
   it('prefers acquired_on over created_at', () => {

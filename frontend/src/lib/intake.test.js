@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
+  editedPayload,
   entryTitle,
   fieldPayload,
   garmentNeedsCheck,
+  isLinkEntry,
+  isSeedEntry,
+  linesOf,
+  linkHost,
+  looksLikeLink,
   localToday,
   meterCounts,
   missingFields,
   optionLabel,
   refuseFile,
+  refuseSeedFile,
+  seedNeeds,
   shelfPath,
   sittingLabel,
   sourceWords,
@@ -169,5 +177,78 @@ describe('shelfPath', () => {
     expect(shelfPath('shelf', 'game')).toBe('/admin/shelf/games')
     expect(shelfPath('shelf', null)).toBe('/admin/shelf/games')
     expect(shelfPath('closet', 'garment')).toBe('/admin/closet')
+  })
+})
+
+describe('the closet seed file helpers', () => {
+  const words = {
+    tooLarge: (name, kb) => `${name} over ${kb}`,
+    notCsv: (name) => `${name} not csv`,
+  }
+  const file = (name, size = 10, type = '') => ({ name, size, type })
+
+  it('refuses a file that is not a CSV or is over the limit', () => {
+    expect(refuseSeedFile(file('seed.CSV'), words)).toBeNull()
+    expect(refuseSeedFile(file('data', 10, 'text/csv'), words)).toBeNull()
+    expect(refuseSeedFile(file('seed.xlsx'), words)).toBe('seed.xlsx not csv')
+    expect(refuseSeedFile(file('seed.csv', 2 * 1024 * 1024), words)).toBe(
+      'seed.csv over 1024',
+    )
+  })
+
+  it('knows an entry made from a file by the server’s seed record', () => {
+    expect(isSeedEntry({ kind: 'garment', payload: { seed: { a: 1 } } })).toBe(
+      true,
+    )
+    expect(isSeedEntry({ kind: 'garment', payload: { name: 'x' } })).toBe(false)
+  })
+
+  it('names what a piece still needs, in the kind’s own labels', () => {
+    const fields = [
+      { key: 'category', label: 'Category' },
+      { key: 'primary_color', label: 'Colour' },
+    ]
+    expect(seedNeeds(fields, {})).toEqual(['Category', 'Colour'])
+    expect(
+      seedNeeds(fields, { category: 'top', primary_color: 'red' }),
+    ).toEqual([])
+  })
+
+  it('applies edits trimmed, removes a cleared field and keeps the rest', () => {
+    expect(
+      editedPayload(
+        { name: 'Tee', size: 'M', seed: { a: 1 } },
+        { name: ' Tee 2 ', size: '  ' },
+      ),
+    ).toEqual({ name: 'Tee 2', seed: { a: 1 } })
+  })
+})
+
+describe('link intake helpers', () => {
+  it('tells a link piece from a file piece', () => {
+    const piece = { kind: 'garment', payload: { seed: {}, link: { url: 'u' } } }
+    expect(isLinkEntry(piece)).toBe(true)
+    expect(isSeedEntry(piece)).toBe(false)
+    expect(isLinkEntry({ kind: 'garment', payload: { seed: {} } })).toBe(false)
+  })
+
+  it('splits pasted text into one address per line without blanks or repeats', () => {
+    expect(
+      linesOf(' https://a.test/x \r\n\n https://b.test/y\nhttps://a.test/x'),
+    ).toEqual(['https://a.test/x', 'https://b.test/y'])
+    expect(linesOf('  \n ')).toEqual([])
+  })
+
+  it('knows a pasted link from a piece’s name', () => {
+    expect(looksLikeLink(' https://a.test/products/x ')).toBe(true)
+    expect(looksLikeLink('Blue Oxford https://a.test')).toBe(false)
+    expect(looksLikeLink('Blue Oxford')).toBe(false)
+  })
+
+  it('names the store by its host', () => {
+    expect(linkHost('https://www.marinelayer.com/products/x')).toBe(
+      'marinelayer.com',
+    )
+    expect(linkHost('nonsense')).toBe('nonsense')
   })
 })

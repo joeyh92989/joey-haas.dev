@@ -364,3 +364,26 @@ A Vitest file, not a build step. It checks that every snapshot file in
 `fetch-snapshot.mjs` (`SNAPSHOTS`), and that every required snapshot has a
 fixture, so a changed snapshot shape fails here instead of in the CI `e2e`
 job. Run it with `npm test`.
+
+## Other test files
+
+Vitest files that sit beside the scripts, run by `npm test`; none is a build
+step.
+
+- `fetch-snapshot.test.mjs` runs `fetchSnapshot` against a stubbed API and a
+  temporary folder: that nothing runs without an API URL, that bodies are
+  written verbatim, and what a failed wake or a malformed body leaves behind.
+- `og-card.test.mjs` tests `og-card.mjs`'s pure parts (`escapeXml`,
+  `wrapTitle`, `cardSvg`) with a fake font measure, and the PNG render.
+- `render-headers.test.mjs` reads `render.yaml` and checks the static site's
+  response headers (cache lifetimes, HSTS, referrer and permissions policy).
+
+## fixtures/
+
+`overpass-union-station.json` is a recorded Overpass response, the input to
+`draw-denver-map.test.mjs` (see `draw-denver-map.mjs`). It is generated, not
+edited. The synthetic snapshot files CI builds from live in
+`frontend/e2e/fixtures/snapshot/`, explained in `frontend/e2e/fixtures/README.md`
+and checked by `fixture-snapshot.test.mjs` above.
+
+Separate from the build: `closet/` holds the Stitch Fix order export, a script pasted into the browser console (see `closet/README.md`).
