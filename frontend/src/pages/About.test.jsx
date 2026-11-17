@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { awards, certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
@@ -17,26 +17,80 @@ describe('About', () => {
     }
   })
 
-  it('renders every experience entry', () => {
+  // An employer holds either bullets (one role) or roles (several); this
+  // reads whichever the content has, so it stays true as the content changes.
+  it('renders every employer, role and bullet from the content', () => {
     render(<About />)
     expect(experience.length).toBeGreaterThan(0)
+    const entries = document.querySelectorAll('.about-body .timeline-entry')
+    // The education timeline's entries are in the same page.
+    expect(entries.length).toBe(experience.length + education.length)
     for (const entry of experience) {
-      expect(screen.getByText(entry.role)).toBeInTheDocument()
       expect(screen.getAllByText(entry.company).length).toBeGreaterThan(0)
       // meta is rendered through CSS text-transform: uppercase, so the DOM
       // text is still the original mixed-case string — assert the raw value.
       expect(screen.getByText(entry.meta)).toBeInTheDocument()
-      expect(screen.getByText(entry.summary)).toBeInTheDocument()
+      const roles = entry.roles ?? [entry]
+      for (const role of roles) {
+        for (const bullet of role.bullets) {
+          expect(screen.getByText(bullet)).toBeInTheDocument()
+        }
+      }
     }
   })
 
-  it('marks the current role, and only that one', () => {
+  it('nests the roles under their employer, in order', () => {
     render(<About />)
-    const current = document.querySelectorAll('.timeline-entry.current')
-    expect(current).toHaveLength(1)
-    expect(current[0]).toHaveTextContent(
-      experience.find((entry) => entry.current).role,
+    const employer = experience.find((entry) => entry.roles)
+    expect(employer.roles.length).toBeGreaterThan(1)
+    const group = screen.getByRole('heading', {
+      level: 3,
+      name: employer.company,
+    }).parentElement
+    expect(within(group).getByText(employer.blurb)).toBeInTheDocument()
+    const titles = within(group)
+      .getAllByRole('heading', { level: 4 })
+      .map((heading) => heading.textContent)
+    expect(titles).toEqual(employer.roles.map((role) => role.title))
+    for (const role of employer.roles) {
+      expect(within(group).getByText(role.dates)).toBeInTheDocument()
+    }
+  })
+
+  it('renders each employer’s bullets as a real list', () => {
+    render(<About />)
+    for (const entry of experience.filter((e) => e.bullets)) {
+      const item = screen.getByText(entry.role).closest('.timeline-entry')
+      const list = item.querySelector('ul.timeline-points')
+      expect(list).not.toBeNull()
+      expect(list.getAttribute('role')).toBeNull()
+      expect(within(list).getAllByRole('listitem')).toHaveLength(
+        entry.bullets.length,
+      )
+    }
+  })
+
+  it('marks the present role, and only that one', () => {
+    render(<About />)
+    const current = document.querySelectorAll(
+      '.timeline-entry.current, .timeline-step.current',
     )
+    expect(current).toHaveLength(1)
+    const employer = experience.find((entry) => entry.roles)
+    const present = employer.roles.find((role) => role.current)
+    expect(current[0]).toHaveClass('timeline-step')
+    expect(current[0]).toHaveTextContent(present.title)
+  })
+
+  it('orders headings page title, section, employer, role', () => {
+    render(<About />)
+    const levels = screen
+      .getAllByRole('heading')
+      .map((heading) => Number(heading.tagName[1]))
+    expect(levels[0]).toBe(1)
+    for (let i = 1; i < levels.length; i += 1) {
+      expect(levels[i] - levels[i - 1]).toBeLessThanOrEqual(1)
+    }
   })
 
   it('sums up the profile beside the body, with the resume', () => {

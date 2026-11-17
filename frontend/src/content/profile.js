@@ -26,9 +26,7 @@ export const profile = {
     { label: 'Focus', value: 'Payments & ledger systems' },
     { label: 'Stack', value: 'Node · TypeScript · Python · Postgres' },
   ],
-  bio: `I’m a senior software engineer at Guild, on the payments team. For five years I’ve built the backend that funds, tracks, and reconciles education benefits for enterprise employers, roughly $1B a year for 3.37M learners at Fortune 1000 employers: the APIs that record spending, the ledger behind them and the tax rules on top. I led the ledger’s move to a new eligibility platform.
-
-Before the code, I spent eight years as a product manager across enterprise SaaS, payments, and video. I still work like one: architecture doc first, then team alignment, then the endpoint, and the data forensics when something goes wrong.`,
+  bio: `Senior software engineer with 5 years of experience building production systems for payments and ledger platforms that fund, track, and reconcile $1B annually in benefits for Fortune 1000 employer partners and 3.37M learners, plus 8 years of experience as a product manager shipping enterprise software. Specializing in financial systems, combining API design, distributed architecture, and cross-functional delivery to bridge engineering, product, and operations.`,
   location: 'Denver, Colorado',
   /** About's key/value list, above the résumé link. */
   aboutFacts: [
@@ -50,31 +48,52 @@ Before the code, I spent eight years as a product manager across enterprise SaaS
    * are asserted with an exact-text query that throws on a duplicate.
    */
   expertise: [
-    'Backend & API design',
-    'Payments & ledger systems',
-    'Distributed systems',
-    'Event-driven architecture',
-    'Data modeling & database design',
-    'Data migrations & backfills',
-    'System architecture & ADRs',
-    'Observability, alerting & incident forensics',
-    'Incident response',
-    'Performance & load testing',
-    'Security remediation',
+    'Backend & API Design',
+    'Payments & Ledger Systems',
+    'Distributed Systems',
+    'Event-Driven Architecture',
+    'Data Modeling & Database Design',
+    'Data Migrations & Backfills',
+    'System Architecture & ADRs',
+    'Observability & Alerting',
+    'Incident Response & Forensics',
+    'Performance & Load Testing',
+    'Security Remediation',
+    'B2B & Benefits Integration',
+    'Product Strategy & Roadmaps',
+    'Agile, BDD & SAFe Delivery',
+    'Technical Documentation & Runbooks',
   ],
-  /** Rendered as the About page's chip row, in this order. */
+  /**
+   * Rendered as the About page's chip row, in this order: the technical
+   * skills line, split at its top-level commas. A parenthetical stays with
+   * its chip, and "Salesforce, NetSuite, and Stripe integrations" is one
+   * chip because the line reads it as one phrase ("integrations" belongs to
+   * all three), so no chip drops or adds a word.
+   */
   toolbox: [
-    'Node.js',
     'TypeScript',
-    'Python · FastAPI',
-    'React',
-    'SQL · PostgreSQL',
+    'Python',
+    'Node.js',
+    'JavaScript',
+    'SQL',
+    'PostgreSQL',
     'Snowflake',
-    'GraphQL (AppSync)',
-    'AWS (Lambda, RDS)',
-    'REST API design',
-    'Testing · Mocha, Chai, BDD',
-    'Salesforce · NetSuite',
-    'GitHub Actions CI',
+    'REST API development',
+    'GraphQL (AWS AppSync)',
+    'event-driven architecture',
+    'AWS (Lambda, SQS, Kinesis, EventBridge, AppSync, RDS/Aurora, CDK)',
+    'Terraform',
+    'containerization',
+    'Git',
+    'GitHub Actions (CI/CD)',
+    'Datadog',
+    'Mocha/Chai/Sinon',
+    'integration testing',
+    'BDD',
+    'Snyk',
+    'Salesforce, NetSuite, and Stripe integrations',
+    'Jira',
+    'Confluence',
   ],
 }

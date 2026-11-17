@@ -29,4 +29,19 @@ describe('print stylesheet', () => {
     expect(print).toContain(".about a[href^='http']::after")
     expect(print).toContain(".post-body a[href^='http']::after")
   })
+
+  it('stacks About and lets the timeline break between roles', () => {
+    for (const rule of [
+      '.about {\n    display: block;',
+      '.about-aside {',
+      'position: static;',
+      '.timeline-entry.timeline-employer {\n    break-inside: auto;',
+      '.timeline-step,\n  .timeline-points li {\n    break-inside: avoid;',
+    ])
+      expect(print).toContain(rule)
+  })
+
+  it('keeps a role heading with its bullets', () => {
+    expect(print).toMatch(/h3,\s+h4 \{\s+break-after: avoid;/)
+  })
 })

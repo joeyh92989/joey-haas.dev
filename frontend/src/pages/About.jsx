@@ -73,21 +73,58 @@ export default function About() {
             Experience
           </h2>
           <ol className="timeline" role="list">
-            {experience.map((entry) => (
-              <li
-                className={
-                  entry.current ? 'timeline-entry current' : 'timeline-entry'
-                }
-                key={`${entry.company}-${entry.role}`}
-              >
-                <h3 className="timeline-role">
-                  <span className="timeline-company">{entry.company}</span> —{' '}
-                  <span>{entry.role}</span>
-                </h3>
-                <Kicker className="timeline-meta">{entry.meta}</Kicker>
-                <p className="timeline-summary">{entry.summary}</p>
-              </li>
-            ))}
+            {experience.map((entry) =>
+              entry.roles ? (
+                <li
+                  className="timeline-entry timeline-employer"
+                  key={entry.company}
+                >
+                  <h3 className="timeline-role timeline-employer-name">
+                    {entry.company}
+                  </h3>
+                  <Kicker className="timeline-meta">{entry.meta}</Kicker>
+                  <p className="timeline-summary">{entry.blurb}</p>
+                  <ol className="timeline-roles" role="list">
+                    {entry.roles.map((role) => (
+                      <li
+                        className={
+                          role.current
+                            ? 'timeline-step current'
+                            : 'timeline-step'
+                        }
+                        key={role.title}
+                      >
+                        <h4 className="timeline-step-title">{role.title}</h4>
+                        <Kicker>{role.dates}</Kicker>
+                        <ul className="timeline-points">
+                          {role.bullets.map((bullet, index) => (
+                            <li key={index}>{bullet}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ol>
+                </li>
+              ) : (
+                <li
+                  className={
+                    entry.current ? 'timeline-entry current' : 'timeline-entry'
+                  }
+                  key={`${entry.company}-${entry.role}`}
+                >
+                  <h3 className="timeline-role">
+                    <span className="timeline-company">{entry.company}</span> —{' '}
+                    <span>{entry.role}</span>
+                  </h3>
+                  <Kicker className="timeline-meta">{entry.meta}</Kicker>
+                  <ul className="timeline-points">
+                    {entry.bullets.map((bullet, index) => (
+                      <li key={index}>{bullet}</li>
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
           </ol>
           <p className="prose">
             <a href="/resume.pdf" download="Joey Haas Resume.pdf">

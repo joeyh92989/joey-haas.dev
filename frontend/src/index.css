@@ -1097,6 +1097,81 @@ section + section {
   max-width: 64ch;
 }
 
+/* A role's bullets: a real list with its discs kept, so it is announced as
+   one without a role attribute. */
+.timeline-points {
+  color: var(--text-2);
+  font-size: var(--fs-14);
+  list-style: disc;
+  margin-top: var(--space-2);
+  max-width: 64ch;
+  padding-left: var(--space-4);
+}
+
+.timeline-points li + li {
+  margin-top: var(--space-2);
+}
+
+.timeline-points li::marker {
+  color: var(--text-3);
+}
+
+/* An employer holding several roles: a ring on the rail and its name a step
+   larger. Each role under it is a dot on the same rail, with no second
+   indent. A dot is a role; a ring is an employer. The accent dot stays on
+   the present role. */
+.timeline-entry.timeline-employer {
+  padding-bottom: 0;
+}
+
+.timeline-entry.timeline-employer::before {
+  background: var(--bg);
+  border-color: var(--line-strong);
+  top: 6px;
+}
+
+.timeline-employer-name {
+  font-size: var(--fs-18);
+}
+
+.timeline-roles {
+  list-style: none;
+  margin-top: var(--space-5);
+}
+
+.timeline-step {
+  padding-bottom: var(--space-5);
+  position: relative;
+}
+
+.timeline-step::before {
+  background: var(--line-strong);
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  content: '';
+  height: 9px;
+  left: -27px;
+  position: absolute;
+  top: 5px;
+  width: 9px;
+}
+
+.timeline-step.current::before {
+  background: var(--accent);
+}
+
+.timeline-step-title {
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.timeline-step .kicker {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
 @media (max-width: 700px) {
   .about {
     gap: var(--space-5);
@@ -13044,8 +13119,31 @@ a.btn.sm {
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     break-after: avoid;
+  }
+
+  /* About stacks: the aside (photo and facts) above the body, so the
+     timeline gets the full page width. */
+  .about {
+    display: block;
+  }
+
+  .about-aside {
+    margin-bottom: var(--space-5);
+    position: static;
+  }
+
+  /* An employer holding several roles is taller than a page can promise, so
+     it may break between roles; a role keeps its heading with its bullets. */
+  .timeline-entry.timeline-employer {
+    break-inside: auto;
+  }
+
+  .timeline-step,
+  .timeline-points li {
+    break-inside: avoid;
   }
 }
 /* ===== end Print ===== */
