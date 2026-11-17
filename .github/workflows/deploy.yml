@@ -54,12 +54,42 @@ env:
   API_URL: https://api.joey-haas.dev
 
 jobs:
-  deploy:
-    # main only, for the manual run too: a run on a feature branch would migrate
-    # production and deploy code that was never merged.
+  # A push to main deploys only once that commit's `backend` and `frontend` CI
+  # jobs have passed, so a combination of two PRs that each passed alone (what
+  # dropping the up-to-date requirement would allow) cannot reach production
+  # red. A manual run skips this on purpose: a rollback
+  # must not wait on CI. The static site is not gated (Render deploys it on
+  # push by itself).
+  wait-for-ci:
     if: >-
-      github.ref == 'refs/heads/main'
-      && (github.event_name == 'workflow_dispatch' || vars.API_DEPLOY_FROM_ACTIONS == 'true')
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && vars.API_DEPLOY_FROM_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read # gh run list / view on this repository's CI run
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Wait for backend and frontend on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: ./scripts/wait-for-ci.sh "$SHA"
+
+  deploy:
+    needs: wait-for-ci
+    # main only, for the manual run too: a run on a feature branch would migrate
+    # production and deploy code that was never merged. The gate above is skipped
+    # for a manual run (treated as passed); a failed gate stops the deploy.
+    if: >-
+      ${{ !cancelled()
+      && (needs.wait-for-ci.result == 'success' || needs.wait-for-ci.result == 'skipped')
+      && github.ref == 'refs/heads/main'
+      && (github.event_name == 'workflow_dispatch' || vars.API_DEPLOY_FROM_ACTIONS == 'true') }}
     runs-on: ubuntu-latest
     # The wait below is at most 60 x (10 s curl + 15 s sleep) = 25 minutes, so
     # its own error fires before this limit does.

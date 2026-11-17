@@ -12,10 +12,12 @@ permissions:
   contents: read
 
 # A new push to a PR makes the previous run irrelevant. Cancel it rather than
-# paying for both.
+# paying for both. A push to main is different: deploy.yml waits for that
+# commit's own backend and frontend jobs, so each main commit keeps its own run
+# (grouped by SHA, never cancelled by the next merge).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # The backend suite runs as two parallel jobs (`backend-tests`, and
