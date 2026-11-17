@@ -1359,10 +1359,12 @@ def create_comics_router(
         return [str(each) for each in sorted(items, key=str)]
 
     def _drop_edition_entry(item: Item, volume: ComicVolume) -> bool:
-        """An un-edited edition-origin volume stands for an entry of
-        `items.editions`: take the entry out, so the shim cannot recreate
-        the volume where it was. False when the volume is not one."""
-        if volume.edited or not volume.slug.startswith("ed-"):
+        """An edition-origin volume (`ed-*`, edited or not) stands for an entry
+        of `items.editions`: take the entry out, so the shim cannot recreate
+        the volume where it was. The entry is the one `edition_slugs` gives
+        the volume's slug over the CURRENT list; none matching (range edited
+        away, already removed) is a quiet False."""
+        if not volume.slug.startswith("ed-"):
             return False
         editions = [dict(e) for e in item.editions or [] if isinstance(e, dict)]
         slugs = edition_slugs(editions)
@@ -1556,9 +1558,13 @@ def create_comics_router(
             )
 
         plan: list[tuple[ComicVolumeCollect | None, str]] = []
+        seen_ids: set = set()
         for index, entry in enumerate(body.collects):
             row = None
             if entry.id is not None:
+                if entry.id in seen_ids:
+                    raise _refuse(index, ["id"], "This entry is listed twice")
+                seen_ids.add(entry.id)
                 row = stored.get(entry.id)
                 if row is None:
                     raise _refuse(index, ["id"], "No such entry on this volume")
@@ -1568,6 +1574,8 @@ def create_comics_router(
                     index, ["source"], "An entry you add or change is 'typed'"
                 )
             plan.append((row, row.source if unchanged else "typed"))
+        if body.kind != volume.kind:
+            volume.kind_raw = None  # the original text no longer describes it
         for field, value in body.model_dump(exclude={"collects"}).items():
             setattr(volume, field, value)
         volume.edited = True

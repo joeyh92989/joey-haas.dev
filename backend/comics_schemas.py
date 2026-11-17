@@ -384,7 +384,7 @@ class VolumeLinkIn(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    cv_id: int | None = Field(default=None, ge=1)
+    cv_id: int | None = Field(default=None, ge=1, le=2147483647)
 
 
 class VolumeTitleOut(BaseModel):

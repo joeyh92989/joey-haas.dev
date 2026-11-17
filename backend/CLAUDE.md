@@ -567,9 +567,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   order, then the volume, runs the shim on each touched title, and ends in
   `sync_marks` for every touched title (old and new title, old and new link
   targets) plus the `read_to` follow-up, in one commit. **Mirror removal:**
-  deleting or moving an un-edited `ed-*` volume also removes its entry from
-  the old title's `items.editions` (matched by `edition_slugs`), or the shim
-  would recreate it; the old `PUT /{id}/editions/{slug}/link` and the
+  deleting or moving any `ed-*` volume, edited or not, also removes its
+  entry from the old title's `items.editions` (the entry `edition_slugs` gives
+  its slug over the current list; none matching is a no-op), or the shim would
+  recreate it; a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` and the
   `editions` PATCH keep working until a later PR drops them.
   **Public read (#335 book-page slice, #329):** `GET
   /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)
