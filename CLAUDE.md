@@ -56,7 +56,9 @@ Render. **The API deploys from GitHub Actions**, not on push
 (`autoDeployTrigger: "off"` in `render.yaml`): `.github/workflows/deploy.yml`
 runs `alembic upgrade head` on Neon, calls the API's deploy hook at the merged
 SHA, waits until `GET /api/version` reports it, then runs `scripts/smoke.sh`.
-A failed migration stops there, before any new code is live. It is gated on the
+On a push it first waits for that commit's `backend` and `frontend` CI jobs
+(`scripts/wait-for-ci.sh`), so a red `main` is not deployed; a manual run skips
+that wait. A failed migration stops there, before any new code is live. It is gated on the
 `API_DEPLOY_FROM_ACTIONS` repository variable; the workflow, its settings,
 the rollback and the cutover are in `.github/workflows/README.md`. There is no
 staging environment; verify `npm run build` passes and the app works locally

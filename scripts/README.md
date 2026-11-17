@@ -9,6 +9,8 @@ header.
 | `render-logs.sh` | recent error logs of the API service (needs `RENDER_API_KEY`) |
 | `merge-train.sh` | merge a list of ready PRs into `main` one after another, no idle gap |
 | `merge-train.test.sh` | tests for `merge-train.sh` against a fake `gh` |
+| `wait-for-ci.sh` | wait until `backend` and `frontend` pass on a commit (used by `deploy.yml`) |
+| `wait-for-ci.test.sh` | tests for `wait-for-ci.sh` against a fake `gh` |
 
 ## merge-train.sh
 
@@ -85,3 +87,21 @@ and only when you are allowed to merge (the ship step, or when asked).
   that.
 - Tested against a fake `gh` (`./scripts/merge-train.test.sh`), not a real
   PR pair. The first real use should be on two low-risk PRs.
+
+## wait-for-ci.sh
+
+`./scripts/wait-for-ci.sh SHA` polls the `ci.yml` push run for that commit with
+`gh` (needs `GH_TOKEN`; in a workflow, `actions: read`) until the required jobs
+`backend` and `frontend` have both passed. Exit 0 = both passed, 1 = one failed
+or was cancelled, or 30 minutes passed (`MAX_WAIT_SECONDS`), 2 = bad usage.
+`POLL_SECONDS` (15) sets the interval. A `gh` error is printed on every poll
+and the wait ends at the timeout.
+
+Why: a push to `main` can be a combination no CI run has seen (two PRs that
+each passed alone, once the up-to-date requirement, `strict`, is dropped; it is
+still on), so `deploy.yml` holds the deploy until that commit's own CI is green.
+
+Limits: it reads the two job names from `ci.yml` (keep them in step with branch
+protection; a rename makes every deploy time out). The static site, which Render
+deploys on its own, is not gated. Tested against a fake `gh`
+(`./scripts/wait-for-ci.test.sh`, also run by the `scripts` CI job).
