@@ -116,9 +116,7 @@ async def test_edition_held_cannot_go_missing_but_cycles_owned_and_read(
     async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
         refused = await tap(client, item_id, 3, "missing")
         assert refused.status_code == 409
-        assert refused.json()["detail"] == (
-            "In Book 1. Edit editions on the comic's page."
-        )
+        assert refused.json()["detail"] == ("In Book 1. Edit the volume to change it.")
         assert (await tap(client, item_id, 3, "read")).status_code == 200
         assert (await marks(sessionmaker_for_test, item_id))[3] == (True, True, False)
         assert (await tap(client, item_id, 3, "owned")).status_code == 200

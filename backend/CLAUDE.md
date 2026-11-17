@@ -516,8 +516,36 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo,
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
   migration copied every `editions` entry into a volume plus one collects row;
-  `items.editions` is untouched until a later, destructive drop. Nothing reads
-  the tables yet (PR 2, #326). `comics.title_kind(volumes, issues)` derives a
+  `items.editions` is untouched until a later, destructive drop.
+  **Volumes are the source of the marks (#326):** `comics.sync_marks` counts a
+  row's loose singles plus the linked ranges (`collects.item_id` = the row,
+  both bounds set) of every OWNED volume, a cross-series link marking the
+  other title's issues; a volume with `read` marks those issues read; text-only
+  or unlinked collects mark nothing. `comics.load_holds` is the one query,
+  `held_ranges` turns it into the `{from, to, label}` entries the pure
+  functions always took for editions, and `held_through(session, item_id,
+  number)` lists the owned volumes covering an issue (#332). **The compat
+  shim** `comics.sync_volumes_from_editions` runs first inside `sync_marks`
+  (every writer of `editions` ends in it) and mirrors `items.editions` into
+  the edition-origin (`ed-*`) volumes and their one `migrated` collects row; it
+  never touches another slug, never resets `owned` or `read` on an existing
+  volume, and writes only what differs. `PATCH /api/comics/volumes/{id}`
+  `{owned?, read?}` is the volume's own write: it re-syncs every title the
+  collects touch and keeps `read_to` in step. `shown_status` takes
+  `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
+  `comics.volume_counts`); only the admin wall passes them until #329. Admin
+  surfaces (`_state`, the pull list, the item list's `comic_run`) count the
+  owned volumes (`load_holds_many`); the public readers stay on
+  `items.editions`, the mirror, until #329, so an un-owned `ed-*` volume still
+  shows publicly until then. **Known limits (follow-ups):** (1) a cross-series
+  re-sync has no trigger when a collects row is deleted or repointed or a
+  volume is deleted (no delete route yet), so #334 must re-sync every touched
+  item; (2) the shim overwrites an `ed-*` volume's label, kind, description,
+  covers and position on every sync, so the volume editor (#327, #334) must
+  stop it owning those fields once a volume is hand-edited (a `source` or
+  edited flag); (3) un-reading a volume keeps issues that are singles or read
+  through another volume, but `read_to` cannot protect them (it is derived from
+  the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
   `scripts/audit_comics.py` is the read-only pre-migration report.
 - **Issue marks** (migration `0017`, comics-book design 5b): each
@@ -552,7 +580,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   page, admin comic page, the edition page's Read to the end with `to`):
   owned adds the single and clears a skip, read is owned plus read, missing
   removes the single and its read mark; a book held only in an edition
-  can't go missing (409 "In <edition>. Edit editions on the comic's page.",
+  can't go missing (409 "In <volume label>. Edit the volume to change it.",
   the cycle there is owned and read). Admin only, not in `JOB_ROUTES`;
   Undo posts the previous state; the answer's `previous` names what a first
   tap moved on a Want (owned format, status) so Undo can restore it. Skip keeps `POST .../skip` (and the issue
