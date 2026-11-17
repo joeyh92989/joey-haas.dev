@@ -41,10 +41,12 @@ esac
 FAKE
 chmod +x "$tmp/bin/gh"
 
+# Limits: tests that expect a timeout set MAXW=1. SECONDS is a whole-second counter,
+# so a 1 second limit can expire in milliseconds; every other test gets 20.
 fails=0
 check() { if [ "$2" = "$3" ]; then echo "ok    $1"; else echo "FAIL  $1: expected '$2', got '$3'"; fails=$((fails + 1)); fi; }
 scenario() { export FAKE_DIR="$tmp/$1"; rm -rf "$FAKE_DIR"; mkdir -p "$FAKE_DIR"; printf '%s\n' "${@:2}" >"$FAKE_DIR/scenario"; }
-run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0.05 MAX_WAIT_SECONDS=1 "$here/wait-for-ci.sh" "$@" >"$FAKE_DIR/out" 2>"$FAKE_DIR/err"; echo $?; }
+run() { PATH="$tmp/bin:$PATH" POLL_SECONDS=0.05 MAX_WAIT_SECONDS="${MAXW:-20}" "$here/wait-for-ci.sh" "$@" >"$FAKE_DIR/out" 2>"$FAKE_DIR/err"; echo $?; }
 
 scenario s1 "success,success"
 check "both passed exits 0" 0 "$(run abc1234)"
@@ -60,14 +62,14 @@ scenario s4 "cancelled,success"
 check "a cancelled job exits 1" 1 "$(run abc1234)"
 
 scenario s5 "-,-"
-check "never finishing times out with exit 1" 1 "$(run abc1234)"
+check "never finishing times out with exit 1" 1 "$(MAXW=1 run abc1234)"
 check "...and says so" 1 "$(grep -c 'did not finish' "$FAKE_DIR/err")"
 
 scenario s6 "success,success"; echo 2 >"$FAKE_DIR/norun"
 check "waits for a run that does not exist yet" 0 "$(run abc1234)"
 
 scenario s8 "success,success"; touch "$FAKE_DIR/viewfail"
-check "a gh error is shown, not hidden, and ends in a timeout" 1 "$(run abc1234)"
+check "a gh error is shown, not hidden, and ends in a timeout" 1 "$(MAXW=1 run abc1234)"
 check "...with the gh message in the log" yes "$(grep -q 'bad credentials' "$FAKE_DIR/out" && echo yes || echo no)"
 
 scenario s7 "success,success"
