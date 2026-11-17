@@ -38,12 +38,7 @@ export const STATIC_PAGES = [
     `${profile.name} · Senior software engineer, Denver`,
     SITE_DESCRIPTION,
   ),
-  row(
-    '/about',
-    'About',
-    `About · ${profile.name}`,
-    ABOUT_DESCRIPTION,
-  ),
+  row('/about', 'About', `About · ${profile.name}`, ABOUT_DESCRIPTION),
   row(
     '/projects',
     'Projects',
