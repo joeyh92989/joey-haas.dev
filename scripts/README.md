@@ -16,7 +16,11 @@ header.
 
 ### Why
 
-Branch protection on `main` requires `backend` and `frontend` **and** an
+(Written while `main` was `strict`; since 2026-11-17 it is not, so the train
+no longer has update-branch work to do and mostly just orders merges. It still
+updates a PR that is behind if strict is ever turned back on.)
+
+Branch protection on `main` required `backend` and `frontend` **and** an
 up-to-date branch (`strict`). Every merge therefore puts the other open PRs
 behind `main`: each needs `gh pr update-branch` and a fresh CI run (5 to 7
 minutes) before it can merge. On the closet epic (#392) the PRs merged about
@@ -98,8 +102,8 @@ or was cancelled, or 30 minutes passed (`MAX_WAIT_SECONDS`), 2 = bad usage.
 and the wait ends at the timeout.
 
 Why: a push to `main` can be a combination no CI run has seen (two PRs that
-each passed alone, once the up-to-date requirement, `strict`, is dropped; it is
-still on), so `deploy.yml` holds the deploy until that commit's own CI is green.
+each passed alone, since the up-to-date requirement, `strict`, was dropped on
+2026-11-17), so `deploy.yml` holds the deploy until that commit's own CI is green.
 
 Limits: it reads the two job names from `ci.yml` (keep them in step with branch
 protection; a rename makes every deploy time out). The static site, which Render
