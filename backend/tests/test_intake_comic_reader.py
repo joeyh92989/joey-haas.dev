@@ -151,8 +151,11 @@ async def test_a_collected_books_reprint_note_lands_in_its_payload(
         }
     )
     await _read(sessionmaker_for_test, sitting_id, provider, registry=_comic_registry())
-    saga, hellboy = await _entries(sessionmaker_for_test, sitting_id)
+    entries = await _entries(sessionmaker_for_test, sitting_id)
     assert provider.calls == 1  # still one request per photo
+    # Both entries share a created_at, so tell them apart by content.
+    [saga] = [e for e in entries if "reprint_note" in e.payload]
+    [hellboy] = [e for e in entries if "reprint_note" not in e.payload]
     assert saga.payload["reprint_note"] == "Collects SAGA #1-6"
     assert "reprint_note" not in hellboy.payload  # old entries look the same
 
