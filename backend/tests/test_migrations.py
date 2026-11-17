@@ -1703,3 +1703,122 @@ async def test_0021_constraints(clean_database):
             await connection.execute(text("SELECT owned, read FROM comic_volumes"))
         ).one()
     assert tuple(row) == (True, False)
+
+
+# --- Revision 0023: comic_volumes.intake_entry_id. ---------------------------
+
+_ENTRY = "00000000-0000-0000-0000-0000000000e1"
+
+
+async def _seed_volumes_at_0022(engine) -> None:
+    """One title with three volumes, none of them from intake."""
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) "
+                "VALUES (:id, 'comic', 'T', 'backlog')"
+            ),
+            {"id": _ITEM_A},
+        )
+        for position, slug in enumerate(("ed-1-6", "vol-1", "vol-2")):
+            await connection.execute(
+                text(
+                    "INSERT INTO comic_volumes (id, item_id, position, slug, label, "
+                    "kind) VALUES (gen_random_uuid(), :id, :p, :slug, 'L', 'trade')"
+                ),
+                {"id": _ITEM_A, "p": position, "slug": slug},
+            )
+
+
+@pytest.mark.asyncio
+async def test_0023_adds_a_nullable_column_and_keeps_every_volume(clean_database):
+    assert _alembic("upgrade", "0022").returncode == 0
+    await _seed_volumes_at_0022(clean_database)
+    result = _alembic("upgrade", "0023")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        rows = (
+            await connection.execute(
+                text("SELECT slug, intake_entry_id FROM comic_volumes ORDER BY slug")
+            )
+        ).all()
+        diff = await connection.run_sync(_diff_against_models)
+    # Every existing volume survives, with no intake entry; three NULLs do
+    # not collide in the partial unique index.
+    assert [tuple(row) for row in rows] == [
+        ("ed-1-6", None),
+        ("vol-1", None),
+        ("vol-2", None),
+    ]
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0023_one_volume_per_intake_entry(clean_database):
+    from sqlalchemy.exc import IntegrityError
+
+    assert _alembic("upgrade", "0023").returncode == 0
+    insert = (
+        "INSERT INTO comic_volumes (id, item_id, position, slug, label, kind, "
+        "intake_entry_id) VALUES (gen_random_uuid(), :id, :p, :slug, 'L', 'ogn', "
+        ":entry)"
+    )
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) "
+                "VALUES (:id, 'comic', 'T', 'backlog'), "
+                "('00000000-0000-0000-0000-0000000000b2', 'comic', 'U', 'backlog')"
+            ),
+            {"id": _ITEM_A},
+        )
+        await connection.execute(
+            text(insert), {"id": _ITEM_A, "p": 0, "slug": "vol-1", "entry": _ENTRY}
+        )
+        # NULL is not a key: any number of volumes without an entry.
+        for n in (2, 3):
+            await connection.execute(
+                text(insert), {"id": _ITEM_A, "p": n, "slug": f"vol-{n}", "entry": None}
+            )
+    # The same entry on another slug, even on another title, is refused.
+    for item, slug in ((_ITEM_A, "vol-9"), (_ITEM_B, "vol-1")):
+        with pytest.raises(IntegrityError):
+            async with clean_database.begin() as connection:
+                await connection.execute(
+                    text(insert), {"id": item, "p": 9, "slug": slug, "entry": _ENTRY}
+                )
+
+
+@pytest.mark.asyncio
+async def test_0023_cycle_downgrades_and_matches_models(clean_database):
+    assert _alembic("upgrade", "0022").returncode == 0
+    await _seed_volumes_at_0022(clean_database)
+    assert _alembic("upgrade", "0023").returncode == 0
+    assert _alembic("downgrade", "0022").returncode == 0
+    async with clean_database.connect() as connection:
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'comic_volumes'"
+                )
+            )
+        }
+        count = await connection.scalar(text("SELECT count(*) FROM comic_volumes"))
+        indexes = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT indexname FROM pg_indexes WHERE tablename = 'comic_volumes'"
+                )
+            )
+        }
+    assert "intake_entry_id" not in columns
+    assert count == 3  # the downgrade loses no volume
+    assert "ux_comic_volumes_intake_entry" not in indexes
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM comic_volumes")) == 3
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
