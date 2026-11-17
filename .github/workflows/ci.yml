@@ -181,7 +181,12 @@ jobs:
         # High and critical only. A moderate transitive advisory with no patch
         # would otherwise block every unrelated pull request until suppressed,
         # and a gate that must routinely be bypassed stops being a gate.
-        run: npm audit --audit-level=high
+        # Shipped dependencies only (--omit=dev): since 2026-11-17 a ReDoS
+        # advisory on picomatch (GHSA-fc5q-39xc-vjpf) covers every version and
+        # has no patch, and picomatch reaches us only through dev tooling
+        # (vite, vitest, eslint), none of it in the bundle. Drop --omit=dev
+        # once a patched picomatch exists.
+        run: npm audit --omit=dev --audit-level=high
 
   # The shell helpers' own tests, against a fake `gh` (no network, no secrets).
   # Not a required check: read it when scripts/ changes.

@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-17 · decision · The frontend audit gate covers shipped dependencies only, until picomatch is patched
+A PR that touched no frontend file went red on `npm audit --audit-level=high`: a new picomatch ReDoS advisory (GHSA-fc5q-39xc-vjpf) lists every version as affected, so `npm audit fix` cleared only four moderate findings and `--force` offered a vitest downgrade, which is no fix. picomatch comes in through vite, vitest and eslint only. Chose `--omit=dev` in the CI step (Joey's call) over suppressing one advisory through a wrapper script and over leaving every PR blocked. The cost: advisories in dev tooling no longer fail a PR. Revert to the full audit once a patched picomatch exists.
+PR #428
+
 ### 2026-11-17 · decision · `strict` is off; the deploy waits for that commit's CI instead
 Epic merges were serial because `strict` re-ran CI on every PR behind `main` (#418 needed two full cycles after another PR merged under it). Dropped it (Joey's call) after shipping `wait-for-ci` (#419): Deploy API waits for `backend` and `frontend` on the pushed commit, so a combination no CI saw cannot deploy; the cost is about 5 minutes before each deploy starts, and a red `main` blocks deploys until fixed. A required check that is an aggregate job (`backend`) appears late, so a guard must wait for it, not time it out (#418). Restore: `required_status_checks` `strict=true`.
 PRs #414 #416 #418 #419 · docs/planning/2026-11-16-deploy-gate-design.md

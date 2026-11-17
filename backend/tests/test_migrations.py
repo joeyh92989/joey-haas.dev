@@ -1329,3 +1329,318 @@ async def test_0020_downgrade_drops_columns_table_and_types(clean_database):
     assert "garment_products" not in tables
     assert not {"garment_color_source", "garment_product_source"} & types
     assert _alembic("upgrade", "head").returncode == 0
+
+
+# --- Revision 0021: comic volumes and collects. ------------------------------
+
+_ITEM_A = "00000000-0000-0000-0000-0000000000a1"
+_ITEM_B = "00000000-0000-0000-0000-0000000000b2"
+_ITEM_C = "00000000-0000-0000-0000-0000000000c3"
+_ITEM_D = "00000000-0000-0000-0000-0000000000d4"
+
+
+async def _seed_editions(engine) -> int:
+    """Items holding editions at 0020; returns the entry count."""
+    import json
+
+    items = {
+        # Three editions, a repeated range (-2 slug), a single-issue range.
+        _ITEM_A: (
+            "Saga",
+            [
+                {"kind": "Trade", "label": "Vol 1", "from": 1, "to": 6},
+                {"kind": "Hardcover", "label": "Deluxe 1", "from": 1, "to": 6},
+                {"kind": "omnibus", "label": "Book One", "from": 7, "to": 7},
+            ],
+        ),
+        # An odd kind, and a Comic Vine link with its server-written keys.
+        _ITEM_B: (
+            "Hellboy",
+            [
+                {"kind": "Compendium TPB", "label": "Compendium", "from": 1, "to": 40},
+                {
+                    "kind": "Trade",
+                    "label": "Linked",
+                    "from": 41,
+                    "to": 45,
+                    "cv_id": 777,
+                    "cover_url": "https://img/c.jpg",
+                    "large_url": "https://img/l.jpg",
+                    "description": ["One.", "Two."],
+                },
+            ],
+        ),
+        _ITEM_C: ("Empty", []),
+        _ITEM_D: ("Plain", None),
+    }
+    async with engine.begin() as connection:
+        for item_id, (title, editions) in items.items():
+            await connection.execute(
+                text(
+                    "INSERT INTO items (id, type, title, status, editions) "
+                    "VALUES (:id, 'comic', :title, 'backlog', "
+                    "CAST(:editions AS jsonb))"
+                ),
+                {
+                    "id": item_id,
+                    "title": title,
+                    "editions": None if editions is None else json.dumps(editions),
+                },
+            )
+        # A repeated range on a fourth title.
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status, editions) VALUES "
+                "('00000000-0000-0000-0000-0000000000e5', 'comic', 'Twice', "
+                "'backlog', CAST(:editions AS jsonb))"
+            ),
+            {
+                "editions": json.dumps(
+                    [
+                        {"kind": "Trade", "label": "A", "from": 1, "to": 4},
+                        {"kind": "Trade", "label": "B", "from": 1, "to": 4},
+                        {"kind": "Trade", "label": "C", "from": 1, "to": 4},
+                    ]
+                )
+            },
+        )
+    return 3 + 2 + 3
+
+
+@pytest.mark.asyncio
+async def test_0021_backfills_one_volume_per_edition(clean_database):
+    assert _alembic("upgrade", "0020").returncode == 0
+    expected = await _seed_editions(clean_database)
+
+    result = _alembic("upgrade", "0021")
+    assert result.returncode == 0, result.stderr
+
+    async with clean_database.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM comic_volumes")) == (
+            expected
+        )
+        assert await connection.scalar(
+            text("SELECT count(*) FROM comic_volume_collects")
+        ) == (expected)
+        rows = (
+            await connection.execute(
+                text(
+                    "SELECT i.title, v.position, v.slug, v.label, v.kind, "
+                    "v.kind_raw, v.owned, v.read, v.cv_id, v.cover_url, "
+                    "v.large_url, v.description FROM comic_volumes v "
+                    "JOIN items i ON i.id = v.item_id ORDER BY i.title, v.position"
+                )
+            )
+        ).all()
+        by_title: dict[str, list] = {}
+        for row in rows:
+            by_title.setdefault(row[0], []).append(row)
+
+        saga = by_title["Saga"]
+        assert [r.slug for r in saga] == ["ed-1-6", "ed-1-6-2", "ed-7-7"]
+        assert [r.position for r in saga] == [0, 1, 2]
+        assert [(r.kind, r.kind_raw) for r in saga] == [
+            ("trade", "Trade"),
+            ("hardcover", "Hardcover"),
+            ("omnibus", "omnibus"),
+        ]
+        assert all(r.owned and not r.read for r in saga)
+        assert saga[0].label == "Vol 1"
+
+        assert [r.slug for r in by_title["Twice"]] == [
+            "ed-1-4",
+            "ed-1-4-2",
+            "ed-1-4-3",
+        ]
+
+        hellboy = by_title["Hellboy"]
+        assert (hellboy[0].kind, hellboy[0].kind_raw) == ("trade", "Compendium TPB")
+        linked = hellboy[1]
+        assert linked.cv_id == 777
+        assert linked.cover_url == "https://img/c.jpg"
+        assert linked.large_url == "https://img/l.jpg"
+        assert linked.description == "One.\n\nTwo."
+        assert hellboy[0].cv_id is None
+
+        assert "Empty" not in by_title and "Plain" not in by_title
+
+        collects = (
+            await connection.execute(
+                text(
+                    "SELECT i.title, v.slug, c.series_name, c.issue_text, c.source, "
+                    "c.item_id::text, c.from_number, c.to_number, c.position "
+                    "FROM comic_volume_collects c "
+                    "JOIN comic_volumes v ON v.id = c.volume_id "
+                    "JOIN items i ON i.id = v.item_id "
+                    "ORDER BY i.title, v.position"
+                )
+            )
+        ).all()
+        saga_collects = [tuple(r) for r in collects if r[0] == "Saga"]
+        assert saga_collects == [
+            ("Saga", "ed-1-6", "Saga", "#1-6", "migrated", _ITEM_A, 1, 6, 0),
+            ("Saga", "ed-1-6-2", "Saga", "#1-6", "migrated", _ITEM_A, 1, 6, 0),
+            ("Saga", "ed-7-7", "Saga", "#7", "migrated", _ITEM_A, 7, 7, 0),
+        ]
+
+        # items.editions is untouched.
+        kept = await connection.scalar(
+            text("SELECT jsonb_array_length(editions) FROM items WHERE id = :id"),
+            {"id": _ITEM_A},
+        )
+    assert kept == 3
+
+
+@pytest.mark.asyncio
+async def test_0021_cycle_copies_again_and_matches_models(clean_database):
+    assert _alembic("upgrade", "0020").returncode == 0
+    expected = await _seed_editions(clean_database)
+    assert _alembic("upgrade", "0021").returncode == 0
+    assert _alembic("downgrade", "0020").returncode == 0
+    async with clean_database.connect() as connection:
+        tables = {
+            row[0]
+            for row in await connection.execute(
+                text("SELECT table_name FROM information_schema.tables")
+            )
+        }
+        editions = await connection.scalar(
+            text("SELECT jsonb_array_length(editions) FROM items WHERE id = :id"),
+            {"id": _ITEM_A},
+        )
+    assert not {"comic_volumes", "comic_volume_collects"} & tables
+    assert editions == 3
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.connect() as connection:
+        assert (
+            await connection.scalar(text("SELECT count(*) FROM comic_volumes"))
+            == expected
+        )
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0021_malformed_editions_are_copied_not_dropped(clean_database):
+    import json
+
+    assert _alembic("upgrade", "0020").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status, editions) VALUES "
+                "(:id, 'comic', 'Odd', 'backlog', CAST(:editions AS jsonb))"
+            ),
+            {
+                "id": _ITEM_A,
+                "editions": json.dumps(
+                    [
+                        {"kind": "Trade"},
+                        "junk",
+                        {"label": "No kind", "from": 3, "to": 1},
+                    ]
+                ),
+            },
+        )
+    assert _alembic("upgrade", "0021").returncode == 0
+    async with clean_database.connect() as connection:
+        rows = (
+            await connection.execute(
+                text(
+                    "SELECT slug, label, kind, kind_raw FROM comic_volumes "
+                    "ORDER BY position"
+                )
+            )
+        ).all()
+    assert [tuple(r) for r in rows] == [
+        ("ed-None-None", "Odd", "trade", "Trade"),
+        ("ed-None-None-2", "Odd", "trade", None),
+        ("ed-3-1", "No kind", "trade", None),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_0021_cascades_and_keeps_issue_rows(clean_database):
+    assert _alembic("upgrade", "0020").returncode == 0
+    await _seed_editions(clean_database)
+    assert _alembic("upgrade", "0021").returncode == 0
+
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO comic_issues (item_id, number, cv_id, fetched_on) "
+                "VALUES (:id, 1, 11, '2026-11-01')"
+            ),
+            {"id": _ITEM_A},
+        )
+        # Deleting one volume leaves the issue rows (and its collects go).
+        await connection.execute(
+            text("DELETE FROM comic_volumes WHERE item_id = :id AND slug = 'ed-7-7'"),
+            {"id": _ITEM_A},
+        )
+        assert await connection.scalar(text("SELECT count(*) FROM comic_issues")) == 1
+        assert (
+            await connection.scalar(
+                text(
+                    "SELECT count(*) FROM comic_volume_collects c "
+                    "JOIN comic_volumes v ON v.id = c.volume_id "
+                    "WHERE v.item_id = :id"
+                ),
+                {"id": _ITEM_A},
+            )
+            == 2
+        )
+        # Deleting the title deletes its volumes and their collects.
+        await connection.execute(
+            text("DELETE FROM items WHERE id = :id"), {"id": _ITEM_A}
+        )
+        assert (
+            await connection.scalar(
+                text("SELECT count(*) FROM comic_volumes WHERE item_id = :id"),
+                {"id": _ITEM_A},
+            )
+            == 0
+        )
+        assert await connection.scalar(text("SELECT count(*) FROM comic_issues")) == 0
+        remaining = await connection.scalar(
+            text("SELECT count(*) FROM comic_volume_collects")
+        )
+    assert remaining == 5
+
+
+@pytest.mark.asyncio
+async def test_0021_constraints(clean_database):
+    from sqlalchemy.exc import IntegrityError
+
+    assert _alembic("upgrade", "0021").returncode == 0
+    insert = (
+        "INSERT INTO comic_volumes (id, item_id, position, slug, label, kind) "
+        "VALUES (gen_random_uuid(), :id, 0, :slug, 'L', :kind)"
+    )
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO items (id, type, title, status) "
+                "VALUES (:id, 'comic', 'T', 'backlog')"
+            ),
+            {"id": _ITEM_A},
+        )
+        await connection.execute(
+            text(insert), {"id": _ITEM_A, "slug": "vol-1", "kind": "ogn"}
+        )
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await connection.execute(
+                text(insert), {"id": _ITEM_A, "slug": "vol-1", "kind": "trade"}
+            )
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await connection.execute(
+                text(insert), {"id": _ITEM_A, "slug": "vol-2", "kind": "zine"}
+            )
+    async with clean_database.begin() as connection:
+        # Defaults: owned true, read false.
+        row = (
+            await connection.execute(text("SELECT owned, read FROM comic_volumes"))
+        ).one()
+    assert tuple(row) == (True, False)

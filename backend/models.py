@@ -1572,3 +1572,90 @@ class ComicIssue(Base):
     skipped: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+
+
+class ComicVolume(Base):
+    """One book of a title: a trade, hardcover, omnibus, compendium or OGN.
+
+    Migration 0021 (docs/planning/2026-11-17-comics-book-first-design.md). A
+    title is an `items` row; its volumes go with it. `slug` is unique per
+    title (`ed-<from>-<to>` for rows copied from `items.editions`, so old
+    edition URLs keep working; `vol-<n>` for new ones). `kind` is the mapped
+    format and `kind_raw` the original free text, never lost. `items.editions`
+    stays until a later, destructive release.
+    """
+
+    __tablename__ = "comic_volumes"
+    __table_args__ = (
+        UniqueConstraint("item_id", "slug", name="comic_volumes_item_slug"),
+        CheckConstraint(
+            "kind IN ('trade', 'hardcover', 'omnibus', 'compendium', 'ogn')",
+            name="comic_volumes_kind",
+        ),
+        Index("ix_comic_volumes_item_position", "item_id", "position"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="CASCADE"), nullable=False
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    slug: Mapped[str] = mapped_column(Text, nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    kind_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
+    line_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    isbn: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cover_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    large_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cv_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    owned: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    read: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ComicVolumeCollect(Base):
+    """One entry of a volume's contents: a series name and issue text as
+    written (`#1-6, Annual 1`). The link to a synced run (`item_id` plus
+    `from_number`/`to_number`) is optional; both numbers null means text
+    only. Two volumes may collect the same issues: nothing is unique across
+    volumes. The link goes null if the run is deleted; the text stays.
+    """
+
+    __tablename__ = "comic_volume_collects"
+    __table_args__ = (
+        CheckConstraint(
+            "source IN ('migrated', 'typed', 'parsed', 'photo')",
+            name="comic_volume_collects_source",
+        ),
+        Index("ix_comic_volume_collects_volume_position", "volume_id", "position"),
+        Index("ix_comic_volume_collects_item", "item_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    volume_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("comic_volumes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    series_name: Mapped[str] = mapped_column(Text, nullable=False)
+    issue_text: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id", ondelete="SET NULL"), nullable=True
+    )
+    from_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    to_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
