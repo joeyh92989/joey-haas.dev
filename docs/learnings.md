@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-17 · lesson · A data-copying migration must be tested against odd values, and the rehearsal cannot do it
+0021's backfill passed CI and `neon-rehearsal` and failed on production: `WHERE jsonb_typeof(editions) = 'array' AND jsonb_array_length(editions) > 0` ran `jsonb_array_length` on a scalar (Postgres does not order AND), and a JSON-string value then broke `json.loads`. The rehearsal branch is schema-only, so it has no rows, and the tests only seeded arrays. The transaction rolled back, so production stayed at 0020. For a migration that reads existing JSONB: select plainly, filter in Python, and seed a scalar, a string, `null`, an object and an empty list in the test.
+PR #428 · fix PR for 0021
+
 ### 2026-11-17 · decision · The frontend audit gate covers shipped dependencies only, until picomatch is patched
 A PR that touched no frontend file went red on `npm audit --audit-level=high`: a new picomatch ReDoS advisory (GHSA-fc5q-39xc-vjpf) lists every version as affected, so `npm audit fix` cleared only four moderate findings and `--force` offered a vitest downgrade, which is no fix. picomatch comes in through vite, vitest and eslint only. Chose `--omit=dev` in the CI step (Joey's call) over suppressing one advisory through a wrapper script and over leaving every PR blocked. The cost: advisories in dev tooling no longer fail a PR. Revert to the full audit once a patched picomatch exists.
 PR #428

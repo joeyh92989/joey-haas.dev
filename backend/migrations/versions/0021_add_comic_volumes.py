@@ -149,14 +149,24 @@ def _backfill(connection: sa.engine.Connection) -> None:
     )
     rows = connection.execute(
         sa.text(
+            # No jsonb function in the WHERE clause: Postgres does not order
+            # AND, and jsonb_array_length on a scalar aborted the first run on
+            # production. Non-lists are skipped below, in Python.
             "SELECT id, title, editions FROM items "
-            "WHERE editions IS NOT NULL AND jsonb_typeof(editions) = 'array' "
-            "AND jsonb_array_length(editions) > 0 ORDER BY id"
+            "WHERE editions IS NOT NULL ORDER BY id"
         )
     ).all()
     for item_id, title, editions in rows:
         if isinstance(editions, str):
-            editions = json.loads(editions)
+            # The driver may hand back the JSON text, or (for a JSON string
+            # value) the decoded string itself; neither is a list of editions
+            # unless the text parses to one.
+            try:
+                editions = json.loads(editions)
+            except ValueError:
+                continue
+        if not isinstance(editions, list) or not editions:
+            continue
         seen: dict[str, int] = {}
         for position, raw in enumerate(editions):
             edition = raw if isinstance(raw, dict) else {}
