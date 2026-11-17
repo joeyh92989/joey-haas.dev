@@ -1,9 +1,12 @@
 """The public wall, issue page and edition page (spec: comic issue pages).
 Only public rows; a skip changes no body."""
 
+import json
+import re
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -11,14 +14,29 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import event, select
 
 import public
-from models import ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
+from models import (
+    ComicIssue,
+    ComicVolume,
+    ComicVolumeCollect,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+)
 from public import create_public_router
 from public_issues import (
     PublicComicIndex,
     PublicComicIndexEdition,
     PublicComicIndexIssue,
+    PublicComicIndexVolume,
     PublicEditionPage,
     PublicIssuePage,
+    PublicVolumeBody,
+    PublicVolumeCollect,
+    PublicVolumeLink,
+    PublicVolumeNeighbour,
+    PublicVolumePage,
+    PublicVolumeTitle,
     PublicWall,
 )
 
@@ -452,7 +470,7 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
     assert await bodies() == before
 
 
-INDEX_FIELDS = {"item_id", "series_title", "issues", "editions"}
+INDEX_FIELDS = {"item_id", "series_title", "issues", "editions", "volumes"}
 INDEX_ISSUE_FIELDS = {"number", "name", "cover_url"}
 INDEX_EDITION_FIELDS = {"slug", "label", "cover_url"}
 
@@ -533,7 +551,18 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
     ]
 
     async def bodies():
-        return [(await _get(sessionmaker_for_test, p)).content for p in paths]
+        out = []
+        for p in paths:
+            content = (await _get(sessionmaker_for_test, p)).content
+            if p.endswith("/comic-issues"):
+                # sync_marks mirrors the editions into ed-* volumes, so the
+                # index gains `volumes` here; everything else must not move.
+                rows = json.loads(content)
+                for row in rows:
+                    row.pop("volumes")
+                content = json.dumps(rows).encode()
+            out.append(content)
+        return out
 
     before = await bodies()
     wall_before = (await _get(sessionmaker_for_test, wall)).json()
@@ -608,3 +637,345 @@ async def test_existing_ranges_still_read_without_marks(sessionmaker_for_test):
         await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
     ).json()
     assert [(i["owned"], i["read"]) for i in wall["issues"]] == [(True, False)] * 4
+
+
+# --- The volume page (book-first epic #323, story #335 book-page slice). ---
+
+VOLUME_FIELDS = {
+    "title", "volume", "collects", "prev", "next", "source_url",
+}  # fmt: skip
+VOLUME_TITLE_FIELDS = {"id", "title", "cover_url", "publisher", "year"}
+VOLUME_BODY_FIELDS = {
+    "slug", "label", "kind", "line_number", "isbn", "pages", "description",
+    "cover_url", "large_url", "owned", "read",
+}  # fmt: skip
+VOLUME_COLLECT_FIELDS = {"series_name", "issue_text", "link"}
+VOLUME_LINK_FIELDS = {"item_id", "from_number", "to_number"}
+VOLUME_NEIGHBOUR_FIELDS = {"slug", "label", "line_number"}
+INDEX_VOLUME_FIELDS = {"slug", "label", "kind", "line_number", "cover_url"}
+# Keys the body must never carry at any depth, on top of COMIC_FORBIDDEN.
+VOLUME_FORBIDDEN = COMIC_FORBIDDEN | {
+    "source", "kind_raw", "cv_id", "following", "item_id_private", "skips",
+}  # fmt: skip
+
+
+def _volume(item_id, slug, position, **fields) -> ComicVolume:
+    base = dict(
+        item_id=item_id,
+        position=position,
+        slug=slug,
+        label=f"Book {position}",
+        kind="trade",
+        kind_raw="Trade paperback",
+        line_number=position,
+        isbn=f"978000000000{position}",
+        pages=128,
+        description="First paragraph.\n\nSecond paragraph.",
+        cover_url=f"https://cv.test/v{position}.jpg",
+        large_url=f"https://cv.test/vl{position}.jpg",
+        owned=True,
+        read=False,
+    )
+    return ComicVolume(**{**base, **fields})
+
+
+def _collect(volume_id, position, **fields) -> ComicVolumeCollect:
+    base = dict(
+        volume_id=volume_id,
+        position=position,
+        series_name="Saga",
+        issue_text="#1-6",
+        source="typed",
+    )
+    return ComicVolumeCollect(**{**base, **fields})
+
+
+async def _seed_volumes(factory, *volumes_for, item=None, issues=(1, 2, 3)):
+    """A public title with synced issues, and the volumes `volumes_for` builds
+    from its id. Returns (item_id, [volume ids])."""
+    item = item or _series()
+    async with factory() as session:
+        session.add(item)
+        await session.flush()
+        session.add_all(_row(item.id, n) for n in issues)
+        volumes = [make(item.id) for make in volumes_for]
+        session.add_all(volumes)
+        await session.commit()
+        return item.id, [v.id for v in volumes]
+
+
+def _vol_path(item_id, slug):
+    return f"/api/public/items/{item_id}/volumes/{slug}"
+
+
+async def test_the_volume_models_publish_exactly_these_fields():
+    assert set(PublicVolumePage.model_fields) == VOLUME_FIELDS
+    assert set(PublicVolumeTitle.model_fields) == VOLUME_TITLE_FIELDS
+    assert set(PublicVolumeBody.model_fields) == VOLUME_BODY_FIELDS
+    assert set(PublicVolumeCollect.model_fields) == VOLUME_COLLECT_FIELDS
+    assert set(PublicVolumeLink.model_fields) == VOLUME_LINK_FIELDS
+    assert set(PublicVolumeNeighbour.model_fields) == VOLUME_NEIGHBOUR_FIELDS
+    assert set(PublicComicIndexVolume.model_fields) == INDEX_VOLUME_FIELDS
+
+
+async def test_the_volume_page_body(sessionmaker_for_test):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, read=True),
+    )
+    response = await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == VOLUME_FIELDS
+    assert set(body["title"]) == VOLUME_TITLE_FIELDS
+    assert body["title"]["id"] == str(item_id)
+    assert (body["title"]["title"], body["title"]["publisher"]) == ("Saga", "Image")
+    assert set(body["volume"]) == VOLUME_BODY_FIELDS
+    assert body["volume"]["slug"] == "vol-1"
+    assert body["volume"]["kind"] == "trade"
+    assert body["volume"]["isbn"] == "9780000000001"
+    assert body["volume"]["owned"] is True
+    assert body["volume"]["read"] is True
+    assert body["volume"]["description"] == ["First paragraph.", "Second paragraph."]
+    assert body["source_url"] == CV_URL
+    assert body["collects"] == []
+    assert body["prev"] is None
+    assert body["next"] is None
+    assert VOLUME_FORBIDDEN.isdisjoint(set(_keys(body)))
+
+
+async def test_a_volume_with_no_collects_returns_an_empty_list(sessionmaker_for_test):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1)
+    )
+    body = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).json()
+    assert body["collects"] == []
+
+
+async def test_volume_404s_are_one_body(sessionmaker_for_test):
+    """A private title, an unknown slug, a volume not owned, a non-comic and an
+    unknown title all answer the same: existence does not leak."""
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1),
+        lambda i: _volume(i, "vol-2", 2, owned=False),
+    )
+    private_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1),
+        item=_series(is_public=False, title="Hidden"),
+    )
+    game = uuid.uuid4()
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Item(
+                id=game,
+                type=ItemType.GAME,
+                title="G",
+                is_public=True,
+                status=ItemStatus.BACKLOG,
+            )  # fmt: skip
+        )
+        await session.commit()
+    paths = [
+        _vol_path(item_id, "vol-2"),  # not owned
+        _vol_path(item_id, "vol-9"),  # unknown slug
+        _vol_path(private_id, "vol-1"),  # private title
+        _vol_path(game, "vol-1"),
+        _vol_path(uuid.uuid4(), "vol-1"),
+    ]
+    bodies = set()
+    for path in paths:
+        response = await _get(sessionmaker_for_test, path)
+        assert response.status_code == 404, path
+        bodies.add(response.content)
+    assert len(bodies) == 1
+
+
+async def test_collects_link_only_to_public_synced_titles(sessionmaker_for_test):
+    other = _series(title="Other", source_metadata={"publisher": "X"})
+    private = _series(title="Hidden", is_public=False)
+    unsynced = _series(title="Unsynced")
+    async with sessionmaker_for_test() as session:
+        session.add_all([other, private, unsynced])
+        await session.flush()
+        session.add_all(_row(other.id, n) for n in (1, 2, 3))
+        session.add_all(_row(private.id, n) for n in (1, 2, 3))
+        # Unsynced: stub rows only (no Comic Vine id).
+        session.add(_row(unsynced.id, 1, cv_id=None, name=None, cover_url=None))
+        await session.commit()
+    item_id, (volume_id,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1)
+    )
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                _collect(volume_id, 1, series_name="Saga", issue_text="#1-2",
+                         item_id=item_id, from_number=1, to_number=2),
+                _collect(volume_id, 2, series_name="Other", issue_text="#3",
+                         item_id=other.id, from_number=3, to_number=3,
+                         source="parsed"),
+                _collect(volume_id, 3, series_name="Hidden", issue_text="#1-3",
+                         item_id=private.id, from_number=1, to_number=3),
+                _collect(volume_id, 4, series_name="Unsynced", issue_text="#1",
+                         item_id=unsynced.id, from_number=1, to_number=1),
+                _collect(volume_id, 5, series_name="Text", issue_text="Annual 1"),
+                _collect(volume_id, 6, series_name="Half", issue_text="#4",
+                         item_id=other.id, from_number=4, to_number=None),
+            ]
+        )  # fmt: skip
+        await session.commit()
+    response = await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))
+    body = response.json()
+    collects = body["collects"]
+    assert [c["series_name"] for c in collects] == [
+        "Saga", "Other", "Hidden", "Unsynced", "Text", "Half",
+    ]  # fmt: skip
+    assert all(set(c) == VOLUME_COLLECT_FIELDS for c in collects)
+    assert collects[0]["link"] == {
+        "item_id": str(item_id), "from_number": 1, "to_number": 2,
+    }  # fmt: skip
+    assert collects[1]["link"]["item_id"] == str(other.id)
+    # A private title, an unsynced one, text only and a half link: plain text.
+    assert [c["link"] for c in collects[2:]] == [None, None, None, None]
+    assert collects[2]["issue_text"] == "#1-3"
+    # The private title's id appears nowhere in the body.
+    assert str(private.id) not in response.text
+    assert str(unsynced.id) not in response.text
+    assert VOLUME_FORBIDDEN.isdisjoint(set(_keys(body)))
+
+
+async def test_an_edition_origin_slug_resolves(sessionmaker_for_test):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "ed-5-6", 1, label="Volume Two", kind_raw="TPB"),
+        lambda i: _volume(i, "ed-5-6-2", 2, label="Deluxe", kind="hardcover"),
+    )
+    first = await _get(sessionmaker_for_test, _vol_path(item_id, "ed-5-6"))
+    assert first.status_code == 200
+    assert first.json()["volume"]["label"] == "Volume Two"
+    second = (await _get(sessionmaker_for_test, _vol_path(item_id, "ed-5-6-2"))).json()
+    assert second["volume"]["kind"] == "hardcover"
+    assert second["prev"]["slug"] == "ed-5-6"
+    # The old endpoint is untouched by this: still a 404 without an edition.
+    old = await _get(
+        sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-6"
+    )
+    assert old.status_code == 200
+
+
+async def test_prev_and_next_follow_the_line_over_owned_volumes(
+    sessionmaker_for_test,
+):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-3", 1, line_number=3, label="Three"),
+        lambda i: _volume(i, "vol-1", 2, line_number=1, label="One"),
+        lambda i: _volume(i, "vol-2", 3, line_number=2, label="Two", owned=False),
+        lambda i: _volume(i, "vol-x", 4, line_number=None, label="Loose"),
+        lambda i: _volume(i, "vol-y", 5, line_number=None, label="Loose 2"),
+    )
+
+    async def page(slug):
+        return (await _get(sessionmaker_for_test, _vol_path(item_id, slug))).json()
+
+    one, three = await page("vol-1"), await page("vol-3")
+    assert one["prev"] is None
+    # Two is not owned: the line skips it. Numbers first, loose books after.
+    assert one["next"] == {"slug": "vol-3", "label": "Three", "line_number": 3}
+    assert set(one["next"]) == VOLUME_NEIGHBOUR_FIELDS
+    assert three["prev"] == {"slug": "vol-1", "label": "One", "line_number": 1}
+    assert three["next"]["slug"] == "vol-x"
+    last = await page("vol-y")
+    assert last["next"] is None
+    assert last["prev"]["slug"] == "vol-x"
+    assert last["prev"]["line_number"] is None
+
+
+async def test_no_skip_data_anywhere_in_a_volume_body(sessionmaker_for_test):
+    item = _series(issues_skipped="7, 8")
+    item_id, (volume_id,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1), item=item
+    )
+    async with sessionmaker_for_test() as session:
+        session.add(_collect(volume_id, 1, item_id=item_id, from_number=1, to_number=3))
+        await session.commit()
+    before = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).content
+    async with sessionmaker_for_test() as session:
+        row = (await session.execute(select(Item))).scalar_one()
+        row.issues_skipped = "1, 2, 3, 9"
+        row.following = True
+        await session.commit()
+    after = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).content
+    assert after == before
+    text = after.decode()
+    for word in ("skip", "following", "price", "store", "issues_owned"):
+        assert word not in text.lower(), word
+
+
+async def test_volume_keys_dodge_the_smoke_private_keys(sessionmaker_for_test):
+    """scripts/smoke.sh greps snapshot and public bodies for PRIVATE_KEYS: a
+    new key that matches would fail the post-deploy check."""
+    smoke = (Path(__file__).resolve().parents[2] / "scripts" / "smoke.sh").read_text()
+    line = next(ln for ln in smoke.splitlines() if ln.startswith("PRIVATE_KEYS="))
+    pattern = line.split("=", 1)[1].strip().strip("'")
+    # POSIX [[:space:]] is not Python regex.
+    pattern = pattern.replace("[[:space:]]", r"\s")
+    private = re.compile(pattern)
+    assert private.search('{"price": 1}')  # the regex under test was really read
+    item_id, (volume_id, _) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1),
+        lambda i: _volume(i, "vol-2", 2),
+    )
+    async with sessionmaker_for_test() as session:
+        session.add(_collect(volume_id, 1, item_id=item_id, from_number=1, to_number=3))
+        await session.commit()
+    bodies = [
+        (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).text,
+        (await _get(sessionmaker_for_test, "/api/public/comic-issues")).text,
+    ]
+    for text in bodies:
+        assert private.search(text) is None, private.search(text)
+    # The fields the models declare, too, in case a body leaves one null.
+    fields = (
+        set(PublicVolumePage.model_fields)
+        | set(PublicVolumeTitle.model_fields)
+        | set(PublicVolumeBody.model_fields)
+        | set(PublicVolumeCollect.model_fields)
+        | set(PublicVolumeLink.model_fields)
+        | set(PublicVolumeNeighbour.model_fields)
+        | set(PublicComicIndexVolume.model_fields)
+    )
+    assert not [f for f in fields if private.search(f'"{f}":')]
+
+
+async def test_the_index_carries_owned_volumes_of_public_titles(
+    sessionmaker_for_test,
+):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-2", 2, line_number=2),
+        lambda i: _volume(i, "vol-1", 1, line_number=1),
+        lambda i: _volume(i, "vol-3", 3, owned=False),
+    )
+    await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1),
+        item=_series(is_public=False, title="Hidden"),
+    )
+    body = (await _get(sessionmaker_for_test, "/api/public/comic-issues")).json()
+    assert len(body) == 1
+    row = body[0]
+    assert set(row) == INDEX_FIELDS
+    assert row["item_id"] == str(item_id)
+    # In the page's line order: line number, then position.
+    assert [v["slug"] for v in row["volumes"]] == ["vol-1", "vol-2"]
+    assert all(set(v) == INDEX_VOLUME_FIELDS for v in row["volumes"])
+    assert row["volumes"][0] == {
+        "slug": "vol-1", "label": "Book 1", "kind": "trade", "line_number": 1,
+        "cover_url": "https://cv.test/v1.jpg",
+    }  # fmt: skip
+    # `editions` stays until the prerender has moved over.
+    assert "editions" in row
+    assert COMIC_FORBIDDEN.isdisjoint(set(_keys(body)))

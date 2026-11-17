@@ -548,6 +548,26 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
   `scripts/audit_comics.py` is the read-only pre-migration report.
+  **Public read (#335 book-page slice, #329):** `GET
+  /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)
+  serves one OWNED volume of a PUBLIC comic title, `ed-*` slugs included (old
+  URLs keep working); a private title, an unknown slug and a volume not owned
+  are the same 404 body. Collects come in order with `series_name` and
+  `issue_text` as written; `link` is `{item_id, from_number, to_number}` only
+  when the entry is linked to a public comic that has synced issue rows (a
+  `comic_issues` row with a `cv_id`) and both bounds are set, else null (plain
+  text); the entry's `source` and any private title's id never leave. `prev`/
+  `next` walk the title's owned volumes by `line_number` (null last), then
+  `position`. `description` is paragraphs (split on a blank line), like the
+  edition page. `GET /api/public/comic-issues` rows gained `volumes` (owned
+  volumes of a public title: slug, label, kind, line_number, cover_url);
+  `editions` stays until the prerender reads `volumes` (#329 PR 3b), then a
+  cleanup drops it. `/editions/{slug}` is unchanged. Both tables join the
+  `/api/public/next` fingerprint (`public_next_cache`). `analytics.py`
+  counts `/shelf/<id>/vol-<n>` (the `vol-[1-9][0-9]{0,3}` part, beside `ed-*`,
+  in `_PATTERNS` and `ITEM_PATH`); App.jsx must accept the same part when the
+  page ships. `test_public_issues.py` checks every new key against
+  `scripts/smoke.sh`'s `PRIVATE_KEYS`.
 - **Issue marks** (migration `0017`, comics-book design 5b): each
   `comic_issues` row carries `owned`, `read` and `skipped`, and a row with a
   null `cv_id` is a stub, a held or skipped book Comic Vine has not synced.

@@ -54,9 +54,11 @@ from public_issues import (
     PublicComicIndex,
     PublicEditionPage,
     PublicIssuePage,
+    PublicVolumePage,
     PublicWall,
     build_edition_page,
     build_issue_page,
+    build_volume_page,
     build_wall,
     load_comic_index,
 )
@@ -753,6 +755,19 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         page = await build_edition_page(
             session, item_id, slug, datetime.now(UTC).date()
         )
+        if page is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        return page
+
+    @router.get("/items/{item_id}/volumes/{slug}", response_model=PublicVolumePage)
+    async def public_volume_page(
+        item_id: uuid.UUID,
+        slug: str,
+        session: AsyncSession = Depends(get_session),
+    ) -> PublicVolumePage:
+        """One owned volume (book) of a public comic title. Private, unknown
+        and not-owned all answer the same 404."""
+        page = await build_volume_page(session, item_id, slug)
         if page is None:
             raise HTTPException(status_code=404, detail="Not found")
         return page
