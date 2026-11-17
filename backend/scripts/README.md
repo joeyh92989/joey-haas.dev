@@ -697,3 +697,17 @@ To turn the feature on after a good measurement, set the row in
 `closet_settings` (key `rank.images`, value `{"enabled": true}`). There is no
 admin screen for it. Tests never call a real provider; they use fakes
 (`tests/test_closet_rank_images_probe.py`).
+
+## export_admin_volume_fixtures.py
+
+Writes the admin volume editor's API bodies (`GET /api/comics/{id}/volumes`,
+`GET /api/comics/volumes/{id}`, the delete preview, the owned/read PATCH, move
+and Comic Vine link answers) to `frontend/e2e/fixtures/api/admin-volume*.json`.
+Each body is validated through the real response model in `comics_schemas.py`
+and dumped from it, so the frontend's component tests cannot carry a key the
+API never sends. The data is invented. Run it again whenever one of those
+models changes, then commit the JSON:
+
+```sh
+cd backend && ./.venv/bin/python scripts/export_admin_volume_fixtures.py
+```

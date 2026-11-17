@@ -1,0 +1,38 @@
+[
+  {
+    "id": "aaaaaaaa-0000-0000-0000-000000000001",
+    "slug": "vol-1",
+    "label": "Saga, Book One",
+    "kind": "hardcover",
+    "line_number": 1,
+    "owned": true,
+    "read": true,
+    "edited": false,
+    "collects_count": 2,
+    "cover_url": "https://example.test/1.jpg"
+  },
+  {
+    "id": "aaaaaaaa-0000-0000-0000-000000000002",
+    "slug": "vol-2",
+    "label": "Saga, Book Two",
+    "kind": "hardcover",
+    "line_number": 2,
+    "owned": true,
+    "read": false,
+    "edited": true,
+    "collects_count": 3,
+    "cover_url": null
+  },
+  {
+    "id": "aaaaaaaa-0000-0000-0000-000000000003",
+    "slug": "vol-3",
+    "label": "Saga, Book Three",
+    "kind": "trade",
+    "line_number": 3,
+    "owned": false,
+    "read": false,
+    "edited": true,
+    "collects_count": 0,
+    "cover_url": null
+  }
+]

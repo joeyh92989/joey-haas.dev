@@ -1,0 +1,87 @@
+{
+  "volume": {
+    "id": "aaaaaaaa-0000-0000-0000-000000000002",
+    "item_id": "22222222-2222-2222-2222-222222222222",
+    "slug": "vol-3",
+    "position": 1,
+    "label": "Saga, Book Two",
+    "kind": "hardcover",
+    "kind_raw": null,
+    "line_number": 2,
+    "isbn": "9781234567890",
+    "pages": 320,
+    "description": "Hazel grows up on the run.",
+    "cover_url": "https://example.test/c.jpg",
+    "large_url": null,
+    "cv_id": null,
+    "owned": true,
+    "read": false,
+    "edited": true,
+    "created_at": "2026-11-17T12:00:00+00:00",
+    "title": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "Hidden Run",
+      "is_public": false
+    },
+    "collects": [
+      {
+        "id": "cccccccc-0000-0000-0000-000000000001",
+        "position": 0,
+        "series_name": "Saga",
+        "issue_text": "#7-12",
+        "source": "migrated",
+        "link": {
+          "item_id": "11111111-1111-1111-1111-111111111111",
+          "title": "Saga",
+          "from_number": 7,
+          "to_number": 12,
+          "is_public": true
+        }
+      },
+      {
+        "id": "cccccccc-0000-0000-0000-000000000002",
+        "position": 1,
+        "series_name": "Saga Special",
+        "issue_text": "Annual 1",
+        "source": "typed",
+        "link": null
+      },
+      {
+        "id": "cccccccc-0000-0000-0000-000000000003",
+        "position": 2,
+        "series_name": "Hidden Run",
+        "issue_text": "#1-2",
+        "source": "photo",
+        "link": {
+          "item_id": "22222222-2222-2222-2222-222222222222",
+          "title": "Hidden Run",
+          "from_number": 1,
+          "to_number": 2,
+          "is_public": false
+        }
+      }
+    ],
+    "prev": {
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "slug": "vol-1",
+      "label": "Saga, Book One",
+      "line_number": 1,
+      "owned": true
+    },
+    "next": {
+      "id": "aaaaaaaa-0000-0000-0000-000000000003",
+      "slug": "vol-3",
+      "label": "Saga, Book Three",
+      "line_number": 3,
+      "owned": false
+    },
+    "held_issues": "7-12",
+    "held_count": 6
+  },
+  "previous_slug": "vol-2",
+  "slug_kept": false,
+  "touched": [
+    "11111111-1111-1111-1111-111111111111",
+    "22222222-2222-2222-2222-222222222222"
+  ]
+}
