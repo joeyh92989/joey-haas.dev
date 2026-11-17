@@ -215,7 +215,11 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `PATCH` that saves at once with a status line and Undo), Facts (one form,
   one `PUT`), Collects (`CollectsEditor.jsx`; every action writes the whole
   list through `PUT`, entries sent back by `id` so an untouched one keeps its
-  source; reorder has Undo, Remove asks first), the neighbouring books,
+  source; reorder has Undo, Remove asks first; **Read from description**
+  (`onParse`, `POST /volumes/{id}/contents/parse`, #327) and a toggled
+  "Paste the reprint note" box fill the list on the server, which replaces
+  only entries it read before: the page just shows the answer and one status
+  line from `content/adminVolume.js` `collects.read`), the neighbouring books,
   Move to another title and Delete. The slug resolves through
   `GET /api/comics/{id}/volumes`, then the page reads
   `GET /api/comics/volumes/{id}`. Every call is in `lib/volumeEdits.js`

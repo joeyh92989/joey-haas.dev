@@ -101,8 +101,8 @@ test('every known a11y entry on an admin page still applies', async ({
   }
 })
 
-// A book, end to end (#334): add one to a comic, put an entry in it, flip a
-// mark, delete it. The comic is made through the API with the signed-in
+// A book, end to end (#334): add one to a comic, put an entry in it, read
+// more from its description (#327), flip a mark, delete it. The comic is made through the API with the signed-in
 // session and removed again, so a rerun starts clean. Set E2E_SHOT_DIR to
 // also save a full-page screenshot of the book page (the review shots).
 test('a book: add it to a comic, add an entry, toggle owned, delete it', async ({
@@ -141,6 +141,20 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
       page.getByRole('list', { name: 'What is inside' }).getByRole('listitem'),
     ).toHaveCount(1)
 
+    // Read from description (#327): a description the rules can read, so no
+    // model is asked. The typed entry stays; the new one is "Read from text".
+    await page
+      .getByLabel('Description', { exact: true })
+      .fill('Hazel grows up. Collects E2E Saga #7-9.')
+    await page.getByRole('button', { name: 'Save facts' }).click()
+    await expect(page.getByText('Saved.')).toBeVisible()
+    await page.getByRole('button', { name: 'Read from description' }).click()
+    await expect(page.getByText('Added 1 entry.')).toBeVisible()
+    const inside = page.getByRole('list', { name: 'What is inside' })
+    await expect(inside.getByRole('listitem')).toHaveCount(2)
+    await expect(inside.getByText('Source: Read from text')).toBeVisible()
+    await expect(inside.getByText('Source: Typed')).toBeVisible()
+
     const owned = page.getByRole('button', { name: 'Owned', exact: true })
     await expect(owned).toHaveAttribute('aria-pressed', 'true')
     await owned.click()
@@ -168,7 +182,7 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
     }
 
     await page.getByRole('button', { name: 'Delete Deluxe One' }).click()
-    await expect(page.getByText(/goes with 1 contents entry/)).toBeVisible()
+    await expect(page.getByText(/goes with 2 contents entries/)).toBeVisible()
     await page
       .getByRole('button', { name: 'Delete Deluxe One for good' })
       .click()

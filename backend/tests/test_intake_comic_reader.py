@@ -127,6 +127,39 @@ async def test_a_collected_book_defaults_to_a_trade_with_its_range(
     assert entry.payload["issue_number"] is None
 
 
+async def test_a_collected_books_reprint_note_lands_in_its_payload(
+    sessionmaker_for_test,
+):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    await _make_comic(sessionmaker_for_test, sitting_id)
+    provider = PromptProvider(
+        {
+            "books": [
+                {
+                    "series": "Saga",
+                    "issue_number_seen": False,
+                    "format": "collected",
+                    "volume_range": "1-6",
+                    "reprint_note": "Collects SAGA #1-6",
+                },
+                {
+                    "series": "Hellboy",
+                    "issue_number_seen": False,
+                    "format": "collected",
+                },
+            ]
+        }
+    )
+    await _read(sessionmaker_for_test, sitting_id, provider, registry=_comic_registry())
+    entries = await _entries(sessionmaker_for_test, sitting_id)
+    assert provider.calls == 1  # still one request per photo
+    # Both entries share a created_at, so tell them apart by content.
+    [saga] = [e for e in entries if "reprint_note" in e.payload]
+    [hellboy] = [e for e in entries if "reprint_note" not in e.payload]
+    assert saga.payload["reprint_note"] == "Collects SAGA #1-6"
+    assert "reprint_note" not in hellboy.payload  # old entries look the same
+
+
 async def test_a_mixed_sitting_keeps_the_shelf_prompt(sessionmaker_for_test):
     sitting_id, _ = await _sitting(sessionmaker_for_test)
     provider = PromptProvider(

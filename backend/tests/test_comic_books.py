@@ -257,3 +257,76 @@ def test_the_run_is_the_most_any_source_says():
     assert run_size(None, {"owned_text": "not ranges"}) is None
     state = number_check(_book(9), {"issue_count": 4}, {"owned_text": "1–5, 9"})
     assert state == {"state": "in_run", "run": 9}
+
+
+# --- The reprint note (#327): read off a collected book, consumed by #328 ----
+
+
+def test_a_collected_book_carries_the_printed_reprint_note():
+    answer = {
+        "books": [
+            {
+                "series": "Saga",
+                "issue_number_seen": False,
+                "format": "collected",
+                "volume_range": "1-6",
+                "reprint_note": "  Collects SAGA #1-6  ",
+            }
+        ]
+    }
+    [book] = parse_books(answer)
+    assert book.reprint_note == "Collects SAGA #1-6"
+
+
+def test_the_reprint_note_is_capped_and_never_on_a_single_issue():
+    answer = {
+        "books": [
+            {
+                "series": "A",
+                "issue_number_seen": False,
+                "format": "collected",
+                "reprint_note": "x" * 900,
+            },
+            {
+                "series": "B",
+                "issue_number_seen": False,
+                "format": "single",
+                "reprint_note": "Collects B #1",
+            },
+            {
+                "series": "C",
+                "issue_number_seen": False,
+                "format": "collected",
+                "reprint_note": 12,
+            },
+        ]
+    }
+    first, second, third = parse_books(answer)
+    assert len(first.reprint_note) == 300
+    assert second.reprint_note == ""
+    assert third.reprint_note == ""
+
+
+def test_the_schema_and_prompt_name_the_reprint_note():
+    item = COMIC_DETECTION_SCHEMA["properties"]["books"]["items"]
+    assert item["properties"]["reprint_note"] == {"type": "string"}
+    assert "reprint_note" not in item["required"]
+    assert "reprint_note" in COMIC_EXTRACTION_PROMPT
+    assert "300" in COMIC_EXTRACTION_PROMPT
+
+
+def test_an_edit_to_the_reprint_note_is_checked_and_an_absent_one_is_kept():
+    from intake.comic_books import BookEditError, edit_book
+
+    old = {"format": "collected", "reprint_note": "Collects Saga #1-6"}
+    assert edit_book(old, {"format": "collected"})["reprint_note"] == (
+        "Collects Saga #1-6"
+    )
+    assert edit_book(old, {"reprint_note": " Collects Saga #1-3 "})["reprint_note"] == (
+        "Collects Saga #1-3"
+    )
+    assert edit_book(old, {"reprint_note": ""})["reprint_note"] == ""
+    for bad in ("x" * 301, 5, ["a"]):
+        with pytest.raises(BookEditError) as caught:
+            edit_book(old, {"reprint_note": bad})
+        assert caught.value.field == "reprint_note"

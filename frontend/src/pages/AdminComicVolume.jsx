@@ -23,6 +23,7 @@ import {
   listVolumes,
   markVolume,
   moveVolume,
+  parseContents,
   replaceBody,
   replaceVolume,
   toFacts,
@@ -283,6 +284,34 @@ export default function AdminComicVolume() {
     return failure instanceof Error ? failure : null
   }
 
+  /** Reads the contents from the description and the pasted note. The server
+   * replaces only entries it read before; the page just shows what it kept. */
+  function readContents(note) {
+    return write('collects', async () => {
+      const result = await parseContents(volume.id, note)
+      setVolume((current) => ({
+        ...current,
+        collects: result.collects,
+      }))
+      const removed = result.entries_removed ?? 0
+      const words = COPY.collects.read
+      setLine({
+        area: 'collects',
+        text:
+          result.entries_added > 0
+            ? words.added(
+                result.entries_added,
+                result.entries_replaced + removed,
+                result.used_model,
+              )
+            : removed > 0
+              ? words.removed(removed)
+              : (words.reasons[result.reason] ?? words.nothingNew),
+      })
+      return null
+    })
+  }
+
   function moveTo(event) {
     event.preventDefault()
     return write('move', async () => {
@@ -498,6 +527,7 @@ export default function AdminComicVolume() {
             titles={titles}
             busy={busy}
             onSave={saveCollects}
+            onParse={readContents}
           />
           <StatusLine line={line} area="collects" error={error} />
         </Panel>

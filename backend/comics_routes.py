@@ -27,6 +27,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import comic_contents
 import tags as tag_words
 from comic_issues import sync_series
 from comics import (
@@ -59,6 +60,8 @@ from comics_schemas import (
     BackfillOut,
     ComicsStatusOut,
     ComicStateOut,
+    ContentsParseIn,
+    ContentsParseOut,
     EditionLinkOut,
     IssueHitOut,
     IssuesSyncOut,
@@ -119,6 +122,8 @@ TAG_ATTEMPT_LIMIT = 3
 # One call may walk the model chain this long, and the whole run stops
 # starting new calls after TAG_RUN_SECONDS, under the nightly's 600 s curl.
 TAG_CALL_SECONDS = 40.0
+# The contents parse's one model call gets the same 40 s.
+CONTENTS_CALL_SECONDS = 40.0
 TAG_RUN_SECONDS = 480.0
 
 
@@ -1476,6 +1481,197 @@ def create_comics_router(
             "held_count": len(expand(ranges)),
         }
 
+    async def _apply_parsed(
+        session: AsyncSession,
+        volume: ComicVolume,
+        title: Item,
+        found: list[comic_contents.Entry],
+        *,
+        may_link: bool,
+    ) -> tuple[int, int]:
+        """Reconciles this volume's `parsed` entries with `found`; returns
+        (added, removed). Typed, migrated and photo entries are never touched,
+        and a new entry equal to one of them (same normalised series, "the"
+        aside, and issue text) is skipped. A parsed entry found again is kept
+        as it is (same row, same position); one no longer found is deleted;
+        the rest are appended. An entry with no series takes the title's name.
+        Only a RULES entry (`may_link`) of the title's own series, whose issue
+        text is one plain range or number within the title's known issue
+        count and whose bracketed year, if any, is the title's, is linked to
+        the title: the only auto-link. A model entry, and everything else, is
+        text. Nothing found changes nothing, so an earlier parse is never lost
+        to a worse one."""
+        if not found:
+            return 0, 0
+        existing = list(
+            await session.scalars(
+                select(ComicVolumeCollect)
+                .where(ComicVolumeCollect.volume_id == volume.id)
+                .order_by(ComicVolumeCollect.position)
+            )
+        )
+        kept = [row for row in existing if row.source != "parsed"]
+        old = [row for row in existing if row.source == "parsed"]
+
+        def key(series: str, issues: str) -> tuple[str, str]:
+            return comic_contents.normalize_name(series), " ".join(
+                issues.lower().split()
+            )
+
+        metadata = title.source_metadata or {}
+        count = metadata.get("issue_count")
+        count = count if isinstance(count, int) and not isinstance(count, bool) else 0
+        start_year = title.year or metadata.get("start_year")
+        try:
+            start_year = int(start_year) if start_year else None
+        except (TypeError, ValueError):
+            start_year = None
+
+        def link_of(entry: comic_contents.Entry, series: str):
+            plain = comic_contents.plain_range(entry.issue_text)
+            if (
+                not may_link
+                or plain is None
+                or count <= 0
+                or plain[1] > count
+                or comic_contents.normalize_name(series)
+                != comic_contents.normalize_name(title.title)
+                or (entry.year is not None and entry.year != start_year)
+            ):
+                return None, None, None
+            return title.id, plain[0], plain[1]
+
+        taken = {key(row.series_name, row.issue_text) for row in kept}
+        old_by_key = {key(r.series_name, r.issue_text): r for r in reversed(old)}
+        position = max((row.position for row in existing), default=-1) + 1
+        fresh: list[ComicVolumeCollect] = []
+        reused: set = set()
+        for entry in found:
+            series = entry.series_name or title.title
+            wanted = key(series, entry.issue_text)
+            if wanted in taken:
+                continue
+            taken.add(wanted)
+            item_id, low, high = link_of(entry, series)
+            row = old_by_key.get(wanted)
+            if row is not None:
+                reused.add(row.id)
+                for field, value in (
+                    ("item_id", item_id),
+                    ("from_number", low),
+                    ("to_number", high),
+                ):
+                    if getattr(row, field) != value:
+                        setattr(row, field, value)
+                continue
+            fresh.append(
+                ComicVolumeCollect(
+                    id=uuid.uuid4(),
+                    volume_id=volume.id,
+                    position=position,
+                    series_name=series,
+                    issue_text=entry.issue_text,
+                    source="parsed",
+                    item_id=item_id,
+                    from_number=low,
+                    to_number=high,
+                )
+            )
+            position += 1
+        gone = [row for row in old if row.id not in reused]
+        for row in gone:
+            await session.delete(row)
+        await session.flush()
+        if fresh:
+            session.add_all(fresh)
+        await session.flush()
+        return len(fresh), len(gone)
+
+    async def _model_contents(
+        session: AsyncSession, text: str
+    ) -> tuple[list[comic_contents.Entry], bool, str | None]:
+        """The fallback: (entries, a call was made, reason). One call, no
+        retry, only inside the free tier's budget. Whatever goes wrong is a
+        reason, never an error for the owner."""
+        if provider_factory is None:
+            return [], False, "model_error"
+        left = await remaining(session, day=pacific_day(datetime.now(UTC)))
+        if left <= 0:
+            return [], False, "budget"
+        try:
+            provider = provider_factory()
+        except LLMError as error:
+            logger.warning("comic contents: no model: %s", error)
+            return [], False, "model_error"
+        await session.rollback()  # no transaction open across the call
+        try:
+            payload = await provider.complete_json(
+                comic_contents.model_prompt(text),
+                comic_contents.CONTENTS_SCHEMA,
+                budget_seconds=CONTENTS_CALL_SECONDS,
+            )
+        except Exception as error:  # noqa: BLE001 -- a reason, never a 500
+            logger.warning("comic contents: model call failed: %s", error)
+            return [], True, "model_error"
+        found = comic_contents.validate_model(payload, text)
+        return found, True, None if found else "no_match"
+
+    @router.post("/volumes/{volume_id}/contents/parse", response_model=ContentsParseOut)
+    async def parse_volume_contents(
+        volume_id: uuid.UUID,
+        body: ContentsParseIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict:
+        """Reads the volume's contents from its description and the owner's
+        pasted reprint note: rules first, then (only when they find nothing
+        and the budget allows) one validated model call. Replaces only this
+        volume's `parsed` entries; see `_apply_parsed`. The model call runs
+        before any row lock, so no lock is held across it; the write then
+        locks items first, then the volume, like its siblings."""
+        peek = await session.get(ComicVolume, volume_id)
+        if peek is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        text = "\n\n".join(
+            part.strip()
+            for part in (peek.description, body.note)
+            if part and part.strip()
+        )
+        found: list[comic_contents.Entry] = []
+        used_model, reason, rules = False, None, True
+        if not text:
+            reason = "no_text"
+        else:
+            found = comic_contents.parse_contents(text)
+            if not found:
+                rules = False  # model entries are text only, never linked
+                source_text = comic_contents.model_source(peek.description, body.note)
+                found, used_model, reason = await _model_contents(session, source_text)
+        added = removed = 0
+        volume, items = await _lock_volume(session, volume_id)
+        if reason is None or reason == "no_match":
+            title = items.get(volume.item_id)
+            if title is not None:
+                added, removed = await _apply_parsed(
+                    session, volume, title, found, may_link=rules
+                )
+            if not found:
+                reason = "no_match"
+        if found:
+            await _finish(session, items)
+            await session.refresh(volume)
+        else:
+            await session.commit()  # keep what the shim did
+        view = await _view(session, volume)
+        replaced = min(added, removed)
+        return {
+            "entries_added": added,
+            "entries_replaced": replaced,
+            "entries_removed": removed - replaced,
+            "used_model": used_model,
+            "reason": reason if not found else None,
+            "collects": view["collects"],
+        }
+
     @router.get("/volumes/{volume_id}", response_model=VolumeAdminOut)
     async def get_volume(
         volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
@@ -1804,6 +2000,21 @@ def create_comics_router(
         volume.description = "\n\n".join(issue.description) or None if issue else None
         volume.edited = True
         await session.flush()
+        title = items.get(volume.item_id)
+        if title is not None and volume.description:
+            # Rules only: a link never asks a model and never spends budget.
+            # A failure here must not fail the link, so it runs in a savepoint.
+            try:
+                async with session.begin_nested():
+                    await _apply_parsed(
+                        session,
+                        volume,
+                        title,
+                        comic_contents.parse_contents(volume.description),
+                        may_link=True,
+                    )
+            except Exception:  # noqa: BLE001 -- the link stands without it
+                logger.warning("comic contents: link parse failed", exc_info=True)
         await _finish(session, items)
         await session.refresh(volume)
         return {

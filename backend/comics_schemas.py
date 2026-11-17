@@ -387,6 +387,15 @@ class VolumeLinkIn(BaseModel):
     cv_id: int | None = Field(default=None, ge=1, le=2147483647)
 
 
+class ContentsParseIn(BaseModel):
+    """`POST /volumes/{id}/contents/parse`: the owner's pasted reprint note,
+    read along with the volume's description."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    note: Annotated[str, Field(max_length=2000)] | None = None
+
+
 class VolumeTitleOut(BaseModel):
     id: str
     title: str
@@ -513,3 +522,17 @@ class VolumeLinkOut(BaseModel):
     large_url: str | None
     description: str | None
     edited: bool
+
+
+class ContentsParseOut(BaseModel):
+    """What a contents parse did, in plain numbers, and the volume's whole
+    contents list as the admin view shows it. `reason` says why nothing was
+    added: no_text, budget, no_match or model_error (null when something was)."""
+
+    entries_added: int
+    entries_replaced: int
+    # Earlier parsed entries deleted with no new one in their place.
+    entries_removed: int = 0
+    used_model: bool
+    reason: Literal["budget", "no_match", "model_error", "no_text"] | None
+    collects: list[CollectOut]

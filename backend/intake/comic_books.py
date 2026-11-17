@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 from comics import MAX_ISSUE, RangeError, parse_ranges
+from importer import MAX_REPRINT_NOTE
 
 FORMATS = ("single", "collected", "unknown")
 EDITION_KINDS = ("trade", "omnibus", "hardcover")
@@ -134,6 +135,19 @@ def edit_book(old: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]
         raise BookEditError(
             "An edition is a trade, omnibus or hardcover.", "edition_kind"
         )
+    if "reprint_note" in new:
+        # Read off the book by the server; an edit is checked, not trusted.
+        note = new["reprint_note"]
+        if note is None:
+            note = ""
+        if not isinstance(note, str) or len(note.strip()) > MAX_REPRINT_NOTE:
+            raise BookEditError(
+                f"The reprint note is at most {MAX_REPRINT_NOTE} characters.",
+                "reprint_note",
+            )
+        out["reprint_note"] = note.strip()
+    elif old.get("reprint_note"):
+        out["reprint_note"] = old["reprint_note"]  # a payload sent without it
     if "collects_from" in new or "collects_to" in new:
         low = _whole(new.get("collects_from"), "collects_from", "The first issue")
         high = _whole(new.get("collects_to"), "collects_to", "The last issue")

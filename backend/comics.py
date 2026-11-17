@@ -799,6 +799,10 @@ class MarksResult:
         )
 
 
+# Rows per stub INSERT in sync_marks (5 binds each, far under asyncpg's 32767).
+INSERT_CHUNK = 1000
+
+
 async def sync_marks(
     session: AsyncSession,
     item: Item,
@@ -863,24 +867,28 @@ async def sync_marks(
         }
     added = 0
     if plan:
-        inserted = await session.execute(
-            insert(ComicIssue)
-            .values(
-                [
-                    {
-                        "item_id": item.id,
-                        "number": n,
-                        "owned": m.owned,
-                        "read": m.read,
-                        "skipped": m.skipped,
-                    }
-                    for n, m in plan.items()
-                ]
+        # In chunks: one multi-row INSERT of a big range (a hand-typed
+        # #1-9999) would pass asyncpg's 32767 bind-parameter limit.
+        entries = list(plan.items())
+        for start in range(0, len(entries), INSERT_CHUNK):
+            inserted = await session.execute(
+                insert(ComicIssue)
+                .values(
+                    [
+                        {
+                            "item_id": item.id,
+                            "number": n,
+                            "owned": m.owned,
+                            "read": m.read,
+                            "skipped": m.skipped,
+                        }
+                        for n, m in entries[start : start + INSERT_CHUNK]
+                    ]
+                )
+                .on_conflict_do_nothing(index_elements=["item_id", "number"])
+                .returning(ComicIssue.number)
             )
-            .on_conflict_do_nothing(index_elements=["item_id", "number"])
-            .returning(ComicIssue.number)
-        )
-        added = len(inserted.all())
+            added += len(inserted.all())
     rows = await session.scalars(
         select(ComicIssue)
         .where(ComicIssue.item_id == item.id)
