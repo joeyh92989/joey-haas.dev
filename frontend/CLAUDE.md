@@ -155,8 +155,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `backend/analytics.py` allows; built from `volumes` in the optional
   `comic-issues.json` snapshot (the old `editions` array and the
   `/editions/<slug>` endpoint are gone), in the sitemap like items, no
-  `/spine` mirror; the owner's write tools for a volume arrive with the
-  admin page) stay on the catch-all, so their prerendered heads
+  `/spine` mirror; the owner's write tools are the admin page below) stay on the catch-all, so their prerendered heads
   are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
   `og:url`, sitemap entry and feed link uses that form, built by
   `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.
@@ -207,3 +206,27 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   tokens are the one place raw colour values are allowed (a garment's colour
   is data, the same in both themes). Fixtures for new closet API bodies come
   from the backend's response shape.
+
+- **The admin Book page (#334).** `/admin/shelf/comics/:id/:slug`
+  (`AdminComicVolume.jsx`, keyed per `id/slug` in `App.jsx`) is the twin of
+  the public Book page: breadcrumb Shelf / Comics / title / book, then the
+  cover and name with the Comic Vine link (`EditionLinkPicker`, now
+  `PUT /api/comics/volumes/{id}/link`), On the shelf (Owned and Read, each a
+  `PATCH` that saves at once with a status line and Undo), Facts (one form,
+  one `PUT`), Collects (`CollectsEditor.jsx`; every action writes the whole
+  list through `PUT`, entries sent back by `id` so an untouched one keeps its
+  source; reorder has Undo, Remove asks first), the neighbouring books,
+  Move to another title and Delete. The slug resolves through
+  `GET /api/comics/{id}/volumes`, then the page reads
+  `GET /api/comics/volumes/{id}`. Every call is in `lib/volumeEdits.js`
+  (a refusal is a `VolumeError` whose `fields` come from a 422's `loc`:
+  `collects.2.link.to_number`); the words are `content/adminVolume.js`. Delete
+  is `ShelfConfirm` given a `source` (the volume's own delete preview and
+  words), never `window.confirm`. A private target title carries a Private
+  tag. The comic edit page's Editions panel is gone, and the UI no longer
+  writes `items.editions` (intake's Details step still does, until #328):
+  its **Books** panel (`BooksPanel.jsx`) lists the title's books and adds
+  one. Component tests build their bodies from
+  `e2e/fixtures/api/admin-volume*.json`, which
+  `backend/scripts/export_admin_volume_fixtures.py` writes from the real
+  response models.

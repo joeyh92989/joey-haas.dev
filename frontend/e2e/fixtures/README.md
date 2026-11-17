@@ -46,3 +46,16 @@ was written from the backend's own `PublicVolumePage` model
 it the same way when the model changes. Their series, issue and volume match
 `snapshot/comic-issues.json` (`ed-1-1` is the old edition URL, kept as a
 volume slug).
+
+### Admin volume bodies
+
+`admin-volume.json` (`GET /api/comics/volumes/{id}`), `admin-volumes.json`
+(`GET /api/comics/{id}/volumes`), `admin-volume-delete-preview.json`,
+`admin-volume-state.json` (the owned/read `PATCH`), `admin-volume-move.json`
+and `admin-volume-link.json` are not served by `page.route`: the component
+tests (`AdminComicVolume.test.jsx`, `BooksPanel.test.jsx`) import them.
+`backend/scripts/export_admin_volume_fixtures.py` writes them by validating
+invented data through the real response models in `comics_schemas.py`, so a
+key the API does not send cannot be hand-written here. Rerun it when one of
+those models changes, then `npx prettier --write e2e/fixtures/api`.
+`e2e/admin.spec.js` covers the same page against a real backend.
