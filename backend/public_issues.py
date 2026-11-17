@@ -1,5 +1,4 @@
-"""The public wall, issue page, collected-edition page and volume page of a
-comic series.
+"""The public wall, issue page and volume page of a comic series.
 
 An allowlist like public_comics.py: every field is named by hand, and a row is
 looked up by id (never by loading every public row) and then held to the same
@@ -8,7 +7,7 @@ public predicate as the rest of the comics. The run state comes from
 because nothing here reads `issues_skipped` except through that.
 
 Each builder returns None for a page that does not exist (unknown, private or
-non-comic item, an issue out of range, an unknown edition); the route turns
+non-comic item, an issue out of range, an unknown volume); the route turns
 that into a 404.
 """
 
@@ -20,7 +19,7 @@ from datetime import date
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 
@@ -113,53 +112,9 @@ class PublicIssuePage(BaseModel):
     source_url: str
 
 
-class PublicEditionLink(BaseModel):
-    slug: str
-    label: str
-
-
-class PublicEditionNext(BaseModel):
-    """The next edition (slug and label), or after the last one the first
-    issue after it (number)."""
-
-    slug: str | None = None
-    label: str | None = None
-    number: int | None = None
-
-
-class PublicEditionPage(BaseModel):
-    """GET /api/public/items/{id}/editions/{slug}."""
-
-    series_id: uuid.UUID
-    series_title: str
-    publisher: str | None
-    slug: str
-    kind: str
-    label: str
-    from_issue: int
-    to_issue: int
-    cover_url: str | None
-    large_url: str | None
-    description: list[str]
-    state: str
-    # all, to or not-yet.
-    read: str
-    read_to: int | None
-    inside: list[PublicNeighbour]
-    prev: PublicEditionLink | None
-    next: PublicEditionNext | None
-    source_url: str | None
-
-
 class PublicComicIndexIssue(BaseModel):
     number: int
     name: str | None
-    cover_url: str | None
-
-
-class PublicComicIndexEdition(BaseModel):
-    slug: str
-    label: str
     cover_url: str | None
 
 
@@ -172,14 +127,13 @@ class PublicComicIndexVolume(BaseModel):
 
 
 class PublicComicIndex(BaseModel):
-    """GET /api/public/comic-issues: the build's list of issue, edition and
-    volume pages, for their link-preview heads. No state, ownership or skip.
-    `editions` stays until the prerender reads `volumes` (a later cleanup)."""
+    """GET /api/public/comic-issues: the build's list of issue and volume
+    pages, for their link-preview heads. No state, ownership or skip. The old
+    `ed-<from>-<to>` URLs are volumes whose slug kept that name."""
 
     item_id: uuid.UUID
     series_title: str
     issues: list[PublicComicIndexIssue]
-    editions: list[PublicComicIndexEdition]
     volumes: list[PublicComicIndexVolume]
 
 
@@ -472,92 +426,6 @@ async def build_issue_page(
     )
 
 
-async def build_edition_page(
-    session: AsyncSession, item_id: uuid.UUID, slug: str, today: date
-) -> PublicEditionPage | None:
-    item = await _public_comic(session, item_id)
-    if item is None:
-        return None
-    editions = _editions(item)
-    slugs = edition_slugs(editions)
-    if slug not in slugs:
-        return None
-    index = slugs.index(slug)
-    edition = editions[index]
-    low, high = edition["from"], edition["to"]
-    series = series_of(item)
-    released = series.run().released
-    upcoming = _upcoming(series, today)
-    around = await load_issues(session, item.id, low, high + 1, include_stubs=True)
-    held = _held(series, around)
-    rows = {
-        row.number: row
-        for row in around
-        if row.cv_id is not None and row.number <= high
-    }
-    collected = [rows[n] for n in range(low, high + 1) if n in rows]
-    cover = edition.get("cover_url") or next(
-        (r.cover_url for r in collected if r.cover_url), None
-    )
-    large = edition.get("large_url") or next(
-        (r.large_url for r in collected if r.large_url), None
-    )
-    # Read from the marks: every book inside, or the unbroken run from its
-    # first book.
-    shown = None
-    for n in range(low, high + 1):
-        if not held.get(n):
-            break
-        shown = n
-    if shown == high:
-        read = "all"
-    elif shown is not None:
-        read = "to"
-    else:
-        read, shown = "not-yet", None
-    after = high + 1
-    if index + 1 < len(editions):
-        following = PublicEditionNext(
-            slug=slugs[index + 1], label=editions[index + 1]["label"]
-        )
-    elif _state(after, held, released, upcoming):
-        following = PublicEditionNext(number=after)
-    else:
-        following = None
-    description = edition.get("description")
-    return PublicEditionPage(
-        series_id=item.id,
-        series_title=item.title,
-        publisher=series.publisher,
-        slug=slug,
-        kind=edition["kind"],
-        label=edition["label"],
-        from_issue=low,
-        to_issue=high,
-        cover_url=cover,
-        large_url=large,
-        description=list(description) if isinstance(description, list) else [],
-        state="read" if read == "all" else "owned",
-        read=read,
-        read_to=shown,
-        inside=[
-            PublicNeighbour(
-                number=n,
-                cover_url=rows[n].cover_url if n in rows else None,
-                state=_state(n, held, released, upcoming) or "owned",
-            )
-            for n in range(low, high + 1)
-        ],
-        prev=(
-            PublicEditionLink(slug=slugs[index - 1], label=editions[index - 1]["label"])
-            if index > 0
-            else None
-        ),
-        next=following,
-        source_url=_comic_vine_url(item),
-    )
-
-
 def _line_order(volume: ComicVolume) -> tuple:
     """A book's place in its title's line: numbered books by number, the rest
     after them, ties by position."""
@@ -581,40 +449,51 @@ def _paragraphs(text: str | None) -> list[str]:
     return [p.strip() for p in (text or "").split("\n\n") if p.strip()]
 
 
-async def _linkable_items(
-    session: AsyncSession, item_ids: set[uuid.UUID]
-) -> set[uuid.UUID]:
-    """Of these titles, the public comics with at least one synced issue row
-    (a Comic Vine id): the only ones a collects entry may link to."""
-    if not item_ids:
-        return set()
-    synced = exists().where(
-        ComicIssue.item_id == Item.id, ComicIssue.cv_id.is_not(None)
-    )
-    result = await session.scalars(
-        select(Item.id).where(
-            Item.id.in_(item_ids),
-            Item.is_public.is_(True),
-            Item.type == ItemType.COMIC,
-            synced,
+async def _linkable_numbers(
+    session: AsyncSession, item_ids: set[uuid.UUID], today: date
+) -> dict[uuid.UUID, list[int]]:
+    """For each of these titles that is a public comic, the issue numbers a
+    collects entry may link to: those whose issue page exists (the rule of the
+    issue route, `_page_numbers`) and that Comic Vine has synced. A skip is
+    deliberately not read: it changes no public body, so it must not change a
+    link either. A title missing from the result is not linkable at all."""
+    out: dict[uuid.UUID, list[int]] = {}
+    for item_id in sorted(item_ids, key=str):
+        item = await _public_comic(session, item_id)
+        if item is None:
+            continue
+        series = series_of(item)
+        rows = await load_issues(session, item.id, include_stubs=True)
+        held = _held(series, rows)
+        pages = set(
+            _page_numbers(held, series.run().released, _upcoming(series, today))
         )
-    )
-    return set(result)
+        out[item.id] = sorted(
+            r.number for r in rows if r.cv_id is not None and r.number in pages
+        )
+    return out
 
 
 def _link(
-    entry: ComicVolumeCollect, linkable: set[uuid.UUID]
+    entry: ComicVolumeCollect, linkable: dict[uuid.UUID, list[int]]
 ) -> PublicVolumeLink | None:
+    """The entry's range cut to the issue numbers that have a page: from the
+    first to the last of them inside it, or no link when none is."""
     low, high = entry.from_number, entry.to_number
     if entry.item_id is None or entry.item_id not in linkable:
         return None
     if low is None or high is None or not 1 <= low <= high <= MAX_ISSUE:
         return None
-    return PublicVolumeLink(item_id=entry.item_id, from_number=low, to_number=high)
+    inside = [n for n in linkable[entry.item_id] if low <= n <= high]
+    if not inside:
+        return None
+    return PublicVolumeLink(
+        item_id=entry.item_id, from_number=inside[0], to_number=inside[-1]
+    )
 
 
 async def build_volume_page(
-    session: AsyncSession, item_id: uuid.UUID, slug: str
+    session: AsyncSession, item_id: uuid.UUID, slug: str, today: date
 ) -> PublicVolumePage | None:
     """One owned volume of a public comic title. None (a 404) for a private
     or unknown title, an unknown slug or a volume that is not owned, all alike."""
@@ -638,8 +517,8 @@ async def build_volume_page(
             .order_by(ComicVolumeCollect.position, ComicVolumeCollect.id)
         )
     )
-    linkable = await _linkable_items(
-        session, {e.item_id for e in entries if e.item_id is not None}
+    linkable = await _linkable_numbers(
+        session, {e.item_id for e in entries if e.item_id is not None}, today
     )
     return PublicVolumePage(
         title=PublicVolumeTitle(
@@ -680,7 +559,7 @@ async def load_comic_index(
     session: AsyncSession, today: date
 ) -> list[PublicComicIndex]:
     """Every public series with the issue numbers that have a page (the same
-    rule as the issue route: `_state` is non-empty) and its editions. The
+    rule as the issue route: `_state` is non-empty) and its owned volumes. The
     issues of all series come in one query."""
     items = await public_comic_items(session)
     by_item: dict[uuid.UUID, dict[int, ComicIssue]] = {item.id: {} for item in items}
@@ -712,7 +591,6 @@ async def load_comic_index(
         # Names and covers come only from Comic Vine's rows, never a stub.
         rows = {n: r for n, r in every.items() if r.cv_id is not None}
         numbers = _page_numbers(held, released, upcoming)
-        editions = _editions(item)
         out.append(
             PublicComicIndex(
                 item_id=item.id,
@@ -724,16 +602,6 @@ async def load_comic_index(
                         cover_url=rows[n].cover_url if n in rows else None,
                     )
                     for n in numbers
-                ],
-                editions=[
-                    PublicComicIndexEdition(
-                        slug=slug,
-                        label=edition["label"],
-                        cover_url=_edition_cover(edition, rows),
-                    )
-                    for slug, edition in zip(
-                        edition_slugs(editions), editions, strict=True
-                    )
                 ],
                 volumes=[
                     PublicComicIndexVolume(

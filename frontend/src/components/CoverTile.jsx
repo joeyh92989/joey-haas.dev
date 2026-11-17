@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
 import { monthYear } from '../lib/comics.js'
-import { editionPath, issuePath } from '../lib/spinePaths.js'
+import { volumePath, issuePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
 
 const WALL = spine.comics.wall
@@ -124,7 +124,7 @@ function BookLink({ tile, series, linked }) {
   }
   return (
     <Link
-      to={editionPath(series.id, tile.slug)}
+      to={volumePath(series.id, tile.slug)}
       className="cover-tile book-tile"
       data-size="wall"
       data-state="book"

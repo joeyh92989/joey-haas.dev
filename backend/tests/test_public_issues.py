@@ -1,4 +1,4 @@
-"""The public wall, issue page and edition page (spec: comic issue pages).
+"""The public wall, issue page and volume page (spec: comic issue pages).
 Only public rows; a skip changes no body."""
 
 import json
@@ -26,10 +26,8 @@ from models import (
 from public import create_public_router
 from public_issues import (
     PublicComicIndex,
-    PublicComicIndexEdition,
     PublicComicIndexIssue,
     PublicComicIndexVolume,
-    PublicEditionPage,
     PublicIssuePage,
     PublicVolumeBody,
     PublicVolumeCollect,
@@ -60,11 +58,6 @@ ISSUE_FIELDS = {
     "cover_date", "cover_url", "large_url", "description", "state", "owned",
     "read", "held_as",
     "edition", "released", "ongoing", "neighbours", "source_url",
-}  # fmt: skip
-EDITION_FIELDS = {
-    "series_id", "series_title", "publisher", "slug", "kind", "label",
-    "from_issue", "to_issue", "cover_url", "large_url", "description", "state",
-    "read", "read_to", "inside", "prev", "next", "source_url",
 }  # fmt: skip
 
 
@@ -165,7 +158,6 @@ async def _get(factory, path):
 async def test_the_models_publish_exactly_these_fields():
     assert set(PublicWall.model_fields) == WALL_FIELDS
     assert set(PublicIssuePage.model_fields) == ISSUE_FIELDS
-    assert set(PublicEditionPage.model_fields) == EDITION_FIELDS
 
 
 async def test_wall_lists_issues_and_editions_in_order(sessionmaker_for_test):
@@ -278,7 +270,6 @@ async def test_list_reads_do_not_load_the_description(
     item_id = await _seed(sessionmaker_for_test)
     for path in (
         f"/api/public/items/{item_id}/issues",
-        f"/api/public/items/{item_id}/editions/ed-5-6",
         "/api/public/comic-issues",
     ):
         statements.clear()
@@ -360,89 +351,20 @@ async def test_issue_page_404s(sessionmaker_for_test):
         f"/api/public/items/{item_id}/issues/{'9' * 5000}",
         f"/api/public/items/{private}/issues/1",
         f"/api/public/items/{private}/issues",
-        f"/api/public/items/{private}/editions/ed-5-6",
+        f"/api/public/items/{private}/volumes/ed-5-6",
         f"/api/public/items/{game}/issues/1",
         f"/api/public/items/{game}/issues",
         f"/api/public/items/{uuid.uuid4()}/issues/1",
         f"/api/public/items/{uuid.uuid4()}/issues",
-        f"/api/public/items/{item_id}/editions/ed-1-2",
+        f"/api/public/items/{item_id}/volumes/ed-1-2",
+        f"/api/public/items/{item_id}/editions/ed-5-6",  # the old route is gone
     ]
     for path in paths:
         assert (await _get(sessionmaker_for_test, path)).status_code == 404, path
 
 
-async def test_edition_page_prev_next_and_inside(sessionmaker_for_test):
-    item_id = await _seed(sessionmaker_for_test)
-    first = (
-        await _get(
-            sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-6"
-        )
-    ).json()
-    assert set(first) == EDITION_FIELDS
-    assert (first["kind"], first["label"]) == ("Trade paperback", "Volume Two")
-    assert (first["from_issue"], first["to_issue"]) == (5, 6)
-    assert first["cover_url"] == "https://cv.test/m5.jpg"
-    assert first["large_url"] == "https://cv.test/l5.jpg"
-    assert first["description"] == []
-    assert first["state"] == "owned"
-    assert (first["read"], first["read_to"]) == ("not-yet", None)
-    assert [(n["number"], n["state"]) for n in first["inside"]] == [
-        (5, "owned"),
-        (6, "owned"),
-    ]
-    assert first["prev"] is None
-    assert first["next"] == {"slug": "ed-5-6-2", "label": "Deluxe", "number": None}
-    assert first["source_url"] == CV_URL
-    last = (
-        await _get(
-            sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-6-2"
-        )
-    ).json()
-    assert last["prev"] == {"slug": "ed-5-6", "label": "Volume Two"}
-    # After the last edition: the first issue after it.
-    assert last["next"] == {"slug": None, "label": None, "number": 7}
-    assert COMIC_FORBIDDEN.isdisjoint(set(_keys(first)) | set(_keys(last)))
-
-
-async def test_edition_read_states_and_linked_description(sessionmaker_for_test):
-    item = _series(
-        read_to=5,
-        editions=[
-            {
-                "kind": "TPB",
-                "label": "V",
-                "from": 5,
-                "to": 8,
-                "cv_id": 4,
-                "cover_url": "https://cv.test/e.jpg",
-                "large_url": "https://cv.test/E.jpg",
-                "description": ["Collects it."],
-            },
-        ],  # fmt: skip
-    )
-    item_id = await _seed(sessionmaker_for_test, item)
-    body = (
-        await _get(
-            sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-8"
-        )
-    ).json()
-    assert (body["read"], body["read_to"], body["state"]) == ("to", 5, "owned")
-    assert body["description"] == ["Collects it."]
-    assert body["cover_url"] == "https://cv.test/e.jpg"
-    async with sessionmaker_for_test() as session:
-        row = (await session.execute(select(Item))).scalars().first()
-        row.read_to = 8
-        await session.commit()
-    body = (
-        await _get(
-            sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-8"
-        )
-    ).json()
-    assert (body["read"], body["read_to"], body["state"]) == ("all", 8, "read")
-
-
 async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
-    """Skipping #7 changes neither the wall nor any issue or edition page."""
+    """Skipping #7 changes neither the wall nor any issue page."""
     item_id = await _seed(sessionmaker_for_test)
     paths = [
         f"/api/public/items/{item_id}/issues",
@@ -450,8 +372,6 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
         f"/api/public/items/{item_id}/issues/7",
         f"/api/public/items/{item_id}/issues/8",
         f"/api/public/items/{item_id}/issues/9",
-        f"/api/public/items/{item_id}/editions/ed-5-6",
-        f"/api/public/items/{item_id}/editions/ed-5-6-2",
     ]
 
     async def bodies():
@@ -470,15 +390,13 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
     assert await bodies() == before
 
 
-INDEX_FIELDS = {"item_id", "series_title", "issues", "editions", "volumes"}
+INDEX_FIELDS = {"item_id", "series_title", "issues", "volumes"}
 INDEX_ISSUE_FIELDS = {"number", "name", "cover_url"}
-INDEX_EDITION_FIELDS = {"slug", "label", "cover_url"}
 
 
 async def test_the_index_models_publish_exactly_these_fields():
     assert set(PublicComicIndex.model_fields) == INDEX_FIELDS
     assert set(PublicComicIndexIssue.model_fields) == INDEX_ISSUE_FIELDS
-    assert set(PublicComicIndexEdition.model_fields) == INDEX_EDITION_FIELDS
 
 
 async def test_the_index_lists_public_series_with_pages_only(sessionmaker_for_test):
@@ -507,10 +425,7 @@ async def test_the_index_lists_public_series_with_pages_only(sessionmaker_for_te
     }  # fmt: skip
     # No stored row for #8 and #9: a page with no name or cover.
     assert row["issues"][7] == {"number": 8, "name": None, "cover_url": None}
-    assert [e["slug"] for e in row["editions"]] == ["ed-5-6", "ed-5-6-2"]
-    assert all(set(e) == INDEX_EDITION_FIELDS for e in row["editions"])
-    assert row["editions"][0]["label"] == "Volume Two"
-    assert row["editions"][0]["cover_url"] == "https://cv.test/m5.jpg"
+    assert row["volumes"] == []  # no volume rows seeded here
     assert COMIC_FORBIDDEN.isdisjoint(set(_keys(body)))
 
 
@@ -546,8 +461,6 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
     paths = [
         "/api/public/comic-issues",
         *(f"/api/public/items/{item_id}/issues/{n}" for n in range(1, 10)),
-        f"/api/public/items/{item_id}/editions/ed-5-6",
-        f"/api/public/items/{item_id}/editions/ed-5-6-2",
     ]
 
     async def bodies():
@@ -857,11 +770,10 @@ async def test_an_edition_origin_slug_resolves(sessionmaker_for_test):
     second = (await _get(sessionmaker_for_test, _vol_path(item_id, "ed-5-6-2"))).json()
     assert second["volume"]["kind"] == "hardcover"
     assert second["prev"]["slug"] == "ed-5-6"
-    # The old endpoint is untouched by this: still a 404 without an edition.
     old = await _get(
         sessionmaker_for_test, f"/api/public/items/{item_id}/editions/ed-5-6"
     )
-    assert old.status_code == 200
+    assert old.status_code == 404  # the edition route is gone; volumes serve it
 
 
 async def test_prev_and_next_follow_the_line_over_owned_volumes(
@@ -976,6 +888,80 @@ async def test_the_index_carries_owned_volumes_of_public_titles(
         "slug": "vol-1", "label": "Book 1", "kind": "trade", "line_number": 1,
         "cover_url": "https://cv.test/v1.jpg",
     }  # fmt: skip
-    # `editions` stays until the prerender has moved over.
-    assert "editions" in row
+    assert "editions" not in row  # the volumes serve the old ed-* URLs
     assert COMIC_FORBIDDEN.isdisjoint(set(_keys(body)))
+
+
+async def _linked(factory, *ranges, item=None, issues=(1, 2, 3), extra=()):
+    """A volume whose collects link the same title over each (from, to) in
+    `ranges`; returns the links the page publishes, in order. `extra` adds
+    rows (stubs, skipped, far numbers) to the title first."""
+    item_id, (volume_id,) = await _seed_volumes(
+        factory, lambda i: _volume(i, "vol-1", 1), item=item, issues=issues
+    )
+    async with factory() as session:
+        session.add_all(extra_row(item_id) for extra_row in extra)
+        session.add_all(
+            _collect(volume_id, n, item_id=item_id, from_number=low, to_number=high)
+            for n, (low, high) in enumerate(ranges, 1)
+        )
+        await session.commit()
+    body = (await _get(factory, _vol_path(item_id, "vol-1"))).json()
+    return [c["link"] for c in body["collects"]]
+
+
+def _link_of(item_id_link):
+    return None if item_id_link is None else (
+        item_id_link["from_number"], item_id_link["to_number"]
+    )  # fmt: skip
+
+
+async def test_a_link_range_is_clamped_to_issues_with_a_page(sessionmaker_for_test):
+    """Synced rows 1-3 (released 8, #9 dated ahead): a range past the last
+    synced number ends at it; a range wholly past it, or on stubs, links
+    nowhere; a partly overlapping one starts at its first real number."""
+    stub = lambda i: _row(i, 4, cv_id=None, name=None, cover_url=None)  # noqa: E731
+    links = await _linked(
+        sessionmaker_for_test,
+        (1, 6),  # past the last synced issue
+        (5, 7),  # no synced row at all
+        (3, 7),  # partly overlapping
+        (4, 4),  # a stub is not synced
+        (2, 2),  # inside
+        extra=(stub,),
+    )
+    assert [_link_of(link) for link in links] == [
+        (1, 3), None, (3, 3), None, (2, 2),
+    ]  # fmt: skip
+
+
+async def test_a_link_skips_gaps_but_keeps_the_first_and_last(sessionmaker_for_test):
+    links = await _linked(sessionmaker_for_test, (1, 5), issues=(2, 3, 5, 7), extra=())
+    # 1 and 4 are not synced: the link runs from the first to the last real one.
+    assert [_link_of(link) for link in links] == [(2, 5)]
+
+
+async def test_a_link_reaches_the_next_dated_issue_but_no_further(
+    sessionmaker_for_test,
+):
+    # #9 is dated ahead (a page); #10 and #12 are Comic Vine rows with none.
+    links = await _linked(
+        sessionmaker_for_test,
+        (8, 12),
+        (10, 12),
+        issues=(1, 2, 9, 10, 12),
+    )
+    assert [_link_of(link) for link in links] == [(9, 9), None]
+
+
+async def test_a_skipped_range_links_exactly_as_if_it_were_not(
+    sessionmaker_for_test,
+):
+    """A skip is private: the link may neither vanish nor shrink because of
+    it (the issue page for a skipped number is a plain 'missing')."""
+    plain = await _linked(sessionmaker_for_test, (1, 3))
+    skipped = await _linked(
+        sessionmaker_for_test, (1, 3), item=_series(issues_skipped="1-3")
+    )
+    assert [_link_of(link) for link in plain] == [(1, 3)]
+    assert [_link_of(link) for link in skipped] == [(1, 3)]

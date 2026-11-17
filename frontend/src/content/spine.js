@@ -874,25 +874,37 @@ export const spine = {
         inEdition: (label) => `In ${label}. Edit editions on the comic’s page.`,
       },
     },
-    /** The public collected-edition page, /shelf/:id/ed-<from>-<to>/. */
-    edition: {
-      fallbackTitle: 'Collected edition',
+    /** The public book page, /shelf/:id/<slug>/ (`vol-<n>` and `ed-<from>-<to>`). */
+    volume: {
+      fallbackTitle: 'Book',
       title: (series, label) => `${series}, ${label}`,
-      kicker: (kind, from, to) =>
-        `${kind} · collects ${from === to ? `#${from}` : `#${from}–${to}`}`,
       coverAlt: (series, label) => `Cover of ${series}, ${label}`,
-      facts: { collects: 'Collects', format: 'Format', read: 'Read' },
-      collects: (from, to) => (from === to ? `#${from}` : `#${from}–${to}`),
-      read: { all: 'All of it', to: (n) => `To #${n}`, notYet: 'Not yet' },
-      inside: 'Inside this book',
+      facts: {
+        format: 'Format',
+        number: 'Number',
+        pages: 'Pages',
+        isbn: 'ISBN',
+      },
+      /** The `kind` column, in words. An unknown kind shows as written. */
+      kinds: {
+        trade: 'Trade paperback',
+        hardcover: 'Hardcover',
+        omnibus: 'Omnibus',
+        compendium: 'Compendium',
+        ogn: 'Original graphic novel',
+      },
+      number: (n) => `Vol. ${n}`,
+      collects: 'Collects',
+      collectsEmpty: 'What’s inside hasn’t been added yet.',
       previous: 'Previous',
       next: 'Next',
-      neighbours: 'Neighboring editions',
+      first: 'This is the first book.',
+      last: 'This is the last book.',
+      neighbours: 'Neighboring books',
       owner: {
-        owned: 'Owned ✓',
         readToEnd: 'Read to the end',
         readDone: 'Read to the end ✓',
-        edit: 'Edit edition',
+        edit: 'Edit book',
       },
     },
     empty: 'No comics on the shelf yet.',

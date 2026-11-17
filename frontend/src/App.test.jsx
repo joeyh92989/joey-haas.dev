@@ -227,7 +227,7 @@ describe('App page titles', () => {
     )
   })
 
-  // /shelf/:id/:part serves only a canonical issue number or edition slug.
+  // /shelf/:id/:part serves only a canonical issue number, edition or volume slug.
   it.each([
     'abc',
     '058',
@@ -238,6 +238,11 @@ describe('App page titles', () => {
     'ed-1-6-1',
     'ed-1-6x',
     'ed-1',
+    'vol-0',
+    'vol-01',
+    'vol-12345',
+    'vol-1x',
+    'vol-',
   ])('sends /shelf/42/%s/ to NotFound', async (part) => {
     renderAt(`/shelf/42/${part}/`)
     await waitFor(() => expect(document.title).toBe('Not found · Joey Haas'))

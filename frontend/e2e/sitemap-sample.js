@@ -8,13 +8,13 @@ export const ID = '[0-9a-f]{8}-[0-9a-f-]{27}'
 
 /**
  * One path pattern per dynamic route kind, in the order `sampleRoutes`
- * returns them: shelf item, year, month, edition, issue, blog, TIL, travel.
+ * returns them: shelf item, year, month, volume, issue, blog, TIL, travel.
  */
 export const KINDS = [
   new RegExp(`^/shelf/${ID}/$`),
   /^\/shelf\/year\/[^/]+\/$/,
   /^\/shelf\/journal\/[^/]+\/$/,
-  new RegExp(`^/shelf/${ID}/ed-[^/]+/$`),
+  new RegExp(`^/shelf/${ID}/(?:ed|vol)-[^/]+/$`),
   new RegExp(`^/shelf/${ID}/\\d+/$`),
   /^\/blog\/[^/]+\/$/,
   /^\/til\/[^/]+\/$/,
@@ -26,7 +26,7 @@ export const SHELF_KINDS = {
   item: KINDS[0],
   year: KINDS[1],
   month: KINDS[2],
-  edition: KINDS[3],
+  volume: KINDS[3],
   issue: KINDS[4],
 }
 

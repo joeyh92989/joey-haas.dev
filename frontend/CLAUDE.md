@@ -148,10 +148,15 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
   pages exactly. `/shelf/:id`, `/shelf/year/:year` and
-  `/shelf/journal/:month`, and the comic issue and edition pages
-  (`/shelf/<id>/<n>`, `/shelf/<id>/<slug>`, from the optional
-  `comic-issues.json` snapshot, in the sitemap like items, no `/spine`
-  mirror) stay on the catch-all, so their prerendered heads
+  `/shelf/journal/:month`, and the comic issue and volume pages
+  (`/shelf/<id>/<n>`, `/shelf/<id>/<slug>` where the slug is `vol-<n>` or an
+  old `ed-<from>-<to>`; `ComicVolume.jsx` serves both, and `App.jsx`'s
+  `ShelfPart` accepts exactly those two shapes, the same ones
+  `backend/analytics.py` allows; built from `volumes` in the optional
+  `comic-issues.json` snapshot (the old `editions` array and the
+  `/editions/<slug>` endpoint are gone), in the sitemap like items, no
+  `/spine` mirror; the owner's write tools for a volume arrive with the
+  admin page) stay on the catch-all, so their prerendered heads
   are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
   `og:url`, sitemap entry and feed link uses that form, built by
   `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.

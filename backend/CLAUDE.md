@@ -25,7 +25,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   404. The admin suite runs against its own `joeyhaas_e2e` database, never the
   pytest one. CI covers one page per dynamic shelf route from
   `frontend/e2e/fixtures/` (synthetic; keep in step with `fetch-snapshot.mjs`
-  and the issue/edition endpoints).
+  and the issue/volume endpoints).
 
 ## Closet
 
@@ -498,9 +498,9 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
   an edit that changes the edition's range changes its slug and unlinks it.
   Public reads: `GET /api/public/items/{id}/issues`, `/issues/{n}`,
-  `/editions/{slug}`, and `GET /api/public/comic-issues` (the snapshot the
+  `/volumes/{slug}`, and `GET /api/public/comic-issues` (the snapshot the
   build prerenders from). Frontend routes `/shelf/<id>/<n>/` and
-  `/shelf/<id>/ed-<from>-<to>/`; the cover wall replaces `RunBox` on the
+  `/shelf/<id>/<slug>/` (`ed-<from>-<to>` or `vol-<n>`; `ComicVolume.jsx`); the cover wall replaces `RunBox` on the
   public series page when issue rows exist (no toggle there; `RunBox` is
   unchanged otherwise); the owner's range edits are shared in
   `lib/comicEdits.js`. **Deploy order:** apply `0016` to Neon, merge, then
@@ -535,9 +535,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
   `comics.volume_counts`); only the admin wall passes them until #329. Admin
   surfaces (`_state`, the pull list, the item list's `comic_run`) count the
-  owned volumes (`load_holds_many`); the public readers stay on
-  `items.editions`, the mirror, until #329, so an un-owned `ed-*` volume still
-  shows publicly until then. **Known limits (follow-ups):** (1) a cross-series
+  owned volumes (`load_holds_many`); the public wall and issue
+  page still read `items.editions`, the mirror; the volume page and the index
+  read the volumes only, so an un-owned `ed-*` volume no longer shows on a book
+  page. **Known limits (follow-ups):** (1) a cross-series
   re-sync has no trigger when a collects row is deleted or repointed or a
   volume is deleted (no delete route yet), so #334 must re-sync every touched
   item; (2) the shim overwrites an `ed-*` volume's label, kind, description,
@@ -554,15 +555,21 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   URLs keep working); a private title, an unknown slug and a volume not owned
   are the same 404 body. Collects come in order with `series_name` and
   `issue_text` as written; `link` is `{item_id, from_number, to_number}` only
-  when the entry is linked to a public comic that has synced issue rows (a
-  `comic_issues` row with a `cv_id`) and both bounds are set, else null (plain
-  text); the entry's `source` and any private title's id never leave. `prev`/
+  when the entry is linked to a public comic and both bounds are set, and its
+  range is clamped to the numbers whose issue page exists (`_page_numbers`:
+  held, released or the next dated issue) AND that Comic Vine has synced (a
+  `comic_issues` row with a `cv_id`): `from_number`/`to_number` are the first
+  and last such numbers inside the entry's range, and no such number means
+  null (plain text). A skip is deliberately not read, so it changes no link
+  (a skipped number's page is a plain "missing"); the entry's `source` and any private title's id never leave. `prev`/
   `next` walk the title's owned volumes by `line_number` (null last), then
-  `position`. `description` is paragraphs (split on a blank line), like the
-  edition page. `GET /api/public/comic-issues` rows gained `volumes` (owned
-  volumes of a public title: slug, label, kind, line_number, cover_url);
-  `editions` stays until the prerender reads `volumes` (#329 PR 3b), then a
-  cleanup drops it. `/editions/{slug}` is unchanged. Both tables join the
+  `position`. `description` is paragraphs (split on a blank line). `GET
+  /api/public/comic-issues` rows carry `volumes` (owned volumes of a public
+  title: slug, label, kind, line_number, cover_url) and no `editions`; the old
+  `GET /api/public/items/{id}/editions/{slug}` endpoint is gone (#329 PR 3b),
+  because migrated `ed-*` volumes keep their slug and serve the same URLs (it
+  also ignored `comic_volumes.owned`). The prerender reads `volumes`. The wall
+  (`/issues`) still lists `editions` for its book tiles. Both tables join the
   `/api/public/next` fingerprint (`public_next_cache`). `analytics.py`
   counts `/shelf/<id>/vol-<n>` (the `vol-[1-9][0-9]{0,3}` part, beside `ed-*`,
   in `_PATTERNS` and `ITEM_PATH`); App.jsx must accept the same part when the
@@ -597,7 +604,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `read_to` marks every owned issue up to it read and clears those above.
   **`POST /api/comics/{id}/issues/{n}/mark`** `{state: missing | owned |
   read, to?}` is the one write behind every tap (series page wall, issue
-  page, admin comic page, the edition page's Read to the end with `to`):
+  page, admin comic page, the book page's Read to the end with `to`):
   owned adds the single and clears a skip, read is owned plus read, missing
   removes the single and its read mark; a book held only in an edition
   can't go missing (409 "In <volume label>. Edit the volume to change it.",

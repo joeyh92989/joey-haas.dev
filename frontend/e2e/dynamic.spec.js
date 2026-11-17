@@ -6,7 +6,7 @@ import { KNOWN_A11Y } from './known-a11y.js'
 import { SHELF_KINDS, sitemapPaths } from './sitemap-sample.js'
 
 /**
- * One page of each dynamic shelf route kind (item, year, month, edition,
+ * One page of each dynamic shelf route kind (item, year, month, volume,
  * issue), picked from the built sitemap. CI builds with the synthetic
  * snapshot in e2e/fixtures/snapshot, so every kind exists there at a fixed
  * path and the exact fixture titles are asserted. Any other build (real
@@ -25,7 +25,7 @@ const apiFixture = (name) =>
  * Per kind: the fixture's fixed path (ids are fixed in e2e/fixtures/snapshot),
  * the h1 it should produce, and the live endpoint (if any) the page reads,
  * served from e2e/fixtures/api. Item, year and month pages paint from the
- * snapshot; issue and edition pages have no snapshot read.
+ * snapshot; issue and volume pages have no snapshot read.
  */
 const SERIES = '/shelf/22222222-bbbb-4bbb-8bbb-000000000002'
 const EXPECTED = {
@@ -40,10 +40,10 @@ const EXPECTED = {
     h1: /Paper Moons #1 · First Light/,
     api: ['**/api/public/items/*/issues/*', 'issue.json'],
   },
-  edition: {
+  volume: {
     path: `${SERIES}/ed-1-1/`,
-    h1: /Paper Moons, Volume One/,
-    api: ['**/api/public/items/*/editions/*', 'edition.json'],
+    h1: /^Volume One$/,
+    api: ['**/api/public/items/*/volumes/*', 'volume.json'],
   },
 }
 

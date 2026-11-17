@@ -11,7 +11,7 @@ import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges } from '../lib/comics.js'
 import { formatDate } from '../lib/formatDate.js'
-import { editionPath, itemPath } from '../lib/spinePaths.js'
+import { volumePath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { SAVED_NOT_REFRESHED } from '../content/status.js'
@@ -187,7 +187,7 @@ export default function ComicIssue({ id, n }) {
               <Link
                 className="state-pill"
                 data-state="book"
-                to={editionPath(page.series_id, page.edition.slug)}
+                to={volumePath(page.series_id, page.edition.slug)}
               >
                 {COPY.inEdition(page.edition.label)}
               </Link>

@@ -21,12 +21,8 @@ from public_comics import (
 )
 from public_issues import (
     PublicComicIndex,
-    PublicComicIndexEdition,
     PublicComicIndexIssue,
     PublicComicIndexVolume,
-    PublicEditionLink,
-    PublicEditionNext,
-    PublicEditionPage,
     PublicIssueEdition,
     PublicIssuePage,
     PublicNeighbour,
@@ -201,7 +197,7 @@ async def test_the_comic_models_publish_exactly_these_fields():
 
 
 async def test_the_issue_page_models_publish_exactly_these_fields():
-    """The issue and edition pages: no skip, price, store link or private id.
+    """The issue and volume pages: no skip, price, store link or private id.
     COMIC_FORBIDDEN holds for every field name, nested models included."""
     assert set(PublicWall.model_fields) == {
         "series_title", "publisher", "issues", "editions",
@@ -220,15 +216,8 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "state", "owned", "read", "held_as", "edition", "released", "ongoing",
         "neighbours", "source_url",
     }  # fmt: skip
-    assert set(PublicEditionLink.model_fields) == {"slug", "label"}
-    assert set(PublicEditionNext.model_fields) == {"slug", "label", "number"}
-    assert set(PublicEditionPage.model_fields) == {
-        "series_id", "series_title", "publisher", "slug", "kind", "label",
-        "from_issue", "to_issue", "cover_url", "large_url", "description",
-        "state", "read", "read_to", "inside", "prev", "next", "source_url",
-    }  # fmt: skip
     assert set(PublicComicIndex.model_fields) == {
-        "item_id", "series_title", "issues", "editions", "volumes",
+        "item_id", "series_title", "issues", "volumes",
     }  # fmt: skip
     assert set(PublicComicIndexVolume.model_fields) == {
         "slug", "label", "kind", "line_number", "cover_url",
@@ -253,12 +242,10 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "slug", "label", "line_number",
     }  # fmt: skip
     assert set(PublicComicIndexIssue.model_fields) == {"number", "name", "cover_url"}
-    assert set(PublicComicIndexEdition.model_fields) == {"slug", "label", "cover_url"}
     for model in (
-        PublicComicIndex, PublicComicIndexIssue, PublicComicIndexEdition,
+        PublicComicIndex, PublicComicIndexIssue,
         PublicWall, PublicWallIssue, PublicWallEdition, PublicNeighbour,
-        PublicIssueEdition, PublicIssuePage, PublicEditionLink,
-        PublicEditionNext, PublicEditionPage, PublicComicIndexVolume,
+        PublicIssueEdition, PublicIssuePage, PublicComicIndexVolume,
         PublicVolumePage, PublicVolumeTitle, PublicVolumeBody,
         PublicVolumeCollect, PublicVolumeLink, PublicVolumeNeighbour,
     ):  # fmt: skip

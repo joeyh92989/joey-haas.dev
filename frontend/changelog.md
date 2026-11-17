@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-17
+
+- The [comics shelf](/shelf/comics) now has a page for each book that shows what it collects, with a link to each issue I have a page for, and links to the books before and after it in the same series.
+
 ## 2026-11-16
 
 - The [resume](/resume.pdf) is the final 2026 version, and [About](/about) now lists each role at Guild with what I did in it, with my summary, skills, work history and certifications updated to match.
