@@ -2,7 +2,7 @@
 
 | File | Runs | What it does |
 |---|---|---|
-| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `e2e`, `e2e-admin`, and `neon-rehearsal` |
+| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `scripts` (the shell helpers' tests; not required), `e2e`, `e2e-admin`, and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | push only: wait for that commit's `backend` and `frontend` CI jobs (`scripts/wait-for-ci.sh`); then migrate Neon, deploy the API, wait, smoke. A manual run skips the wait |
 | `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |

@@ -183,6 +183,20 @@ jobs:
         # and a gate that must routinely be bypassed stops being a gate.
         run: npm audit --audit-level=high
 
+  # The shell helpers' own tests, against a fake `gh` (no network, no secrets).
+  # Not a required check: read it when scripts/ changes.
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: merge-train tests
+        run: ./scripts/merge-train.test.sh
+
+      - name: wait-for-ci tests
+        run: ./scripts/wait-for-ci.test.sh
+
   e2e:
     runs-on: ubuntu-latest
     defaults:

@@ -39,6 +39,13 @@ unavailable on a user-owned repo).
   `e2e`, `e2e-admin` and `neon-rehearsal` stay advisory, as today.
 - **Permissions:** the gate job adds `actions: read` (to list and view runs) to
   the workflow's `contents: read`; no write permission and no secrets.
+- **Accepted interactions** (from review): the gate shares the workflow's
+  `deploy-api` queue, which keeps only the newest pending run, so while `main`
+  is red nothing deploys, and a green commit below a red tip waits for the next
+  green push (whose `alembic upgrade head` applies every pending migration). The
+  gate waits behind a running deploy, which adds latency, not a wrong result. Each
+  main push now runs its full CI (e2e included) to completion: free minutes on a
+  public repo.
 - A script, not inline YAML, so it is testable and the workflow stays thin.
 
 ## Tasks
@@ -47,7 +54,8 @@ unavailable on a user-owned repo).
 2. `deploy.yml` gate job and `deploy` `needs`/`if`; `ci.yml` concurrency; docs.
    Acceptance: YAML parses; on the first push after merge the Deploy API run
    shows `wait-for-ci` green, then `deploy`; a manual run skips the gate.
-3. Reviews: `/code-review medium` and `/security-review` (touches deploy).
+3. `scripts` CI job (not required) runs both script test files, which nothing ran before.
+4. Reviews: `/code-review medium` and `/security-review` (touches deploy).
 
 Ship notes: no migration. The gate only runs once merged, so its first real
 proof is the merge's own deploy: watch it. Rollback: revert the PR (the deploy

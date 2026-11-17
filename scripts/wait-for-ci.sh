@@ -23,34 +23,39 @@ REPO="${REPO:-${GITHUB_REPOSITORY:-}}"
 repo_args=()
 [ -n "$REPO" ] && repo_args=(--repo "$REPO")
 
-# The required jobs, as branch protection names them.
-REQUIRED='.name == "backend" or .name == "frontend"'
+# The required jobs, as branch protection names them, and one query that prints
+# "<passed> <failed-or-cancelled>" for them from a single read of the run.
+JQ='[.jobs[] | select(.name == "backend" or .name == "frontend")]
+  | "\([.[] | select(.conclusion == "success")] | length) \([.[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")] | length)"'
 
 start="$SECONDS"
 attempt=0
+ok="?"
 while :; do
   attempt=$((attempt + 1))
-  run_id="$(gh run list ${repo_args[@]+"${repo_args[@]}"} --workflow ci.yml --commit "$SHA" --event push --limit 1 \
-    --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null)"
+  if ! run_id="$(gh run list ${repo_args[@]+"${repo_args[@]}"} --workflow ci.yml --commit "$SHA" --event push --limit 1 \
+    --json databaseId --jq '.[0].databaseId // empty' 2>&1)"; then
+    echo "attempt $attempt: gh run list failed: $run_id"
+    run_id=""
+  fi
   if [ -z "$run_id" ]; then
     echo "attempt $attempt: no CI run for $SHA yet"
+  elif ! counts="$(gh run view "$run_id" ${repo_args[@]+"${repo_args[@]}"} --json jobs --jq "$JQ" 2>&1)"; then
+    echo "attempt $attempt: gh run view $run_id failed: $counts"
   else
-    ok="$(gh run view "$run_id" ${repo_args[@]+"${repo_args[@]}"} --json jobs \
-      --jq "[.jobs[] | select($REQUIRED) | select(.conclusion == \"success\")] | length" 2>/dev/null)"
-    bad="$(gh run view "$run_id" ${repo_args[@]+"${repo_args[@]}"} --json jobs \
-      --jq "[.jobs[] | select($REQUIRED) | select(.conclusion == \"failure\" or .conclusion == \"cancelled\" or .conclusion == \"timed_out\")] | length" 2>/dev/null)"
+    read -r ok bad <<<"$counts"
     echo "attempt $attempt: CI run $run_id, required jobs passed: ${ok:-?}/2, failed or cancelled: ${bad:-?}"
-    if [ "${bad:-0}" != "0" ] && [ -n "$bad" ]; then
+    if [ "${bad:-0}" != "0" ]; then
       echo "CI is red on $SHA (run $run_id): not deploying. Fix main with a PR; a manual Run workflow deploys without this wait." >&2
       exit 1
     fi
-    if [ "$ok" = "2" ]; then
+    if [ "${ok:-0}" = "2" ]; then
       echo "backend and frontend passed on $SHA"
       exit 0
     fi
   fi
   if [ $((SECONDS - start)) -ge "$MAX_WAIT_SECONDS" ]; then
-    echo "CI did not finish on $SHA within ${MAX_WAIT_SECONDS}s: not deploying." >&2
+    echo "CI did not finish on $SHA within ${MAX_WAIT_SECONDS}s (last seen: ${ok:-?}/2 passed): not deploying. If CI is green, check that ci.yml still has jobs named backend and frontend." >&2
     exit 1
   fi
   sleep "$POLL_SECONDS"
