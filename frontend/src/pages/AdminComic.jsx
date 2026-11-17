@@ -5,7 +5,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
-import { EditionRows } from '../components/ItemForm.jsx'
+import BooksPanel from '../components/BooksPanel.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
 import Panel from '../components/Panel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
@@ -15,12 +15,7 @@ import { ACTION_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
 import { apiFetch } from '../lib/api.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
-import {
-  comicErrorField,
-  editionRows,
-  expandRanges,
-  parseEditionRows,
-} from '../lib/comics.js'
+import { expandRanges } from '../lib/comics.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { adminListPath } from '../lib/shelf.js'
@@ -81,7 +76,8 @@ async function detailOf(response) {
 /**
  * The comic edit page, `/admin/shelf/comics/:id`: the admin twin of the
  * public series page. Series fields, the issues as the same cover wall (a
- * tap marks a book), editions, the Comic Vine match and Delete. Owned and
+ * tap marks a book), the books (each has its own page), the Comic Vine
+ * match and Delete. Owned and
  * read are never typed here: the covers are the one place they are edited.
  *
  * Remounted per id (see App.jsx), so one comic's form never carries to
@@ -93,7 +89,6 @@ export default function AdminComic() {
 
   const [item, setItem] = useState(null)
   const [form, setForm] = useState(null)
-  const [rows, setRows] = useState([])
   const [wall, setWall] = useState(null)
   const [state, setState] = useState('loading')
   const [tries, setTries] = useState(0)
@@ -102,9 +97,6 @@ export default function AdminComic() {
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [runBusy, setRunBusy] = useState(false)
-  const [editionError, setEditionError] = useState(null)
-  const [savingEditions, setSavingEditions] = useState(false)
-  const [editionsSaved, setEditionsSaved] = useState(false)
   const [relinking, setRelinking] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [addNumber, setAddNumber] = useState('')
@@ -142,7 +134,6 @@ export default function AdminComic() {
         if (cancelled) return
         setItem(result.item)
         setForm(result.item ? toForm(result.item) : null)
-        setRows(result.item ? editionRows(result.item.editions) : [])
         setWall(built)
         setState(result.state)
       })
@@ -246,47 +237,6 @@ export default function AdminComic() {
       setError(ACTION_ERROR)
     } finally {
       setRunBusy(false)
-    }
-  }
-
-  async function saveEditions() {
-    setEditionError(null)
-    setEditionsSaved(false)
-    const parsed = parseEditionRows(rows)
-    if (parsed.error) {
-      setEditionError(parsed.error)
-      return
-    }
-    setSavingEditions(true)
-    try {
-      const response = await apiFetch(`/api/items/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ editions: parsed.editions }),
-      })
-      if (!response.ok) {
-        const detail =
-          response.status === 409 || response.status === 422
-            ? await detailOf(response)
-            : null
-        setEditionError(
-          detail && comicErrorField(detail) === 'editions'
-            ? detail
-            : (detail ?? 'Couldn’t save the editions.'),
-        )
-        return
-      }
-      const updated = await response.json()
-      setItem(updated)
-      setRows(editionRows(updated.editions))
-      setEditionsSaved(true)
-      // Held issues changed with the editions: the wall follows.
-      const built = await fetchWall()
-      if (built) setWall(built)
-    } catch {
-      setEditionError(ACTION_ERROR)
-    } finally {
-      setSavingEditions(false)
     }
   }
 
@@ -642,37 +592,7 @@ export default function AdminComic() {
               />
             )}
 
-          <Panel title={COPY.editions}>
-            <EditionRows
-              rows={rows}
-              onChange={(next) => {
-                setRows(next)
-                setEditionsSaved(false)
-              }}
-              error={editionError}
-              links={{
-                itemId: id,
-                saved: item.editions ?? [],
-                // Only the stored editions change; the rows being typed stay.
-                onLinked: (editions) =>
-                  setItem((current) => ({ ...current, editions })),
-              }}
-            />
-            <div className="item-detail-actions">
-              <button
-                type="button"
-                disabled={savingEditions}
-                onClick={saveEditions}
-              >
-                {savingEditions ? 'Saving…' : COPY.saveEditions}
-              </button>
-              {editionsSaved && (
-                <span className="muted" role="status">
-                  {COPY.saved}
-                </span>
-              )}
-            </div>
-          </Panel>
+          <BooksPanel itemId={id} />
 
           <Panel title={COPY.match}>
             {linked ? (

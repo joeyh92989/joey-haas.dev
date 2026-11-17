@@ -290,7 +290,7 @@ describe('ComicVolume', () => {
     expect(await screen.findByText('Only you see these buttons.')).toBeVisible()
     expect(screen.getByRole('link', { name: 'Edit book' })).toHaveAttribute(
       'href',
-      `/admin/shelf/comics/${ID}`,
+      `/admin/shelf/comics/${ID}/vol-2`,
     )
     await user.click(screen.getByRole('button', { name: 'Read to the end' }))
     await waitFor(() =>

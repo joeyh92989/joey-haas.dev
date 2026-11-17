@@ -134,4 +134,33 @@ describe('ShelfConfirm', () => {
     )
     expect(onConfirm).toHaveBeenCalledWith(['a'])
   })
+  it('reads a book’s own preview when given a source, and says what the server said', async () => {
+    const fetchMock = answer({ label: 'Book Two', title: 'Saga' })
+    const onConfirm = vi.fn()
+    render(
+      <ShelfConfirm
+        ids={['v1']}
+        title="Book Two"
+        source={{
+          load: () => fetch('/api/comics/volumes/v1/delete-preview'),
+          describe: (preview) => `${preview.label} of ${preview.title} goes.`,
+        }}
+        onConfirm={onConfirm}
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Book Two' }),
+    )
+    expect(
+      await screen.findByText('Book Two of Saga goes.'),
+    ).toBeInTheDocument()
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/comics/volumes/v1/delete-preview',
+    )
+    expect(fetchMock.mock.calls.some(([url]) => /items/.test(url))).toBe(false)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Book Two for good' }),
+    )
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+  })
 })

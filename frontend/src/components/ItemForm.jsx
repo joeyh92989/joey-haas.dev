@@ -1,8 +1,6 @@
 import { useRef } from 'react'
 import { spine } from '../content/spine.js'
-import { editionSlugs } from '../lib/coverWall.js'
 import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
-import EditionLinkPicker from './EditionLinkPicker.jsx'
 import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -79,13 +77,7 @@ function FieldError({ id, message }) {
  * validator; a blank row is dropped on save. `idPrefix` keeps the ids unique
  * when several editors share a page (the sitting's Details rows).
  */
-export function EditionRows({
-  rows,
-  onChange,
-  error,
-  links = null,
-  idPrefix = 'comic',
-}) {
+export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
   const addRef = useRef(null)
   const update = (index, field) => (event) =>
     onChange(
@@ -93,17 +85,6 @@ export function EditionRows({
         at === index ? { ...row, [field]: event.target.value } : row,
       ),
     )
-  // Linking is for saved editions only: a row is saved when its range names
-  // a stored edition. The slug is the API's (`editionSlugs`), numbers
-  // normalised so "01" and 1 are the same range.
-  const rowSlugs = editionSlugs(
-    rows.map((row) => ({
-      from: Number(row.from) || row.from,
-      to: Number(row.to) || row.to,
-    })),
-  )
-  const stored = links?.saved ?? []
-  const storedSlugs = editionSlugs(stored)
   return (
     <fieldset
       className="comic-editions"
@@ -117,7 +98,6 @@ export function EditionRows({
       </datalist>
       {rows.map((row, index) => {
         const name = row.label || `edition ${index + 1}`
-        const at = storedSlugs.indexOf(rowSlugs[index])
         return (
           <div className="comic-edition" key={index}>
             <div className="comic-edition-row">
@@ -163,18 +143,6 @@ export function EditionRows({
                 ×
               </button>
             </div>
-            {links && (
-              <EditionLinkPicker
-                itemId={links.itemId}
-                slug={rowSlugs[index]}
-                name={name}
-                cvId={at >= 0 ? (stored[at].cv_id ?? null) : null}
-                onLinked={links.onLinked}
-                disabledReason={
-                  at >= 0 ? undefined : 'Save the edition before linking it.'
-                }
-              />
-            )}
           </div>
         )
       })}
@@ -207,17 +175,8 @@ export function EditionRows({
  * @param {(next: object) => void} props.onChange
  * @param {number|null} [props.released] - Comic Vine's released count, for the hint.
  * @param {Record<string, string>} [props.errors] - API errors by field.
- * @param {{itemId: string, saved: object[], onLinked: (editions: object[]) => void}|null} [props.editionLinks]
- *   - The edit page's Comic Vine link control per edition row; `saved` is
- *   the stored editions. Absent on the add form, where nothing is saved yet.
  */
-export function ComicFields({
-  value,
-  onChange,
-  released = null,
-  errors = {},
-  editionLinks = null,
-}) {
+export function ComicFields({ value, onChange, released = null, errors = {} }) {
   const set = (field) => (event) =>
     onChange({
       ...value,
@@ -263,7 +222,6 @@ export function ComicFields({
         rows={value.editions}
         onChange={(editions) => onChange({ ...value, editions })}
         error={errors.editions}
-        links={editionLinks}
       />
 
       <label htmlFor="comic-shelf-format">Format on the shelf</label>

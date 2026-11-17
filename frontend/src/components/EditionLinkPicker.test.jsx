@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import linked from '../../e2e/fixtures/api/admin-volume-link.json'
 import EditionLinkPicker from './EditionLinkPicker.jsx'
 
 const ID = '11111111-1111-1111-1111-111111111111'
@@ -22,7 +23,7 @@ function stubApi({ search = [HIT], searchStatus = 200, putStatus = 200 } = {}) {
         status: putStatus,
         json: async () =>
           putStatus === 200
-            ? { item_id: ID, editions: [{ cv_id: 4242 }] }
+            ? { ...linked }
             : { detail: 'Comic Vine has no such issue' },
       }
     }
@@ -42,8 +43,7 @@ function setup(props = {}) {
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   render(
     <EditionLinkPicker
-      itemId={ID}
-      slug="ed-1-6"
+      volumeId={ID}
       name="Volume One"
       cvId={null}
       onLinked={onLinked}
@@ -76,7 +76,7 @@ describe('EditionLinkPicker', () => {
     ).toBeInTheDocument()
   })
 
-  it('PUTs the chosen cv_id and reports the editions', async () => {
+  it('PUTs the chosen cv_id to the volume and reports what came back', async () => {
     const fetch = stubApi()
     const { user, onLinked } = setup()
     await user.click(screen.getByRole('button', { name: /Link to Comic Vine/ }))
@@ -87,9 +87,9 @@ describe('EditionLinkPicker', () => {
     await user.click(await screen.findByRole('button', { name: /Saga #1/ }))
     await waitFor(() => expect(onLinked).toHaveBeenCalled())
     const put = fetch.mock.calls.find(([, o]) => o?.method === 'PUT')
-    expect(put[0]).toBe(`/api/comics/${ID}/editions/ed-1-6/link`)
+    expect(put[0]).toBe(`/api/comics/volumes/${ID}/link`)
     expect(JSON.parse(put[1].body)).toEqual({ cv_id: 4242 })
-    expect(onLinked).toHaveBeenCalledWith([{ cv_id: 4242 }])
+    expect(onLinked).toHaveBeenCalledWith(linked)
   })
 
   it('shows the link and Unlink PUTs null', async () => {
@@ -130,11 +130,11 @@ describe('EditionLinkPicker', () => {
     )
   })
 
-  it('is disabled with a reason for an unsaved edition', () => {
-    setup({ disabledReason: 'Save the edition first.' })
+  it('is disabled with a reason', () => {
+    setup({ disabledReason: 'Not now.' })
     expect(
       screen.getByRole('button', { name: /Link to Comic Vine/ }),
     ).toBeDisabled()
-    expect(screen.getByText('Save the edition first.')).toBeInTheDocument()
+    expect(screen.getByText('Not now.')).toBeInTheDocument()
   })
 })

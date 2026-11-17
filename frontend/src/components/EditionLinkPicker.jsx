@@ -12,22 +12,22 @@ function hitName(hit) {
 }
 
 /**
- * The control on a saved edition row of the admin edit page that links it to
- * a Comic Vine issue (its cover and description come from there) or unlinks
- * it. Choosing a hit PUTs its `cv_id`; Unlink PUTs null. The page hands the
- * returned editions to `onLinked`; a refusal is shown in the API's words.
+ * The control on a book's admin page that links it to a Comic Vine issue (its
+ * cover and description are fetched from there by the server) or unlinks it.
+ * Choosing a hit PUTs its `cv_id` to the volume's link route; Unlink PUTs
+ * null. The page gets the route's answer (`cv_id`, `cover_url`, `large_url`,
+ * `description`, `edited`) in `onLinked`; a refusal is shown in the API's
+ * words.
  *
  * @param {object} props
- * @param {string} props.itemId - The series' item id.
- * @param {string} props.slug - The edition's slug (`ed-<from>-<to>`).
- * @param {string} props.name - The edition's label, for the control's name.
+ * @param {string} props.volumeId - The book's id.
+ * @param {string} props.name - The book's label, for the control's name.
  * @param {number|null} props.cvId - The stored link, if any.
- * @param {(editions: object[]) => void} props.onLinked
- * @param {string} [props.disabledReason] - Set for an edition not yet saved.
+ * @param {(linked: object) => void} props.onLinked
+ * @param {string} [props.disabledReason] - Set to turn the control off.
  */
 export default function EditionLinkPicker({
-  itemId,
-  slug,
+  volumeId,
   name,
   cvId,
   onLinked,
@@ -82,7 +82,7 @@ export default function EditionLinkPicker({
     setError(null)
     try {
       const response = await apiFetch(
-        `/api/comics/${encodeURIComponent(itemId)}/editions/${encodeURIComponent(slug)}/link`,
+        `/api/comics/volumes/${encodeURIComponent(volumeId)}/link`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -97,7 +97,7 @@ export default function EditionLinkPicker({
       setOpen(false)
       setQuery('')
       setResult({ query: '', hits: [], error: null })
-      onLinked(body.editions)
+      onLinked(body)
     } catch {
       setError('Could not save that link. Try again.')
     } finally {
@@ -106,7 +106,7 @@ export default function EditionLinkPicker({
   }
 
   const unavailable = Boolean(disabledReason)
-  const fieldId = `edition-link-${slug}`
+  const fieldId = `volume-link-${volumeId}`
 
   return (
     <div className="comic-edition-link">

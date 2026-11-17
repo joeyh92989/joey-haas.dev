@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
+import books from '../../e2e/fixtures/api/admin-volumes.json'
 import AdminComic from './AdminComic.jsx'
 
 const COMIC = {
@@ -64,6 +65,8 @@ function stubApi({ item = COMIC, wall = WALL, fail = {} } = {}) {
     const path = String(url)
     const method = options.method ?? 'GET'
     if (method === 'GET') {
+      if (path.endsWith('/volumes'))
+        return { ok: true, status: 200, json: async () => books }
       if (path.endsWith('/wall'))
         return { ok: true, status: 200, json: async () => wall }
       if (path.includes('search-metadata'))
@@ -126,7 +129,7 @@ describe('AdminComic', () => {
     for (const name of [
       'Series',
       'Issues',
-      'Editions',
+      'Books',
       'Comic Vine match',
       'Delete',
     ])
@@ -303,21 +306,22 @@ describe('AdminComic', () => {
     expect(writes[0][1]).toContain('/api/items/abc/status')
   })
 
-  it('saves editions without sending any range field', async () => {
+  it('has a Books panel in place of Editions, and writes no items.editions', async () => {
     const { writes } = stubApi()
     renderPage()
-    await userEvent.click(
-      await screen.findByRole('button', { name: 'Add an edition' }),
-    )
-    await userEvent.type(screen.getByLabelText('Kind, edition 1'), 'Trade')
-    await userEvent.type(screen.getByLabelText('From issue, edition 1'), '1')
-    await userEvent.type(screen.getByLabelText('To issue, edition 1'), '4')
-    await userEvent.type(screen.getByLabelText('Label, edition 1'), 'Book 1')
-    await userEvent.click(screen.getByRole('button', { name: 'Save editions' }))
+    expect(await screen.findByRole('heading', { name: 'Books' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Editions' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save editions' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add an edition' })).toBeNull()
+    expect(
+      await screen.findByRole('link', { name: 'Saga, Book Two' }),
+    ).toHaveAttribute('href', '/admin/shelf/comics/abc/vol-2')
+    // Saving the series sends no editions either.
+    await userEvent.clear(screen.getByLabelText('Title'))
+    await userEvent.type(screen.getByLabelText('Title'), 'Waterworld II')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
     await waitFor(() => expect(writes).toHaveLength(1))
-    expect(writes[0][2]).toEqual({
-      editions: [{ kind: 'Trade', label: 'Book 1', from: 1, to: 4 }],
-    })
+    expect(Object.keys(writes[0][2])).not.toContain('editions')
   })
 
   it('refreshes from Comic Vine', async () => {

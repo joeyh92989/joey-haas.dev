@@ -12851,6 +12851,140 @@ a.btn.sm {
   max-width: 6rem;
 }
 
+/* The admin Book page, /admin/shelf/comics/:id/:slug, and the Books panel on
+   the comic's page (comics book-first, #334). */
+.admin-volume-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-books {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.admin-book {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  padding-bottom: var(--space-2);
+}
+
+.admin-book-text {
+  display: grid;
+  min-width: 0;
+}
+
+.admin-book-facts {
+  font-size: var(--fs-13);
+}
+
+.admin-book-marks {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.admin-book-add h3 {
+  font-size: var(--fs-16);
+  margin: 0 0 var(--space-2);
+}
+
+.admin-book-add-fields {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  margin-bottom: var(--space-3);
+}
+
+.admin-book-add-fields > div,
+.admin-collect-field {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.admin-book-add-fields .admin-error,
+.admin-collect-field .comic-field-error {
+  grid-column: auto;
+}
+
+.admin-collects {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+
+.admin-collect {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+}
+
+.admin-collect-text {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-collect-source {
+  font-size: var(--fs-12);
+}
+
+.admin-collect-link {
+  font-size: var(--fs-13);
+}
+
+.admin-collect-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.admin-collect-form {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.admin-collect-range {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 8rem));
+}
+
+.admin-volume-move {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+@media (max-width: 700px) {
+  .admin-book-add-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-book {
+    grid-template-columns: 3rem minmax(0, 1fr);
+  }
+
+  .admin-book-marks {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
 /* ---------- Phone tap targets (#276) ----------
    44px high for the controls a thumb has to hit: shelf chips, the sub-nav
    tabs, jump links and the CTAs that close a section. Last in the file so it
