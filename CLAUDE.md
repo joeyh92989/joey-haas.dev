@@ -473,6 +473,10 @@ before pushing.
   - [x] 6. Data clean-up of the 11–12 Nov rows and comic backfill (Joey's)
   - [x] 7. Tags: a curated set per type (migration `0018`, `backend/tags.py`;
         spec and plan: `docs/planning/2026-11-13-shelf-tags-design.md`)
+- [ ] Places and outings — epic #339: places in through intake (Nominatim
+      search, paste), outings and a private history, a finder that learns from
+      them, and trip planning. Stories #340–#363. Brief:
+      `docs/planning/2026-11-15-places-outings-brief.md`
 
 ## Ship
 
