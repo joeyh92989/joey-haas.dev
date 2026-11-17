@@ -480,11 +480,14 @@ before pushing.
   `backend-migrations`: open the red half), `frontend`, `e2e` and `e2e-admin`
   GitHub Actions jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
   changes `backend/migrations/versions`)
-- Merge: squash. Branch policy: **strict** (a PR must be up to date with
-  `main`). To merge several ready PRs, run `./scripts/merge-train.sh <pr>…`
-  in the order to land them: it updates each branch the moment the previous
-  one merges, waits for the required checks and merges, with no idle gap
-  (`scripts/README.md`). It does not replace the gates above it
+- Merge: squash. Branch policy: **not strict** since 2026-11-17 (a PR need not
+  be up to date with `main`; `backend` and `frontend` must pass on the PR).
+  The safety moved to the deploy: Deploy API waits for that commit's own
+  `backend` and `frontend` (`scripts/wait-for-ci.sh`), so two PRs that passed
+  alone and break together on `main` are not deployed. A red `main` is a stop:
+  fix it with a PR, and read the run. Several ready PRs can merge back to back
+  (`./scripts/merge-train.sh <pr>…` still lands them in order). To restore
+  strict: `gh api -X PATCH repos/joeyh92989/joey-haas.dev/branches/main/protection/required_status_checks -F strict=true`
 - Migration: rehearse in CI: the `neon-rehearsal` job applies it to a
   schema-only Neon branch of production and comments the schema diff on the PR,
   and `cd backend && ./.venv/bin/pytest tests/test_migrations.py` runs the
@@ -550,9 +553,9 @@ before pushing.
   alone, since branch protection requires it), `e2e` and `e2e-admin` (the admin browser
   suite against a Postgres 18 service and a real backend, test-login on a
   localhost `FRONTEND_URL`). Branch protection on `main` requires `backend` and
-  `frontend`, and requires the branch to be up to date with `main` (strict), so
-  after another PR merges, `gh pr update-branch <n>` and wait for CI again before
-  merging; update one PR at a time (`./scripts/merge-train.sh` runs this loop). `e2e`, `e2e-admin` and `neon-rehearsal` are
+  `frontend` to pass on the PR, and no longer requires the branch to be up to
+  date with `main` (strict off since 2026-11-17: after another PR merges, no
+  update-branch or second CI run is needed). A conflict still needs a rebase. `e2e`, `e2e-admin` and `neon-rehearsal` are
   not required, so a red one does not block a merge: read them anyway.
 - **Known flaky tests** (issue #244): Admin* suites in `npm test` time out under
   load (AdminLayout's focus-target test has failed on CI; it passes on a rerun
