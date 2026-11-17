@@ -16,9 +16,12 @@ header.
 
 ### Why
 
-(Written while `main` was `strict`; since 2026-11-17 it is not, so the train
-no longer has update-branch work to do and mostly just orders merges. It still
-updates a PR that is behind if strict is ever turned back on.)
+(Written while `main` was `strict`; since 2026-11-17 it is not. The train reads
+`strict` from branch protection on each run: when it is off it never calls
+`update-branch` (a PR behind `main` is already mergeable, and updating it would
+only buy a pointless CI cycle), so it just waits for each PR's required checks
+and merges in order. When it is on, or the setting cannot be read, it runs the
+full update-branch cycle described below. `--dry-run` prints which applies.)
 
 Branch protection on `main` required `backend` and `frontend` **and** an
 up-to-date branch (`strict`). Every merge therefore puts the other open PRs
