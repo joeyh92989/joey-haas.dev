@@ -11,7 +11,8 @@
 # first k polls, like an aggregate that starts last) | behindonce (passes, but main moves
 # on while it runs). Merging a PR makes every other open PR BEHIND, like
 # branch protection's strict rule; update-branch gives a PR a new head and
-# restarts its checks. `apifail` in the dir makes the compare API answer nothing.
+# restarts its checks. `strict` in the dir holds true (default) or false for the
+# protection's strict setting. `apifail` in the dir makes the compare API answer nothing.
 set -u
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -25,7 +26,8 @@ d="$FAKE_DIR"
 echo "gh $*" >>"$d/calls"
 if [ "$1" = api ]; then
   case "$2" in
-    *required_status_checks) printf 'backend\nfrontend\n' ;;
+    *required_status_checks)
+      case "$*" in *.strict*) cat "$d/strict" 2>/dev/null || echo true ;; *) printf 'backend\nfrontend\n' ;; esac ;;
     *compare*)
       [ -e "$d/apifail" ] && exit 0
       n="$(printf '%s' "$2" | sed 's/.*\.\.\.sha\([0-9]*\).*/\1/')"
@@ -152,6 +154,20 @@ check "...after three tries" 3 "$(count 'pr merge 1')"
 fresh t13; new_pr 1 CLEAN pass; touch "$FAKE_DIR/apifail"
 check "an unreadable compare API stops, not guesses" 1 "$(run 1)"
 check "...without updating or merging" 0 "$(count 'update-branch|pr merge')"
+
+# 5b. strict off: PRs behind main are merged in order with no update-branch.
+fresh t14; echo false >"$FAKE_DIR/strict"; new_pr 1 CLEAN pass; new_pr 2 CLEAN pass; new_pr 3 BEHIND pass
+check "strict off: train exits 0" 0 "$(run 1 2 3)"
+check "...every PR merged" "MERGED MERGED MERGED" "$(cat "$FAKE_DIR/1.state" "$FAKE_DIR/2.state" "$FAKE_DIR/3.state" | tr '\n' ' ' | sed 's/ $//')"
+check "...no update-branch at all" 0 "$(count 'update-branch')"
+check "...in the given order" "1 2 3" "$(grep 'pr merge' "$FAKE_DIR/calls" | awk '{print $4}' | tr '\n' ' ' | sed 's/ $//')"
+fresh t15; echo false >"$FAKE_DIR/strict"; new_pr 1 CLEAN behindonce
+check "strict off: main moving during checks is not a retry" 0 "$(run 1)"
+check "...one merge, no update-branch" "1 0" "$(count 'pr merge 1') $(count 'update-branch')"
+fresh t16; echo false >"$FAKE_DIR/strict"; new_pr 1 CLEAN fail
+check "strict off: a failed check still stops" 1 "$(run 1)"
+fresh t17; echo false >"$FAKE_DIR/strict"; new_pr 1 BEHIND pass
+check "dry run reports strict off" 1 "$(run --dry-run 1 >/dev/null; grep -c 'strict (up-to-date branch required): no' "$FAKE_DIR/out")"
 
 # 6. Dry run changes nothing; bad usage exits 2.
 fresh t7; new_pr 1 BEHIND pass

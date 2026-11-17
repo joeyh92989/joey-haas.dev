@@ -3,10 +3,11 @@
 #
 #   ./scripts/merge-train.sh [--dry-run] PR [PR...]
 #
-# Branch protection on main requires `backend` and `frontend` and an up-to-date
-# branch (strict), so every merge puts the remaining PRs behind main. This runs
-# the update-branch / wait / merge cycle for each PR in the order given, the
-# moment the previous one lands. See scripts/README.md for the why and the gates.
+# Where branch protection on main requires an up-to-date branch (strict), every
+# merge puts the remaining PRs behind main, so this runs the update-branch / wait
+# / merge cycle for each PR in the order given, the moment the previous one lands.
+# Where strict is off (it is, since 2026-11-17) it skips update-branch and just
+# waits for each PR's required checks and merges in order. See scripts/README.md for the why and the gates.
 #
 # Env: POLL_SECONDS (default 20) between polls; MAX_WAIT_MINUTES (default 30)
 # per PR for the checks to finish (MAX_WAIT_SECONDS overrides it; used by the
@@ -65,6 +66,13 @@ required_contexts() {
   gh api "repos/{owner}/{repo}/branches/main/protection/required_status_checks" --jq '.contexts[]' 2>/dev/null
 }
 
+# Whether main requires an up-to-date branch (strict). Only then does a PR that
+# is behind main need update-branch and a fresh CI run before it can merge. When
+# the protection cannot be read, assume strict: updating is slow but never wrong.
+strict_on() {
+  [ "$(gh api "repos/{owner}/{repo}/branches/main/protection/required_status_checks" --jq .strict 2>/dev/null)" != "false" ]
+}
+
 # Wait until the PR's head moves off $2 (update-branch pushes a merge commit).
 wait_for_new_head() {
   local pr="$1" old="$2" start="$SECONDS"
@@ -117,6 +125,7 @@ warn_non_required() {
 }
 
 CONTEXTS="$(required_contexts | tr '\n' ' ')"
+if strict_on; then STRICT=1; else STRICT=0; fi
 
 if [ "$dry_run" -eq 1 ]; then
   for pr in "${prs[@]}"; do
@@ -126,6 +135,7 @@ if [ "$dry_run" -eq 1 ]; then
       "$(field "$pr" mergeStateStatus)" "$(field "$pr" mergeable)" "$behind"
   done
   echo "required checks: ${CONTEXTS:-<could not read branch protection>}"
+  echo "strict (up-to-date branch required): $([ "$STRICT" = 1 ] && echo yes || echo no)"
   exit 0
 fi
 
@@ -137,7 +147,7 @@ for pr in "${prs[@]}"; do
   for round in 1 2 3; do
     [ "$(field "$pr" mergeable)" != "CONFLICTING" ] || stop "$pr" "conflicts with main: rebase it by hand"
     get_behind "$pr"
-    if [ "$behind" != "0" ]; then
+    if [ "$STRICT" = 1 ] && [ "$behind" != "0" ]; then
       old="$(field "$pr" headRefOid)"
       log "#$pr is behind main: update-branch"
       gh pr update-branch "$pr" || stop "$pr" "update-branch failed"
@@ -147,7 +157,7 @@ for pr in "${prs[@]}"; do
     wait_for_checks "$pr"
     # Another merge may have landed while the checks ran: go round again.
     get_behind "$pr"
-    if [ "$behind" != "0" ]; then
+    if [ "$STRICT" = 1 ] && [ "$behind" != "0" ]; then
       log "#$pr fell behind main while its checks ran: round $round of 3"
       continue
     fi
