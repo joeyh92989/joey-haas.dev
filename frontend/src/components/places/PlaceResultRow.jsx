@@ -29,7 +29,8 @@ function MapLink({ place }) {
  * @param {(values: object) => void} props.onValues
  * @param {(spotId: string) => void} [props.onShowInTable] When given, a saved
  *   result offers this action (the Spots page's table) in place of the link
- *   to /admin/spots.
+ *   to /admin/spots. `null` says there is no such action: the saved mark
+ *   only.
  * @param {() => void} props.onAdd
  * @param {() => void} props.onSave
  * @param {() => void} props.onCancel
@@ -66,25 +67,27 @@ export default function PlaceResultRow({
       {place.category && (
         <span className="place-result-kind">{place.category}</span>
       )}
-      {saved && onShowInTable && (
+      {saved && onShowInTable !== undefined && (
         <span className="place-result-act">
           <span className="place-saved-mark">{words.alreadySaved}</span>
-          <a
-            className="btn"
-            href={`#spot-${place.owned_spot_id}`}
-            onClick={(event) => {
-              event.preventDefault()
-              onShowInTable(place.owned_spot_id)
-            }}
-          >
-            {words.bar.showInTable}
-            <span className="visually-hidden">
-              {words.bar.showInTableFor(place.title)}
-            </span>
-          </a>
+          {onShowInTable && (
+            <a
+              className="btn"
+              href={`#spot-${place.owned_spot_id}`}
+              onClick={(event) => {
+                event.preventDefault()
+                onShowInTable(place.owned_spot_id)
+              }}
+            >
+              {words.bar.showInTable}
+              <span className="visually-hidden">
+                {words.bar.showInTableFor(place.title)}
+              </span>
+            </a>
+          )}
         </span>
       )}
-      {saved && !onShowInTable && (
+      {saved && onShowInTable === undefined && (
         <Link className="btn" to="/admin/spots">
           {words.alreadySaved}
           <span className="visually-hidden">

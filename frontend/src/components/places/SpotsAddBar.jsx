@@ -215,6 +215,7 @@ export default function SpotsAddBar({
         }
         setOpenKey(null)
         setNotice(words.alreadyOnList)
+        focusNext.current = 'list'
         return
       }
       const spot = fresh[0]
@@ -360,11 +361,13 @@ export default function SpotsAddBar({
                     values={values}
                     cities={cities}
                     onValues={setValues}
-                    onShowInTable={onShowInTable ?? (() => {})}
+                    onShowInTable={onShowInTable ?? null}
                     onAdd={() => addRow(row)}
                     onSave={() => saveRow(row)}
                     onCancel={() => {
+                      if (inflight.current) return
                       if (several) {
+                        setNotice(null)
                         setOpenKey(null)
                         focusNext.current = 'list'
                       } else again()

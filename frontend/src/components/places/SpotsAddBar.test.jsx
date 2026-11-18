@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -339,8 +340,12 @@ describe('SpotsAddBar', () => {
     const { onSaved } = setup()
     await submitSearch(user, 'Red Rocks')
     const save = await screen.findByRole('button', { name: 'Save place' })
-    fireEvent.click(save)
-    fireEvent.click(save)
+    // Both presses land in one tick, before React re-renders the button as
+    // disabled, so only the in-flight ref stands between them.
+    act(() => {
+      save.click()
+      save.click()
+    })
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(addCalls(calls)).toHaveLength(1)
     expect(onSaved).toHaveBeenCalledTimes(1)
@@ -493,7 +498,7 @@ describe('SpotsAddBar', () => {
     expect(screen.getByRole('button', { name: 'Save place' })).toBeEnabled()
   })
 
-  it('falls back to the detail of a 409, and to the page words on a network error', async () => {
+  it('falls back to the detail of a 409', async () => {
     const user = userEvent.setup()
     fakeApi({
       search: found(ROCKS),
@@ -541,6 +546,119 @@ describe('SpotsAddBar', () => {
     )
     expect(screen.getByText('Already saved')).toBeInTheDocument()
     expect(onSaved).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(screen.getByRole('list', { name: /Results for/ })).toHaveFocus(),
+    )
+  })
+
+  it('drops a stale notice on Cancel', async () => {
+    const user = userEvent.setup()
+    fakeApi({
+      search: found(UNION, BUS),
+      answers: {
+        'POST /api/intake/add': () =>
+          json(
+            { detail: 'x', refused: [{ message: 'Refused for a reason' }] },
+            422,
+          ),
+      },
+    })
+    setup()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      screen.getByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Refused for a reason',
+    )
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('ignores Cancel while a save is in flight', async () => {
+    const user = userEvent.setup()
+    let release
+    fakeApi({
+      search: found(UNION, BUS),
+      answers: {
+        'POST /api/intake/add': () =>
+          new Promise((resolve) => {
+            release = () =>
+              resolve({
+                ok: false,
+                status: 422,
+                json: async () => ({
+                  detail: 'x',
+                  refused: [{ message: 'Refused late' }],
+                }),
+              })
+          }),
+      },
+    })
+    setup()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      screen.getByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(
+      screen.getByRole('group', { name: /Details for/ }),
+    ).toBeInTheDocument()
+    await act(async () => release())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Refused late')
+    expect(
+      screen.getByRole('group', { name: /Details for/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('offers no Show in table when the page gives no action', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(BOTANIC, UNION) })
+    setup({ onShowInTable: undefined })
+    await submitSearch(user, 'Botanic')
+    await screen.findByRole('list')
+    expect(screen.getByText('Already saved')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: /Show in table/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows a lone already-saved result with its mark and no Add or open row', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(BOTANIC) })
+    const { onShowInTable } = setup()
+    await submitSearch(user, 'Denver Botanic Gardens')
+    await screen.findByRole('list')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '1 place found for “Denver Botanic Gardens”. You already saved it.',
+    )
+    expect(
+      screen.queryByRole('group', { name: /Details for/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /^Add Denver/ }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: /Show in table/ }))
+    expect(onShowInTable).toHaveBeenCalledWith('spot-9')
+  })
+
+  it('fails a search that gets a network error or an HTTP error', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: () => Promise.reject(new TypeError('offline')) })
+    setup()
+    await submitSearch(user, 'Red Rocks')
+    expect(await screen.findByRole('alert')).toHaveTextContent(/did not answer/)
+    vi.unstubAllGlobals()
+    fakeApi({ search: () => json({ detail: 'Down' }, 503) })
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/did not answer/),
+    )
+    expect(
+      screen.queryByRole('group', { name: /Details for/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('disables and clears the public toggle for a city other than Denver', async () => {
@@ -562,6 +680,26 @@ describe('SpotsAddBar', () => {
     await waitFor(() => expect(addCalls(calls)).toHaveLength(1))
     expect(addCalls(calls)[0].body.payload).toMatchObject({
       city: 'boulder',
+      is_public: false,
+    })
+  })
+
+  it('disables and clears the public toggle for another city typed in', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi({ search: found(ROCKS) })
+    setup()
+    await submitSearch(user, 'Red Rocks')
+    const form = await screen.findByRole('group', { name: /Details for/ })
+    const toggle = within(form).getByLabelText(/Show on the public Denver page/)
+    await user.click(toggle)
+    await user.selectOptions(within(form).getByLabelText('City'), 'other')
+    await user.type(within(form).getByLabelText('City name'), 'Aspen')
+    expect(toggle).toBeDisabled()
+    expect(toggle).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Save place' }))
+    await waitFor(() => expect(addCalls(calls)).toHaveLength(1))
+    expect(addCalls(calls)[0].body.payload).toMatchObject({
+      city: 'aspen',
       is_public: false,
     })
   })
