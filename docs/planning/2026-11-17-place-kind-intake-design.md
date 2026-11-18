@@ -109,6 +109,13 @@ Sources: the policy (https://operations.osmfoundation.org/policies/nominatim/), 
    Denver `viewbox` as a boost (not `bounded`), so a name outside Denver still resolves.
 8. **Attribution:** the place entry shows "Search by OpenStreetMap contributors" (ODbL), since
    the policy asks for visible attribution. Spots stay private, so nothing public changes.
+10. **Nominatim gets its own client name, with no email address** (Joey's call, 2026-11-17).
+    The catalogue's `USER_AGENT` carries the owner's email, which Overpass and the store hosts
+    already receive. For Nominatim, `spot_sources/limits.py` gains `NOMINATIM_USER_AGENT =
+    "joey-haas.dev tracker (+https://joey-haas.dev)"`: it names the app and a contact page, which
+    the policy accepts. This replaces the story's "carries the catalogue's `USER_AGENT`" with
+    "carries the Nominatim client name"; the test asserts that constant and that no `@` appears in
+    the header. The recorder script uses the same constant.
 9. **No cache beyond the request.** The policy asks for caching on bulk use; a single submit by
    one owner is not bulk, and a cache would hide a changed OSM record. Recorded in the README.
 
@@ -154,7 +161,7 @@ All tasks are Sonnet unless noted. One implementer at a time.
 2. **Nominatim client.** `spot_sources/nominatim.py`: `search(client, query)`, the throttle, the
    `USER_AGENT`, the 6 s timeout, a parser tested on the fixture, errors as a typed result.
    *Accept:* two submits in one second send requests at least 1 s apart (fake clock); every
-   request carries `USER_AGENT`; timeout and HTTP error return a failure, not an exception.
+   request carries `NOMINATIM_USER_AGENT` (no `@` in it; decision 10); timeout and HTTP error return a failure, not an exception.
    *Tests:* `tests/test_nominatim.py`.
 3. **Place kind and search.** `intake/place_kind.py`, registered in `routes.py`; resolve the
    `source=None` question and the area question first. *Accept:* `/api/intake/kinds` lists `place`
