@@ -1,4 +1,6 @@
 import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
+import { titleKind } from './titleKind.js'
+import { spine } from '../content/spine.js'
 /**
  * Comics on the shelf: range expansion, the chip filters and the sorts.
  *
@@ -11,7 +13,7 @@ import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
 /** Chip values for the one comics chip row, in display order. */
 // The public shelf's chips. Following is private, so it is not one of them:
 // the public body does not carry it (#301); the admin shelf adds it itself.
-export const COMIC_CHIPS = ['all', 'gaps', 'unread', 'want']
+export const COMIC_CHIPS = ['all', 'gaps', 'unread', 'want', 'books', 'issues']
 
 export const COMIC_SORTS = ['next', 'title', 'publisher', 'missing']
 
@@ -75,12 +77,19 @@ export function monthYear(iso) {
 /** Owned issues the read marker has not reached yet. */
 export const isUnread = (row) => !row.wanted && row.read < row.owned
 
+/** Kinds that hold books, and kinds that hold single issues (`title_kind`). */
+const HOLDS_BOOKS = ['book_line', 'single_book', 'both']
+const HOLDS_ISSUES = ['run', 'both']
+
 const CHIP_TEST = {
   all: () => true,
   following: (row) => row.following,
   gaps: (row) => row.run_state === 'gaps',
   unread: isUnread,
   want: (row) => row.wanted,
+  // A row from before the kind existed is a run (`titleKind`).
+  books: (row) => HOLDS_BOOKS.includes(titleKind(row)),
+  issues: (row) => HOLDS_ISSUES.includes(titleKind(row)),
 }
 
 /**
@@ -105,6 +114,70 @@ export function chipCounts(rows) {
       rows.filter(CHIP_TEST[chip]).length,
     ]),
   )
+}
+
+/** More owned numbers than this and a run of three or more reads "a to b". */
+const PLAIN_LIST_MAX = 8
+
+/** "Vol." numbers as words: runs of 3+ become "a to b" once the list is long. */
+function numberTokens(numbers) {
+  if (numbers.length <= PLAIN_LIST_MAX) return numbers.map(String)
+  const tokens = []
+  for (let i = 0; i < numbers.length; i += 1) {
+    let j = i
+    while (numbers[j + 1] === numbers[j] + 1) j += 1
+    if (j - i >= 2) {
+      tokens.push(`${numbers[i]} to ${numbers[j]}`)
+      i = j
+    } else tokens.push(String(numbers[i]))
+  }
+  return tokens
+}
+
+/**
+ * Which books of a line are owned, as words: "Vol. 1, 2 and 4". Books with no
+ * number are added after ("and 1 book with no number"): the owned count minus
+ * the numbered. The line's size is not stored anywhere, so it is printed
+ * ("of 6") only when a caller passes one, which nothing does yet.
+ *
+ * @param {number[]|undefined} numbers - The owned books' line numbers.
+ * @param {number} volumesOwned - How many books are owned in all.
+ * @param {number} [lineSize] - How many books the line has, when known.
+ * @returns {string} Empty when no book is owned.
+ */
+export function volumesOwnedText(numbers, volumesOwned, lineSize) {
+  const sorted = [...new Set(numbers ?? [])].sort((a, b) => a - b)
+  const unnumbered = Math.max(0, (volumesOwned ?? 0) - sorted.length)
+  const extra =
+    unnumbered > 0
+      ? `${unnumbered} ${unnumbered === 1 ? 'book' : 'books'} with no number`
+      : ''
+  if (sorted.length === 0) return extra
+  const tokens = numberTokens(sorted)
+  const list =
+    tokens.length === 1
+      ? tokens[0]
+      : `${tokens.slice(0, -1).join(', ')} and ${tokens.at(-1)}`
+  const size = lineSize > 0 ? ` of ${lineSize}` : ''
+  return `Vol. ${list}${size}${extra ? `, and ${extra}` : ''}`
+}
+
+/**
+ * What a shelf card says about its title: the kind in words and, for a title
+ * that holds books, which are owned. The same on the public and admin shelves.
+ *
+ * @param {object} row - A shelf row (`kind`, `volumes_owned`, `volume_numbers`).
+ * @returns {{kind: string, word: string, volumes: string|null}}
+ */
+export function kindSummary(row) {
+  const kind = titleKind(row)
+  const numbers = row.volume_numbers ?? []
+  // A single book says only its number; a run says nothing of books.
+  const text =
+    kind === 'run' || (kind === 'single_book' && numbers.length === 0)
+      ? ''
+      : volumesOwnedText(numbers, row.volumes_owned ?? numbers.length)
+  return { kind, word: spine.comics.kinds[kind], volumes: text || null }
 }
 
 /** Publishers by row count, most first, then by name. */

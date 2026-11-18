@@ -184,6 +184,34 @@ def title_kind(volume_count: int, issue_count: int) -> str:
     return "book_line" if volume_count >= 2 else "single_book"
 
 
+def loose_issue_count(issues_owned: str | None) -> int:
+    """How many single issues a title holds loose (`items.issues_owned`);
+    0 for text that does not parse."""
+    try:
+        return len(expand(parse_ranges(issues_owned)))
+    except ValueError:
+        return 0
+
+
+def owned_line_numbers(line_numbers: Iterable[int | None]) -> list[int]:
+    """The line numbers of a title's OWNED books, ascending and deduped;
+    books with no number are left out. The shelf words them "Vol. 1, 2 and 4"
+    and never print a line size, which is not stored."""
+    return sorted({n for n in line_numbers if n is not None})
+
+
+def title_shape(holds: Iterable[VolumeHold], issues_owned: str | None) -> dict:
+    """What the admin shelf's card says about a title, from the row's own
+    OWNED volumes and its loose issues: the same words as the public shelf
+    (`kind`, `volumes_owned`, `volume_numbers`)."""
+    own = [hold for hold in holds if hold.own and hold.owned]
+    return {
+        "kind": title_kind(len(own), loose_issue_count(issues_owned)),
+        "volumes_owned": len(own),
+        "volume_numbers": owned_line_numbers(hold.line_number for hold in own),
+    }
+
+
 # --- The title-sharing rule (#330) ------------------------------------------
 
 # A collected book joins an existing series' title (shares its page) only when
@@ -416,6 +444,8 @@ class VolumeHold:
     read: bool
     own: bool
     ranges: tuple[tuple[int, int], ...] = ()
+    # The book's number in its title's line (1..9999), if it has one.
+    line_number: int | None = None
 
 
 def held_ranges(holds: Iterable[VolumeHold] | None) -> list[dict]:
@@ -524,6 +554,7 @@ async def load_holds_many(
                     read=volume.read,
                     own=volume.item_id == item_id,
                     ranges=tuple(merge(mine)),
+                    line_number=volume.line_number,
                 )
             )
     return out

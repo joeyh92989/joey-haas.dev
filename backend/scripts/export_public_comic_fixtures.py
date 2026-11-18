@@ -9,28 +9,40 @@ cannot carry a key the API never sends. Run from `backend/`:
 `./.venv/bin/python scripts/export_public_comic_fixtures.py`.
 Writes `frontend/e2e/fixtures/api/public-comic-<kind>.json` (run, book_line,
 single_book, both) and `public-comic-wall-both.json` (the issue wall of the
-`both` title). All data is invented.
+`both` title). It also writes `frontend/e2e/fixtures/snapshot/comics.json`,
+the shelf's `GET /api/public/comics` body with one title of each kind: its rows
+are built by the real `public_comics._row` (`kind`, `volumes_owned` and
+`volume_numbers` included) over unattached `Item` rows, and the whole body is
+validated through `PublicComicsOut`. All data is invented.
 """
 
 import json
 import sys
 import uuid
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from comics import title_kind
-from models import ComicVolume
+from comics import owned_line_numbers, sort_series, title_kind
+from models import ComicVolume, Item, ItemStatus, ItemType, OwnedFormat
 from public import PublicItemDetailOut
 from public_comics import (
     PublicComicDetail,
+    PublicComicsOut,
     PublicTitleVolume,
+    _row,
+    comic_stats,
+    comic_weeks,
     line_order,
+    series_of,
     volume_slots,
 )
 from public_issues import PublicWall
 
-OUT = str(Path(__file__).resolve().parents[2] / "frontend/e2e/fixtures/api") + "/"
+FIXTURES = Path(__file__).resolve().parents[2] / "frontend/e2e/fixtures"
+OUT = str(FIXTURES / "api") + "/"
+SNAPSHOT = str(FIXTURES / "snapshot") + "/"
 IDS = {
     "run": "22222222-bbbb-4bbb-8bbb-000000000002",
     "book_line": "33333333-bbbb-4bbb-8bbb-000000000003",
@@ -164,8 +176,62 @@ def detail(kind):
     )
 
 
-def write(name, model):
-    with open(OUT + name, "w") as f:
+def shelf_item(kind):
+    """A public comic row as the database holds it (never flushed). The run
+    and the `both` title hold loose issues; the others hold none."""
+    loose = LOOSE[kind]
+    return Item(
+        id=uuid.UUID(IDS[kind]),
+        type=ItemType.COMIC,
+        title=TITLES[kind],
+        creator="Fixture Press",
+        year=2020,
+        status=ItemStatus.ACTIVE,
+        owned_format=OwnedFormat.PHYSICAL,
+        is_public=True,
+        following=False,
+        issues_owned=f"1-{loose}" if loose else None,
+        issues_skipped=None,
+        editions=None,
+        read_to=2 if loose else None,
+        source_metadata={"released": 8, "ongoing": True} if loose else None,
+        shelf_format="trades" if BOOKS[kind] else "singles",
+        tags=[],
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
+
+def shelf():
+    """GET /api/public/comics over the four invented titles."""
+    today = date(2026, 11, 10)
+    items = {kind: shelf_item(kind) for kind in IDS}
+    series = {kind: series_of(item) for kind, item in items.items()}
+    marks = {item.id: 2 if LOOSE[k] else 0 for k, item in items.items()}
+    by_id = {s.id: kind for kind, s in series.items()}
+    rows = []
+    for s in sort_series(series.values(), "next", today):
+        kind = by_id[s.id]
+        owned_books = [v for v in BOOKS[kind] if v.owned]
+        rows.append(
+            _row(
+                items[kind],
+                s,
+                today,
+                marks[items[kind].id],
+                len(owned_books),
+                owned_line_numbers(v.line_number for v in owned_books),
+            )
+        )
+        assert rows[-1].kind == kind, (rows[-1].kind, kind)
+    return PublicComicsOut(
+        series=rows,
+        stats=comic_stats(list(items.values()), today, marks),
+        this_week=comic_weeks(items.values(), today),
+    )
+
+
+def write(name, model, out=None):
+    with open((out or OUT) + name, "w") as f:
         f.write(json.dumps(json.loads(model.model_dump_json()), indent=2) + "\n")
 
 
@@ -193,3 +259,5 @@ write(
         )
     ),
 )
+
+write("comics.json", shelf(), SNAPSHOT)

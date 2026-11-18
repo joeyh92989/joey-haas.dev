@@ -56,7 +56,15 @@ const PREF = {
 }
 
 /** The chips the public page has, and the one only the owner can use. */
-const ADMIN_CHIPS = ['following', 'gaps', 'unread', 'want', 'private']
+const ADMIN_CHIPS = [
+  'following',
+  'gaps',
+  'unread',
+  'want',
+  'books',
+  'issues',
+  'private',
+]
 
 /** A stored preference, only when it is one of the values on offer. */
 function storedPref(key, allowed, fallback) {
@@ -95,6 +103,11 @@ function asRow(item) {
     external_id: item.external_id,
     external_source: item.external_source,
     tags: item.tags,
+    // The title's kind and owned volumes, from the API's run summary: the
+    // same words as the public shelf's card.
+    kind: run.kind,
+    volumes_owned: run.volumes_owned ?? 0,
+    volume_numbers: run.volume_numbers ?? [],
   }
 }
 

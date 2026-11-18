@@ -603,9 +603,9 @@ export const spine = {
   comics: {
     path: '/shelf/comics',
     title: 'Comics',
-    lede: 'Comic series I own, each as a run: the issues I have, the gaps, and how far I’ve read.',
-    noun: 'series',
-    nounPlural: 'series',
+    lede: 'Comics I own, each as what it is: a run of issues, a line of books or a single book. Runs show the issues I have, the gaps and how far I’ve read; books show which volumes I own.',
+    noun: 'title',
+    nounPlural: 'titles',
     groupShow: 'Show',
     figures: {
       series: 'Series',
@@ -760,6 +760,8 @@ export const spine = {
       gaps: 'Gaps',
       unread: 'Unread on the shelf',
       want: 'Want',
+      books: 'Books',
+      issues: 'Single issues',
       private: 'Private',
       publisher: 'Publisher',
       more: 'More…',
@@ -770,7 +772,7 @@ export const spine = {
       { value: 'publisher', label: 'Publisher' },
       { value: 'missing', label: 'Missing issues' },
     ],
-    search: 'Search series',
+    search: 'Search titles',
     cards: {
       runs: 'Runs',
       runsMissing: (n) => `${n} missing`,
@@ -950,7 +952,7 @@ export const spine = {
       },
     },
     empty: 'No comics on the shelf yet.',
-    noMatch: 'No series match those filters.',
+    noMatch: 'No titles match those filters.',
     attribution: { before: 'Comic data from', label: 'Comic Vine', after: '.' },
   },
   /** /admin/store-list: What's next's sections with my answers on them. */

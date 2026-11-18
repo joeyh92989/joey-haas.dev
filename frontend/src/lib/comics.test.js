@@ -13,6 +13,8 @@ import {
   monthYear,
   shortDate,
   sortComics,
+  kindSummary,
+  volumesOwnedText,
 } from './comics.js'
 
 const row = (overrides) => ({
@@ -73,6 +75,8 @@ describe('chips, search and sorts', () => {
       gaps: 2,
       unread: 1,
       want: 1,
+      books: 0,
+      issues: 4,
     })
     expect(filterComics(rows, 'gaps', 'Image').map((r) => r.title)).toEqual([
       'Saga',
@@ -116,6 +120,134 @@ describe('chips, search and sorts', () => {
       'Want me',
     ])
     expect(sortComics(rows, 'missing')[0].title).toBe('Hellboy')
+  })
+})
+
+describe('the Books and Single issues chips', () => {
+  const rows = [
+    row({ title: 'Saga' }),
+    row({ title: 'Both', kind: 'both' }),
+    row({ title: 'Line', kind: 'book_line' }),
+    row({ title: 'One', kind: 'single_book' }),
+    row({ title: 'Old snapshot' }),
+  ]
+  const titles = (chip) => filterComics(rows, chip).map((r) => r.title)
+
+  it('Books is every title that holds books', () => {
+    expect(titles('books')).toEqual(['Both', 'Line', 'One'])
+  })
+
+  it('Single issues is every title that holds issues; a row with no kind is a run', () => {
+    expect(titles('issues')).toEqual(['Saga', 'Both', 'Old snapshot'])
+  })
+
+  it('counts them from the whole list and composes with a publisher', () => {
+    expect(chipCounts(rows)).toMatchObject({ books: 3, issues: 3 })
+    const mixed = [
+      row({ title: 'A', kind: 'book_line', publisher: 'Image' }),
+      row({ title: 'B', kind: 'book_line', publisher: 'DC' }),
+    ]
+    expect(filterComics(mixed, 'books', 'DC').map((r) => r.title)).toEqual([
+      'B',
+    ])
+  })
+})
+
+describe('volumesOwnedText', () => {
+  it.each([
+    [[1], 1, undefined, 'Vol. 1'],
+    [[2], 1, undefined, 'Vol. 2'],
+    [[1, 2], 2, undefined, 'Vol. 1 and 2'],
+    [[1, 2, 4], 3, undefined, 'Vol. 1, 2 and 4'],
+    [[1, 2, 3], 3, undefined, 'Vol. 1, 2 and 3'],
+    // Out of order and repeated numbers are read as a set.
+    [[4, 1, 2, 2], 3, undefined, 'Vol. 1, 2 and 4'],
+    // Eight numbers or fewer stay plain, even a run of three or more.
+    [[1, 2, 3, 4, 5, 6, 7, 8], 8, undefined, 'Vol. 1, 2, 3, 4, 5, 6, 7 and 8'],
+    // More than eight: a consecutive run of three or more is "a to b".
+    [
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15],
+      14,
+      undefined,
+      'Vol. 1 to 12, 14 and 15',
+    ],
+    // A run of two stays two numbers.
+    [
+      [1, 2, 4, 5, 6, 7, 9, 10, 12],
+      9,
+      undefined,
+      'Vol. 1, 2, 4 to 7, 9, 10 and 12',
+    ],
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9], 9, undefined, 'Vol. 1 to 9'],
+  ])('numbers %j of %i books -> %s', (numbers, owned, size, text) => {
+    expect(volumesOwnedText(numbers, owned, size)).toBe(text)
+  })
+
+  it('adds the books with no number, from the owned count minus the numbered', () => {
+    expect(volumesOwnedText([1, 2, 4], 4)).toBe(
+      'Vol. 1, 2 and 4, and 1 book with no number',
+    )
+    expect(volumesOwnedText([1], 3)).toBe('Vol. 1, and 2 books with no number')
+    expect(volumesOwnedText([], 2)).toBe('2 books with no number')
+    expect(volumesOwnedText([], 1)).toBe('1 book with no number')
+  })
+
+  it('says nothing for no books at all', () => {
+    expect(volumesOwnedText([], 0)).toBe('')
+    expect(volumesOwnedText(undefined, 0)).toBe('')
+  })
+
+  it('prints "of N" only when a line size is given, which nothing passes yet', () => {
+    expect(volumesOwnedText([1, 2, 4], 3)).not.toMatch(/ of /)
+    expect(volumesOwnedText([1, 2, 4], 3, 6)).toBe('Vol. 1, 2 and 4 of 6')
+    expect(volumesOwnedText([1], 1, 6)).toBe('Vol. 1 of 6')
+    // No number to be "of" a size: the size is left out.
+    expect(volumesOwnedText([], 2, 6)).toBe('2 books with no number')
+    expect(volumesOwnedText([1], 2, 0)).not.toMatch(/ of /)
+  })
+})
+
+describe('kindSummary', () => {
+  it('names the kind and says which volumes a title with books holds', () => {
+    expect(kindSummary(row({ title: 'Run' }))).toEqual({
+      kind: 'run',
+      word: 'Run of issues',
+      volumes: null,
+    })
+    expect(
+      kindSummary(
+        row({
+          kind: 'book_line',
+          volumes_owned: 3,
+          volume_numbers: [1, 2, 4],
+        }),
+      ),
+    ).toEqual({
+      kind: 'book_line',
+      word: 'Line of books',
+      volumes: 'Vol. 1, 2 and 4',
+    })
+    expect(
+      kindSummary(
+        row({ kind: 'single_book', volumes_owned: 1, volume_numbers: [3] }),
+      ).volumes,
+    ).toBe('Vol. 3')
+    // An unnumbered single book says nothing past its kind.
+    expect(
+      kindSummary(
+        row({ kind: 'single_book', volumes_owned: 1, volume_numbers: [] }),
+      ).volumes,
+    ).toBeNull()
+    expect(
+      kindSummary(
+        row({ kind: 'both', volumes_owned: 2, volume_numbers: [1, 3] }),
+      ),
+    ).toMatchObject({ word: 'Books and issues', volumes: 'Vol. 1 and 3' })
+  })
+
+  it('reads an older row or an unknown kind as a run', () => {
+    expect(kindSummary(row({ kind: 'mystery' })).kind).toBe('run')
+    expect(kindSummary(row({ kind: 'book_line' })).volumes).toBeNull()
   })
 })
 
