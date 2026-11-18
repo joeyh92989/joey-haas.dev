@@ -144,6 +144,36 @@ describe('seriesAdds', () => {
   it('skips unticked books', () => {
     expect(seriesAdds([book('a', 1, { state: 'ignored' })])).toEqual([])
   })
+
+  describe('a collected book with no range', () => {
+    const bare = (id, extra = {}) => {
+      const entry = book(id, null, extra)
+      entry.payload = { ...entry.payload, format: 'collected' }
+      return entry
+    }
+
+    it('counts as a book, not as nothing', () => {
+      const [series] = seriesAdds([bare('a'), bare('b')])
+      expect(series.books).toBe(2)
+      expect(series.newTitle).toBe(false)
+      expect(series.editions).toEqual([])
+      expect(series.missing).toBe(0)
+    })
+
+    it('says the title is new when the server says it will be created', () => {
+      const [series] = seriesAdds([bare('a', { title_will_be_created: true })])
+      expect(series.books).toBe(1)
+      expect(series.newTitle).toBe(true)
+    })
+
+    it('does not count a ranged book twice', () => {
+      const ranged = bare('a')
+      ranged.payload = { ...ranged.payload, collects_from: 1, collects_to: 6 }
+      const [series] = seriesAdds([ranged])
+      expect(series.books).toBe(0)
+      expect(series.editions).toHaveLength(1)
+    })
+  })
 })
 
 describe('hashRanges', () => {

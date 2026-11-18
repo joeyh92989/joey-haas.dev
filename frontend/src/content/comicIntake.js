@@ -62,6 +62,9 @@ export const comicIntake = {
       edition.to === edition.from ? '' : `–${edition.to}`
     })`,
   addsNothing: 'adds nothing yet',
+  /** A collected book with no range: it still adds a book (or its title). */
+  addsBooks: (n) => (n === 1 ? 'adds a book' : `adds ${n} books`),
+  startsTitle: 'starts a new title',
   alreadyHeld: (ranges) => `${ranges} already on the shelf`,
   needNumber: (n) => `${n} ${n === 1 ? 'book needs' : 'books need'} a number`,
   nextHeld: (n) =>

@@ -484,6 +484,11 @@ export default function ComicBooks({
             const parts = [
               series.added.length ? words.adds(hashRanges(series.added)) : null,
               ...series.editions.map(words.addsEdition),
+              series.books > 0
+                ? series.newTitle
+                  ? words.startsTitle
+                  : words.addsBooks(series.books)
+                : null,
             ].filter(Boolean)
             return (
               <li key={series.key}>
