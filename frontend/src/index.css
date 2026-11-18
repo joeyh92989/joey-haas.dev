@@ -10108,7 +10108,7 @@ a.cover-tile-cap:focus-visible span {
   text-transform: none;
 }
 
-.spots-name > span:first-child {
+.spots-name-text {
   margin-right: var(--space-2);
 }
 
@@ -10117,6 +10117,30 @@ a.cover-tile-cap:focus-visible span {
   display: block;
   font-size: var(--fs-13);
   font-weight: 400;
+}
+
+/* The row the add bar just saved (#341). The pill's word carries the
+   meaning; the tint is extra. */
+.spots-table tr.is-marked > * {
+  background: var(--accent-soft);
+}
+
+.spots-table tr.is-marked > th {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.spots-table tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.spots-new {
+  background: var(--accent);
+  border-radius: 999px;
+  color: var(--accent-ink);
+  font: 600 var(--fs-12) var(--font-mono);
+  margin-right: var(--space-2);
+  padding: 0 var(--space-2);
 }
 
 .spots-anchor {
@@ -13857,5 +13881,148 @@ a.btn.sm {
   .place-result > .place-form {
     grid-area: auto;
     grid-column: 1 / -1;
+  }
+}
+
+/* ---------- The Spots add bar (story #341) ----------
+   Direction A of the mockup a-panel-above.html: a panel above the finder and
+   the table. Reuses the place-* rules of /admin/places/add; every colour is
+   a token. */
+.spots-addbar {
+  margin-bottom: var(--space-4);
+}
+
+.spots-addbar-body {
+  display: grid;
+  gap: var(--space-3);
+  position: relative;
+}
+
+.spots-addbar .place-search {
+  max-width: 36rem;
+}
+
+.spots-addbar-wrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.spots-addbar-wrap.is-idle {
+  display: none;
+}
+
+.spots-addbar .admin-error {
+  font-size: var(--fs-14);
+}
+
+.spots-addbar .place-fail p,
+.spots-addbar .place-fail .muted {
+  margin: 0;
+}
+
+/* The mockup sets these two boxes at 14px; the page's own 16px would draw
+   them larger, and taller at phone width. */
+.spots-addbar .place-fail,
+.spots-addbar .place-fail p,
+.spots-addbar .empty-state,
+.spots-addbar .empty-state p {
+  font-size: var(--fs-14);
+}
+
+.spots-addbar .place-fail p:focus,
+.spots-addbar .empty-state-title:focus {
+  outline: none;
+}
+
+/* The tag chips wrap at every width instead of the phone's sideways strip. */
+.spots-addbar .chip-row {
+  -webkit-mask-image: none;
+  flex-wrap: wrap;
+  margin-top: 0;
+  mask-image: none;
+  overflow-x: visible;
+  padding: 0;
+}
+
+.spots-addbar .place-status {
+  min-height: 0;
+}
+
+/* The line stays in the page (a screen reader hears each change) and leaves
+   the layout when it is empty or the box under it says the same words. */
+.spots-addbar-statusline {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-14);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.spots-addbar-statusline.is-quiet {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.spots-addbar-statusline a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.place-result-act {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.place-saved-mark {
+  white-space: nowrap;
+}
+
+/* The shell's phone layout: 44px targets and 16px inputs. */
+@media (max-width: 900px) {
+  .spots-addbar .btn,
+  .spots-addbar .chip {
+    min-height: 2.75rem;
+  }
+
+  /* A focus or a scroll "nearest" lands clear of the fixed tab bar
+     (.admin-tabs: 3.25rem and the safe area) and a little above it. */
+  .spots-addbar .btn,
+  .spots-addbar .place-result.open {
+    scroll-margin-bottom: calc(
+      3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-4)
+    );
+  }
+
+  .spots-addbar .chip {
+    padding-inline: var(--space-4);
+  }
+
+  .spots-addbar :is(input[type='text'], input[type='search'], select) {
+    font-size: var(--fs-16);
+    min-height: 2.75rem;
+  }
+
+  .spots-addbar-statusline a {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+  }
+
+  .place-result > .place-result-act {
+    display: grid;
+    grid-area: act;
+    justify-items: end;
   }
 }
