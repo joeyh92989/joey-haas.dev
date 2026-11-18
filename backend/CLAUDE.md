@@ -18,14 +18,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   because `test_public_outputs.py` forbids `note` at any depth, and
   `PublicSpot` carries `spot_id` and no anchor, visit or distance.
   Outings (story #344, migration `0025`): a `visits` row is an outing, with
-  optional `title` (at most 80 characters after trimming), `verdict`
+  optional `title` (cleaned first: control characters dropped except ZWJ/ZWNJ, whitespace collapsed; then at most 80 characters, a plain 422 sentence), `verdict`
   (`loved`, `fine`, `not_again`) and `kid_along` (null is unknown, false is
   an answer) and a `precision` (`day`, `month`, `year`, default `day`).
   `visited_on` is always the START of the period: `log_visit` moves a month to
   the 1st and a year to Jan 1, and the future check (more than a day past the
   owner's Denver day) applies to that start, so the current month and year
   pass and the next are refused. `VisitOut` carries all four; `SpotOut` gains
-  `last_verdict` (greatest `visited_on`, ties by newest `created_at`; null with
+  `last_verdict` (greatest `visited_on`, ties by newest `created_at`, then id; null with
   no outings or none set) beside the unchanged `last_visit` and `visit_count`.
   `note` stays admin-only, and no public body carries any outing field
   (`test_public_outputs.py` pins it).

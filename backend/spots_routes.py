@@ -123,17 +123,18 @@ class VisitIn(BaseModel):
     def _clean_title(cls, value: str | None) -> str | None:
         """Whitespace of any kind (newline, tab) becomes one space, control
         and format characters (a NUL included) are dropped, the ends are
-        trimmed, and only then is the length checked. Blank means no title."""
+        trimmed. Blank means no title. ZWJ and ZWNJ stay (emoji sequences).
+        The length is checked by `log_visit` on this cleaned value, so the
+        form gets a plain sentence rather than a validation list."""
         if value is None:
             return None
         spaced = "".join(" " if ch.isspace() else ch for ch in value)
         kept = "".join(
-            ch for ch in spaced if unicodedata.category(ch) not in ("Cc", "Cf")
+            ch
+            for ch in spaced
+            if ch in "\u200c\u200d" or unicodedata.category(ch) not in ("Cc", "Cf")
         )
-        title = " ".join(kept.split()) or None
-        if title is not None and len(title) > MAX_OUTING_TITLE:
-            raise ValueError(f"A title is at most {MAX_OUTING_TITLE} characters")
-        return title
+        return " ".join(kept.split()) or None
 
     note: str | None = Field(default=None, max_length=MAX_VISIT_NOTE)
 
@@ -453,6 +454,11 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         next are refused. The day's grace is for the owner logging from a time
         zone east of Denver."""
         await _spot(session, spot_id)
+        if payload.title is not None and len(payload.title) > MAX_OUTING_TITLE:
+            raise HTTPException(
+                status_code=422,
+                detail=f"A title is at most {MAX_OUTING_TITLE} characters",
+            )
         today = datetime.now(OWNER_TZ).date()
         visited_on = _period_start(payload.visited_on or today, payload.precision)
         if visited_on > today + timedelta(days=1):

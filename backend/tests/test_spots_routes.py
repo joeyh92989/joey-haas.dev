@@ -574,6 +574,7 @@ async def test_the_title_is_trimmed_blank_means_none_and_80_is_the_limit(
     assert exact.status_code == 201
     assert len(exact.json()["title"]) == 80
     assert over.status_code == 422
+    assert over.json()["detail"] == "A title is at most 80 characters"
 
 
 async def test_an_unknown_verdict_or_precision_is_a_422(sessionmaker_for_test):
@@ -688,7 +689,16 @@ async def test_last_verdict_breaks_a_full_tie_by_id(sessionmaker_for_test):
                     )
                 )
             await session.commit()
-        picks = {
-            (await client.get("/api/spots")).json()[0]["last_verdict"] for _ in range(3)
-        }
-    assert picks == {"fine"}  # the greatest id wins, every time
+        listed = (await client.get("/api/spots")).json()
+    assert listed[0]["last_verdict"] == "fine"  # the greatest id wins
+
+
+async def test_a_title_keeps_an_emoji_joiner_sequence_and_drops_a_nul(
+    sessionmaker_for_test,
+):
+    family = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        made = await client.post(url, json={"title": f"{family} zoo\u0000 day"})
+    assert made.status_code == 201
+    assert made.json()["title"] == f"{family} zoo day"
