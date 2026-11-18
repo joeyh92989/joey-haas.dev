@@ -890,6 +890,8 @@ export const spine = {
         single: 'I have this as a single issue.',
         volumes: 'Also in:',
         both: 'I have this as a single issue, and it is also in:',
+        /** Between books; a label may hold a comma. */
+        separator: '; ',
         other: (label, title) => `${label} (${title})`,
       },
       noDescription: 'Comic Vine has no description for this issue.',

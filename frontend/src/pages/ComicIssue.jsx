@@ -46,7 +46,7 @@ function AlsoIn({ single, books = [] }) {
       {!single && books.length > 0 && COPY.alsoIn.volumes}
       {books.map((book, i) => (
         <span key={`${book.title_id}/${book.slug}`}>
-          {i > 0 && ', '}
+          {i > 0 && COPY.alsoIn.separator}
           {i === 0 && ' '}
           <Link to={volumePath(book.title_id, book.slug)}>
             {book.same_title

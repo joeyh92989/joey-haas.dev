@@ -226,7 +226,7 @@ describe('ComicIssue, public', () => {
       renderIssue()
       await screen.findByRole('heading', { level: 1 })
       expect(held()).toHaveTextContent(
-        'Also in: Lantern Tales, Book Two, Harbor Lights, Book One (Harbor Lights)',
+        'Also in: Lantern Tales, Book Two; Harbor Lights, Book One (Harbor Lights)',
       )
       expect(held()).not.toHaveTextContent('single issue')
       const links = within(held()).getAllByRole('link')
@@ -245,7 +245,7 @@ describe('ComicIssue, public', () => {
       renderIssue()
       await screen.findByRole('heading', { level: 1 })
       expect(held()).toHaveTextContent(
-        'I have this as a single issue, and it is also in: Volume One, Harbor Lights, Book One (Harbor Lights)',
+        'I have this as a single issue, and it is also in: Volume One; Harbor Lights, Book One (Harbor Lights)',
       )
       expect(within(held()).getAllByRole('link')).toHaveLength(2)
     })
