@@ -29,7 +29,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import intake.garment_kind  # noqa: F401  (registers the closet's kind)
+import intake.place_kind  # noqa: F401  (registers the places' kind)
 import intake.shelf_kinds  # noqa: F401  (registers the shelf's kinds)
+import spots
 from closet_images import make_garment_image, make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
@@ -56,6 +58,7 @@ from intake.link_import import (
     merge_edit,
 )
 from intake.nightly import LAST_RUN_KEY, run_nightly
+from intake.place_kind import ATTRIBUTION, DEFAULT_CITY, mark_for_count, owned_spot_id
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -128,6 +131,29 @@ class EntryCreate(BaseModel):
     kind: str = Field(max_length=40)
     payload: dict[str, Any] = Field(default_factory=dict)
     chosen: dict[str, Any] | None = None
+
+
+class PlaceEntryIn(BaseModel):
+    """A place entry for a places sitting. From search: `chosen` is the
+    result row and `result_count` how many results that search returned
+    (one is READY, else CHECK). Typed: `name` and `coords`."""
+
+    chosen: dict[str, Any] | None = None
+    result_count: int = Field(default=0, ge=0, le=100)
+    name: str | None = Field(default=None, max_length=200)
+    coords: str | None = Field(default=None, max_length=500)
+    city: str = Field(default=DEFAULT_CITY, max_length=40)
+    neighbourhood: str | None = Field(default=None, max_length=100)
+    blurb: str | None = Field(default=None, max_length=500)
+    tags: list[str] = Field(default_factory=list, max_length=len(spots.TAGS) * 2)
+    is_public: bool = False
+
+
+PLACE_OWNED = "That place is already on your list"
+PLACE_IN_SITTING = "That place is already in this visit"
+PLACE_NEEDS_NAME = "A place needs a name"
+PLACE_CHOSEN_REFUSED = "A chosen place needs a name, lat, lng and source_id"
+PLACE_KIND_REQUIRED = "A places sitting needs a kind"
 
 
 class CommitIn(BaseModel):
@@ -350,6 +376,8 @@ def create_intake_router(
     ) -> dict[str, Any]:
         """Start a sitting. A kind must belong to the area; none is a mixed shelf."""
         _check_kind(body.area, body.kind)
+        if body.area is IntakeArea.PLACES and body.kind is None:
+            raise HTTPException(422, PLACE_KIND_REQUIRED)
         sitting = IntakeSitting(area=body.area, kind=body.kind, label=body.label)
         session.add(sitting)
         await session.commit()
@@ -735,6 +763,104 @@ def create_intake_router(
             chosen=body.chosen,
         )
         session.add(entry)
+        await session.commit()
+        [shown] = await entries_json(session, [entry])
+        return shown
+
+    @router.post(
+        "/sittings/{sitting_id}/places", status_code=201, response_model=EntryOut
+    )
+    async def add_place(
+        sitting_id: uuid.UUID,
+        body: PlaceEntryIn,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Add a place to a places sitting: a chosen search result (its mark
+        from the count of results, `mark_for_count`) or one typed by hand
+        (READY when its coordinates parse, else CHECK). 409 when the place is
+        already a spot or already in this sitting, 422 for a bad tag or a
+        result missing its position."""
+        sitting = await _sitting_or_404(session, sitting_id)
+        if sitting.area is not IntakeArea.PLACES or sitting.kind != "place":
+            raise HTTPException(409, "A place can only be added to a places sitting")
+        try:
+            tags = spots.canonical_tags(body.tags)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        payload: dict[str, Any] = {
+            "city": body.city.strip().lower() or DEFAULT_CITY,
+            "tags": tags,
+            "blurb": (body.blurb or "").strip() or None,
+            "neighbourhood": (body.neighbourhood or "").strip() or None,
+            "is_public": body.is_public,
+        }
+        chosen: dict[str, Any] | None = None
+        source_id: str | None = None
+        if body.chosen is not None:
+            hit = body.chosen
+            name, source_id = hit.get("title") or hit.get("name"), hit.get("source_id")
+            lat, lng = hit.get("lat"), hit.get("lng")
+            if (
+                not isinstance(name, str)
+                or not isinstance(source_id, str)
+                or isinstance(lat, bool)
+                or isinstance(lng, bool)
+                or not isinstance(lat, int | float)
+                or not isinstance(lng, int | float)
+            ):
+                raise HTTPException(422, PLACE_CHOSEN_REFUSED)
+            payload.update(name=name.strip(), lat=float(lat), lng=float(lng))
+            chosen = {
+                "source": "osm",
+                "source_id": source_id,
+                "title": name,
+                "address": hit.get("address"),
+                "lat": float(lat),
+                "lng": float(lng),
+                "category": hit.get("category"),
+                "map_url": hit.get("map_url"),
+                "attribution": ATTRIBUTION,
+            }
+            state = mark_for_count(body.result_count)
+        else:
+            name = (body.name or "").strip()
+            if not name:
+                raise HTTPException(422, PLACE_NEEDS_NAME)
+            payload["name"] = name
+            try:
+                lat, lng = spots.parse_coords(body.coords or "")
+            except ValueError:
+                payload["coords"] = body.coords
+                state = IntakeEntryState.CHECK
+            else:
+                payload.update(lat=lat, lng=lng)
+                state = IntakeEntryState.READY
+        if "lat" in payload and await owned_spot_id(
+            session,
+            source_id=source_id,
+            name=payload["name"],
+            lat=payload["lat"],
+            lng=payload["lng"],
+        ):
+            raise HTTPException(409, PLACE_OWNED)
+        held = (
+            await session.scalars(
+                select(IntakeEntry).where(IntakeEntry.sitting_id == sitting.id)
+            )
+        ).all()
+        if source_id and any(
+            (entry.chosen or {}).get("source_id") == source_id for entry in held
+        ):
+            raise HTTPException(409, PLACE_IN_SITTING)
+        entry = IntakeEntry(
+            sitting_id=sitting.id,
+            kind="place",
+            state=state,
+            payload=payload,
+            chosen=chosen,
+        )
+        session.add(entry)
+        sitting.updated_at = func.now()
         await session.commit()
         [shown] = await entries_json(session, [entry])
         return shown

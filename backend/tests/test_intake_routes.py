@@ -221,13 +221,14 @@ async def test_the_places_area_takes_no_shelf_or_closet_kind(sessionmaker_for_te
     assert reverse.status_code == 422
     areas = {kind["key"]: kind["area"] for kind in kinds}
     assert areas["game"] == "shelf" and areas["garment"] == "closet"
-    assert "places" not in set(areas.values())
+    # The place kind (task 4) is the places area's only kind.
+    assert {k for k, area in areas.items() if area == "places"} == {"place"}
 
 
 @pytest.mark.asyncio
 async def test_a_places_sitting_refuses_photos(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
-        sitting = await _sitting(client, area="places")
+        sitting = await _sitting(client, area="places", kind="place")
         response = await client.post(
             f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
         )
