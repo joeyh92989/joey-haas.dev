@@ -14623,7 +14623,7 @@ a.btn.sm {
   align-items: center;
   background: var(--sunken);
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: var(--radius);
   display: flex;
   font-size: var(--fs-14);
   font-weight: 500;
@@ -14832,17 +14832,11 @@ select.lo-input {
   position: sticky;
 }
 .lo-foot .btn.primary {
+  justify-content: center;
   min-width: 8.5rem;
 }
 .lo-foot .lo-alert {
   flex: 1 1 100%;
-}
-.lo-summary {
-  color: var(--text-2);
-  flex: 1 1 100%;
-  font-size: var(--fs-13);
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 fieldset.lo-field {

@@ -6,6 +6,7 @@ import { placesAdd } from '../content/placesAdd.js'
 import { HOME_CITY, cityLabel, spotCity } from '../lib/cities.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
+import { READ_DEADLINE_MS, WaitTimeout, withDeadline } from '../lib/waits.js'
 
 const CITIES = [HOME_CITY, 'boulder', 'golden']
 const OTHER = 'other'
@@ -21,10 +22,16 @@ function dayAfter(iso) {
 
 /** A saved spot's second line: neighbourhood, city when not Denver, state. */
 function spotSub(spot) {
+  // A spot the list never loaded (only its id and name are known) says
+  // nothing about want or been.
+  const known = spot.visit_count !== undefined
+  const state = spot.last_visit
+    ? `Been, ${formatDate(spot.last_visit)}`
+    : 'Want'
   return [
     spot.neighbourhood,
     spotCity(spot) !== HOME_CITY ? cityLabel(spotCity(spot)) : null,
-    spot.last_visit ? `Been, ${formatDate(spot.last_visit)}` : 'Want',
+    known ? state : null,
   ]
     .filter(Boolean)
     .join(', ')
@@ -94,6 +101,8 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
   const [failure, setFailure] = useState(null)
   const live = useRef(true)
   const alertRef = useRef(null)
+  const inflight = useRef(false)
+  const searchSeq = useRef(0)
   const searchInput = useRef(null)
 
   useEffect(() => {
@@ -117,7 +126,18 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     [spots, q],
   )
   const futureDate = !!date && date > tomorrow
+  const dateError = futureDate ? words.futureDate : errors.date
   const placeName = place ? (place.spot?.name ?? place.title) : ''
+
+  /** One call under the read deadline; a hang reads as no answer. */
+  async function timed(fn) {
+    try {
+      return await withDeadline(fn, { ms: READ_DEADLINE_MS })
+    } catch (error) {
+      if (!(error instanceof WaitTimeout)) throw error
+      return { ok: false, status: 0, message: placesAdd.noAnswer }
+    }
+  }
 
   async function runSearch(event) {
     event.preventDefault()
@@ -125,11 +145,17 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     if (!text || search.phase === 'searching') return
     setErrors((e) => ({ ...e, place: null }))
     setSearch({ phase: 'searching', q: text, results: [] })
-    const answer = await call(
-      `/api/intake/search?area=places&query=${encodeURIComponent(text)}`,
-      'GET',
+    const seq = (searchSeq.current += 1)
+    const answer = await timed((signal) =>
+      call(
+        `/api/intake/search?area=places&query=${encodeURIComponent(text)}`,
+        'GET',
+        undefined,
+        signal,
+      ),
     )
-    if (!live.current) return
+    // Gone, or the words changed while it was out: the answer is stale.
+    if (!live.current || seq !== searchSeq.current) return
     const rows = answer.ok ? (answer.data.results ?? []) : []
     const problem = answer.ok
       ? (answer.data.sources ?? []).find(
@@ -210,12 +236,26 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     if (title.trim()) body.title = title.trim()
     if (kid) body.kid_along = true
     if (note.trim()) body.note = note.trim()
+    if (inflight.current) return
+    inflight.current = true
     setFailure(null)
     setSaving(true)
-    const answer = await call('/api/spots/outings', 'POST', body)
+    const answer = await timed((signal) =>
+      call('/api/spots/outings', 'POST', body, signal),
+    )
+    inflight.current = false
     if (!live.current) return
     setSaving(false)
     if (!answer.ok) {
+      // The server names the field it refused: show it there as well.
+      if (answer.status === 422 && /in the future/.test(answer.message)) {
+        setErrors((e) => ({ ...e, date: answer.message }))
+      } else if (
+        answer.status === 422 &&
+        answer.message.startsWith('A title is at most')
+      ) {
+        setErrors((e) => ({ ...e, title: answer.message }))
+      }
       setFailure(words.failed(answer.message, placeName, !place.spot))
       return
     }
@@ -317,7 +357,12 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
                   enterKeyHint="search"
                   data-autofocus
                   value={q}
-                  onChange={(e) => setQ(e.target.value)}
+                  onChange={(e) => {
+                    setQ(e.target.value)
+                    // New words: the last search's rows no longer answer them.
+                    searchSeq.current += 1
+                    setSearch({ phase: 'idle', q: '', results: [] })
+                  }}
                   aria-invalid={errors.place ? 'true' : undefined}
                   aria-describedby={errors.place ? 'lo-err-place' : 'lo-q-hint'}
                 />
@@ -365,14 +410,15 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
               value={date}
               onChange={(e) => {
                 setDate(e.target.value)
+                setErrors((x) => ({ ...x, date: null }))
                 setFailure(null)
               }}
-              aria-invalid={futureDate ? 'true' : undefined}
-              aria-describedby={futureDate ? 'lo-err-date' : undefined}
+              aria-invalid={dateError ? 'true' : undefined}
+              aria-describedby={dateError ? 'lo-err-date' : undefined}
             />
-            {futureDate && (
+            {dateError && (
               <p className="lo-err" id="lo-err-date" role="alert">
-                {words.futureDate}
+                {dateError}
               </p>
             )}
           </div>
@@ -439,9 +485,20 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
             type="text"
             maxLength={80}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            aria-describedby="lo-title-hint"
+            onChange={(e) => {
+              setTitle(e.target.value)
+              setErrors((x) => ({ ...x, title: null }))
+            }}
+            aria-invalid={errors.title ? 'true' : undefined}
+            aria-describedby={
+              errors.title ? 'lo-err-title lo-title-hint' : 'lo-title-hint'
+            }
           />
+          {errors.title && (
+            <p className="lo-err" id="lo-err-title" role="alert">
+              {errors.title}
+            </p>
+          )}
           <p className="lo-hint" id="lo-title-hint">
             {words.titleHint}
           </p>

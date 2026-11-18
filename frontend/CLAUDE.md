@@ -391,7 +391,9 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   optional in the API; title and kid start empty and `kid_along` is sent only
   when toggled. Open state lives in the page: the `/admin/spots` header button
   rereads spots (`rereadSpots(id)`), the Weekend Visits panel button re-reads the
-  plan. The per-row Log visit stays. Styles are the `lo-*` block at the end of
+  plan. The per-row Log visit stays. Save and search run under `withDeadline`
+  (`READ_DEADLINE_MS`; `call` takes an optional signal) with an `inflight` guard; a
+  server 422 about the date or the title also shows beside that field. Styles are the `lo-*` block at the end of
   `index.css`.
 - **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
   with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`

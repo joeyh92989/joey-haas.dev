@@ -17,7 +17,6 @@ export const outings = {
   noSavedMatch: (q) =>
     `No saved spot matches “${q}”. Press Search to look it up.`,
   savedMark: 'Saved',
-  onYourList: 'On your list',
   change: 'Change',
   isNew: 'New',
   isPrivate: 'Private',
@@ -50,7 +49,7 @@ export const outings = {
   needVerdict: 'Pick a verdict.',
   failedTitle: 'Not saved',
   failed: (message, name, isNew) =>
-    `${message} Nothing was written: the outing at ${name} was not logged${isNew ? ` and ${name} was not added to Spots` : ''}. What you entered is still here.`,
+    `${/[.!?]$/.test(message) ? message : `${message}.`} Nothing was written: the outing at ${name} was not logged${isNew ? ` and ${name} was not added to Spots` : ''}. What you entered is still here.`,
   saved: (name, created) =>
     created
       ? `Logged an outing at ${name} and added it to Spots as a private spot.`

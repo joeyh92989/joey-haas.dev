@@ -403,14 +403,18 @@ export default function AdminSpots() {
       >
         <button
           type="button"
+          className="btn primary"
+          onClick={() => setLogging(true)}
+        >
+          {outings.open}
+        </button>
+        <button
+          type="button"
           className="btn"
           onClick={(event) => openForm(event, 'new')}
           disabled={editing === 'new'}
         >
           {denver.admin.add}
-        </button>
-        <button type="button" className="btn" onClick={() => setLogging(true)}>
-          {outings.open}
         </button>
       </AdminPageHeader>
       <LogOutingSheet

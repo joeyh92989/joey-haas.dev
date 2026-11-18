@@ -125,7 +125,6 @@ export const denver = {
     anyTime: 'No limit',
     visitsTitle: 'Recent visits',
     noVisits: 'No visits logged yet.',
-    logVisit: 'Log a visit',
   },
   form: {
     addTitle: 'Add a spot',

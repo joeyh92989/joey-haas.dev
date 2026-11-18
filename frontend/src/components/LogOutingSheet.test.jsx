@@ -1,11 +1,12 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import LogOutingSheet from './LogOutingSheet.jsx'
 import { axeViolations } from '../lib/axe.test-util.js'
+import { READ_DEADLINE_MS } from '../lib/waits.js'
 
 // jsdom has no showModal or modal close; these do what the tests need.
 beforeEach(() => {
@@ -63,7 +64,7 @@ const FILLMORE = {
   lng: -104.9786,
   address: '1510 Clarkson Street, Capitol Hill, Denver',
   category: 'Music venue',
-  source_id: 'osm:node:1',
+  source_id: 'node/1',
   owned_spot_id: null,
 }
 
@@ -224,7 +225,7 @@ describe('LogOutingSheet', () => {
         lat: 39.7403,
         lng: -104.9786,
         city: 'boulder',
-        source_id: 'osm:node:1',
+        source_id: 'node/1',
       },
       visited_on: '2026-11-18',
       verdict: 'loved',
@@ -279,7 +280,7 @@ describe('LogOutingSheet', () => {
     expect(postCall(calls)).toBeUndefined()
   })
 
-  it('shows the server 422 and keeps the values, naming the place', async () => {
+  it('shows the server 422 in the alert and beside the date, keeping the values', async () => {
     stubApi({
       'POST /api/spots/outings': () =>
         json({ detail: 'A visit cannot be in the future' }, 422),
@@ -293,14 +294,108 @@ describe('LogOutingSheet', () => {
     await user.click(screen.getByLabelText('Loved'))
     await user.type(screen.getByLabelText(/Title/), 'Show')
     await user.click(screen.getByRole('button', { name: 'Save outing' }))
-    const alert = await screen.findByText(/A visit cannot be in the future/)
+    const alert = await screen.findByText(/Nothing was written/)
     expect(alert).toHaveTextContent(
-      'Nothing was written: the outing at Fillmore Auditorium was not logged and Fillmore Auditorium was not added to Spots',
+      'A visit cannot be in the future. Nothing was written: the outing at Fillmore Auditorium was not logged and Fillmore Auditorium was not added to Spots. What you entered is still here.',
     )
+    const date = screen.getByLabelText('Date')
+    expect(date).toHaveAttribute('aria-invalid', 'true')
+    expect(date).toHaveAccessibleDescription('A visit cannot be in the future')
     expect(onSaved).not.toHaveBeenCalled()
     expect(screen.getByLabelText(/Title/)).toHaveValue('Show')
     expect(screen.getByLabelText('Loved')).toBeChecked()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+  })
+
+  it('shows the server title refusal beside the Title field', async () => {
+    stubApi({
+      'POST /api/spots/outings': () =>
+        json({ detail: 'A title is at most 80 characters' }, 422),
+    })
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'coors')
+    await user.click(await screen.findByRole('button', { name: /Coors Field/ }))
+    await user.click(screen.getByLabelText('Fine'))
+    await user.click(screen.getByRole('button', { name: 'Save outing' }))
+    await screen.findByText(/Nothing was written/)
+    const title = screen.getByLabelText(/Title/)
+    expect(title).toHaveAttribute('aria-invalid', 'true')
+    expect(title).toHaveAccessibleDescription(
+      /A title is at most 80 characters/,
+    )
+  })
+
+  it('typing after a search brings the saved-spot filter back', async () => {
+    stubApi()
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'Fillmore{Enter}')
+    await screen.findByRole('button', { name: /Fillmore Auditorium/ })
+    await user.clear(screen.getByLabelText('Place'))
+    await user.type(screen.getByLabelText('Place'), 'coors')
+    expect(
+      await screen.findByRole('button', { name: /Coors Field/ }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Fillmore Auditorium/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('a double click on Save posts once', async () => {
+    const calls = stubApi({
+      'POST /api/spots/outings': () => new Promise(() => {}),
+    })
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'coors')
+    await user.click(await screen.findByRole('button', { name: /Coors Field/ }))
+    await user.click(screen.getByLabelText('Fine'))
+    const save = screen.getByRole('button', { name: 'Save outing' })
+    fireEvent.click(save)
+    fireEvent.click(save)
+    await screen.findByRole('button', { name: 'Saving…' })
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1)
+  })
+
+  it('a hung save gives up at the deadline and unlocks the sheet', async () => {
+    stubApi({ 'POST /api/spots/outings': () => new Promise(() => {}) })
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'coors')
+    await user.click(await screen.findByRole('button', { name: /Coors Field/ }))
+    await user.click(screen.getByLabelText('Fine'))
+    // Timers are faked from here on, so the deadline can be stepped over.
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    vi.setSystemTime(new Date(2026, 10, 18, 20, 30))
+    fireEvent.click(screen.getByRole('button', { name: 'Save outing' }))
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(READ_DEADLINE_MS + 1)
+    })
+    expect(
+      screen.getByText(
+        /The server did not answer; try again\. Nothing was written/,
+      ),
+    ).toHaveTextContent('the outing at Coors Field was not logged')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+  })
+
+  it('shows no want or been line for an already-saved pick when the spots did not load', async () => {
+    stubApi({
+      'GET /api/spots': () => json({ detail: 'down' }, 500),
+      'GET /api/intake/search': () =>
+        json({
+          results: [
+            { ...FILLMORE, title: 'Coors Field', owned_spot_id: SPOTS[0].id },
+          ],
+          sources: [],
+        }),
+    })
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'Coors{Enter}')
+    await user.click(
+      await screen.findByRole('button', { name: /Already saved/ }),
+    )
+    expect(screen.getByText('Coors Field')).toBeInTheDocument()
+    expect(screen.queryByText(/Want|Been/)).not.toBeInTheDocument()
   })
 
   it('disables the buttons and blocks close while saving', async () => {
