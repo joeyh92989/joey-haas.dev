@@ -1287,3 +1287,76 @@ async def test_unowned_and_other_title_volumes_are_not_editions(
         await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
     ).json()
     assert wall["editions"] == []
+
+
+async def _add_range(factory, item_id, slug, low, high, position=1):
+    """A second linked collects entry on an existing volume."""
+    async with factory() as session:
+        volume = await session.scalar(
+            select(ComicVolume).where(
+                ComicVolume.item_id == item_id, ComicVolume.slug == slug
+            )
+        )
+        session.add(
+            ComicVolumeCollect(
+                id=uuid.uuid4(), volume_id=volume.id, position=position,
+                series_name="Saga", issue_text=f"#{low}-{high}", source="typed",
+                item_id=item_id, from_number=low, to_number=high,
+            )
+        )  # fmt: skip
+        await session.commit()
+
+
+async def test_a_book_with_two_separate_ranges_gives_two_editions_one_slug(
+    sessionmaker_for_test,
+):
+    """Both ranges are shown. The slug stays the volume's real one (its page
+    answers only that slug); the wall keys its tiles on slug plus first issue."""
+    item_id = await _seed(sessionmaker_for_test, _series(editions=None))
+    await _add_volume(sessionmaker_for_test, item_id, "vol-3", "Split", 1, 2)
+    await _add_range(sessionmaker_for_test, item_id, "vol-3", 5, 6)
+    await _add_volume(sessionmaker_for_test, item_id, "ed-1-2", "Edited", 3, 4)
+    await _add_range(sessionmaker_for_test, item_id, "ed-1-2", 7, 7)
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    detail = (await _get(sessionmaker_for_test, f"/api/public/items/{item_id}")).json()[
+        "comic"
+    ]
+    got = {(e["slug"], e["from_issue"], e["to_issue"]) for e in wall["editions"]}
+    assert got == {
+        ("vol-3", 1, 2), ("vol-3", 5, 6), ("ed-1-2", 3, 4), ("ed-1-2", 7, 7),
+    }  # fmt: skip
+    assert len(wall["editions"]) == 4 == len(detail["editions"])
+    page = await _get(
+        sessionmaker_for_test, f"/api/public/items/{item_id}/volumes/vol-3"
+    )
+    assert page.status_code == 200
+    assert (
+        await _get(
+            sessionmaker_for_test, f"/api/public/items/{item_id}/volumes/vol-3-2"
+        )
+    ).status_code == 404
+
+
+async def test_unowning_an_ed_volume_drops_it_from_the_public_page(
+    sessionmaker_for_test,
+):
+    item_id = await _seed(sessionmaker_for_test, mirror=True)
+    path = f"/api/public/items/{item_id}"
+    assert (
+        len((await _get(sessionmaker_for_test, f"{path}/issues")).json()["editions"])
+        == 2
+    )
+    async with sessionmaker_for_test() as session:
+        volume = await session.scalar(
+            select(ComicVolume).where(
+                ComicVolume.item_id == item_id, ComicVolume.slug == "ed-5-6"
+            )
+        )
+        volume.owned = False
+        await session.commit()
+    wall = (await _get(sessionmaker_for_test, f"{path}/issues")).json()
+    detail = (await _get(sessionmaker_for_test, path)).json()["comic"]
+    assert [e["slug"] for e in wall["editions"]] == ["ed-5-6-2"]
+    assert [e["label"] for e in detail["editions"]] == ["Deluxe"]

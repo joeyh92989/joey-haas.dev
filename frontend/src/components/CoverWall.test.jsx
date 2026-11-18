@@ -66,6 +66,31 @@ describe('CoverWall', () => {
     )
   })
 
+  it('draws one tile per range of a book with two separate ranges, with no duplicate-key warning', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const book = {
+      slug: 'vol-3',
+      kind: 'omnibus',
+      label: 'Split',
+      cover_url: null,
+    }
+    show(
+      {
+        series_title: 'Saga',
+        issues: issuesTo(12),
+        editions: [
+          { ...book, from_issue: 1, to_issue: 4 },
+          { ...book, from_issue: 10, to_issue: 12 },
+        ],
+      },
+      detail({ owned_text: '', released: 12, editions: [] }),
+    )
+    const links = screen.getAllByRole('link', { name: /^Split, collects/ })
+    expect(links).toHaveLength(2)
+    expect(error.mock.calls.flat().join(' ')).not.toMatch(/same key/)
+    error.mockRestore()
+  })
+
   it('draws a book tile for an edition and a not-out block for the next dated issue', () => {
     show(
       {
