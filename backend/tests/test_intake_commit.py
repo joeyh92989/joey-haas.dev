@@ -13,6 +13,8 @@ import items
 from intake.commit import NOTHING_TO_ADD, PHOTOS_STILL_WAITING, commit_sitting
 from models import (
     ComicShelfFormat,
+    ComicVolume,
+    ComicVolumeCollect,
     Garment,
     GarmentStatus,
     IntakeArea,
@@ -107,6 +109,30 @@ async def _count(factory, model) -> int:
         return await session.scalar(select(func.count()).select_from(model))
 
 
+async def _volumes(factory) -> list[ComicVolume]:
+    async with factory() as session:
+        return list(
+            (
+                await session.scalars(
+                    select(ComicVolume).order_by(ComicVolume.item_id, ComicVolume.slug)
+                )
+            ).all()
+        )
+
+
+async def _collects(factory, volume) -> list[ComicVolumeCollect]:
+    async with factory() as session:
+        return list(
+            (
+                await session.scalars(
+                    select(ComicVolumeCollect)
+                    .where(ComicVolumeCollect.volume_id == volume.id)
+                    .order_by(ComicVolumeCollect.position)
+                )
+            ).all()
+        )
+
+
 async def _items(factory) -> list[Item]:
     async with factory() as session:
         return list(
@@ -130,6 +156,8 @@ async def test_forty_exact_entries_commit_in_one_request(sessionmaker_for_test):
         "issues_added": 0,
         "series_grew": [],
         "series_new": [],
+        "volumes_new": [],
+        "titles_created": [],
         "skipped_kept": 0,
         "photos_empty": 0,
         "photos_waiting": 0,
@@ -258,6 +286,8 @@ async def test_the_figures_equal_what_was_written(sessionmaker_for_test):
         "issues_added": 0,
         "series_grew": [],
         "series_new": [],
+        "volumes_new": [],
+        "titles_created": [],
         "skipped_kept": 3,
         "photos_empty": 2,
         "photos_waiting": 0,
@@ -1094,7 +1124,7 @@ async def test_a_book_beyond_what_the_series_holds_is_added_to_it(
 
 
 @pytest.mark.asyncio
-async def test_a_collected_book_adds_an_edition_not_a_number(sessionmaker_for_test):
+async def test_a_collected_book_adds_a_volume_not_a_number(sessionmaker_for_test):
     book = _book(
         None,
         "none",
@@ -1112,11 +1142,16 @@ async def test_a_collected_book_adds_an_edition_not_a_number(sessionmaker_for_te
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned is None
     assert row.shelf_format is ComicShelfFormat.OMNIBUS
-    assert row.editions == [
-        {"kind": "Omnibus", "label": "Waterworld", "from": 1, "to": 6}
-    ]
+    assert row.editions is None  # a book is a volume, never an editions row
+    [volume] = await _volumes(sessionmaker_for_test)
+    assert (volume.kind, volume.label, volume.slug) == (
+        "omnibus",
+        "Waterworld",
+        "vol-1",
+    )
     [new] = response.json()["series_new"]
-    assert new["issues"] == [] and new["editions"] == row.editions
+    assert new["issues"] == [] and new["editions"] == []
+    assert new["volumes"] == [{"label": "Waterworld", "kind": "omnibus"}]
 
 
 @pytest.mark.asyncio
@@ -1160,7 +1195,7 @@ def _trade(low=1, high=6, kind="trade", **extra) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_photographing_a_trade_already_recorded_adds_no_second_edition(
+async def test_a_trade_with_the_range_of_a_held_edition_is_a_second_book(
     sessionmaker_for_test,
 ):
     held = [{"kind": "Hardcover", "label": "Vol. 1 deluxe", "from": 1, "to": 6}]
@@ -1175,11 +1210,17 @@ async def test_photographing_a_trade_already_recorded_adds_no_second_edition(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert (body["added"], body["already_owned"]) == (0, 1)
+    # The same issues in two books are two books: the old (from, to) skip
+    # is gone, so the photo adds a volume beside the edition's own.
+    assert (body["added"], body["already_owned"]) == (0, 0)
     [grew] = body["series_grew"]
     assert grew["editions_added"] == []
     [row] = await _items(sessionmaker_for_test)
     assert row.editions == held
+    assert [v.slug for v in await _volumes(sessionmaker_for_test)] == [
+        "ed-1-6",
+        "vol-1",
+    ]
 
 
 @pytest.mark.asyncio
@@ -1194,14 +1235,18 @@ async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
     )
     async with client_for(sessionmaker_for_test) as client:
         response = await _commit(client, sitting_id)
-    [grew] = response.json()["series_grew"]
-    assert [e["label"] for e in grew["editions_added"]] == ["Vol. 2"]
+    body = response.json()
+    [grew] = body["series_grew"]
+    assert grew["editions_added"] == []
+    assert [v["label"] for v in body["volumes_new"]] == ["Vol. 2"]
     [row] = await _items(sessionmaker_for_test)
-    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6), (7, 12)]
+    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]  # untouched
+    [shim, new] = await _volumes(sessionmaker_for_test)
+    assert (shim.slug, new.slug, new.label) == ("ed-1-6", "vol-1", "Vol. 2")
 
 
 @pytest.mark.asyncio
-async def test_two_photos_of_one_trade_in_a_sitting_make_one_edition(
+async def test_two_photos_of_one_trade_in_a_sitting_are_two_books(
     sessionmaker_for_test,
 ):
     entries = [
@@ -1212,7 +1257,10 @@ async def test_two_photos_of_one_trade_in_a_sitting_make_one_edition(
     async with client_for(sessionmaker_for_test) as client:
         await _commit(client, sitting_id)
     [row] = await _items(sessionmaker_for_test)
-    assert len(row.editions) == 1
+    assert row.editions is None
+    volumes = await _volumes(sessionmaker_for_test)
+    assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2"]
+    assert {v.label for v in volumes} == {"Vol. 1", "Volume One"}
 
 
 @pytest.mark.asyncio
@@ -1247,7 +1295,9 @@ async def test_a_collected_book_does_not_override_the_series_shelf_format(
         await _commit(client, sitting_id)
     [row] = await _items(sessionmaker_for_test)
     assert row.shelf_format is ComicShelfFormat.OMNIBUS
-    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]
+    assert row.editions is None
+    [volume] = await _volumes(sessionmaker_for_test)
+    assert volume.kind == "trade"
 
 
 @pytest.mark.asyncio
@@ -1266,7 +1316,7 @@ async def test_a_collected_book_fills_a_shelf_format_the_series_has_not_got(
 
 
 @pytest.mark.asyncio
-async def test_details_saying_singles_keeps_a_read_trades_edition(
+async def test_details_saying_singles_keeps_a_read_trades_volume(
     sessionmaker_for_test,
 ):
     book = _trade(1, 6, shelf_format="singles")
@@ -1278,7 +1328,12 @@ async def test_details_saying_singles_keeps_a_read_trades_edition(
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
     assert row.shelf_format is ComicShelfFormat.SINGLES
-    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]
+    assert row.editions is None
+    [volume] = await _volumes(sessionmaker_for_test)
+    assert [
+        (c.from_number, c.to_number)
+        for c in await _collects(sessionmaker_for_test, volume)
+    ] == [(1, 6)]
 
 
 @pytest.mark.asyncio

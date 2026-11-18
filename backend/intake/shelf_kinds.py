@@ -52,28 +52,16 @@ EDITION_SHELF_FORMAT = {
     "trade": ComicShelfFormat.TRADES,
     "hardcover": ComicShelfFormat.TRADES,
     "omnibus": ComicShelfFormat.OMNIBUS,
+    "compendium": ComicShelfFormat.TRADES,
+    "ogn": ComicShelfFormat.TRADES,
 }
-
-
-def book_edition(payload: dict[str, Any]) -> dict[str, Any] | None:
-    """The edition a collected book (intake/reader.py) brings, when its
-    range was read or typed: one `editions` row, whatever the shelf format
-    says, because editions and the shelf format are independent."""
-    if payload.get("format") != "collected":
-        return None
-    low, high = payload.get("collects_from"), payload.get("collects_to")
-    if low is None or high is None:
-        return None
-    kind = payload.get("edition_kind") or "trade"
-    title = (payload.get("detected_title") or "").strip() or kind.title()
-    return {"kind": kind.title(), "label": title[:80], "from": low, "to": high}
 
 
 def _book_row(payload: dict[str, Any]) -> dict[str, Any]:
     """The row fields a comic book's own payload brings (intake/reader.py):
     a single issue's number as `issues_owned`, and a collected edition's
-    default shelf format (its edition row is `book_edition`, which the
-    commit adds to the series itself). A payload with `issues_owned`
+    default shelf format (the book itself is a volume, written by the commit:
+    `intake/volume_plan.py`). A payload with `issues_owned`
     already (typed in the add bar) keeps it."""
     if payload.get("format") == "collected":
         kind = payload.get("edition_kind") or "trade"

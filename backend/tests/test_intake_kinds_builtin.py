@@ -46,23 +46,17 @@ def test_a_comic_single_brings_its_number_and_a_typed_value_wins():
     assert typed["issues_owned"] == "1-3"
 
 
-def test_a_collected_comic_book_sets_shelf_format_and_an_edition():
-    payload = {
-        "format": "collected",
-        "edition_kind": "omnibus",
-        "collects_from": 1,
-        "collects_to": 6,
-        "detected_title": "Big Book",
-    }
-    assert shelf_kinds._book_row(payload) == {"shelf_format": "omnibus"}
-    assert shelf_kinds.book_edition(payload) == {
-        "kind": "Omnibus",
-        "label": "Big Book",
-        "from": 1,
-        "to": 6,
-    }
-
-
-def test_book_edition_needs_a_collected_book_with_a_range():
-    assert shelf_kinds.book_edition({"format": "single"}) is None
-    assert shelf_kinds.book_edition({"format": "collected", "collects_from": 1}) is None
+def test_a_collected_comic_book_sets_its_default_shelf_format():
+    base = {"format": "collected", "collects_from": 1, "collects_to": 6}
+    for kind, shelf in (
+        ("omnibus", "omnibus"),
+        ("trade", "trades"),
+        ("hardcover", "trades"),
+        ("compendium", "trades"),
+        ("ogn", "trades"),
+    ):
+        assert shelf_kinds._book_row({**base, "edition_kind": kind}) == {
+            "shelf_format": shelf
+        }
+    # The book is a volume, written by the commit; it is no edition row.
+    assert not hasattr(shelf_kinds, "book_edition")

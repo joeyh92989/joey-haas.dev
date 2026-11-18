@@ -20,6 +20,14 @@ and the entries read from them or typed in.
 - `shelf_kinds.py` — game, movie, comic and board game. `to_row` keeps the
   chosen match's metadata plus the payload's `ItemIn` fields, and records a
   physical copy. Board games are typed only while BGG needs a token.
+- `volume_plan.py` — a collected comic book as a volume (#328). `book_plan`
+  (pure) decides the volume (label, one of the five kinds, number in its
+  line) and its contents (the printed range, then the reprint note read by
+  `comic_contents.parse_contents`: rules only, no model), each with whether
+  it links to the title; `preview` is what Check shows from it;
+  `write_volume` writes it once per intake entry (`intake_entry_id`, unique),
+  taking a second writer's volume instead of failing. The commit and Check
+  both go through `book_plan`, so the preview is what is written.
 - `garment_kind.py` — the closet's garment: no source, no details step;
   `to_row` keeps only `GarmentFields` keys. Ways in: photo, type,
   **file** (the seed file below) and **link** (`link_import.py`). Its fields include brand, store colour
