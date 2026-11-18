@@ -154,6 +154,10 @@ class PublicComicStats(BaseModel):
     by_status: dict[str, int]
     publishers: list[PublicPublisherCount]
     added_by_month: list[PublicAddedMonth]
+    # The book-first figures (#333); `comic_stats` defines them.
+    books_owned: int
+    volumes_missing: int
+    issues_read: int
 
 
 class PublicComicIssue(BaseModel):
@@ -404,9 +408,53 @@ def _months_back(today: date, count: int) -> list[date]:
     return months[::-1]
 
 
+def book_figures(
+    pairs: Iterable[tuple[Item, ComicSeries]],
+    books: dict[uuid.UUID, tuple[int, list[int]]],
+) -> tuple[int, int]:
+    """(books_owned, volumes_missing) over PUBLIC titles; `books` is
+    `owned_volume_shelf` (owned volumes only, so an unowned book is never
+    counted or used to fill a gap).
+
+    A one-issue book: Comic Vine models some trades as one-issue volumes, so
+    a title with no owned volume, a finished one-issue run (released == 1, not
+    ongoing) and that issue held counts as one book. A title that already has
+    an owned volume never adds it, so nothing counts twice.
+    """
+    owned = missing = 0
+    for item, series in pairs:
+        count, numbers = books.get(item.id, (0, []))
+        if count:
+            owned += count
+            # Only a line of books alone (`title_kind` book_line): the slots
+            # 1..highest owned number that no owned book has. Never past the
+            # highest owned number, no line size invented.
+            if count >= 2 and loose_issues(item) == 0 and numbers:
+                missing += numbers[-1] - len(numbers)
+        elif series.released == 1 and not series.ongoing and series.owned:
+            owned += 1
+    return owned, missing
+
+
 def comic_stats(
-    items: list[Item], today: date, marks: dict[uuid.UUID, int] | None = None
+    items: list[Item],
+    today: date,
+    marks: dict[uuid.UUID, int] | None = None,
+    books: dict[uuid.UUID, tuple[int, list[int]]] | None = None,
 ) -> PublicComicStats:
+    """The figures over PUBLIC rows (callers pass only those).
+
+    - `books_owned`: owned volumes, plus one for each title with no owned
+      volume that is a one-issue Comic Vine volume with its issue held
+      (`book_figures`).
+    - `volumes_missing`: per book line (`kind` book_line), the line numbers
+      from 1 to the highest owned that no owned volume has; 0 for titles
+      with no numbered volume.
+    - `issues_read`: the issue marks are the record, each (title, number) once
+      (the primary key), whether read as a single or through a volume.
+      `read_percent` is a different figure (the read-to marker over owned
+      issues) and is unchanged.
+    """
     pairs = [(item, series_of(item)) for item in items]
     figures = shelf_figures(series for _, series in pairs)
     shelf = [(item, s) for item, s in pairs if s.on_shelf]
@@ -415,6 +463,7 @@ def comic_stats(
     added = Counter(
         date(item.created_at.year, item.created_at.month, 1) for item in items
     )
+    books_owned, volumes_missing = book_figures(pairs, books or {})
     return PublicComicStats(
         series=figures.series,
         issues_owned=figures.issues_owned,
@@ -442,6 +491,9 @@ def comic_stats(
             PublicAddedMonth(month=m, count=added[m])
             for m in _months_back(today, ADDED_MONTHS)
         ],
+        books_owned=books_owned,
+        volumes_missing=volumes_missing,
+        issues_read=sum((marks or {}).values()),
     )
 
 
@@ -637,6 +689,6 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
             )
             for s in ordered
         ],
-        stats=comic_stats(items, today, marks),
+        stats=comic_stats(items, today, marks, books),
         this_week=comic_weeks(items, today),
     )

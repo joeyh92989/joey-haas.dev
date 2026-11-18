@@ -738,7 +738,9 @@ the `both` title (`public-comic-wall-both.json`, `GET /api/public/items/{id}/iss
 and the shelf's list body `frontend/e2e/fixtures/snapshot/comics.json`
 (`GET /api/public/comics`, one title of each kind, rows built by the real
 `public_comics._row` so `kind`, `volumes_owned` and `volume_numbers` come from
-the backend; the e2e build paints it on `/shelf/comics`). It also writes the
+the backend; the e2e build paints it on `/shelf/comics`). Its `stats` come from
+the real `public_comics.comic_stats` over the same books, so `books_owned`,
+`volumes_missing` and `issues_read` are the backend's own sums. It also writes the
 issue page bodies `issue.json` (a single and two books, one of another title),
 `issue-single.json` and `issue-volumes.json` (`GET /api/public/items/{id}/issues/{n}`):
 `also_in` comes from the real `public_issues.also_in_rows` and `held_single`
@@ -750,7 +752,7 @@ validated through `PublicItemDetailOut` or `PublicWall`, so the title page's
 tests and the e2e fixtures cannot carry a key the API never sends. The data is
 invented; the ids match the fixture titles in
 `frontend/e2e/fixtures/snapshot/`. Run it again whenever `PublicComicDetail`
-changes, then format the JSON the way `format:check` wants and commit it:
+or `PublicComicStats` changes, then format the JSON the way `format:check` wants and commit it:
 
 ```sh
 cd backend && ./.venv/bin/python scripts/export_public_comic_fixtures.py
