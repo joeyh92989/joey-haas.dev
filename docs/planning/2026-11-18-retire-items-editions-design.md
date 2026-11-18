@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural
 mode: auto
 ---
