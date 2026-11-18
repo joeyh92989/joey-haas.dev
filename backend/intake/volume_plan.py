@@ -82,6 +82,8 @@ class VolumePlan:
     entry_key: uuid.UUID | None = None
     # The kind as typed, when the volume's kind is a mapping of it.
     kind_raw: str | None = None
+    # The book's ISBN-13 (`comic_volumes.isbn`), when one was typed or scanned.
+    isbn: str | None = None
 
 
 def _known(value: Any) -> int:
@@ -231,6 +233,7 @@ def typed_plans(
                 source="typed",
                 entry_key=typed_key(entry_id, index),
                 kind_raw=book["kind"],
+                isbn=book.get("isbn"),
             )
         )
     return plans
@@ -393,6 +396,7 @@ async def write_volume(
             label=plan.label,
             kind=plan.kind,
             kind_raw=plan.kind_raw,
+            isbn=plan.isbn,
             line_number=plan.line_number,
             owned=True,
             read=False,

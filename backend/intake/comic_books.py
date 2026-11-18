@@ -22,6 +22,7 @@ from comics import (
     parse_ranges,
 )
 from importer import COMIC_EDITION_KINDS, MAX_REPRINT_NOTE
+from sources.openlibrary import InvalidIsbn, normalize_isbn
 
 FORMATS = ("single", "collected", "unknown")
 # The five kinds of volume (`comic_volumes.kind`).
@@ -148,7 +149,8 @@ def legacy_editions_to_books(payload: Any) -> Any:
 
 def typed_books(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
     """The collected books Details typed on a comic entry (`payload.books`,
-    rows of kind, label, from, to), checked and trimmed; `[]` when none.
+    rows of kind, label, from, to and an optional `isbn`, which is
+    checked and stored as an ISBN-13), checked and trimmed; `[]` when none.
     Each becomes a volume at commit (`volume_plan.typed_plans`). Raises
     BookEditError (field `books`), as the old editions rules did."""
     payload = payload or {}
@@ -188,7 +190,16 @@ def typed_books(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
             raise BookEditError(
                 f"{label}: collects #{low}-{high} runs backwards.", "books"
             )
-        books.append({"kind": kind, "label": label, "from": low, "to": high})
+        book = {"kind": kind, "label": label, "from": low, "to": high}
+        raw_isbn = row.get("isbn")
+        if isinstance(raw_isbn, str) and raw_isbn.strip():
+            try:
+                book["isbn"] = normalize_isbn(raw_isbn)
+            except InvalidIsbn as error:
+                raise BookEditError(f"{label}: {error}", "books") from error
+        elif raw_isbn is not None and not isinstance(raw_isbn, str):
+            raise BookEditError(f"{label}: the ISBN is text.", "books")
+        books.append(book)
     return books
 
 

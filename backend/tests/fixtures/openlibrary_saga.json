@@ -1,0 +1,96 @@
+{
+  "ISBN:9781607066019": {
+    "url": "http://openlibrary.org/books/OL25421257M/Saga",
+    "key": "/books/OL25421257M",
+    "title": "Saga",
+    "subtitle": "Volume One",
+    "authors": [
+      {
+        "url": "http://openlibrary.org/authors/OL1399650A/Brian_K._Vaughan",
+        "name": "Brian K. Vaughan"
+      }
+    ],
+    "number_of_pages": 160,
+    "identifiers": {
+      "isbn_13": [
+        "9781607066019"
+      ],
+      "oclc": [
+        "800650553"
+      ],
+      "openlibrary": [
+        "OL25421257M"
+      ]
+    },
+    "classifications": {
+      "lc_classifications": [
+        "PN6738"
+      ]
+    },
+    "publishers": [
+      {
+        "name": "Image Comics"
+      }
+    ],
+    "publish_places": [
+      {
+        "name": "Berkeley, CA, USA"
+      }
+    ],
+    "publish_date": "2012",
+    "subjects": [
+      {
+        "name": "Interracial marriage",
+        "url": "https://openlibrary.org/subjects/interracial_marriage"
+      },
+      {
+        "name": "Imaginary wars and battles",
+        "url": "https://openlibrary.org/subjects/imaginary_wars_and_battles"
+      },
+      {
+        "name": "Military deserters",
+        "url": "https://openlibrary.org/subjects/military_deserters"
+      },
+      {
+        "name": "Parents of exceptional children",
+        "url": "https://openlibrary.org/subjects/parents_of_exceptional_children"
+      },
+      {
+        "name": "Parents of racially mixed children",
+        "url": "https://openlibrary.org/subjects/parents_of_racially_mixed_children"
+      },
+      {
+        "name": "Ethnicity",
+        "url": "https://openlibrary.org/subjects/ethnicity"
+      },
+      {
+        "name": "Comic books, strips",
+        "url": "https://openlibrary.org/subjects/comic_books,_strips"
+      },
+      {
+        "name": "Comics & graphic novels, science fiction",
+        "url": "https://openlibrary.org/subjects/comics_&_graphic_novels,_science_fiction"
+      },
+      {
+        "name": "nyt:paperback-graphic-books=2012-11-04",
+        "url": "https://openlibrary.org/subjects/nyt:paperback-graphic-books=2012-11-04"
+      },
+      {
+        "name": "New York Times bestseller",
+        "url": "https://openlibrary.org/subjects/new_york_times_bestseller"
+      }
+    ],
+    "ebooks": [
+      {
+        "preview_url": "https://archive.org/details/sagavolumeone0000vaug",
+        "availability": "restricted",
+        "formats": {}
+      }
+    ],
+    "cover": {
+      "small": "https://covers.openlibrary.org/b/id/12679639-S.jpg",
+      "medium": "https://covers.openlibrary.org/b/id/12679639-M.jpg",
+      "large": "https://covers.openlibrary.org/b/id/12679639-L.jpg"
+    }
+  }
+}
