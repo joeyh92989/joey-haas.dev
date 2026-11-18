@@ -35,7 +35,7 @@ from models import (
 )
 from tests.test_intake_kinds import client_for
 from tests.test_items_bulk import client_for as items_client_for
-from tests.volume_seed import mirror_editions
+from tests.volume_seed import seed_volumes
 
 S = IntakeEntryState
 
@@ -315,8 +315,9 @@ def _series(n: int = 7) -> dict:
 
 
 async def _seed_series(factory, n: int = 7, **fields) -> None:
-    """A series on the shelf; its `editions` get the `ed-*` volumes the shim
-    makes, as a stored row has (the run counts owned volumes)."""
+    """A series on the shelf; its `editions` (edition-shaped dicts) become the
+    `ed-*` owned volumes a stored row has (the run counts owned volumes)."""
+    editions = fields.pop("editions", None)
     async with factory() as session:
         item = Item(
             type=ItemType.COMIC,
@@ -327,7 +328,7 @@ async def _seed_series(factory, n: int = 7, **fields) -> None:
             **fields,
         )
         session.add(item)
-        await mirror_editions(session, item)
+        await seed_volumes(session, item, editions)
         await session.commit()
 
 
@@ -425,7 +426,7 @@ async def test_each_series_on_the_shelf_is_reported_with_what_it_gained(
         "added": [3, 4],
         # Held already: one loose, one inside the edition.
         "already": [2, 6],
-        "editions_added": [],
+        "books_added": [],
         "after_owned_text": "1–6",
     }
     assert items["7"].issues_owned == "1–4"
@@ -794,7 +795,7 @@ async def test_a_new_series_typed_books_become_volumes_never_the_column(
         )
     ]
     [new] = response.json()["series_new"]
-    assert new["editions"] == [TRADE]
+    assert new["books"] == [TRADE]
     assert [v["label"] for v in response.json()["volumes_new"]] == ["Vol. 1"]
 
 
@@ -846,7 +847,6 @@ async def test_a_series_on_the_shelf_gains_typed_books_as_volumes(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
-    assert row.editions == [stored]  # the column is left as it was
     assert row.issues_owned == "1, 9"
     rows = await _volume_rows(sessionmaker_for_test)
     assert [(r[0], r[1], r[5]) for r in rows] == [
@@ -854,7 +854,7 @@ async def test_a_series_on_the_shelf_gains_typed_books_as_volumes(
         ("vol-1", "Vol. 1", True),
     ]
     [grew] = response.json()["series_grew"]
-    assert grew["editions_added"] == [TRADE]
+    assert grew["books_added"] == [TRADE]
     assert grew["added"] == [9]
 
 
@@ -937,7 +937,7 @@ async def test_two_entries_of_one_new_series_each_write_their_books(
     rows = await _volume_rows(sessionmaker_for_test)
     assert sorted(r[1] for r in rows) == ["Vol. 1", "Vol. 2"]
     [new] = response.json()["series_new"]
-    assert sorted(e["label"] for e in new["editions"]) == ["Vol. 1", "Vol. 2"]
+    assert sorted(e["label"] for e in new["books"]) == ["Vol. 1", "Vol. 2"]
 
 
 @pytest.mark.asyncio
@@ -995,7 +995,7 @@ async def test_typed_issues_are_written_loose_beside_a_covering_trade(
     assert (body["issues_added"], body["already_owned"]) == (5, 0)
     [grew] = body["series_grew"]
     assert grew["added"] == [2, 3, 4, 5, 6]
-    assert grew["editions_added"] == [TRADE]
+    assert grew["books_added"] == [TRADE]
     assert grew["after_owned_text"] == "1–6"
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–6"
@@ -1015,7 +1015,7 @@ async def test_a_series_gaining_only_a_typed_book_is_grown_not_already_owned(
     body = response.json()
     assert (body["issues_added"], body["already_owned"]) == (0, 0)
     [grew] = body["series_grew"]
-    assert (grew["added"], grew["editions_added"]) == ([], [TRADE])
+    assert (grew["added"], grew["books_added"]) == ([], [TRADE])
     assert len(await _volume_rows(sessionmaker_for_test)) == 1
 
 
@@ -1094,7 +1094,7 @@ async def test_four_books_numbered_one_to_four_make_a_series_holding_one_to_four
     assert row.editions is None
     # Done reads "<Series> · adds #1–4" from this.
     [new] = response.json()["series_new"]
-    assert (new["title"], new["issues"], new["editions"]) == (
+    assert (new["title"], new["issues"], new["books"]) == (
         "Waterworld",
         [1, 2, 3, 4],
         [],
@@ -1146,7 +1146,6 @@ async def test_committing_what_the_series_already_holds_changes_nothing(
     assert row.read_to == 2
     assert row.shelf_format is ComicShelfFormat.SINGLES
     assert row.following is True
-    assert row.editions == held["editions"]
 
 
 @pytest.mark.asyncio
@@ -1191,7 +1190,7 @@ async def test_a_collected_book_adds_a_volume_not_a_number(sessionmaker_for_test
         "vol-1",
     )
     [new] = response.json()["series_new"]
-    assert new["issues"] == [] and new["editions"] == []
+    assert new["issues"] == [] and new["books"] == []
     assert new["volumes"] == [{"label": "Waterworld", "kind": "omnibus"}]
 
 
@@ -1255,9 +1254,8 @@ async def test_a_trade_with_the_range_of_a_held_edition_is_a_second_book(
     # is gone, so the photo adds a volume beside the edition's own.
     assert (body["added"], body["already_owned"]) == (0, 0)
     [grew] = body["series_grew"]
-    assert grew["editions_added"] == []
+    assert grew["books_added"] == []
     [row] = await _items(sessionmaker_for_test)
-    assert row.editions == held
     assert [v.slug for v in await _volumes(sessionmaker_for_test)] == [
         "ed-1-6",
         "vol-1",
@@ -1285,12 +1283,11 @@ async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
         response = await _commit(client, sitting_id)
     body = response.json()
     [grew] = body["series_grew"]
-    assert grew["editions_added"] == []
+    assert grew["books_added"] == []
     assert [v["label"] for v in body["volumes_new"]] == ["Vol. 2"]
     [row] = await _items(sessionmaker_for_test)
-    assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]  # untouched
-    [shim, new] = await _volumes(sessionmaker_for_test)
-    assert (shim.slug, new.slug, new.label) == (
+    [seeded, new] = await _volumes(sessionmaker_for_test)
+    assert (seeded.slug, new.slug, new.label) == (
         "ed-1-6",
         "vol-1",
         "Vol. 2",

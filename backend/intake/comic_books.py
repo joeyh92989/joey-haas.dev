@@ -14,9 +14,9 @@ from __future__ import annotations
 from typing import Any
 
 from comics import (
-    EDITION_KIND_MAX,
-    EDITION_LABEL_MAX,
-    MAX_EDITIONS,
+    BOOK_KIND_MAX,
+    BOOK_LABEL_MAX,
+    MAX_BOOKS,
     MAX_ISSUE,
     RangeError,
     parse_ranges,
@@ -161,21 +161,21 @@ def typed_books(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
         return []
     if not isinstance(raw, list):
         raise BookEditError("Collected books are a list.", "books")
-    if len(raw) > MAX_EDITIONS:
-        raise BookEditError(f"At most {MAX_EDITIONS} collected books.", "books")
+    if len(raw) > MAX_BOOKS:
+        raise BookEditError(f"At most {MAX_BOOKS} collected books.", "books")
     books: list[dict[str, Any]] = []
     for row in raw:
         if not isinstance(row, dict):
             raise BookEditError("Each book needs a kind, a label and a range.", "books")
         kind = str(row.get("kind") or "").strip()
         label = str(row.get("label") or "").strip()
-        if not kind or len(kind) > EDITION_KIND_MAX:
+        if not kind or len(kind) > BOOK_KIND_MAX:
             raise BookEditError(
-                f"A book's kind is 1-{EDITION_KIND_MAX} characters.", "books"
+                f"A book's kind is 1-{BOOK_KIND_MAX} characters.", "books"
             )
-        if not label or len(label) > EDITION_LABEL_MAX:
+        if not label or len(label) > BOOK_LABEL_MAX:
             raise BookEditError(
-                f"A book's label is 1-{EDITION_LABEL_MAX} characters.", "books"
+                f"A book's label is 1-{BOOK_LABEL_MAX} characters.", "books"
             )
         low, high = row.get("from"), row.get("to")
         if not all(isinstance(n, int) and not isinstance(n, bool) for n in (low, high)):

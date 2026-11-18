@@ -24,7 +24,7 @@ volumes too, written by the same code as a photographed book. A series
 gaining neither issues nor a volume is `already_owned`; one gaining only a
 volume is grown. Each series already on the shelf is also reported on its
 own (`series_grew`): the issues it gained, the ones it held already, the
-typed books it gained (`editions_added`, a name PR 4 may change), and its
+typed books it gained (`books_added`), and its
 run before and after, for Done's "Series that grew".
 
 A photo not yet read (uploaded, reading or failed) is kept too, and counted
@@ -193,15 +193,14 @@ class SeriesGrew:
     before: dict[str, Any]
     added: list[int]
     already: list[int]
-    editions_added: list[dict] = field(default_factory=list)
+    books_added: list[dict] = field(default_factory=list)
     after_owned_text: str = ""
 
     @classmethod
     async def before_write(
         cls, session: AsyncSession, item: Item, issues: set[int]
     ) -> SeriesGrew:
-        """The run is the owned volumes' (what the shim has synced by now,
-        which is the row as it stood before this write)."""
+        """The run is the owned volumes', as the row stood before this write."""
         ranges = held_ranges(await load_holds(session, item.id))
         held = owned_set(item.issues_owned, ranges)
         return cls(
@@ -229,7 +228,7 @@ class SeriesGrew:
             "ongoing": self.before["ongoing"],
             "added": self.added,
             "already": self.already,
-            "editions_added": self.editions_added,
+            "books_added": self.books_added,
             "after_owned_text": self.after_owned_text,
         }
 
@@ -375,8 +374,8 @@ class SittingCommit:
     refused: list[Refusal] = field(default_factory=list)
     created: list[uuid.UUID] = field(default_factory=list)
     series_grew: list[SeriesGrew] = field(default_factory=list)
-    # Comic series this commit created that brought issues or editions:
-    # {title, cover_url, issues, editions}, for Done's "adds #1-4" lines.
+    # Comic series this commit created that brought issues or typed books:
+    # {title, cover_url, issues, books}, for Done's "adds #1-4" lines.
     series_new: list[dict[str, Any]] = field(default_factory=list)
     # Volumes this commit wrote (a collected book is a volume), and the
     # titles it made to hold them (a book with no series on the shelf).
@@ -1064,7 +1063,7 @@ async def commit_one(
             wrote = 0
             if volumes:
                 fresh = fresh_for(on_shelf)
-                grew.editions_added = [
+                grew.books_added = [
                     _typed_json(p) for _, _, p in fresh if p.source == "typed"
                 ]
                 wrote = await _write_volumes(
@@ -1368,7 +1367,7 @@ async def commit_sitting(
             gained = issues - owned_set(
                 item.issues_owned, held_ranges(await load_holds(session, item.id))
             )
-            grew.editions_added = [
+            grew.books_added = [
                 _typed_json(p) for _, _, p in found.fresh if p.source == "typed"
             ]
             outcome.series_grew.append(grew)
@@ -1401,7 +1400,7 @@ async def commit_sitting(
                         "external_id": new_row.external_id,
                         "cover_url": new_row.cover_url,
                         "issues": sorted(issues),
-                        "editions": [
+                        "books": [
                             _typed_json(p)
                             for _, _, p in found.fresh
                             if p.source == "typed"
