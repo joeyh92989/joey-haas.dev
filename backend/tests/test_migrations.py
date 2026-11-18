@@ -56,12 +56,16 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def _diff_against_models(connection) -> list:
+def _diff_against_models(connection, before_0025: bool = False) -> list:
     """Autogenerate's view of how the live schema differs from the models."""
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
     # The models no longer carry items.editions (its drop is a later
-    # migration), so a schema that still has the column is not drift.
+    # migration), so a schema that still has the column is not drift. A schema
+    # older than 0025 lacks the four outings columns on visits; that is the
+    # revision, not drift. Only a caller that stopped below 0025 says so
+    # (`before_0025=True`): at head a missing visits column is still reported.
+    outings = {"title", "verdict", "kid_along", "precision"} if before_0025 else set()
     return [
         entry
         for entry in diff
@@ -69,6 +73,11 @@ def _diff_against_models(connection) -> list:
             entry[0] == "remove_column"
             and entry[2] == "items"
             and entry[3].name == "editions"
+        )
+        and not (
+            entry[0] == "add_column"
+            and entry[2] == "visits"
+            and entry[3].name in outings
         )
     ]
 
@@ -1753,7 +1762,7 @@ async def test_0023_adds_a_nullable_column_and_keeps_every_volume(clean_database
                 text("SELECT slug, intake_entry_id FROM comic_volumes ORDER BY slug")
             )
         ).all()
-        diff = await connection.run_sync(_diff_against_models)
+        diff = await connection.run_sync(_diff_against_models, True)
     # Every existing volume survives, with no intake entry; three NULLs do
     # not collide in the partial unique index.
     assert [tuple(row) for row in rows] == [
@@ -1863,7 +1872,7 @@ async def test_0024_a_sitting_can_be_stored_with_the_places_area(clean_database)
             await connection.scalar(text("SELECT area::text FROM intake_sittings"))
             == "places"
         )
-        diff = await connection.run_sync(_diff_against_models)
+        diff = await connection.run_sync(_diff_against_models, True)
     assert diff == []
 
 
@@ -1901,3 +1910,126 @@ async def test_0024_downgrade_deletes_places_sittings_and_their_entries(
     assert entries == 0
     up = _alembic("upgrade", "0024")  # the label stayed, IF NOT EXISTS copes
     assert up.returncode == 0, up.stderr
+
+
+# --- Revision 0025: outings columns on visits (story #344). ------------------
+
+_SPOT = "00000000-0000-0000-0000-0000000000c1"
+
+
+async def _seed_visit_at_0024(engine) -> None:
+    """A spot with one visit shaped as before the outings columns."""
+    async with engine.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO spots (id, name, slug, lat, lng) "
+                "VALUES (:id, 'Old spot', 'old-spot', 39.7, -105.0)"
+            ),
+            {"id": _SPOT},
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO visits (id, spot_id, visited_on, note) "
+                "VALUES (gen_random_uuid(), :id, '2026-05-01', 'kept')"
+            ),
+            {"id": _SPOT},
+        )
+
+
+@pytest.mark.asyncio
+async def test_0025_keeps_an_old_visit_as_a_day_with_nothing_else_set(clean_database):
+    assert _alembic("upgrade", "0024").returncode == 0
+    await _seed_visit_at_0024(clean_database)
+    result = _alembic("upgrade", "0025")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        row = (
+            await connection.execute(
+                text(
+                    "SELECT visited_on::text, note, precision::text, title, "
+                    "verdict, kid_along FROM visits"
+                )
+            )
+        ).one()
+        diff = await connection.run_sync(_diff_against_models)
+    assert tuple(row) == ("2026-05-01", "kept", "day", None, None, None)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0025_the_new_columns_take_values_and_the_types_refuse_others(
+    clean_database,
+):
+    assert _alembic("upgrade", "0025").returncode == 0
+    await _seed_visit_at_0024(clean_database)
+    insert = (
+        "INSERT INTO visits (id, spot_id, visited_on, title, verdict, kid_along, "
+        "precision) VALUES (gen_random_uuid(), :id, '2026-03-01', 'T', "
+        "CAST(:verdict AS outing_verdict), true, CAST(:precision AS outing_precision))"
+    )
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(insert), {"id": _SPOT, "verdict": "not_again", "precision": "month"}
+        )
+    async with clean_database.connect() as connection:
+        stored = (
+            await connection.execute(
+                text(
+                    "SELECT title, verdict::text, kid_along, precision::text "
+                    "FROM visits WHERE title = 'T'"
+                )
+            )
+        ).one()
+    assert tuple(stored) == ("T", "not_again", True, "month")
+    for verdict, precision in (("meh", "day"), ("loved", "week")):
+        with pytest.raises(Exception, match="invalid input value for enum"):
+            async with clean_database.begin() as connection:
+                await connection.execute(
+                    text(insert),
+                    {"id": _SPOT, "verdict": verdict, "precision": precision},
+                )
+
+
+@pytest.mark.asyncio
+async def test_0025_cycle_downgrades_and_matches_models(clean_database):
+    assert _alembic("upgrade", "0024").returncode == 0
+    await _seed_visit_at_0024(clean_database)
+    assert _alembic("upgrade", "0025").returncode == 0
+    assert _alembic("downgrade", "0024").returncode == 0
+    async with clean_database.connect() as connection:
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'visits'"
+                )
+            )
+        }
+        types = {
+            row[0]
+            for row in await connection.execute(text("SELECT typname FROM pg_type"))
+        }
+        count = await connection.scalar(text("SELECT count(*) FROM visits"))
+    assert not {"title", "verdict", "kid_along", "precision"} & columns
+    assert not {"outing_verdict", "outing_precision"} & types
+    assert count == 1  # the downgrade loses no visit
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.connect() as connection:
+        assert await connection.scalar(text("SELECT count(*) FROM visits")) == 1
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_a_head_level_diff_still_reports_a_missing_visits_column(clean_database):
+    """The 0025 carve-out is for schemas below 0025 only: at head, a visits
+    column the models carry but the database lacks must show as drift."""
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(text("ALTER TABLE visits DROP COLUMN kid_along"))
+    async with clean_database.connect() as connection:
+        at_head = await connection.run_sync(_diff_against_models)
+        below = await connection.run_sync(_diff_against_models, True)
+    assert [(e[0], e[3].name) for e in at_head] == [("add_column", "kid_along")]
+    assert below == []  # the carve-out would hide it, which is why it is opt-in
