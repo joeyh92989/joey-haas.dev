@@ -23,7 +23,7 @@ from public_issues import (
     PublicComicIndex,
     PublicComicIndexIssue,
     PublicComicIndexVolume,
-    PublicIssueEdition,
+    PublicIssueAlsoIn,
     PublicIssuePage,
     PublicNeighbour,
     PublicVolumeBody,
@@ -210,12 +210,14 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "slug", "kind", "label", "from_issue", "to_issue", "cover_url",
     }  # fmt: skip
     assert set(PublicNeighbour.model_fields) == {"number", "cover_url", "state"}
-    assert set(PublicIssueEdition.model_fields) == {"slug", "label", "kind"}
+    assert set(PublicIssueAlsoIn.model_fields) == {
+        "slug", "label", "kind", "line_number", "title_id", "title", "same_title",
+    }  # fmt: skip
     assert set(PublicIssuePage.model_fields) == {
         "series_id", "series_title", "publisher", "number", "name",
         "store_date", "cover_date", "cover_url", "large_url", "description",
-        "state", "owned", "read", "held_as", "edition", "released", "ongoing",
-        "neighbours", "source_url",
+        "state", "owned", "read", "held_single", "also_in", "released",
+        "ongoing", "neighbours", "source_url",
     }  # fmt: skip
     assert set(PublicComicIndex.model_fields) == {
         "item_id", "series_title", "kind", "issues", "volumes",
@@ -246,7 +248,7 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
     for model in (
         PublicComicIndex, PublicComicIndexIssue,
         PublicWall, PublicWallIssue, PublicWallEdition, PublicNeighbour,
-        PublicIssueEdition, PublicIssuePage, PublicComicIndexVolume,
+        PublicIssueAlsoIn, PublicIssuePage, PublicComicIndexVolume,
         PublicVolumePage, PublicVolumeTitle, PublicVolumeBody,
         PublicVolumeCollect, PublicVolumeLink, PublicVolumeNeighbour,
     ):  # fmt: skip
