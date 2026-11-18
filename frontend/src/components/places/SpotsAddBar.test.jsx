@@ -167,9 +167,11 @@ describe('SpotsAddBar', () => {
   it('starts empty: a labelled search, the short hint, nothing listed', () => {
     fakeApi()
     setup()
+    // One landmark named Add a place (the section), not two.
     expect(
-      screen.getByRole('search', { name: 'Add a place' }),
+      screen.getByRole('region', { name: 'Add a place' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('search')).not.toHaveAccessibleName('Add a place')
     expect(
       screen.getByText(
         'Nothing is looked up while you type. Press Search or Enter.',
@@ -177,6 +179,32 @@ describe('SpotsAddBar', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('')
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('hides the empty line box after a save, and keeps focus where the owner types', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(ROCKS) })
+    setup()
+    await user.type(query(), 'Red Rocks{Enter}')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByText(/Saved Red Rocks Amphitheatre/)
+    expect(document.querySelector('.spots-addbar-wrap')).toHaveClass('is-idle')
+    expect(query()).toHaveFocus()
+    // Typing is a render each key: focus is not pulled anywhere else.
+    await user.type(query(), 'abc')
+    expect(query()).toHaveFocus()
+    expect(query()).toHaveValue('abc')
+  })
+
+  it('hands the page a function that refocuses the name box', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found() })
+    const { onAddByHand } = setup()
+    await user.type(query(), 'Nowhere{Enter}')
+    await user.click(await screen.findByRole('button', { name: 'Add by hand' }))
+    screen.getByRole('button', { name: 'Search' }).focus()
+    onAddByHand.mock.calls[0][1]()
+    expect(query()).toHaveFocus()
   })
 
   it('sends nothing while typing; submit makes exactly one search', async () => {
@@ -404,7 +432,7 @@ describe('SpotsAddBar', () => {
     await user.click(screen.getByRole('button', { name: 'Change the words' }))
     expect(query()).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Add by hand' }))
-    expect(onAddByHand).toHaveBeenCalledWith('Red Roks')
+    expect(onAddByHand).toHaveBeenCalledWith('Red Roks', expect.any(Function))
   })
 
   it('shows a failed search with its reason only when the source gives one', async () => {
@@ -426,7 +454,7 @@ describe('SpotsAddBar', () => {
     )
     expect(alert).toHaveTextContent('Nominatim timed out')
     await user.click(within(alert).getByRole('button', { name: 'Add by hand' }))
-    expect(onAddByHand).toHaveBeenCalledWith('Red Rocks')
+    expect(onAddByHand).toHaveBeenCalledWith('Red Rocks', expect.any(Function))
   })
 
   it('shows a failed search with no reason line, and Try again searches once more', async () => {

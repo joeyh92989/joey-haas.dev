@@ -4,6 +4,7 @@ import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
+import { HOME_CITY } from '../components/places/PlaceFields.jsx'
 import SpotsAddBar from '../components/places/SpotsAddBar.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -79,11 +80,19 @@ export default function AdminSpots() {
   const [busy, setBusy] = useState(() => new Set())
   // The button that opened the form, given focus back when it closes.
   const opener = useRef(null)
-  // The spot the add bar saved last, its row marked "New" until the next
-  // search or save (client state only).
+  // The spot the add bar saved last wears the "New" pill (newId); the row a
+  // save or "Show in table" points at is tinted (markedId). Both are client
+  // state: a search, a by-hand save or the next bar save moves or clears them.
+  const [newId, setNewId] = useState(null)
   const [markedId, setMarkedId] = useState(null)
   // The words the bar carried to Add by hand, for the form's Name field.
   const [handName, setHandName] = useState('')
+  // The bar saved a place but the table could not be re-read.
+  const [refreshFailed, setRefreshFailed] = useState(false)
+  // Bumped by every per-row write result applied to the list, so a re-read
+  // that began before one is not allowed to overwrite it.
+  const writeSeq = useRef(0)
+  const formWrap = useRef(null)
   // A "Show in table" waiting for its row to be on the page.
   const pendingShow = useRef(null)
   const [showTick, setShowTick] = useState(0)
@@ -102,18 +111,42 @@ export default function AdminSpots() {
   }, [attempt])
 
   // After Accept: the new spot comes from the server, slug and all.
+  // Resolves true when the list was refreshed. A read that began before a
+  // row write landed is dropped and run once more, so the older answer
+  // cannot undo the newer write; a second stale read counts as a failure.
   async function rereadSpots() {
-    const result = await fetchSpots()
-    if (result.spots) setSpots(result.spots)
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const start = writeSeq.current
+      const result = await fetchSpots()
+      if (!result.spots) return false
+      if (writeSeq.current === start) {
+        setSpots(result.spots)
+        return true
+      }
+    }
+    return false
   }
 
   const shown = useMemo(
     () => (spots ?? []).filter((spot) => matches(spot, query)),
     [spots, query],
   )
+  // The cities already on saved spots, offered beside Denver; the bar's
+  // short fixed list stands until a spot outside Denver exists.
+  const cities = useMemo(() => {
+    const found = [
+      ...new Set(
+        (spots ?? [])
+          .map((spot) => String(spot.city ?? '').toLowerCase())
+          .filter((city) => city && city !== HOME_CITY),
+      ),
+    ].sort()
+    return found.length ? found : undefined
+  }, [spots])
   const publicCount = (spots ?? []).filter((spot) => spot.is_public).length
 
   function replace(saved) {
+    writeSeq.current += 1
     setSpots((current) => {
       const rest = (current ?? []).filter((spot) => spot.id !== saved.id)
       return [...rest, saved].sort((a, b) => a.name.localeCompare(b.name))
@@ -128,16 +161,18 @@ export default function AdminSpots() {
     opener.current = null
   }, [editing])
 
-  // Scroll to and focus the row "Show in table" asked for, once it is drawn.
+  // Scroll to and focus the row "Show in table" asked for, once per request:
+  // keyed on the request only, so a later change to the filter never moves
+  // focus. A row that is not drawn is dropped, not kept waiting.
   useEffect(() => {
     const id = pendingShow.current
     if (!id) return
+    pendingShow.current = null
     const row = document.getElementById(`spot-${id}`)
     if (!row) return
-    pendingShow.current = null
     row.scrollIntoView?.({ block: 'center' })
     row.focus()
-  }, [shown, showTick])
+  }, [showTick])
 
   async function showInTable(id) {
     let list = spots ?? []
@@ -151,17 +186,34 @@ export default function AdminSpots() {
     const row = list.find((spot) => spot.id === id)
     if (!row) return
     if (!matches(row, query)) setQuery('')
+    setMarkedId(id)
     pendingShow.current = id
     setShowTick((n) => n + 1)
   }
 
-  function addedByBar({ id }) {
+  async function addedByBar({ id }) {
+    setNotice(null)
+    setError(null)
+    setNewId(id)
     setMarkedId(id)
-    rereadSpots()
+    const ok = await rereadSpots()
+    setRefreshFailed(!ok)
   }
 
-  function addByHand(typedName) {
-    opener.current = null
+  async function retryRefresh() {
+    const ok = await rereadSpots()
+    setRefreshFailed(!ok)
+  }
+
+  // Add by hand from the bar: never replaces a form that is open (an edit or
+  // a half-filled new spot); it moves focus there instead. A form it opens
+  // gives focus back to the bar's name box when it closes.
+  function addByHand(typedName, focusBar) {
+    if (editing !== null) {
+      formWrap.current?.querySelector('.spot-form-title')?.focus()
+      return
+    }
+    opener.current = focusBar ? { isConnected: true, focus: focusBar } : null
     setNotice(null)
     setHandName(typedName ?? '')
     setEditing('new')
@@ -175,6 +227,10 @@ export default function AdminSpots() {
   }
 
   function saved(spot) {
+    if (editing === 'new') {
+      setNewId(null)
+      setMarkedId(null)
+    }
     replace(spot)
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
@@ -231,6 +287,7 @@ export default function AdminSpots() {
           body: JSON.stringify({ visited_on: today }),
         }),
       async () => {
+        writeSeq.current += 1
         // From the row as it is now, not as it was when clicked: a publish
         // that landed meanwhile stays.
         setSpots((current) =>
@@ -273,12 +330,20 @@ export default function AdminSpots() {
           {error}
         </p>
       )}
+      {refreshFailed && (
+        <p className="admin-error" role="alert">
+          {denver.admin.savedNotRefreshed}{' '}
+          <button type="button" className="btn" onClick={retryRefresh}>
+            {denver.admin.refreshRetry}
+          </button>
+        </p>
+      )}
       <p className="spots-notice" role="status" aria-live="polite">
         {notice}
       </p>
 
       {editing && (
-        <div className="spot-form-wrap">
+        <div className="spot-form-wrap" ref={formWrap}>
           <SpotForm
             key={editing === 'new' ? `new:${handName}` : editing.id}
             spot={editing === 'new' ? null : editing}
@@ -293,17 +358,22 @@ export default function AdminSpots() {
         onSaved={addedByBar}
         onAddByHand={addByHand}
         onShowInTable={showInTable}
-        onSearchStart={() => setMarkedId(null)}
+        cities={cities}
+        onSearchStart={() => {
+          setNewId(null)
+          setMarkedId(null)
+        }}
       />
 
       <div className="finder-layout">
         <SpotFinder
           onAccepted={rereadSpots}
-          onRestored={(id) =>
+          onRestored={(id) => {
+            writeSeq.current += 1
             setSpots((current) =>
               (current ?? []).filter((spot) => spot.id !== id),
             )
-          }
+          }}
         />
         <div className="finder-table">
           {spots === null && (
@@ -375,7 +445,7 @@ export default function AdminSpots() {
                           }
                         >
                           <th scope="row" className="spots-name">
-                            {spot.id === markedId && (
+                            {spot.id === newId && (
                               <span className="spots-new">
                                 {denver.admin.newMark}
                               </span>

@@ -54,8 +54,9 @@ async function call(path, method, body) {
  * @param {object} props
  * @param {(spot: {id: string, name: string}) => void} props.onSaved A new
  *   spot was written, so the page can re-read its table and mark the row.
- * @param {(typedName: string) => void} props.onAddByHand "Add by hand",
- *   with the words last searched for.
+ * @param {(typedName: string, focusBar: () => void) => void} props.onAddByHand
+ *   "Add by hand", with the words last searched for and a function that
+ *   moves focus back to the name box (for the form to call when it closes).
  * @param {(spotId: string) => void} props.onShowInTable A spot already saved
  *   (or just saved) is to be shown in the table.
  * @param {() => void} [props.onSearchStart] A search began (the page clears
@@ -98,9 +99,11 @@ export default function SpotsAddBar({
   useEffect(() => {
     const target = focusNext.current
     if (!target) return
+    // Spent on this render whether or not its target was drawn, so a later
+    // render (typing) never pulls focus from where the owner is.
+    focusNext.current = null
     const node = refs[target]?.current
     if (!node) return
-    focusNext.current = null
     node.focus()
     if (target === 'input') node.select?.()
   })
@@ -247,8 +250,12 @@ export default function SpotsAddBar({
     focusNext.current = 'input'
   }
 
-  const byHand = () => onAddByHand?.(searched.q)
-  const idle = phase === 'empty' && !notice
+  const byHand = () =>
+    onAddByHand?.(searched.q, () => {
+      inputRef.current?.focus()
+    })
+  // Nothing under the line to show: a fresh bar, or a save just made.
+  const idle = (phase === 'empty' || phase === 'done') && !notice
 
   return (
     <section
@@ -260,7 +267,6 @@ export default function SpotsAddBar({
         <form
           className="place-search"
           role="search"
-          aria-label={words.title}
           onSubmit={(event) => {
             event.preventDefault()
             search(query)

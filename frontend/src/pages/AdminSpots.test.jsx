@@ -545,9 +545,45 @@ describe('AdminSpots add bar (story #341)', () => {
     const stored = [...SPOTS]
     // failReads: GET /api/spots answers 500; hideNew: it answers without
     // the spot the bar saved (the server no longer returns it).
-    const control = { failReads: false, hideNew: false, anchorNew: false }
+    const control = {
+      failReads: false,
+      hideNew: false,
+      anchorNew: false,
+      // hold: the next read waits for control.release(), answering with the
+      // list as it stood when the read began.
+      hold: false,
+      release: null,
+    }
+    const patch = (id) => (options) => {
+      const body = JSON.parse(options.body)
+      const at = stored.findIndex((row) => row.id === id)
+      stored[at] = { ...stored[at], ...body }
+      return json(stored[at])
+    }
     const calls = stubApi({
+      'POST /api/spots/b/visits': () =>
+        json(
+          { id: 'v', spot_id: 'b', visited_on: '2026-11-09', note: null },
+          201,
+        ),
+      'PATCH /api/spots/a': patch('a'),
+      'PATCH /api/spots/b': patch('b'),
+      'PATCH /api/spots/c': patch('c'),
+      'POST /api/spots': (options) => {
+        const body = JSON.parse(options.body)
+        const row = spot(`h${stored.length}`, body.name)
+        stored.push(row)
+        stored.sort((x, y) => x.name.localeCompare(y.name))
+        return json(row, 201)
+      },
       'GET /api/spots': () => {
+        if (control.hold) {
+          control.hold = false
+          const snapshot = [...stored]
+          return new Promise((resolve) => {
+            control.release = () => resolve(json(snapshot))
+          })
+        }
         if (control.failReads) return json({}, 500)
         return json(control.hideNew ? [...SPOTS] : [...stored])
       },
@@ -692,7 +728,8 @@ describe('AdminSpots add bar (story #341)', () => {
     expect(screen.queryByRole('row', { name: /Red Rocks/ })).toBeNull()
     expect(scroll).not.toHaveBeenCalled()
     expect(document.activeElement.closest('tr')).toBeNull()
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    // Only the refresh sentence from the failed read after the save.
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
     delete Element.prototype.scrollIntoView
   })
 
@@ -706,14 +743,16 @@ describe('AdminSpots add bar (story #341)', () => {
     await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
     await waitFor(() => expect(spotReads(calls)).toBe(2))
     expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Saved, but the table couldn’t be refreshed.',
+    )
 
     await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
     await waitFor(() => expect(spotReads(calls)).toBe(3))
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(spotReads(calls)).toBe(3)
     expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
   })
 
   it('has no New mark in the page while a filter hides the row, until Show in table', async () => {
@@ -767,7 +806,7 @@ describe('AdminSpots add bar (story #341)', () => {
     expect(rowNames()).toContain('Home Base')
   })
 
-  it('does nothing on a second Add by hand with the same words, and remounts for new ones', async () => {
+  it('never replaces an open new form from the bar: it focuses it instead', async () => {
     barApi({ nowhere: [], elsewhere: [] })
     render(<AdminSpots />)
     await screen.findByRole('table')
@@ -780,18 +819,195 @@ describe('AdminSpots add bar (story #341)', () => {
     await user.type(coords, '39.7, -105')
     const form = screen.getByRole('form', { name: 'Add a spot' })
 
-    await user.click(within(bar()).getByRole('button', { name: 'Add by hand' }))
-    expect(screen.getByRole('form', { name: 'Add a spot' })).toBe(form)
-    expect(screen.getByLabelText('Coordinates')).toHaveValue('39.7, -105')
-    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
-
     await search(user, 'elsewhere')
     await user.click(
       await within(bar()).findByRole('button', { name: 'Add by hand' }),
     )
-    expect(screen.getByLabelText('Name')).toHaveValue('elsewhere')
-    expect(screen.getByLabelText('Coordinates')).toHaveValue('')
-    expect(screen.getAllByRole('form', { name: 'Add a spot' })).toHaveLength(1)
+    expect(screen.getByRole('form', { name: 'Add a spot' })).toBe(form)
+    expect(screen.getByLabelText('Coordinates')).toHaveValue('39.7, -105')
+    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
+    expect(screen.getByRole('heading', { name: 'Add a spot' })).toHaveFocus()
+  })
+
+  it('never replaces an open edit form from the bar: it focuses it instead', async () => {
+    barApi({ nowhere: [] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Edit Home' }))
+    const name = await screen.findByLabelText('Name')
+    await user.type(name, ' Edited')
+    await search(user, 'nowhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    expect(screen.getByLabelText('Name')).toHaveValue('Home Edited')
+    expect(screen.getByRole('heading', { name: /Edit/ })).toHaveFocus()
+    expect(screen.getAllByRole('form', { name: /spot/i })).toHaveLength(1)
+  })
+
+  it('gives an owned result the tint but no New pill when Show in table is used', async () => {
+    barApi({
+      corvus: [{ ...ROCKS, title: 'Corvus Coffee', owned_spot_id: 'a' }],
+    })
+    Element.prototype.scrollIntoView = vi.fn()
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await search(user, 'corvus')
+    await user.click(
+      await within(bar()).findByRole('link', { name: /Show in table/ }),
+    )
+    const row = document.getElementById('spot-a')
+    expect(row).toHaveClass('is-marked')
+    expect(row).toHaveFocus()
+    expect(document.querySelector('.spots-new')).toBeNull()
+    expect(within(row).queryByText('New')).toBeNull()
+    delete Element.prototype.scrollIntoView
+  })
+
+  it('shows a refresh failure after a save with a Try again that re-reads', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    calls.control.failReads = true
+    await addRocks(user)
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
+      'Saved, but the table couldn’t be refreshed.',
+    )
+    await within(bar()).findByText(/Saved Red Rocks Amphitheatre/)
+
+    calls.control.failReads = false
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }))
+    const row = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+    expect(within(row).getByText('New')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('does not let a re-read in flight undo a Public toggle that landed first', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    calls.control.hold = true
+    await addRocks(user)
+    await waitFor(() => expect(calls.control.release).toBeTypeOf('function'))
+
+    const toggle = screen.getByLabelText('Public: Home')
+    await user.click(toggle)
+    await waitFor(() => expect(toggle).toBeChecked())
+    // The older read answers now, with Home still private.
+    calls.control.release()
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
+    expect(screen.getByLabelText('Public: Home')).toBeChecked()
+    expect(spotReads(calls)).toBe(3)
+  })
+
+  it('does not steal focus from the filter box after Show in table', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    Element.prototype.scrollIntoView = vi.fn()
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+    await user.click(
+      await within(bar()).findByRole('link', { name: 'Show in table' }),
+    )
+    const filter = screen.getByRole('searchbox', { name: 'Search spots' })
+    await user.click(filter)
+    await user.type(filter, 'corvus')
+    expect(filter).toHaveFocus()
+    expect(filter).toHaveValue('corvus')
+    delete Element.prototype.scrollIntoView
+  })
+
+  it('clears the New mark and tint when a spot is saved by hand', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
+    expect(document.querySelector('.spots-new')).not.toBeNull()
+
+    await user.click(screen.getAllByRole('button', { name: 'Add by hand' })[0])
+    await user.type(await screen.findByLabelText('Name'), 'Hand Made')
+    await user.type(screen.getByLabelText('Coordinates'), '39.7, -105')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('row', { name: /Hand Made/ })
+    expect(document.querySelector('.spots-new')).toBeNull()
+    expect(marked()).toHaveLength(0)
+  })
+
+  it('returns focus to the bar box when a bar-opened form is cancelled or saved', async () => {
+    barApi({ nowhere: [], 'also nowhere': [] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    const box = () => within(bar()).getByLabelText('Add a place by name')
+
+    await search(user, 'nowhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    await screen.findByRole('form', { name: 'Add a spot' })
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(box()).toHaveFocus()
+
+    await search(user, 'also nowhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    await user.type(await screen.findByLabelText('Coordinates'), '39.7, -105')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('row', { name: /also nowhere/ })
+    expect(box()).toHaveFocus()
+  })
+
+  it('clears the page notice and error when the bar saves', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', { name: 'Log a visit to Home' }),
+    )
+    expect(await pageNotice()).toHaveTextContent('Logged a visit to Home')
+    await addRocks(user)
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
+    expect((await pageNotice()).textContent).toBe('')
+  })
+
+  it('offers the cities of saved spots to the bar', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    const base = globalThis.fetch
+    expect(calls).toBeDefined()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url).replace(/^.*\/api/, '/api')
+        if (path === '/api/spots' && !options.method) {
+          return json([
+            ...SPOTS,
+            spot('d', 'Longmont Lunch', { city: 'longmont' }),
+          ])
+        }
+        return base(url, options)
+      }),
+    )
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    await search(userEvent.setup(), 'red rocks')
+    const city = await within(bar()).findByLabelText('City')
+    expect(
+      within(city)
+        .getAllByRole('option')
+        .map((o) => o.value),
+    ).toEqual(['denver', 'longmont', 'other'])
   })
 
   it('carries the typed name into Add by hand after an empty search', async () => {

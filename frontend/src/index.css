@@ -13920,6 +13920,15 @@ a.btn.sm {
   margin: 0;
 }
 
+/* The mockup sets these two boxes at 14px; the page's own 16px would draw
+   them larger, and taller at phone width. */
+.spots-addbar .place-fail,
+.spots-addbar .place-fail p,
+.spots-addbar .empty-state,
+.spots-addbar .empty-state p {
+  font-size: var(--fs-14);
+}
+
 .spots-addbar .place-fail p:focus,
 .spots-addbar .empty-state-title:focus {
   outline: none;
@@ -13985,6 +13994,15 @@ a.btn.sm {
   .spots-addbar .btn,
   .spots-addbar .chip {
     min-height: 2.75rem;
+  }
+
+  /* A focus or a scroll "nearest" lands clear of the fixed tab bar
+     (.admin-tabs: 3.25rem and the safe area) and a little above it. */
+  .spots-addbar .btn,
+  .spots-addbar .place-result.open {
+    scroll-margin-bottom: calc(
+      3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-4)
+    );
   }
 
   .spots-addbar .chip {
