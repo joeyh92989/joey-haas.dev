@@ -390,7 +390,7 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
     assert await bodies() == before
 
 
-INDEX_FIELDS = {"item_id", "series_title", "issues", "volumes"}
+INDEX_FIELDS = {"item_id", "series_title", "kind", "issues", "volumes"}
 INDEX_ISSUE_FIELDS = {"number", "name", "cover_url"}
 
 
@@ -469,10 +469,12 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
             content = (await _get(sessionmaker_for_test, p)).content
             if p.endswith("/comic-issues"):
                 # sync_marks mirrors the editions into ed-* volumes, so the
-                # index gains `volumes` here; everything else must not move.
+                # index gains `volumes` here (and so its derived `kind`: a
+                # title with books and singles is `both`); nothing else moves.
                 rows = json.loads(content)
                 for row in rows:
                     row.pop("volumes")
+                    row.pop("kind")
                 content = json.dumps(rows).encode()
             out.append(content)
         return out

@@ -14,7 +14,7 @@ publish it with no code change, no review signal, and no failing test.
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from datetime import UTC, date, datetime
@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from formats import KEY_CARD_PLATFORMS
 from models import (
+    ComicVolume,
     Completeness,
     Item,
     ItemStatus,
@@ -47,6 +48,7 @@ from public_comics import (
     PublicTag,
     comic_detail,
     load_public_comics,
+    owned_volumes_of,
     public_tags,
     read_marks_count,
 )
@@ -451,6 +453,7 @@ def _to_public_detail(
     runs: RunDates | None = None,
     played: LastPlayed | None = None,
     read_marks: int | None = None,
+    owned_volumes: Sequence[ComicVolume] = (),
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
@@ -458,7 +461,12 @@ def _to_public_detail(
     votes = snapshot.get("community_votes")
     fields = _list_fields(item, runs, played)
     comic = (
-        comic_detail(item, today or datetime.now(UTC).date(), read_marks)
+        comic_detail(
+            item,
+            today or datetime.now(UTC).date(),
+            read_marks,
+            owned_volumes=owned_volumes,
+        )
         if item.type == ItemType.COMIC
         else None
     )
@@ -776,14 +784,17 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         runs = await _run_dates(session, Item.id == item.id)
         played = await _last_played(session, Item.id == item.id)
         read_marks = None
+        owned_volumes: list[ComicVolume] = []
         if item.type == ItemType.COMIC:
             read_marks = await read_marks_count(session, item.id)
+            owned_volumes = await owned_volumes_of(session, item.id)
         return _to_public_detail(
             item,
             similar_in_collection(item, public_items),
             runs=runs,
             played=played,
             read_marks=read_marks,
+            owned_volumes=owned_volumes,
         )
 
     return router

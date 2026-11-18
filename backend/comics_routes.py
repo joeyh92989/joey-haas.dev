@@ -101,7 +101,7 @@ from models import (
 )
 from physical_sources.catalogue import finish_run, run_failed, start_run
 from playthroughs import apply_status
-from public_comics import comic_detail, read_marks_count
+from public_comics import comic_detail, owned_volumes_of, read_marks_count
 from public_issues import _line_order, build_wall
 from sources.base import SourceError
 from sources.cv_text import paragraphs
@@ -715,6 +715,7 @@ def create_comics_router(
                 today,
                 await read_marks_count(session, item_id),
                 volumes=volume_counts(holds, read_numbers, item.read_to),
+                owned_volumes=await owned_volumes_of(session, item_id),
             ),
         }
 

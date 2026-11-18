@@ -224,7 +224,9 @@ async def test_the_kind_and_label_defaults(sessionmaker_for_test):
     [volume] = await _volumes(sessionmaker_for_test)
     assert (volume.kind, volume.label) == ("ogn", "Waterworld")
     # A stored kind this build does not know is a trade, never a failed write.
-    book = _trade(None, None, kind="mystery", detected_title="X" * 200)
+    book = _trade(
+        None, None, kind="mystery", detected_title="Waterworld " + "Deluxe " * 30
+    )
     await _commit_book(sessionmaker_for_test, book, _run())
     last = (await _volumes(sessionmaker_for_test))[-1]
     assert (last.kind, len(last.label)) == ("trade", 80)
@@ -236,7 +238,12 @@ async def test_two_different_books_with_the_same_range_are_two_volumes(
 ):
     entries = [
         ("comic", S.EXACT, _trade(1, 6, detected_title="Vol. 1"), _run()),
-        ("comic", S.EXACT, _trade(1, 6, kind="hardcover", detected_title="HC"), _run()),
+        (
+            "comic",
+            S.EXACT,
+            _trade(1, 6, kind="hardcover", detected_title="HC"),
+            _run(),
+        ),
     ]
     sitting_id = await _seed(sessionmaker_for_test, entries=entries)
     async with client_for(sessionmaker_for_test) as client:
@@ -905,3 +912,179 @@ async def test_a_groups_details_editions_are_all_kept(sessionmaker_for_test):
     assert response.status_code == 200, response.text
     [item] = await _items(sessionmaker_for_test)
     assert sorted(item.editions, key=lambda e: e["label"]) == [one, two]  # no repeat
+
+
+# --- Which title a book goes to (#330) ------------------------------------------
+
+
+async def _titles(factory) -> dict[str, Item]:
+    return {item.title: item for item in await _items(factory)}
+
+
+@pytest.mark.asyncio
+async def test_a_book_that_does_not_share_the_series_title_is_its_own_title(
+    sessionmaker_for_test,
+):
+    """Matched to Waterworld, but "The Complete Collection" is not the series'
+    name: the book is a manual title of its own, and the series is untouched."""
+    await _seed_series(sessionmaker_for_test, issues_owned="9")
+    payload = _trade(1, 6, detected_title="Waterworld: The Complete Collection")
+    body = await _commit_book(sessionmaker_for_test, payload, _run(), state=S.EXACT)
+    titles = await _titles(sessionmaker_for_test)
+    own = titles["Waterworld: The Complete Collection"]
+    assert (own.external_source, own.external_id) == (None, None)
+    assert own.is_public is False and own.editions is None
+    [volume] = await _volumes(sessionmaker_for_test)
+    assert volume.item_id == own.id  # not on the series
+    # The series' issues are recorded as text: no link, the volume is not there.
+    assert _pairs(await _collects(sessionmaker_for_test, volume)) == [
+        ("Waterworld", "#1-6", "photo", None, None)
+    ]
+    assert titles["Waterworld"].issues_owned == "9"  # the series is untouched
+    assert await _marks(sessionmaker_for_test, own.id) == {}  # holds no issue
+    [new] = body["volumes_new"]
+    assert (new["title_id"], new["title_created"]) == (str(own.id), True)
+    assert body["titles_created"] == [
+        {"id": str(own.id), "title": "Waterworld: The Complete Collection"}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_book_that_shares_the_series_title_is_a_volume_on_it(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test)
+    payload = _trade(1, 6, detected_title="Waterworld Book Two")
+    await _commit_book(sessionmaker_for_test, payload, _run(), state=S.OWNED)
+    [item] = await _items(sessionmaker_for_test)
+    [volume] = await _volumes(sessionmaker_for_test)
+    assert volume.item_id == item.id
+    assert _pairs(await _collects(sessionmaker_for_test, volume)) == [
+        ("Waterworld", "#1-6", "photo", 1, 6)
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("note", "shares"),
+    [
+        # 5 of 8 issues are Waterworld's (62.5%): on the series
+        ("Collects Waterworld #1-5 and Hellboy #1-3.", True),
+        # 4 of 8 (50%): its own title, though the name matches
+        ("Collects Waterworld #1-4 and Hellboy #1-4.", False),
+    ],
+)
+async def test_the_share_of_the_contents_decides_beside_the_title(
+    sessionmaker_for_test, note, shares
+):
+    await _seed_series(sessionmaker_for_test)
+    payload = _trade(None, None, detected_title="Waterworld Vol. 1", reprint_note=note)
+    await _commit_book(sessionmaker_for_test, payload, _run(), state=S.EXACT)
+    [volume] = await _volumes(sessionmaker_for_test)
+    series = next(i for i in await _items(sessionmaker_for_test) if i.external_id)
+    assert (volume.item_id == series.id) is shares
+    rows = await _collects(sessionmaker_for_test, volume)
+    assert [(c.series_name, c.item_id is not None) for c in rows] == [
+        ("Waterworld", shares),
+        ("Hellboy", False),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_check_agrees_when_a_book_is_not_shared(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test)
+    payload = _trade(1, 6, detected_title="Waterworld: The Complete Collection")
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.OWNED, payload, _run())]
+    )
+    [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+    assert entry["title_will_be_created"] is True
+    assert entry["adds"]["title"] == "Waterworld: The Complete Collection"
+    assert entry["adds"]["title_id"] is None
+    assert [c["will_link"] for c in entry["contents_preview"]] == [False]
+    assert [c["series_name"] for c in entry["contents_preview"]] == ["Waterworld"]
+    assert entry.get("series_on_shelf") in (None, False)  # not on that series
+
+
+@pytest.mark.asyncio
+async def test_check_agrees_when_a_book_is_shared(sessionmaker_for_test):
+    await _seed_series(sessionmaker_for_test)
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[
+            (
+                "comic",
+                S.OWNED,
+                _trade(1, 6, detected_title="Waterworld Compendium"),
+                _run(),
+            )
+        ],
+    )
+    [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+    [item] = await _items(sessionmaker_for_test)
+    assert entry["title_will_be_created"] is False
+    assert entry["adds"]["title_id"] == str(item.id)
+    assert [c["will_link"] for c in entry["contents_preview"]] == [True]
+
+
+@pytest.mark.asyncio
+async def test_books_of_one_unshared_name_share_one_title_and_recommit_is_idempotent(
+    sessionmaker_for_test,
+):
+    entries = [
+        (
+            "comic",
+            S.EXACT,
+            _trade(1, 6, detected_title="Waterworld: Origins"),
+            _run(),
+        ),
+        (
+            "comic",
+            S.EXACT,
+            _trade(7, 12, detected_title="WATERWORLD: ORIGINS"),
+            _run(),
+        ),
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    assert len(response.json()["titles_created"]) == 1
+    assert (
+        response.json()["titles_created"][0]["title"].lower() == "waterworld: origins"
+    )
+    volumes = await _volumes(sessionmaker_for_test)
+    assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2"]
+    assert len({v.item_id for v in volumes}) == 1
+    # The same entries again write nothing more.
+    ids = [v.intake_entry_id for v in volumes]
+    again = await _recommit(sessionmaker_for_test, ids, entries[0][2], _run())
+    assert again.status_code == 200
+    assert len(await _volumes(sessionmaker_for_test)) == 2
+
+
+@pytest.mark.asyncio
+async def test_the_add_bar_places_an_unshared_book_on_its_own_title(
+    sessionmaker_for_test,
+):
+    await _seed_series(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/intake/add",
+            json={
+                "kind": "comic",
+                "chosen": _run(),
+                "payload": {
+                    "format": "collected",
+                    "edition_kind": "hardcover",
+                    "collects_from": 1,
+                    "collects_to": 6,
+                    "detected_title": "Waterworld: Year One",
+                },
+            },
+        )
+    assert response.status_code == 201, response.text
+    [new] = response.json()["volumes_new"]
+    assert new["title"] == "Waterworld: Year One" and new["title_created"] is True
+    own = (await _titles(sessionmaker_for_test))["Waterworld: Year One"]
+    assert (own.external_source, own.external_id) == (None, None)

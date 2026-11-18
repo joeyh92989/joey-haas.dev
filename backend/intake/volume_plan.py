@@ -16,6 +16,13 @@ series, as one plain number or range within the title's known issue count,
 with a bracketed year (if any) the title's. A range printed on the book is
 linked when it is a sane range of a matched series, since the owner read it
 off the book; everything else is text, and a link is never required.
+
+Which title a book goes to (#330): a book matched to a series joins that
+series' title only when `comics.shares_title` says so (its title is the
+series' name with volume words, and at least 60% of its contents come from
+the series). `unshared_series` is that test; a book that fails it is placed
+as though it had no match (its own manual title, reused by name), with the
+contents it prints still recorded as text under the series' name.
 """
 
 from __future__ import annotations
@@ -30,7 +37,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import comic_contents
-from comics import MAX_ISSUE
+from comics import MAX_ISSUE, shares_title
 from intake.comic_books import EDITION_KINDS
 from models import ComicVolume, ComicVolumeCollect, Item, ItemType
 
@@ -92,6 +99,46 @@ def _count_and_year(
     return count, year
 
 
+def _series_name(row: dict[str, Any], chosen: dict[str, Any] | None) -> str:
+    """The matched series' name: what Comic Vine called it (`chosen`), else the
+    row's title."""
+    return str((chosen or {}).get("title") or row.get("title") or "")
+
+
+def _printed(payload: dict[str, Any]) -> tuple[int, int] | None:
+    low, high = _int(payload.get("collects_from")), _int(payload.get("collects_to"))
+    if low is not None and high is not None and 1 <= low <= high <= MAX_ISSUE:
+        return low, high
+    return None
+
+
+def unshared_series(
+    payload: dict[str, Any], row: dict[str, Any], chosen: dict[str, Any] | None
+) -> str | None:
+    """The matched series' name when this collected book matched a series but
+    does NOT share its title (`comics.shares_title`): the book is then placed
+    as its own title. None when the book has no match, or it shares.
+
+    The contents it is judged on are the printed range (the series' own) and
+    the reprint note's entries, read by rules only; a book that prints
+    neither is judged on its title alone."""
+    if not (row.get("external_source") and row.get("external_id")):
+        return None
+    series = _series_name(row, chosen)
+    book = (
+        payload.get("detected_title") or payload.get("title") or series or ""
+    ).strip()
+    contents: list[tuple[str, str]] = []
+    if (printed := _printed(payload)) is not None:
+        low, high = printed
+        contents.append((series, f"#{low}" if low == high else f"#{low}-{high}"))
+    contents += [
+        (found.series_name or series, found.issue_text)
+        for found in comic_contents.parse_contents(payload.get("reprint_note"))
+    ]
+    return None if shares_title(book, series, contents) else series
+
+
 def book_plan(
     payload: dict[str, Any],
     row: dict[str, Any],
@@ -100,9 +147,17 @@ def book_plan(
 ) -> VolumePlan:
     """What a collected book's volume is. `row` is the entry's item row
     (`commit.shelf_row`), `item` the title already on the shelf (None when it
-    is still to be made). Pure: no model, no network, no database."""
+    is still to be made). Pure: no model, no network, no database.
+
+    A book that matched a series but does not share its title arrives here
+    unmatched (the commit swaps its `chosen` for `{"series_title": <series>}`,
+    see `unshared_series`): the title is its own, and what it prints is
+    recorded under the series' name as text, never linked, since the volume
+    is not on that series' title."""
     matched = bool(row.get("external_source") and row.get("external_id"))
     title = (item.title if item is not None else row.get("title")) or ""
+    series_name = (chosen or {}).get("series_title") if not matched else None
+    series_name = series_name or title
     kind = payload.get("edition_kind")
     kind = kind if kind in EDITION_KINDS else "trade"
     label = (
@@ -113,11 +168,11 @@ def book_plan(
     count, year = _count_and_year(item, chosen, row)
 
     collects: list[CollectPlan] = []
-    low, high = _int(payload.get("collects_from")), _int(payload.get("collects_to"))
-    if low is not None and high is not None and 1 <= low <= high <= MAX_ISSUE:
+    if (printed := _printed(payload)) is not None:
+        low, high = printed
         collects.append(
             CollectPlan(
-                title,
+                series_name,
                 f"#{low}" if low == high else f"#{low}-{high}",
                 (low, high) if matched else None,
             )
@@ -128,7 +183,7 @@ def book_plan(
 
     taken = {key(c.series_name, c.issue_text) for c in collects}
     for found in comic_contents.parse_contents(payload.get("reprint_note")):
-        series = found.series_name or title
+        series = found.series_name or series_name
         wanted = key(series, found.issue_text)
         if wanted in taken:
             continue

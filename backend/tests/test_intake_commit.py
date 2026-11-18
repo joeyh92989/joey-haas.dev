@@ -1231,7 +1231,14 @@ async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
     await _seed_series(sessionmaker_for_test, editions=held)
     sitting_id = await _seed(
         sessionmaker_for_test,
-        entries=[("comic", S.OWNED, _trade(7, 12, detected_title="Vol. 2"), _series())],
+        entries=[
+            (
+                "comic",
+                S.OWNED,
+                _trade(7, 12, detected_title="Vol. 2"),
+                _series(),
+            )
+        ],
     )
     async with client_for(sessionmaker_for_test) as client:
         response = await _commit(client, sitting_id)
@@ -1242,7 +1249,11 @@ async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
     [row] = await _items(sessionmaker_for_test)
     assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]  # untouched
     [shim, new] = await _volumes(sessionmaker_for_test)
-    assert (shim.slug, new.slug, new.label) == ("ed-1-6", "vol-1", "Vol. 2")
+    assert (shim.slug, new.slug, new.label) == (
+        "ed-1-6",
+        "vol-1",
+        "Vol. 2",
+    )
 
 
 @pytest.mark.asyncio

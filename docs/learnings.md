@@ -156,3 +156,7 @@ PR #229
 ### 2026-11-14 · lesson · Comic Vine models some trades as one-issue volumes
 Mad Max TPB, Haunt of Horror and Hello Darkness "Volume One" are one-issue volumes, while Creepshow is a volume of singles with the trade as an edition. Check `count_of_issues` before assuming a series has singles.
 docs/planning/2026-11-13-comics-book-design.md
+
+### 2026-11-17 · lesson · The prerender reads comic-issues.json, not comics.json
+Link-preview heads for a title come from `items.json` and `comic-issues.json` (`prerender-lib.mjs`); `comics.json` is only the shelf's. A field the preview needs (the title `kind`, #330) goes on the `comic-issues` index row, or the build never sees it.
+PR #330

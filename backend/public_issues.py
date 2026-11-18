@@ -31,6 +31,7 @@ from comics import (
     expand,
     next_issue,
     parse_ranges,
+    title_kind,
 )
 from models import (
     ComicIssue,
@@ -39,7 +40,13 @@ from models import (
     Item,
     ItemType,
 )
-from public_comics import _editions, public_comic_items, series_of
+from public_comics import (
+    _editions,
+    line_order,
+    loose_issues,
+    public_comic_items,
+    series_of,
+)
 
 COMIC_VINE_HOST = "comicvine.gamespot.com"
 # The Comic Vine home page, for a series that has no page of its own stored.
@@ -133,6 +140,9 @@ class PublicComicIndex(BaseModel):
 
     item_id: uuid.UUID
     series_title: str
+    # What the title is (`comics.title_kind`), so the build's link preview
+    # for the title's page can say "a book line" and not "a series".
+    kind: str
     issues: list[PublicComicIndexIssue]
     volumes: list[PublicComicIndexVolume]
 
@@ -426,15 +436,7 @@ async def build_issue_page(
     )
 
 
-def _line_order(volume: ComicVolume) -> tuple:
-    """A book's place in its title's line: numbered books by number, the rest
-    after them, ties by position."""
-    return (
-        volume.line_number is None,
-        volume.line_number or 0,
-        volume.position,
-        volume.slug,
-    )
+_line_order = line_order
 
 
 def _neighbour(volume: ComicVolume | None) -> PublicVolumeNeighbour | None:
@@ -595,6 +597,7 @@ async def load_comic_index(
             PublicComicIndex(
                 item_id=item.id,
                 series_title=item.title,
+                kind=title_kind(len(volumes[item.id]), loose_issues(item)),
                 issues=[
                     PublicComicIndexIssue(
                         number=n,

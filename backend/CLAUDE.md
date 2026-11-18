@@ -478,6 +478,29 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   idempotence key (`/add` sends none), so a repeated request makes a second
   volume. The `editions` a
   row carries from Details (a typed list) are the old path and still merge.
+  **Which title a matched book goes to (#330, `comics.shares_title`; the
+  commit, the add bar and Check's preview all decide it in `commit._placed`):**
+  a book that matched a series joins its title only when BOTH hold: (a) its
+  title (`detected_title`, else `title`; the series' name if neither) with
+  volume and format words removed (`Vol`, `Volume`, `Book`, `Deluxe`,
+  `Edition`, `Omnibus`, `Compendium`, `Hardcover`, `TPB`, `Trade`, `Paperback`
+  anywhere; `one`..`twelve`, numerals and roman numerals up to XII when they
+  trail; `HC` is a format word) equals the series' name under `comic_contents.normalize_name`
+  (case, `&`, a bracketed year, a leading "The"), punctuation ignored; and
+  (b) when its contents are known (the printed range plus the reprint note's
+  entries), at least `SHARE_MIN_FRACTION = 0.6` of their issues (a range counts
+  its length, an entry with no number counts 1) are the series' own by
+  normalised name; empty contents leave (a) alone to decide. A title of ONLY
+  volume and format words ("Vol. 1", "HC", "Compendium One") names nothing, so
+  (a) holds vacuously: the match wins and (b) still applies as stated. "Saga Book Two",
+  "Saga Compendium" and "Batman Vol. 3" share; "Batman: Year One" and "Saga:
+  The Complete Collection" do not (extra words are not on the list). 5 of 8
+  issues shares, 4 of 8 does not. A book that fails is placed as unmatched: it
+  goes to its own manual title (the reuse-by-name path above), its series
+  issues recorded as text (`series_name` = the series, no link, since the
+  volume is not on that series' title); the preview agrees (`adds`,
+  `title_will_be_created`, `will_link` false). **No existing volume moves**
+  (no migration): the rule only places new books.
   The answer's `series_new` lists a created series' issues for Done. The comic `issues_owned` field
   is `in_details: false`, so Details does not ask for it (the add bar still
   does). Check lists the books (`ComicBooks`, `lib/comicBooks.js`, words in
@@ -592,6 +615,21 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   through another volume, but `read_to` cannot protect them (it is derived from
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
+  **Public title kind and slots (#330, PR 7a):** `PublicComicDetail` (the
+  item page's `comic` block, and `GET /api/comics/{id}/wall`'s, which shares
+  the model and also serves private titles) gains `kind` (`title_kind` of the
+  OWNED volume count and the loose issues: `issues_owned` held singles; the
+  issue marks are not used because they also mark what a volume links),
+  `volumes` (owned only, line order: numbered by number, then position; each
+  `{slug, label, kind, line_number, cover_url, read}`), `volumes_owned` and
+  `slots` (only for a `book_line`: `[{number, slug|null}]` for 1..the highest
+  owned `line_number`, null where nothing owned has the number; `[]` when no
+  owned book is numbered, never a size beyond the highest owned number). Each
+  `PublicComicRow` of `GET /api/public/comics` gains `kind` and
+  `volumes_owned` (one grouped query for the whole shelf, no N+1), and each
+  `comic-issues` index row gains `kind` (what the build's prerender reads; it
+  does not read comics.json). Never published: non-owned volumes, intake ids,
+  `edited`, source, `kind_raw`, position, collects, skips, following.
   `scripts/audit_comics.py` is the read-only pre-migration report.
   **Admin volume editor (#334, PR 4a, migration `0022`):** `comic_volumes.edited`
   (default false) is set by every hand edit (create, replace, move, link). The

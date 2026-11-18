@@ -28,6 +28,12 @@ and the entries read from them or typed in.
   `write_volume` writes it once per intake entry (`intake_entry_id`, unique),
   taking a second writer's volume instead of failing. The commit and Check
   both go through `book_plan`, so the preview is what is written.
+  A book matched to a series joins that series' title only when
+  `comics.shares_title` says so (`unshared_series`, applied by
+  `commit._placed`): its title, with volume and format words removed, is the
+  series' name and at least 60% of its contents are the series' own.
+  Otherwise it is placed as unmatched, on its own manual title, with the
+  series' issues kept as text. Rule and thresholds: `backend/CLAUDE.md`.
 - `garment_kind.py` — the closet's garment: no source, no details step;
   `to_row` keeps only `GarmentFields` keys. Ways in: photo, type,
   **file** (the seed file below) and **link** (`link_import.py`). Its fields include brand, store colour
