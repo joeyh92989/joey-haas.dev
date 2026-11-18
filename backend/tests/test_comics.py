@@ -11,7 +11,6 @@ from comics import (
     apply_comic_fields,
     canonical,
     comic_snapshot,
-    edition_slugs,
     format_ranges,
     issue_number,
     next_issue,
@@ -27,7 +26,6 @@ from comics import (
     sort_series,
     tail_length,
     union,
-    validate_editions,
     week_of,
 )
 
@@ -92,35 +90,10 @@ def test_only_whole_issue_numbers_count(text, expected):
     assert issue_number(text) == expected
 
 
-# --- Editions ---------------------------------------------------------------
+# --- Collected books ---------------------------------------------------------
 
 
-def test_editions_are_cleaned_and_kept():
-    raw = [{"kind": " TPB ", "label": "Vol. 1", "from": 1, "to": 6}]
-    assert validate_editions(raw) == [
-        {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
-    ]
-    assert validate_editions(None) == []
-
-
-@pytest.mark.parametrize(
-    "entry",
-    [
-        {"kind": "", "label": "Vol. 1", "from": 1, "to": 6},
-        {"kind": "TPB", "label": "", "from": 1, "to": 6},
-        {"kind": "TPB", "label": "Vol. 1", "from": 6, "to": 1},
-        {"kind": "TPB", "label": "Vol. 1", "from": 0, "to": 6},
-        {"kind": "TPB", "label": "Vol. 1", "from": "1", "to": 6},
-        {"kind": "TPB", "label": "Vol. 1", "from": True, "to": 6},
-        "Vol. 1",
-    ],
-)
-def test_bad_editions_are_refused(entry):
-    with pytest.raises(RangeError):
-        validate_editions([entry])
-
-
-def test_editions_mark_the_issues_they_collect_as_owned():
+def test_held_book_ranges_count_as_owned():
     editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
     assert owned_set("10-11", editions) == {1, 2, 3, 4, 5, 6, 10, 11}
 
@@ -128,20 +101,17 @@ def test_editions_mark_the_issues_they_collect_as_owned():
 # --- Writes -----------------------------------------------------------------
 
 
-def test_a_write_stores_canonical_ranges_and_cleaned_editions():
+def test_a_write_stores_canonical_ranges():
     changes = {
         "title": "Saga",
         "issues_owned": "1-54,60",
         "issues_skipped": " ",
-        "editions": [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}],
     }
     assert apply_comic_fields(changes, is_comic=True) == {
         "title": "Saga",
         "issues_owned": "1–54, 60",
         "issues_skipped": None,
-        "editions": [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}],
     }
-    assert apply_comic_fields({"editions": []}, is_comic=True) == {"editions": None}
 
 
 def test_a_refusal_names_the_field():
@@ -227,9 +197,9 @@ def test_a_skip_on_a_held_issue_is_refused():
     with pytest.raises(RangeError, match="#9 is owned, so it can't be skipped"):
         apply_comic_fields({"issues_skipped": "9"}, True, {"issues_owned": "7-10"})
     with pytest.raises(RangeError, match="#4 is owned"):
-        apply_comic_fields({"issues_skipped": "4"}, True, {"editions": editions})
-    # Owning and unskipping in one write passes; a write that leaves all
-    # three alone is not checked.
+        apply_comic_fields({"issues_skipped": "4"}, True, held=editions)
+    # Owning and unskipping in one write passes; a write that leaves both
+    # alone is not checked.
     both = {"issues_owned": "1-9", "issues_skipped": None}
     assert apply_comic_fields(both, True, {"issues_skipped": "9"})["issues_owned"]
     assert apply_comic_fields({"read_to": 3}, True, {"issues_skipped": "1-3"})
@@ -536,88 +506,3 @@ def test_non_ascii_digits_are_refused_not_crashed_on():
     with pytest.raises(RangeError):
         canonical("²")
     assert issue_number("١٢") is None
-
-
-def test_validate_editions_keeps_cv_id_and_drops_cover_on_relink():
-    linked = {
-        "kind": "TPB",
-        "label": "Vol. 1",
-        "from": 1,
-        "to": 6,
-        "cv_id": 99,
-        "cover_url": "https://img/a.jpg",
-        "large_url": "https://img/b.jpg",
-        "description": ["One.", "Two."],
-    }
-    kept = validate_editions([linked], stored_rows=True)
-    assert kept == [linked]
-    # Resent unchanged against the stored row: kept.
-    assert validate_editions([linked], [linked]) == [linked]
-    # An ordinary edit that sends no link keys inherits the stored link.
-    plain = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
-    assert validate_editions([plain], [linked]) == [linked]
-    # A different cv_id, or an explicit null, drops the server-written keys.
-    base = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
-    assert validate_editions([{**linked, "cv_id": 100}], [linked]) == [
-        {**base, "cv_id": 100}
-    ]
-    assert validate_editions([{**linked, "cv_id": None}], [linked]) == [base]
-
-
-def test_server_keys_are_never_taken_from_the_request():
-    linked = {
-        "kind": "TPB",
-        "label": "Vol. 1",
-        "from": 1,
-        "to": 6,
-        "cv_id": 99,
-        "cover_url": "https://img/a.jpg",
-        "large_url": "https://img/b.jpg",
-        "description": ["One."],
-    }
-    base = {"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}
-    forged = {**linked, "cover_url": "https://evil/x.jpg", "description": ["Bad."]}
-    # A create: a cv_id may arrive, the keys may not.
-    assert validate_editions([forged]) == [{**base, "cv_id": 99}]
-    # An update with the cv_id unchanged: the stored keys win.
-    assert validate_editions([forged], [linked]) == [linked]
-    # An update with no stored twin: no keys.
-    assert validate_editions([forged], [{**base, "from": 7, "to": 9}]) == [
-        {**base, "cv_id": 99}
-    ]
-
-
-def test_link_is_inherited_only_by_the_same_edition():
-    linked = {
-        "kind": "TPB",
-        "label": "Vol. 1",
-        "from": 1,
-        "to": 6,
-        "cv_id": 99,
-        "cover_url": "https://img/a.jpg",
-    }
-    # Same slug (a range reused after a swap or delete) but another edition.
-    other_kind = {"kind": "Omnibus", "label": "Vol. 1", "from": 1, "to": 6}
-    other_label = {"kind": "TPB", "label": "Vol. 2", "from": 1, "to": 6}
-    assert validate_editions([other_kind], [linked]) == [other_kind]
-    assert validate_editions([other_label], [linked]) == [other_label]
-
-
-@pytest.mark.parametrize("cv_id", [0, -1, "9", True, 1.5])
-def test_a_bad_cv_id_is_refused(cv_id):
-    with pytest.raises(RangeError):
-        validate_editions(
-            [{"kind": "TPB", "label": "V", "from": 1, "to": 2, "cv_id": cv_id}]
-        )
-
-
-def test_edition_slugs_duplicates():
-    def edition(a, b):
-        return {"kind": "Trade", "label": f"Vol. {a}", "from": a, "to": b}
-
-    assert edition_slugs([edition(1, 6), edition(7, 12), edition(1, 6)]) == [
-        "ed-1-6",
-        "ed-7-12",
-        "ed-1-6-2",
-    ]
-    assert edition_slugs([]) == []

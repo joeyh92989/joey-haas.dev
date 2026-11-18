@@ -25,6 +25,7 @@ from items import create_items_router
 from models import Item, ItemStatus, ItemType, OwnedFormat
 from sources.base import SourceError
 from sources.comicvine import ComicVineSource
+from tests.volume_seed import seed_volumes
 
 pytestmark = pytest.mark.asyncio
 
@@ -107,9 +108,11 @@ async def _seed(factory, **fields) -> uuid.UUID:
         "external_source": "comicvine",
         "external_id": VOLUME,
     }
+    editions = fields.pop("editions", None)  # seeded as owned volumes
     item = Item(**(base | fields))
     async with factory() as session:
         session.add(item)
+        await seed_volumes(session, item, editions)
         await session.commit()
         return item.id
 
