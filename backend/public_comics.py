@@ -22,10 +22,10 @@ from sqlalchemy.orm import defer
 from comics import (
     ComicSeries,
     Issue,
-    expand,
     format_ranges,
+    loose_issue_count,
     next_issue,
-    parse_ranges,
+    owned_line_numbers,
     pull_weeks,
     read_next,
     read_state,
@@ -118,6 +118,9 @@ class PublicComicRow(BaseModel):
     # draws "Vol. 1, 2 and 4 of 6" from them.
     kind: str
     volumes_owned: int
+    # The line numbers (1..9999) of the OWNED books that have one, ascending,
+    # each once: "Vol. 1, 2 and 4". Never the line's size, which is not stored.
+    volume_numbers: list[int]
 
 
 class PublicRunCounts(BaseModel):
@@ -272,10 +275,7 @@ def loose_issues(item: Item) -> int:
     """How many single issues the title holds loose (`issues_owned`). The
     issue marks are not used: they also mark what an owned volume links, and
     a title of trades alone has no issues of its own."""
-    try:
-        return len(expand(parse_ranges(item.issues_owned)))
-    except ValueError:
-        return 0
+    return loose_issue_count(item.issues_owned)
 
 
 def volume_slots(volumes: Sequence[ComicVolume]) -> list[PublicVolumeSlot]:
@@ -336,6 +336,7 @@ def _row(
     today: date,
     read_marks: int = 0,
     volumes_owned: int = 0,
+    volume_numbers: Sequence[int] = (),
 ) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
@@ -366,6 +367,7 @@ def _row(
         created_at=item.created_at,
         kind=title_kind(volumes_owned, loose_issues(item)),
         volumes_owned=volumes_owned,
+        volume_numbers=list(volume_numbers),
     )
 
 
@@ -574,20 +576,26 @@ async def owned_volumes_of(
     return list(result)
 
 
-async def owned_volume_counts(
+async def owned_volume_shelf(
     session: AsyncSession, item_ids: Iterable[uuid.UUID]
-) -> dict[uuid.UUID, int]:
-    """Owned volumes per title, for the titles that have any: one query for
+) -> dict[uuid.UUID, tuple[int, list[int]]]:
+    """Per title with owned volumes: how many it owns and their line numbers
+    (ascending, once each, books with no number left out). One query for
     every row of the shelf."""
     ids = list(item_ids)
     if not ids:
         return {}
     rows = await session.execute(
-        select(ComicVolume.item_id, func.count())
-        .where(ComicVolume.item_id.in_(ids), ComicVolume.owned.is_(True))
-        .group_by(ComicVolume.item_id)
+        select(ComicVolume.item_id, ComicVolume.line_number).where(
+            ComicVolume.item_id.in_(ids), ComicVolume.owned.is_(True)
+        )
     )
-    return {item_id: count for item_id, count in rows}
+    counts: Counter[uuid.UUID] = Counter()
+    numbers: dict[uuid.UUID, list[int | None]] = {}
+    for item_id, line_number in rows:
+        counts[item_id] += 1
+        numbers.setdefault(item_id, []).append(line_number)
+    return {i: (counts[i], owned_line_numbers(numbers[i])) for i in counts}
 
 
 async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
@@ -616,11 +624,17 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
     items = await public_comic_items(session)
     pairs = {item.id: (item, series_of(item)) for item in items}
     marks = await read_marks_by_item(session, pairs)
-    books = await owned_volume_counts(session, pairs)
+    books = await owned_volume_shelf(session, pairs)
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
     return PublicComicsOut(
         series=[
-            _row(pairs[s.id][0], s, today, marks.get(s.id, 0), books.get(s.id, 0))
+            _row(
+                pairs[s.id][0],
+                s,
+                today,
+                marks.get(s.id, 0),
+                *books.get(s.id, (0, [])),
+            )
             for s in ordered
         ],
         stats=comic_stats(items, today, marks),

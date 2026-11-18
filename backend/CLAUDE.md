@@ -625,8 +625,12 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `slots` (only for a `book_line`: `[{number, slug|null}]` for 1..the highest
   owned `line_number`, null where nothing owned has the number; `[]` when no
   owned book is numbered, never a size beyond the highest owned number). Each
-  `PublicComicRow` of `GET /api/public/comics` gains `kind` and
-  `volumes_owned` (one grouped query for the whole shelf, no N+1), and each
+  `PublicComicRow` of `GET /api/public/comics` gains `kind`,
+  `volumes_owned` and (#331) `volume_numbers` (the line numbers 1..9999 of the
+  OWNED books that have one, ascending, each once; never the line's size;
+  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1). The
+  admin item read's `comic_run` carries the same three keys (`comics.title_shape`,
+  from the row's own owned volumes), so the admin shelf says the same words, and each
   `comic-issues` index row gains `kind` (what the build's prerender reads; it
   does not read comics.json). Never published: non-owned volumes, intake ids,
   `edited`, source, `kind_raw`, position, collects, skips, following.

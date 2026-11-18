@@ -246,3 +246,47 @@ async def test_patch_away_from_comic_clears_the_marks(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         rows = (await session.scalars(select(ComicIssue))).all()
     assert rows == []
+
+
+async def test_the_admin_read_carries_the_title_kind_and_owned_volume_numbers(
+    sessionmaker_for_test,
+):
+    """The admin shelf draws the same card words as the public one (#331): a
+    title's kind, how many books it owns and their line numbers."""
+    from models import ComicVolume
+
+    def volume(item_id, slug, position, **fields):
+        return ComicVolume(
+            **{
+                "id": uuid.uuid4(),
+                "item_id": item_id,
+                "position": position,
+                "slug": slug,
+                "label": slug,
+                "kind": "trade",
+                "kind_raw": "Trade",
+                "owned": True,
+            }
+            | fields
+        )
+
+    run = await _seed(sessionmaker_for_test, issues_owned="1-3")
+    line = await _seed(sessionmaker_for_test, title="Line")
+    async with sessionmaker_for_test() as session:
+        session.add_all(
+            [
+                volume(line, "vol-4", 0, line_number=4),
+                volume(line, "vol-1", 1, line_number=1),
+                volume(line, "vol-1b", 2, line_number=1),
+                volume(line, "vol-x", 3),
+                volume(line, "vol-9", 4, line_number=9, owned=False),
+            ]
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        run_body = (await client.get(f"/api/items/{run}")).json()["comic_run"]
+        line_body = (await client.get(f"/api/items/{line}")).json()["comic_run"]
+    assert (run_body["kind"], run_body["volumes_owned"]) == ("run", 0)
+    assert run_body["volume_numbers"] == []
+    assert (line_body["kind"], line_body["volumes_owned"]) == ("book_line", 4)
+    assert line_body["volume_numbers"] == [1, 4]
