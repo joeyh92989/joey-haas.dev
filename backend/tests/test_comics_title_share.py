@@ -42,7 +42,12 @@ def test_the_threshold_is_sixty_percent():
         ("Saga: The Complete Collection", "Saga", False),
         ("Batman and Robin", "Batman", False),
         ("Saga", "Sagas", False),
-        ("Vol. 3", "Batman", False),
+        # only volume and format words: no name to contradict the match
+        ("Vol. 3", "Batman", True),
+        ("HC", "Batman", True),
+        ("Compendium One", "Saga", True),
+        ("Book Two", "Saga", True),
+        ("", "Saga", True),
     ],
 )
 def test_the_title_decides_when_the_contents_are_unknown(book, series, shares):
@@ -101,3 +106,19 @@ def test_a_title_mismatch_is_not_saved_by_the_contents():
 
 def test_contents_that_are_not_from_the_series_beat_a_matching_title():
     assert shares_title("Saga Vol. 1", "Saga", [("Other", "#1-6")]) is False
+
+
+@pytest.mark.parametrize(
+    ("contents", "shares"),
+    [
+        ([("Saga", "#1-5"), ("Other", "#1-3")], True),  # 5 of 8
+        ([("Saga", "#1-4"), ("Other", "#1-4")], False),  # 4 of 8
+        ([("Other", "#1-6")], False),  # mostly another series
+        ([], True),  # nothing known: the match wins
+    ],
+)
+@pytest.mark.parametrize("book", ["Vol. 1", "HC", "Compendium One", "Book Two"])
+def test_a_title_of_only_volume_words_leaves_the_contents_to_decide(
+    book, contents, shares
+):
+    assert shares_title(book, "Saga", contents) is shares

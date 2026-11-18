@@ -198,7 +198,7 @@ FORMAT_WORDS = frozenset(
     {
         "vol", "vols", "volume", "volumes", "book", "books", "deluxe",
         "edition", "omnibus", "compendium", "hardcover", "tpb", "trade",
-        "paperback",
+        "paperback", "hc",
     }
 )  # fmt: skip
 # Number words, numerals and roman numerals (one..twelve) are dropped only
@@ -263,7 +263,9 @@ def shares_title(
         `&`, a bracketed year, a leading "The"), punctuation ignored. "Saga
         Book Two", "Saga Compendium" and "Batman Vol. 3" share; "Batman: Year
         One" and "Saga: The Complete Collection" do not (their extra words are
-        not on the list, so they are their own title).
+        not on the list, so they are their own title). A title that is ONLY
+        volume and format words ("Vol. 1", "HC", "Compendium One") has no name
+        to contradict the match, so (a) holds vacuously and (b) decides.
     (b) when the contents are known, at least `SHARE_MIN_FRACTION` (60%) of the
         book's collected issues belong to that series. `collects` is the
         entries as `(series_name, issue_text)`; an entry counts for its range
@@ -274,7 +276,12 @@ def shares_title(
     Otherwise the book is its own title. Pure; used by the intake commit and
     Check's preview so they cannot disagree (`intake/volume_plan.py`)."""
     series = " ".join(_title_words(series_title))
-    if not series or series not in title_stages(book_title):
+    if not series:
+        return False
+    stages = title_stages(book_title)
+    # A title of only volume and format words ("Vol. 1", "HC") names nothing
+    # that could contradict the match, so (a) holds and (b) decides.
+    if stages[-1] and series not in stages:
         return False
     entries = [(name, text) for name, text in (collects or ())]
     if not entries:

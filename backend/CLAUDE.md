@@ -485,12 +485,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   volume and format words removed (`Vol`, `Volume`, `Book`, `Deluxe`,
   `Edition`, `Omnibus`, `Compendium`, `Hardcover`, `TPB`, `Trade`, `Paperback`
   anywhere; `one`..`twelve`, numerals and roman numerals up to XII when they
-  trail) equals the series' name under `comic_contents.normalize_name`
+  trail; `HC` is a format word) equals the series' name under `comic_contents.normalize_name`
   (case, `&`, a bracketed year, a leading "The"), punctuation ignored; and
   (b) when its contents are known (the printed range plus the reprint note's
   entries), at least `SHARE_MIN_FRACTION = 0.6` of their issues (a range counts
   its length, an entry with no number counts 1) are the series' own by
-  normalised name; empty contents leave (a) alone to decide. "Saga Book Two",
+  normalised name; empty contents leave (a) alone to decide. A title of ONLY
+  volume and format words ("Vol. 1", "HC", "Compendium One") names nothing, so
+  (a) holds vacuously: the match wins and (b) still applies as stated. "Saga Book Two",
   "Saga Compendium" and "Batman Vol. 3" share; "Batman: Year One" and "Saga:
   The Complete Collection" do not (extra words are not on the list). 5 of 8
   issues shares, 4 of 8 does not. A book that fails is placed as unmatched: it

@@ -237,11 +237,11 @@ async def test_two_different_books_with_the_same_range_are_two_volumes(
     sessionmaker_for_test,
 ):
     entries = [
-        ("comic", S.EXACT, _trade(1, 6, detected_title="Waterworld Vol. 1"), _run()),
+        ("comic", S.EXACT, _trade(1, 6, detected_title="Vol. 1"), _run()),
         (
             "comic",
             S.EXACT,
-            _trade(1, 6, kind="hardcover", detected_title="Waterworld Hardcover"),
+            _trade(1, 6, kind="hardcover", detected_title="HC"),
             _run(),
         ),
     ]
@@ -475,7 +475,7 @@ async def test_the_add_bar_adds_a_book_as_a_volume(sessionmaker_for_test):
                     "edition_kind": "compendium",
                     "collects_from": 1,
                     "collects_to": 6,
-                    "detected_title": "Waterworld Compendium One",
+                    "detected_title": "Compendium One",
                 },
             },
         )
@@ -483,7 +483,7 @@ async def test_the_add_bar_adds_a_book_as_a_volume(sessionmaker_for_test):
     body = first.json()
     [volume] = body["volumes_new"]
     assert (volume["label"], volume["kind"], volume["title_created"]) == (
-        "Waterworld Compendium One",
+        "Compendium One",
         "compendium",
         True,
     )
