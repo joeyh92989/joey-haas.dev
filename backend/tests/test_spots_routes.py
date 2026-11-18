@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from models import (
     Candidate,
     CandidateSource,
+    OutingPrecision,
     OutingVerdict,
     Spot,
     SpotSetting,
@@ -830,7 +831,7 @@ async def test_a_bad_visit_on_a_new_place_is_a_422_and_nothing_is_created(
         ({**PLACE, "name": "   "}, "A place needs a name"),
         (
             {**PLACE, "source_id": "node/abc"},
-            "A place's source_id must look like way/123",
+            "A chosen place's source_id must look like way/123",
         ),
         ({**PLACE, "city": "   "}, None),
     ],
@@ -872,22 +873,30 @@ async def test_a_bad_visit_at_a_saved_spot_creates_no_visit(sessionmaker_for_tes
     assert await _counts(sessionmaker_for_test) == (1, 0)
 
 
-async def test_a_failure_after_the_spot_flush_leaves_no_spot_and_no_visit(
+async def test_a_visit_the_database_refuses_leaves_no_spot_and_no_visit(
     sessionmaker_for_test, monkeypatch
 ):
-    """The spot is flushed before the visit is added; the one commit then
-    fails. Nothing may survive, so the spot cannot have been committed on its
-    own earlier."""
+    """The real `commit_spot` runs. The new spot is flushed before the visit
+    is added, and the visit then fails at the database (a title past the
+    column's 80 characters, which `build_visit` is made to let through). With
+    one commit the spot goes down with it; a commit after the spot flush
+    would leave a spot behind."""
+    from sqlalchemy.exc import DBAPIError
+
     import spots_routes
 
-    async def failing_commit(session):
-        await session.flush()
-        raise HTTPException(status_code=500, detail="boom")
-
-    monkeypatch.setattr(spots_routes, "commit_spot", failing_commit)
+    monkeypatch.setattr(
+        spots_routes,
+        "build_visit",
+        lambda payload: Visit(
+            visited_on=datetime.now(OWNER_TZ).date(),
+            precision=OutingPrecision.DAY,
+            title="x" * 200,
+        ),
+    )
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.post("/api/spots/outings", json={"place": PLACE})
-    assert response.status_code == 500
+        with pytest.raises(DBAPIError):
+            await client.post("/api/spots/outings", json={"place": PLACE})
     assert await _counts(sessionmaker_for_test) == (0, 0)
 
 

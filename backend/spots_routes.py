@@ -552,11 +552,8 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 name = place_kind.clean_name(place.name)
                 lat, lng = place_kind.clean_position(place.lat, place.lng)
                 source_id = place.source_id
-                if source_id is not None and (
-                    len(source_id) > place_kind.SOURCE_ID_MAX
-                    or not place_kind.SOURCE_ID.fullmatch(source_id)
-                ):
-                    raise ValueError("A place's source_id must look like way/123")
+                if source_id is not None:
+                    place_kind.check_source_id(source_id)
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
             city = (
