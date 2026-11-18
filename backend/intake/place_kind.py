@@ -11,6 +11,8 @@ hits a search found decides the mark of the entry made from one:
 from __future__ import annotations
 
 import logging
+import math
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -41,6 +43,111 @@ def mark_for_count(count: int) -> IntakeEntryState:
 
 def map_url(hit: PlaceHit) -> str:
     return f"https://www.openstreetmap.org/{hit.osm_type}/{hit.osm_id}"
+
+
+SOURCE_ID = re.compile(r"(node|way|relation)/[0-9]+")
+SOURCE_ID_MAX = 60  # Spot.source_id is String(60)
+NAME_MAX, TEXT_MAX = 200, 200
+CITY_MAX, BLURB_MAX, NEIGHBOURHOOD_MAX = 40, 500, 100
+# The fields an owner may edit on an entry; nothing else in a payload is theirs.
+EDITABLE = ("name", "city", "tags", "blurb", "neighbourhood", "is_public")
+
+
+def _number(value: Any, low: float, high: float, label: str) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+        or not low <= value <= high
+    ):
+        raise ValueError(f"A chosen place needs a {label} between {low:g} and {high:g}")
+    return float(value)
+
+
+def _text(value: Any, limit: int, label: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or len(value) > limit:
+        raise ValueError(f"The {label} must be text of at most {limit} characters")
+    return value.strip() or None
+
+
+def clean_name(value: Any) -> str:
+    name = _text(value, NAME_MAX, "name")
+    if not name:
+        raise ValueError("A place needs a name")
+    return name
+
+
+def clean_chosen(hit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """`(payload part, chosen)` for a search result the client sent back.
+
+    Everything is checked like a typed place; `map_url` and `attribution`
+    are the server's, rebuilt from `source_id`, never taken from the client.
+    A missing `source_id` is allowed (the name-and-distance rule is then the
+    only duplicate check). Raises ValueError with a message fit to show.
+    """
+    name = clean_name(hit.get("title") if "title" in hit else hit.get("name"))
+    lat = _number(hit.get("lat"), -90, 90, "latitude")
+    lng = _number(hit.get("lng"), -180, 180, "longitude")
+    source_id = hit.get("source_id")
+    url = None
+    if source_id is not None:
+        if (
+            not isinstance(source_id, str)
+            or len(source_id) > SOURCE_ID_MAX
+            or not SOURCE_ID.fullmatch(source_id)
+        ):
+            raise ValueError("A chosen place's source_id must look like way/123")
+        url = f"https://www.openstreetmap.org/{source_id}"
+    chosen = {
+        "source": "osm",
+        "source_id": source_id,
+        "title": name,
+        "address": _text(hit.get("address"), TEXT_MAX, "address"),
+        "lat": lat,
+        "lng": lng,
+        "category": _text(hit.get("category"), TEXT_MAX, "category"),
+        "map_url": url,
+        "attribution": ATTRIBUTION,
+    }
+    return {"name": name, "lat": lat, "lng": lng}, chosen
+
+
+def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
+    """The owner-editable fields present in `values`, validated; anything
+    else (lat, lng, source_id, map_url...) is left out. ValueError on a bad
+    value."""
+    out: dict[str, Any] = {}
+    for key in EDITABLE:
+        if key not in values:
+            continue
+        value = values[key]
+        if key == "name":
+            out[key] = clean_name(value)
+        elif key == "city":
+            out[key] = (_text(value, CITY_MAX, "city") or DEFAULT_CITY).lower()
+        elif key == "blurb":
+            out[key] = _text(value, BLURB_MAX, "blurb")
+        elif key == "neighbourhood":
+            out[key] = _text(value, NEIGHBOURHOOD_MAX, "neighbourhood")
+        elif key == "is_public":
+            if not isinstance(value, bool):
+                raise ValueError("The public flag must be true or false")
+            out[key] = value
+        else:
+            if not isinstance(value, list) or not all(
+                isinstance(tag, str) for tag in value
+            ):
+                raise ValueError("Tags must be a list of text")
+            out[key] = spots.canonical_tags(value)
+    return out
+
+
+def edit_place(old: dict[str, Any], edit: dict[str, Any]) -> dict[str, Any]:
+    """A Check edit of a place entry: only the owner's fields change, the
+    server's keys (position, source) stay as they were."""
+    return {**old, **clean_fields(edit)}
 
 
 def row_for(hit: PlaceHit) -> dict[str, Any]:

@@ -52,7 +52,8 @@ async def new_sitting(client, kind="place", area="places"):
 
 async def add_spot(factory, **fields):
     async with factory() as session:
-        spot = Spot(slug=fields["name"].lower().replace(" ", "-"), **fields)
+        slug = fields.pop("slug", None) or fields["name"].lower().replace(" ", "-")
+        spot = Spot(slug=slug, **fields)
         session.add(spot)
         await session.commit()
         return str(spot.id)
@@ -267,3 +268,251 @@ async def test_sitting_rules(sessionmaker_for_test):
     assert kindless.status_code == 422
     assert in_shelf.status_code == 422
     assert refused.status_code == 409
+
+
+# --- fix round 1 -------------------------------------------------------------
+
+
+async def one_row(monkeypatch, client):
+    patch_search(monkeypatch, SearchOk(hits("one")))
+    body = (
+        await client.get("/api/intake/search", params={"area": "places", "query": "x"})
+    ).json()
+    return body["results"][0]
+
+
+@pytest.mark.asyncio
+async def test_patch_edits_only_the_owner_fields(monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        entry = (
+            await client.post(
+                f"/api/intake/sittings/{sitting['id']}/places",
+                json={"chosen": row, "result_count": 1},
+            )
+        ).json()
+        url = f"/api/intake/entries/{entry['id']}"
+        patched = await client.patch(
+            url,
+            json={
+                "state": "ignored",
+                "chosen": {"source_id": "node/1", "map_url": "https://evil.test/"},
+                "payload": {
+                    "name": "Red Rocks",
+                    "tags": ["park"],
+                    "blurb": "Loud.",
+                    "city": "Denver",
+                    "is_public": True,
+                    "lat": 1.0,
+                    "lng": 2.0,
+                    "source_id": "node/1",
+                    "map_url": "https://evil.test/",
+                    "attribution": "x",
+                    "owned_spot_id": "x",
+                },
+            },
+        )
+        bad_tag = await client.patch(url, json={"payload": {"tags": ["nope"]}})
+        blank = await client.patch(url, json={"payload": {"name": "  "}})
+    assert patched.status_code == 200
+    shown = patched.json()
+    assert shown["state"] == "ready"
+    assert shown["chosen"] == entry["chosen"]
+    assert shown["payload"]["name"] == "Red Rocks"
+    assert shown["payload"]["tags"] == ["park"]
+    assert shown["payload"]["blurb"] == "Loud."
+    assert shown["payload"]["city"] == "denver"
+    assert shown["payload"]["is_public"] is True
+    assert shown["payload"]["lat"] == pytest.approx(39.6653917)
+    assert shown["payload"]["lng"] == pytest.approx(-105.2057171)
+    for key in ("source_id", "map_url", "attribution", "owned_spot_id"):
+        assert key not in shown["payload"]
+    assert bad_tag.status_code == 422
+    assert blank.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_the_generic_entry_route_refuses_places(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/entries",
+            json={"kind": "place", "payload": {"lat": 1}, "chosen": {"x": 1}},
+        )
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert response.status_code == 422
+    assert "/places" in response.json()["detail"]
+    assert shown["entries"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"lat": 91},
+        {"lat": -91.5},
+        {"lng": 181},
+        {"lat": True},
+        {"lng": "105"},
+        {"lat": None},
+        {"title": "   "},
+        {"title": "x" * 201},
+        {"address": "x" * 201},
+        {"category": "x" * 201},
+        {"source_id": "way/abc"},
+        {"source_id": "house/1"},
+        {"source_id": "way/" + "1" * 60},
+        {"source_id": 5},
+    ],
+)
+async def test_a_bad_chosen_result_is_a_422(change, monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"chosen": {**row, **change}, "result_count": 1},
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_missing_lat_is_a_422(monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        row.pop("lat")
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"chosen": row, "result_count": 1},
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_the_map_url_is_rebuilt_by_the_server(monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={
+                "chosen": {**row, "map_url": "https://evil.test/", "attribution": "x"},
+                "result_count": 1,
+            },
+        )
+    chosen = response.json()["chosen"]
+    assert chosen["map_url"] == "https://www.openstreetmap.org/way/229359697"
+    assert chosen["attribution"] == ATTRIBUTION
+
+
+@pytest.mark.asyncio
+async def test_the_same_hit_added_twice_is_one_entry(
+    monkeypatch, sessionmaker_for_test
+):
+    # Sequential, not truly concurrent: the sitting row is locked
+    # (SELECT ... FOR UPDATE) so a second request waits and then sees the first.
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        url = f"/api/intake/sittings/{sitting['id']}/places"
+        first = await client.post(url, json={"chosen": row, "result_count": 1})
+        second = await client.post(url, json={"chosen": row, "result_count": 1})
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert (first.status_code, second.status_code) == (201, 409)
+    assert len(shown["entries"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_the_server_rederives_owned_from_the_database(
+    monkeypatch, sessionmaker_for_test
+):
+    await add_spot(
+        sessionmaker_for_test,
+        name="Red Rocks Amphitheatre",
+        lat=39.66545,
+        lng=-105.20565,
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={
+                "chosen": {**row, "owned_spot_id": None, "owned": False},
+                "result_count": 1,
+            },
+        )
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_a_client_sent_owned_flag_does_not_block(
+    monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={
+                "chosen": {**row, "owned_spot_id": "made-up", "owned": True},
+                "result_count": 1,
+            },
+        )
+    assert response.status_code == 201
+    assert "owned_spot_id" not in response.json()["chosen"]
+
+
+@pytest.mark.asyncio
+async def test_the_75_metre_limit_itself(monkeypatch, sessionmaker_for_test):
+    # Same name 1 km north is not the place; ~50 m away is.
+    far = await add_spot(
+        sessionmaker_for_test,
+        name="Red Rocks Amphitheatre",
+        slug="red-rocks-far",
+        lat=39.6653917 + 0.009,
+        lng=-105.2057171,
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        assert row["owned_spot_id"] is None
+        sitting = (await new_sitting(client)).json()
+        url = f"/api/intake/sittings/{sitting['id']}/places"
+        added = await client.post(url, json={"chosen": row, "result_count": 1})
+        near = await add_spot(
+            sessionmaker_for_test,
+            name="Red Rocks Amphitheatre",
+            lat=39.6653917 + 0.00045,
+            lng=-105.2057171,
+        )
+        row_after = await one_row(monkeypatch, client)
+        refused = await client.post(
+            url, json={"chosen": {**row, "source_id": None}, "result_count": 1}
+        )
+    assert added.status_code == 201
+    assert row_after["owned_spot_id"] == near != far
+    assert refused.status_code == 409
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("count", [-1, 101])
+async def test_result_count_is_bounded(count, monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"chosen": row, "result_count": count},
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+def test_non_finite_coordinates_are_refused(bad):
+    # httpx cannot even send these, so the check is covered directly.
+    row = place_kind.row_for(hits("one")[0])
+    for key in ("lat", "lng"):
+        with pytest.raises(ValueError):
+            place_kind.clean_chosen({**row, key: bad})

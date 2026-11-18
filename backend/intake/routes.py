@@ -58,7 +58,15 @@ from intake.link_import import (
     merge_edit,
 )
 from intake.nightly import LAST_RUN_KEY, run_nightly
-from intake.place_kind import ATTRIBUTION, DEFAULT_CITY, mark_for_count, owned_spot_id
+from intake.place_kind import (
+    DEFAULT_CITY,
+    clean_chosen,
+    clean_fields,
+    clean_name,
+    edit_place,
+    mark_for_count,
+    owned_spot_id,
+)
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -151,8 +159,6 @@ class PlaceEntryIn(BaseModel):
 
 PLACE_OWNED = "That place is already on your list"
 PLACE_IN_SITTING = "That place is already in this visit"
-PLACE_NEEDS_NAME = "A place needs a name"
-PLACE_CHOSEN_REFUSED = "A chosen place needs a name, lat, lng and source_id"
 PLACE_KIND_REQUIRED = "A places sitting needs a kind"
 
 
@@ -740,6 +746,10 @@ def create_intake_router(
         duplicate rule, as the reader marks a trusted match."""
         sitting = await _sitting_or_404(session, sitting_id)
         _check_kind(sitting.area, body.kind)
+        if sitting.area is IntakeArea.PLACES:
+            raise HTTPException(
+                422, "Add a place with POST /sittings/{id}/places, not here"
+            )
         state = IntakeEntryState.TYPED
         if body.chosen is not None:
             source = body.chosen.get("external_source")
@@ -779,62 +789,53 @@ def create_intake_router(
         from the count of results, `mark_for_count`) or one typed by hand
         (READY when its coordinates parse, else CHECK). 409 when the place is
         already a spot or already in this sitting, 422 for a bad tag or a
-        result missing its position."""
-        sitting = await _sitting_or_404(session, sitting_id)
-        if sitting.area is not IntakeArea.PLACES or sitting.kind != "place":
+        result that fails the checks of `clean_chosen`.
+
+        `result_count` is the client's and the mark is a hint for the page,
+        not a trust boundary: the route is admin-only and the commit
+        validates the entry again. Position, `map_url`, attribution and
+        owned-ness are the server's: whatever the client sent for them is
+        ignored. The sitting row is locked first, so two presses of Add
+        queue and the second sees the first's entry."""
+        locked = await session.scalar(
+            select(IntakeSitting)
+            .where(IntakeSitting.id == sitting_id)
+            .with_for_update()
+        )
+        if locked is None:
+            raise HTTPException(404, "No such sitting")
+        sitting = locked
+        if sitting.area is not IntakeArea.PLACES:
             raise HTTPException(409, "A place can only be added to a places sitting")
-        try:
-            tags = spots.canonical_tags(body.tags)
-        except ValueError as error:
-            raise HTTPException(422, str(error)) from error
-        payload: dict[str, Any] = {
-            "city": body.city.strip().lower() or DEFAULT_CITY,
-            "tags": tags,
-            "blurb": (body.blurb or "").strip() or None,
-            "neighbourhood": (body.neighbourhood or "").strip() or None,
-            "is_public": body.is_public,
-        }
         chosen: dict[str, Any] | None = None
         source_id: str | None = None
-        if body.chosen is not None:
-            hit = body.chosen
-            name, source_id = hit.get("title") or hit.get("name"), hit.get("source_id")
-            lat, lng = hit.get("lat"), hit.get("lng")
-            if (
-                not isinstance(name, str)
-                or not isinstance(source_id, str)
-                or isinstance(lat, bool)
-                or isinstance(lng, bool)
-                or not isinstance(lat, int | float)
-                or not isinstance(lng, int | float)
-            ):
-                raise HTTPException(422, PLACE_CHOSEN_REFUSED)
-            payload.update(name=name.strip(), lat=float(lat), lng=float(lng))
-            chosen = {
-                "source": "osm",
-                "source_id": source_id,
-                "title": name,
-                "address": hit.get("address"),
-                "lat": float(lat),
-                "lng": float(lng),
-                "category": hit.get("category"),
-                "map_url": hit.get("map_url"),
-                "attribution": ATTRIBUTION,
-            }
-            state = mark_for_count(body.result_count)
-        else:
-            name = (body.name or "").strip()
-            if not name:
-                raise HTTPException(422, PLACE_NEEDS_NAME)
-            payload["name"] = name
-            try:
-                lat, lng = spots.parse_coords(body.coords or "")
-            except ValueError:
-                payload["coords"] = body.coords
-                state = IntakeEntryState.CHECK
+        try:
+            payload: dict[str, Any] = clean_fields(
+                {
+                    "city": body.city,
+                    "tags": body.tags,
+                    "blurb": body.blurb,
+                    "neighbourhood": body.neighbourhood,
+                    "is_public": body.is_public,
+                }
+            )
+            if body.chosen is not None:
+                part, chosen = clean_chosen(body.chosen)
+                payload.update(part)
+                source_id = chosen["source_id"]
+                state = mark_for_count(body.result_count)
             else:
-                payload.update(lat=lat, lng=lng)
-                state = IntakeEntryState.READY
+                payload["name"] = clean_name(body.name)
+                try:
+                    lat, lng = spots.parse_coords(body.coords or "")
+                except ValueError:
+                    payload["coords"] = body.coords
+                    state = IntakeEntryState.CHECK
+                else:
+                    payload.update(lat=lat, lng=lng)
+                    state = IntakeEntryState.READY
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
         if "lat" in payload and await owned_spot_id(
             session,
             source_id=source_id,
@@ -924,6 +925,15 @@ def create_intake_router(
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
+            if entry.kind == "place":
+                # The server's: only the owner's fields of the payload edit.
+                if field == "payload" and value is not None:
+                    try:
+                        value = edit_place(entry.payload or {}, value)
+                    except ValueError as error:
+                        raise HTTPException(422, str(error)) from error
+                elif field in ("state", "chosen"):
+                    continue
             if field == "payload" and value is not None and entry.kind == "garment":
                 value = (
                     merge_edit(entry.payload or {}, value)
