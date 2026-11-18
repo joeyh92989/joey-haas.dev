@@ -155,3 +155,33 @@ It makes three requests, one per case, at least 1.1 s apart, sending
 `NOMINATIM_USER_AGENT`. It needs the network and nothing else. Re-record when
 the search parameters change or Nominatim's answer shape does, then run
 `./.venv/bin/pytest tests/test_nominatim.py`.
+
+## Map links (`map_links.py`)
+
+The reader behind the paste way (story #342): `read_line(text)` classifies one
+pasted line as a position with an optional name, a name to search, a short
+link, an unreadable link or a line that is too long. It reads Google Maps links (`google.com` and
+`www.google.com` under `/maps`, `maps.google.com`), OpenStreetMap links
+(`openstreetmap.org`, `www.openstreetmap.org`) and recognises the short hosts
+`maps.app.goo.gl`, `goo.gl` and `g.co` (any path, so `g.co/kgs/...` counts).
+**A short link is never fetched**: it is reported as a short link and the
+owner types the name. `/maps/search/<text>` reads as a name (`+` is a space),
+or as a position when the text is a coordinate pair; a `/maps/place/<segment>`
+that is itself a coordinate pair is a position with no name. A link on a known
+map host that yields neither a position nor a name (`/maps` alone, `/maps/dir`,
+`openstreetmap.org/node/123`, `/way/..`, `/relation/..`) is `unreadable_link`
+(the host is carried) and is **never searched**; an unknown host stays plain
+text.
+Positions come from `!3d..!4d..`, `@lat,lng`, `?q=`, `?query=`, `?ll=`,
+`mlat`/`mlon` and the `map=z/lat/lng` fragment, and are range-checked.
+Caps: a line over 300 characters is read as too long unless it is a known
+map URL, which may be up to 2,000; a name is at most 200. `clean_line` and
+`clean_name` (`clean_line` cut to 200) turn the whitespace controls (tab,
+newline, CR, VT, FF, U+0085, U+2028, U+2029) into a space, remove the other
+control and format characters (NUL, zero-width space, bidi overrides, soft
+hyphen, BOM) except ZWNJ and ZWJ (U+200C, U+200D: real in Persian, Hindi and
+emoji sequences), and collapse whitespace. `compare_key` is the one
+duplicate-key normalisation (inner whitespace and case).
+The module is pure (no network, database or FastAPI import; a test in
+`tests/test_map_links.py` bans them by name). Details of the entries it
+feeds: `intake/README.md`, "Paste a list".

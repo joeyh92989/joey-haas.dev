@@ -35,6 +35,22 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   place is public only when its city is Denver (the public page is Denver
   only until #343), enforced at commit as a 422. The Nominatim client sends
   `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
+- **Paste a list for places (story #342).** `intake/place_paste.py` (routes
+  `paste`, `resolve`, `pick`) and `spot_sources/map_links.py` (the pure link
+  reader); read `intake/README.md` ("Paste a list") and the map-link section
+  of `spot_sources/README.md` first. Rules when editing: never fetch a pasted
+  link (short links, `g.co` on any path, and links on a known map host with
+  nothing readable stay `check` entries and are never searched); sanitise with
+  `clean_line` and `clean_name` before storing or comparing, and on the
+  owner-edit path too (whitespace controls become spaces; every Cf character
+  but ZWNJ/ZWJ goes); the IGNORED "same place" check counts only `ready` and
+  `owned` entries; resolving from a `check` entry clears its old position and
+  `chosen`; new entries' `created_at` never precedes the sitting's newest;
+  the paste cap is 400,000 characters (match `MAX_PASTE_CHARS` in the page);
+  the search candidates are server-only (PATCH cannot plant them) and pick
+  takes an index into the stored list, never a place from the client; lock
+  the entry first and the sitting second in a lookup (both `NOWAIT`), since a
+  commit takes the sitting and then the entries.
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers

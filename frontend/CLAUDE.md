@@ -340,3 +340,46 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   the loaded spots. Browser coverage is the
   two "spots add bar" cases in `e2e/admin.spec.js`: they stub only the
   browser's search answer, never Nominatim, and delete what they save.
+- **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
+  with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`
+  (pure), the shared `call` in `placeApi.js` and the `paste` group of
+  `content/placesAdd.js`; opened by the "Paste a list" button of `PlacesAdd.jsx`.
+  Rules that matter when editing:
+  - **Lookups run strictly one at a time.** The server allows two searches and
+    queues the rest, but Nominatim is held to one a second, so the page keeps
+    one resolve in flight (`inflight`) and waits between them; never start a
+    second over it.
+  - **Sitting lifecycle.** The sitting is kept while any entry is in `check` or
+    `reading`; a save that writes everything deletes it on the server, so
+    after a clean save the page must not reuse the id.
+  - **Resume.** Opening the way reads the newest 5 non-empty `places`
+    sittings (`RESUME_LOOK`) and offers the first that holds a pasted entry,
+    which the page tells by `payload.source_line` (`isPasted`); the list cannot
+    say. "Start a new list" deletes it after an inline confirm.
+  - **Leave out** PATCHes the entry back to `check` (so a save never writes
+    it); the "left out" mark itself is page state (`leftOut`), so after a
+    reload the row is an ordinary row to check.
+  - **A 404 from the commit** (another tab saved everything or discarded the
+    list): the page drops the sitting id and its entries, says the list is gone
+    and offers "Start a new list" (phase `gone`).
+  - **Row shapes.** A link the server could not read is a `Link from <host>`
+    check row (`kindOf` -> `unreadable`), drawn like the short-link row (Name
+    field, Search); short-link, unreadable and too-long rows show the pasted
+    link (`payload.source_line`, one line, ellipsis, full text in `title`).
+    The ready row's button reads "Edit". Already-saved rows show
+    `chosen.address` or `payload.address` when there is one, nothing else. The
+    OpenStreetMap credit sits under the form of every state that shows a search
+    outcome (pick, none, unusable, failed). A failed row is in To check, and a
+    line that got no answer once opens "Not looked up yet"; the summary adds a
+    plain notice when a row got no answer. The page's paste cap
+    (`MAX_PASTE_CHARS`, 400,000) must match the server's. The review rows and
+    buttons carry `scroll-margin-bottom` (tab bar plus Save bar, from
+    variables in `index.css`) so Tab never leaves a row behind the bar.
+  - Known gaps: closing the way discards unsaved Details edits;
+    `SpotsAddBar.jsx` still has its own `call()` copy instead of `placeApi.js`.
+  - Browser coverage: the two "paste a list" cases in `e2e/admin.spec.js` use
+    the real backend, coordinate links and a short link (never Nominatim).
+    They run in the `desktop` project only (the page offers the newest pasted
+    list, and both projects share one database; no file lock), and case 1
+    resizes the viewport to 400 px inside the test to check there is no sideways
+    scroll.

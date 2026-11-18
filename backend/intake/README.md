@@ -586,6 +586,93 @@ second commit of it is a 409.
 - The advisory lock key is arbitrary and must stay distinct from
   `migration_lock.MIGRATION_LOCK_KEY`.
 
+## Paste a list (places, story #342)
+
+The paste way adds many places at once from lines the owner pastes: bare
+names, Google Maps or OpenStreetMap links, short links. Code:
+`place_paste.py` (the routes and the per-line rules), `spot_sources/map_links.py`
+(the pure link reader); the save is the `place` kind's `commit.write_places`. It makes
+no model call, adds no `JOB_ROUTES` entry and needs no migration: it only
+stores entries in an ordinary `places` sitting.
+
+### Routes
+
+| Route | What it does |
+|---|---|
+| `POST /sittings/{id}/paste` | One entry per pasted line, no network call. Answers the counts (`added`, `duplicates`, `blank`, `over_limit`). |
+| `POST /entries/{id}/resolve` | One Nominatim search for a `reading` or `check` entry (a short or unreadable link needs a name typed first via PATCH). A search that starts from a `check` entry first drops its old `lat`, `lng`, `owned_spot_id` and `chosen`, so a later PATCH to ready cannot save the new name at the old position. |
+| `POST /entries/{id}/pick` | Takes `{index}` into the entry's stored `candidates` and copies that hit; the client never sends a place. |
+
+### Entry states
+
+| Line kind or outcome | State | Payload notes |
+|---|---|---|
+| Map link with a position and a name | `ready` | name, lat, lng, city Denver, tags `[]`, blurb none, private, `source_line` |
+| Map link with a position, no name | `check` | name "Place at lat, lng", note that it needs a name |
+| That position and name are already a saved spot (database only) | `owned` | `owned_spot_id`, note |
+| Bare name, or a link with a name and no position | `reading` | name (max 200), `source_line`, `attempts` 0 |
+| Short link (`maps.app.goo.gl`, `goo.gl`, `g.co` on any path) | `check` | name "Short link from <host>", note that it cannot be read |
+| Link on a known map host with no position and no name | `check` | name "Link from <host>", note "Could not read a place from this link. Type the name."; never searched until a name is typed |
+| Line too long | `check` | name = first 200 characters, note |
+| Resolve, one hit | `ready` | `chosen` and name, lat, lng from the hit; `searched_as` keeps the typed words |
+| Resolve, one hit already saved | `owned` | `owned_spot_id`, note |
+| Resolve, the hit's source id is the `chosen` of another `ready` or `owned` entry | `ignored` | note "same place as another line" (a place the owner left out does not count) |
+| Resolve, several hits | `check` | `candidates` (max 5, owned ones flagged), note |
+| Resolve, no hit | `check` | note "No place found. Change the words and look again." |
+| Resolve, search failed (fewer than 2 attempts) | `reading` | `attempts` + 1, the failure as the note |
+| Resolve, search failed (2 attempts) | `check` | note "The search did not answer." |
+| Pick | `ready`, `owned` or `ignored`, as for one hit | `candidates` and the note cleared |
+
+### Caps and sanitising
+
+- At most 200 lines a paste (the rest count as `over_limit`), 300 entries a
+  sitting, 400,000 characters a paste (200 lines of 2,000; the page's
+  `MAX_PASTE_CHARS` in `pasteModel.js` must match `place_paste.MAX_PASTE_CHARS`).
+- New entries get `created_at` = the later of the app clock and the sitting's
+  newest entry plus one microsecond (then one microsecond apart), so the
+  order stays monotonic whatever the two clocks say.
+- A line is at most 300 characters, and 2,000 for a URL on a known map host
+  (`map_links.MAX_LINE_CHARS`, `MAX_URL_LINE`); a longer line is a `check`
+  entry. `source_line` is stored clipped to 300; a longer line also stores
+  `source_key` (a hash of the whole line) so the same long URL pasted twice is
+  caught as a duplicate.
+- Every line is sanitised before it is stored or compared: control (Cc) and
+  format (Cf) characters are removed (ZWNJ and ZWJ are kept) and whitespace is
+  collapsed; tab, newline and the other whitespace controls become a space
+  first (`map_links.clean_line`, `clean_name`). The owner-edit path (PATCH of a
+  place entry) uses the same functions.
+- **Short links are never fetched.** `maps.app.goo.gl`, `goo.gl` and `g.co`
+  (any path) become `check` entries that ask for a name; the server never
+  follows them. A link on a known map host with nothing readable
+  (`unreadable_link`) is the same: a `check` entry, never searched as URL text.
+
+### Locks
+
+- Resolve and pick take the entry `FOR UPDATE NOWAIT` (`claim_entry`): a
+  second call on the entry is a 409. PATCH of a place entry takes it the same
+  way, so an edit cannot land in the middle of a lookup.
+- Resolve and pick also take the sitting `NOWAIT` (`lock_sitting`, a few quick
+  tries, then 409). Commit takes the sitting and then the entries, so the order
+  is always entry then sitting for a lookup and sitting then entries for a
+  commit; a lookup never waits for a lock, which is what keeps the two from
+  deadlocking.
+- A semaphore of 2 (per event loop) bounds the searches in flight; the rest
+  queue before taking any database lock. Paste locks the sitting row
+  `FOR UPDATE` (two pastes queue).
+
+### Known limits
+
+- The page must resolve strictly one at a time; the server bounds the load
+  but does not keep Nominatim's one-a-second rate across parallel callers.
+- A resolve that meets a held sitting has already used one Nominatim search
+  before it answers 409.
+- The same long URL pasted in two separate pastes is caught at paste by
+  `source_key`; the same place reached through two different URLs is caught by
+  the owned check at save, not at paste.
+- Blurb newlines become spaces (the shared field cleaning); the blurb is one line.
+- The sittings list cannot tell a pasted sitting from a search-flow one; the
+  page decides by `payload.source_line` on the entries.
+
 ## Adding a kind
 
 Write a `Kind`, `register()` it in a module `routes.py` imports, and it is

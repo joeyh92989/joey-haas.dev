@@ -211,7 +211,10 @@ describe('PlacesAdd', () => {
     expect(screen.getByRole('search')).toBeInTheDocument()
     expect(screen.getByLabelText('Place name')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('')
-    expect(screen.queryByText(/Paste a list/)).not.toBeInTheDocument()
+    // Paste a list is offered (story #342) but closed until it is opened.
+    expect(
+      screen.queryByLabelText('Places, one per line'),
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('Added this visit')).not.toBeInTheDocument()
   })
 
@@ -1061,5 +1064,44 @@ describe('PlacesAdd', () => {
     expect(box).toHaveAttribute('aria-describedby')
     await user.click(box)
     expect(box).not.toHaveAttribute('aria-describedby')
+  })
+})
+
+describe('PlacesAdd: Paste a list (story #342)', () => {
+  it('opens the paste way from Other ways in, beside Type it by hand', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi()
+    renderPage()
+    const group = screen.getByRole('group', { name: 'Other ways in' })
+    const way = within(group).getByRole('button', { name: 'Paste a list' })
+    expect(
+      within(group).getByRole('button', { name: 'Type it by hand' }),
+    ).toBeInTheDocument()
+    expect(way).toHaveAttribute('aria-expanded', 'false')
+    expect(
+      calls.filter((c) => c.url.startsWith('/api/intake/sittings')),
+    ).toHaveLength(0)
+    await user.click(way)
+    expect(way).toHaveAttribute('aria-expanded', 'true')
+    const area = await screen.findByLabelText('Places, one per line')
+    expect(area).toBeInTheDocument()
+    // The search field stays above it, and opening the way makes no sitting.
+    expect(screen.getByLabelText('Place name')).toBeInTheDocument()
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0)
+    await user.click(way)
+    expect(
+      screen.queryByLabelText('Places, one per line'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the search flow working with the paste way open', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(ROCKS) })
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Paste a list' }))
+    await submitSearch(user, 'Red Rocks')
+    expect(
+      await screen.findByRole('group', { name: /Details for/ }),
+    ).toBeInTheDocument()
   })
 })
