@@ -114,6 +114,48 @@ Sources: `backend/intake/routes.py` (`read-next` pattern, `fetch_pending`),
    page); the add bar on `/admin/spots` is unchanged (out of scope). A designer pass decides the
    layout (auto: the designer picks).
 
+## Design
+
+Chosen: **A, steps in one column**, `docs/planning/mockups/2026-11-18-places-paste/a-steps.html` (out
+of git). The designer picked it in auto mode. Rejected: **B, a review table** with the paste box
+open above (width grows to 60rem and a long URL wraps to 4 or 5 lines in the "as pasted" column; on a
+phone its rows stack into the same blocks as A; its open box implies appending to a sitting mid-run,
+which this plan does not cover). A reuses the #340 column, `.place-result` row and open-in-place
+pattern: the paste box folds to a one-line summary, then progress ("Looking up 34 of 100", Stop,
+continues on reload), then groups with "To check" first, a sticky Save bar, 15 states drawn at 1100 and
+400, dark and light.
+
+Rulings on what the mockup left open or decided on its own (auto mode, mine):
+
+1. **"Paste a list" opens from "Other ways in"** beside "Type it by hand"; the search field stays above
+   it. (As drawn.)
+2. **A coordinate link with no name is a CHECK row that needs a name, not READY.** The mockup draws the
+   OSM link READY as "Place at 39.7392, -104.9849"; that would save a spot with a junk name if the owner
+   does not look. The backend rule of decision 2 stands (CHECK, "needs a name"), and the page draws a
+   Name field on that row; once named, a PATCH moves it to ready.
+3. **Ready rows get a "Leave out" action** (the mockup has none): it PATCHes the entry to `check` so
+   Save skips it; it stays in the list and can be put back.
+4. **Save is disabled while lookups run; Stop enables it for what is ready so far.** (As drawn.)
+5. **A failed row's button is "Try again"** (resolve again); after the second failure the row is CHECK
+   with a name field. (As drawn.)
+6. **Ready folds above 10 rows**; an open group shows 10 rows (6 on a phone) then "Show all N" using the
+   repo's `CappedList`/`.capped-toggle` pattern. (As drawn.)
+7. **After a save the sitting is kept while CHECK or READING entries remain** (the point of a paste way is
+   to resume), and "Add another list" appends to the same sitting. This differs from `/admin/places/add`'s
+   search flow, which deletes a leftover sitting after a commit (#340). So the page must be able to find
+   its open places sitting after a reload: task 3 checks whether the existing unfinished-sittings read
+   lists `places` sittings and adds the smallest read route if it does not; the page offers "Continue your
+   list" when an open places sitting with paste entries exists.
+8. **A zero-line paste** is a field error (`role="alert"`) under the textarea; a failed paste request is
+   the `.admin-error`. (As drawn.)
+9. **The over-limit note** is a live client-side count under the box ("214 lines in the box. Only the
+   first 200 will be added.") and is repeated in the summary. (As drawn.)
+10. **Two states beyond the brief are drawn and kept:** "No place found, rename" and "Ready row open,
+    details".
+
+Acceptance for the UI task: matches `a-steps.html` at 1100 and 400, dark and light, apart from rulings
+2 and 3; the finish review compares screenshots.
+
 ## Sources
 
 Repo: `backend/intake/routes.py`, `place_kind.py`, `commit.py`, `models.py` (`IntakeEntryState`),
