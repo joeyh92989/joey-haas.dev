@@ -14519,7 +14519,9 @@ a.btn.sm {
   gap: var(--space-1);
   min-width: 0;
 }
-.lo-label, .lo-field > label, .lo-field > legend {
+.lo-label,
+.lo-field > label,
+.lo-field > legend {
   color: var(--text-2);
   font-size: var(--fs-13);
   font-weight: 500;
@@ -14782,12 +14784,14 @@ select.lo-input {
   width: 1rem;
 }
 @keyframes lo-spin {
-  to { transform: rotate(360deg);
-  };
+  to {
+    transform: rotate(360deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lo-spin { animation: none;
-  };
+  .lo-spin {
+    animation: none;
+  }
 }
 .lo-results {
   display: grid;
