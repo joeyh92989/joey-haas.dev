@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router'
+import { isbnIntake } from '../../content/isbnIntake.js'
 import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
 import { discardAsk } from '../../content/shelfDelete.js'
@@ -221,8 +222,8 @@ export default function AddSection({ area, onAdded, children }) {
     setTimeout(() => (opener?.isConnected ? opener : inputRef.current)?.focus())
   }
 
-  async function submit() {
-    const text = query.trim()
+  async function submit(override) {
+    const text = (typeof override === 'string' ? override : query).trim()
     setError(null)
     setNotice('')
     if (linkKind && !searchable && looksLikeLink(text)) {
@@ -255,6 +256,34 @@ export default function AddSection({ area, onAdded, children }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  /**
+   * A scanned ISBN: Open Library names the book, and that name is searched
+   * like a typed one (the owner still picks the series). A miss or a failure
+   * only says so; the bar stays usable.
+   */
+  async function scanned(isbn) {
+    setError(null)
+    setNotice('')
+    setBusy(true)
+    let found
+    try {
+      const response = await apiFetch(`/api/intake/isbn/${isbn}`)
+      const body = response.ok ? await response.json() : null
+      found = body?.found ? body.title : null
+    } catch {
+      found = null
+    } finally {
+      setBusy(false)
+    }
+    if (!found) {
+      setNotice(isbnIntake.barNotFound(isbn))
+      return
+    }
+    setQuery(found)
+    await submit(found)
+    setNotice(isbnIntake.barFound(found))
   }
 
   async function photos() {
@@ -474,6 +503,7 @@ export default function AddSection({ area, onAdded, children }) {
             : undefined
         }
         onLinks={linkKind ? () => setLinksOpen((open) => !open) : undefined}
+        onScan={area === 'shelf' ? scanned : undefined}
         linksOpen={linksOpen}
         busy={busy || !kinds}
         inputRef={inputRef}

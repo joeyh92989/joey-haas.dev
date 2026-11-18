@@ -1,4 +1,5 @@
 import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
+import { toIsbn13 } from './isbn.js'
 import { titleKind } from './titleKind.js'
 import { spine } from '../content/spine.js'
 /**
@@ -249,21 +250,22 @@ export function withoutLegacyEditions(payload) {
 }
 
 /** One blank book row, as the form holds it: every field a string. */
-export const EMPTY_BOOK = { kind: '', label: '', from: '', to: '' }
+export const EMPTY_BOOK = { kind: '', label: '', from: '', to: '', isbn: '' }
 
 /**
  * A comic's collected books as the form's rows: strings, so the inputs stay
  * controlled.
  *
- * @param {{kind: string, label: string, from: number, to: number}[]|null} books
- * @returns {{kind: string, label: string, from: string, to: string}[]}
+ * @param {{kind: string, label: string, from: number, to: number, isbn?: string}[]|null} books
+ * @returns {{kind: string, label: string, from: string, to: string, isbn: string}[]}
  */
 export function bookRows(books) {
-  return (books ?? []).map(({ kind, label, from, to }) => ({
+  return (books ?? []).map(({ kind, label, from, to, isbn }) => ({
     kind,
     label,
     from: String(from),
     to: String(to),
+    isbn: isbn ?? '',
   }))
 }
 
@@ -285,14 +287,28 @@ export function parseBookRows(rows) {
     const label = row.label.trim()
     const from = String(row.from).trim()
     const to = String(row.to).trim() || from
-    if (!kind && !label && !from && !String(row.to).trim()) continue
+    const typedIsbn = String(row.isbn ?? '').trim()
+    if (!kind && !label && !from && !String(row.to).trim() && !typedIsbn)
+      continue
     if (!kind || !label || !ISSUE_NUMBER.test(from) || !ISSUE_NUMBER.test(to)) {
       return {
         books: null,
         error: `Book ${index + 1}: give it a kind, a label and the issues it collects.`,
       }
     }
-    books.push({ kind, label, from: Number(from), to: Number(to) })
+    const book = { kind, label, from: Number(from), to: Number(to) }
+    // Sent as the ISBN-13, so the editor's rows match what the server stores.
+    if (typedIsbn) {
+      const isbn = toIsbn13(typedIsbn)
+      if (!isbn) {
+        return {
+          books: null,
+          error: `Book ${index + 1}: that ISBN is not valid. Check the digits, or clear it.`,
+        }
+      }
+      book.isbn = isbn
+    }
+    books.push(book)
   }
   return { books: books.length ? books : null, error: null }
 }

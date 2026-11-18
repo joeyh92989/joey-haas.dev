@@ -217,6 +217,97 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
   }
 })
 
+// Story #336: a typed collected book's ISBN box. The sitting is made for real
+// (the page needs a route that exists) and its GET is the intake comic fixture
+// moved to Details with a trades entry; the lookup route is stubbed, since
+// Open Library is never reached from a test.
+test('an ISBN on a typed book: Look up fills the label and the typed ISBN is saved', async ({
+  page,
+}) => {
+  const sittings = await import('./fixtures/api/intake-comic-sitting.json', {
+    with: { type: 'json' },
+  })
+  const made = await page.request.post('/api/intake/sittings', {
+    data: { area: 'shelf', kind: 'comic' },
+  })
+  expect(made.status()).toBe(201)
+  const { id } = await made.json()
+  const [first] = sittings.default.entries
+  const entry = {
+    ...first,
+    payload: { detected_title: 'Saga', shelf_format: 'trades' },
+    adds: undefined,
+  }
+  const errors = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  try {
+    await page.route(`**/api/intake/sittings/${id}`, (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: {
+              ...sittings.default,
+              id,
+              step: 'details',
+              entries: [entry],
+            },
+          })
+        : route.fallback(),
+    )
+    await page.route('**/api/intake/isbn/9781607066019', (route) =>
+      route.fulfill({
+        json: {
+          isbn: '9781607066019',
+          found: true,
+          reason: null,
+          title: 'Saga',
+          subtitle: 'Volume One',
+          volume_number: 1,
+          publisher: 'Image Comics',
+          year: 2012,
+          pages: 160,
+          cover_url: null,
+          on_shelf: [],
+        },
+      }),
+    )
+    const saved = []
+    await page.route(`**/api/intake/entries/${entry.id}`, (route) => {
+      if (route.request().method() === 'PATCH') {
+        saved.push(route.request().postDataJSON())
+        return route.fulfill({
+          json: { ...entry, payload: saved.at(-1).payload },
+        })
+      }
+      return route.fallback()
+    })
+    await page.goto(`/admin/collection/add/${id}`)
+    await page.getByRole('button', { name: 'Add a book' }).click()
+    await page
+      .getByLabel('ISBN, book 1', { exact: true })
+      .fill('978-1-60706-601-9')
+    await page.getByRole('button', { name: /Look up the ISBN/ }).click()
+    await expect(page.getByLabel('Label, Vol. 1')).toHaveValue('Vol. 1')
+    await expect(page.getByText(/Found: Saga: Volume One/)).toBeVisible()
+    await page.getByLabel('Kind, Vol. 1').fill('Trade')
+    await page.getByLabel('From issue, Vol. 1').fill('1')
+    await page.getByLabel('To issue, Vol. 1').fill('6')
+    await page.getByLabel('To issue, Vol. 1').blur()
+    await expect.poll(() => saved.length).toBeGreaterThan(0)
+    expect(saved.at(-1).payload.books).toEqual([
+      {
+        kind: 'Trade',
+        label: 'Vol. 1',
+        from: 1,
+        to: 6,
+        isbn: '9781607066019',
+      },
+    ])
+    expect(errors).toEqual([])
+  } finally {
+    await page.request.delete(`/api/intake/sittings/${id}`)
+  }
+})
+
 // A comic sitting at Check and Done, as the intake API answers them
 // (story #328). There is no way to seed a comic sitting's books without a
 // photo read by the model, so the sitting is made for real (the page needs a

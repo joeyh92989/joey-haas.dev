@@ -58,6 +58,16 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   place is public only when its city is Denver, enforced at commit as a
   422 (`spots.check_public_city`; the same rule holds on the by-hand routes). The Nominatim client sends
   `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
+- **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
+  keyless, not a registry adapter) and `intake/isbn_route.py`
+  (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
+  `intake/README.md` ("ISBN lookup") first. Rules when editing: validate the
+  ISBN (`normalize_isbn`) before any request; a lookup failure is a 200
+  `found: false` with a `reason`, never a 500 and never a block on saving;
+  the cover is linked, never copied; an `isbn` on a typed book
+  (`payload.books[]`) is checked in `comic_books.typed_books` (422 at the
+  entry) and written to `comic_volumes.isbn` by `volume_plan.write_volume`;
+  no model call, no migration.
 - **Paste a list for places (story #342).** `intake/place_paste.py` (routes
   `paste`, `resolve`, `pick`) and `spot_sources/map_links.py` (the pure link
   reader); read `intake/README.md` ("Paste a list") and the map-link section

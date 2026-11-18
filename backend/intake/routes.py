@@ -53,6 +53,7 @@ from intake.commit import (
     series_on_shelf_for,
     spot_answer,
 )
+from intake.isbn_route import register_isbn_route
 from intake.kinds import REGISTRY, describe
 from intake.link_import import (
     MAX_LINKS,
@@ -1119,4 +1120,5 @@ def create_intake_router(
         return {LAST_RUN_KEY: row.value if row is not None else None}
 
     register_paste_routes(router, get_session, entries_json)
+    register_isbn_route(router, get_session)
     return router

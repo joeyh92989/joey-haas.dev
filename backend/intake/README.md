@@ -368,6 +368,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /entries/{id}/not-owned` | Check's Don't own this (file pieces only; 409 otherwise) |
 | `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
 | `POST /sittings/{id}/places` | Add a place to a `places` sitting: a chosen search result or one typed by hand (see Places) |
+| `GET /isbn/{isbn}` | Look an ISBN up (story #336, `isbn_route.py`): Open Library's title, subtitle, volume number, publisher, year, pages and a linked cover, plus `on_shelf` (volumes already holding that ISBN). A miss or a source failure is a 200 with `found: false` and a `reason` (`not_found`, `rate_limited`, `unavailable`, `error`); only a malformed ISBN is a 422, checked before any request. No model call |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
 | `GET /counts`, `GET /budget` | Entries to check or confirm (`check` and `probable`) per area; today's free reads |
 | `POST /jobs/nightly` | The nightly step; the **only** intake route the job token opens (`items.JOB_ROUTES`) |
@@ -444,6 +445,26 @@ above). The answer also carries `images_missing` and `file_import`
 (the seed file's counts, null for a sitting no file was added to). After the commit,
 covers and creators are filled in as `/bulk` does (`items._enrich`, best
 effort).
+
+## ISBN lookup and typed books (story #336)
+
+A typed collected book (`payload.books[]`: kind, label, from, to) may carry an
+`isbn`. `comic_books.typed_books` normalises it to an ISBN-13 (hyphens and
+spaces dropped, an ISBN-10 converted, the check digit verified) and a bad one
+is a `BookEditError` on field `books`, so `PATCH /entries/{id}` answers 422
+and the commit never meets it. `volume_plan.typed_plans` puts it on the
+`VolumePlan` and `write_volume` writes `comic_volumes.isbn`; idempotence is
+unchanged (`typed_key` per book). No migration: the column exists. A
+photographed book carries no ISBN.
+
+**Why a route and not a source in the registry:** the lookup answers "what is
+this ISBN", not "find a title", so `sources/openlibrary.py` has no item type
+(see `sources/README.md`). `GET /isbn/{isbn}` is a convenience, never a gate:
+the Details step's ISBN box fills a blank label and warns of an `on_shelf`
+match, and a miss only leaves the box as typed. `on_shelf` compares the
+stored text with hyphens and spaces removed, as ISBN-13 or the ISBN-10 form,
+since the volume editor stores free text. The add bar's barcode button scans
+an ISBN, looks it up here and searches for the book's title.
 
 ## Places
 

@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import IsbnField from './intake/IsbnField.jsx'
 import { spine } from '../content/spine.js'
 import { EMPTY_BOOK, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
@@ -143,6 +144,13 @@ export function BookRows({ rows, onChange, error, idPrefix = 'comic' }) {
                 ×
               </button>
             </div>
+            <IsbnField
+              row={row}
+              name={name}
+              onChange={(next) =>
+                onChange(rows.map((old, at) => (at === index ? next : old)))
+              }
+            />
           </div>
         )
       })}
