@@ -458,7 +458,7 @@ describe('AddSection on the shelf', () => {
     renderAt()
     expect(
       await screen.findByRole('button', { name: /Scan a barcode/ }),
-    ).toBeDisabled()
+    ).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Add from photos' }))
     expect(await screen.findByTestId('where')).toHaveTextContent(
       '/admin/collection/add',

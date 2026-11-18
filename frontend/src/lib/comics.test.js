@@ -280,6 +280,22 @@ describe('book rows', () => {
     expect(parseBookRows([])).toEqual({ books: null, error: null })
   })
 
+  it('carries an ISBN, and keeps a row that has only that', () => {
+    const typed = [
+      { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6', isbn: ' 978-1 ' },
+    ]
+    expect(parseBookRows(typed).books).toEqual([
+      { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6, isbn: '978-1' },
+    ])
+    expect(bookRows([{ ...books[0], isbn: '9781607066019' }])[0].isbn).toBe(
+      '9781607066019',
+    )
+    expect(
+      parseBookRows([{ kind: '', label: '', from: '', to: '', isbn: '9' }])
+        .error,
+    ).toMatch('Book 1')
+  })
+
   it('names the row it cannot read', () => {
     expect(
       parseBookRows([
