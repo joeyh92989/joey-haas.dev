@@ -105,3 +105,87 @@ for (const [name, kind] of Object.entries(SHELF_KINDS)) {
     })
   }
 }
+
+/**
+ * A comic title of each new kind (#330), one fixture title each in
+ * e2e/fixtures/snapshot. The page paints its snapshot row, then reads the
+ * public detail, which the spec serves from e2e/fixtures/api (the bodies the
+ * backend's own models wrote); the Books and Issues sections only exist
+ * after that, so they are what is asserted before axe runs.
+ */
+const TITLES = {
+  book_line: {
+    id: '33333333-bbbb-4bbb-8bbb-000000000003',
+    h1: /Lantern Tales/,
+    section: 'Books',
+    word: /I have Vol\. 1, 2 and 4/,
+  },
+  single_book: {
+    id: '44444444-bbbb-4bbb-8bbb-000000000004',
+    h1: /Salt Road/,
+    section: 'The book',
+    word: /Read about this book/,
+  },
+  both: {
+    id: '55555555-bbbb-4bbb-8bbb-000000000005',
+    h1: /Harbor Lights/,
+    section: 'Books',
+    word: /I have Vol\. 1 and 3/,
+  },
+}
+
+for (const [kind, { id, h1, section, word }] of Object.entries(TITLES)) {
+  const path = `/shelf/${id}/`
+  for (const theme of THEMES) {
+    test(`comic ${kind} title page renders cleanly (${theme})`, async ({
+      page,
+      openRoute,
+    }, testInfo) => {
+      test.skip(!!process.env.E2E_BASE_URL, 'sitemap is local, site remote')
+      test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+      if (!paths.includes(path) && process.env.CI) {
+        throw new Error(
+          `CI build has no ${kind} title page (expected ${path} in dist/sitemap.xml); copy e2e/fixtures/snapshot into public/snapshot before building`,
+        )
+      }
+      test.skip(!paths.includes(path), 'this build has no such fixture title')
+      await page.route(`**/api/public/items/${id}`, (route) =>
+        route.fulfill({
+          contentType: 'application/json',
+          body: apiFixture(`public-comic-${kind}.json`),
+        }),
+      )
+      if (kind === 'both') {
+        await page.route(`**/api/public/items/${id}/issues`, (route) =>
+          route.fulfill({
+            contentType: 'application/json',
+            body: apiFixture('public-comic-wall-both.json'),
+          }),
+        )
+      }
+      const { errors } = await openRoute(path, theme)
+      await expect(page.locator('h1:visible').first()).toHaveText(h1)
+      await expect(
+        page.getByRole('heading', { level: 2, name: section }),
+      ).toBeVisible()
+      await expect(page.getByText(word)).toBeVisible()
+      if (kind === 'both') {
+        await expect(
+          page.getByRole('heading', { level: 2, name: 'Issues' }),
+        ).toBeVisible()
+      } else {
+        await expect(page.locator('.run-box')).toHaveCount(0)
+      }
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      const fresh = results.violations.filter(
+        (v) =>
+          GATED.includes(v.impact) &&
+          !KNOWN_A11Y.some((e) => e.route === path && e.ruleId === v.id),
+      )
+      expect(fresh.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+      expect(errors).toEqual([])
+    })
+  }
+}
