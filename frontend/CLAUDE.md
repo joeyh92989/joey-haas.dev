@@ -319,3 +319,23 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
     mockups are out of git; the record of the choice, the rejected directions
     and the screens and states is the Design section of
     `docs/planning/2026-11-17-place-kind-intake-design.md`.
+- **The add bar on `/admin/spots` (story #341).** `components/places/SpotsAddBar.jsx`,
+  placed by `pages/AdminSpots.jsx` above the table; its words are
+  `placesAdd.bar` in `content/placesAdd.js`. It searches by name like
+  `/admin/places/add` but saves with ONE call, `POST /api/intake/add`, so it
+  keeps no sitting and none of that page's sitting lifecycle. After a save
+  the page re-reads `GET /api/spots` (`rereadSpots`, awaited: a failed read
+  shows `denver.admin.savedNotRefreshed` with Try again; a read that began
+  before a per-row write landed is dropped and run once more, `writeSeq`).
+  Two client-only marks: `newId` (the "New" pill, `denver.admin.newMark`) and
+  `markedId` (the row tint, `is-marked`). A bar save sets both; "Show in
+  table" sets only the tint, so an already-saved row is findable without a
+  pill; a bar search (`onSearchStart`) or a by-hand save of a new spot clears
+  both. `onShowInTable` clears a filter that hides the row, scrolls to it and
+  focuses it, once per request. "Add by hand" opens `SpotForm` with the typed
+  words in Name (`initialName`, new spots only) and gives focus back to the
+  bar's name box when the form closes; it never replaces a form that is
+  already open (it focuses that form). The bar gets the owner's cities from
+  the loaded spots. Browser coverage is the
+  two "spots add bar" cases in `e2e/admin.spec.js`: they stub only the
+  browser's search answer, never Nominatim, and delete what they save.

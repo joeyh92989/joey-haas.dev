@@ -77,4 +77,17 @@ export const placesAdd = {
     done: (name) => `Saved ${name} as a private spot.`,
     donePublic: (name) => `Saved ${name} and put it on the public Denver page.`,
   },
+  // The Spots page's add bar (story #341), from the mockup
+  // docs/planning/mockups/2026-11-17-spots-add-bar/a-panel-above.html.
+  // Everything else it says is above: the status lines, "Saved ...", the
+  // failure line and the fields.
+  bar: {
+    nameLabel: 'Add a place by name',
+    hint: 'Nothing is looked up while you type. Press Search or Enter.',
+    addByHand: 'Add by hand',
+    showInTable: 'Show in table',
+    showInTableFor: (title) => `: ${title}`,
+    noneHelp:
+      'Check the spelling or add the city, then search again. A place that is not on OpenStreetMap can be added by hand.',
+  },
 }
