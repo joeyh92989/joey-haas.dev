@@ -69,7 +69,7 @@ from intake.place_kind import (
     not_ready_reason,
     owned_spot_id,
 )
-from intake.place_paste import claim_entry, register_paste_routes
+from intake.place_paste import BUSY, claim_entry, register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -925,7 +925,7 @@ def create_intake_router(
         if entry.kind == "place":
             # A resolve or pick holds the row while it works: wait for none of
             # them (409), so a stale copy never overwrites its answer.
-            entry = await claim_entry(session, entry_id)
+            entry = await claim_entry(session, entry_id, BUSY)
         want_state: IntakeEntryState | None = None
         for field in body.model_fields_set:
             value = getattr(body, field)

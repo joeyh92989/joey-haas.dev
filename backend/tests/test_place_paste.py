@@ -496,8 +496,10 @@ async def test_a_second_concurrent_resolve_is_a_409(monkeypatch, sessionmaker_fo
         sitting, [entry] = await pasted(client)
         first = asyncio.create_task(client.post(resolve_url(entry)))
         await asyncio.wait_for(blocked.started.wait(), 10)
-        second = await client.post(resolve_url(entry))
-        blocked.release.set()
+        try:
+            second = await asyncio.wait_for(client.post(resolve_url(entry)), 5)
+        finally:
+            blocked.release.set()
         done = await first
     assert second.status_code == 409
     assert "being looked up" in second.json()["detail"]
@@ -514,14 +516,20 @@ async def test_a_patch_during_a_resolve_is_a_409_and_keeps_the_answer(
         sitting, [entry] = await pasted(client)
         first = asyncio.create_task(client.post(resolve_url(entry)))
         await asyncio.wait_for(blocked.started.wait(), 10)
-        patched = await client.patch(
-            f"/api/intake/entries/{entry['id']}", json={"payload": {"blurb": "late"}}
-        )
-        blocked.release.set()
+        try:
+            patched = await asyncio.wait_for(
+                client.patch(
+                    f"/api/intake/entries/{entry['id']}",
+                    json={"payload": {"blurb": "late"}},
+                ),
+                5,
+            )
+        finally:
+            blocked.release.set()
         done = (await first).json()
         stored = await entries_of(sessionmaker_for_test, sitting)
     assert patched.status_code == 409
-    assert "being looked up" in patched.json()["detail"]
+    assert patched.json()["detail"] == "This place is busy. Try again in a moment."
     assert done["state"] == "ready"
     [(state, payload, chosen)] = stored
     assert state == "ready"
@@ -1100,3 +1108,103 @@ async def test_searched_as_is_cleaned_and_capped_after_a_pick(
     assert body["payload"]["name"] == "Cafe 0"
     assert body["payload"]["searched_as"].startswith("Cafe zzz")
     assert len(body["payload"]["searched_as"]) == 200
+
+
+# --- lock order (story #342, task 3) -----------------------------------------
+
+
+class Held:
+    """A row lock held by the test through a second session, released on exit
+    (no sleeps: the test decides when)."""
+
+    def __init__(self, factory, statement):
+        self.factory, self.statement = factory, statement
+
+    async def __aenter__(self):
+        self.session = self.factory()
+        await self.session.scalar(self.statement)
+        return self
+
+    async def __aexit__(self, *exc):
+        await self.session.rollback()
+        await self.session.close()
+
+
+def lock_sitting_of(sitting):
+    from models import IntakeSitting
+
+    return (
+        select(IntakeSitting.id)
+        .where(IntakeSitting.id == sitting["id"])
+        .with_for_update()
+    )
+
+
+def lock_entries_of(sitting):
+    return (
+        select(IntakeEntry.id)
+        .where(IntakeEntry.sitting_id == sitting["id"])
+        .with_for_update()
+    )
+
+
+BEING_SAVED = "The list is being saved. Try again in a moment."
+
+
+@pytest.mark.asyncio
+async def test_a_resolve_while_the_sitting_is_held_is_a_409_and_changes_nothing(
+    monkeypatch, sessionmaker_for_test
+):
+    fake = patch_search(monkeypatch, SearchOk(hits("one")))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client)
+        async with Held(sessionmaker_for_test, lock_sitting_of(sitting)):
+            held = await asyncio.wait_for(client.post(resolve_url(entry)), 10)
+        stored = await entries_of(sessionmaker_for_test, sitting)
+        after = await client.post(resolve_url(entry))
+    assert held.status_code == 409
+    assert held.json()["detail"] == BEING_SAVED
+    assert [(state, payload.get("name")) for state, payload, _ in stored] == [
+        ("reading", "red rocks")
+    ]
+    assert stored[0][2] is None
+    assert after.status_code == 200  # nothing was left locked
+    assert after.json()["state"] == "ready"
+    assert len(fake.calls) == 2  # the held attempt searched, then gave up cleanly
+
+
+@pytest.mark.asyncio
+async def test_a_pick_while_the_sitting_is_held_is_a_409_and_changes_nothing(
+    monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entry = await checked(client, monkeypatch)
+        async with Held(sessionmaker_for_test, lock_sitting_of(sitting)):
+            held = await asyncio.wait_for(
+                client.post(pick_url(entry), json={"index": 0}), 10
+            )
+        stored = await entries_of(sessionmaker_for_test, sitting)
+        after = await client.post(pick_url(entry), json={"index": 0})
+    assert held.status_code == 409
+    assert held.json()["detail"] == BEING_SAVED
+    assert stored[0][0] == "check"
+    assert after.status_code == 200
+    assert after.json()["state"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_a_patch_meeting_a_commit_holding_the_rows_is_a_busy_409(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client)
+        async with Held(sessionmaker_for_test, lock_entries_of(sitting)):
+            busy = await asyncio.wait_for(
+                client.patch(
+                    f"/api/intake/entries/{entry['id']}",
+                    json={"payload": {"blurb": "x"}},
+                ),
+                5,
+            )
+    assert busy.status_code == 409
+    assert busy.json()["detail"] == "This place is busy. Try again in a moment."

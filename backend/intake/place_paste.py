@@ -82,6 +82,8 @@ SAME_PLACE_NOTE = "same place as another line"
 NO_PLACE_NOTE = "No place found. Change the words and look again."
 NO_ANSWER_NOTE = "The search did not answer."
 BEING_LOOKED_UP = "This place is being looked up"
+BUSY = "This place is busy. Try again in a moment."
+BEING_SAVED = "The list is being saved. Try again in a moment."
 NOT_A_PLACES_SITTING = "Paste works on a places sitting"
 NOT_RESOLVABLE = "Only a place that is waiting or to check can be looked up"
 NOT_PICKABLE = "Only a place to check with candidates can be picked"
@@ -183,10 +185,12 @@ def _is_lock_failure(error: DBAPIError) -> bool:
     )
 
 
-async def claim_entry(session: AsyncSession, entry_id: uuid.UUID) -> IntakeEntry:
+async def claim_entry(
+    session: AsyncSession, entry_id: uuid.UUID, busy: str = BEING_LOOKED_UP
+) -> IntakeEntry:
     """The entry, its row locked so no second call works on it at once: a
-    second concurrent call is a 409, not a second search. The lock is the
-    claim, so a request that dies leaves nothing stale behind."""
+    second concurrent call is a 409 (`busy`), not a second search. The lock is
+    the claim, so a request that dies leaves nothing stale behind."""
     try:
         entry = await session.scalar(
             select(IntakeEntry)
@@ -196,11 +200,39 @@ async def claim_entry(session: AsyncSession, entry_id: uuid.UUID) -> IntakeEntry
         )
     except DBAPIError as error:
         if _is_lock_failure(error):
-            raise HTTPException(409, BEING_LOOKED_UP) from None
+            raise HTTPException(409, busy) from None
         raise
     if entry is None:
         raise HTTPException(404, "No such entry")
     return entry
+
+
+# The sitting lock is never waited for: a commit takes the sitting and then
+# the entries, a resolve holds an entry and then wants the sitting, and
+# waiting would let the two deadlock. A few quick tries ride out another
+# lookup's short hold; a commit's hold ends in a 409.
+LOCK_TRIES = 5
+LOCK_PAUSE = 0.1
+
+
+async def lock_sitting(session: AsyncSession, sitting_id: uuid.UUID) -> None:
+    """Take the sitting row `FOR UPDATE NOWAIT` (a savepoint per try, so the
+    entry lock already held survives a miss); 409 when it stays held."""
+    for attempt in range(LOCK_TRIES):
+        try:
+            async with session.begin_nested():
+                await session.scalar(
+                    select(IntakeSitting.id)
+                    .where(IntakeSitting.id == sitting_id)
+                    .with_for_update(nowait=True)
+                )
+            return
+        except DBAPIError as error:
+            if not _is_lock_failure(error):
+                raise
+        if attempt < LOCK_TRIES - 1:
+            await asyncio.sleep(LOCK_PAUSE)
+    raise HTTPException(409, BEING_SAVED)
 
 
 async def _places_sitting(session: AsyncSession, entry: IntakeEntry) -> IntakeSitting:
@@ -409,11 +441,7 @@ def register_paste_routes(
 
         # Lock the sitting before reading its other entries, so two lookups
         # of the same place cannot both become READY.
-        await session.scalar(
-            select(IntakeSitting.id)
-            .where(IntakeSitting.id == sitting.id)
-            .with_for_update()
-        )
+        await lock_sitting(session, sitting.id)
         if isinstance(outcome, SearchFailure):
             attempts += 1
             payload["attempts"] = attempts
@@ -474,11 +502,7 @@ def register_paste_routes(
             candidates[body.index], dict
         ):
             raise HTTPException(422, "No such candidate")
-        await session.scalar(
-            select(IntakeSitting.id)
-            .where(IntakeSitting.id == sitting.id)
-            .with_for_update()
-        )
+        await lock_sitting(session, sitting.id)
         try:
             await _apply_choice(session, entry, sitting.id, candidates[body.index])
         except ValueError as error:
