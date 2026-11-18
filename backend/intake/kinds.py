@@ -9,8 +9,8 @@ one needs: `GET /api/intake/kinds` serves the registry as it stands, and
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable, Iterable
+from dataclasses import dataclass, field
 from typing import Any
 
 from models import IntakeArea, ItemType
@@ -37,9 +37,20 @@ class FieldSpec:
 
 
 @dataclass(frozen=True)
+class KindSearch:
+    """What a kind's own `search` hook answers: result rows, or a `failure`
+    worded for the page (then `rows` is empty)."""
+
+    rows: list[dict[str, Any]] = field(default_factory=list)
+    failure: str | None = None
+
+
+@dataclass(frozen=True)
 class Kind:
     """One kind of thing intake takes in. `to_row` turns an entry
-    (`{"chosen": ..., "payload": ...}`) into the fields of the row it writes."""
+    (`{"chosen": ..., "payload": ...}`) into the fields of the row it writes.
+    `search` is for a kind with no metadata `source` that can still be
+    searched (a place): `async (query) -> KindSearch`."""
 
     key: str
     area: IntakeArea
@@ -49,6 +60,7 @@ class Kind:
     has_details: bool
     fields: tuple[FieldSpec, ...]
     to_row: Callable[[dict[str, Any]], dict[str, Any]]
+    search: Callable[[str], Awaitable[KindSearch]] | None = None
 
 
 REGISTRY: dict[str, Kind] = {}
@@ -80,7 +92,8 @@ _SHORT_REASONS: dict[ItemType, str] = {
 
 def _source_state(kind: Kind, registry: dict) -> str | None:
     if kind.source is None:
-        return None
+        # A kind with its own search hook has nothing to configure.
+        return "ready" if kind.search is not None else None
     adapter = registry.get(kind.source)
     if adapter is not None and adapter.configured():
         return "ready"
@@ -92,8 +105,9 @@ def _source_state(kind: Kind, registry: dict) -> str | None:
 def describe(kind: Kind, registry: dict) -> dict[str, Any]:
     """The kind as `GET /api/intake/kinds` serves it.
 
-    `source_state` is None for a kind with no source, "ready" when its
-    source is configured, and otherwise the reason it is not.
+    `source_state` is None for a kind with no source and no search hook,
+    "ready" when its source (or search hook) is configured, and otherwise
+    the reason it is not.
     """
     return {
         "key": kind.key,

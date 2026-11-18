@@ -42,7 +42,8 @@ from typing import Any
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import delete, func, select, tuple_
+from sqlalchemy import delete, func, select, text, tuple_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from closet_routes import GarmentFields, apply_garment_fields
@@ -63,6 +64,15 @@ from formats import CopyFieldError
 from intake.kinds import REGISTRY, Kind
 from intake.link_import import entry_key as link_key
 from intake.link_import import is_link
+from intake.place_kind import (
+    DEFAULT_CITY,
+    EDITABLE,
+    clean_chosen,
+    clean_fields,
+    clean_name,
+    clean_position,
+    owned_spot_id,
+)
 from intake.seed_import import imported_keys, take_summary
 from intake.volume_plan import (
     VolumePlan,
@@ -78,6 +88,7 @@ from intake.volume_plan import (
 )
 from items import ItemIn, RowRefused, _write_fields, commit_items
 from models import (
+    CandidateSource,
     ComicIssue,
     ComicShelfFormat,
     ComicVolume,
@@ -97,7 +108,9 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    Spot,
 )
+from spots_routes import build_spot
 
 S = IntakeEntryState
 WRITTEN = frozenset({S.EXACT, S.READY, S.TYPED})
@@ -208,6 +221,130 @@ class SeriesGrew:
         }
 
 
+# Held for the length of a transaction by every place commit (a sitting's or
+# the add bar's), so two of them take turns. Arbitrary; distinct from
+# migration_lock.MIGRATION_LOCK_KEY.
+PLACE_COMMIT_LOCK_KEY = 7_243_000_002
+PLACE_NOT_DENVER = "Only a Denver place can be public"
+
+
+async def lock_place_commits(session: AsyncSession) -> None:
+    """Takes the transaction-scoped advisory lock for place commits. A second
+    commit blocks here until the first commits or rolls back, then its owned
+    check (a new statement under READ COMMITTED) sees the first's spots."""
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(:key)"), {"key": PLACE_COMMIT_LOCK_KEY}
+    )
+
+
+def spot_answer(new: list[dict[str, str]], owned: list[dict[str, str]]) -> dict:
+    """The place keys of an answer: absent when no place was involved."""
+    if not (new or owned):
+        return {}
+    return {"spots_new": new, "spots_owned": owned}
+
+
+@dataclass
+class PlaceWrite:
+    """What writing place entries did: the spots made and the ones already
+    owned as `{id, name}`, or the refusals that stopped it."""
+
+    new: list[dict[str, str]] = field(default_factory=list)
+    owned: list[dict[str, str]] = field(default_factory=list)
+    refused: list["Refusal"] = field(default_factory=list)
+
+
+def _place_fields(entry: IntakeEntry) -> dict[str, Any] | "Refusal":
+    """The spot an entry writes, checked again from what is stored: the
+    entry is untrusted, so the add-time validators run here too. A refusal
+    names the entry and, when one field is at fault, that field."""
+    payload = entry.payload or {}
+    try:
+        name = clean_name(payload.get("name"))
+    except ValueError as error:
+        return Refusal(entry.id, "name", str(error))
+    try:
+        lat, lng = clean_position(payload.get("lat"), payload.get("lng"))
+    except ValueError as error:
+        return Refusal(entry.id, "coords", str(error))
+    try:
+        owner = clean_fields({key: payload[key] for key in EDITABLE if key in payload})
+    except ValueError as error:
+        return Refusal(entry.id, None, str(error))
+    source_id = None
+    if entry.chosen:
+        # The validated name and position win over whatever `chosen` carries.
+        hit = {**entry.chosen, "title": name, "lat": lat, "lng": lng}
+        try:
+            _, chosen = clean_chosen(hit)
+        except ValueError as error:
+            return Refusal(entry.id, "source_id", str(error))
+        source_id = chosen["source_id"]
+    city = owner.get("city", DEFAULT_CITY)
+    is_public = owner.get("is_public", False)
+    if is_public and city.lower() != DEFAULT_CITY:
+        return Refusal(entry.id, "is_public", PLACE_NOT_DENVER)
+    return {
+        "name": name,
+        "lat": lat,
+        "lng": lng,
+        "city": city,
+        "neighbourhood": owner.get("neighbourhood"),
+        "blurb": owner.get("blurb"),
+        "tags": owner.get("tags", []),
+        "is_public": is_public,
+        "source": CandidateSource.OSM if source_id else None,
+        "source_id": source_id,
+    }
+
+
+async def write_places(session: AsyncSession, entries: list[IntakeEntry]) -> PlaceWrite:
+    """Writes each place entry as one private spot (public only for a Denver
+    place that asks), through the by-hand route's `build_spot`. Every entry is
+    checked first; nothing is locked or written while one is refused. Then,
+    under the place-commit lock, a place already owned (same OSM source_id,
+    else the same name within `SAME_PLACE_METRES`, counting the spots this
+    loop just wrote) is reported, not written again. Does not commit."""
+    result = PlaceWrite()
+    made: list[tuple[IntakeEntry, dict[str, Any]]] = []
+    for entry in entries:
+        fields = _place_fields(entry)
+        if isinstance(fields, Refusal):
+            result.refused.append(fields)
+        else:
+            made.append((entry, fields))
+    if result.refused or not made:
+        return result
+    await lock_place_commits(session)
+    for entry, fields in made:
+        owned = await owned_spot_id(
+            session,
+            source_id=fields["source_id"],
+            name=fields["name"],
+            lat=fields["lat"],
+            lng=fields["lng"],
+        )
+        if owned:
+            spot = await session.get(Spot, uuid.UUID(owned))
+            result.owned.append({"id": owned, "name": spot.name if spot else ""})
+            continue
+        try:
+            spot = await build_spot(session, **fields)
+        except ValueError as error:
+            result.refused.append(Refusal(entry.id, None, str(error)))
+            return result
+        session.add(spot)
+        try:
+            await session.flush()
+        except IntegrityError:
+            result.refused.append(
+                Refusal(entry.id, None, "Another spot took that name; try again")
+            )
+            return result
+        result.new.append({"id": str(spot.id), "name": spot.name})
+    return result
+
+
 @dataclass
 class SittingCommit:
     """What a commit did, as Done shows it (AC 8), and the new item ids."""
@@ -232,10 +369,16 @@ class SittingCommit:
     # titles it made to hold them (a book with no series on the shelf).
     volumes_new: list[dict[str, Any]] = field(default_factory=list)
     titles_created: list[dict[str, Any]] = field(default_factory=list)
+    # Places: the private spots made, and the ones already owned ({id, name}).
+    spots_new: list[dict[str, str]] = field(default_factory=list)
+    spots_owned: list[dict[str, str]] = field(default_factory=list)
 
     def as_json(self) -> dict[str, Any]:
-        """The route's answer."""
+        """The route's answer. `spots_new` and `spots_owned` appear only when
+        a place was written or found owned, so a shelf or closet commit's
+        answer is exactly what it was."""
         return {
+            **spot_answer(self.spots_new, self.spots_owned),
             "series_new": self.series_new,
             "volumes_new": self.volumes_new,
             "titles_created": self.titles_created,
@@ -773,6 +916,8 @@ class SingleAdd:
     series_grew: list[SeriesGrew] = field(default_factory=list)
     volumes_new: list[dict[str, Any]] = field(default_factory=list)
     titles_created: list[dict[str, Any]] = field(default_factory=list)
+    spots_new: list[dict[str, str]] = field(default_factory=list)
+    spots_owned: list[dict[str, str]] = field(default_factory=list)
 
 
 async def commit_one(
@@ -817,6 +962,13 @@ async def commit_one(
         await session.flush()
         outcome.garment_id = made.id
         outcome.added = 1
+        return outcome
+    if kind.area is IntakeArea.PLACES:
+        written = await write_places(session, [entry])
+        outcome.refused.extend(written.refused)
+        outcome.spots_new, outcome.spots_owned = written.new, written.owned
+        outcome.added = len(written.new)
+        outcome.already_owned = len(written.owned)
         return outcome
     entry = _placed(kind, entry)  # an unshared book has no series match
     chosen = entry.chosen
@@ -1026,6 +1178,7 @@ async def commit_sitting(
     }
     imported = await imported_keys(session, seed_sources)
     seed_seen: set[str] = set()
+    place_entries: list[IntakeEntry] = []
     now = datetime.now(UTC)
     seen: set[tuple[str, str]] = set()
     series: dict[tuple[str, str], _Series] = {}
@@ -1039,6 +1192,9 @@ async def commit_sitting(
             outcome.refused.append(
                 Refusal(entry.id, "kind", f"{entry.kind} is not a kind intake knows")
             )
+            continue
+        if kind.area is IntakeArea.PLACES:
+            place_entries.append(entry)
             continue
         if kind.area is IntakeArea.CLOSET:
             if entry.garment_id is not None:
@@ -1242,6 +1398,13 @@ async def commit_sitting(
 
     if outcome.refused:
         return outcome
+    if place_entries:
+        placed = await write_places(session, place_entries)
+        outcome.refused.extend(placed.refused)
+        if outcome.refused:
+            return outcome
+        outcome.spots_new, outcome.spots_owned = placed.new, placed.owned
+        outcome.already_owned += len(placed.owned)
     # A title for each group of books with no title to reuse, made one by
     # one so each is known by the id it was given, never by its name.
     loose_made: list[uuid.UUID] = []
@@ -1311,7 +1474,9 @@ async def commit_sitting(
     for grew in outcome.series_grew:
         grew.after_write()
     outcome.created = [*result.created, *loose_made]
-    outcome.added += len(outcome.created) + len(garments) + len(seeds)
+    outcome.added += (
+        len(outcome.created) + len(garments) + len(seeds) + len(outcome.spots_new)
+    )
     outcome.already_owned += result.existing
 
     if kept or photos_waiting:

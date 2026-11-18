@@ -17,7 +17,18 @@ function adminFiles() {
     readdirSync(join(SRC, d))
       .filter((f) => /^Admin(?!.*\.test\.).*\.jsx$/.test(f))
       .map((f) => `${d}/${f}`),
-  ).sort()
+  )
+    .concat(placesFiles())
+    .sort()
+}
+
+// The place intake page and its components keep their words in
+// content/placesAdd.js, so they sit under the same ratchet (baseline 0).
+function placesFiles() {
+  const parts = readdirSync(join(SRC, 'components/places'))
+    .filter((f) => /^(?!.*\.test\.).*\.jsx$/.test(f))
+    .map((f) => `components/places/${f}`)
+  return ['pages/PlacesAdd.jsx', ...parts]
 }
 
 function scanAll() {

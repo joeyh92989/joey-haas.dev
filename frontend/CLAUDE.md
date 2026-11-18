@@ -289,3 +289,33 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   leave the name to decide. The frontend never decides it: Check's preview
   reads `adds` and `title_will_be_created` from the server. Rule and
   thresholds: `backend/comics.py` and `backend/CLAUDE.md` (Comics).
+- **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,
+  with `components/places/` (`PlaceResultRow.jsx`, `PlaceFields.jsx`) and its
+  words in `content/placesAdd.js`. It sits in the Denver area beside Weekend
+  and Spots (`components/adminAreas.js`; `areaOfPath` and `addPath` in
+  `lib/intake.js` know the `places` area). Search runs on submit only, against
+  `GET /api/intake/search?area=places`; Add posts to
+  `/api/intake/sittings/{id}/places`. Rules that matter when editing:
+  - **No sitting is kept between commits.** The server deletes a sitting
+    whose entries are all written, so after a successful commit the page
+    forgets the sitting and entry ids (`forgetSitting`) and the next Add makes
+    a new one. A 404 from the sitting, entry or commit routes drops the ids,
+    makes a fresh sitting and retries once (`retryGone`).
+  - **A leftover sitting is deleted by the page.** When a commit answers
+    `skipped_kept > 0` (entries kept in `check`), and when a 404 drops the
+    sitting, `forgetSitting(true)` first sends `DELETE /api/intake/sittings/{id}`
+    (best effort), since nothing lists a places sitting. A refusal shows
+    `refused[0].message` when the 422 has one.
+  - **A failed commit parks its entry back to `check`** (PATCH `state: check`,
+    best effort; also when the PATCH to `ready` fails), so a READY leftover is never committed by a later save of
+    another place. A typed place keeps its entry across the failure and a
+    retry PATCHes it ready again instead of posting a second.
+  - **In-flight `useRef` guards** (`inflight`, `sitting`) stop a double press
+    from sending two requests; the disabled button alone is not relied on.
+  - **The public toggle is off unless the city is Denver**, as the server
+    requires (a public place elsewhere is a 422).
+  - Read place keys on a search row as optional: shelf rows do not have them.
+  - The page matches the chosen mockup, direction C (`c-inline.html`). The
+    mockups are out of git; the record of the choice, the rejected directions
+    and the screens and states is the Design section of
+    `docs/planning/2026-11-17-place-kind-intake-design.md`.
