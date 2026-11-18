@@ -12,10 +12,13 @@ A week runs Wednesday to Tuesday (new comics day), in UTC days.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
+
+from comic_contents import normalize_name
 
 MAX_ISSUE = 9999
 MAX_EDITIONS = 50
@@ -179,6 +182,110 @@ def title_kind(volume_count: int, issue_count: int) -> str:
     if issue_count > 0:
         return "both"
     return "book_line" if volume_count >= 2 else "single_book"
+
+
+# --- The title-sharing rule (#330) ------------------------------------------
+
+# A collected book joins an existing series' title (shares its page) only when
+# its title says the same name AND most of its contents come from that series.
+# At least this share of the book's collected issues (by count) must belong to
+# the series. 5 of 8 (62.5%) shares; 4 of 8 (50%) does not; 3 of 5 (60%) does.
+SHARE_MIN_FRACTION = 0.6
+
+# Words that only say which book or format it is, dropped from a book's title
+# before it is compared with the series' name. Anywhere in the title.
+FORMAT_WORDS = frozenset(
+    {
+        "vol", "vols", "volume", "volumes", "book", "books", "deluxe",
+        "edition", "omnibus", "compendium", "hardcover", "tpb", "trade",
+        "paperback",
+    }
+)  # fmt: skip
+# Number words, numerals and roman numerals (one..twelve) are dropped only
+# when they trail ("Saga Book Two", "Batman Vol. 3"), so "Year One" keeps its
+# "Year": "batman year" is not "batman".
+_NUMBER_WORDS = frozenset(
+    "one two three four five six seven eight nine ten eleven twelve "
+    "i ii iii iv v vi vii viii ix x xi xii".split()
+)
+_ISSUE_NUMBERS = re.compile(r"(\d+)(?:\s*[-\u2013\u2014]\s*(\d+))?")
+
+
+def _title_words(text: object) -> list[str]:
+    """`normalize_name` (case, `&`, a bracketed year, a leading "The"), then
+    punctuation gone: an apostrophe joins its word ("Hell's" is "hells"), any
+    other mark is a space."""
+    plain = re.sub(r"['\u2019]", "", normalize_name(text))
+    return re.sub(r"[\W_]+", " ", plain).split()
+
+
+def title_core(text: object) -> str:
+    """A book's title with its volume and format words removed (see
+    `FORMAT_WORDS`) and trailing numbers and number words removed."""
+    return title_stages(text)[-1]
+
+
+def title_stages(text: object) -> list[str]:
+    """The title with format words removed, then with each trailing number
+    word or numeral removed in turn, so a series that itself ends in a number
+    ("Batman 66") is still found."""
+    words = [w for w in _title_words(text) if w not in FORMAT_WORDS]
+    stages = [" ".join(words)]
+    while words and (words[-1].isdigit() or words[-1] in _NUMBER_WORDS):
+        words = words[:-1]
+        stages.append(" ".join(words))
+    return stages
+
+
+def collect_issue_count(issue_text: object) -> int:
+    """How many issues a collects entry names: each range counts its length
+    (`#1-6` is 6), each lone number 1; an entry with no number counts as 1."""
+    text = issue_text if isinstance(issue_text, str) else ""
+    total = 0
+    for low, high in _ISSUE_NUMBERS.findall(text):
+        first = int(low)
+        total += abs(int(high) - first) + 1 if high else 1
+    return max(total, 1)
+
+
+def shares_title(
+    book_title: object,
+    series_title: object,
+    collects: Iterable[tuple[str, str]] | None = None,
+) -> bool:
+    """Does a collected book share the page of a series already on the shelf?
+
+    True only when BOTH hold:
+
+    (a) the book's title, with volume and format words removed (`FORMAT_WORDS`
+        anywhere; number words, numerals and roman numerals when they trail),
+        equals the series' title under `comic_contents.normalize_name` (case,
+        `&`, a bracketed year, a leading "The"), punctuation ignored. "Saga
+        Book Two", "Saga Compendium" and "Batman Vol. 3" share; "Batman: Year
+        One" and "Saga: The Complete Collection" do not (their extra words are
+        not on the list, so they are their own title).
+    (b) when the contents are known, at least `SHARE_MIN_FRACTION` (60%) of the
+        book's collected issues belong to that series. `collects` is the
+        entries as `(series_name, issue_text)`; an entry counts for its range
+        length (`collect_issue_count`, no number counts as 1) and belongs to
+        the series when its name normalises the same. Empty or None contents
+        (nothing known) leave (a) to decide alone.
+
+    Otherwise the book is its own title. Pure; used by the intake commit and
+    Check's preview so they cannot disagree (`intake/volume_plan.py`)."""
+    series = " ".join(_title_words(series_title))
+    if not series or series not in title_stages(book_title):
+        return False
+    entries = [(name, text) for name, text in (collects or ())]
+    if not entries:
+        return True
+    total = sum(collect_issue_count(text) for _, text in entries)
+    mine = sum(
+        collect_issue_count(text)
+        for name, text in entries
+        if " ".join(_title_words(name)) == series
+    )
+    return mine / total + 1e-9 >= SHARE_MIN_FRACTION
 
 
 def _server_keys(entry: dict) -> dict:
