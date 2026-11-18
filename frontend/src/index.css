@@ -14478,3 +14478,385 @@ a.btn.sm {
     grid-column: 1 / -1;
   }
 }
+
+/* Log an outing sheet (components/LogOutingSheet.jsx): the shell is .sheet;
+   on a phone it anchors to the bottom like the other sheets. */
+.lo-sheet {
+  max-width: 34rem;
+}
+@media (max-width: 700px) {
+  .lo-sheet {
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    margin: auto 0 0;
+    max-width: none;
+    width: 100%;
+  }
+}
+/* ---- Shared parts of the Log an outing sheet ---------------------------- */
+.lo-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) 0;
+}
+.lo-head h2 {
+  font-size: var(--fs-18);
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lo-body {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+.lo-body[inert] {
+  opacity: 0.6;
+}
+.lo-field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.lo-label, .lo-field > label, .lo-field > legend {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+.lo-opt {
+  color: var(--text-3);
+  font-weight: 400;
+}
+.lo-hint {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+.lo-input {
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: var(--fs-16);
+  min-height: 44px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+.lo-input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.lo-input[aria-invalid='true'] {
+  border-color: var(--warn);
+}
+.lo-err {
+  border-left: 2px solid var(--warn);
+  color: var(--text);
+  font-size: var(--fs-13);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-left: var(--space-2);
+}
+.lo-labelrow {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+.lo-count {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
+.lo-searchrow {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.lo-searchrow .lo-input {
+  flex: 1 1 0;
+}
+.lo-searchrow .btn {
+  flex: none;
+}
+
+/* The date and its message share a row; the message drops under at 400px. */
+.lo-daterow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+.lo-daterow .lo-input {
+  flex: 0 0 11.5rem;
+  max-width: 100%;
+  width: auto;
+}
+.lo-daterow .lo-err {
+  flex: 1 1 11rem;
+}
+
+.lo-seg {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.lo-seg label {
+  min-width: 0;
+  position: relative;
+}
+.lo-seg input {
+  cursor: pointer;
+  height: 100%;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+}
+.lo-seg span {
+  align-items: center;
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  display: flex;
+  font-size: var(--fs-14);
+  font-weight: 500;
+  justify-content: center;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  padding: var(--space-2);
+  text-align: center;
+}
+.lo-seg input:checked + span {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+.lo-seg input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lo-check {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+.lo-check input {
+  accent-color: var(--accent);
+  flex: none;
+  height: 1.25rem;
+  margin: 0;
+  width: 1.25rem;
+}
+
+/* A place that is chosen, saved or new. */
+.lo-picked {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.lo-picked-top {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-width: 0;
+}
+.lo-picked-text {
+  min-width: 0;
+}
+.lo-name {
+  font-size: var(--fs-16);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.lo-sub {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+.lo-tag {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  display: inline-block;
+  font-size: var(--fs-12);
+  margin-right: var(--space-1);
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+}
+.lo-tag.is-new {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.lo-newplace {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+.lo-newplace > p {
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+select.lo-input {
+  max-width: 16rem;
+}
+
+/* Rows to choose from: saved spots and search results. */
+.lo-rows {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  overflow: hidden;
+}
+.lo-rows li + li {
+  border-top: 1px solid var(--line);
+}
+.lo-rowpick {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  width: 100%;
+}
+.lo-rowpick:hover {
+  background: var(--sunken);
+}
+.lo-rowpick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.lo-rowpick > span:first-child {
+  display: grid;
+  min-width: 0;
+}
+.lo-rowpick b {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.lo-rowpick small {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+.lo-rowpick em {
+  color: var(--text-3);
+  flex: none;
+  font-size: var(--fs-12);
+  font-style: normal;
+}
+.lo-status {
+  align-items: center;
+  color: var(--text-2);
+  display: flex;
+  font-size: var(--fs-13);
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.lo-spin {
+  animation: lo-spin 0.9s linear infinite;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  border-top-color: var(--accent);
+  flex: none;
+  height: 1rem;
+  width: 1rem;
+}
+@keyframes lo-spin {
+  to { transform: rotate(360deg);
+  };
+}
+@media (prefers-reduced-motion: reduce) {
+  .lo-spin { animation: none;
+  };
+}
+.lo-results {
+  display: grid;
+  gap: var(--space-2);
+}
+.lo-credit {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+.lo-grouplabel {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  margin-top: var(--space-1);
+}
+
+.lo-alert {
+  background: var(--sunken);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+.lo-alert strong {
+  font-weight: 600;
+}
+.lo-alert p {
+  font-size: var(--fs-13);
+  overflow-wrap: anywhere;
+}
+
+.lo-foot {
+  align-items: center;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  position: sticky;
+}
+.lo-foot .btn.primary {
+  min-width: 8.5rem;
+}
+.lo-foot .lo-alert {
+  flex: 1 1 100%;
+}
+.lo-summary {
+  color: var(--text-2);
+  flex: 1 1 100%;
+  font-size: var(--fs-13);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+fieldset.lo-field {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+.lo-sheet h2,
+.lo-sheet p,
+.lo-sheet ul {
+  margin: 0;
+}
+.lo-sheet ul {
+  list-style: none;
+  padding: 0;
+}

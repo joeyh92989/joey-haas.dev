@@ -96,6 +96,65 @@ afterEach(() => {
 })
 
 describe('AdminSpots', () => {
+  it('logs an outing from the header, says so, and reads the spots again', async () => {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '')
+    }
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open')
+      this.dispatchEvent(new Event('close'))
+    }
+    try {
+      let outingSaved = false
+      const calls = stubApi({
+        'GET /api/spots': () =>
+          json(
+            outingSaved
+              ? [
+                  SPOTS[0],
+                  SPOTS[1],
+                  { ...SPOTS[2], visit_count: 1, last_visit: '2026-11-09' },
+                ]
+              : SPOTS,
+          ),
+        'POST /api/spots/outings': () => {
+          outingSaved = true
+          return json(
+            {
+              visit: { id: 5, spot_id: 'c', visited_on: '2026-11-09' },
+              spot: SPOTS[2],
+              created: false,
+            },
+            201,
+          )
+        },
+      })
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<AdminSpots />)
+      await screen.findByRole('table')
+      await user.click(screen.getByRole('button', { name: 'Log an outing' }))
+      await user.type(await screen.findByLabelText('Place'), 'sloan')
+      await user.click(
+        await within(document.querySelector('dialog')).findByRole('button', {
+          name: /Sloan.s Lake/,
+        }),
+      )
+      await user.click(screen.getByLabelText('Loved'))
+      await user.click(screen.getByRole('button', { name: 'Save outing' }))
+      await waitFor(async () =>
+        expect((await pageNotice()).textContent).toBe(
+          "Logged an outing at Sloan's Lake.",
+        ),
+      )
+      expect(
+        calls.filter((c) => c.path === '/api/spots' && c.method === 'GET'),
+      ).toHaveLength(3) // page read, sheet's saved spots, reread after save
+    } finally {
+      delete HTMLDialogElement.prototype.showModal
+      delete HTMLDialogElement.prototype.close
+    }
+  })
+
   it('lists every spot with tags, last visit and the public counts', async () => {
     stubApi()
     render(<AdminSpots />)
