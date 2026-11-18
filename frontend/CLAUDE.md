@@ -319,3 +319,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
     mockups are out of git; the record of the choice, the rejected directions
     and the screens and states is the Design section of
     `docs/planning/2026-11-17-place-kind-intake-design.md`.
+- **The add bar on `/admin/spots` (story #341).** `components/places/SpotsAddBar.jsx`,
+  placed by `pages/AdminSpots.jsx` above the table; its words are
+  `placesAdd.bar` in `content/placesAdd.js`. It searches by name like
+  `/admin/places/add` but saves with ONE call, `POST /api/intake/add`, so it
+  keeps no sitting and none of that page's sitting lifecycle. After a save
+  the page re-reads `GET /api/spots` (`rereadSpots`). The "New" mark
+  (`markedId`, `denver.admin.newMark`) is client-only: it sits on the saved
+  row until the next bar search (`onSearchStart`) or bar save. `onShowInTable`
+  clears a filter that hides the row, scrolls to it and focuses it. "Add by
+  hand" opens `SpotForm` with the typed words in Name (`initialName`, used
+  only for a new spot). A by-hand save does not clear the mark; it stays until
+  the next bar search or bar save (known, deferred). Browser coverage is the
+  two "spots add bar" cases in `e2e/admin.spec.js`: they stub only the
+  browser's search answer, never Nominatim, and delete what they save.
