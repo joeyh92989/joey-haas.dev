@@ -421,4 +421,27 @@ describe('AdminComic', () => {
     await screen.findByRole('heading', { level: 1, name: COMIC.title })
     expect(await axeViolations(container)).toEqual([])
   })
+
+  it('names the title kind in the header, a run when the body has none', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: COMIC.title })
+    expect(
+      await screen.findByText(/Comic · Run of issues · Acclaim/),
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['book_line', 'Line of books'],
+    ['single_book', 'Single book'],
+    ['both', 'Books and issues'],
+  ])('says %s as %s, beside the Books panel', async (kind, word) => {
+    stubApi({ wall: { ...WALL, comic: { ...WALL.comic, kind } } })
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: COMIC.title })
+    expect(
+      await screen.findByText(new RegExp(`Comic · ${word} · Acclaim`)),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Books' })).toBeInTheDocument()
+  })
 })

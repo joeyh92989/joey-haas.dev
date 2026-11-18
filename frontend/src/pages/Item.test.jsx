@@ -8,6 +8,11 @@ import { spine } from '../content/spine.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import Item from './Item.jsx'
+import runTitle from '../../e2e/fixtures/api/public-comic-run.json'
+import bookLine from '../../e2e/fixtures/api/public-comic-book_line.json'
+import singleBook from '../../e2e/fixtures/api/public-comic-single_book.json'
+import bothTitle from '../../e2e/fixtures/api/public-comic-both.json'
+import bothWall from '../../e2e/fixtures/api/public-comic-wall-both.json'
 
 vi.mock('../lib/snapshot.js', () => ({ readSnapshot: vi.fn() }))
 
@@ -1295,5 +1300,128 @@ describe('Item for a comic in comic words', () => {
     expect(screen.queryByText('Playthroughs')).toBeNull()
     expect(screen.queryByText('Played')).toBeNull()
     expect(screen.queryByText(/Playing/)).toBeNull()
+  })
+})
+
+// Title kinds (#330). The bodies are the backend's own PublicItemDetailOut,
+// one per kind (backend/scripts/export_public_comic_fixtures.py).
+describe('Item title kinds', () => {
+  function stubTitle(body, wall = null) {
+    const fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        String(url).endsWith('/issues')
+          ? (wall ?? {
+              series_title: body.title,
+              publisher: null,
+              issues: [],
+              editions: [],
+            })
+          : body,
+    }))
+    vi.stubGlobal('fetch', fetch)
+  }
+  const heads = () =>
+    screen
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+
+  async function open(body, wall) {
+    stubTitle(body, wall)
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: body.title })
+  }
+
+  it('draws a run as today: the run card and the wall, no Books', async () => {
+    await open(runTitle)
+    expect(
+      await screen.findByRole('heading', { name: 'Every book in the run' }),
+    ).toBeInTheDocument()
+    expect(heads()).toContain('The run')
+    expect(heads()).not.toContain('Books')
+    expect(heads()).not.toContain('Issues')
+    expect(screen.getByRole('region', { name: 'What’s next' })).toBeTruthy()
+  })
+
+  it('treats a body from before kind, volumes and slots as a run', async () => {
+    stubSaga()
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: 'Saga' })
+    expect(heads()).toContain('The run')
+    expect(heads()).not.toContain('Books')
+  })
+
+  it('draws a book line as a Books wall in place of the run card', async () => {
+    await open(bookLine)
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Books' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Lantern Tales, Book Four, Owned' }),
+    ).toHaveAttribute('href', `/shelf/${bookLine.id}/vol-4/`)
+    expect(
+      screen.getByRole('group', { name: 'Vol. 3, not owned' }),
+    ).toBeInTheDocument()
+    expect(heads()).not.toContain('The run')
+    expect(heads()).not.toContain('Every book in the run')
+    expect(document.querySelector('.run-box')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'What’s next' })).toBeNull()
+    expect(
+      screen.queryByText(/On the shelf, but which issues/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('leads a single book with the book, and draws no wall and no run bar', async () => {
+    await open(singleBook)
+    const card = (
+      await screen.findByRole('heading', { level: 2, name: 'The book' })
+    ).closest('section')
+    expect(within(card).getByText('Salt Road')).toBeInTheDocument()
+    expect(card).toHaveTextContent('Original graphic novel')
+    expect(card).toHaveTextContent('Read ✓')
+    expect(
+      within(card).getByRole('link', { name: 'Read about this book' }),
+    ).toHaveAttribute('href', `/shelf/${singleBook.id}/vol-1/`)
+    expect(document.querySelector('.cover-wall-grid')).toBeNull()
+    expect(document.querySelector('.run-box')).toBeNull()
+    expect(heads()).not.toContain('Books')
+    expect(heads()).not.toContain('The run')
+  })
+
+  it('draws both as Books, then Issues', async () => {
+    await open(bothTitle, bothWall)
+    await screen.findByRole('heading', { level: 2, name: 'Books' })
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Every issue in the run',
+    })
+    const order = heads()
+    expect(order.indexOf('Books')).toBeGreaterThan(-1)
+    expect(order.indexOf('Issues')).toBeGreaterThan(order.indexOf('Books'))
+    expect(order.indexOf('Every issue in the run')).toBeGreaterThan(
+      order.indexOf('Issues'),
+    )
+    expect(
+      screen.getByRole('link', { name: 'Harbor Lights, Book Three, Owned' }),
+    ).toBeInTheDocument()
+  })
+
+  it('has no axe violations for any kind', async () => {
+    for (const body of [bookLine, singleBook, bothTitle]) {
+      stubTitle(body, body === bothTitle ? bothWall : null)
+      const { container, unmount } = render(
+        <MemoryRouter initialEntries={[`/shelf/${ID}`]}>
+          <Routes>
+            <Route element={<Outlet context={{ signedIn: false }} />}>
+              <Route path="/shelf/:id" element={<Item />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>,
+      )
+      await screen.findByRole('heading', { level: 1, name: body.title })
+      expect(await axeViolations(container)).toEqual([])
+      unmount()
+    }
   })
 })

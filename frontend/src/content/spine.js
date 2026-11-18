@@ -821,6 +821,50 @@ export const spine = {
         unrecorded: 'On the shelf, but which issues isn’t recorded yet.',
       },
     },
+    /**
+     * What a title is, in words (the shelf's kind, #330): the public page's
+     * lead and the admin page's header word.
+     */
+    kinds: {
+      run: 'Run of issues',
+      book_line: 'Line of books',
+      single_book: 'Single book',
+      both: 'Books and issues',
+    },
+    /** The Books section of a title that holds books (/shelf/:id). */
+    books: {
+      title: 'Books',
+      /** The Issues heading, when a title also holds books. */
+      issues: 'Issues',
+      issuesWall: 'Every issue in the run',
+      /** What is owned, in words; says nothing of the line's size. */
+      have: (numbers, extra) => {
+        const more = (n) => `${n} ${n === 1 ? 'book' : 'books'}`
+        if (numbers.length === 0) return `I have ${more(extra)}.`
+        const list =
+          numbers.length === 1
+            ? `${numbers[0]}`
+            : `${numbers.slice(0, -1).join(', ')} and ${numbers.at(-1)}`
+        return `I have Vol. ${list}${extra > 0 ? `, and ${more(extra)} with no number` : ''}.`
+      },
+      /** The wall's tile names ("Saga, Book Two, Owned"). */
+      tileName: (label, state) => `${label}, ${state}`,
+      gapName: (n) => `Vol. ${n}, not owned`,
+      states: { owned: 'Owned', read: 'Read ✓', gap: 'not owned' },
+      names: { owned: 'Owned', read: 'Read' },
+      /** The link preview's phrase after the title, by kind (no run phrase). */
+      preview: {
+        book_line: (books) => `a line of ${books} books`,
+        single_book: () => 'a single book',
+        both: (books, issues) =>
+          `${books} ${books === 1 ? 'book' : 'books'} and ${issues} ${issues === 1 ? 'issue' : 'issues'}`,
+      },
+      /** The single book's lead card. */
+      single: {
+        title: 'The book',
+        link: 'Read about this book',
+      },
+    },
     /** The public issue page, /shelf/:id/:n/. */
     issue: {
       comics: 'Comics',

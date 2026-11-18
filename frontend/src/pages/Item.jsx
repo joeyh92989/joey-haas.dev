@@ -6,7 +6,9 @@ import { itemTagGroups } from '../lib/tags.js'
 import LoadState from '../components/LoadState.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import CoverImage from '../components/CoverImage.jsx'
+import BookWall from '../components/BookWall.jsx'
 import CoverWall from '../components/CoverWall.jsx'
+import SingleBookCard from '../components/SingleBookCard.jsx'
 import RunBox from '../components/RunBox.jsx'
 import RunLanes, { RunKey } from '../components/RunLanes.jsx'
 import PosterCard from '../components/PosterCard.jsx'
@@ -15,6 +17,7 @@ import PlaythroughTable from '../components/PlaythroughTable.jsx'
 import Rating from '../components/Rating.jsx'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges, shortDate } from '../lib/comics.js'
+import { titleKind } from '../lib/titleKind.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import {
   laneSpans,
@@ -42,6 +45,7 @@ import EmptyState from '../components/EmptyState.jsx'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
+const BOOKS = COMICS.books
 const ITEM = spine.item
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
 
@@ -297,8 +301,9 @@ function publicRun(item) {
 }
 
 /** "58 of 72+" and its pill, then the format and the "as of" note. */
-function ComicSummary({ comic, model }) {
-  const held = model.held > 0
+function ComicSummary({ comic, model, issues }) {
+  // A title of books has no run to count: the Books wall says what is owned.
+  const held = issues && model.held > 0
   const pill =
     model.state === 'gaps'
       ? SERIES.pill.gaps(model.missing)
@@ -427,6 +432,9 @@ function ComicCards({
   series,
   onMark,
 }) {
+  const kind = titleKind(comic)
+  const withBooks = kind !== 'run'
+  const withIssues = kind === 'run' || kind === 'both'
   const spans = laneSpans(model)
   // The wall draws for a series with issue rows, anything released, or
   // anything held: the owner marks books on it, so it can't wait for rows.
@@ -435,9 +443,18 @@ function ComicCards({
     (wall.issues.length > 0 || comic.released > 0 || model.held > 0)
   return (
     <>
-      {model.held > 0 && (
+      {kind === 'single_book' && (
+        <SingleBookCard comic={comic} series={series} />
+      )}
+      {(kind === 'book_line' || kind === 'both') && (
+        <BookWall comic={comic} series={series} />
+      )}
+
+      {withIssues && model.held > 0 && (
         <section className="item-card" aria-labelledby="item-run">
-          <h2 id="item-run">{SERIES.runCard}</h2>
+          <h2 id="item-run">
+            {kind === 'both' ? BOOKS.issues : SERIES.runCard}
+          </h2>
           {!spans.short && (
             <>
               <RunLanes spans={spans} label={lanesLabel(model)} />
@@ -456,8 +473,9 @@ function ComicCards({
         </section>
       )}
 
-      {hasWall && (
+      {withIssues && hasWall && (
         <CoverWall
+          title={kind === 'both' ? BOOKS.issuesWall : undefined}
           wall={wall}
           detail={detail}
           series={series}
@@ -466,7 +484,7 @@ function ComicCards({
         />
       )}
 
-      {comic.editions.length > 0 && (
+      {!withBooks && comic.editions.length > 0 && (
         <section className="item-card" aria-labelledby="item-editions">
           <h2 id="item-editions">{SERIES.editions}</h2>
           <ul className="item-editions">
@@ -758,6 +776,9 @@ function ItemView({
   // The detail's comic block; the snapshot preview has none.
   const comic = detail && isComic ? item.comic : null
   const run = comic ? publicRun(item) : null
+  // Singles show a run and what's next; a title of books only does not.
+  const kind = titleKind(comic)
+  const withIssues = kind === 'run' || kind === 'both'
   const meta = isComic
     ? ''
     : [item.year, item.creator].filter(Boolean).join(' · ')
@@ -801,14 +822,16 @@ function ItemView({
             {statusInWords(item)}
           </p>
           {copy && <p className="item-copy">{copy}</p>}
-          {comic && <ComicSummary comic={comic} model={run} />}
+          {comic && (
+            <ComicSummary comic={comic} model={run} issues={withIssues} />
+          )}
           {signedIn && (
             <Link to={adminItemPath(item)} className="item-edit">
               Edit
             </Link>
           )}
         </div>
-        {comic && <WhatsNext model={run} />}
+        {comic && withIssues && <WhatsNext model={run} />}
       </header>
 
       {chipGroups.length > 0 && (

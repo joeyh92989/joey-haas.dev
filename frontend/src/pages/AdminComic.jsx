@@ -17,6 +17,7 @@ import { apiFetch } from '../lib/api.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import { expandRanges } from '../lib/comics.js'
 import { itemPath } from '../lib/spinePaths.js'
+import { kindWord } from '../lib/titleKind.js'
 import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { adminListPath } from '../lib/shelf.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
@@ -422,6 +423,7 @@ export default function AdminComic() {
           title={item.title}
           description={[
             COPY.kicker,
+            comic ? kindWord(comic) : null,
             item.creator,
             item.year,
             item.is_public ? COPY.public : COPY.private,
