@@ -238,6 +238,16 @@ export function sortComics(rows, key) {
 /** The form's shelf formats, in the order the select lists them. */
 export const SHELF_FORMATS = ['singles', 'trades', 'omnibus']
 
+/**
+ * A payload safe to PATCH: a sitting saved before `books` existed holds
+ * `editions`, which the server no longer takes. Moved to `books` (if absent).
+ */
+export function withoutLegacyEditions(payload) {
+  if (!payload || !('editions' in payload)) return payload
+  const { editions, ...rest } = payload
+  return editions?.length && !rest.books ? { ...rest, books: editions } : rest
+}
+
 /** One blank book row, as the form holds it: every field a string. */
 export const EMPTY_BOOK = { kind: '', label: '', from: '', to: '' }
 

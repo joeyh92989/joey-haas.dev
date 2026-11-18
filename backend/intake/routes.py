@@ -39,6 +39,7 @@ from intake.budget import budget_state
 from intake.comic_books import (
     BookEditError,
     edit_book,
+    legacy_editions_to_books,
     number_check,
     refuse_legacy_editions,
 )
@@ -227,9 +228,10 @@ class EntryPatch(BaseModel):
 
     @field_validator("payload")
     @classmethod
-    def _no_legacy_editions(cls, payload):
-        """`editions` is retired: books are `books`, written as volumes."""
-        return refuse_legacy_editions(payload)
+    def _legacy_editions_become_books(cls, payload):
+        """Not a 422 as on create: Check re-sends a stored payload whole, and
+        one saved before `books` existed holds `editions`."""
+        return legacy_editions_to_books(payload)
 
 
 def photo_json(photo: IntakePhoto) -> dict[str, Any]:

@@ -6,6 +6,7 @@ import {
   comicErrorField,
   bookRows,
   parseBookRows,
+  withoutLegacyEditions,
   compactRanges,
   expandRanges,
   filterComics,
@@ -398,5 +399,23 @@ describe('bookFigures', () => {
       bookFigures([row({ kind: 'book_line', volumes_owned: 2 })])
         .volumesMissing,
     ).toBe(0)
+  })
+})
+
+describe('withoutLegacyEditions', () => {
+  const old = [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }]
+
+  it('moves a stored payload’s editions to books', () => {
+    expect(withoutLegacyEditions({ issues_owned: '2', editions: old })).toEqual(
+      { issues_owned: '2', books: old },
+    )
+  })
+
+  it('lets books win, drops an empty list, and leaves other payloads alone', () => {
+    const books = [{ ...old[0], label: 'New' }]
+    expect(withoutLegacyEditions({ books, editions: old })).toEqual({ books })
+    expect(withoutLegacyEditions({ editions: [] })).toEqual({})
+    const plain = { issues_owned: '1' }
+    expect(withoutLegacyEditions(plain)).toBe(plain)
   })
 })

@@ -131,6 +131,21 @@ def refuse_legacy_editions(payload: Any) -> Any:
     return payload
 
 
+def legacy_editions_to_books(payload: Any) -> Any:
+    """For PATCH only: a payload stored before `books` existed carries
+    `editions`, and Check re-sends the whole stored payload on every edit, so
+    refusing it there would lose the edit. A non-empty `editions` becomes
+    `books` (same shape) and is dropped; when `books` is present it wins and
+    `editions` is just dropped. POST create and /add keep the 422
+    (`refuse_legacy_editions`): nothing legitimately sends it there."""
+    if not isinstance(payload, dict) or "editions" not in payload:
+        return payload
+    rest = {k: v for k, v in payload.items() if k != "editions"}
+    if payload["editions"] and "books" not in rest:
+        rest["books"] = payload["editions"]
+    return rest
+
+
 def typed_books(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
     """The collected books Details typed on a comic entry (`payload.books`,
     rows of kind, label, from, to), checked and trimmed; `[]` when none.
