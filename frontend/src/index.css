@@ -8318,6 +8318,14 @@ main h1[tabindex='-1']:focus,
   margin-bottom: var(--space-1);
 }
 
+.comic-card-kind {
+  color: var(--text);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .comic-card-line {
   color: var(--text-2);
   font-size: var(--fs-12);

@@ -260,6 +260,23 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `e2e/fixtures/api/public-comic-*.json`, which
   `backend/scripts/export_public_comic_fixtures.py` writes from the real
   `PublicItemDetailOut`; the e2e build has one fixture title of each kind.
+- **Shelf cards by kind (#331).** `ComicCardRun` (public and admin cards, the
+  twin rule) leads with the kind in words (`kindSummary` in `lib/comics.js`,
+  words from `spine.comics.kinds`) and, for a title that holds books, which
+  volumes are owned: `volumesOwnedText(numbers, volumesOwned, lineSize)`
+  ("Vol. 1, 2 and 4", more than 8 numbers collapse runs of 3+ to "1 to 12";
+  books with no number add ", and N books with no number", the owned count
+  minus the numbered). The line's size is stored nowhere, so "of N" prints
+  only when a caller passes `lineSize`; nothing does. Lanes and run text draw
+  only for a `run` or `both`; a line of books or a single book draws no
+  lanes and no slot pips (a pip row would imply a size). The Books chip is
+  `kind` in `book_line`, `single_book`, `both`; Single issues is `run`,
+  `both` (a row with no `kind` is a run). Both ride the shelf's one chip
+  state (`shelf.public.comics.chip`, `shelf.admin.comics.chip`) and hide at
+  a zero count unless pressed (`FilterChips`). The admin rows get `kind`,
+  `volumes_owned` and `volume_numbers` from `ItemOut.comic_run`. The public
+  shelf fixture is `e2e/fixtures/snapshot/comics.json`, written by the same
+  exporter from the real `public_comics._row`; the Comics page tests import it.
 - **How a book joins a title.** A collected book shares a series' title page
   only by the backend rule `comics.shares_title`: its title minus volume and
   format words equals the series' name, and at least 60% of its known

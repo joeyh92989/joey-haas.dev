@@ -160,7 +160,7 @@ describe('AdminComics', () => {
     ).toEqual(['Series', 'Issues owned', 'Missing', 'Read'])
     expect(tiles).toHaveTextContent('64')
     expect(tiles).toHaveTextContent('18')
-    expect(screen.getByText('2 series')).toBeInTheDocument()
+    expect(screen.getByText('2 titles')).toBeInTheDocument()
   })
 
   it('draws each series as a stacked card with its run', async () => {
@@ -566,5 +566,99 @@ describe('AdminComics tags', () => {
     await renderPage()
     expect(screen.queryByRole('group', { name: 'Genre' })).toBeNull()
     expect(screen.queryByRole('group', { name: 'Form' })).toBeNull()
+  })
+})
+
+describe('AdminComics: the title kind and the Books and Single issues chips', () => {
+  const books = (fields) => ({
+    owned: 0,
+    released: 0,
+    missing: 0,
+    state: 'unrecorded',
+    segments: [],
+    read: 0,
+    unread: 0,
+    ...fields,
+  })
+  const kinds = [
+    comic('r', 'Paper Moons', {
+      comic_run: run({ kind: 'run', volumes_owned: 0, volume_numbers: [] }),
+    }),
+    comic('l', 'Lantern Tales', {
+      is_public: false,
+      comic_run: books({
+        kind: 'book_line',
+        volumes_owned: 3,
+        volume_numbers: [1, 2, 4],
+      }),
+    }),
+    comic('o', 'Salt Road', {
+      comic_run: books({
+        kind: 'single_book',
+        volumes_owned: 1,
+        volume_numbers: [3],
+      }),
+    }),
+    comic('b', 'Harbor Lights', {
+      comic_run: run({
+        kind: 'both',
+        volumes_owned: 2,
+        volume_numbers: [1, 3],
+      }),
+    }),
+  ]
+  const card = (title) =>
+    screen
+      .getByText(title, { selector: '.poster-title' })
+      .closest('.poster-card')
+
+  it('says the same kind words as the public card, with volumes', async () => {
+    stubApi({ items: kinds })
+    await renderPage()
+    expect(card('Paper Moons')).toHaveTextContent('Run of issues')
+    expect(card('Lantern Tales')).toHaveTextContent('Line of books')
+    expect(card('Lantern Tales')).toHaveTextContent('Vol. 1, 2 and 4')
+    expect(card('Salt Road')).toHaveTextContent('Single book')
+    expect(card('Salt Road')).toHaveTextContent('Vol. 3')
+    expect(card('Harbor Lights')).toHaveTextContent('Books and issues')
+    expect(card('Harbor Lights')).toHaveTextContent('Vol. 1 and 3')
+    expect(card('Lantern Tales').querySelector('.lanes')).toBeNull()
+    expect(card('Harbor Lights').querySelector('.lanes')).not.toBeNull()
+    expect(
+      screen.getByRole('group', { name: 'Lantern Tales: Line of books' }),
+    ).toBeInTheDocument()
+  })
+
+  it('reads a row from an API without a kind as a run', async () => {
+    stubApi()
+    await renderPage()
+    expect(card('Saga')).toHaveTextContent('Run of issues')
+    expect(screen.queryByRole('button', { name: /^Books/ })).toBeNull()
+  })
+
+  it('filters to Books and Single issues and keeps the chip like the others', async () => {
+    stubApi({ items: kinds })
+    const { unmount } = await renderPage()
+    expect(screen.getByRole('button', { name: /^Books/ })).toHaveTextContent(
+      '3',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /^Books/ }))
+    expect(titles().sort()).toEqual([
+      'Harbor Lights',
+      'Lantern Tales',
+      'Salt Road',
+    ])
+    expect(screen.getByText('3 of 4 titles')).toBeInTheDocument()
+    expect(localStorage.getItem('shelf.admin.comics.chip')).toBe('"books"')
+    unmount()
+    await renderPage()
+    expect(screen.getByRole('button', { name: /^Books/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: /^Single issues/ }),
+    )
+    expect(titles().sort()).toEqual(['Harbor Lights', 'Paper Moons'])
   })
 })

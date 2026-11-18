@@ -70,4 +70,112 @@ describe('ComicCardRun', () => {
     )
     expect(document.body).toHaveTextContent('all read')
   })
+
+  describe('the title kind', () => {
+    const BOOKS = {
+      title: 'Lantern Tales',
+      owned: 0,
+      released: 0,
+      missing: 0,
+      segments: [],
+      read: 0,
+      read_to: null,
+      read_next: null,
+    }
+
+    it('says Run of issues over a run and keeps its lanes', () => {
+      render(<ComicCardRun row={{ ...ROW, title: 'Saga', kind: 'run' }} />)
+      expect(screen.getByText('Run of issues')).toBeInTheDocument()
+      expect(
+        screen.getByRole('img', { name: '4 of 4 issues owned' }),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Vol\./)).toBeNull()
+    })
+
+    it('reads a row with no kind as a run', () => {
+      render(<ComicCardRun row={ROW} />)
+      expect(screen.getByText('Run of issues')).toBeInTheDocument()
+    })
+
+    it('says which volumes a line of books owns, and draws no lanes or empty run text', () => {
+      const { container } = render(
+        <ComicCardRun
+          row={{
+            ...BOOKS,
+            kind: 'book_line',
+            volumes_owned: 3,
+            volume_numbers: [1, 2, 4],
+          }}
+        />,
+      )
+      expect(screen.getByText('Line of books')).toBeInTheDocument()
+      expect(screen.getByText('Vol. 1, 2 and 4')).toBeInTheDocument()
+      expect(container).not.toHaveTextContent(/ of \d/)
+      expect(container).not.toHaveTextContent('Issues not recorded')
+      expect(container.querySelector('.lanes')).toBeNull()
+    })
+
+    it('says a single book, with its number when it has one', () => {
+      const { rerender } = render(
+        <ComicCardRun
+          row={{
+            ...BOOKS,
+            kind: 'single_book',
+            volumes_owned: 1,
+            volume_numbers: [3],
+          }}
+        />,
+      )
+      expect(screen.getByText('Single book')).toBeInTheDocument()
+      expect(screen.getByText('Vol. 3')).toBeInTheDocument()
+      rerender(
+        <ComicCardRun
+          row={{
+            ...BOOKS,
+            kind: 'single_book',
+            volumes_owned: 1,
+            volume_numbers: [],
+          }}
+        />,
+      )
+      expect(screen.getByText('Single book')).toBeInTheDocument()
+      expect(screen.queryByText(/Vol\./)).toBeNull()
+    })
+
+    it('says both: the volumes, then the run with its lanes', () => {
+      render(
+        <ComicCardRun
+          row={{
+            ...ROW,
+            title: 'Harbor Lights',
+            kind: 'both',
+            volumes_owned: 2,
+            volume_numbers: [1, 3],
+          }}
+        />,
+      )
+      expect(screen.getByText('Books and issues')).toBeInTheDocument()
+      expect(screen.getByText('Vol. 1 and 3')).toBeInTheDocument()
+      expect(
+        screen.getByRole('img', { name: '4 of 4 issues owned' }),
+      ).toBeInTheDocument()
+    })
+
+    it('names the card by title and kind, with nothing hover-only', async () => {
+      const { container } = render(
+        <ComicCardRun
+          row={{
+            ...BOOKS,
+            kind: 'book_line',
+            volumes_owned: 2,
+            volume_numbers: [1, 2],
+          }}
+        />,
+      )
+      expect(
+        screen.getByRole('group', { name: 'Lantern Tales: Line of books' }),
+      ).toBeInTheDocument()
+      expect(await axeViolations(container)).toEqual([])
+    })
+  })
 })
