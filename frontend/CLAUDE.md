@@ -233,8 +233,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   is `ShelfConfirm` given a `source` (the volume's own delete preview and
   words), never `window.confirm`. A private target title carries a Private
   tag. The comic edit page's Editions panel is gone, and the UI no longer
-  writes `items.editions` (3/5 removed the item form's rows too; intake's
-  Details step is the one place left that still does):
+  writes `items.editions` (3/5 removed the item form's rows; 3b/5 made
+  intake's Details books volumes):
   its **Books** panel (`BooksPanel.jsx`) lists the title's books and adds
   one. Component tests build their bodies from
   `e2e/fixtures/api/admin-volume*.json`, which
@@ -248,8 +248,11 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   five-kind Format select (`edition_kind`) and a Number in the line
   (`line_number`), saved and refused like the other Check fields. Done
   (`DoneStep.jsx`) lists `volumes_new` and `titles_created`; no intake text
-  says "edition". Details' old `editions` rows still work (the server merges
-  them). Tests build bodies from `e2e/fixtures/api/intake-comic-*.json`,
+  says "edition". Details' collected-books rows (`BookRows` in `ItemForm.jsx`,
+  `bookRows`/`parseBookRows` in `lib/comics.js`) save as the payload's `books`
+  and become volumes at commit; a comic that is itself a photographed book
+  (`payload.format === 'collected'`) has none, and a sitting typed before the
+  rename is read from `editions` and re-saved as `books`. Tests build bodies from `e2e/fixtures/api/intake-comic-*.json`,
   which `backend/scripts/export_intake_comic_fixtures.py` writes from the real
   `SittingOut`, `CommitOut` and `volume_plan` functions.
 - **Title pages by kind (#330).** `Item.jsx`'s comic path reads the public

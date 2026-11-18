@@ -4,8 +4,8 @@ import {
   chipCounts,
   comicPayload,
   comicErrorField,
-  editionRows,
-  parseEditionRows,
+  bookRows,
+  parseBookRows,
   compactRanges,
   expandRanges,
   filterComics,
@@ -252,42 +252,42 @@ describe('kindSummary', () => {
   })
 })
 
-describe('edition rows', () => {
-  const editions = [
+describe('book rows', () => {
+  const books = [
     { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
     { kind: 'Single', label: 'Variant', from: 7, to: 7 },
   ]
 
   it('reads its own rows back', () => {
-    expect(editionRows(null)).toEqual([])
-    expect(parseEditionRows(editionRows(editions))).toEqual({
-      editions,
+    expect(bookRows(null)).toEqual([])
+    expect(parseBookRows(bookRows(books))).toEqual({
+      books,
       error: null,
     })
   })
 
   it('drops a blank row and reads a missing "to" as one issue', () => {
     expect(
-      parseEditionRows([
+      parseBookRows([
         { kind: ' Trade ', label: 'Vol. 2', from: '7', to: '' },
         { kind: '', label: '', from: '', to: '' },
       ]),
     ).toEqual({
-      editions: [{ kind: 'Trade', label: 'Vol. 2', from: 7, to: 7 }],
+      books: [{ kind: 'Trade', label: 'Vol. 2', from: 7, to: 7 }],
       error: null,
     })
-    expect(parseEditionRows([])).toEqual({ editions: null, error: null })
+    expect(parseBookRows([])).toEqual({ books: null, error: null })
   })
 
   it('names the row it cannot read', () => {
     expect(
-      parseEditionRows([
+      parseBookRows([
         { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6' },
         { kind: 'Trade', label: '', from: 'x', to: '' },
       ]),
     ).toEqual({
-      editions: null,
-      error: 'Edition 2: give it a kind, a label and the issues it collects.',
+      books: null,
+      error: 'Book 2: give it a kind, a label and the issues it collects.',
     })
   })
 })

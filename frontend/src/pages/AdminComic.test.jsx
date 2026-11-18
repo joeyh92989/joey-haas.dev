@@ -312,7 +312,7 @@ describe('AdminComic', () => {
     expect(await screen.findByRole('heading', { name: 'Books' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Editions' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Save editions' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Add an edition' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add a book' })).toBeNull()
     expect(
       await screen.findByRole('link', { name: 'Saga, Book Two' }),
     ).toHaveAttribute('href', '/admin/shelf/comics/abc/vol-2')
