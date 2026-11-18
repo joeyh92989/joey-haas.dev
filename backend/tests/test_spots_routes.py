@@ -1,5 +1,6 @@
 """Denver spots' admin routes (spots_routes.py)."""
 
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
@@ -277,6 +278,9 @@ async def test_publishing_a_boulder_spot_is_a_422(sessionmaker_for_test):
         ).json()
         url = f"/api/spots/{made['id']}"
         refused = await client.patch(url, json={"is_public": True})
+        async with sessionmaker_for_test() as session:
+            row = await session.get(Spot, uuid.UUID(made["id"]))
+        assert (row.city, row.is_public) == ("boulder", False)
         both_ok = await client.patch(url, json={"city": "Denver", "is_public": True})
     assert refused.status_code == 422
     assert refused.json()["detail"] == "A public place has to be in Denver."
@@ -313,3 +317,57 @@ async def test_a_city_patch_normalises_and_a_blank_one_is_refused(
         back = await client.patch(url, json={"city": "denver "})
     assert blank.status_code == 422 and null.status_code == 422
     assert back.status_code == 200 and back.json()["city"] == "denver"
+
+
+async def test_a_legacy_public_boulder_row_is_editable_but_not_re_published(
+    sessionmaker_for_test,
+):
+    async with sessionmaker_for_test() as session:
+        legacy = Spot(
+            name="Old cafe",
+            slug="old-cafe",
+            lat=40.0,
+            lng=-105.27,
+            tags=[],
+            is_public=True,
+            city="boulder",
+        )
+        session.add(legacy)
+        await session.commit()
+        legacy_id = legacy.id
+    async with client_for(sessionmaker_for_test) as client:
+        url = f"/api/spots/{legacy_id}"
+        renamed = await client.patch(url, json={"name": "Older cafe"})
+        resent = await client.patch(url, json={"is_public": True})
+    assert renamed.status_code == 200
+    body = renamed.json()
+    assert (body["name"], body["is_public"], body["city"]) == (
+        "Older cafe",
+        True,
+        "boulder",
+    )
+    assert resent.status_code == 422
+    assert resent.json()["detail"] == "A public place has to be in Denver."
+
+
+async def test_resending_public_on_a_public_denver_spot_changes_nothing(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/spots", json={**SLOANS, "is_public": True})
+        ).json()
+        again = await client.patch(f"/api/spots/{made['id']}", json={"is_public": True})
+    assert again.status_code == 200
+    assert again.json() == made
+
+
+async def test_an_explicit_null_city_is_a_422_on_create_and_patch(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (await client.post("/api/spots", json=SLOANS)).json()
+        post = await client.post("/api/spots", json={**SLOANS, "city": None})
+        patch = await client.patch(f"/api/spots/{made['id']}", json={"city": None})
+    assert (post.status_code, patch.status_code) == (422, 422)
+    assert post.json()["detail"] == patch.json()["detail"] == "A city is required."

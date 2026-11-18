@@ -77,6 +77,8 @@ def normalize_city(raw: str) -> str:
     ValueError("A city is at most 40 characters.") when more than 40 are, the
     length counted after trimming and collapsing. The message is fit to show.
     """
+    # Local on purpose: map_links imports spots, so importing clean_line would
+    # be circular, and a city is a lower-cased match key, so joiners go too.
     visible = "".join(
         ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf")
     )
