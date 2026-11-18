@@ -180,3 +180,7 @@ docs/planning/2026-11-13-comics-book-design.md
 ### 2026-11-17 · lesson · The prerender reads comic-issues.json, not comics.json
 Link-preview heads for a title come from `items.json` and `comic-issues.json` (`prerender-lib.mjs`); `comics.json` is only the shelf's. A field the preview needs (the title `kind`, #330) goes on the `comic-issues` index row, or the build never sees it.
 PR #330
+
+### 2026-11-18 · lesson · A column drop is two releases: unmap, then drop
+Deploy API runs the migration before the new code is live, so dropping a column the running code still maps makes every query on that table 500 until the new build is up (a cold review caught it on #453). Merge the PR that unmaps it first (it also needs `_diff_against_models` to ignore the column, or every earlier-revision test sees a `remove_column`), then the drop.
+PR #453 · docs/planning/2026-11-18-retire-items-editions-design.md

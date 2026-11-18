@@ -267,7 +267,7 @@ and the entries read from them or typed in.
   `volume_plan.typed_key(entry_id, index)` (a uuid5 of the entry id, stored
   in `intake_entry_id`), so a second commit of the entry writes none. An
   entry kept as typed with no series match goes on the title of its name like
-  a photographed book with no match. Intake writes nothing to `items.editions` (unused, pending its drop):
+  a photographed book with no match. Intake writes nothing to `items.editions` (the column is unmapped, pending its drop in `0025`):
   a non-empty `editions` on an entry, add or patch payload is a 422 (a
   sitting typed before the rename still holds `editions`, which commit reads as
   `books`). A volume's covered range clears the skips it covers (Got it's

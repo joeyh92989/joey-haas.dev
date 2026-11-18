@@ -198,7 +198,6 @@ def shelf_item(kind):
         following=False,
         issues_owned=f"1-{loose}" if loose else None,
         issues_skipped=None,
-        editions=None,
         read_to=2 if loose else None,
         source_metadata={"released": 8, "ongoing": True} if loose else None,
         shelf_format="trades" if BOOKS[kind] else "singles",

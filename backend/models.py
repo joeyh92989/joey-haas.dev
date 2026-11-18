@@ -252,11 +252,10 @@ class Item(Base):
         Completeness, "completeness"
     )
     # Comics (migration 0010). Range text in comics.py's canonical form,
-    # validated there on every write; editions are [{kind, label, from, to}].
+    # validated there on every write. Books are `comic_volumes` rows.
     # Skipped issues stay gaps on the run and leave only the pull list.
     issues_owned: Mapped[str | None] = mapped_column(Text, nullable=True)
     issues_skipped: Mapped[str | None] = mapped_column(Text, nullable=True)
-    editions: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     read_to: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     shelf_format: Mapped[ComicShelfFormat | None] = _enum_column(
         ComicShelfFormat, "comic_shelf_format"
@@ -1580,10 +1579,10 @@ class ComicVolume(Base):
 
     Migration 0021 (docs/planning/2026-11-17-comics-book-first-design.md). A
     title is an `items` row; its volumes go with it. `slug` is unique per
-    title (`ed-<from>-<to>` for rows copied from `items.editions`, so old
-    edition URLs keep working; `vol-<n>` for new ones). `kind` is the mapped
-    format and `kind_raw` the original free text, never lost. `items.editions`
-    stays until a later, destructive release.
+    title (`ed-<from>-<to>` for rows copied from the legacy `items.editions`
+    column, so old edition URLs keep working; `vol-<n>` for new ones). `kind` is
+    the mapped format and `kind_raw` the original free text, never lost. The legacy
+    `items.editions` column is unmapped and is dropped by a later migration (0025).
     """
 
     __tablename__ = "comic_volumes"

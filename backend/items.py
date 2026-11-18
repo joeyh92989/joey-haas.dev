@@ -109,7 +109,6 @@ class ItemIn(BaseModel):
     # any other type).
     issues_owned: str | None = Field(default=None, max_length=2000)
     issues_skipped: str | None = Field(default=None, max_length=2000)
-    editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
@@ -157,9 +156,6 @@ class ItemPatch(BaseModel):
     # any other type).
     issues_owned: str | None = Field(default=None, max_length=2000)
     issues_skipped: str | None = Field(default=None, max_length=2000)
-    # Retired (3/5): kept only to answer a body that still sends it with a
-    # 422 (`_refuse_editions`), so a forgotten writer is found. Never stored.
-    editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
@@ -606,16 +602,6 @@ def _write_fields(
     return apply_copy_fields(checked, row)
 
 
-EDITIONS_RETIRED = "editions are retired: add books as volumes"
-
-
-def _refuse_editions(editions: list[dict] | None) -> None:
-    """A request body that still sends `editions` is a 422 for one release
-    (3/5), so any writer left is found. Empty or absent is fine."""
-    if editions:
-        raise HTTPException(status_code=422, detail=EDITIONS_RETIRED)
-
-
 def _copy_fields(
     changes: dict, row: Item | None, held: list[dict] | None = None
 ) -> dict:
@@ -878,13 +864,9 @@ async def commit_items(
     duplicates = 0
 
     for index, item in enumerate(rows):
-        values = item.model_dump(exclude={"editions"})
+        values = item.model_dump()
         try:
-            values.update(
-                _write_fields(
-                    item.model_dump(exclude_unset=True, exclude={"editions"}), None
-                )
-            )
+            values.update(_write_fields(item.model_dump(exclude_unset=True), None))
         except (CopyFieldError, RangeError) as error:
             raise RowRefused(index, error) from error
         # Every row names tags: a multi-row INSERT fills a missing key with
@@ -1060,14 +1042,9 @@ def create_items_router(
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Adds one item and returns it, including its generated id."""
-        _refuse_editions(payload.editions)
         await _require_favorite_slots(session, int(payload.favorite))
-        values = payload.model_dump(exclude={"editions"})
-        values.update(
-            _copy_fields(
-                payload.model_dump(exclude_unset=True, exclude={"editions"}), None
-            )
-        )
+        values = payload.model_dump()
+        values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
         item = Item(**values)
         _retag_game(item)
         session.add(item)
@@ -1206,8 +1183,6 @@ def create_items_router(
     ) -> BulkOut:
         """Creates many items at once through commit_items, skipping ones
         already in the collection and reporting them as duplicates."""
-        for row in payload.items:
-            _refuse_editions(row.editions)
         try:
             result = await commit_items(session, payload.items, today=date.today())
         except RowRefused as refused:
@@ -1388,7 +1363,6 @@ def create_items_router(
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
         body = payload.model_dump(exclude_unset=True)
-        _refuse_editions(body.pop("editions", None))
         if any(field in body for field in STATUS_FIELDS):
             raise HTTPException(status_code=422, detail=STATUS_FIELDS_REFUSED)
         # A write that touches what the issue marks derive from takes the row
