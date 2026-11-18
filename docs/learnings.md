@@ -62,7 +62,7 @@ Several agents' first push was refused; they recovered with `git push origin HEA
 PR #405
 
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
-The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
+The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code. The same holds for a stale `dist`: #342's phone-overflow browser case passed locally against an old build and failed on CI; rebuild (`npm run build`) before every `e2e` run, and measure with real-shaped long data.
 PR #378
 
 ### 2026-11-16 · lesson · Briefs for implementer agents list every CI gate

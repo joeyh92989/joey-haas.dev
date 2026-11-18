@@ -488,12 +488,17 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
   const stamp = `${testInfo.project.name} ${Date.now()}`
   const first = `E2E Paste Alpha ${stamp}`
   const second = `E2E Paste Beta ${stamp}`
+  const longName = `Long${'W'.repeat(120)}`
   // Coordinates in the open country east of Denver; the names are what
   // make each spot unique.
   const lines = [
     `https://www.google.com/maps/place/${first.replaceAll(' ', '+')}/@39.7000,-104.9000,17z`,
     `https://www.google.com/maps/place/${second.replaceAll(' ', '+')}/data=!3d39.7100!4d-104.9100`,
     'https://maps.app.goo.gl/abc123',
+    // Long unbroken strings must wrap or be cut, never widen the page: a
+    // 120-character name and a 150-character short link.
+    `https://www.google.com/maps/place/${longName}/@39.7200,-104.9200,17z`,
+    `https://maps.app.goo.gl/${'q'.repeat(150)}`,
   ]
   try {
     await dropPastedSittings(page)
@@ -501,7 +506,7 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
     await page.getByLabel('Places, one per line').fill(lines.join('\n'))
     await page.getByRole('button', { name: 'Add lines' }).click()
 
-    await expect(page.getByText('3 lines added.')).toBeVisible()
+    await expect(page.getByText('5 lines added.')).toBeVisible()
     const readyGroup = page.getByRole('region', { name: 'Ready' })
     await expect(
       readyGroup.locator('.place-result-title', { hasText: first }),
@@ -511,12 +516,18 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
     ).toBeVisible()
     const checkGroup = page.getByRole('region', { name: 'To check' })
     await expect(
-      checkGroup.getByText('Short link, could not be read.'),
+      checkGroup.getByText('Short link, could not be read.').first(),
     ).toBeVisible()
-    await checkGroup.getByRole('button', { name: /Type the name/ }).click()
-    await expect(checkGroup.getByLabel('Place name')).toBeVisible()
+    await checkGroup
+      .getByRole('button', { name: /Type the name/ })
+      .first()
+      .click()
+    await expect(checkGroup.getByLabel('Place name').first()).toBeVisible()
     // The phone width: nothing in the review makes the page scroll sideways.
     await page.setViewportSize({ width: 400, height: 900 })
+    // The shell swaps its rail for the phone layout in React, a beat after
+    // the resize: measure the settled page, not the frame in between.
+    await expect(page.locator('.admin-app-phone')).toBeVisible()
     const overflow = await page.evaluate(
       () =>
         document.documentElement.scrollWidth -
@@ -524,21 +535,53 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
     )
     expect(overflow).toBeLessThanOrEqual(1)
 
-    await page.getByRole('button', { name: 'Save 2 places' }).click()
+    await page.getByRole('button', { name: 'Save 3 places' }).click()
     await expect(
-      page.getByRole('heading', { name: 'Saved 2 places' }),
+      page.getByRole('heading', { name: 'Saved 3 places' }),
     ).toBeVisible()
-    await expect(page.getByText('1 still to check.')).toBeVisible()
+    await expect(page.getByText('2 still to check.')).toBeVisible()
 
     const list = await page.request.get('/api/spots')
     expect(list.ok()).toBe(true)
     const spots = (await list.json()).filter((s) =>
-      [first, second].includes(s.name),
+      [first, second, longName].includes(s.name),
     )
-    expect(spots.map((s) => s.name).sort()).toEqual([first, second].sort())
+    expect(spots.map((s) => s.name).sort()).toEqual(
+      [first, second, longName].sort(),
+    )
     for (const spot of spots) expect(spot.is_public).toBe(false)
   } finally {
-    await deleteSpotsNamed(page, [first, second])
+    await deleteSpotsNamed(page, [first, second, longName])
+    await dropPastedSittings(page)
+  }
+})
+
+test('paste a list: a long line being looked up does not widen the phone page', async ({
+  page,
+}, testInfo) => {
+  desktopOnly(testInfo)
+  // The status line names the line being looked up. Hold that one request
+  // (the browser's answer only; Nominatim is never reached) so the status
+  // stays on a 140-character unbroken line while the width is measured.
+  await page.route('**/api/intake/entries/*/resolve', () => {})
+  try {
+    await dropPastedSittings(page)
+    await openPasteWay(page)
+    await page
+      .getByLabel('Places, one per line')
+      .fill(`${'A'.repeat(140)}\nhttps://maps.app.goo.gl/${'q'.repeat(150)}`)
+    await page.getByRole('button', { name: 'Add lines' }).click()
+    await expect(page.getByText(/^Looking up/)).toBeVisible()
+    await page.setViewportSize({ width: 400, height: 900 })
+    await expect(page.locator('.admin-app-phone')).toBeVisible()
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
+  } finally {
+    await page.unrouteAll({ behavior: 'ignoreErrors' })
     await dropPastedSittings(page)
   }
 })

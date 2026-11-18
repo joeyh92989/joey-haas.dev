@@ -14045,6 +14045,26 @@ a.btn.sm {
   gap: var(--space-1);
 }
 
+/* Any pasted text can be one long unbroken string (a link, a name, an
+   address). Every column is minmax(0, 1fr) and every text breaks anywhere
+   (inherited; the pasted-link line stays one cut line), so no row, status
+   or hint sets the width of the page. */
+.place-paste-stack,
+.place-paste-box,
+.place-paste-progress,
+.place-paste-offer,
+.place-paste-fix,
+.place-paste-group {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+
+.place-paste-stack > *,
+.place-paste-group > *,
+.place-paste-progress-row > * {
+  min-width: 0;
+}
+
 .place-paste-fix {
   max-width: 30rem;
 }
