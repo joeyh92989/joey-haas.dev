@@ -65,13 +65,15 @@ export function meterCounts(sitting) {
   }
 }
 
-/** The area an admin path is under: `shelf` or `closet`. */
+/** The area an admin path is under: `shelf`, `closet` or `places`. */
 export function areaOfPath(pathname) {
+  if (/^\/admin\/places(\/|$)/.test(pathname)) return 'places'
   return /^\/admin\/closet(\/|$)/.test(pathname) ? 'closet' : 'shelf'
 }
 
 /** The Add page of an area. */
 export function addPath(area) {
+  if (area === 'places') return '/admin/places/add'
   return area === 'closet' ? '/admin/closet/add' : '/admin/collection/add'
 }
 
@@ -81,6 +83,7 @@ export function addPath(area) {
  * lands on Games.
  */
 export function shelfPath(area, kind = null) {
+  if (area === 'places') return '/admin/spots'
   if (area === 'closet') return '/admin/closet'
   return kind === 'comic' ? '/admin/shelf/comics' : '/admin/shelf/games'
 }

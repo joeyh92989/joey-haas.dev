@@ -13491,3 +13491,325 @@ a.btn.sm {
 .single-book-text p {
   margin: var(--space-2) 0 0;
 }
+
+/* ---------- Add a place (/admin/places/add, story #340) ----------
+   Built from the mockup c-inline.html; every colour is a token. */
+.place-col {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 44rem;
+}
+
+.place-search-parts {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.place-search {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.place-search label {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.place-search-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.place-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-hint {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  margin: 0;
+}
+
+.place-status {
+  color: var(--text-2);
+  font-size: var(--fs-14);
+  margin: 0;
+  min-height: 1.5rem;
+}
+
+.place-progress {
+  background: var(--sunken);
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.place-progress::before {
+  animation: place-slide 1.4s ease-in-out infinite;
+  background: var(--accent);
+  border-radius: 999px;
+  content: '';
+  display: block;
+  height: 100%;
+  width: 35%;
+}
+
+@keyframes place-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(290%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-progress::before {
+    animation: none;
+    opacity: 0.6;
+    width: 100%;
+  }
+}
+
+.place-fail {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.place-fail p,
+.place-fail .muted {
+  margin: 0;
+}
+
+.place-fail p:focus,
+.place-done-made:focus,
+.empty-state-title:focus {
+  outline: none;
+}
+
+.place-ways {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+  gap: var(--space-2);
+}
+
+.place-results {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  display: grid;
+  padding: var(--space-1) 0 0;
+}
+
+.place-results > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.place-results > ul:focus {
+  outline: none;
+}
+
+.place-result {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-2) var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: var(--space-2) var(--space-3);
+}
+
+.place-result.open {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.place-result-text {
+  display: grid;
+  min-width: 0;
+}
+
+.place-result-title {
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.place-result-title:focus {
+  outline: none;
+}
+
+.place-result-text .muted,
+.place-maplink {
+  font-size: var(--fs-13);
+}
+
+.place-result-kind {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.place-form {
+  display: grid;
+  gap: var(--space-4);
+  grid-column: 1 / -1;
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+.place-fields,
+.place-type-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 30rem;
+}
+
+.place-check {
+  align-items: center;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--fs-14);
+  gap: var(--space-3);
+  min-height: 2.75rem;
+}
+
+.place-check input {
+  accent-color: var(--accent);
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.place-check:has(input:disabled) {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.place-field-error {
+  color: var(--text);
+  font-size: var(--fs-13);
+  margin: 0;
+}
+
+.place-foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-14);
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.place-credit {
+  border-top: 1px solid var(--line);
+  padding: var(--space-2) var(--space-3);
+}
+
+.place-osm {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  margin: 0;
+}
+
+.place-osm a {
+  color: inherit;
+}
+
+.place-done {
+  border-left: 3px solid var(--ok);
+}
+
+.place-stack-sm {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.place-done-made {
+  color: var(--text);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  margin: 0;
+}
+
+.place-added {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.place-added li {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  justify-content: space-between;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.place-added li:last-child {
+  border-bottom: 0;
+}
+
+.place-added b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.place-added .muted {
+  font-size: var(--fs-13);
+}
+
+.place-saved-mark {
+  color: var(--ok);
+  font-size: var(--fs-13);
+  font-weight: 500;
+}
+
+/* The shell's phone layout (PHONE_QUERY in AdminShell.jsx): 44px targets and
+   16px inputs, which stops iOS zooming on focus. */
+@media (max-width: 900px) {
+  .place-col .btn,
+  .place-col .chip {
+    min-height: 2.75rem;
+  }
+
+  .place-col .chip {
+    padding-inline: var(--space-4);
+  }
+
+  .place-col :is(input[type='text'], input[type='search'], select) {
+    font-size: var(--fs-16);
+    min-height: 2.75rem;
+  }
+
+  .place-result {
+    grid-template-areas:
+      'text act'
+      'kind act';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .place-result-text {
+    grid-area: text;
+  }
+
+  .place-result > .place-result-kind {
+    grid-area: kind;
+  }
+
+  .place-result > .btn {
+    grid-area: act;
+  }
+
+  .place-result > .place-form {
+    grid-area: auto;
+    grid-column: 1 / -1;
+  }
+}
