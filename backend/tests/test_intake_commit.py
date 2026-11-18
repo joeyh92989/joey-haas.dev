@@ -30,6 +30,7 @@ from models import (
 )
 from tests.test_intake_kinds import client_for
 from tests.test_items_bulk import client_for as items_client_for
+from tests.volume_seed import mirror_editions
 
 S = IntakeEntryState
 
@@ -309,17 +310,19 @@ def _series(n: int = 7) -> dict:
 
 
 async def _seed_series(factory, n: int = 7, **fields) -> None:
+    """A series on the shelf; its `editions` get the `ed-*` volumes the shim
+    makes, as a stored row has (the run counts owned volumes)."""
     async with factory() as session:
-        session.add(
-            Item(
-                type=ItemType.COMIC,
-                title="Waterworld",
-                status=ItemStatus.BACKLOG,
-                external_source="comicvine",
-                external_id=str(n),
-                **fields,
-            )
+        item = Item(
+            type=ItemType.COMIC,
+            title="Waterworld",
+            status=ItemStatus.BACKLOG,
+            external_source="comicvine",
+            external_id=str(n),
+            **fields,
         )
+        session.add(item)
+        await mirror_editions(session, item)
         await session.commit()
 
 

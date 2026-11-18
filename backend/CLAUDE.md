@@ -638,12 +638,21 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `{owned?, read?}` is the volume's own write: it re-syncs every title the
   collects touch and keeps `read_to` in step. `shown_status` takes
   `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
-  `comics.volume_counts`); only the admin wall passes them until #329. Admin
-  surfaces (`_state`, the pull list, the item list's `comic_run`) count the
-  owned volumes (`load_holds_many`); the public wall and issue
-  page still read `items.editions`, the mirror; the volume page and the index
-  read the volumes only, so an un-owned `ed-*` volume no longer shows on a book
-  page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
+  `comics.volume_counts`); only the admin wall passes them until #329. Every
+  reader of a comic's run counts the owned volumes (`load_holds_many`):
+  `_state`, the followed-only unfollow check, the pull list, the item list's
+  `comic_run`, intake's `SeriesGrew` and Check's on-shelf run, Play Next and
+  the public picks (`to_picker_item(held=...)`), and the public series, wall,
+  issue page, index and stats (`series_of(item, held)`, `public_holds`). The
+  public `editions` fields (the wall's `PublicWallEdition`, the detail's
+  `PublicEdition`, the row's `edition_labels`) no longer read `items.editions`
+  either: `comics.own_editions(holds)` builds them from the OWNED volumes of
+  that very title, one entry per linked range (slug = the volume's own slug,
+  `kind` = `kind_raw` else the mapped kind, cover = the volume's), so a
+  `vol-*` book with a linked range shows too and a column entry with no volume
+  shows nowhere; no extra query (the holds were already loaded). What still
+  reads `items.editions` is only the writers and the shim, until the retire
+  plan's later PRs; an un-owned `ed-*` volume no longer shows on a book page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
   through another volume, but `read_to` cannot protect them (it is derived from
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
@@ -792,7 +801,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `GET /api/public/items/{id}/editions/{slug}` endpoint is gone (#329 PR 3b),
   because migrated `ed-*` volumes keep their slug and serve the same URLs (it
   also ignored `comic_volumes.owned`). The prerender reads `volumes`. The wall
-  (`/issues`) still lists `editions` for its book tiles. Both tables join the
+  (`/issues`) still lists `editions` for its book tiles, from owned volumes. Both tables join the
   `/api/public/next` fingerprint (`public_next_cache`). `analytics.py`
   counts `/shelf/<id>/vol-<n>` (the `vol-[1-9][0-9]{0,3}` part, beside `ed-*`,
   in `_PATTERNS` and `ITEM_PATH`); App.jsx must accept the same part when the

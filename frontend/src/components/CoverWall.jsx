@@ -253,7 +253,7 @@ export default function CoverWall({
       case 'book':
         return (
           <CoverTile
-            key={`book-${tile.slug}`}
+            key={`book-${tile.slug}-${tile.edition.from}`}
             tile={tile}
             size="wall"
             series={series}

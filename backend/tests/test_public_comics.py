@@ -36,6 +36,7 @@ from public_issues import (
     PublicWallEdition,
     PublicWallIssue,
 )
+from tests.volume_seed import mirror_editions
 
 pytestmark = pytest.mark.asyncio
 
@@ -178,6 +179,7 @@ def _shelf() -> list[Item]:
 async def _add(factory, *rows):
     async with factory() as session:
         session.add_all(rows)
+        await mirror_editions(session, *rows)
         await session.commit()
 
 

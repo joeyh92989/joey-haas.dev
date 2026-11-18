@@ -48,6 +48,7 @@ from public_comics import (
     _publisher,
     comic_weeks,
     public_comic_items,
+    public_holds,
 )
 from public_picks import PublicPick, PublicSets, public_picks
 from sources.igdb import IGDB_URL_PREFIX
@@ -415,6 +416,7 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
     ]
     up_next = max(pinned, key=lambda item: item.pinned_at, default=None)
     comics = await public_comic_items(session)
+    comic_held = await public_holds(session, comics)
     wanted = sorted(
         # Wanted is "no copy owned", as public.py derives it.
         (
@@ -445,7 +447,9 @@ async def load_public_next(session: AsyncSession, now: datetime) -> PublicNextOu
         ),
         wanted=[_wanted_row(item, today) for item in wanted],
         comics_this_week=next(
-            week.rows for week in comic_weeks(comics, today).weeks if week.this_week
+            week.rows
+            for week in comic_weeks(comics, today, comic_held).weeks
+            if week.this_week
         ),
         **{
             key: [_next_row(entry, taste) for entry in entries]

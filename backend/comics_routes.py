@@ -187,7 +187,7 @@ class MarkBody(BaseModel):
     to: Annotated[int, Field(ge=1, le=MAX_ISSUE)] | None = None
 
 
-def _state(item: Item, held: list[dict] | None = None) -> dict:
+def _state(item: Item, held: list[dict]) -> dict:
     """A row's comic state after a write, for the page to redraw in place.
     `held` is the owned volumes' `held_ranges`; the routes pass it through
     `_state_of`, so the run counts volumes (#326), not the `editions` mirror."""
@@ -203,7 +203,7 @@ def _state(item: Item, held: list[dict] | None = None) -> dict:
         "comic_run": row_run(
             item.issues_owned,
             item.issues_skipped,
-            item.editions if held is None else held,
+            held,
             item.read_to,
             item.source_metadata,
         ),
@@ -497,7 +497,7 @@ def create_comics_router(
             not has_volumes
             and item.owned_format == OwnedFormat.NONE
             and not item.is_public
-            and not (item.issues_owned or item.issues_skipped or item.editions)
+            and not (item.issues_owned or item.issues_skipped)
             and item.read_to is None
         )
         if followed_only:
@@ -716,6 +716,8 @@ def create_comics_router(
                 await read_marks_count(session, item_id),
                 volumes=volume_counts(holds, read_numbers, item.read_to),
                 owned_volumes=await owned_volumes_of(session, item_id),
+                held=held_ranges(holds),
+                holds=holds,
             ),
         }
 

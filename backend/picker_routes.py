@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from comics import owned_set, read_state
+from comics import held_ranges, load_holds_many, owned_set, read_state
 from continuing import ContinuingCard, build_continuing
 from facets import snapshot_tags
 from items import require_admin
@@ -124,18 +124,21 @@ def to_picker_item(
     run_started_on: date | None = None,
     play: PlayRecord | None = None,
     read_marks: int = 0,
+    held: list[dict] | None = None,
 ) -> PickerItem:
     """A row as picker's plain data, reading the snapshot defensively.
 
     `paused_on`, `journal_minutes` and `run_started_on` describe the open
     run; only Play Next passes them (open_run_details), for a paused game's
     Pick it back up and a stalled game's start. `play` is the item's whole
-    record (load_play_records), for the engine's weights.
+    record (load_play_records), for the engine's weights. `held` is a comic's
+    owned volumes' `held_ranges` (load_holds_many); a comic passed without it
+    counts only its loose issues.
     """
     snapshot = item.source_metadata or {}
     issues_owned_count = issues_read = issues_span = None
     if item.type == ItemType.COMIC:
-        owned_issues = owned_set(item.issues_owned, item.editions)
+        owned_issues = owned_set(item.issues_owned, held)
         issues_owned_count = len(owned_issues)
         # Read is per book (comics 5c): the marks, or read_to for a row
         # they have not reached, whichever counts more.
@@ -275,6 +278,9 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         rows = list((await session.execute(select(Item))).scalars())
         open_runs = await open_run_details(session, rows)
         plays = await load_play_records(session, [row.id for row in rows])
+        holds = await load_holds_many(
+            session, [row.id for row in rows if row.type == ItemType.COMIC]
+        )
         # "never" is permanent, so it is loaded whatever its age; every other
         # rule looks back a month at most.
         event_rows = (
@@ -308,6 +314,7 @@ def create_picker_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
                     row,
                     *open_runs.get(row.id, (None, 0, None)),
                     play=plays.get(row.id),
+                    held=held_ranges(holds.get(row.id)),
                 )
                 for row in rows
             ],
