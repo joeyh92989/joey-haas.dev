@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-18 · lesson · A cold read of every PR that wrote data or a public body found a real bug in seven of ten
+The comics book-first epic (#323, PRs #428 to #442) ran one implementer at a time with a read-only reviewer that had not seen the author's report. It found: a shim that resurrected a deleted volume (#433, HIGH), a model answer that could auto-link `#1-9999` and mark thousands of issues owned (#435), a 500 from an unchunked insert, an owned unmatched book still creating a title (#436), and a public-facing twin that disagreed on one figure (#442). Four authors wrote code before the failing test; the cure was making the brief say "see it fail, name the test". Also: `timeout` does not exist on this Mac, so a `timeout 480 gh run watch` returns at once and looks like a stuck deploy (poll a loop with `sleep` instead); a GitHub push event can start main's CI a few minutes late, so a slow deploy is not a stuck one; check each deploy by `GET /api/version`, smoke and `render-logs.sh`, not by the run's colour alone.
+PRs #428 to #442 · docs/planning/2026-11-17-comics-book-first-design.md
+
 ### 2026-11-17 · lesson · A data-copying migration must be tested against odd values, and the rehearsal cannot do it
 0021's backfill passed CI and `neon-rehearsal` and failed on production: `WHERE jsonb_typeof(editions) = 'array' AND jsonb_array_length(editions) > 0` ran `jsonb_array_length` on a scalar (Postgres does not order AND), and a JSON-string value then broke `json.loads`. The rehearsal branch is schema-only, so it has no rows, and the tests only seeded arrays. The transaction rolled back, so production stayed at 0020. For a migration that reads existing JSONB: select plainly, filter in Python, and seed a scalar, a string, `null`, an object and an empty list in the test.
 PR #428 · fix PR for 0021
