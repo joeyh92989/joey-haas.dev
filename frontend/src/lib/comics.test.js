@@ -4,8 +4,9 @@ import {
   chipCounts,
   comicPayload,
   comicErrorField,
-  editionRows,
-  parseEditionRows,
+  bookRows,
+  parseBookRows,
+  withoutLegacyEditions,
   compactRanges,
   expandRanges,
   filterComics,
@@ -252,42 +253,42 @@ describe('kindSummary', () => {
   })
 })
 
-describe('edition rows', () => {
-  const editions = [
+describe('book rows', () => {
+  const books = [
     { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 },
     { kind: 'Single', label: 'Variant', from: 7, to: 7 },
   ]
 
   it('reads its own rows back', () => {
-    expect(editionRows(null)).toEqual([])
-    expect(parseEditionRows(editionRows(editions))).toEqual({
-      editions,
+    expect(bookRows(null)).toEqual([])
+    expect(parseBookRows(bookRows(books))).toEqual({
+      books,
       error: null,
     })
   })
 
   it('drops a blank row and reads a missing "to" as one issue', () => {
     expect(
-      parseEditionRows([
+      parseBookRows([
         { kind: ' Trade ', label: 'Vol. 2', from: '7', to: '' },
         { kind: '', label: '', from: '', to: '' },
       ]),
     ).toEqual({
-      editions: [{ kind: 'Trade', label: 'Vol. 2', from: 7, to: 7 }],
+      books: [{ kind: 'Trade', label: 'Vol. 2', from: 7, to: 7 }],
       error: null,
     })
-    expect(parseEditionRows([])).toEqual({ editions: null, error: null })
+    expect(parseBookRows([])).toEqual({ books: null, error: null })
   })
 
   it('names the row it cannot read', () => {
     expect(
-      parseEditionRows([
+      parseBookRows([
         { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6' },
         { kind: 'Trade', label: '', from: 'x', to: '' },
       ]),
     ).toEqual({
-      editions: null,
-      error: 'Edition 2: give it a kind, a label and the issues it collects.',
+      books: null,
+      error: 'Book 2: give it a kind, a label and the issues it collects.',
     })
   })
 })
@@ -398,5 +399,23 @@ describe('bookFigures', () => {
       bookFigures([row({ kind: 'book_line', volumes_owned: 2 })])
         .volumesMissing,
     ).toBe(0)
+  })
+})
+
+describe('withoutLegacyEditions', () => {
+  const old = [{ kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }]
+
+  it('moves a stored payload’s editions to books', () => {
+    expect(withoutLegacyEditions({ issues_owned: '2', editions: old })).toEqual(
+      { issues_owned: '2', books: old },
+    )
+  })
+
+  it('lets books win, drops an empty list, and leaves other payloads alone', () => {
+    const books = [{ ...old[0], label: 'New' }]
+    expect(withoutLegacyEditions({ books, editions: old })).toEqual({ books })
+    expect(withoutLegacyEditions({ editions: [] })).toEqual({})
+    const plain = { issues_owned: '1' }
+    expect(withoutLegacyEditions(plain)).toBe(plain)
   })
 })

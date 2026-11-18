@@ -238,18 +238,28 @@ export function sortComics(rows, key) {
 /** The form's shelf formats, in the order the select lists them. */
 export const SHELF_FORMATS = ['singles', 'trades', 'omnibus']
 
-/** One blank edition row, as the form holds it: every field a string. */
-export const EMPTY_EDITION = { kind: '', label: '', from: '', to: '' }
+/**
+ * A payload safe to PATCH: a sitting saved before `books` existed holds
+ * `editions`, which the server no longer takes. Moved to `books` (if absent).
+ */
+export function withoutLegacyEditions(payload) {
+  if (!payload || !('editions' in payload)) return payload
+  const { editions, ...rest } = payload
+  return editions?.length && !rest.books ? { ...rest, books: editions } : rest
+}
+
+/** One blank book row, as the form holds it: every field a string. */
+export const EMPTY_BOOK = { kind: '', label: '', from: '', to: '' }
 
 /**
- * Stored editions as the form's rows: strings, so the inputs stay
+ * A comic's collected books as the form's rows: strings, so the inputs stay
  * controlled.
  *
- * @param {{kind: string, label: string, from: number, to: number}[]|null} editions
+ * @param {{kind: string, label: string, from: number, to: number}[]|null} books
  * @returns {{kind: string, label: string, from: string, to: string}[]}
  */
-export function editionRows(editions) {
-  return (editions ?? []).map(({ kind, label, from, to }) => ({
+export function bookRows(books) {
+  return (books ?? []).map(({ kind, label, from, to }) => ({
     kind,
     label,
     from: String(from),
@@ -260,16 +270,16 @@ export function editionRows(editions) {
 const ISSUE_NUMBER = /^\d+$/
 
 /**
- * The form's edition rows as the API's list. A row left wholly blank is
+ * The form's book rows as the API's list. A row left wholly blank is
  * dropped; a missing "to" means one issue. Only the shape is checked here
  * (every field filled, whole numbers): the API judges lengths, bounds and
  * order (spec, D7).
  *
  * @param {{kind: string, label: string, from: string, to: string}[]} rows
- * @returns {{editions: object[]|null, error: string|null}}
+ * @returns {{books: object[]|null, error: string|null}}
  */
-export function parseEditionRows(rows) {
-  const editions = []
+export function parseBookRows(rows) {
+  const books = []
   for (const [index, row] of (rows ?? []).entries()) {
     const kind = row.kind.trim()
     const label = row.label.trim()
@@ -278,13 +288,13 @@ export function parseEditionRows(rows) {
     if (!kind && !label && !from && !String(row.to).trim()) continue
     if (!kind || !label || !ISSUE_NUMBER.test(from) || !ISSUE_NUMBER.test(to)) {
       return {
-        editions: null,
-        error: `Edition ${index + 1}: give it a kind, a label and the issues it collects.`,
+        books: null,
+        error: `Book ${index + 1}: give it a kind, a label and the issues it collects.`,
       }
     }
-    editions.push({ kind, label, from: Number(from), to: Number(to) })
+    books.push({ kind, label, from: Number(from), to: Number(to) })
   }
-  return { editions: editions.length ? editions : null, error: null }
+  return { books: books.length ? books : null, error: null }
 }
 
 /**

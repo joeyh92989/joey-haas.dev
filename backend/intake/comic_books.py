@@ -13,7 +13,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from comics import MAX_ISSUE, RangeError, parse_ranges
+from comics import (
+    EDITION_KIND_MAX,
+    EDITION_LABEL_MAX,
+    MAX_EDITIONS,
+    MAX_ISSUE,
+    RangeError,
+    parse_ranges,
+)
 from importer import COMIC_EDITION_KINDS, MAX_REPRINT_NOTE
 
 FORMATS = ("single", "collected", "unknown")
@@ -109,6 +116,82 @@ def _whole(value: Any, field: str, label: str) -> int | None:
     return value
 
 
+LEGACY_EDITIONS = (
+    "Collected books are sent as `books`, not `editions`: intake writes them "
+    "as volumes, never as items.editions"
+)
+
+
+def refuse_legacy_editions(payload: Any) -> Any:
+    """Raises ValueError when a payload carries a non-empty `editions` (the
+    retired key, see `typed_books`); the payload is returned otherwise. Used
+    by the request schemas, so the refusal is a 422."""
+    if isinstance(payload, dict) and payload.get("editions"):
+        raise ValueError(LEGACY_EDITIONS)
+    return payload
+
+
+def legacy_editions_to_books(payload: Any) -> Any:
+    """For PATCH only: a payload stored before `books` existed carries
+    `editions`, and Check re-sends the whole stored payload on every edit, so
+    refusing it there would lose the edit. A non-empty `editions` becomes
+    `books` (same shape) and is dropped; when `books` is present it wins and
+    `editions` is just dropped. POST create and /add keep the 422
+    (`refuse_legacy_editions`): nothing legitimately sends it there."""
+    if not isinstance(payload, dict) or "editions" not in payload:
+        return payload
+    rest = {k: v for k, v in payload.items() if k != "editions"}
+    if payload["editions"] and "books" not in rest:
+        rest["books"] = payload["editions"]
+    return rest
+
+
+def typed_books(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """The collected books Details typed on a comic entry (`payload.books`,
+    rows of kind, label, from, to), checked and trimmed; `[]` when none.
+    Each becomes a volume at commit (`volume_plan.typed_plans`). Raises
+    BookEditError (field `books`), as the old editions rules did."""
+    payload = payload or {}
+    # A sitting typed before `books` existed still carries `editions`: read
+    # it the same, so nothing already typed is lost (new writes are refused).
+    raw = payload.get("books")
+    if raw is None:
+        raw = payload.get("editions")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise BookEditError("Collected books are a list.", "books")
+    if len(raw) > MAX_EDITIONS:
+        raise BookEditError(f"At most {MAX_EDITIONS} collected books.", "books")
+    books: list[dict[str, Any]] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            raise BookEditError("Each book needs a kind, a label and a range.", "books")
+        kind = str(row.get("kind") or "").strip()
+        label = str(row.get("label") or "").strip()
+        if not kind or len(kind) > EDITION_KIND_MAX:
+            raise BookEditError(
+                f"A book's kind is 1-{EDITION_KIND_MAX} characters.", "books"
+            )
+        if not label or len(label) > EDITION_LABEL_MAX:
+            raise BookEditError(
+                f"A book's label is 1-{EDITION_LABEL_MAX} characters.", "books"
+            )
+        low, high = row.get("from"), row.get("to")
+        if not all(isinstance(n, int) and not isinstance(n, bool) for n in (low, high)):
+            raise BookEditError(f"{label}: collects needs two issue numbers.", "books")
+        if not (1 <= low <= MAX_ISSUE and 1 <= high <= MAX_ISSUE):
+            raise BookEditError(
+                f"{label}: issue numbers run 1 to {MAX_ISSUE}.", "books"
+            )
+        if low > high:
+            raise BookEditError(
+                f"{label}: collects #{low}-{high} runs backwards.", "books"
+            )
+        books.append({"kind": kind, "label": label, "from": low, "to": high})
+    return books
+
+
 def edit_book(old: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]:
     """`new` payload with its book fields checked, and `number_source`
     decided here: a changed number is `typed` (none when cleared), an
@@ -119,6 +202,10 @@ def edit_book(old: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]
     """
     old = old or {}
     out = dict(new)
+    if "books" in new:
+        out["books"] = typed_books(new)
+        if not out["books"]:
+            del out["books"]
     if "issue_number" in new:
         number = _whole(new["issue_number"], "issue_number", "The issue number")
         out["issue_number"] = number

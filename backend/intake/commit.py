@@ -17,13 +17,15 @@ An entry's state decides what happens to it:
 A comic is one row per series, so its entries (written or owned) are never
 dropped as repeats: their issues are joined into one new row, or added to
 the series already on the shelf by Got it's rule (`issues_added`). The
-issues a series gains are the typed ones its editions did not hold before
+issues a series gains are the typed ones its volumes did not hold before
 this commit, so they are written loose as typed, in a sitting and in the
-add bar alike. A series gaining neither issues nor an edition is
-`already_owned`; one gaining only an edition is grown. Each series already
-on the shelf is also reported on its own (`series_grew`): the issues it
-gained, the ones it held already, the editions it gained, and its run before
-and after, for Done's "Series that grew".
+add bar alike. The collected books Details typed (`payload.books`) are
+volumes too, written by the same code as a photographed book. A series
+gaining neither issues nor a volume is `already_owned`; one gaining only a
+volume is grown. Each series already on the shelf is also reported on its
+own (`series_grew`): the issues it gained, the ones it held already, the
+typed books it gained (`editions_added`, a name PR 4 may change), and its
+run before and after, for Done's "Series that grew".
 
 A photo not yet read (uploaded, reading or failed) is kept too, and counted
 as `photos_waiting`: committing mid-read never loses a photo. The sitting
@@ -60,10 +62,10 @@ from comics import (
     row_run,
     sync_marks,
     union,
-    validate_editions,
 )
 from comics_routes import got_issues
 from formats import CopyFieldError
+from intake.comic_books import BookEditError, typed_books
 from intake.kinds import REGISTRY, Kind
 from intake.link_import import entry_key as link_key
 from intake.link_import import is_link
@@ -86,6 +88,8 @@ from intake.volume_plan import (
     is_book,
     preview,
     title_key,
+    typed_key,
+    typed_plans,
     unshared_series,
     write_volume,
 )
@@ -416,12 +420,6 @@ def shelf_row(kind: Kind, entry: IntakeEntry) -> dict[str, Any]:
         row["year"] = payload["detected_year"]
     row.setdefault("status", ItemStatus.BACKLOG.value)
     row["is_public"] = False
-    if kind.source is ItemType.COMIC and row.get("shelf_format") not in {
-        collected.value for collected in _COLLECTED
-    }:
-        # Editions are only for collected formats: a row switched back to
-        # singles keeps none, and is not refused for ones it no longer shows.
-        row.pop("editions", None)
     return row
 
 
@@ -637,19 +635,17 @@ def _is_comic(kind: Kind | None) -> bool:
 class _Series:
     """One comic series in a sitting: the first written entry's row (None
     when every entry was marked owned), every entry's issue ranges, and the
-    shelf format and collected editions Details set (the first entry that has
-    each)."""
+    shelf format Details set (the first entry that has one)."""
 
     row: ItemIn | None = None
     entry: IntakeEntry | None = None
     issues: list[str | None] = field(default_factory=list)
     shelf_format: ComicShelfFormat | None = None
-    # (entry, editions) of each entry that carries some, in commit order.
-    editions: list[tuple[IntakeEntry, list[dict]]] = field(default_factory=list)
     # True when `shelf_format` is only what a collected book implies, not
     # something Details set: it never overrides a series' own format.
     shelf_derived: bool = False
-    # (entry, row) of each collected book, owned or not: each is a volume.
+    # (entry, row) of each entry that brings volumes, owned or not: a
+    # photographed collected book, or an entry with Details' typed books.
     books: list[tuple[IntakeEntry, ItemIn]] = field(default_factory=list)
     # The books whose volume is not written yet, with what each would be.
     fresh: list[tuple[IntakeEntry, ItemIn, VolumePlan]] = field(default_factory=list)
@@ -674,46 +670,69 @@ class _Loose:
 _COLLECTED = (ComicShelfFormat.TRADES, ComicShelfFormat.OMNIBUS)
 
 
-def _entry_editions(made: ItemIn) -> list[dict]:
-    """The editions an entry's row brings: only a trades or omnibus row, so a
-    row switched back to singles writes none left over."""
-    return list(made.editions or []) if made.shelf_format in _COLLECTED else []
+def _typed_books(entry: IntakeEntry, made: ItemIn) -> list[dict] | Refusal:
+    """The collected books Details typed on this entry (`payload.books`):
+    only a trades or omnibus row of an entry that is not a photographed book
+    or marked owned, so a row switched back to singles writes none. A book
+    the write rules refuse is a refusal on field `books`."""
+    if (
+        entry.state is S.OWNED
+        or is_book(entry.payload)
+        or made.shelf_format not in _COLLECTED
+    ):
+        return []
+    try:
+        return typed_books(entry.payload)
+    except BookEditError as error:
+        return Refusal(entry.id, "books", str(error))
+
+
+def _typed_of(entry: IntakeEntry, made: ItemIn) -> list[dict]:
+    """`_typed_books` for an entry already checked: no refusal is possible."""
+    typed = _typed_books(entry, made)
+    return [] if isinstance(typed, Refusal) else typed
+
+
+def _book_plans(
+    entry: IntakeEntry,
+    made: ItemIn,
+    item: Item | None,
+    chosen: dict[str, Any] | None,
+    typed: list[dict],
+) -> list[VolumePlan]:
+    """The volumes an entry writes: its one photographed book, or each book
+    Details typed. The one place both are planned, so the sitting and the
+    add bar write the same volumes."""
+    if is_book(entry.payload):
+        return [book_plan(entry.payload or {}, made.model_dump(), item, chosen)]
+    return typed_plans(entry.id, typed, made.title)
+
+
+def _volume_ids(entry: IntakeEntry, made: ItemIn, typed: list[dict]) -> list[uuid.UUID]:
+    """The `intake_entry_id`s this entry's volumes are written under."""
+    if is_book(entry.payload):
+        return [entry.id]
+    return [typed_key(entry.id, index) for index in range(len(typed))]
+
+
+def _typed_json(plan: VolumePlan) -> dict[str, Any]:
+    """A typed book as Done lists it ("adds Vol. 1 (Trade, #1-6)")."""
+    low, high = plan.collects[0].link
+    return {
+        "kind": plan.kind_raw or plan.kind,
+        "label": plan.label,
+        "from": low,
+        "to": high,
+    }
 
 
 def _clear_skips(item: Item, editions: list[dict]) -> None:
-    """An edition that now covers a skipped issue takes it out of the
+    """A volume that now covers a skipped issue takes it out of the
     skipped ones (Got it's rule), canonicalised through comics.py."""
     skipped = expand(parse_ranges(item.issues_skipped))
     covered = skipped & edition_issues(editions)
     if covered:
         item.issues_skipped = format_ranges(skipped - covered) or None
-
-
-def _editions_gained(held: list[dict] | None, merged: list[dict] | None) -> list[dict]:
-    """The editions `merged` has that `held` lacks (by kind, label and range)."""
-    keys = ("kind", "label", "from", "to")
-    had = {tuple(edition.get(key) for key in keys) for edition in held or []}
-    return [
-        edition
-        for edition in merged or []
-        if tuple(edition.get(key) for key in keys) not in had
-    ]
-
-
-def _merged_editions(held: list[dict] | None, added: list[dict]) -> list[dict] | None:
-    """`held` plus the `added` ones it lacks (an identical kind, label and
-    range is not added twice), canonical. Raises RangeError."""
-
-    def core(edition: dict) -> tuple:
-        return tuple(edition.get(key) for key in ("kind", "label", "from", "to"))
-
-    merged = list(held or [])
-    seen = {core(edition) for edition in merged}
-    for edition in added:
-        if core(edition) not in seen:
-            seen.add(core(edition))
-            merged.append(edition)
-    return validate_editions(merged, held) or None
 
 
 def _volume_json(volume: ComicVolume, title: Item, created: bool) -> dict[str, Any]:
@@ -746,7 +765,9 @@ async def _write_volumes(
     counted again."""
     made = 0
     for entry, _, plan in fresh:
-        volume, created = await write_volume(session, title, entry.id, plan)
+        volume, created = await write_volume(
+            session, title, plan.entry_key or entry.id, plan
+        )
         if not created:
             continue
         made += 1
@@ -988,21 +1009,38 @@ async def commit_one(
         return outcome
     key = _key(made.model_dump())
     book = _is_comic(kind) and is_book(payload)
-    if book and entry.id in await existing_volumes(session, [entry.id]):
-        outcome.already_owned = 1  # this book's volume is written already
+    typed = _typed_books(entry, made) if _is_comic(kind) else []
+    if isinstance(typed, Refusal):
+        outcome.refused.append(typed)
         return outcome
-    if book and key is None:
-        # No series match: the book goes on the title of its name when there
+    # What the entry writes as volumes: its photographed book, or the books
+    # Details typed. One that is written already (a second commit of the
+    # entry) is not written again.
+    volumes = book or bool(typed)
+    ids = _volume_ids(entry, made, typed) if volumes else []
+    written = await existing_volumes(session, ids) if ids else {}
+
+    def fresh_for(item: Item | None) -> list[tuple[IntakeEntry, ItemIn, VolumePlan]]:
+        return [
+            (entry, made, p)
+            for p in _book_plans(entry, made, item, chosen, typed)
+            if (p.entry_key or entry.id) not in written
+        ]
+
+    if volumes and not fresh_for(None):
+        outcome.already_owned = 1  # this entry's volumes are written already
+        return outcome
+    if volumes and key is None:
+        # No series match: the volumes go on the title of its name when there
         # is one (made by hand, or for an earlier book), else on a new one.
         reuse = (await find_manual_titles(session, [made.title], lock=True)).get(
             title_key(made.title)
         )
         if reuse is not None:
-            plan = book_plan(payload, made.model_dump(), reuse, chosen)
             wrote = await _write_volumes(
                 session,
                 reuse,
-                [(entry, made, plan)],
+                fresh_for(reuse),
                 title_created=False,
                 volumes_new=outcome.volumes_new,
                 titles_created=outcome.titles_created,
@@ -1021,26 +1059,18 @@ async def commit_one(
                 on_shelf.issues_owned,
                 held_ranges(await load_holds(session, on_shelf.id)),
             )
-            added = _entry_editions(made)
-            merged = on_shelf.editions
-            if added:
-                try:
-                    merged = _merged_editions(on_shelf.editions, added)
-                except RangeError as error:
-                    outcome.refused.append(Refusal(entry.id, "editions", str(error)))
-                    return outcome
-            grew.editions_added = _editions_gained(on_shelf.editions, merged)
-            on_shelf.editions = merged
-            _clear_skips(on_shelf, grew.editions_added)
             if made.shelf_format is not None:
                 on_shelf.shelf_format = made.shelf_format
             wrote = 0
-            if book:
-                plan = book_plan(payload, made.model_dump(), on_shelf, chosen)
+            if volumes:
+                fresh = fresh_for(on_shelf)
+                grew.editions_added = [
+                    _typed_json(p) for _, _, p in fresh if p.source == "typed"
+                ]
                 wrote = await _write_volumes(
                     session,
                     on_shelf,
-                    [(entry, made, plan)],
+                    fresh,
                     title_created=False,
                     volumes_new=outcome.volumes_new,
                     titles_created=outcome.titles_created,
@@ -1049,14 +1079,12 @@ async def commit_one(
                 outcome.issues_added = await got_issues(
                     session, on_shelf, gained, today
                 )
-            elif not grew.editions_added and not wrote:
+            elif not wrote:
                 outcome.already_owned = 1
             await sync_marks(session, on_shelf)
             await grew.after_write(session)
             outcome.series_grew.append(grew)
             return outcome
-    if made.editions and not _entry_editions(made):
-        made = made.model_copy(update={"editions": None})
     try:
         result = await commit_items(session, [made], today=today)
     except RowRefused as refused:
@@ -1065,7 +1093,7 @@ async def commit_one(
     outcome.created = result.created
     outcome.added = len(result.created)
     outcome.already_owned = result.existing + result.duplicates
-    if book:
+    if volumes:
         # The title is the row just made, or the one a second writer made
         # first (a matched series is found by its key).
         title = None
@@ -1078,11 +1106,10 @@ async def commit_one(
                 )
             )
         if title is not None:
-            plan = book_plan(payload, made.model_dump(), None, chosen)
             if await _write_volumes(
                 session,
                 title,
-                [(entry, made, plan)],
+                fresh_for(None),
                 title_created=bool(result.created),
                 volumes_new=outcome.volumes_new,
                 titles_created=outcome.titles_created,
@@ -1249,6 +1276,10 @@ async def commit_sitting(
             outcome.refused.append(made)
             continue
         key = _key(made.model_dump())
+        typed = _typed_books(entry, made) if _is_comic(kind) else []
+        if isinstance(typed, Refusal):
+            outcome.refused.append(typed)
+            continue
         if key is not None and _is_comic(kind):
             # Every photo of one series is one row: its issues are joined.
             found = series.setdefault(key, _Series())
@@ -1259,16 +1290,15 @@ async def commit_sitting(
                     made.shelf_format is not None
                     and "shelf_format" not in (entry.payload or {})
                 )
-            if not owned_comic and (added := _entry_editions(made)):
-                found.editions.append((entry, added))
-            if is_book(entry.payload):
+            if is_book(entry.payload) or typed:
                 found.books.append((entry, made))
             if found.row is None and not owned_comic:
                 found.row, found.entry = made, entry
             continue
-        if key is None and _is_comic(kind) and is_book(entry.payload):
+        if key is None and _is_comic(kind) and (is_book(entry.payload) or typed):
             # A collected book with no series match is a title of its own;
-            # books of one name share it (a line).
+            # books of one name share it (a line). So are the books Details
+            # typed for a comic kept as typed.
             if owned_comic:
                 continue  # marked owned: counted above, nothing to write
             loose = unmatched.setdefault(title_key(made.title), _Loose(made, entry))
@@ -1290,17 +1320,20 @@ async def commit_sitting(
     # A collected book is a volume of its own, one per intake entry: the same
     # issues in two books are two books. An entry whose volume exists (a
     # second commit of it) writes nothing more.
+    every_book = [b for f in series.values() for b in f.books] + [
+        b for loose in unmatched.values() for b in loose.books
+    ]
     written = await existing_volumes(
         session,
-        [e.id for f in series.values() for e, _ in f.books]
-        + [e.id for loose in unmatched.values() for e, _ in loose.books],
+        [i for e, made in every_book for i in _volume_ids(e, made, _typed_of(e, made))],
     )
 
     def plan_books(books, item):
         return [
-            (e, made, book_plan(e.payload or {}, made.model_dump(), item, e.chosen))
+            (e, made, plan)
             for e, made in books
-            if e.id not in written
+            for plan in _book_plans(e, made, item, e.chosen, _typed_of(e, made))
+            if (plan.entry_key or e.id) not in written
         ]
 
     reused = await find_manual_titles(
@@ -1312,64 +1345,32 @@ async def commit_sitting(
         if not loose.fresh:
             outcome.already_owned += 1
             continue
-        # Every book's Details editions go on the one title.
-        brought = [e for _, made, _ in loose.fresh for e in _entry_editions(made)]
-        if not brought:
-            continue
-        try:
-            merged = _merged_editions(
-                loose.item.editions if loose.item is not None else None, brought
-            )
-        except RangeError as error:
-            outcome.refused.append(
-                Refusal(loose.fresh[0][0].id, "editions", str(error))
-            )
-            continue
-        if loose.item is not None:
-            _clear_skips(loose.item, _editions_gained(loose.item.editions, merged))
-            loose.item.editions = merged
-        else:
-            loose.row = loose.row.model_copy(update={"editions": merged})
-    # Settle every series' editions first: a refusal anywhere leaves every
-    # item untouched, whether or not the caller rolls back.
-    plans: list[tuple[_Series, Item | None, set[int], list[dict] | None]] = []
+    # Plan every series' volumes first (typed books are checked above): a
+    # refusal anywhere leaves every item untouched.
+    plans: list[tuple[_Series, Item | None, set[int]]] = []
     for key, found in series.items():
         item = on_shelf.get(key)
         found.fresh = plan_books(found.books, item)
-        merged = item.editions if item is not None else None
-        # The editions Details set (a typed `editions` list), not a book:
-        # a collected book is a volume (above), never an edition.
-        brought = [e for _, eds in found.editions for e in eds]
-        if brought:
-            try:
-                merged = _merged_editions(merged, brought)
-            except RangeError as error:
-                outcome.refused.append(
-                    Refusal(found.editions[0][0].id, "editions", str(error))
-                )
-                continue
         issues = expand(parse_ranges(union(*found.issues)))
-        plans.append((found, item, issues, merged))
-    if outcome.refused:
-        return outcome
+        plans.append((found, item, issues))
 
     gains: list[tuple[Item, set[int]]] = []
-    for found, item, issues, merged in plans:
+    for found, item, issues in plans:
         if item is None and found.row is None and found.fresh:
             # Every other entry was marked owned and the series has gone
             # since: its book makes it.
             found.entry, found.row = found.fresh[0][0], found.fresh[0][1]
         if item is not None:
             grew = await SeriesGrew.before_write(session, item, issues)
-            # What the typed issues add is judged against the editions the
-            # row had, so they are written loose exactly as typed (as in
+            # What the typed issues add is judged against the volumes the
+            # title had, so they are written loose exactly as typed (as in
             # `commit_one`).
             gained = issues - owned_set(
                 item.issues_owned, held_ranges(await load_holds(session, item.id))
             )
-            grew.editions_added = _editions_gained(item.editions, merged)
-            item.editions = merged
-            _clear_skips(item, grew.editions_added)
+            grew.editions_added = [
+                _typed_json(p) for _, _, p in found.fresh if p.source == "typed"
+            ]
             outcome.series_grew.append(grew)
             # What Details set wins; what a collected book implies only
             # fills a format the series has not got.
@@ -1379,7 +1380,7 @@ async def commit_sitting(
                 item.shelf_format = found.shelf_format
             if gained:
                 gains.append((item, gained))
-            elif not grew.editions_added and not found.fresh:
+            elif not found.fresh:
                 outcome.already_owned += 1
         elif found.row is None:
             # Marked owned, but the row has gone since: written as before,
@@ -1392,8 +1393,7 @@ async def commit_sitting(
                 new_row = new_row.model_copy(
                     update={"shelf_format": found.shelf_format}
                 )
-            new_row = new_row.model_copy(update={"editions": merged})
-            if issues or merged or found.fresh:
+            if issues or found.fresh:
                 outcome.series_new.append(
                     {
                         "title": new_row.title,
@@ -1401,7 +1401,11 @@ async def commit_sitting(
                         "external_id": new_row.external_id,
                         "cover_url": new_row.cover_url,
                         "issues": sorted(issues),
-                        "editions": merged or [],
+                        "editions": [
+                            _typed_json(p)
+                            for _, _, p in found.fresh
+                            if p.source == "typed"
+                        ],
                         "volumes": [
                             {"label": p.label, "kind": p.kind}
                             for _, _, p in found.fresh
@@ -1461,7 +1465,7 @@ async def commit_sitting(
     # The volumes go on titles now all exist: the shelf's own (locked above),
     # the series just made, and the titles made for books with no match.
     made_ids = set(result.created) | set(loose_made)
-    synced = {item.id: item for _, item, _, _ in plans if item is not None}
+    synced = {item.id: item for _, item, _ in plans if item is not None}
     new_titles = await _made_titles(session, series, on_shelf)
     new_titles += [
         (loose.item, loose.fresh)

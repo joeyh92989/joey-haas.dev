@@ -251,27 +251,39 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained; a
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
-  collected `editions` set in Details (the last writer of `items.editions`:
-  the item API refuses it since retire-plan PR 3, and a typed entry has no
-  photographed book to become a volume) count only on a trades or omnibus row
-  (a singles row writes none, and a stale invalid edition on a row switched
-  back to singles is dropped before validation, never refused). They are merged: a new series' row gets every
-  such entry's editions, and a series already on the shelf gets them added to
-  the editions it holds, an identical kind, label and range once only, all
-  re-checked by `comics.validate_editions`. An edition the write rules refuse
-  is a refusal on field `editions`; every series' merged editions are checked
-  before any item is changed, so a refused sitting writes and mutates nothing.
+  collected books set in Details (`payload.books`, rows of kind, label, from,
+  to) are volumes, written by the same code as a photographed book
+  (`volume_plan.typed_plans`, `commit._write_volumes`): one `vol-<n>` volume
+  per book (owned, unread, `edited`; kind mapped by
+  `comics.volume_kind_from_edition`, the typed text kept in `kind_raw`), with
+  one `typed` collects row linked to the title and the range. They count only
+  on a trades or omnibus row of an entry that is not itself a photographed
+  book (a photographed book's one volume wins; `books` on it is ignored), so a
+  singles row writes none and a stale invalid book on it is never refused. A
+  book the write rules refuse (`comic_books.typed_books`) is a refusal on field
+  `books`, checked before any item is changed, so a refused sitting writes and
+  mutates nothing. The same issues in two books are two books (no
+  range-dedupe). Each book is idempotent under
+  `volume_plan.typed_key(entry_id, index)` (a uuid5 of the entry id, stored
+  in `intake_entry_id`), so a second commit of the entry writes none. An
+  entry kept as typed with no series match goes on the title of its name like
+  a photographed book with no match. Intake writes nothing to `items.editions`:
+  a non-empty `editions` on an entry, add or patch payload is a 422 (a
+  sitting typed before the rename still holds `editions`, which commit reads as
+  `books`). A volume's covered range clears the skips it covers (Got it's
+  rule), as before.
   One rule counts what a series gains, in a sitting and in the add bar:
-  the typed issues not held before the commit's editions merged in are
-  written loose as typed (`issues_added`), and the editions it gains are
-  listed apart. A series gaining neither issues nor an edition is
-  `already_owned`; one gaining only an edition is grown, not already owned.
+  the typed issues not held before the commit (loose or through volumes) are
+  written loose as typed (`issues_added`), and the typed books it gains are
+  listed apart (`editions_added`, same `{kind, label, from, to}` shape; the
+  name stays until PR 4). A series gaining neither issues nor a volume is
+  `already_owned`; one gaining only a volume is grown, not already owned.
   Each such series is also reported on its own in `series_grew`
   (`SeriesGrew`): `{item_id, title, is_public, cover_url, before: {owned,
   released}, ongoing, added, already, editions_added, after_owned_text}`,
   where `added` and `already` split the typed issues against what the row
-  held before (loose or in an edition), and `editions_added` is the
-  editions it gained, for Done's "Series that grew". An issue already inside
+  held before (loose or in a volume), and `editions_added` is the
+  typed books it gained, for Done's "Series that grew". An issue already inside
   a stored edition is held, so it is neither gained nor written again as a
   loose single; a refused commit reports `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The

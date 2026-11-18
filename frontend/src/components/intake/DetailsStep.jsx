@@ -1,18 +1,31 @@
 import { useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { entryCover, entryTitle, WRITTEN_STATES } from '../../lib/intake.js'
-import { editionRows, parseEditionRows } from '../../lib/comics.js'
+import { bookRows, parseBookRows } from '../../lib/comics.js'
 import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
-import { EditionRows } from '../ItemForm.jsx'
+import { BookRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
 
-/** Shelf formats that hold collected editions; singles carry issues only. */
+/** Shelf formats that hold collected books; singles carry issues only. */
 const COLLECTED = ['trades', 'omnibus']
 
-/** Whether a row shows the editions editor (a comic on a collected format). */
-const showsEditions = (entry) =>
-  entry.kind === 'comic' && COLLECTED.includes(entry.payload?.shelf_format)
+/**
+ * Whether a row shows the collected-books editor: a comic on a collected
+ * format that is not itself a photographed book (that one is a volume
+ * already, set up in Check's books step; a second would double it).
+ */
+const showsBooks = (entry) =>
+  entry.kind === 'comic' &&
+  entry.payload?.format !== 'collected' &&
+  COLLECTED.includes(entry.payload?.shelf_format)
+
+/**
+ * The books a payload carries. A sitting typed before `books` existed holds
+ * them as `editions`: still read, and moved to `books` on the next save.
+ */
+const payloadBooks = (payload) =>
+  payload?.books ?? (payload?.editions?.length ? payload.editions : null)
 
 /** The kind's fields Details asks for: a comic's issues are typed in Check. */
 const detailFields = (kind) =>
@@ -92,12 +105,12 @@ export default function DetailsStep({
   const [drafts, setDrafts] = useState({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  // Edition rows being typed by entry id, and the shape error each one found.
-  // Each is {rows, base}: `base` is the payload's editions (as JSON) when
+  // Book rows being typed by entry id, and the shape error each one found.
+  // Each is {rows, base}: `base` is the payload's books (as JSON) when
   // the rows were last typed in, so a change from outside is told apart
   // from this row's own save.
   const [edits, setEdits] = useState({})
-  const [editionErrors, setEditionErrors] = useState({})
+  const [bookErrors, setBookErrors] = useState({})
   const saving = useRef(new Set())
   // The newest payload each entry is known to have, updated before a PATCH
   // goes out: two saves in a row build on each other, not on the render.
@@ -123,7 +136,10 @@ export default function DetailsStep({
    * maps the latest known payload to the one to send.
    */
   function savePayload(entry, change) {
-    const payload = change(currentPayload(entry) ?? {})
+    const { editions, ...rest } = change(currentPayload(entry) ?? {})
+    // The retired `editions` key is refused by the server: carry it as books.
+    const payload =
+      editions?.length && !rest.books ? { ...rest, books: editions } : rest
     latest.current[entry.id] = payload
     inFlight.current[entry.id] = (inFlight.current[entry.id] ?? 0) + 1
     const request = (async () => {
@@ -180,35 +196,36 @@ export default function DetailsStep({
   /** The editor's rows: what was typed, unless the payload moved under it. */
   function editorRows(entry) {
     const edit = edits[entry.id]
-    const saved = entry.payload?.editions ?? null
+    const saved = payloadBooks(entry.payload)
     if (edit && edit.base !== JSON.stringify(saved)) {
-      const { editions } = parseEditionRows(edit.rows)
-      if (JSON.stringify(editions) !== JSON.stringify(saved)) return null
+      const { books } = parseBookRows(edit.rows)
+      if (JSON.stringify(books) !== JSON.stringify(saved)) return null
     }
     return edit?.rows ?? null
   }
 
   /** Reads one row's editor, records its shape error and returns it. */
-  function readEditions(entry) {
+  function readBooks(entry) {
     const rows = editorRows(entry)
-    if (!rows) return { editions: undefined, error: null }
-    const { editions, error: shape } = parseEditionRows(rows)
-    setEditionErrors((old) => ({ ...old, [entry.id]: shape }))
-    return { editions, error: shape }
+    if (!rows) return { books: undefined, error: null }
+    const { books, error: shape } = parseBookRows(rows)
+    setBookErrors((old) => ({ ...old, [entry.id]: shape }))
+    return { books, error: shape }
   }
 
-  /** Edition rows lose focus: the whole list is read and saved at once. */
-  function saveEditions(entry) {
-    const { editions, error: shape } = readEditions(entry)
-    if (editions === undefined || shape) return
+  /** Book rows lose focus: the whole list is read and saved at once. */
+  function saveBooks(entry) {
+    const { books, error: shape } = readBooks(entry)
+    if (books === undefined || shape) return
     const same =
-      JSON.stringify(editions) ===
-      JSON.stringify(currentPayload(entry)?.editions ?? null)
+      JSON.stringify(books) ===
+      JSON.stringify(payloadBooks(currentPayload(entry)))
     if (same) return
     savePayload(entry, (payload) => {
       const rest = { ...payload }
+      delete rest.books
       delete rest.editions
-      return editions ? { ...rest, editions } : rest
+      return books ? { ...rest, books } : rest
     })
   }
 
@@ -216,8 +233,8 @@ export default function DetailsStep({
     // An editor left half filled stops the commit: say where, and go there.
     let blocked = null
     for (const entry of written) {
-      if (!showsEditions(entry)) continue
-      const { error: shape } = readEditions(entry)
+      if (!showsBooks(entry)) continue
+      const { error: shape } = readBooks(entry)
       if (shape && !blocked) blocked = entry
     }
     if (blocked) {
@@ -258,11 +275,11 @@ export default function DetailsStep({
                   .filter((f) => f.per_item)
                   .map((f) => f.key),
               )
-              const collected = showsEditions(entry)
+              const collected = showsBooks(entry)
               const loose = Object.entries(refused)
                 .filter(
                   ([key]) =>
-                    !perItem.has(key) && !(collected && key === 'editions'),
+                    !perItem.has(key) && !(collected && key === 'books'),
                 )
                 .map(([, message]) => message)
               return (
@@ -304,14 +321,14 @@ export default function DetailsStep({
                           if (
                             !event.currentTarget.contains(event.relatedTarget)
                           )
-                            saveEditions(entry)
+                            saveBooks(entry)
                         }}
                       >
-                        <EditionRows
+                        <BookRows
                           idPrefix={`row-${entry.id}`}
                           rows={
                             editorRows(entry) ??
-                            editionRows(entry.payload?.editions)
+                            bookRows(payloadBooks(entry.payload))
                           }
                           onChange={(rows) =>
                             setEdits((old) => ({
@@ -319,15 +336,15 @@ export default function DetailsStep({
                               [entry.id]: {
                                 rows,
                                 base: JSON.stringify(
-                                  entry.payload?.editions ?? null,
+                                  payloadBooks(entry.payload),
                                 ),
                               },
                             }))
                           }
                           error={
                             editorRows(entry)
-                              ? editionErrors[entry.id]
-                              : refused.editions
+                              ? bookErrors[entry.id]
+                              : refused.books
                           }
                         />
                       </div>

@@ -6,6 +6,7 @@ import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
 import { isBook, needsNumber, repeats } from '../../lib/comicBooks.js'
 import { seriesGrowth } from '../../lib/comicRun.js'
+import { withoutLegacyEditions } from '../../lib/comics.js'
 import {
   CHECK_STATES,
   entryCover,
@@ -170,7 +171,9 @@ export default function CheckStep({
         const response = await apiFetch(`/api/intake/entries/${entry.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payload: { ...base, ...changes } }),
+          body: JSON.stringify({
+            payload: withoutLegacyEditions({ ...base, ...changes }),
+          }),
         })
         if (!response.ok) {
           latest.current.set(entry.id, base)
@@ -236,13 +239,16 @@ export default function CheckStep({
 
   function saveIssues(entry, text) {
     return patch(entry, {
-      payload: { ...entry.payload, issues_owned: text || null },
+      payload: withoutLegacyEditions({
+        ...entry.payload,
+        issues_owned: text || null,
+      }),
     })
   }
 
   function toggle(entry, ticked) {
     if (ticked) {
-      const payload = { ...entry.payload }
+      const payload = withoutLegacyEditions({ ...entry.payload })
       const was = payload.was ?? 'exact'
       delete payload.unticked
       delete payload.was
@@ -250,7 +256,11 @@ export default function CheckStep({
     } else {
       patch(entry, {
         state: 'ignored',
-        payload: { ...entry.payload, unticked: true, was: entry.state },
+        payload: withoutLegacyEditions({
+          ...entry.payload,
+          unticked: true,
+          was: entry.state,
+        }),
       })
     }
   }
