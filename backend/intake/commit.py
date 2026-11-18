@@ -73,6 +73,7 @@ from intake.volume_plan import (
     is_book,
     preview,
     title_key,
+    unshared_series,
     write_volume,
 )
 from items import ItemIn, RowRefused, _write_fields, commit_items
@@ -275,6 +276,30 @@ def shelf_row(kind: Kind, entry: IntakeEntry) -> dict[str, Any]:
 def _key(row: dict[str, Any]) -> tuple[str, str] | None:
     source, external_id = row.get("external_source"), row.get("external_id")
     return (source, str(external_id)) if source and external_id else None
+
+
+def _placed(kind: Kind | None, entry: IntakeEntry) -> IntakeEntry:
+    """The entry as it is placed (#330). A collected book that matched a
+    series but does not share its title (`volume_plan.unshared_series`) is
+    placed as though it had no match: a transient copy (same id, so its
+    volume is still once per entry) whose `chosen` carries only the series'
+    name, so its row has the book's own title and no external id and it goes
+    to its own manual title. Every other entry is returned as it is. The one
+    place the commit, the add bar and Check's preview decide this, so they
+    cannot disagree."""
+    if not (_is_comic(kind) and is_book(entry.payload) and entry.chosen):
+        return entry
+    payload = entry.payload or {}
+    series = unshared_series(payload, shelf_row(kind, entry), entry.chosen)
+    if series is None:
+        return entry
+    return IntakeEntry(
+        id=entry.id,
+        kind=entry.kind,
+        state=entry.state,
+        payload=payload,
+        chosen={"series_title": series},
+    )
 
 
 def _validation_refusal(entry: IntakeEntry, error: ValidationError) -> Refusal:
@@ -610,7 +635,7 @@ async def series_on_shelf_for(
         kind = REGISTRY.get(entry.kind)
         if not _is_comic(kind):
             continue
-        key = _key(shelf_row(kind, entry))
+        key = _key(shelf_row(kind, _placed(kind, entry)))
         if key is not None:
             keys[entry.id] = key
     if not keys:
@@ -667,6 +692,7 @@ async def comic_adds_for(
         kind = REGISTRY.get(entry.kind)
         if not _is_comic(kind):
             continue
+        entry = _placed(kind, entry)
         made = _shelf_item(kind, entry)
         rows[entry.id] = (
             entry,
@@ -792,6 +818,8 @@ async def commit_one(
         outcome.garment_id = made.id
         outcome.added = 1
         return outcome
+    entry = _placed(kind, entry)  # an unshared book has no series match
+    chosen = entry.chosen
     made = _shelf_item(kind, entry)
     if isinstance(made, Refusal):
         outcome.refused.append(made)
@@ -953,7 +981,7 @@ async def commit_sitting(
         if entry.state is not S.OWNED:
             continue
         kind = REGISTRY.get(entry.kind)
-        key = _key(shelf_row(kind, entry)) if kind else None
+        key = _key(shelf_row(kind, _placed(kind, entry))) if kind else None
         if key is not None and _is_comic(kind):
             continue
         if key is None:
@@ -1046,6 +1074,7 @@ async def commit_sitting(
             else:
                 garments.append(made)
             continue
+        entry = _placed(kind, entry)  # an unshared book has no series match
         made = _shelf_item(kind, entry)
         if isinstance(made, Refusal):
             outcome.refused.append(made)

@@ -1231,18 +1231,29 @@ async def test_a_trade_with_a_new_range_is_added_to_the_series_on_the_shelf(
     await _seed_series(sessionmaker_for_test, editions=held)
     sitting_id = await _seed(
         sessionmaker_for_test,
-        entries=[("comic", S.OWNED, _trade(7, 12, detected_title="Vol. 2"), _series())],
+        entries=[
+            (
+                "comic",
+                S.OWNED,
+                _trade(7, 12, detected_title="Waterworld Vol. 2"),
+                _series(),
+            )
+        ],
     )
     async with client_for(sessionmaker_for_test) as client:
         response = await _commit(client, sitting_id)
     body = response.json()
     [grew] = body["series_grew"]
     assert grew["editions_added"] == []
-    assert [v["label"] for v in body["volumes_new"]] == ["Vol. 2"]
+    assert [v["label"] for v in body["volumes_new"]] == ["Waterworld Vol. 2"]
     [row] = await _items(sessionmaker_for_test)
     assert [(e["from"], e["to"]) for e in row.editions] == [(1, 6)]  # untouched
     [shim, new] = await _volumes(sessionmaker_for_test)
-    assert (shim.slug, new.slug, new.label) == ("ed-1-6", "vol-1", "Vol. 2")
+    assert (shim.slug, new.slug, new.label) == (
+        "ed-1-6",
+        "vol-1",
+        "Waterworld Vol. 2",
+    )
 
 
 @pytest.mark.asyncio
@@ -1250,8 +1261,8 @@ async def test_two_photos_of_one_trade_in_a_sitting_are_two_books(
     sessionmaker_for_test,
 ):
     entries = [
-        ("comic", S.EXACT, _trade(detected_title="Vol. 1"), _series()),
-        ("comic", S.EXACT, _trade(detected_title="Volume One"), _series()),
+        ("comic", S.EXACT, _trade(detected_title="Waterworld Vol. 1"), _series()),
+        ("comic", S.EXACT, _trade(detected_title="Waterworld Volume One"), _series()),
     ]
     sitting_id = await _seed(sessionmaker_for_test, entries=entries)
     async with client_for(sessionmaker_for_test) as client:
@@ -1260,7 +1271,7 @@ async def test_two_photos_of_one_trade_in_a_sitting_are_two_books(
     assert row.editions is None
     volumes = await _volumes(sessionmaker_for_test)
     assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2"]
-    assert {v.label for v in volumes} == {"Vol. 1", "Volume One"}
+    assert {v.label for v in volumes} == {"Waterworld Vol. 1", "Waterworld Volume One"}
 
 
 @pytest.mark.asyncio
