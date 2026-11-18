@@ -1,7 +1,7 @@
 """drop items.editions
 
-Revision ID: 0025
-Revises: 0024
+Revision ID: 0026
+Revises: 0025
 Create Date: 2026-11-18
 
 DESTRUCTIVE: drops the column `items.editions` (JSONB, added by 0010). Retire
@@ -34,8 +34,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0025"
-down_revision: str | None = "0024"
+revision: str = "0026"
+down_revision: str | None = "0025"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
