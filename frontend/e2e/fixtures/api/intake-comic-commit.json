@@ -1,0 +1,42 @@
+{
+  "series_new": [],
+  "added": 3,
+  "already_owned": 0,
+  "issues_added": 0,
+  "series_grew": [],
+  "skipped_kept": 0,
+  "photos_empty": 0,
+  "photos_waiting": 0,
+  "images_missing": 0,
+  "file_import": null,
+  "refused": [],
+  "created": ["11111111-1111-1111-1111-111111111111"],
+  "volumes_new": [
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "slug": "vol-2",
+      "label": "Saga Book Two",
+      "kind": "hardcover",
+      "line_number": 2,
+      "title": "Saga",
+      "title_id": "11111111-1111-1111-1111-111111111111",
+      "title_created": false
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000009",
+      "slug": "vol-1",
+      "label": "Hidden Run",
+      "kind": "ogn",
+      "line_number": null,
+      "title": "Hidden Run",
+      "title_id": "22222222-2222-2222-2222-222222222222",
+      "title_created": true
+    }
+  ],
+  "titles_created": [
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "title": "Hidden Run"
+    }
+  ]
+}
