@@ -65,6 +65,7 @@ from intake.place_kind import (
     clean_name,
     edit_place,
     mark_for_count,
+    not_ready_reason,
     owned_spot_id,
 )
 from intake.reader import read_next
@@ -787,7 +788,7 @@ def create_intake_router(
     ) -> dict[str, Any]:
         """Add a place to a places sitting: a chosen search result (its mark
         from the count of results, `mark_for_count`) or one typed by hand
-        (READY when its coordinates parse, else CHECK). 409 when the place is
+        (READY; coordinates that do not parse are a 422). 409 when the place is
         already a spot or already in this sitting, 422 for a bad tag or a
         result that fails the checks of `clean_chosen`.
 
@@ -826,14 +827,9 @@ def create_intake_router(
                 state = mark_for_count(body.result_count)
             else:
                 payload["name"] = clean_name(body.name)
-                try:
-                    lat, lng = spots.parse_coords(body.coords or "")
-                except ValueError:
-                    payload["coords"] = body.coords
-                    state = IntakeEntryState.CHECK
-                else:
-                    payload.update(lat=lat, lng=lng)
-                    state = IntakeEntryState.READY
+                lat, lng = spots.parse_coords(body.coords or "")
+                payload.update(lat=lat, lng=lng)
+                state = IntakeEntryState.READY
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         if "lat" in payload and await owned_spot_id(
@@ -921,6 +917,7 @@ def create_intake_router(
         entry = await session.get(IntakeEntry, entry_id)
         if entry is None:
             raise HTTPException(404, "No such entry")
+        want_state: IntakeEntryState | None = None
         for field in body.model_fields_set:
             value = getattr(body, field)
             if field == "state" and value is None:
@@ -932,7 +929,15 @@ def create_intake_router(
                         value = edit_place(entry.payload or {}, value)
                     except ValueError as error:
                         raise HTTPException(422, str(error)) from error
-                elif field in ("state", "chosen"):
+                elif field == "state":
+                    # Checked after the loop, against the payload as edited.
+                    if value not in (IntakeEntryState.READY, IntakeEntryState.CHECK):
+                        raise HTTPException(
+                            422, "A place can only be marked ready or to check"
+                        )
+                    want_state = value
+                    continue
+                elif field == "chosen":
                     continue
             if field == "payload" and value is not None and entry.kind == "garment":
                 value = (
@@ -948,6 +953,13 @@ def create_intake_router(
                         422, {"message": str(error), "field": error.field}
                     ) from error
             setattr(entry, field, value)
+        if want_state is not None:
+            # The owner pressing Save is the confirmation; READY still needs
+            # a name and a position, read from the stored payload.
+            reason = not_ready_reason(entry.payload or {})
+            if want_state is IntakeEntryState.READY and reason:
+                raise HTTPException(422, reason)
+            entry.state = want_state
         await session.commit()
         [shown] = await entries_json(session, [entry])
         return shown

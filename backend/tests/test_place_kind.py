@@ -250,7 +250,7 @@ async def test_typed_place_is_ready_when_the_coordinates_parse(sessionmaker_for_
     assert good.json()["state"] == "ready"
     assert good.json()["payload"]["lat"] == pytest.approx(39.75)
     assert good.json()["chosen"] is None
-    assert bad.json()["state"] == "check"
+    assert bad.status_code == 422
     assert nameless.status_code == 422
     assert wrong_tag.status_code == 422
 
@@ -296,7 +296,7 @@ async def test_patch_edits_only_the_owner_fields(monkeypatch, sessionmaker_for_t
         patched = await client.patch(
             url,
             json={
-                "state": "ignored",
+                "state": "ready",
                 "chosen": {"source_id": "node/1", "map_url": "https://evil.test/"},
                 "payload": {
                     "name": "Red Rocks",
@@ -516,3 +516,120 @@ def test_non_finite_coordinates_are_refused(bad):
     for key in ("lat", "lng"):
         with pytest.raises(ValueError):
             place_kind.clean_chosen({**row, key: bad})
+
+
+# --- fix round 2 -------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_typed_bad_coordinates_create_no_entry(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"name": "My rock", "coords": "nope"},
+        )
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert response.status_code == 422
+    assert "latitude" in response.json()["detail"]
+    assert shown["entries"] == []
+
+
+async def check_entry(monkeypatch, client):
+    patch_search(monkeypatch, SearchOk(hits("several")))
+    rows = (
+        await client.get("/api/intake/search", params={"area": "places", "query": "s"})
+    ).json()["results"]
+    sitting = (await new_sitting(client)).json()
+    entry = (
+        await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"chosen": rows[0], "result_count": 5},
+        )
+    ).json()
+    assert entry["state"] == "check"
+    return sitting, entry
+
+
+@pytest.mark.asyncio
+async def test_a_check_entry_can_be_made_ready_and_back(
+    monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entry = await check_entry(monkeypatch, client)
+        url = f"/api/intake/entries/{entry['id']}"
+        ready = await client.patch(url, json={"state": "ready"})
+        shown = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+        back = await client.patch(url, json={"state": "check"})
+    assert ready.status_code == 200 and ready.json()["state"] == "ready"
+    assert shown["entries"][0]["state"] == "ready"
+    assert back.json()["state"] == "check"
+
+
+@pytest.mark.asyncio
+async def test_ready_needs_a_stored_position(sessionmaker_for_test):
+    from models import IntakeEntry, IntakeSitting
+
+    async with sessionmaker_for_test() as session:
+        sitting = IntakeSitting(area="places", kind="place")
+        session.add(sitting)
+        await session.flush()
+        entry = IntakeEntry(
+            sitting_id=sitting.id,
+            kind="place",
+            state=IntakeEntryState.CHECK,
+            payload={"name": "No position", "coords": "nope"},
+        )
+        session.add(entry)
+        await session.commit()
+        entry_id = str(entry.id)
+    async with client_for(sessionmaker_for_test) as client:
+        url = f"/api/intake/entries/{entry_id}"
+        # A request's own lat/lng never counts: only the stored payload does.
+        refused = await client.patch(
+            url, json={"state": "ready", "payload": {"lat": 39.7, "lng": -105.0}}
+        )
+        shown = await client.patch(url, json={"payload": {"name": "Still none"}})
+    assert refused.status_code == 422
+    assert "coordinates" in refused.json()["detail"]
+    assert shown.json()["state"] == "check"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("state", ["owned", "ignored", "typed", "exact", "nonsense"])
+async def test_an_other_state_is_a_422(state, monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        _, entry = await check_entry(monkeypatch, client)
+        response = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"state": state}
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_state_with_server_keys_still_changes_only_owner_fields(
+    monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        _, entry = await check_entry(monkeypatch, client)
+        response = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={
+                "state": "ready",
+                "chosen": {"source_id": "node/9"},
+                "payload": {
+                    "lat": 1.0,
+                    "lng": 2.0,
+                    "source_id": "node/9",
+                    "map_url": "https://evil.test/",
+                    "name": "Renamed",
+                },
+            },
+        )
+    shown = response.json()
+    assert shown["state"] == "ready"
+    assert shown["payload"]["name"] == "Renamed"
+    assert shown["payload"]["lat"] == entry["payload"]["lat"]
+    assert shown["payload"]["lng"] == entry["payload"]["lng"]
+    assert "source_id" not in shown["payload"] and "map_url" not in shown["payload"]
+    assert shown["chosen"] == entry["chosen"]

@@ -144,6 +144,21 @@ def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def not_ready_reason(payload: dict[str, Any]) -> str | None:
+    """Why a stored payload cannot be READY, else None: it needs a name and
+    a finite, in-range position, checked here from what is stored."""
+    try:
+        clean_name(payload.get("name"))
+    except ValueError:
+        return "This place has no name yet"
+    try:
+        _number(payload.get("lat"), -90, 90, "latitude")
+        _number(payload.get("lng"), -180, 180, "longitude")
+    except ValueError:
+        return "This place has no coordinates yet"
+    return None
+
+
 def edit_place(old: dict[str, Any], edit: dict[str, Any]) -> dict[str, Any]:
     """A Check edit of a place entry: only the owner's fields change, the
     server's keys (position, source) stay as they were."""
