@@ -37,7 +37,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import comic_contents
-from comics import MAX_ISSUE, shares_title
+from comics import MAX_ISSUE, shares_title, volume_kind_from_edition
 from intake.comic_books import EDITION_KINDS
 from models import ComicVolume, ComicVolumeCollect, Item, ItemType
 
@@ -74,6 +74,14 @@ class VolumePlan:
     kind: str
     line_number: int | None
     collects: tuple[CollectPlan, ...]
+    # How the volume's contents are recorded (`comic_volume_collects.source`:
+    # `photo` for a photographed book, `typed` for Details' collected books).
+    source: str = "photo"
+    # The idempotency key (`comic_volumes.intake_entry_id`) when it is not the
+    # entry's own id: a typed entry can type several books.
+    entry_key: uuid.UUID | None = None
+    # The kind as typed, when the volume's kind is a mapping of it.
+    kind_raw: str | None = None
 
 
 def _known(value: Any) -> int:
@@ -200,6 +208,38 @@ def book_plan(
         )
         collects.append(CollectPlan(series, found.issue_text, plain if own else None))
     return VolumePlan(title, label, kind, line, tuple(collects))
+
+
+def typed_plans(
+    entry_id: uuid.UUID, books: list[dict[str, Any]], title: str
+) -> list[VolumePlan]:
+    """The volumes a typed entry's collected books (`comic_books.typed_books`)
+    are: each a volume of its own (the same issues in two books are two
+    books), its range linked to the title, source `typed`. Each is keyed by
+    `typed_key`, so a second commit of the entry writes none again."""
+    plans = []
+    for index, book in enumerate(books):
+        low, high = book["from"], book["to"]
+        text = f"#{low}" if low == high else f"#{low}-{high}"
+        plans.append(
+            VolumePlan(
+                title,
+                book["label"][:LABEL_MAX],
+                volume_kind_from_edition(book["kind"]),
+                None,
+                (CollectPlan(title, text, (low, high)),),
+                source="typed",
+                entry_key=typed_key(entry_id, index),
+                kind_raw=book["kind"],
+            )
+        )
+    return plans
+
+
+def typed_key(entry_id: uuid.UUID, index: int) -> uuid.UUID:
+    """The `intake_entry_id` of an entry's `index`th typed book: derived from
+    the entry's id, so it is the same on every commit of the entry."""
+    return uuid.uuid5(entry_id, f"book-{index}")
 
 
 def title_key(name: str | None) -> str:
@@ -338,7 +378,7 @@ async def write_volume(
 ) -> tuple[ComicVolume, bool]:
     """Writes the plan's volume on `title` (a row the caller holds locked),
     owned, unread and `edited` (so the editions shim never touches it), with
-    its contents as `photo` entries. Returns `(volume, created)`: when the
+    its contents as `plan.source` entries. Returns `(volume, created)`: when the
     entry's volume exists already, as a second writer may have made it between
     the caller's look and this insert (the unique `intake_entry_id`), that
     volume and False."""
@@ -352,6 +392,7 @@ async def write_volume(
             slug=slug,
             label=plan.label,
             kind=plan.kind,
+            kind_raw=plan.kind_raw,
             line_number=plan.line_number,
             owned=True,
             read=False,
@@ -379,7 +420,7 @@ async def write_volume(
             position=index,
             series_name=collect.series_name,
             issue_text=collect.issue_text,
-            source="photo",
+            source=plan.source,
             item_id=title.id if collect.link else None,
             from_number=collect.link[0] if collect.link else None,
             to_number=collect.link[1] if collect.link else None,

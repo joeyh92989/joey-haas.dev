@@ -31,7 +31,9 @@ CHOSEN_FIELDS = (
     "cover_url",
     "creator",
 )
-ITEM_FIELDS = frozenset(ItemIn.model_fields)
+# `editions` is retired: a payload's collected books are `books`, written as
+# volumes (`intake/volume_plan.py`), never as the column.
+ITEM_FIELDS = frozenset(ItemIn.model_fields) - {"editions"}
 
 STATUS = FieldSpec("status", "Status", "select", select(ItemStatus))
 ACQUIRED = FieldSpec("acquired_at", "Acquired", "date")

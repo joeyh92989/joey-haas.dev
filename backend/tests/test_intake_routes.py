@@ -856,3 +856,36 @@ async def test_bodies_keep_their_exact_keys(sessionmaker_for_test):
         }  # fmt: skip
         budget = (await client.get("/api/intake/budget")).json()
         assert set(budget) == {"remaining", "enforced", "resets_at"}
+
+
+@pytest.mark.asyncio
+async def test_the_retired_editions_key_is_refused_on_create_and_patch(
+    sessionmaker_for_test,
+):
+    books = [{"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}]
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        url = f"/api/intake/sittings/{sitting['id']}/entries"
+        refused = await client.post(
+            url, json={"kind": "comic", "payload": {"editions": books}}
+        )
+        typed = await client.post(
+            url, json={"kind": "comic", "payload": {"books": books, "editions": []}}
+        )
+        entry = typed.json()
+        patched = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": {"editions": books}}
+        )
+        bad = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {"books": [{"kind": "Trade", "label": "", "from": 1}]}},
+        )
+        fine = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": {"books": books}}
+        )
+    assert refused.status_code == 422 and "books" in str(refused.json())
+    assert typed.status_code == 201, typed.text
+    assert patched.status_code == 422
+    assert bad.status_code == 422
+    assert fine.status_code == 200, fine.text
+    assert fine.json()["payload"] == {"books": books}
