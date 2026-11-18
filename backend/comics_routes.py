@@ -62,7 +62,6 @@ from comics_schemas import (
     ComicStateOut,
     ContentsParseIn,
     ContentsParseOut,
-    EditionLinkOut,
     IssueHitOut,
     IssuesSyncOut,
     MarkOut,
@@ -138,13 +137,6 @@ def _today() -> date:
 # Requests a create or a refresh may spend on issues: one page (up to 100
 # issues). The request waits on it, so the nightly sync finishes longer runs.
 ISSUE_SYNC_BUDGET = 1
-
-
-LINK_KEYS = ("cv_id", "cover_url", "large_url", "description")
-
-
-class LinkIn(BaseModel):
-    cv_id: int | None = Field(default=None, ge=1)
 
 
 IssueNumber = Annotated[int, Path(ge=1, le=MAX_ISSUE)]
@@ -2028,50 +2020,5 @@ def create_comics_router(
             "description": volume.description,
             "edited": volume.edited,
         }
-
-    @router.put("/{item_id}/editions/{slug}/link", response_model=EditionLinkOut)
-    async def link_edition(
-        item_id: uuid.UUID,
-        slug: str,
-        body: LinkIn,
-        session: AsyncSession = Depends(get_session),
-    ) -> dict:
-        """Links a collected edition to a Comic Vine issue (or unlinks it)."""
-
-        def locate(item: Item) -> tuple[list[dict], dict]:
-            editions = [dict(e) for e in item.editions or []]
-            slugs = edition_slugs(editions)
-            if slug not in slugs:
-                raise HTTPException(status_code=404, detail="No such edition")
-            edition = editions[slugs.index(slug)]
-            for key in LINK_KEYS:
-                edition.pop(key, None)
-            return editions, edition
-
-        item = await _comic(session, item_id)
-        editions, edition = locate(item)
-        if body.cv_id is not None:
-            await session.rollback()  # no row lock across the request
-            try:
-                issue = await source().fetch_issue(body.cv_id)
-            except SourceError as error:
-                raise _http_error_for(error) from error
-            if issue is None:
-                raise HTTPException(
-                    status_code=422, detail="Comic Vine has no such issue"
-                )
-            item = await _comic(session, item_id)
-            editions, edition = locate(item)  # it may have changed meanwhile
-            edition.update(
-                cv_id=issue.cv_id,
-                cover_url=issue.cover_url,
-                large_url=issue.large_url,
-                description=list(issue.description),
-            )
-        item.editions = editions
-        await sync_marks(session, item)
-        await session.commit()
-        await session.refresh(item)
-        return {"item_id": str(item.id), "editions": item.editions}
 
     return router

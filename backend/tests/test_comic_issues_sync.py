@@ -240,79 +240,12 @@ async def test_a_failed_sync_does_not_fail_create_or_refresh(sessionmaker_for_te
     assert await _count(sessionmaker_for_test) == 0
 
 
-async def _edition_item(factory, **edition):
-    base = {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}
-    return await _seed(factory, editions=[base | edition], is_public=True)
-
-
-async def test_link_edition_stores_cover_and_description(sessionmaker_for_test):
-    item_id = await _edition_item(sessionmaker_for_test)
-    source = PagingComicVine()
-    source.linkable[99] = _cv(99, 1)
-    async with client_for(sessionmaker_for_test, source) as client:
-        response = await client.put(
-            f"/api/comics/{item_id}/editions/ed-1-6/link", json={"cv_id": 99}
-        )
-        assert response.status_code == 200
-        stored = (await _row(sessionmaker_for_test, item_id)).editions[0]
-        assert stored["cv_id"] == 99
-        assert stored["cover_url"] == "https://img/99.jpg"
-        assert stored["large_url"] == "https://img/99-large.jpg"
-        assert stored["description"] == ["Para."]
-        assert stored["label"] == "Vol. 1"
-
-        missing = await client.put(
-            f"/api/comics/{item_id}/editions/ed-1-6/link", json={"cv_id": 5}
-        )
-        assert missing.status_code == 422
-
-        cleared = await client.put(
-            f"/api/comics/{item_id}/editions/ed-1-6/link", json={"cv_id": None}
-        )
-        assert cleared.status_code == 200
-    assert (await _row(sessionmaker_for_test, item_id)).editions == [
-        {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}
-    ]
-
-
-async def test_link_unknown_slug_404(sessionmaker_for_test):
-    item_id = await _edition_item(sessionmaker_for_test)
-    async with client_for(sessionmaker_for_test, PagingComicVine()) as client:
-        response = await client.put(
-            f"/api/comics/{item_id}/editions/ed-9-9/link", json={"cv_id": 1}
-        )
-    assert response.status_code == 404
-
-
 async def test_issue_search(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, PagingComicVine()) as client:
         response = await client.get("/api/comics/issues/search?q=saga")
     assert response.status_code == 200
     assert response.json()[0]["cv_id"] == 7
     assert asdict(CvIssueHit(7, "Saga", "1", None, "https://img/t.jpg", 2012))
-
-
-async def test_resaving_an_edition_keeps_the_link(sessionmaker_for_test):
-    item_id = await _edition_item(
-        sessionmaker_for_test,
-        cv_id=99,
-        cover_url="https://img/99.jpg",
-        large_url="https://img/99-large.jpg",
-        description=["Para."],
-    )
-    source = PagingComicVine()
-    async with client_for(sessionmaker_for_test, source) as client:
-        response = await client.patch(
-            f"/api/items/{item_id}",
-            json={
-                "editions": [{"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}]
-            },
-        )
-    assert response.status_code == 200, response.text
-    stored = (await _row(sessionmaker_for_test, item_id)).editions[0]
-    assert stored["label"] == "Vol. 1"
-    assert stored["cv_id"] == 99
-    assert stored["cover_url"] == "https://img/99.jpg"
 
 
 async def test_a_series_deleted_mid_sync_does_not_stop_the_run(sessionmaker_for_test):
