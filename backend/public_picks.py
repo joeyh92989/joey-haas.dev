@@ -35,6 +35,7 @@ from datetime import UTC, date, datetime, time
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from comics import held_ranges, load_holds_many
 from facets import facets_of
 from models import Item, ItemType, PickAction, PickEvent
 from picker import (
@@ -117,10 +118,18 @@ async def load_public_inputs(session: AsyncSession, now: datetime) -> PublicInpu
     marks = await read_marks_by_item(
         session, [row.id for row in rows if row.type == ItemType.COMIC]
     )
+    holds = await load_holds_many(
+        session, [row.id for row in rows if row.type == ItemType.COMIC]
+    )
     return PublicInputs(
         rows={str(row.id): row for row in rows},
         items=[
-            to_picker_item(row, play=plays.get(row.id), read_marks=marks.get(row.id, 0))
+            to_picker_item(
+                row,
+                play=plays.get(row.id),
+                read_marks=marks.get(row.id, 0),
+                held=held_ranges(holds.get(row.id)),
+            )
             for row in rows
         ],
         never=frozenset(str(item_id) for item_id in never),

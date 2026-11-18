@@ -52,6 +52,9 @@ from comics import (
     edition_issues,
     expand,
     format_ranges,
+    held_ranges,
+    load_holds,
+    load_holds_many,
     owned_set,
     parse_ranges,
     row_run,
@@ -164,11 +167,12 @@ class Refusal:
         }
 
 
-def _run_of(item: Item) -> dict[str, Any]:
+def _run_of(item: Item, held: list[dict]) -> dict[str, Any]:
+    """The row's run; `held` is its owned volumes' `held_ranges`."""
     return row_run(
         item.issues_owned,
         item.issues_skipped,
-        item.editions,
+        held,
         item.read_to,
         item.source_metadata,
     )
@@ -189,19 +193,24 @@ class SeriesGrew:
     after_owned_text: str = ""
 
     @classmethod
-    def before_write(cls, item: Item, issues: set[int]) -> SeriesGrew:
-        held = owned_set(item.issues_owned, item.editions)
+    async def before_write(
+        cls, session: AsyncSession, item: Item, issues: set[int]
+    ) -> SeriesGrew:
+        """The run is the owned volumes' (what the shim has synced by now,
+        which is the row as it stood before this write)."""
+        ranges = held_ranges(await load_holds(session, item.id))
+        held = owned_set(item.issues_owned, ranges)
         return cls(
             item=item,
-            before=_run_of(item),
+            before=_run_of(item, ranges),
             added=sorted(issues - held),
             already=sorted(issues & held),
         )
 
-    def after_write(self) -> None:
-        self.after_owned_text = format_ranges(
-            owned_set(self.item.issues_owned, self.item.editions)
-        )
+    async def after_write(self, session: AsyncSession) -> None:
+        """Called after `sync_marks`, so the volumes carry what was written."""
+        ranges = held_ranges(await load_holds(session, self.item.id))
+        self.after_owned_text = format_ranges(owned_set(self.item.issues_owned, ranges))
 
     def as_json(self) -> dict[str, Any]:
         return {
@@ -802,12 +811,13 @@ async def series_on_shelf_for(
             )
         ).all()
     )
+    holds = await load_holds_many(session, [item.id for item in items.values()])
     shelf: dict[uuid.UUID, dict[str, Any]] = {}
     for entry_id, key in keys.items():
         item = items.get(key)
         if item is None:
             continue
-        run = _run_of(item)
+        run = _run_of(item, held_ranges(holds[item.id]))
         shelf[entry_id] = {
             "item_id": str(item.id),
             "title": item.title,
@@ -1006,8 +1016,11 @@ async def commit_one(
         on_shelf = (await _series_on_shelf(session, {key: _Series()})).get(key)
         if on_shelf is not None:
             issues = expand(parse_ranges(made.issues_owned))
-            gained = issues - owned_set(on_shelf.issues_owned, on_shelf.editions)
-            grew = SeriesGrew.before_write(on_shelf, issues)
+            grew = await SeriesGrew.before_write(session, on_shelf, issues)
+            gained = issues - owned_set(
+                on_shelf.issues_owned,
+                held_ranges(await load_holds(session, on_shelf.id)),
+            )
             added = _entry_editions(made)
             merged = on_shelf.editions
             if added:
@@ -1039,7 +1052,7 @@ async def commit_one(
             elif not grew.editions_added and not wrote:
                 outcome.already_owned = 1
             await sync_marks(session, on_shelf)
-            grew.after_write()
+            await grew.after_write(session)
             outcome.series_grew.append(grew)
             return outcome
     if made.editions and not _entry_editions(made):
@@ -1347,11 +1360,13 @@ async def commit_sitting(
             # since: its book makes it.
             found.entry, found.row = found.fresh[0][0], found.fresh[0][1]
         if item is not None:
-            grew = SeriesGrew.before_write(item, issues)
+            grew = await SeriesGrew.before_write(session, item, issues)
             # What the typed issues add is judged against the editions the
             # row had, so they are written loose exactly as typed (as in
             # `commit_one`).
-            gained = issues - owned_set(item.issues_owned, item.editions)
+            gained = issues - owned_set(
+                item.issues_owned, held_ranges(await load_holds(session, item.id))
+            )
             grew.editions_added = _editions_gained(item.editions, merged)
             item.editions = merged
             _clear_skips(item, grew.editions_added)
@@ -1472,7 +1487,7 @@ async def commit_sitting(
     for item_id in sorted(synced, key=str):
         await sync_marks(session, synced[item_id])
     for grew in outcome.series_grew:
-        grew.after_write()
+        await grew.after_write(session)
     outcome.created = [*result.created, *loose_made]
     outcome.added += (
         len(outcome.created) + len(garments) + len(seeds) + len(outcome.spots_new)

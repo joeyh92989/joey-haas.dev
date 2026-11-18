@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from comics import held_ranges, load_holds
 from formats import KEY_CARD_PLATFORMS
 from models import (
     ComicVolume,
@@ -454,6 +455,7 @@ def _to_public_detail(
     played: LastPlayed | None = None,
     read_marks: int | None = None,
     owned_volumes: Sequence[ComicVolume] = (),
+    held: Sequence[dict] | None = None,
 ) -> PublicItemDetailOut:
     """Maps a row onto the item page's publishable fields, and only those."""
     snapshot = _allowed_snapshot(item, PUBLIC_DETAIL_METADATA_FIELDS)
@@ -466,6 +468,7 @@ def _to_public_detail(
             today or datetime.now(UTC).date(),
             read_marks,
             owned_volumes=owned_volumes,
+            held=held,
         )
         if item.type == ItemType.COMIC
         else None
@@ -785,9 +788,11 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         played = await _last_played(session, Item.id == item.id)
         read_marks = None
         owned_volumes: list[ComicVolume] = []
+        held: list[dict] = []
         if item.type == ItemType.COMIC:
             read_marks = await read_marks_count(session, item.id)
             owned_volumes = await owned_volumes_of(session, item.id)
+            held = held_ranges(await load_holds(session, item.id))
         return _to_public_detail(
             item,
             similar_in_collection(item, public_items),
@@ -795,6 +800,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             played=played,
             read_marks=read_marks,
             owned_volumes=owned_volumes,
+            held=held,
         )
 
     return router
