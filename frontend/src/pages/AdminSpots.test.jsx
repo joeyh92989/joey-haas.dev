@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminSpots from './AdminSpots.jsx'
@@ -79,7 +79,7 @@ async function pageNotice() {
 function rowNames() {
   return screen
     .getAllByRole('rowheader')
-    .map((cell) => cell.firstChild.textContent)
+    .map((cell) => cell.querySelector('.spots-name-text').textContent)
 }
 
 beforeEach(() => {
@@ -543,11 +543,19 @@ describe('AdminSpots add bar (story #341)', () => {
    */
   function barApi(found = {}) {
     const stored = [...SPOTS]
+    // failReads: GET /api/spots answers 500; hideNew: it answers without
+    // the spot the bar saved (the server no longer returns it).
+    const control = { failReads: false, hideNew: false, anchorNew: false }
     const calls = stubApi({
-      'GET /api/spots': () => json([...stored]),
+      'GET /api/spots': () => {
+        if (control.failReads) return json({}, 500)
+        return json(control.hideNew ? [...SPOTS] : [...stored])
+      },
       'POST /api/intake/add': (options) => {
         const body = JSON.parse(options.body)
-        const spotRow = spot(`n${stored.length}`, body.payload.name)
+        const spotRow = spot(`n${stored.length}`, body.payload.name, {
+          anchor: control.anchorNew,
+        })
         stored.push(spotRow)
         stored.sort((a, b) => a.name.localeCompare(b.name))
         return json(
@@ -568,8 +576,12 @@ describe('AdminSpots add bar (story #341)', () => {
         return base(url, options)
       }),
     )
+    calls.control = control
     return calls
   }
+
+  const spotReads = (calls) =>
+    calls.filter((c) => c.method === 'GET' && c.path === '/api/spots').length
 
   const bar = () => screen.getByRole('region', { name: 'Add a place' })
   const marked = () => document.querySelectorAll('tr.is-marked')
@@ -630,9 +642,7 @@ describe('AdminSpots add bar (story #341)', () => {
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
-    const row = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
 
     const filter = screen.getByRole('searchbox', { name: 'Search spots' })
     await user.type(filter, 'zzz')
@@ -646,7 +656,6 @@ describe('AdminSpots add bar (story #341)', () => {
     })
     expect(shown).toHaveFocus()
     expect(scroll).toHaveBeenCalled()
-    expect(row).toBeDefined()
 
     // No filter: it still scrolls and focuses.
     scroll.mockClear()
@@ -657,18 +666,132 @@ describe('AdminSpots add bar (story #341)', () => {
     delete Element.prototype.scrollIntoView
   })
 
-  it('shows nothing, without an error, for a spot that is not in the list', async () => {
+  it('re-reads once for a spot the server no longer returns and shows nothing', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    // The re-read after the save fails, so the page does not have the row.
+    calls.control.failReads = true
+    await addRocks(user)
+    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
+    await waitFor(() => expect(spotReads(calls)).toBe(2))
+    expect(
+      screen.queryByRole('row', { name: /Red Rocks/ }),
+    ).not.toBeInTheDocument()
+    // Now the server answers, but without the spot.
+    calls.control.failReads = false
+    calls.control.hideNew = true
+    const before = spotReads(calls)
+    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
+    await waitFor(() => expect(spotReads(calls)).toBe(before + 1))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(spotReads(calls)).toBe(before + 1)
+    expect(screen.queryByRole('row', { name: /Red Rocks/ })).toBeNull()
+    expect(scroll).not.toHaveBeenCalled()
+    expect(document.activeElement.closest('tr')).toBeNull()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    delete Element.prototype.scrollIntoView
+  })
+
+  it('survives a failed re-read after a save: Saved shows, Show in table retries once', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    calls.control.failReads = true
+    await addRocks(user)
+    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
+    await waitFor(() => expect(spotReads(calls)).toBe(2))
+    expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
+    await waitFor(() => expect(spotReads(calls)).toBe(3))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(spotReads(calls)).toBe(3)
+    expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('has no New mark in the page while a filter hides the row, until Show in table', async () => {
     barApi({ 'red rocks': [ROCKS] })
+    Element.prototype.scrollIntoView = vi.fn()
     render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
-    await within(bar()).findByText(/Saved Red Rocks/)
     await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-    // The server forgets the spot: the link's read finds nothing.
-    stubApi({ 'GET /api/spots': () => json(SPOTS) })
+
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search spots' }),
+      'corvus',
+    )
+    expect(rowNames()).toEqual(['Corvus Coffee'])
+    expect(marked()).toHaveLength(0)
+    expect(document.querySelector('.spots-new')).toBeNull()
+    expect(screen.queryByText('New')).not.toBeInTheDocument()
+
     await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    const row = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+    expect(row).toHaveClass('is-marked')
+    expect(within(row).getByText('New')).toBeInTheDocument()
+    expect(row).toHaveFocus()
+    delete Element.prototype.scrollIntoView
+  })
+
+  it('keeps the name, the Anchor tag and the New pill apart on a marked anchor row', async () => {
+    const homeAgain = { ...ROCKS, title: 'Home Base' }
+    const calls = barApi({ 'home base': [homeAgain] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    // The page's rows come back with the new spot as an anchor.
+    calls.control.anchorNew = true
+    const user = userEvent.setup()
+    await search(user, 'home base')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Save place' }),
+    )
+    const row = await screen.findByRole('row', { name: /Home Base/ })
+    const head = within(row).getByRole('rowheader')
+    const pill = within(head).getByText('New')
+    const name = within(head).getByText('Home Base')
+    const anchor = within(head).getByText('Anchor')
+    expect(new Set([pill, name, anchor]).size).toBe(3)
+    expect(pill).toHaveClass('spots-new')
+    expect(name).toHaveClass('spots-name-text')
+    expect(rowNames()).toContain('Home Base')
+  })
+
+  it('does nothing on a second Add by hand with the same words, and remounts for new ones', async () => {
+    barApi({ nowhere: [], elsewhere: [] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await search(user, 'nowhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    const coords = await screen.findByLabelText('Coordinates')
+    await user.type(coords, '39.7, -105')
+    const form = screen.getByRole('form', { name: 'Add a spot' })
+
+    await user.click(within(bar()).getByRole('button', { name: 'Add by hand' }))
+    expect(screen.getByRole('form', { name: 'Add a spot' })).toBe(form)
+    expect(screen.getByLabelText('Coordinates')).toHaveValue('39.7, -105')
+    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
+
+    await search(user, 'elsewhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    expect(screen.getByLabelText('Name')).toHaveValue('elsewhere')
+    expect(screen.getByLabelText('Coordinates')).toHaveValue('')
+    expect(screen.getAllByRole('form', { name: 'Add a spot' })).toHaveLength(1)
   })
 
   it('carries the typed name into Add by hand after an empty search', async () => {

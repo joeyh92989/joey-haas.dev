@@ -380,7 +380,7 @@ export default function AdminSpots() {
                                 {denver.admin.newMark}
                               </span>
                             )}
-                            <span>{spot.name}</span>
+                            <span className="spots-name-text">{spot.name}</span>
                             {spot.anchor && (
                               <span className="spots-anchor">
                                 {adminCopy.spots.anchor}

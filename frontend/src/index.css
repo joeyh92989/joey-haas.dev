@@ -10108,7 +10108,7 @@ a.cover-tile-cap:focus-visible span {
   text-transform: none;
 }
 
-.spots-name > span:first-child {
+.spots-name-text {
   margin-right: var(--space-2);
 }
 
