@@ -56,7 +56,7 @@ async def test_bulk_create_writes_marks(sessionmaker_for_test):
             json={
                 "items": [
                     _comic(title="A", issues_owned="1"),
-                    _comic(title="B", editions=[EDITION]),
+                    _comic(title="B", issues_owned="3-4"),
                 ]
             },
         )
@@ -107,37 +107,6 @@ async def test_got_it_clears_a_skip_mark(sessionmaker_for_test):
     async with comics_client(sessionmaker_for_test, FakeComicVine()) as client:
         await client.post(f"/api/comics/{item_id}/issues/3/got")
     assert await marks(sessionmaker_for_test, item_id) == {3: (True, False, False)}
-
-
-class LinkingComicVine(FakeComicVine):
-    async def fetch_issue(self, cv_id: int):
-        return CvIssue(
-            cv_id=cv_id,
-            number=3,
-            name=None,
-            store_date=None,
-            cover_date=None,
-            cover_url="https://cv.example/3.jpg",
-            large_url=None,
-            description=[],
-        )
-
-
-async def test_editions_link_keeps_the_marks(sessionmaker_for_test):
-    item_id = await seed_comic(
-        sessionmaker_for_test,
-        owned_format=OwnedFormat.PHYSICAL,
-        editions=[{**EDITION}],
-    )
-    async with comics_client(sessionmaker_for_test, LinkingComicVine()) as client:
-        response = await client.put(
-            f"/api/comics/{item_id}/editions/ed-3-4/link", json={"cv_id": 99}
-        )
-    assert response.status_code == 200, response.text
-    assert await marks(sessionmaker_for_test, item_id) == {
-        3: (True, False, False),
-        4: (True, False, False),
-    }
 
 
 async def test_intake_commit_of_a_new_series_writes_marks(sessionmaker_for_test):

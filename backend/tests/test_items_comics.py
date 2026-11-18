@@ -59,7 +59,6 @@ async def test_create_stores_canonical_ranges_and_returns_the_run(
             "/api/items",
             json=_comic(
                 issues_owned="7-10, 1-6",
-                editions=[{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}],
                 read_to=4,
                 shelf_format="singles",
                 following=True,
@@ -290,3 +289,56 @@ async def test_the_admin_read_carries_the_title_kind_and_owned_volume_numbers(
     assert run_body["volume_numbers"] == []
     assert (line_body["kind"], line_body["volumes_owned"]) == ("book_line", 4)
     assert line_body["volume_numbers"] == [1, 4]
+
+
+# --- Editions are retired (3/5): books are volumes ---------------------------
+
+RETIRED = "editions are retired: add books as volumes"
+TPB = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
+
+
+async def test_create_refuses_editions(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post("/api/items", json=_comic(editions=TPB))
+    assert response.status_code == 422
+    assert RETIRED in response.json()["detail"]
+
+
+async def test_bulk_create_refuses_editions(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.post(
+            "/api/items/bulk", json={"items": [_comic(editions=TPB)]}
+        )
+    assert response.status_code == 422
+    assert RETIRED in response.json()["detail"]
+
+
+async def test_patch_refuses_editions_and_keeps_the_row(sessionmaker_for_test):
+    response, stored = await _patch(
+        sessionmaker_for_test, {"issues_owned": "1-3"}, {"editions": TPB}
+    )
+    assert response.status_code == 422
+    assert RETIRED in response.json()["detail"]
+    assert stored["issues_owned"] == "1-3"  # as seeded, unchanged
+
+
+async def test_empty_or_absent_editions_are_fine(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        created = await client.post("/api/items", json=_comic(editions=[]))
+        assert created.status_code == 201, created.text
+        none = await client.post("/api/items", json=_comic(title="B", editions=None))
+        assert none.status_code == 201, none.text
+        patched = await client.patch(
+            f"/api/items/{created.json()['id']}", json={"editions": []}
+        )
+    assert patched.status_code == 200, patched.text
+    assert "editions" not in patched.json()  # no longer part of the item
+
+
+async def test_the_edition_link_route_is_gone(sessionmaker_for_test):
+    from comics_routes import create_comics_router
+
+    app = FastAPI()
+    app.include_router(create_comics_router(sessionmaker_for_test, {}))
+    paths = set(app.openapi()["paths"])
+    assert not any("/editions/" in path for path in paths)

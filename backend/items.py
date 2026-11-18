@@ -157,6 +157,8 @@ class ItemPatch(BaseModel):
     # any other type).
     issues_owned: str | None = Field(default=None, max_length=2000)
     issues_skipped: str | None = Field(default=None, max_length=2000)
+    # Retired (3/5): kept only to answer a body that still sends it with a
+    # 422 (`_refuse_editions`), so a forgotten writer is found. Never stored.
     editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
@@ -276,7 +278,6 @@ class ItemOut(BaseModel):
     completeness: Completeness | None
     issues_owned: str | None = None
     issues_skipped: str | None = None
-    editions: list[dict] | None = None
     read_to: int | None = None
     shelf_format: ComicShelfFormat | None = None
     disc_format: MovieDiscFormat | None = None
@@ -570,7 +571,7 @@ async def _edition_format(
 
 
 # The fields the marks on the issue rows derive from (comics.sync_marks).
-MARK_FIELDS = frozenset(("issues_owned", "issues_skipped", "editions", "read_to"))
+MARK_FIELDS = frozenset(("issues_owned", "issues_skipped", "read_to"))
 
 
 def _is_comic(changes: dict, row: Item | None) -> bool:
@@ -600,6 +601,16 @@ def _write_fields(changes: dict, row: Item | None) -> dict:
         apply_comic_fields(changes, _is_comic(changes, row), current), row
     )
     return apply_copy_fields(checked, row)
+
+
+EDITIONS_RETIRED = "editions are retired: add books as volumes"
+
+
+def _refuse_editions(editions: list[dict] | None) -> None:
+    """A request body that still sends `editions` is a 422 for one release
+    (3/5), so any writer left is found. Empty or absent is fine."""
+    if editions:
+        raise HTTPException(status_code=422, detail=EDITIONS_RETIRED)
 
 
 def _copy_fields(changes: dict, row: Item | None) -> dict:
@@ -1040,6 +1051,7 @@ def create_items_router(
         session: AsyncSession = Depends(get_session),
     ) -> Item:
         """Adds one item and returns it, including its generated id."""
+        _refuse_editions(payload.editions)
         await _require_favorite_slots(session, int(payload.favorite))
         values = payload.model_dump()
         values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
@@ -1181,6 +1193,8 @@ def create_items_router(
     ) -> BulkOut:
         """Creates many items at once through commit_items, skipping ones
         already in the collection and reporting them as duplicates."""
+        for row in payload.items:
+            _refuse_editions(row.editions)
         try:
             result = await commit_items(session, payload.items, today=date.today())
         except RowRefused as refused:
@@ -1361,6 +1375,7 @@ def create_items_router(
     ) -> Item:
         """Partial update. Fields absent from the body are left alone."""
         body = payload.model_dump(exclude_unset=True)
+        _refuse_editions(body.pop("editions", None))
         if any(field in body for field in STATUS_FIELDS):
             raise HTTPException(status_code=422, detail=STATUS_FIELDS_REFUSED)
         # A write that touches what the issue marks derive from takes the row

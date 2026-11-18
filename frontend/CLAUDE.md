@@ -233,7 +233,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   is `ShelfConfirm` given a `source` (the volume's own delete preview and
   words), never `window.confirm`. A private target title carries a Private
   tag. The comic edit page's Editions panel is gone, and the UI no longer
-  writes `items.editions` (intake's Details step still does, until #328):
+  writes `items.editions` (3/5 removed the item form's rows too; intake's
+  Details step is the one place left that still does):
   its **Books** panel (`BooksPanel.jsx`) lists the title's books and adds
   one. Component tests build their bodies from
   `e2e/fixtures/api/admin-volume*.json`, which

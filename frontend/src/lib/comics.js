@@ -288,27 +288,25 @@ export function parseEditionRows(rows) {
 }
 
 /**
- * A comic form's own fields as the API takes them: blanks become null and
- * the edition rows a list. The error is the first edition row it could not
- * read.
+ * A comic form's own fields as the API takes them: blanks become null.
+ * `error` is always null now that the form has no edition rows; it stays so
+ * the caller's shape holds.
  *
  * @param {object} form - Carries ComicFields' keys.
  * @returns {{fields: object, error: string|null}}
  */
 export function comicPayload(form) {
-  const { editions, error } = parseEditionRows(form.editions)
   const issues = form.issues_owned.trim()
   const skipped = (form.issues_skipped ?? '').trim()
   return {
     fields: {
       issues_owned: issues === '' ? null : issues,
       issues_skipped: skipped === '' ? null : skipped,
-      editions,
       read_to: form.read_to === '' ? null : Number(form.read_to),
       shelf_format: form.shelf_format === '' ? null : form.shelf_format,
       following: form.following,
     },
-    error,
+    error: null,
   }
 }
 
@@ -317,7 +315,7 @@ export function comicPayload(form) {
  * uses, so the form can show it beside that field. Null when it names none.
  *
  * @param {string} detail - A 422's `detail`.
- * @returns {'issues_owned'|'issues_skipped'|'read_to'|'editions'|null}
+ * @returns {'issues_owned'|'issues_skipped'|'read_to'|null}
  */
 export function comicErrorField(detail) {
   if (typeof detail !== 'string') return null
@@ -325,8 +323,6 @@ export function comicErrorField(detail) {
   if (detail.startsWith('Issues skipped') || detail.includes('be skipped'))
     return 'issues_skipped'
   if (detail.startsWith('Read to')) return 'read_to'
-  if (/edition|collects|issue numbers run|editions/i.test(detail))
-    return 'editions'
   return null
 }
 

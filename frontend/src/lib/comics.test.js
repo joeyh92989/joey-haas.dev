@@ -299,8 +299,7 @@ describe('comicErrorField', () => {
     ['#7 is owned, so it can’t be skipped', 'issues_skipped'],
     ["#7 is owned, so it can't be skipped", 'issues_skipped'],
     ['Read to runs 1 to 9999', 'read_to'],
-    ['Vol. 1: collects #6–1 runs backwards', 'editions'],
-    ['edition kind must be 1-20 characters', 'editions'],
+    ['editions are retired: add books as volumes', null],
     ['Nothing has changed.', null],
     [undefined, null],
   ])('places %s', (detail, field) => {
@@ -309,12 +308,11 @@ describe('comicErrorField', () => {
 })
 
 describe('comicPayload', () => {
-  it('sends blanks as null', () => {
+  it('sends blanks as null and no editions key', () => {
     expect(
       comicPayload({
         issues_owned: '  ',
         issues_skipped: '',
-        editions: [],
         read_to: '',
         shelf_format: '',
         following: false,
@@ -323,7 +321,6 @@ describe('comicPayload', () => {
       fields: {
         issues_owned: null,
         issues_skipped: null,
-        editions: null,
         read_to: null,
         shelf_format: null,
         following: false,
@@ -336,7 +333,6 @@ describe('comicPayload', () => {
     const { fields } = comicPayload({
       issues_owned: ' 1-54, 60 ',
       issues_skipped: ' 58 ',
-      editions: [],
       read_to: '40',
       shelf_format: 'trades',
       following: true,

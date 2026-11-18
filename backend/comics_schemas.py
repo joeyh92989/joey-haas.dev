@@ -281,13 +281,6 @@ class ComicsStatusOut(BaseModel):
     tags_last_run: RunSummaryOut | None = Field(alias="tags.last_run")
 
 
-class EditionLinkOut(BaseModel):
-    """`PUT /{id}/editions/{slug}/link`. Editions are open JSONB dicts."""
-
-    item_id: str
-    editions: list[dict]
-
-
 # --- The admin volume editor (#334) --------------------------------------------
 
 VolumeKind = Literal["trade", "hardcover", "omnibus", "compendium", "ogn"]

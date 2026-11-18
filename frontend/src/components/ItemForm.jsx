@@ -52,7 +52,6 @@ export const CARTRIDGE_ERA_PLATFORMS = [4]
 export const EMPTY_COMIC_FIELDS = {
   issues_owned: '',
   issues_skipped: '',
-  editions: [],
   read_to: '',
   shelf_format: '',
   following: false,
@@ -73,7 +72,8 @@ function FieldError({ id, message }) {
 
 /**
  * Collected editions as rows: kind, label, the first and last issue it
- * collects, and Remove; Add appends a blank row. The API is the one
+ * collects, and Remove; Add appends a blank row. Only the intake Details
+ * step uses it now (the item form's rows are retired, 3/5). The API is the one
  * validator; a blank row is dropped on save. `idPrefix` keeps the ids unique
  * when several editors share a page (the sitting's Details rows).
  */
@@ -162,7 +162,7 @@ export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
 /**
  * A comic series' own fields (spec, section 5): the single issues owned as
  * ranges, how far I have read, the skipped issues (admin edit only, and
- * private), collected editions as rows, the format on the shelf, and
+ * private), the format on the shelf, and
  * Follow. Shared by the add form and the edit page, so both read and write
  * one shape. On the edit page the run editor above stays in step with these
  * fields: a tap rewrites the text, and typing redraws the box.
@@ -200,8 +200,8 @@ export function ComicFields({ value, onChange, released = null, errors = {} }) {
         onChange={set('issues_owned')}
       />
       <p id="comic-issues-hint" className="muted comic-hint">
-        Numbers and ranges, separated by commas. Issues in a collected edition
-        are counted from its row.
+        Numbers and ranges, separated by commas. Collected books are added on
+        the comic's page, and their issues count there.
         {released ? ` Comic Vine lists ${released} out.` : ''}
       </p>
       <FieldError id="comic-issues_owned-error" message={errors.issues_owned} />
@@ -217,12 +217,6 @@ export function ComicFields({ value, onChange, released = null, errors = {} }) {
         onChange={set('read_to')}
       />
       <FieldError id="comic-read_to-error" message={errors.read_to} />
-
-      <EditionRows
-        rows={value.editions}
-        onChange={(editions) => onChange({ ...value, editions })}
-        error={errors.editions}
-      />
 
       <label htmlFor="comic-shelf-format">Format on the shelf</label>
       <select
