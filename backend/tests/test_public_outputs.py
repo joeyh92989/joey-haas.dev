@@ -21,6 +21,8 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
+    OutingPrecision,
+    OutingVerdict,
     OwnedFormat,
     PhysicalEdition,
     PhysicalFormat,
@@ -1537,6 +1539,35 @@ async def test_public_spots_are_published_rows_only_never_an_anchor(
     assert FORBIDDEN.isdisjoint(set(_keys(body)))
     assert "anchor" not in set(_keys(body))
     assert "With the kids" not in json.dumps(body)
+
+
+async def test_an_outing_s_fields_never_reach_a_public_spot(sessionmaker_for_test):
+    shown = _spot("Coors Field Cafe")
+    await _add(sessionmaker_for_test, shown)
+    await _add(
+        sessionmaker_for_test,
+        Visit(
+            spot_id=shown.id,
+            visited_on=date(2026, 9, 1),
+            title="Rockies game with Dad",
+            verdict=OutingVerdict.LOVED,
+            kid_along=True,
+            precision=OutingPrecision.MONTH,
+            note="Secret outing note",
+        ),
+    )
+
+    body = await _spots(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        loaded = await load_public_spots(session)
+
+    assert set(body[0]) == SPOT_FIELDS
+    dumped = json.dumps(body) + repr(loaded)
+    for word in ("Rockies game with Dad", "Secret outing note", "loved"):
+        assert word not in dumped
+    keys = set(_keys(body))
+    assert not {"title", "verdict", "kid_along", "precision", "note"} & keys
+    assert not {"last_verdict", "visit_count", "last_visit"} & keys
 
 
 async def test_public_spots_sort_by_neighbourhood_then_name(sessionmaker_for_test):

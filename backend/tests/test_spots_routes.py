@@ -10,7 +10,14 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import select
 from starlette.middleware.sessions import SessionMiddleware
 
-from models import Candidate, CandidateSource, Spot, SpotSetting, Visit
+from models import (
+    Candidate,
+    CandidateSource,
+    OutingVerdict,
+    Spot,
+    SpotSetting,
+    Visit,
+)
 from public import OWNER_TZ
 from spots_routes import create_spots_router
 
@@ -371,3 +378,257 @@ async def test_an_explicit_null_city_is_a_422_on_create_and_patch(
         patch = await client.patch(f"/api/spots/{made['id']}", json={"city": None})
     assert (post.status_code, patch.status_code) == (422, 422)
     assert post.json()["detail"] == patch.json()["detail"] == "A city is required."
+
+
+# --- Outings: the columns story #344 added to visits. ------------------------
+
+
+FROZEN_DAY = datetime(2026, 6, 15, 12, 0, tzinfo=OWNER_TZ)
+
+
+@pytest.fixture
+def mid_june(monkeypatch):
+    """Freezes the route's clock mid-month: on the last day of a month, next
+    month's first day is inside the one-day grace and the month tests would
+    flip with the calendar."""
+    import spots_routes
+
+    class _Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return FROZEN_DAY.astimezone(tz) if tz else FROZEN_DAY
+
+    monkeypatch.setattr(spots_routes, "datetime", _Frozen)
+    return FROZEN_DAY.date()
+
+
+def _denver_today():
+    return datetime.now(OWNER_TZ).date()
+
+
+def _next_month_start(day):
+    return (
+        day.replace(day=1, month=day.month + 1)
+        if day.month < 12
+        else day.replace(day=1, month=1, year=day.year + 1)
+    )
+
+
+async def _spot_url(client) -> str:
+    made = (await client.post("/api/spots", json=SLOANS)).json()
+    return f"/api/spots/{made['id']}/visits"
+
+
+async def test_a_visit_with_only_a_date_has_no_outing_fields(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        made = await client.post(url, json={"visited_on": "2026-10-01"})
+    assert made.status_code == 201
+    body = made.json()
+    assert body["visited_on"] == "2026-10-01"
+    assert body["precision"] == "day"
+    assert (body["title"], body["verdict"], body["kid_along"]) == (None, None, None)
+
+
+async def test_every_outing_field_round_trips_in_the_post_response(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        made = await client.post(
+            url,
+            json={
+                "visited_on": "2026-10-04",
+                "precision": "day",
+                "title": "Rockies game",
+                "verdict": "loved",
+                "kid_along": True,
+                "note": "Sat in the shade",
+            },
+        )
+    assert made.status_code == 201
+    body = made.json()
+    assert body["title"] == "Rockies game"
+    assert body["verdict"] == "loved"
+    assert body["kid_along"] is True
+    assert body["precision"] == "day"
+    assert body["note"] == "Sat in the shade"
+    async with sessionmaker_for_test() as session:
+        row = (await session.scalars(select(Visit))).one()
+    assert (row.title, row.verdict, row.kid_along) == (
+        "Rockies game",
+        OutingVerdict.LOVED,
+        True,
+    )
+
+
+async def test_a_month_outing_is_stored_as_the_first_of_the_month(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        month = await client.post(
+            url, json={"visited_on": "2026-03-17", "precision": "month"}
+        )
+        year = await client.post(
+            url, json={"visited_on": "2025-08-30", "precision": "year"}
+        )
+        listed = (await client.get("/api/spots")).json()
+    assert month.json()["visited_on"] == "2026-03-01"
+    assert month.json()["precision"] == "month"
+    assert year.json()["visited_on"] == "2025-01-01"
+    assert listed[0]["last_visit"] == "2026-03-01"
+
+
+async def test_the_current_month_and_year_are_accepted(sessionmaker_for_test, mid_june):
+    today = mid_june
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        month = await client.post(
+            url, json={"visited_on": today.isoformat(), "precision": "month"}
+        )
+        year = await client.post(
+            url, json={"visited_on": today.isoformat(), "precision": "year"}
+        )
+        # A later day of the same month or year is in the future as a day but
+        # not as a period: only the period's start is checked.
+        month_end = await client.post(
+            url,
+            json={
+                "visited_on": _next_month_start(today).isoformat(),
+                "precision": "day",
+            },
+        )
+        late_month = await client.post(
+            url,
+            json={
+                "visited_on": (
+                    _next_month_start(today) - timedelta(days=1)
+                ).isoformat(),
+                "precision": "month",
+            },
+        )
+        late_year = await client.post(
+            url,
+            json={"visited_on": f"{today.year}-12-31", "precision": "year"},
+        )
+        # No date at all: today, normalised to the period's start.
+        default_month = await client.post(url, json={"precision": "month"})
+    assert month.status_code == 201
+    assert month.json()["visited_on"] == today.replace(day=1).isoformat()
+    assert year.status_code == 201
+    assert year.json()["visited_on"] == today.replace(month=1, day=1).isoformat()
+    assert late_month.status_code == 201
+    assert late_year.status_code == 201
+    assert late_year.json()["visited_on"] == f"{today.year}-01-01"
+    assert month_end.status_code == 422  # the first of next month, as a day
+    assert default_month.json()["visited_on"] == today.replace(day=1).isoformat()
+
+
+async def test_next_month_and_next_year_are_refused(sessionmaker_for_test, mid_june):
+    today = mid_june
+    next_month = _next_month_start(today)
+    next_year = today.replace(year=today.year + 1, month=1, day=1)
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        month = await client.post(
+            url, json={"visited_on": next_month.isoformat(), "precision": "month"}
+        )
+        year = await client.post(
+            url, json={"visited_on": next_year.isoformat(), "precision": "year"}
+        )
+    for refused in (month, year):
+        assert refused.status_code == 422
+        assert refused.json()["detail"] == "A visit cannot be in the future"
+
+
+async def test_a_day_ahead_is_kept_and_two_days_ahead_is_refused(
+    sessionmaker_for_test, mid_june
+):
+    today = mid_june
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        one = await client.post(
+            url, json={"visited_on": (today + timedelta(days=1)).isoformat()}
+        )
+        two = await client.post(
+            url, json={"visited_on": (today + timedelta(days=2)).isoformat()}
+        )
+    assert one.status_code == 201
+    assert two.status_code == 422
+    assert two.json()["detail"] == "A visit cannot be in the future"
+
+
+async def test_the_title_is_trimmed_blank_means_none_and_80_is_the_limit(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        trimmed = await client.post(url, json={"title": "  Coors Field  "})
+        blank = await client.post(url, json={"title": "   "})
+        exact = await client.post(url, json={"title": "x" * 80})
+        over = await client.post(url, json={"title": "x" * 81})
+    assert trimmed.json()["title"] == "Coors Field"
+    assert blank.status_code == 201
+    assert blank.json()["title"] is None
+    assert exact.status_code == 201
+    assert len(exact.json()["title"]) == 80
+    assert over.status_code == 422
+
+
+async def test_an_unknown_verdict_or_precision_is_a_422(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        verdict = await client.post(url, json={"verdict": "meh"})
+        precision = await client.post(url, json={"precision": "week"})
+        omitted = await client.post(url, json={"title": "No verdict"})
+    assert verdict.status_code == 422
+    assert precision.status_code == 422
+    assert omitted.status_code == 201
+    assert omitted.json()["verdict"] is None
+
+
+async def test_kid_along_false_is_stored_false_not_null(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        made = await client.post(url, json={"kid_along": False})
+    assert made.json()["kid_along"] is False
+    async with sessionmaker_for_test() as session:
+        assert (await session.scalars(select(Visit))).one().kid_along is False
+
+
+async def test_last_verdict_is_the_verdict_of_the_latest_outing(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        older_newer = await _spot_url(client)
+        none_yet = (
+            await client.post("/api/spots", json={**SLOANS, "name": "B"})
+        ).json()
+        no_verdict = (
+            await client.post("/api/spots", json={**SLOANS, "name": "C"})
+        ).json()
+        tie = (await client.post("/api/spots", json={**SLOANS, "name": "D"})).json()
+        # The latest outing wins, even though it was logged first.
+        await client.post(
+            older_newer, json={"visited_on": "2026-09-01", "verdict": "not_again"}
+        )
+        await client.post(
+            older_newer, json={"visited_on": "2026-01-01", "verdict": "loved"}
+        )
+        # The newest outing carries no verdict: the answer is null.
+        url_c = f"/api/spots/{no_verdict['id']}/visits"
+        await client.post(url_c, json={"visited_on": "2026-01-01", "verdict": "loved"})
+        await client.post(url_c, json={"visited_on": "2026-05-01"})
+        # Same day: the one logged last wins.
+        url_d = f"/api/spots/{tie['id']}/visits"
+        await client.post(url_d, json={"visited_on": "2026-05-01", "verdict": "loved"})
+        await client.post(url_d, json={"visited_on": "2026-05-01", "verdict": "fine"})
+        listed = {row["name"]: row for row in (await client.get("/api/spots")).json()}
+    assert listed["Sloan's Lake"]["last_verdict"] == "not_again"
+    assert listed["B"]["last_verdict"] is None
+    assert listed["B"]["visit_count"] == 0
+    assert listed["C"]["last_verdict"] is None
+    assert listed["D"]["last_verdict"] == "fine"
+    # The existing summary is untouched.
+    assert listed["Sloan's Lake"]["last_visit"] == "2026-09-01"
+    assert listed["Sloan's Lake"]["visit_count"] == 2
+    assert none_yet["id"] == listed["B"]["id"]
