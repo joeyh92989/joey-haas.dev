@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-18 · lesson · A cap or filter tuned on typical input breaks the real long tail
+#342 capped a pasted line at 300 characters, but real Google Maps place URLs run 200 to 900 characters, so the main use case was unreadable until the final review; and a sanitiser that dropped every control character glued the words around a newline. Test limits and cleaners with real-shaped long-tail input (a 700-character map URL, a blurb with a newline), and map whitespace to a space before dropping the rest.
+Story #342 · docs/planning/2026-11-18-places-paste-way-design.md
+
 ### 2026-11-18 · lesson · A guard test must be shown failing with the guard removed
 The add bar's double-Save test clicked twice with `fireEvent`, but the Save button is disabled by state and React flushes inside `fireEvent`, so the second click never reached the handler and the test passed with the in-flight ref deleted. Remove the guard and watch the test fail before trusting it; reach the handler twice in one `act`.
 Story #341 · docs/planning/2026-11-17-spots-add-bar-design.md

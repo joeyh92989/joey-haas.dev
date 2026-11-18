@@ -374,14 +374,14 @@ test('spots add bar: search by name, save, and the new private spot is marked Ne
     // One result opens its row.
     await expect(page.getByText(name).first()).toBeVisible()
     await expect(page.getByText('1 Test Street, Denver')).toBeVisible()
-    // The phone width: nothing in the review makes the page scroll sideways.
-    await page.setViewportSize({ width: 400, height: 900 })
-    const overflow = await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth,
-    )
-    expect(overflow).toBeLessThanOrEqual(1)
+    if (testInfo.project.name === 'phone') {
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(1)
+    }
     await page.getByRole('button', { name: 'Save place' }).click()
     await expect(
       page

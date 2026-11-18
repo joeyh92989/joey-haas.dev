@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural + ui
 mode: auto
 ---
@@ -162,6 +162,17 @@ Repo: `backend/intake/routes.py`, `place_kind.py`, `commit.py`, `models.py` (`In
 `backend/spots.py` (`parse_coords`), `backend/spot_sources/nominatim.py`,
 `frontend/src/pages/PlacesAdd.jsx`, `frontend/src/components/places/*`. The research report that
 fixed the pattern is `/private/tmp` scratch (not kept); its findings are in this plan.
+
+## Deviations recorded at ship
+
+- **No e2e case with a stubbed resolve** (task 5 of the plan asked for one name line with
+  `page.route` on the resolve route). A stub cannot make the database agree, so the commit would
+  ignore that entry; the faithful-fake component tests cover the queue, Stop and resume, and the
+  backend tests cover resolve against the real routes. The browser cases paste coordinate links and
+  a short link against the real backend, in the desktop project only (no file lock).
+- **The line cap for a known-host map URL is 2,000 characters** (300 for everything else) and the
+  paste cap is 400,000 characters: the first cap in this plan (300) made real long Google Maps links
+  unreadable.
 
 ## Open questions
 
