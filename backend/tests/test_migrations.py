@@ -56,15 +56,16 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def _diff_against_models(connection) -> list:
+def _diff_against_models(connection, before_0025: bool = False) -> list:
     """Autogenerate's view of how the live schema differs from the models."""
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
     # The models no longer carry items.editions (its drop is a later
     # migration), so a schema that still has the column is not drift. A schema
     # older than 0025 lacks the four outings columns on visits; that is the
-    # revision, not drift (at 0025 and later they exist and nothing is added).
-    outings = {"title", "verdict", "kid_along", "precision"}
+    # revision, not drift. Only a caller that stopped below 0025 says so
+    # (`before_0025=True`): at head a missing visits column is still reported.
+    outings = {"title", "verdict", "kid_along", "precision"} if before_0025 else set()
     return [
         entry
         for entry in diff
@@ -1761,7 +1762,7 @@ async def test_0023_adds_a_nullable_column_and_keeps_every_volume(clean_database
                 text("SELECT slug, intake_entry_id FROM comic_volumes ORDER BY slug")
             )
         ).all()
-        diff = await connection.run_sync(_diff_against_models)
+        diff = await connection.run_sync(_diff_against_models, True)
     # Every existing volume survives, with no intake entry; three NULLs do
     # not collide in the partial unique index.
     assert [tuple(row) for row in rows] == [
@@ -1871,7 +1872,7 @@ async def test_0024_a_sitting_can_be_stored_with_the_places_area(clean_database)
             await connection.scalar(text("SELECT area::text FROM intake_sittings"))
             == "places"
         )
-        diff = await connection.run_sync(_diff_against_models)
+        diff = await connection.run_sync(_diff_against_models, True)
     assert diff == []
 
 
@@ -2018,3 +2019,17 @@ async def test_0025_cycle_downgrades_and_matches_models(clean_database):
         assert await connection.scalar(text("SELECT count(*) FROM visits")) == 1
         diff = await connection.run_sync(_diff_against_models)
     assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_a_head_level_diff_still_reports_a_missing_visits_column(clean_database):
+    """The 0025 carve-out is for schemas below 0025 only: at head, a visits
+    column the models carry but the database lacks must show as drift."""
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(text("ALTER TABLE visits DROP COLUMN kid_along"))
+    async with clean_database.connect() as connection:
+        at_head = await connection.run_sync(_diff_against_models)
+        below = await connection.run_sync(_diff_against_models, True)
+    assert [(e[0], e[3].name) for e in at_head] == [("add_column", "kid_along")]
+    assert below == []  # the carve-out would hide it, which is why it is opt-in

@@ -28,7 +28,12 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `last_verdict` (greatest `visited_on`, ties by newest `created_at`; null with
   no outings or none set) beside the unchanged `last_visit` and `visit_count`.
   `note` stays admin-only, and no public body carries any outing field
-  (`test_public_outputs.py` pins it). City:
+  (`test_public_outputs.py` pins it).
+  The one-day grace means on a period's last day (month end, Dec 31) the next
+  period is accepted, since its start is tomorrow. Month and year outings are
+  stored as the period's start, so views must format by `precision` (history
+  stories #345 to #347 own that; the planner's `recent_visits` still shows
+  the start day). City:
   `spots.normalize_city` is the one rule for a stored city (trim, collapse,
   lower case, 1 to 40 characters, no control characters), `DENVER` the one
   constant, and `load_public_spots` returns only Denver spots (the filter is

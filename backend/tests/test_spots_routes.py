@@ -632,3 +632,63 @@ async def test_last_verdict_is_the_verdict_of_the_latest_outing(sessionmaker_for
     assert listed["Sloan's Lake"]["last_visit"] == "2026-09-01"
     assert listed["Sloan's Lake"]["visit_count"] == 2
     assert none_yet["id"] == listed["B"]["id"]
+
+
+async def test_a_title_is_cleaned_before_the_length_check(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        spaced = await client.post(url, json={"title": "Zoo\n\tvisit  today"})
+        nul_inside = await client.post(url, json={"title": "Zoo\u0000 trip\u200b"})
+        nul_only = await client.post(url, json={"title": "\u0000\u0000"})
+        # 80 real characters hide inside padding and control characters.
+        padded = await client.post(
+            url, json={"title": "\u0000" + "x" * 40 + "\n\n" + "y" * 39}
+        )
+        over = await client.post(url, json={"title": "x" * 40 + "\n" + "y" * 40})
+    assert spaced.json()["title"] == "Zoo visit today"
+    assert nul_inside.status_code == 201
+    assert nul_inside.json()["title"] == "Zoo trip"
+    assert nul_only.status_code == 201
+    assert nul_only.json()["title"] is None
+    assert padded.status_code == 201
+    assert len(padded.json()["title"]) == 80
+    assert over.status_code == 422  # 81 once the newline is a space
+
+
+async def test_a_null_precision_means_day(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        url = await _spot_url(client)
+        made = await client.post(
+            url, json={"visited_on": "2026-03-17", "precision": None}
+        )
+    assert made.status_code == 201
+    assert made.json()["precision"] == "day"
+    assert made.json()["visited_on"] == "2026-03-17"
+
+
+async def test_last_verdict_breaks_a_full_tie_by_id(sessionmaker_for_test):
+    stamp = datetime(2026, 5, 1, 12, 0, tzinfo=OWNER_TZ)
+    low = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    high = uuid.UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    async with client_for(sessionmaker_for_test) as client:
+        made = (await client.post("/api/spots", json=SLOANS)).json()
+        spot_id = uuid.UUID(made["id"])
+        async with sessionmaker_for_test() as session:
+            for visit_id, verdict in (
+                (low, OutingVerdict.LOVED),
+                (high, OutingVerdict.FINE),
+            ):
+                session.add(
+                    Visit(
+                        id=visit_id,
+                        spot_id=spot_id,
+                        visited_on=stamp.date(),
+                        created_at=stamp,
+                        verdict=verdict,
+                    )
+                )
+            await session.commit()
+        picks = {
+            (await client.get("/api/spots")).json()[0]["last_verdict"] for _ in range(3)
+        }
+    assert picks == {"fine"}  # the greatest id wins, every time

@@ -10,13 +10,14 @@ Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
 
 from __future__ import annotations
 
+import unicodedata
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -111,6 +112,29 @@ class VisitIn(BaseModel):
     title: str | None = Field(default=None, max_length=MAX_OUTING_TITLE_RAW)
     verdict: OutingVerdict | None = None
     kid_along: bool | None = None
+
+    @field_validator("precision", mode="before")
+    @classmethod
+    def _null_precision_is_day(cls, value):
+        return OutingPrecision.DAY if value is None else value
+
+    @field_validator("title")
+    @classmethod
+    def _clean_title(cls, value: str | None) -> str | None:
+        """Whitespace of any kind (newline, tab) becomes one space, control
+        and format characters (a NUL included) are dropped, the ends are
+        trimmed, and only then is the length checked. Blank means no title."""
+        if value is None:
+            return None
+        spaced = "".join(" " if ch.isspace() else ch for ch in value)
+        kept = "".join(
+            ch for ch in spaced if unicodedata.category(ch) not in ("Cc", "Cf")
+        )
+        title = " ".join(kept.split()) or None
+        if title is not None and len(title) > MAX_OUTING_TITLE:
+            raise ValueError(f"A title is at most {MAX_OUTING_TITLE} characters")
+        return title
+
     note: str | None = Field(default=None, max_length=MAX_VISIT_NOTE)
 
 
@@ -297,7 +321,12 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         latest = (
             select(Visit.spot_id, Visit.verdict)
             .distinct(Visit.spot_id)
-            .order_by(Visit.spot_id, Visit.visited_on.desc(), Visit.created_at.desc())
+            .order_by(
+                Visit.spot_id,
+                Visit.visited_on.desc(),
+                Visit.created_at.desc(),
+                Visit.id.desc(),
+            )
         )
         if spot_ids is not None:
             query = query.where(Visit.spot_id.in_(spot_ids))
@@ -424,12 +453,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         next are refused. The day's grace is for the owner logging from a time
         zone east of Denver."""
         await _spot(session, spot_id)
-        title = _clean(payload.title)
-        if title is not None and len(title) > MAX_OUTING_TITLE:
-            raise HTTPException(
-                status_code=422,
-                detail=f"A title is at most {MAX_OUTING_TITLE} characters",
-            )
         today = datetime.now(OWNER_TZ).date()
         visited_on = _period_start(payload.visited_on or today, payload.precision)
         if visited_on > today + timedelta(days=1):
@@ -440,7 +463,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
             spot_id=spot_id,
             visited_on=visited_on,
             precision=payload.precision,
-            title=title,
+            title=payload.title,
             verdict=payload.verdict,
             kid_along=payload.kid_along,
             note=_clean(payload.note),
