@@ -102,7 +102,8 @@ async def test_typing_sends_no_request(monkeypatch, sessionmaker_for_test):
     assert row["lat"] == pytest.approx(39.6653917)
     assert row["source_id"] == "way/229359697"
     assert row["map_url"] == "https://www.openstreetmap.org/way/229359697"
-    assert row["category"] == "amenity"
+    assert row["category"] == "Theatre"
+    assert row["address"] == "18300 West Alameda Parkway, Morrison"
     assert row["owned_spot_id"] is None
     assert row["attribution"] == ATTRIBUTION == "Search by OpenStreetMap contributors"
 
@@ -358,7 +359,6 @@ async def test_the_generic_entry_route_refuses_places(sessionmaker_for_test):
         {"lat": None},
         {"title": "   "},
         {"title": "x" * 201},
-        {"address": "x" * 201},
         {"category": "x" * 201},
         {"source_id": "way/abc"},
         {"source_id": "house/1"},
@@ -633,3 +633,131 @@ async def test_state_with_server_keys_still_changes_only_owner_fields(
     assert shown["payload"]["lng"] == entry["payload"]["lng"]
     assert "source_id" not in shown["payload"] and "map_url" not in shown["payload"]
     assert shown["chosen"] == entry["chosen"]
+
+
+def hit_with(**changes):
+    base = hits("one")[0]
+    from dataclasses import replace
+
+    return replace(base, **changes)
+
+
+@pytest.mark.parametrize(
+    ("kind", "category", "shown"),
+    [
+        ("tram_stop", "railway", "Tram stop"),
+        ("bus_station", "amenity", "Bus station"),
+        ("amphitheatre", "amenity", "Amphitheatre"),
+        ("yes", "railway", "Railway"),
+        ("", "tourism", "Tourism"),
+        ("", "", ""),
+    ],
+)
+def test_the_row_kind_is_the_humanized_type(kind, category, shown):
+    assert place_kind.row_for(hit_with(type=kind, category=category))["category"] == (
+        shown
+    )
+
+
+def test_the_recorded_rows_show_a_specific_kind_and_a_short_address():
+    rows = [place_kind.row_for(hit) for hit in hits("several")]
+    assert {row["category"] for row in rows} == {"Cafe"}
+    assert rows[1]["address"] == "200 North Quebec Street, Denver"
+    assert rows[0]["address"] == "East Montview Boulevard, Denver"
+    assert "United States" not in "".join(row["address"] for row in rows)
+
+
+@pytest.mark.parametrize(
+    ("address", "shown"),
+    [
+        (
+            {"house_number": "1", "road": "Main St", "town": "Golden"},
+            "1 Main St, Golden",
+        ),
+        ({"road": "Main St", "village": "Morrison"}, "Main St, Morrison"),
+        ({"hamlet": "Idaho"}, "Idaho"),
+        ({"suburb": "Capitol Hill"}, "Capitol Hill"),
+        ({"city": "Denver", "town": "X"}, "Denver"),
+    ],
+)
+def test_short_address_orders_the_parts(address, shown):
+    assert place_kind.short_address(hit_with(address=address)) == shown
+
+
+def test_a_sparse_address_falls_back_to_the_display_name():
+    hit = hit_with(
+        address={},
+        display_name=(
+            "Big Park, Somewhere Road, Jefferson County, Colorado, United States"
+        ),
+    )
+    assert place_kind.short_address(hit) == (
+        "Somewhere Road, Jefferson County, Colorado"
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_long_address_is_cut_not_refused(monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        row = await one_row(monkeypatch, client)
+        sitting = (await new_sitting(client)).json()
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"chosen": {**row, "address": "x" * 500}, "result_count": 1},
+        )
+    assert response.status_code == 201, response.text
+    assert response.json()["chosen"]["address"] == "x" * 200
+
+
+def test_clean_chosen_still_refuses_a_non_text_address():
+    with pytest.raises(ValueError):
+        place_kind.clean_chosen({"title": "A", "lat": 1.0, "lng": 2.0, "address": 5})
+
+
+def test_to_row_uses_the_commit_validators():
+    row = place_kind.to_row(
+        {
+            "payload": {
+                "name": "  Spot  ",
+                "lat": 39.7,
+                "lng": -104.9,
+                "city": " Boulder ",
+                "tags": ["coffee", "coffee"],
+                "is_public": False,
+            },
+            "chosen": {"source_id": "way/1"},
+        }
+    )
+    assert row["name"] == "Spot"
+    assert row["city"] == "boulder"
+    assert row["source_id"] == "way/1" and row["source"] == CandidateSource.OSM
+    assert row["is_public"] is False
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"name": "A", "lat": 999, "lng": 1},
+        {"name": "", "lat": 1, "lng": 1},
+        {"name": "A", "lat": 1, "lng": 1, "is_public": "yes"},
+        {"name": "A", "lat": 1, "lng": 1, "city": "x" * 41},
+    ],
+)
+def test_to_row_refuses_what_the_commit_refuses(payload):
+    with pytest.raises(ValueError):
+        place_kind.to_row({"payload": payload})
+
+
+@pytest.mark.asyncio
+async def test_a_null_payload_is_a_422_for_a_place(monkeypatch, sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        _, entry = await check_entry(monkeypatch, client)
+        response = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": None}
+        )
+        after = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"state": "ready"}
+        )
+    assert response.status_code == 422
+    assert after.status_code == 200
+    assert after.json()["payload"] == entry["payload"]

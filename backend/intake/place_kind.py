@@ -64,6 +64,12 @@ def _number(value: Any, low: float, high: float, label: str) -> float:
     return float(value)
 
 
+def _clip(value: Any, limit: int) -> Any:
+    """Text cut to `limit` characters; anything else is left for `_text` to
+    refuse. For display-only fields, where a long value is not worth a 422."""
+    return value[:limit] if isinstance(value, str) else value
+
+
 def _text(value: Any, limit: int, label: str) -> str | None:
     if value is None:
         return None
@@ -112,7 +118,8 @@ def clean_chosen(hit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         "source": "osm",
         "source_id": source_id,
         "title": name,
-        "address": _text(hit.get("address"), TEXT_MAX, "address"),
+        # Display-only (no spot column): a long address is cut, never refused.
+        "address": _text(_clip(hit.get("address"), TEXT_MAX), TEXT_MAX, "address"),
         "lat": lat,
         "lng": lng,
         "category": _text(hit.get("category"), TEXT_MAX, "category"),
@@ -173,6 +180,47 @@ def edit_place(old: dict[str, Any], edit: dict[str, Any]) -> dict[str, Any]:
     return {**old, **clean_fields(edit)}
 
 
+def humanize(text: str) -> str:
+    """ "train_station" as "Train station"; empty stays empty."""
+    words = text.replace("_", " ").strip()
+    return words[:1].upper() + words[1:]
+
+
+def specific_type(hit: PlaceHit) -> str:
+    """The row's kind label: the hit's own type ("amphitheatre"), else its
+    class ("railway"); a generic `yes` type falls back to the class."""
+    kind = (hit.type or "").strip()
+    if kind and kind.lower() != "yes":
+        return humanize(kind)
+    return humanize(hit.category or "")
+
+
+def short_address(hit: PlaceHit) -> str:
+    """ "1701 Wynkoop St, Denver": house number and road, then the town.
+    A sparse address falls back to the display name without its first
+    segment (the name) and its trailing country."""
+    parts = hit.address or {}
+    street = " ".join(
+        str(parts[key]).strip() for key in ("house_number", "road") if parts.get(key)
+    )
+    town = next(
+        (
+            str(parts[key]).strip()
+            for key in ("city", "town", "village", "hamlet", "suburb")
+            if parts.get(key)
+        ),
+        "",
+    )
+    short = ", ".join(piece for piece in (street, town) if piece)
+    if street or town:
+        return short
+    segments = [piece.strip() for piece in hit.display_name.split(",")]
+    segments = segments[1:]
+    if segments and segments[-1] in ("United States", "USA"):
+        segments = segments[:-1]
+    return ", ".join(piece for piece in segments if piece)
+
+
 def row_for(hit: PlaceHit) -> dict[str, Any]:
     """A search result row. `external_source` and `external_id` and `title`
     keep the shape the add bar already reads."""
@@ -183,11 +231,11 @@ def row_for(hit: PlaceHit) -> dict[str, Any]:
         "title": hit.name,
         "year": None,
         "thumbnail_url": None,
-        "address": hit.display_name,
+        "address": short_address(hit),
         "lat": hit.lat,
         "lng": hit.lng,
         "source_id": hit.source_id,
-        "category": hit.category,
+        "category": specific_type(hit),
         "map_url": map_url(hit),
         "owned_spot_id": None,
         "attribution": ATTRIBUTION,
@@ -255,22 +303,29 @@ async def flag_owned(session: AsyncSession, rows: list[dict[str, Any]]) -> None:
 
 
 def to_row(entry: dict[str, Any]) -> dict[str, Any]:
-    """The spot fields an entry writes (task 5's commit)."""
+    """The spot fields an entry writes, from the same validators the commit
+    uses (`clean_name`, `clean_position`, `clean_fields`, `clean_chosen`), so
+    the two cannot drift. ValueError, fit to show, on a bad stored value."""
     payload = entry.get("payload") or {}
     chosen = entry.get("chosen") or {}
+    name = clean_name(payload.get("name"))
+    lat, lng = clean_position(payload.get("lat"), payload.get("lng"))
+    owner = clean_fields({key: payload[key] for key in EDITABLE if key in payload})
     row = {
-        "name": payload.get("name"),
-        "lat": payload.get("lat"),
-        "lng": payload.get("lng"),
-        "city": payload.get("city") or DEFAULT_CITY,
-        "neighbourhood": payload.get("neighbourhood"),
-        "blurb": payload.get("blurb"),
-        "tags": payload.get("tags") or [],
-        "is_public": bool(payload.get("is_public")),
+        "name": name,
+        "lat": lat,
+        "lng": lng,
+        "city": owner.get("city", DEFAULT_CITY),
+        "neighbourhood": owner.get("neighbourhood"),
+        "blurb": owner.get("blurb"),
+        "tags": owner.get("tags", []),
+        "is_public": owner.get("is_public", False),
     }
-    if chosen.get("source_id"):
-        row["source"] = CandidateSource.OSM
-        row["source_id"] = chosen["source_id"]
+    if chosen:
+        _, checked = clean_chosen({**chosen, "title": name, "lat": lat, "lng": lng})
+        if checked["source_id"]:
+            row["source"] = CandidateSource.OSM
+            row["source_id"] = checked["source_id"]
     return row
 
 

@@ -399,3 +399,38 @@ async def test_public_spots_are_unchanged_by_a_committed_private_place(
         after = (await pub.get("/api/public/spots")).json()
     assert after == before
     assert len(await spots_in(sessionmaker_for_test)) == 3
+
+
+@pytest.mark.asyncio
+async def test_a_bad_chosen_position_cannot_override_the_validated_one(
+    sessionmaker_for_test,
+):
+    sid = await stored_sitting(sessionmaker_for_test)
+    await stored_entry(
+        sessionmaker_for_test,
+        sid,
+        {"name": "A", "lat": 39.7, "lng": -104.9},
+        {"source": "osm", "source_id": "way/5", "lat": 999, "lng": 999, "title": "Z"},
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        done = await client.post(f"/api/intake/sittings/{sid}/commit")
+    assert done.status_code == 200, done.text
+    [spot] = await spots_in(sessionmaker_for_test)
+    assert (spot.name, spot.lat, spot.lng) == ("A", 39.7, -104.9)
+
+
+@pytest.mark.asyncio
+async def test_a_bad_stored_latitude_is_refused_under_coords_not_source_id(
+    sessionmaker_for_test,
+):
+    sid = await stored_sitting(sessionmaker_for_test)
+    await stored_entry(
+        sessionmaker_for_test,
+        sid,
+        {"name": "A", "lat": 999, "lng": -104.9},
+        {"source": "osm", "source_id": "way/5", "lat": 39.7, "lng": -104.9},
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        done = await client.post(f"/api/intake/sittings/{sid}/commit")
+    assert done.status_code == 422
+    assert [r["field"] for r in done.json()["refused"]] == ["coords"]

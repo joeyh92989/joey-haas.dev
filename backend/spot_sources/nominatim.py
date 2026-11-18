@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -79,10 +80,15 @@ class SearchFailure:
 SearchResult = SearchOk | SearchFailure
 
 
+OSM_TYPES = frozenset({"node", "way", "relation"})
+
+
 def parse_results(raw: list[dict]) -> list[PlaceHit]:
     """The hits in a `format=jsonv2` answer.
 
-    A row without lat, lon, osm_type or osm_id is skipped, not an error.
+    A row without lat, lon, osm_type or osm_id, or with a non-finite or
+    out-of-range position or an osm_type other than node, way or relation,
+    is skipped, not an error.
     """
     hits: list[PlaceHit] = []
     for row in raw:
@@ -92,6 +98,13 @@ def parse_results(raw: list[dict]) -> list[PlaceHit]:
             osm_type = str(row["osm_type"])
             osm_id = int(row["osm_id"])
         except (KeyError, TypeError, ValueError):
+            continue
+        if (
+            not (math.isfinite(lat) and math.isfinite(lng))
+            or not -90 <= lat <= 90
+            or not -180 <= lng <= 180
+            or osm_type not in OSM_TYPES
+        ):
             continue
         display_name = row.get("display_name") or ""
         name = row.get("name") or display_name.split(",")[0].strip()

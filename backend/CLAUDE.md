@@ -22,7 +22,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
 - **Places through intake (story #340, epic #339).** `IntakeArea` now has
   `places` (a Postgres enum value added by migration `0024`; copy its
   `autocommit_block` plus `ADD VALUE IF NOT EXISTS` pattern for the next one,
-  and note a downgrade cannot drop the value). The `place` kind
+  and note a downgrade cannot drop the value; it deletes the `places` sittings and their entries instead). The `place` kind
   (`intake/place_kind.py`) searches Nominatim (`spot_sources/nominatim.py`)
   through the optional `Kind.search` hook and is added from
   `/admin/places/add`; the commit writes a private spot through

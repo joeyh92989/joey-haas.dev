@@ -134,6 +134,16 @@ function fakeApi({ search, answers = {}, once = {} } = {}) {
       if (body.state) entry.state = body.state
       return json({ id: entry.id })
     }
+    const gone = url.match(/^\/api\/intake\/sittings\/([^/]+)$/)
+    if (gone && method === 'DELETE') {
+      if (!sittings.delete(gone[1]))
+        return json({ detail: 'No such sitting' }, 404)
+      return Promise.resolve({
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve({}),
+      })
+    }
     const commit = url.match(/^\/api\/intake\/sittings\/([^/]+)\/commit$/)
     if (commit) {
       const entries = sittings.get(commit[1])
@@ -154,6 +164,7 @@ function fakeApi({ search, answers = {}, once = {} } = {}) {
         added: fresh.length,
         spots_new: fresh.map(({ id, name }) => ({ id, name })),
         spots_owned: [],
+        skipped_kept: left.length,
       })
     }
     return json({}, 404)
@@ -442,7 +453,7 @@ describe('PlacesAdd', () => {
     expect(commit.url).toBe('/api/intake/sittings/sit-1/commit')
     expect(commit.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Saved Denver Union Station as a private spot.',
+      'Saved Denver Union Station and put it on the public Denver page.',
     )
     const added = screen.getByRole('region', { name: 'Added this visit' })
     expect(within(added).getByText('Denver Union Station')).toBeInTheDocument()
@@ -515,6 +526,32 @@ describe('PlacesAdd', () => {
       '1 to fix before anything is added',
     )
     expect(screen.getByRole('button', { name: 'Save place' })).toBeEnabled()
+  })
+
+  it('shows the first refusal message of a 422 in preference to the generic detail', async () => {
+    const user = userEvent.setup()
+    fakeApi({
+      search: found(ROCKS),
+      answers: {
+        'POST /api/intake/sittings/sit-1/commit': json(
+          {
+            detail: '1 to fix before anything is added',
+            refused: [
+              {
+                message: 'Only a Denver place can be shown on the public page',
+              },
+            ],
+          },
+          422,
+        ),
+      },
+    })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Only a Denver place can be shown on the public page',
+    )
   })
 
   it('says so when the network fails, without a browser dialog', async () => {
@@ -719,6 +756,135 @@ describe('PlacesAdd', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('deletes the sitting a commit left entries in, and a failed delete changes nothing', async () => {
+    const user = userEvent.setup()
+    const { calls, sittings } = fakeApi({
+      search: found(UNION, BUS),
+      answers: {
+        'DELETE /api/intake/sittings/sit-1': json({ detail: 'boom' }, 500),
+      },
+    })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Union Station Bus/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', {
+      name: 'Saved Union Station Bus Concourse',
+    })
+    expect(
+      calls.filter((c) => c.method === 'DELETE').map((c) => c.url),
+    ).toEqual(['/api/intake/sittings/sit-1'])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    // The failed delete did not stop the next visit from starting afresh.
+    await user.click(screen.getByRole('button', { name: 'Add another' }))
+    await submitSearch(user, 'again')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await screen.findByRole('group', {
+      name: 'Details for Denver Union Station',
+    })
+    expect(calls.filter((c) => c.url === '/api/intake/sittings')).toHaveLength(
+      2,
+    )
+    expect(sittings.has('sit-2')).toBe(true)
+  })
+
+  it('actually removes the leftover sitting (faithful fake)', async () => {
+    const user = userEvent.setup()
+    const { sittings } = fakeApi({ search: found(UNION, BUS) })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Union Station Bus/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', {
+      name: 'Saved Union Station Bus Concourse',
+    })
+    expect(sittings.size).toBe(0)
+  })
+
+  it('does not delete a sitting the commit already removed', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi({ search: found(ROCKS) })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Red Rocks Amphitheatre' })
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+  })
+
+  it('puts a single result back to check when its fields cannot be saved', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi({
+      search: found(ROCKS),
+      once: {
+        'PATCH /api/intake/entries/': [
+          () =>
+            json(
+              { detail: 'The city must be text of at most 40 characters' },
+              422,
+            ),
+        ],
+      },
+    })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The city must be text of at most 40 characters',
+    )
+    const patches = calls.filter((c) => c.method === 'PATCH')
+    expect(patches.map((c) => c.body.state)).toEqual(['ready', 'check'])
+    expect(calls.some((c) => c.url.endsWith('/commit'))).toBe(false)
+  })
+
+  it('says a place saved as public is public, in the panel and the status', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(ROCKS) })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    const form = await screen.findByRole('group', { name: /Details for/ })
+    await user.click(
+      within(form).getByLabelText(/Show on the public Denver page/),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Red Rocks Amphitheatre' })
+    expect(
+      screen.getByText('It is on the public Denver page.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Saved Red Rocks Amphitheatre and put it on the public Denver page.',
+    )
+    expect(screen.queryByText(/private spot/)).not.toBeInTheDocument()
+  })
+
+  it('says a private place is private, in the panel and the status', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(ROCKS) })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Red Rocks Amphitheatre' })
+    expect(
+      screen.getByText('It is a private spot. Only you can see it.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Saved Red Rocks Amphitheatre as a private spot.',
+    )
   })
 
   it('recovers once from a 404 on the add call, and then says what the server said', async () => {

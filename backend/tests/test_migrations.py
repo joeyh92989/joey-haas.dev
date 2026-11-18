@@ -1857,11 +1857,24 @@ async def test_0024_a_sitting_can_be_stored_with_the_places_area(clean_database)
 
 
 @pytest.mark.asyncio
-async def test_0024_downgrade_moves_places_sittings_to_shelf(clean_database):
+async def test_0024_downgrade_deletes_places_sittings_and_their_entries(
+    clean_database,
+):
     assert _alembic("upgrade", "0024").returncode == 0
     async with clean_database.begin() as connection:
         await _insert_sitting(connection, "places")
         await _insert_sitting(connection, "closet")
+        await _insert_sitting(connection, "shelf")
+        places = await connection.scalar(
+            text("SELECT id FROM intake_sittings WHERE area::text = 'places'")
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO intake_entries (id, sitting_id, kind) "
+                "VALUES (gen_random_uuid(), :s, 'place')"
+            ),
+            {"s": places},
+        )
     result = _alembic("downgrade", "0023")
     assert result.returncode == 0, result.stderr
     async with clean_database.connect() as connection:
@@ -1871,7 +1884,9 @@ async def test_0024_downgrade_moves_places_sittings_to_shelf(clean_database):
                 text("SELECT area::text FROM intake_sittings")
             )
         )
-    # No sitting is lost; the places one reads as shelf, the closet one is left.
+        entries = await connection.scalar(text("SELECT count(*) FROM intake_entries"))
+    # The places sitting and its entry are gone; shelf and closet are left.
     assert areas == ["closet", "shelf"]
+    assert entries == 0
     up = _alembic("upgrade", "0024")  # the label stayed, IF NOT EXISTS copes
     assert up.returncode == 0, up.stderr

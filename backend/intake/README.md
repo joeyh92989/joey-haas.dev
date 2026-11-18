@@ -454,7 +454,13 @@ reports the same states: `ok`, `busy` (timeout), `failed` (the hook's own
 Typing sends nothing; only `GET /search?area=places&query=` calls Nominatim.
 Place rows carry optional keys that shelf rows lack (they are absent, not
 `null`, on a shelf row): `address`, `lat`, `lng`, `source_id`, `category`,
-`map_url`, `owned_spot_id` and `attribution`. `search_area` marks owned places
+`map_url`, `owned_spot_id` and `attribution`. `category` is the specific
+type humanized ("Train station", from Nominatim's `type`, else its class when
+the type is missing or `yes`), and `address` is the short "1701 Wynkoop St,
+Denver" built from the address parts (house number and road, then city, town,
+village, hamlet or suburb), not Nominatim's full display name. A chosen
+address over 200 characters is cut to 200, since it is display-only; every
+other over-long field is a 422. `search_area` marks owned places
 after the search by the database (`flag_owned`): the spot with the same OSM
 `source_id`, else a spot of the same name within 75 m
 (`SAME_PLACE_METRES`). A row with `owned_spot_id` cannot be added again.
@@ -557,11 +563,20 @@ second commit of it is a 409.
   is not locked and could make a duplicate. `spots` has no unique
   `(source, source_id)` constraint, so the database does not stop it either.
   Accepted: one owner.
-- **Leftover CHECK entries keep their sitting.** A commit writes the `ready`
-  entries and leaves entries still in `check`, and a sitting with any left
-  stays alive and is listed as unfinished. The page starts a new sitting for
-  its next visit, so an abandoned several-results Add leaves one behind until
-  it is forgotten from the unfinished list.
+- **Leftover CHECK entries keep their sitting, and the page deletes it.** A
+  commit writes the `ready` entries and leaves entries still in `check`
+  (`skipped_kept` in the answer is how many), and a sitting with any left
+  stays alive. `GET /sittings?area=places` would list it, but the places page
+  never calls that list, so nobody would see it. The page therefore deletes
+  such a sitting itself with `DELETE /sittings/{id}` (best effort, a failure is
+  ignored) when a commit answers `skipped_kept > 0`, and when it drops a
+  sitting after a 404 and starts a new one. What remains: a sitting left by a
+  closed tab or a failed delete lives until the nightly expiry deletes it
+  (`nightly.EXPIRE_AFTER`, 30 days untouched), and its `check` entries count
+  under `/api/intake/counts` `places` until then (a leftover with only `ready`
+  entries does not count). Checked in the code (`routes.list_sittings`,
+  `routes.counts`, `nightly.expire_sittings`) and in the page's tests with a
+  fake that keeps these rules; not against a running server.
 - **A lost response after a successful commit.** If the commit succeeds but
   its answer never arrives, the page's retry finds the place already owned and
   reports "That place is already on your list". The data is right; only the

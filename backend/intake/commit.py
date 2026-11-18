@@ -273,7 +273,8 @@ def _place_fields(entry: IntakeEntry) -> dict[str, Any] | "Refusal":
         return Refusal(entry.id, None, str(error))
     source_id = None
     if entry.chosen:
-        hit = {"title": name, "lat": lat, "lng": lng, **entry.chosen}
+        # The validated name and position win over whatever `chosen` carries.
+        hit = {**entry.chosen, "title": name, "lat": lat, "lng": lng}
         try:
             _, chosen = clean_chosen(hit)
         except ValueError as error:

@@ -115,6 +115,33 @@ def test_row_missing_a_key_is_skipped(key):
     assert [h.source_id for h in hits] == [f"node/{good[1]['osm_id']}"]
 
 
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"lat": "nan"},
+        {"lon": "inf"},
+        {"lat": "-inf"},
+        {"lat": "90.5"},
+        {"lat": "-91"},
+        {"lon": "180.1"},
+        {"lon": "-181"},
+        {"osm_type": "house"},
+        {"osm_type": ""},
+    ],
+)
+def test_a_bad_position_or_osm_type_is_skipped(change):
+    good = load("several")["results"]
+    broken = {**good[0], **change}
+    hits = parse_results([broken, good[1]])
+    assert [h.source_id for h in hits] == [f"node/{good[1]['osm_id']}"]
+
+
+def test_the_edges_of_the_range_are_kept():
+    good = dict(load("several")["results"][0])
+    edge = {**good, "lat": "90", "lon": "-180", "osm_type": "relation"}
+    assert len(parse_results([edge])) == 1
+
+
 # --- search ------------------------------------------------------------------
 
 

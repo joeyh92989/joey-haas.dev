@@ -928,7 +928,9 @@ def create_intake_router(
                 continue
             if entry.kind == "place":
                 # The server's: only the owner's fields of the payload edit.
-                if field == "payload" and value is not None:
+                if field == "payload" and value is None:
+                    raise HTTPException(422, "A place's payload cannot be cleared")
+                if field == "payload":
                     try:
                         value = edit_place(entry.payload or {}, value)
                     except ValueError as error:

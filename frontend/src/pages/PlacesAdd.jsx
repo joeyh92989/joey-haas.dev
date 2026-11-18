@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import EmptyState from '../components/EmptyState.jsx'
 import PlaceFields, {
   FALLBACK_CITIES,
   HOME_CITY,
@@ -30,10 +31,20 @@ async function call(path, method, body) {
       body: body ? JSON.stringify(body) : undefined,
     })
     if (!response.ok) {
+      // A commit refusal (422) names what to fix in `refused`; its first
+      // message says more than the generic `detail`.
+      const body = await response.json().catch(() => null)
+      const refusal = body?.refused?.[0]?.message
       return {
         ok: false,
         status: response.status,
-        message: await errorMessage(response, { ownConflicts: true }),
+        message:
+          typeof refusal === 'string' && refusal
+            ? refusal
+            : await errorMessage(
+                { status: response.status, json: async () => body },
+                { ownConflicts: true },
+              ),
       }
     }
     return { ok: true, data: await response.json() }
@@ -68,6 +79,7 @@ export default function PlacesAdd() {
   const [notice, setNotice] = useState(null)
   const [added, setAdded] = useState([])
   const [doneName, setDoneName] = useState('')
+  const [donePublic, setDonePublic] = useState(false)
   const [typeOpen, setTypeOpen] = useState(false)
   const [typed, setTyped] = useState({ name: '', coords: '' })
   const [typedValues, setTypedValues] = useState(emptyFields)
@@ -140,8 +152,11 @@ export default function PlacesAdd() {
 
   let status = ''
   if (phase === 'searching') status = words.status.searching(searched.q)
-  else if (phase === 'done') status = words.status.done(doneName)
-  else if (none) status = words.status.none(searched.q)
+  else if (phase === 'done') {
+    status = donePublic
+      ? words.status.donePublic(doneName)
+      : words.status.done(doneName)
+  } else if (none) status = words.status.none(searched.q)
   else if (showResults) {
     if (owned.length) status = words.status.saved(results.length, searched.q)
     else if (openRow && several) status = words.status.picked(openRow.title)
@@ -191,11 +206,18 @@ export default function PlacesAdd() {
   }
 
   /** Forgets the visit's sitting and entries: the server deletes a sitting
-   *  when a commit leaves nothing to check, and the next Add makes a new one. */
-  function forgetSitting() {
+   *  when a commit leaves nothing to check, and the next Add makes a new one.
+   *  `discard` first deletes the sitting on the server (best effort, a
+   *  failure is ignored), for one that may still hold entries: otherwise it
+   *  would sit unseen until it expires. */
+  async function forgetSitting(discard = false) {
+    const held = sitting.current
     sitting.current = null
     entries.current.clear()
     typedEntry.current = null
+    if (!discard || !held) return
+    const made = await held
+    if (made.ok) await call(`/api/intake/sittings/${made.id}`, 'DELETE')
   }
 
   /** `attempt()` once; on a 404 (the sitting or entry is gone) a fresh
@@ -203,7 +225,7 @@ export default function PlacesAdd() {
   async function retryGone(attempt) {
     const first = await attempt()
     if (first.ok || first.status !== 404) return first
-    forgetSitting()
+    await forgetSitting(true)
     return attempt()
   }
 
@@ -283,6 +305,7 @@ export default function PlacesAdd() {
 
   /** Remembers what the commit wrote and moves the page to Saved. */
   function finish(data, name, isPublic, address = '') {
+    setDonePublic(isPublic)
     const fresh = data.spots_new ?? []
     setAdded((old) => [
       ...fresh.map((spot) => ({
@@ -311,7 +334,12 @@ export default function PlacesAdd() {
           payload,
           state: 'ready',
         })
-        if (!patched.ok) return patched
+        if (!patched.ok) {
+          // A single result is READY from its POST: put it back to check so
+          // a later save in this sitting cannot commit it with default fields.
+          await parkEntry(entry.id)
+          return patched
+        }
         const committed = await commit(entry.sittingId)
         if (!committed.ok) await parkEntry(entry.id)
         return committed
@@ -321,8 +349,9 @@ export default function PlacesAdd() {
         setNotice(outcome.message)
         return
       }
-      // The commit may have deleted the sitting: the next Add starts afresh.
-      forgetSitting()
+      // The commit deleted the sitting unless it kept entries; delete one
+      // that did, so it is not left behind unseen. The next Add starts afresh.
+      await forgetSitting((outcome.data.skipped_kept ?? 0) > 0)
       const fresh = outcome.data.spots_new ?? []
       const already = outcome.data.spots_owned ?? []
       if (!fresh.length && already.length) {
@@ -364,7 +393,10 @@ export default function PlacesAdd() {
             'PATCH',
             { payload, state: 'ready' },
           )
-          if (!patched.ok) return patched
+          if (!patched.ok) {
+            await parkEntry(entryId)
+            return patched
+          }
         } else {
           const entry = await call(
             `/api/intake/sittings/${made.id}/places`,
@@ -390,7 +422,7 @@ export default function PlacesAdd() {
         })
         return
       }
-      forgetSitting()
+      await forgetSitting((outcome.data.skipped_kept ?? 0) > 0)
       if (!(outcome.data.spots_new ?? []).length) {
         setTypedError({ field: 'form', message: words.alreadyOnList })
         return
@@ -491,20 +523,15 @@ export default function PlacesAdd() {
             </div>
           )}
           {none && (
-            <div className="empty-state">
-              <p className="empty-state-title" tabIndex={-1} ref={noneRef}>
-                {status}
-              </p>
-              <p>{words.noneHelp}</p>
-              <div className="intake-actions">
-                <button type="button" className="btn" onClick={changeWords}>
-                  {words.changeWords}
-                </button>
-                <button type="button" className="btn" onClick={openType}>
-                  {words.typeByHand}
-                </button>
-              </div>
-            </div>
+            <EmptyState
+              title={status}
+              titleRef={noneRef}
+              line={words.noneHelp}
+              actions={[
+                { label: words.changeWords, onClick: changeWords },
+                { label: words.typeByHand, onClick: openType },
+              ]}
+            />
           )}
         </div>
         {notice && (
@@ -512,7 +539,11 @@ export default function PlacesAdd() {
             {notice}
           </p>
         )}
-        <div className="place-ways" role="group" aria-label="Other ways in">
+        <div
+          className="place-ways"
+          role="group"
+          aria-label={words.otherWaysLabel}
+        >
           <span className="muted">{words.otherWays}</span>
           <button
             type="button"
@@ -628,9 +659,9 @@ export default function PlacesAdd() {
           <section className="panel place-done">
             <div className="panel-body place-stack-sm">
               <h2 className="place-done-made" tabIndex={-1} ref={doneRef}>
-                Saved {doneName}
+                {words.savedHeading(doneName)}
               </h2>
-              <p>{words.doneNote}</p>
+              <p>{donePublic ? words.doneNotePublic : words.doneNote}</p>
               <div className="intake-actions">
                 <button type="button" className="btn primary" onClick={again}>
                   {words.addAnother}
@@ -647,7 +678,7 @@ export default function PlacesAdd() {
             <ul
               ref={listRef}
               tabIndex={-1}
-              aria-label={`Results for “${searched.q}”`}
+              aria-label={words.resultsFor(searched.q)}
             >
               {results.map((row) => (
                 <PlaceResultRow

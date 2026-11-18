@@ -13588,7 +13588,29 @@ a.btn.sm {
 
 .place-fail {
   display: grid;
+  font-size: var(--fs-14);
   gap: var(--space-3);
+}
+
+.place-col .admin-error {
+  font-size: var(--fs-14);
+}
+
+/* The grid's gap spaces the column's panels; the global section + section
+   margin would add 24px on top of it. */
+.place-col > section {
+  margin-top: 0;
+}
+
+/* The tag chips wrap at every width, as the mockup's do, instead of the
+   phone's sideways-scrolling strip. */
+.place-col .chip-row {
+  -webkit-mask-image: none;
+  flex-wrap: wrap;
+  margin-top: 0;
+  mask-image: none;
+  overflow-x: visible;
+  padding: 0;
 }
 
 .place-fail p,
@@ -13732,6 +13754,7 @@ a.btn.sm {
 
 .place-osm a {
   color: inherit;
+  text-decoration: underline;
 }
 
 .place-done {

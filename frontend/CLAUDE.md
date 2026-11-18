@@ -298,8 +298,13 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
     forgets the sitting and entry ids (`forgetSitting`) and the next Add makes
     a new one. A 404 from the sitting, entry or commit routes drops the ids,
     makes a fresh sitting and retries once (`retryGone`).
+  - **A leftover sitting is deleted by the page.** When a commit answers
+    `skipped_kept > 0` (entries kept in `check`), and when a 404 drops the
+    sitting, `forgetSitting(true)` first sends `DELETE /api/intake/sittings/{id}`
+    (best effort), since nothing lists a places sitting. A refusal shows
+    `refused[0].message` when the 422 has one.
   - **A failed commit parks its entry back to `check`** (PATCH `state: check`,
-    best effort), so a READY leftover is never committed by a later save of
+    best effort; also when the PATCH to `ready` fails), so a READY leftover is never committed by a later save of
     another place. A typed place keeps its entry across the failure and a
     retry PATCHes it ready again instead of posting a second.
   - **In-flight `useRef` guards** (`inflight`, `sitting`) stop a double press

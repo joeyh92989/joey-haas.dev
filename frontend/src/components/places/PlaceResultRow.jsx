@@ -8,7 +8,7 @@ function MapLink({ place }) {
   return (
     <a className="place-maplink" href={place.map_url}>
       {words.viewOnMap}
-      <span className="visually-hidden">: {place.title}</span>
+      <span className="visually-hidden">{words.mapFor(place.title)}</span>
     </a>
   )
 }
@@ -66,7 +66,7 @@ export default function PlaceResultRow({
         <Link className="btn" to="/admin/spots">
           {words.alreadySaved}
           <span className="visually-hidden">
-            : {place.title}, open on Spots
+            {words.alreadySavedFor(place.title)}
           </span>
         </Link>
       )}
@@ -75,7 +75,7 @@ export default function PlaceResultRow({
           type="button"
           className="btn primary"
           aria-expanded="false"
-          aria-label={`${words.add} ${place.title}${place.address ? `, ${place.address}` : ''}`}
+          aria-label={words.addLabel(place.title, place.address)}
           disabled={busy}
           onClick={onAdd}
         >
@@ -86,7 +86,7 @@ export default function PlaceResultRow({
         <div
           className="place-form"
           role="group"
-          aria-label={`Details for ${place.title}`}
+          aria-label={words.detailsFor(place.title)}
         >
           <PlaceFields values={values} onChange={onValues} cities={cities} />
           <div className="intake-actions">

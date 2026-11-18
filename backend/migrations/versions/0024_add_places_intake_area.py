@@ -16,6 +16,11 @@ value added in the same transaction, and older servers refuse ADD VALUE inside
 one) and IF NOT EXISTS, because a downgrade cannot remove it: Postgres has no
 DROP VALUE. A database downgraded below 0024 keeps `places` as an unused label,
 which the old code never writes.
+
+Downgrade deletes the `places` sittings, with their entries and photos: they
+are scratch rows that exist only because of this migration, and relabelling
+them would leave a shelf sitting holding entries of an unknown kind. Spots
+already written stay. The upgrade is purely additive.
 """
 
 from collections.abc import Sequence
@@ -34,10 +39,19 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # intake_area keeps 'places': Postgres cannot drop an enum value. A sitting
-    # still marked places would fail the old code's enum, so it goes back to
-    # shelf, the area the old code reads by default. Its entries stay with it.
+    # intake_area keeps 'places': Postgres cannot drop an enum value. A places
+    # sitting cannot go back to shelf: its kind stays 'place' and so do its
+    # entries, and the old code would read a shelf sitting of an unknown kind
+    # that cannot commit. These rows are scratch rows that exist only because
+    # of this migration (a finished place is a spot, which stays), so they are
+    # deleted. Entries and photos are removed first, explicitly, though their
+    # foreign keys (0015) also cascade.
     op.execute(
-        "UPDATE intake_sittings SET area = 'shelf'::intake_area "
-        "WHERE area::text = 'places'"
+        "DELETE FROM intake_entries WHERE sitting_id IN "
+        "(SELECT id FROM intake_sittings WHERE area::text = 'places')"
     )
+    op.execute(
+        "DELETE FROM intake_photos WHERE sitting_id IN "
+        "(SELECT id FROM intake_sittings WHERE area::text = 'places')"
+    )
+    op.execute("DELETE FROM intake_sittings WHERE area::text = 'places'")
