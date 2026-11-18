@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural + ui
 mode: gated
 ---
