@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -150,6 +150,38 @@ class VisitOut(BaseModel):
     precision: OutingPrecision
 
 
+class OutingPlaceIn(BaseModel):
+    """A place to save as a new private spot in the same save as its outing.
+    The values are checked by the intake place validators, not here; the
+    caps only keep a huge body from being read."""
+
+    name: str = Field(max_length=MAX_NAME * 3)
+    lat: float
+    lng: float
+    city: str | None = Field(default=None, max_length=CITY_BODY_MAX)
+    source_id: str | None = Field(default=None, max_length=200)
+
+
+class OutingIn(VisitIn):
+    """An outing: the visit fields plus exactly one of a saved spot's id or a
+    place to create (and reuse if it is already a spot)."""
+
+    spot_id: uuid.UUID | None = None
+    place: OutingPlaceIn | None = None
+
+    @model_validator(mode="after")
+    def _one_place(self):
+        if (self.spot_id is None) == (self.place is None):
+            raise ValueError("Send exactly one of spot_id or place")
+        return self
+
+
+class OutingOut(BaseModel):
+    visit: VisitOut
+    spot: SpotOut
+    created: bool
+
+
 def _clean(text: str | None) -> str | None:
     return (text or "").strip() or None
 
@@ -174,6 +206,42 @@ def _tags(values: list[str]) -> list[str]:
         return spots.canonical_tags(values)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def build_visit(payload: VisitIn) -> Visit:
+    """The one place a visit's title length, future date and row are decided,
+    shared by the per-spot route and the outing route so they cannot drift.
+    Adds nothing to a session and sets no `spot_id` (the caller does)."""
+    if payload.title is not None and len(payload.title) > MAX_OUTING_TITLE:
+        raise HTTPException(
+            status_code=422,
+            detail=f"A title is at most {MAX_OUTING_TITLE} characters",
+        )
+    today = datetime.now(OWNER_TZ).date()
+    visited_on = _period_start(payload.visited_on or today, payload.precision)
+    if visited_on > today + timedelta(days=1):
+        raise HTTPException(status_code=422, detail="A visit cannot be in the future")
+    return Visit(
+        visited_on=visited_on,
+        precision=payload.precision,
+        title=payload.title,
+        verdict=payload.verdict,
+        kid_along=payload.kid_along,
+        note=_clean(payload.note),
+    )
+
+
+def _visit_out(row: Visit) -> VisitOut:
+    return VisitOut(
+        id=row.id,
+        spot_id=row.spot_id,
+        visited_on=row.visited_on,
+        note=row.note,
+        title=row.title,
+        verdict=row.verdict,
+        kid_along=row.kid_along,
+        precision=row.precision,
+    )
 
 
 def _city(raw: str | None) -> str:
@@ -454,38 +522,82 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         next are refused. The day's grace is for the owner logging from a time
         zone east of Denver."""
         await _spot(session, spot_id)
-        if payload.title is not None and len(payload.title) > MAX_OUTING_TITLE:
-            raise HTTPException(
-                status_code=422,
-                detail=f"A title is at most {MAX_OUTING_TITLE} characters",
-            )
-        today = datetime.now(OWNER_TZ).date()
-        visited_on = _period_start(payload.visited_on or today, payload.precision)
-        if visited_on > today + timedelta(days=1):
-            raise HTTPException(
-                status_code=422, detail="A visit cannot be in the future"
-            )
-        row = Visit(
-            spot_id=spot_id,
-            visited_on=visited_on,
-            precision=payload.precision,
-            title=payload.title,
-            verdict=payload.verdict,
-            kid_along=payload.kid_along,
-            note=_clean(payload.note),
-        )
+        row = build_visit(payload)
+        row.spot_id = spot_id
         session.add(row)
         await session.commit()
         await session.refresh(row)
-        return VisitOut(
-            id=row.id,
-            spot_id=row.spot_id,
-            visited_on=row.visited_on,
-            note=row.note,
-            title=row.title,
-            verdict=row.verdict,
-            kid_along=row.kid_along,
-            precision=row.precision,
+        return _visit_out(row)
+
+    @router.post("/outings", response_model=OutingOut, status_code=201)
+    async def log_outing(
+        payload: OutingIn, session: AsyncSession = Depends(get_session)
+    ) -> OutingOut:
+        """Logs an outing at a saved spot, or at a place that is saved as a
+        new private spot in the same transaction (`created` true). A place
+        already owned (same OSM id, else same name nearby) takes the visit and
+        creates nothing. The visit is checked before anything is added, and
+        one commit ends it: any error leaves no spot and no visit."""
+        # Lazy: intake.commit imports this module.
+        from intake import place_kind
+        from intake.commit import lock_place_commits
+
+        visit = build_visit(payload)
+        created = False
+        if payload.place is None:
+            spot = await _spot(session, payload.spot_id)
+        else:
+            place = payload.place
+            try:
+                name = place_kind.clean_name(place.name)
+                lat, lng = place_kind.clean_position(place.lat, place.lng)
+                source_id = place.source_id
+                if source_id is not None and (
+                    len(source_id) > place_kind.SOURCE_ID_MAX
+                    or not place_kind.SOURCE_ID.fullmatch(source_id)
+                ):
+                    raise ValueError("A place's source_id must look like way/123")
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            city = (
+                _city(place.city) if "city" in place.model_fields_set else spots.DENVER
+            )
+            await lock_place_commits(session)
+            owned = await place_kind.owned_spot_id(
+                session, source_id=source_id, name=name, lat=lat, lng=lng
+            )
+            if owned:
+                spot = await _spot(session, uuid.UUID(owned))
+            else:
+                try:
+                    spot = await build_spot(
+                        session,
+                        name=name,
+                        lat=lat,
+                        lng=lng,
+                        city=city,
+                        source=CandidateSource.OSM if source_id else None,
+                        source_id=source_id,
+                    )
+                except ValueError as exc:
+                    raise HTTPException(status_code=422, detail=str(exc)) from exc
+                session.add(spot)
+                try:
+                    await session.flush()
+                except IntegrityError as exc:
+                    await session.rollback()
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Another spot took that name; try again",
+                    ) from exc
+                created = True
+        visit.spot_id = spot.id
+        session.add(visit)
+        await commit_spot(session)
+        await session.refresh(spot)
+        await session.refresh(visit)
+        return OutingOut(
+            visit=_visit_out(visit), spot=await _read(session, spot), created=created
         )
 
     @router.get("/status", response_model=SpotsStatusOut)
