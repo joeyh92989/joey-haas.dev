@@ -1208,3 +1208,23 @@ async def test_a_patch_meeting_a_commit_holding_the_rows_is_a_busy_409(
             )
     assert busy.status_code == 409
     assert busy.json()["detail"] == "This place is busy. Try again in a moment."
+
+
+@pytest.mark.asyncio
+async def test_a_long_map_url_is_read_and_its_source_line_is_clipped(
+    monkeypatch, sessionmaker_for_test
+):
+    patch_search(monkeypatch)
+    url = (
+        "https://www.google.com/maps/place/Confluence+Park/@39.7546,-105.0078,17z/"
+        "data=" + "!4m6!3m5!1s0x876c7ed1a6f2a8cd" * 20 + "!3d39.7546!4d-105.0078"
+    )
+    assert 600 < len(url) < 2000
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        response = await paste(client, sitting, url)
+    [entry] = response.json()["entries"]
+    assert entry["state"] == "ready"
+    assert entry["payload"]["name"] == "Confluence Park"
+    assert len(entry["payload"]["source_line"]) == 300
+    assert url.startswith(entry["payload"]["source_line"])

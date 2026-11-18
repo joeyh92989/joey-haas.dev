@@ -280,3 +280,71 @@ def test_nul_and_controls_are_removed_from_lines_but_tab_is_a_space():
     s = split_lines("abc\x00def\n\x00\na\tb\x07c")
     assert s.lines == ["abcdef", "a bc"]
     assert s.blank == 1
+
+
+# --- the longer cap for a known map host's URL --------------------------------
+
+
+def _google_place_url(total: int) -> str:
+    """A real-looking Google place URL padded with a `data=` blob to `total`."""
+    head = (
+        "https://www.google.com/maps/place/Confluence+Park/@39.7546,-105.0078,17z/data="
+    )
+    tail = "!3d39.7546!4d-105.0078"
+    filler = "!4m6!3m5!1s0x876c7ed1a6f2a8cd:0x7a6d5e3f1b9c2d44!8m2"
+    body = (filler * (total // len(filler) + 1))[: total - len(head) - len(tail)]
+    url = head + body + tail
+    assert len(url) == total
+    return url
+
+
+def test_a_700_character_google_place_url_is_read():
+    r = read_line(_google_place_url(700))
+    assert (r.kind, r.name, r.lat, r.lng) == (
+        "coords",
+        "Confluence Park",
+        39.7546,
+        -105.0078,
+    )
+
+
+def test_a_2000_character_known_host_url_is_still_read():
+    assert read_line(_google_place_url(2000)).kind == "coords"
+
+
+def test_a_2001_character_google_url_is_too_long():
+    r = read_line(_google_place_url(2001))
+    assert r.kind == "too_long"
+    assert r.note
+
+
+def test_a_301_character_plain_name_is_too_long():
+    assert read_line("a" * 301).kind == "too_long"
+
+
+def test_a_long_url_on_an_unknown_host_is_too_long_and_not_read():
+    url = "https://example.com/maps/place/Park/@39.7,-105.0/" + "x" * 1950
+    assert len(url) < 2000
+    assert read_line(url).kind == "too_long"
+    assert read_line("https://example.com/" + "x" * 270).kind == "name"
+
+
+def test_a_300_character_url_on_an_unknown_host_is_a_name():
+    assert read_line("https://example.com/" + "x" * 280).kind == "name"
+
+
+def test_a_long_short_link_is_still_a_short_link():
+    r = read_line("https://maps.app.goo.gl/" + "a" * 900)
+    assert (r.kind, r.host) == ("short_link", "maps.app.goo.gl")
+
+
+def test_an_adversarial_long_url_parses_fast():
+    import time
+
+    url = "https://www.google.com/maps/place/X/@1," + "!3d" * 400 + "map=1/" * 200
+    url = url[:1990]
+    assert len(url) == 1990
+    start = time.perf_counter()
+    for _ in range(5):
+        read_line(url)
+    assert (time.perf_counter() - start) / 5 < 0.2  # generous; it is linear

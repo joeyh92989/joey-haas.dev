@@ -167,12 +167,15 @@ function Body({
       </>
     )
   }
-  // none, long
+  // none, unusable, long
+  const body = {
+    long: words.longBody,
+    unusable: words.unusableBody,
+    none: words.noneBody(nameOf(entry)),
+  }[kind]
   return (
     <>
-      <p className="place-paste-why">
-        {kind === 'long' ? words.longBody : words.noneBody(nameOf(entry))}
-      </p>
+      <p className="place-paste-why">{body}</p>
       <PasteFixForm
         inputId={fieldId}
         label={placesAdd.name}
@@ -213,6 +216,8 @@ function Body({
  * @param {() => void} props.onRetry Look the line up again as it is.
  * @param {() => void} props.onLeaveOut
  * @param {() => void} props.onPutBack
+ * @param {boolean} [props.canRetry] No walk is running, so a line still waiting
+ *   offers Try again.
  */
 export default function PasteRow({
   entry,
@@ -229,6 +234,7 @@ export default function PasteRow({
   onRetry,
   onLeaveOut,
   onPutBack,
+  canRetry = false,
 }) {
   const title = nameOf(entry)
   const toCheck = !['ready', 'saved', 'same', 'wait'].includes(kind)
@@ -275,7 +281,7 @@ export default function PasteRow({
         {hidden}
       </button>
     )
-  } else if (kind === 'failed' && !open) {
+  } else if ((kind === 'failed' && !open) || (kind === 'wait' && canRetry)) {
     action = (
       <button
         type="button"
@@ -283,7 +289,9 @@ export default function PasteRow({
         id={rowButtonId(entry)}
         onClick={onRetry}
       >
-        {words.rowButton.failed}
+        {kind === 'wait' && !entry.payload?.attempts
+          ? words.rowButton.wait
+          : words.rowButton.failed}
         {hidden}
       </button>
     )

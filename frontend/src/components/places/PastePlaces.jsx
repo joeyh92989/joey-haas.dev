@@ -30,6 +30,10 @@ const RETRY_WAIT_MS = 1000
 /** Rows an open group shows before "Show all": ten, six on a phone. */
 const CAP = 10
 const PHONE_CAP = 6
+/** How many open sittings the resume looks through, newest first. */
+const RESUME_LOOK = 5
+/** The most characters one paste holds (the server's limit). */
+const MAX_CHARS = 80000
 
 /** A 409 that clears by itself: another call holds the entry, or a save the list. */
 const isBusyAnswer = (answer) =>
@@ -88,6 +92,7 @@ export default function PastePlaces({ cities }) {
   const looping = useRef(false)
   const auto = useRef(false) // the queue walks the whole list
   const priority = useRef([]) // {id, row} lookups a row asked for
+  const askedIds = useRef(new Set()) // ids with a row lookup queued or under way
   const skip = useRef(new Set()) // entries the queue leaves to "Try again"
   const entriesRef = useRef([])
   const editsRef = useRef({})
@@ -127,26 +132,26 @@ export default function PastePlaces({ cities }) {
     ;(async () => {
       const list = await call('/api/intake/sittings?area=places', 'GET')
       if (!live) return
-      const newest =
+      // The newest few open sittings, newest first: a later search-flow
+      // leftover must not hide an older pasted list.
+      const open =
         list.ok && Array.isArray(list.data)
-          ? list.data.find((s) =>
-              Object.values(s.entries ?? {}).some((n) => n > 0),
-            )
-          : null
-      if (!newest) {
-        focusNext.current = { id: 'paste-text' }
-        return setPhase('paste')
+          ? list.data
+              .filter((s) => Object.values(s.entries ?? {}).some((n) => n > 0))
+              .slice(0, RESUME_LOOK)
+          : []
+      for (const sitting of open) {
+        const detail = await call(`/api/intake/sittings/${sitting.id}`, 'GET')
+        if (!live) return
+        const held = detail.ok ? (detail.data.entries ?? []) : []
+        if (held.some(isPasted)) {
+          setOffer({ id: sitting.id, entries: held })
+          setPhase('offer')
+          return
+        }
       }
-      const detail = await call(`/api/intake/sittings/${newest.id}`, 'GET')
-      if (!live) return
-      const held = detail.ok ? (detail.data.entries ?? []) : []
-      if (held.some(isPasted)) {
-        setOffer({ id: newest.id, entries: held })
-        setPhase('offer')
-      } else {
-        focusNext.current = { id: 'paste-text' }
-        setPhase('paste')
-      }
+      focusNext.current = { id: 'paste-text' }
+      setPhase('paste')
     })()
     return () => {
       live = false
@@ -213,7 +218,10 @@ export default function PastePlaces({ cities }) {
         let entry = null
         if (asked) {
           entry = entriesRef.current.find((e) => e.id === asked.id)
-          if (!entry) continue
+          if (!entry) {
+            askedIds.current.delete(asked.id)
+            continue
+          }
         } else if (auto.current) {
           entry = nextWaiting(entriesRef.current, skip.current)
         }
@@ -253,7 +261,15 @@ export default function PastePlaces({ cities }) {
         putEntry(fresh)
         flag(setFailedIds, entry.id, false)
         skip.current.delete(entry.id)
+        // A line looked up again that still waits is part of the walk now,
+        // so Continue and the count know it.
+        if (fresh.state === 'reading') {
+          setLookupIds((old) => new Set(old).add(fresh.id))
+        }
+        // A row's notice has been spoken by the time the next lookup lands;
+        // leaving it would block the progress announcements.
         if (row) afterRowLookup(fresh)
+        else setNotice('')
       } else {
         skip.current.add(entry.id)
         if (entry.state === 'reading') flag(setFailedIds, entry.id, true)
@@ -261,6 +277,7 @@ export default function PastePlaces({ cities }) {
       }
     } finally {
       inflight.current = false
+      if (row) askedIds.current.delete(entry.id)
       if (alive.current) setBusy(entry.id, false)
     }
   }
@@ -278,7 +295,9 @@ export default function PastePlaces({ cities }) {
       )
       focusNext.current = { id: groupButtonId(kind) }
     } else if (kind === 'wait') {
-      setNotice(words.stillCheck(title, words.why.failed))
+      setNotice(words.stillCheck(title, words.why.failed.toLowerCase()))
+      setGroupOpen((old) => ({ ...old, wait: true }))
+      focusNext.current = { id: rowButtonId(entry) }
     } else {
       const why =
         kind === 'several'
@@ -304,6 +323,9 @@ export default function PastePlaces({ cities }) {
   }
 
   function askLookup(entry) {
+    // A second press while the first is queued or running asks for nothing.
+    if (askedIds.current.has(entry.id)) return
+    askedIds.current.add(entry.id)
     setError('')
     flag(setFailedIds, entry.id, false)
     skip.current.delete(entry.id)
@@ -338,6 +360,11 @@ export default function PastePlaces({ cities }) {
 
   function addLines(event) {
     event.preventDefault()
+    if (text.length > MAX_CHARS) {
+      setZero(words.tooBig(MAX_CHARS.toLocaleString('en-US')))
+      focusNext.current = { id: 'paste-text' }
+      return
+    }
     if (!boxFilled) {
       setZero(boxTotal ? words.zeroBlank(boxTotal) : words.zeroEmpty)
       focusNext.current = { id: 'paste-text' }
@@ -355,11 +382,14 @@ export default function PastePlaces({ cities }) {
       setAdding(false)
       if (!answer.ok) {
         if (answer.status === 404) sitting.current = null
-        setPasteError(
-          answer.status === 0 || answer.status >= 500
-            ? words.pasteFailed
-            : answer.message,
-        )
+        if (answer.status === 422) setZero(words.pasteRefused)
+        else {
+          setPasteError(
+            answer.status === 0 || answer.status >= 500
+              ? words.pasteFailed
+              : answer.message,
+          )
+        }
         return
       }
       const body = answer.data
@@ -585,8 +615,15 @@ export default function PastePlaces({ cities }) {
       if (!outcome.ok) return setError(outcome.message || words.commitFailed)
       const data = outcome.data
       const fresh = data.spots_new ?? []
+      // The commit writes the ready entries in the order sent and leaves out
+      // the ones already owned, so each new spot belongs to the next ready
+      // entry of that name: two places with one name keep their own address.
+      let from = 0
       const savedNow = fresh.map((spot) => {
-        const entry = ready.find((e) => nameOf(e) === spot.name)
+        let at = ready.findIndex((e, i) => i >= from && nameOf(e) === spot.name)
+        if (at < 0) at = ready.findIndex((e) => nameOf(e) === spot.name)
+        if (at >= 0) from = at + 1
+        const entry = ready[at]
         return {
           id: spot.id,
           name: spot.name,
@@ -711,6 +748,7 @@ export default function PastePlaces({ cities }) {
         onRetry={() => askLookup(entry)}
         onLeaveOut={() => leaveOut(entry)}
         onPutBack={() => putBack(entry)}
+        canRetry={!running}
       />
     )
   }
@@ -727,6 +765,52 @@ export default function PastePlaces({ cities }) {
 
   const showPasteBox = phase === 'paste'
   const hasEntries = entries.length > 0
+
+  const progress = hasEntries && (phase !== 'done' || unfinished) && (
+    <div className="place-paste-progress">
+      <div className="place-paste-progress-row">
+        <p className="place-status" aria-hidden="true">
+          {status}
+        </p>
+        {unfinished &&
+          (running ? (
+            <button
+              type="button"
+              className="btn"
+              id="paste-stop"
+              onClick={stop}
+            >
+              {words.stop}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              id="paste-stop"
+              onClick={() => {
+                focusNext.current = { id: 'paste-stop' }
+                startWalk()
+              }}
+            >
+              {words.resume}
+            </button>
+          ))}
+      </div>
+      {unfinished && (
+        <>
+          <progress
+            className="place-paste-meter"
+            aria-label={words.progressLabel}
+            value={doneCount}
+            max={total}
+          />
+          <p className="place-hint">
+            {running ? words.runningHint : words.stoppedHint}
+          </p>
+        </>
+      )}
+    </div>
+  )
 
   return (
     <>
@@ -759,6 +843,7 @@ export default function PastePlaces({ cities }) {
                 <li>{words.alreadySavedCount(done.owned)}</li>
               )}
             </ul>
+            {progress}
             <div className="intake-actions">
               <button type="button" className="btn primary" onClick={again}>
                 {words.addAnother}
@@ -885,51 +970,7 @@ export default function PastePlaces({ cities }) {
                 {pasted}
               </pre>
             )}
-            {hasEntries && phase !== 'offer' && (
-              <div className="place-paste-progress">
-                <div className="place-paste-progress-row">
-                  <p className="place-status" aria-hidden="true">
-                    {status}
-                  </p>
-                  {unfinished &&
-                    (running ? (
-                      <button
-                        type="button"
-                        className="btn"
-                        id="paste-stop"
-                        onClick={stop}
-                      >
-                        {words.stop}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn"
-                        id="paste-stop"
-                        onClick={() => {
-                          focusNext.current = { id: 'paste-stop' }
-                          startWalk()
-                        }}
-                      >
-                        {words.resume}
-                      </button>
-                    ))}
-                </div>
-                {unfinished && (
-                  <>
-                    <progress
-                      className="place-paste-meter"
-                      aria-label={words.progressLabel}
-                      value={doneCount}
-                      max={total}
-                    />
-                    <p className="place-hint">
-                      {running ? words.runningHint : words.stoppedHint}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
+            {phase !== 'offer' && progress}
           </div>
         </section>
       )}
@@ -980,7 +1021,7 @@ export default function PastePlaces({ cities }) {
             <span className="spots-pill">{written.length}</span>
           </div>
           <ul className="place-added">
-            {written.map((spot) => (
+            {(showAll.added ? written : written.slice(0, cap)).map((spot) => (
               <li key={spot.id}>
                 <span>
                   <b>{spot.name}</b>
@@ -999,6 +1040,26 @@ export default function PastePlaces({ cities }) {
               </li>
             ))}
           </ul>
+          {written.length > cap && (
+            <div className="panel-body">
+              <button
+                type="button"
+                className="chip capped-toggle"
+                aria-expanded={Boolean(showAll.added)}
+                onClick={() =>
+                  setShowAll((old) => ({ ...old, added: !old.added }))
+                }
+              >
+                {showAll.added
+                  ? words.showFewer
+                  : words.showAll(written.length)}
+                <span className="visually-hidden">
+                  {' '}
+                  {placesAdd.addedHeading.toLowerCase()}
+                </span>
+              </button>
+            </div>
+          )}
         </section>
       )}
     </>

@@ -9,50 +9,14 @@ import PlaceFields, {
   fieldsPayload,
 } from '../components/places/PlaceFields.jsx'
 import PastePlaces from '../components/places/PastePlaces.jsx'
+import { call } from '../components/places/placeApi.js'
 import PlaceResultRow from '../components/places/PlaceResultRow.jsx'
 import { placesAdd as words } from '../content/placesAdd.js'
-import { apiFetch, errorMessage } from '../lib/api.js'
+import { apiFetch } from '../lib/api.js'
 import { localToday, sittingLabel } from '../lib/intake.js'
-
-const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /** A search row's identity: its OpenStreetMap id, else its title. */
 const keyOf = (row) => row.source_id ?? row.external_id ?? row.title
-
-/**
- * One call to the intake API. Resolves `{ok: true, data}`, or
- * `{ok: false, message}` in the server's words (a 409 here is the page's own
- * conflict, not the catalogue lock) or the page's own when it did not answer.
- */
-async function call(path, method, body) {
-  try {
-    const response = await apiFetch(path, {
-      method,
-      headers: body ? JSON_HEADERS : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    })
-    if (!response.ok) {
-      // A commit refusal (422) names what to fix in `refused`; its first
-      // message says more than the generic `detail`.
-      const body = await response.json().catch(() => null)
-      const refusal = body?.refused?.[0]?.message
-      return {
-        ok: false,
-        status: response.status,
-        message:
-          typeof refusal === 'string' && refusal
-            ? refusal
-            : await errorMessage(
-                { status: response.status, json: async () => body },
-                { ownConflicts: true },
-              ),
-      }
-    }
-    return { ok: true, data: await response.json() }
-  } catch {
-    return { ok: false, status: 0, message: words.noAnswer }
-  }
-}
 
 /** Where a typed place's refusal belongs: beside its field when it names one. */
 function typedErrorField(message) {

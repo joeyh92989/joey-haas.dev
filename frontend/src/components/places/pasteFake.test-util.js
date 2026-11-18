@@ -40,6 +40,13 @@ export const hit = (name, extra = {}) => ({
   ...extra,
 })
 
+/** Metres between two points (flat earth is enough at 75 m). */
+const metres = (a, b) =>
+  Math.hypot(
+    (a.lat - b.lat) * 111000,
+    (a.lng - b.lng) * 111000 * Math.cos((b.lat * Math.PI) / 180),
+  )
+
 const key = (text) => text.trim().replace(/\s+/g, ' ').toLowerCase()
 const SHORT = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co)\//i
 
@@ -129,6 +136,7 @@ export function fakePaste(options = {}) {
     hold,
     spots = [],
     refuse = null,
+    nothing = false,
   } = options
   const calls = []
   const sittings = new Map()
@@ -250,7 +258,14 @@ export function fakePaste(options = {}) {
         payload.attempts = attempts
         entry.payload = payload
         const hits = world[key(name)] ?? [hit(name)]
-        if (hits.length === 1) apply(entry, sitting, hits[0])
+        if (hits.length === 1 && Math.abs(hits[0].lat) > 90) {
+          // `clean_chosen` refuses it: the entry is checked with the error.
+          entry.state = 'check'
+          entry.payload = {
+            ...payload,
+            note: 'The latitude must be between -90 and 90',
+          }
+        } else if (hits.length === 1) apply(entry, sitting, hits[0])
         else if (hits.length > 1) {
           entry.state = 'check'
           entry.payload = {
@@ -301,7 +316,25 @@ export function fakePaste(options = {}) {
         continue
       }
       held.add(key(line))
-      const { state, payload } = entryFor(line)
+      let { state, payload } = entryFor(line)
+      // Saved already, by name within 75 m (`flag_owned` at paste).
+      const owned =
+        ['ready', 'check'].includes(state) && payload.lat != null
+          ? spots.find(
+              (spot) =>
+                key(spot.name ?? '') === key(payload.name) &&
+                spot.lat != null &&
+                metres(spot, payload) <= 75,
+            )
+          : null
+      if (owned) {
+        state = 'owned'
+        payload = {
+          ...payload,
+          owned_spot_id: owned.id,
+          note: 'Already on your list',
+        }
+      }
       const entry = { id: `entry-${++entryN}`, state, payload, chosen: null }
       sitting.entries.push(entry)
       made.push(entry)
@@ -317,6 +350,7 @@ export function fakePaste(options = {}) {
   }
 
   function commit(sitting) {
+    if (nothing) return json({ detail: 'Nothing to add' }, 409)
     const ready = sitting.entries.filter((e) => e.state === 'ready')
     const kept = sitting.entries.filter((e) =>
       ['check', 'reading'].includes(e.state),

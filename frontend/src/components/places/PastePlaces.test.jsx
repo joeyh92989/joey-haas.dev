@@ -66,6 +66,14 @@ const row = (title) =>
 /** What the live region says now. */
 const said = (text) =>
   waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(text))
+/** A gate a test opens: lookups wait on it, so a state under test stays put. */
+function gateOf() {
+  let release
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
+  return { gate, release }
+}
 const slow = () => new Promise((resolve) => setTimeout(resolve, 8))
 const resolves = (calls) => callsTo(calls, 'POST', '/resolve')
 
@@ -250,7 +258,7 @@ describe('PastePlaces: what each line becomes', () => {
     expect(
       check.getByText('Short link, could not be read.'),
     ).toBeInTheDocument()
-    expect(check.getByText('Over 300 characters.')).toBeInTheDocument()
+    expect(check.getByText('Too long to read.')).toBeInTheDocument()
     expect(check.getByText('Search did not answer.')).toBeInTheDocument()
     expect(
       check.getByText('3 places found. Pick the one you mean.'),
@@ -453,13 +461,19 @@ describe('PastePlaces: the lookup queue', () => {
 
   it('keeps one lookup in flight when Try again is pressed while the walk runs', async () => {
     const user = userEvent.setup()
-    const slower = () => new Promise((resolve) => setTimeout(resolve, 25))
-    const { stats } = setup({ hold: slower, netFail: ['aspen grove'] })
+    const { gate, release } = gateOf()
+    // The last name is held, so the walk is still running when Try again is pressed.
+    const { stats } = setup({
+      hold: (entry) => (entry.payload.name === 'Elk Meadow' ? gate : null),
+      netFail: ['aspen grove'],
+    })
     renderPaste()
     await addLines(NAMES.join('\n'))
     const retry = await screen.findByRole('button', { name: /^Try again/ })
+    await waitFor(() => expect(stats.resolves).toContain('Elk Meadow'))
     expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
     await user.click(retry)
+    release()
     await lookedUp()
     expect(stats.maxInflight).toBe(1)
     // Two calls for the walk (one retry), two more for the press.
@@ -961,25 +975,66 @@ describe('PastePlaces: coming back to a list', () => {
     expect(sittings.has('search')).toBe(true)
   })
 
-  it('looks only at the newest open sitting, and skips an empty one', async () => {
+  const searchLeftover = {
+    id: 'newer-search',
+    entries: [
+      { id: 's1', state: 'check', payload: { name: 'X' }, chosen: null },
+    ],
+  }
+
+  it('skips an empty sitting and a search leftover to find an older pasted list', async () => {
+    const user = userEvent.setup()
     const { calls } = setup({
       sittings: [
         { id: 'older-paste', entries: [pasted('e1', 'Aspen Grove')] },
-        {
-          id: 'newer-search',
-          entries: [
-            { id: 's1', state: 'check', payload: { name: 'X' }, chosen: null },
-          ],
-        },
+        searchLeftover,
         { id: 'newest-empty', entries: [] },
+      ],
+    })
+    renderPaste()
+    expect(
+      await screen.findByText(
+        'You started a list with 1 line and did not finish it.',
+      ),
+    ).toBeInTheDocument()
+    expect(callsTo(calls, 'GET', '/sittings/newer-search')).toHaveLength(1)
+    expect(callsTo(calls, 'GET', '/sittings/older-paste')).toHaveLength(1)
+    expect(callsTo(calls, 'GET', '/sittings/newest-empty')).toHaveLength(0)
+    await user.click(
+      screen.getByRole('button', { name: 'Continue your list (1 line)' }),
+    )
+    await lookedUp()
+  })
+
+  it('offers the newest pasted list when two are open', async () => {
+    const { calls } = setup({
+      sittings: [
+        { id: 'older-paste', entries: [pasted('e1', 'Aspen Grove')] },
+        { id: 'newer-paste', entries: [pasted('e2', 'Birch Hollow')] },
+      ],
+    })
+    renderPaste()
+    await screen.findByText(/You started a list/)
+    expect(callsTo(calls, 'GET', '/sittings/older-paste')).toHaveLength(0)
+  })
+
+  it('looks through the newest five open sittings and no further', async () => {
+    const leftovers = Array.from({ length: 5 }, (_, i) => ({
+      ...searchLeftover,
+      id: `left-${i}`,
+    }))
+    const { calls } = setup({
+      sittings: [
+        { id: 'sixth-paste', entries: [pasted('e1', 'Aspen Grove')] },
+        ...leftovers,
       ],
     })
     renderPaste()
     expect(
       await screen.findByLabelText('Places, one per line'),
     ).toBeInTheDocument()
-    expect(callsTo(calls, 'GET', '/sittings/newer-search')).toHaveLength(1)
-    expect(callsTo(calls, 'GET', '/sittings/older-paste')).toHaveLength(0)
+    expect(callsTo(calls, 'GET', '/sittings/sixth-paste')).toHaveLength(0)
+    expect(callsTo(calls, 'DELETE', '/sittings')).toHaveLength(0)
   })
 })
 
@@ -1040,12 +1095,14 @@ describe('PastePlaces: one request for a double press', () => {
 describe('PastePlaces: focus and the live region', () => {
   it('moves focus to Stop when lookups start, and to Save when there are none', async () => {
     const user = userEvent.setup()
-    setup({ hold: slow })
+    const { gate, release } = gateOf()
+    setup({ hold: () => gate })
     renderPaste()
     await addLines('Aspen Grove\nBirch Hollow')
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Stop' })).toHaveFocus(),
     )
+    release()
     await lookedUp()
     await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
     await screen.findByRole('heading', { name: 'Saved 2 places' })
@@ -1100,5 +1157,339 @@ describe('PastePlaces: focus and the live region', () => {
       ).toBeTruthy()
     }
     expect(await axeViolations(container)).toEqual([])
+  })
+})
+
+describe('PastePlaces: fix round 1', () => {
+  const names = (n, prefix = 'Spot') =>
+    Array.from({ length: n }, (_, i) => `${prefix} ${i + 1}`)
+
+  it('offers Try again, and Continue, on a renamed line whose search failed once', async () => {
+    const user = userEvent.setup()
+    const { stats } = setup({ fails: { 'union station denver': 1 } })
+    renderPaste()
+    await addLines(SHORT)
+    await lookedUp()
+    await user.click(screen.getByRole('button', { name: /^Type the name/ }))
+    await user.type(screen.getByLabelText('Place name'), 'Union Station Denver')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    // The search failed once: the line waits, and says so where it can be found.
+    await screen.findByRole('list', { name: 'Not looked up yet' })
+    const waitingRow = row('Union Station Denver')
+    expect(list('Not looked up yet')).toContainElement(waitingRow)
+    expect(
+      within(waitingRow).getByRole('button', { name: /^Try again/ }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+    await user.click(
+      within(waitingRow).getByRole('button', { name: /^Try again/ }),
+    )
+    await waitFor(() => expect(list('Ready')).toBeInTheDocument())
+    expect(stats.resolves).toEqual([
+      'Union Station Denver',
+      'Union Station Denver',
+    ])
+  })
+
+  it('draws a too-long plain line and a too-long URL as too long, not as a short link', async () => {
+    const user = userEvent.setup()
+    setup()
+    renderPaste()
+    await addLines(
+      [`https://example.com/${'x'.repeat(400)}`, 'y'.repeat(320), SHORT].join(
+        '\n',
+      ),
+    )
+    await lookedUp()
+    const check = within(list('To check'))
+    expect(check.getAllByText('Too long to read.')).toHaveLength(2)
+    expect(check.getAllByText('Short link, could not be read.')).toHaveLength(1)
+    const longRows = check.getAllByText('Too long to read.')
+    await user.click(
+      within(longRows[0].closest('li')).getByRole('button', {
+        name: /^Type the name/,
+      }),
+    )
+    expect(
+      screen.getByText('This line is too long to read. Type the place name.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/never follows short links/),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('')
+  })
+
+  it('reads a long Google Maps place link', async () => {
+    setup()
+    renderPaste()
+    const url = `${GOOGLE}/data=${'!4m6!3m5!1s0x876c7ed1a6f2a8cd'.repeat(24)}`
+    expect(url.length).toBeGreaterThan(600)
+    await addLines(url)
+    await lookedUp()
+    expect(list('Ready')).toContainElement(row('Confluence Park'))
+  })
+
+  it('says a found place that could not be used needs another name', async () => {
+    const user = userEvent.setup()
+    setup({ world: { 'bad place': [hit('Bad Place', { lat: 999 })] } })
+    renderPaste()
+    await addLines('Bad Place')
+    await lookedUp()
+    expect(
+      within(list('To check')).getByText('The place found could not be used.'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Rename/ }))
+    expect(
+      screen.getByText(
+        'The place OpenStreetMap found could not be used. Change the name and search again.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/latitude/)).not.toBeInTheDocument()
+  })
+
+  it('dedupes a double press on Try again to one lookup', async () => {
+    const { stats, calls } = setup({ fails: { 'birch hollow': 2 } })
+    renderPaste()
+    await addLines('Aspen Grove\nBirch Hollow')
+    await lookedUp()
+    expect(stats.resolves.filter((n) => n === 'Birch Hollow')).toHaveLength(2)
+    const before = resolves(calls).length
+    const button = screen.getByRole('button', { name: /^Try again/ })
+    act(() => {
+      fireEvent.click(button)
+      fireEvent.click(button)
+    })
+    await waitFor(() => expect(list('Ready')).toBeInTheDocument())
+    expect(stats.resolves.filter((n) => n === 'Birch Hollow')).toHaveLength(3)
+    // One resolve call, and no refusal for a second one on a settled entry.
+    expect(resolves(calls)).toHaveLength(before + 1)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('gives each of two same-named places its own address and flag', async () => {
+    const user = userEvent.setup()
+    setup()
+    renderPaste()
+    const park = (lat, lng) =>
+      `https://www.google.com/maps/place/Park/@${lat},${lng},17z`
+    await addLines(`${park(39.1, -105.1)}\n${park(39.9, -105.9)}`)
+    await lookedUp()
+    const [first, second] = within(list('Ready')).getAllByRole('listitem')
+    await user.click(within(second).getByRole('button', { name: /^Details/ }))
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
+    )
+    expect(first).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
+    const added = await screen.findByRole('region', {
+      name: 'Added this visit',
+    })
+    const items = within(added).getAllByRole('listitem')
+    expect(items.map((li) => li.textContent)).toEqual(
+      [
+        expect.stringContaining('39.1000, -105.1000'),
+        expect.stringContaining('39.9000, -105.9000'),
+      ]
+        .reverse()
+        .reverse(),
+    )
+    expect(within(items[0]).getByText('Saved, private')).toBeInTheDocument()
+    expect(within(items[1]).getByText('Saved, public')).toBeInTheDocument()
+  })
+
+  it('caps "Added this visit" and opens it with Show all', async () => {
+    const user = userEvent.setup()
+    setup()
+    renderPaste()
+    await addLines(names(12).join('\n'))
+    await lookedUp()
+    await user.click(screen.getByRole('button', { name: 'Save 12 places' }))
+    const added = await screen.findByRole('region', {
+      name: 'Added this visit',
+    })
+    expect(within(added).getAllByRole('listitem')).toHaveLength(10)
+    await user.click(
+      within(added).getByRole('button', { name: /^Show all 12/ }),
+    )
+    expect(within(added).getAllByRole('listitem')).toHaveLength(12)
+  })
+
+  it('speaks the tenth lookup even after a row action said something', async () => {
+    const user = userEvent.setup()
+    const four = gateOf()
+    const eleven = gateOf()
+    setup({
+      hold: (entry) => {
+        if (entry.payload.name === 'Spot 4') return four.gate
+        if (entry.payload.name === 'Spot 11') return eleven.gate
+        return null
+      },
+    })
+    renderPaste()
+    await addLines(names(12).join('\n'))
+    await waitFor(() =>
+      expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0),
+    )
+    await user.click(
+      (await screen.findAllByRole('button', { name: /^Details/ }))[0],
+    )
+    await user.click(screen.getByRole('button', { name: /^Leave out/ }))
+    await said('left out. It will not be saved.')
+    four.release()
+    await said('10 of 12 looked up.')
+    eleven.release()
+    await said('All lines are looked up.')
+  })
+
+  it('shows Continue in the saved state while lines are still not looked up', async () => {
+    const user = userEvent.setup()
+    const { gate, release } = gateOf()
+    let gated = true
+    setup({
+      hold: (entry) => (gated && entry.payload.name === 'Spot 2' ? gate : null),
+    })
+    renderPaste()
+    await addLines(names(3).join('\n'))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument(),
+    )
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
+    gated = false
+    release()
+    await user.click(
+      await screen.findByRole('button', { name: 'Save 2 places' }),
+    )
+    await screen.findByRole('heading', { name: /^Saved/ })
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Add another list' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Stop' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(list('Ready')).toBeInTheDocument()
+  })
+
+  it('refuses a paste over 80,000 characters before sending it', async () => {
+    const { calls } = setup()
+    renderPaste()
+    await addLines('a'.repeat(80001))
+    expect(
+      await screen.findByText(/The box holds more than 80,000 characters/),
+    ).toHaveAttribute('role', 'alert')
+    expect(callsTo(calls, 'POST', '/paste')).toHaveLength(0)
+  })
+
+  it('words a server refusal of the text plainly', async () => {
+    const api = setup()
+    const real = api.fetch.getMockImplementation()
+    api.fetch.mockImplementation((url, init) =>
+      url.endsWith('/paste')
+        ? Promise.resolve({
+            ok: false,
+            status: 422,
+            json: () =>
+              Promise.resolve({
+                detail: [
+                  { msg: 'String should have at most 80000 characters' },
+                ],
+              }),
+          })
+        : real(url, init),
+    )
+    renderPaste()
+    await addLines('Aspen Grove')
+    expect(
+      await screen.findByText(
+        'The server did not accept that text. Check the lines and try again.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/String should/)).not.toBeInTheDocument()
+  })
+
+  it('keeps one lookup in flight when Continue is pressed while a lookup is in flight after Stop', async () => {
+    const user = userEvent.setup()
+    const { gate, release } = gateOf()
+    let gated = true
+    const { stats } = setup({
+      hold: (entry) => (gated && entry.payload.name === 'Spot 1' ? gate : null),
+    })
+    renderPaste()
+    await addLines(names(4).join('\n'))
+    await waitFor(() => expect(stats.resolves).toEqual(['Spot 1']))
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    gated = false
+    release()
+    await lookedUp()
+    expect(stats.maxInflight).toBe(1)
+    expect(stats.resolves).toEqual(names(4))
+  })
+
+  it('shows a coordinate line that is already saved under Already saved', async () => {
+    setup({
+      spots: [
+        { id: 'spot-4', name: 'Confluence Park', lat: 39.7546, lng: -105.0078 },
+      ],
+    })
+    renderPaste()
+    await addLines(`${GOOGLE}\nAspen Grove`)
+    await lookedUp()
+    expect(
+      within(list('Already saved')).getByText('Confluence Park'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Save 1 place' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows the server answer when nothing is left to add', async () => {
+    const user = userEvent.setup()
+    setup({ nothing: true })
+    renderPaste()
+    await addLines('Aspen Grove')
+    await lookedUp()
+    await user.click(screen.getByRole('button', { name: 'Save 1 place' }))
+    expect(await screen.findByText('Nothing to add')).toHaveAttribute(
+      'role',
+      'alert',
+    )
+  })
+
+  it('sends one pick for two presses of Pick, and one PATCH for two presses of Leave out', async () => {
+    const user = userEvent.setup()
+    const { calls } = setup({
+      world: {
+        'union station': [hit('Denver Union Station'), hit('LA Union Station')],
+      },
+    })
+    renderPaste()
+    await addLines(`Union Station\n${GOOGLE}`)
+    await lookedUp()
+    await user.click(screen.getByRole('button', { name: /^Pick/ }))
+    const pickButton = screen.getByRole('button', { name: /^Pick Denver/ })
+    act(() => {
+      fireEvent.click(pickButton)
+      fireEvent.click(pickButton)
+    })
+    await waitFor(() => expect(callsTo(calls, 'POST', '/pick')).toHaveLength(1))
+    await screen.findByRole('button', { name: 'Save 2 places' })
+    await user.click(
+      within(row('Confluence Park')).getByRole('button', { name: /^Details/ }),
+    )
+    const leave = screen.getByRole('button', { name: /^Leave out/ })
+    act(() => {
+      fireEvent.click(leave)
+      fireEvent.click(leave)
+    })
+    await screen.findByRole('button', { name: /^Put back/ })
+    expect(
+      callsTo(calls, 'PATCH', '/entries/').filter(
+        (c) => c.body.state === 'check',
+      ),
+    ).toHaveLength(1)
   })
 })

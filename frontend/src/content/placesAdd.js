@@ -108,6 +108,10 @@ export const placesAdd = {
     zeroEmpty: 'Paste at least one line first.',
     zeroBlank: (n) =>
       `Nothing was added. ${n === 1 ? 'The line was' : `All ${n} lines were`} blank.`,
+    tooBig: (max) =>
+      `The box holds more than ${max} characters. Cut it down, or paste the list in parts.`,
+    pasteRefused:
+      'The server did not accept that text. Check the lines and try again.',
     zeroKnown: 'Nothing was added. Every line is already in the list.',
     pasteFailed:
       'The server did not answer; try again. Nothing was added, and your lines are still in the box.',
@@ -193,7 +197,8 @@ export const placesAdd = {
       none: 'No place found.',
       short: 'Short link, could not be read.',
       failed: 'Search did not answer.',
-      long: 'Over 300 characters.',
+      long: 'Too long to read.',
+      unusable: 'The place found could not be used.',
       coords: 'Needs a name.',
       left: 'Left out. Not saved.',
     },
@@ -201,10 +206,12 @@ export const placesAdd = {
       several: 'Pick',
       none: 'Rename',
       short: 'Type the name',
-      long: 'Rename',
+      long: 'Type the name',
+      unusable: 'Rename',
       coords: 'Name it',
       left: 'Put back',
       failed: 'Try again',
+      wait: 'Look up now',
       details: 'Details',
     },
     fromGoogle: 'From a Google Maps link',
@@ -231,7 +238,9 @@ export const placesAdd = {
     shortHint:
       'Type the name. Or open the link yourself and paste the full address from the browser.',
     shortSubmit: 'Search',
-    longBody: 'This line is over 300 characters, so it was not searched.',
+    longBody: 'This line is too long to read. Type the place name.',
+    unusableBody:
+      'The place OpenStreetMap found could not be used. Change the name and search again.',
     noneBody: (name) =>
       `No place found for “${name}”. Check the spelling or add the city.`,
     failedBody:

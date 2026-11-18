@@ -24,11 +24,24 @@ SHORT_ANY_PATH_HOSTS = frozenset({"maps.app.goo.gl", "goo.gl"})
 SHORT_MAPS_PATH_HOSTS = frozenset({"g.co"})  # only with a /maps path
 
 MAX_LINE_CHARS = 300
+# A real Google Maps place URL runs 200 to 900 characters (the `data=` blob),
+# so a URL on a known map host may be this long; anything else stays at
+# MAX_LINE_CHARS.
+MAX_URL_LINE = 2000
 MAX_NAME_CHARS = 200
 MAX_LINES = 200
 
 SHORT_LINK_NOTE = "Short links can't be read; open it and paste the full address"
 TOO_LONG_NOTE = f"Line is over {MAX_LINE_CHARS} characters"
+TOO_LONG_URL_NOTE = f"Link is over {MAX_URL_LINE} characters"
+
+_KNOWN_HOSTS = (
+    GOOGLE_MAPS_HOSTS
+    | GOOGLE_MAPS_ONLY_HOSTS
+    | OSM_HOSTS
+    | SHORT_ANY_PATH_HOSTS
+    | SHORT_MAPS_PATH_HOSTS
+)
 
 _OSM_FRAGMENT = re.compile(rf"map=\d+(?:\.\d+)?/({_NUMBER})/({_NUMBER})")
 
@@ -160,13 +173,28 @@ def _result(candidate: tuple[str, str] | None, name: str | None) -> LineRead:
     return LineRead("name")  # a map link with nothing usable; caller keeps text
 
 
+def _is_known_map_url(head: str) -> bool:
+    """Whether a line starts as an http(s) URL on a host this module reads."""
+    if not head.lower().startswith(("http://", "https://")):
+        return False
+    try:
+        return (urlsplit(head).hostname or "").lower() in _KNOWN_HOSTS
+    except ValueError:
+        return False
+
+
 def read_line(text: str) -> LineRead:
     """Classify one pasted line; never raises and never touches the network."""
     line = clean_line(text)
     if not line:
         return LineRead("empty")
     if len(line) > MAX_LINE_CHARS:
-        return LineRead("too_long", note=TOO_LONG_NOTE)
+        # The class is decided from the first 300 characters only (a prefix
+        # and the host), before any pattern runs on the rest.
+        if not _is_known_map_url(line[:MAX_LINE_CHARS]):
+            return LineRead("too_long", note=TOO_LONG_NOTE)
+        if len(line) > MAX_URL_LINE:
+            return LineRead("too_long", note=TOO_LONG_URL_NOTE)
     plain = LineRead("name", name=clean_name(line))
     if line.lower().startswith(("http://", "https://")):
         try:

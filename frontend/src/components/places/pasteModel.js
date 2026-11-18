@@ -1,5 +1,9 @@
 import { HOME_CITY, cityLabel, emptyFields } from './PlaceFields.jsx'
 
+/** The server's note for a search that found nothing (place_paste.py). Any
+ *  other note on a searched entry says the place found could not be used. */
+export const NO_PLACE_NOTE = 'No place found. Change the words and look again.'
+
 /** The most lines one paste takes; the server counts the rest as over. */
 export const MAX_LINES = 200
 
@@ -9,6 +13,7 @@ export const GROUPS = ['check', 'ready', 'wait', 'saved', 'same']
 /** The kinds of row a to-check entry can be, by what it carries. */
 const CHECK_KINDS = new Set([
   'several',
+  'unusable',
   'coords',
   'short',
   'long',
@@ -40,7 +45,7 @@ export const isPasted = (entry) =>
  * @param {object} entry The server's entry.
  * @param {Set<string>} failedIds
  * @param {Set<string>} leftOut
- * @returns {'ready'|'saved'|'same'|'wait'|'failed'|'several'|'coords'|'short'|'long'|'none'|'left'|'other'}
+ * @returns {'ready'|'saved'|'same'|'wait'|'failed'|'several'|'coords'|'short'|'long'|'none'|'unusable'|'left'|'other'}
  */
 export function kindOf(entry, failedIds, leftOut) {
   switch (entry.state) {
@@ -61,8 +66,12 @@ export function kindOf(entry, failedIds, leftOut) {
       if (hasPosition(entry)) {
         return leftOut.has(entry.id) || !payload.note ? 'left' : 'coords'
       }
-      if ('attempts' in payload) return 'none'
-      return /^https?:\/\//i.test(payload.source_line ?? '') ? 'short' : 'long'
+      if ('attempts' in payload) {
+        return payload.note === NO_PLACE_NOTE ? 'none' : 'unusable'
+      }
+      // A short link is named "Short link from <host>" by the server; any
+      // other line the paste could not read is one that was too long.
+      return /^Short link from /.test(payload.name ?? '') ? 'short' : 'long'
     }
     default:
       return 'other'
