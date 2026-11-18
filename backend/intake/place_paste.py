@@ -14,11 +14,12 @@ Entry states (the line kind or outcome decides; the client never does):
 | coordinates only (bare pair, no name)  | CHECK   |
 | coordinates of a place already saved   | OWNED   |
 | name, or a link with a name only       | READING |
-| short link                             | CHECK   |
+| short link (incl. g.co)                | CHECK   |
+| known map host, nothing readable       | CHECK   |
 | line over 300 characters               | CHECK   |
 | resolve: one hit                       | READY   |
 | resolve: one hit, already saved        | OWNED   |
-| resolve: hit already another line's    | IGNORED |
+| resolve: hit already a ready/owned line| IGNORED |
 | resolve: several hits / none           | CHECK   |
 | resolve: search failed (attempts < 2)  | READING |
 | resolve: search failed twice           | CHECK   |
@@ -55,10 +56,12 @@ from intake.place_kind import (
 from intake.schemas import EntryOut, PasteOut, ResolveOut
 from models import IntakeArea, IntakeEntry, IntakeEntryState, IntakeSitting
 from spot_sources import nominatim
+from spot_sources.map_links import MAX_LINE_CHARS as MAX_SOURCE_LINE
 from spot_sources.map_links import (
     LineRead,
     clean_line,
     clean_name,
+    compare_key,
     read_line,
     split_lines,
 )
@@ -66,9 +69,10 @@ from spot_sources.nominatim import SearchFailure
 
 logger = logging.getLogger(__name__)
 
-MAX_PASTE_CHARS = 80_000
+# 200 lines at the 2,000-character URL cap. The page's own guard
+# (`MAX_PASTE_CHARS` in `frontend/src/components/places/pasteModel.js`) must match.
+MAX_PASTE_CHARS = 400_000
 MAX_ENTRIES = 300  # a sitting holds at most this many entries
-MAX_SOURCE_LINE = 300
 MAX_SEARCH_TEXT = 200
 MAX_CANDIDATES = 5
 MAX_ATTEMPTS = 2  # a search that fails this often is left to the owner
@@ -78,6 +82,7 @@ SHORT_LINK_NOTE = (
     "This short link could not be read, and the server never follows short links. "
     "Type the place's name, then look it up."
 )
+UNREADABLE_NOTE = "Could not read a place from this link. Type the name."
 OWNED_NOTE = "Already on your list"
 SAME_PLACE_NOTE = "same place as another line"
 NO_PLACE_NOTE = "No place found. Change the words and look again."
@@ -121,15 +126,10 @@ class PickIn(BaseModel):
     index: int
 
 
-def _key(text: str) -> str:
-    """The comparison form of a line: inner whitespace and case ignored."""
-    return " ".join(text.split()).casefold()
-
-
 def _line_key(line: str) -> str:
     """The duplicate key of a whole line. A line longer than the stored
     `source_line` is keyed by a hash, so the stored and the pasted side agree."""
-    key = _key(line)
+    key = compare_key(line)
     if len(key) <= MAX_SOURCE_LINE:
         return key
     return "sha1:" + hashlib.sha1(key.encode()).hexdigest()
@@ -166,6 +166,10 @@ def entry_for_line(
         payload["name"] = f"Short link from {read.host}"
         payload["note"] = SHORT_LINK_NOTE
         return IntakeEntryState.CHECK, payload
+    if read.kind == "unreadable_link":
+        payload["name"] = f"Link from {read.host}"
+        payload["note"] = UNREADABLE_NOTE
+        return IntakeEntryState.CHECK, payload
     if read.kind == "too_long":
         payload["name"] = line[:MAX_SEARCH_TEXT].strip()
         payload["note"] = read.note or "This line is too long"
@@ -175,6 +179,11 @@ def entry_for_line(
     return IntakeEntryState.READING, payload
 
 
+# The states whose entries the commit writes. A place the owner left out
+# (CHECK, with `chosen` kept) does not block another line of the same place.
+_WRITTEN_STATES = (IntakeEntryState.READY, IntakeEntryState.OWNED)
+
+
 def _held_keys(held: list[IntakeEntry]) -> set[str]:
     keys: set[str] = set()
     for entry in held:
@@ -182,7 +191,7 @@ def _held_keys(held: list[IntakeEntry]) -> set[str]:
         for field in ("source_line", "name", "source_key"):
             value = payload.get(field)
             if isinstance(value, str) and value.strip():
-                keys.add(_key(value))
+                keys.add(compare_key(value))
     return keys
 
 
@@ -295,7 +304,9 @@ async def _apply_choice(
         entry.state = IntakeEntryState.OWNED
         payload.update(owned_spot_id=owned, note=OWNED_NOTE)
     elif source_id and any(
-        (other.chosen or {}).get("source_id") == source_id for other in others
+        other.state in _WRITTEN_STATES
+        and (other.chosen or {}).get("source_id") == source_id
+        for other in others
     ):
         entry.state = IntakeEntryState.IGNORED
         payload["note"] = SAME_PLACE_NOTE
@@ -367,9 +378,13 @@ def register_paste_routes(
         ]
         await flag_owned(session, probes)
         owned = iter(probes)
-        # `created_at` is the transaction's time for every row; spacing it
-        # keeps the sitting's entries in the order they were pasted.
+        # `created_at` is set here (the transaction's time would be the same
+        # for every row), one microsecond apart, and never before the
+        # sitting's newest entry whatever the app and database clocks say.
         start = datetime.now(UTC)
+        newest = max((e.created_at for e in held if e.created_at), default=None)
+        if newest is not None and newest >= start:
+            start = newest + timedelta(microseconds=1)
         entries: list[IntakeEntry] = []
         for index, (_, state, payload) in enumerate(made):
             if (
@@ -443,6 +458,13 @@ def register_paste_routes(
         attempts = 0 if from_check else int(payload.get("attempts") or 0)
         payload.pop("candidates", None)
         payload.pop("note", None)
+        if from_check:
+            # A new search replaces any earlier position and choice, so a
+            # search that finds several, none or fails cannot leave the old
+            # place behind for a later "ready" to save under the new name.
+            for stale in ("lat", "lng", "owned_spot_id"):
+                payload.pop(stale, None)
+            entry.chosen = None
         try:
             async with place_kind.http_client() as client:
                 outcome = await nominatim.search(client, name)

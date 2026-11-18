@@ -66,9 +66,9 @@ def test_osm_mlat_mlon():
 
 def test_out_of_range_link_carries_no_coordinates():
     r = read_line("https://www.google.com/maps/@95.0,-105.2058,17z")
-    assert r.kind == "name"
+    assert r.kind == "unreadable_link"
     r = read_line("https://www.openstreetmap.org/#map=17/39.7/-200.5")
-    assert r.kind == "name"
+    assert r.kind == "unreadable_link"
 
 
 def test_out_of_range_with_name_is_a_name_link():
@@ -100,11 +100,12 @@ def test_short_links_are_flagged_never_read(url):
     r = read_line(url)
     assert r.kind == "short_link"
     assert r.host in {"maps.app.goo.gl", "goo.gl", "g.co"}
-    assert r.note
 
 
-def test_g_co_without_maps_path_is_plain_text():
-    assert read_line("https://g.co/kgs/abc").kind == "name"
+def test_g_co_on_any_path_is_a_short_link():
+    r = read_line("https://g.co/kgs/abc123")
+    assert (r.kind, r.host) == ("short_link", "g.co")
+    assert read_line("https://g.co/").kind == "short_link"
 
 
 @pytest.mark.parametrize("line", ["39.7392, -104.9903", "39.7392 -104.9903"])
@@ -132,7 +133,7 @@ def test_empty(line):
 
 def test_name_cleaning_whitespace_controls_and_cut():
     r = read_line("https://www.google.com/maps/place/A%20%20B%0A%00C/@39.7,-104.9,15z")
-    assert r.name == "A BC"
+    assert r.name == "A B C"  # the newline is a space, the NUL is dropped
     r = read_line(
         "https://www.google.com/maps/place/" + "x" * 230 + "/@39.7,-104.9,15z"
     )
@@ -265,7 +266,8 @@ def test_unusable_link_names_are_dropped(tail):
 
 
 @pytest.mark.parametrize(
-    "hidden", ["\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\u202e", "\u2066"]
+    "hidden",
+    ["\u200b", "\u200e", "\u061c", "\u2060", "\ufeff", "\u202e", "\u2066", "\u00ad"],
 )
 def test_invisible_characters_are_removed_from_names_and_lines(hidden):
     assert read_line(f"Red{hidden}Rocks").name == "RedRocks"
@@ -348,3 +350,77 @@ def test_an_adversarial_long_url_parses_fast():
     for _ in range(5):
         read_line(url)
     assert (time.perf_counter() - start) / 5 < 0.2  # generous; it is linear
+
+
+# --- whitespace controls, ZWJ/ZWNJ, link shapes (final fix wave) ------------
+
+
+@pytest.mark.parametrize("white", ["\t", "\n", "\r", "\v", "\f", "\x85", "\u2028"])
+def test_whitespace_controls_are_spaces_not_gone(white):
+    assert map_links.clean_line(f"Great patio{white}Loud on Fridays") == (
+        "Great patio Loud on Fridays"
+    )
+    assert map_links.clean_name(f"Cafe{white}Max") == "Cafe Max"
+
+
+@pytest.mark.parametrize("encoded", ["%09", "%0A", "%0D"])
+def test_a_link_name_with_a_tab_or_newline_keeps_its_words_apart(encoded):
+    r = read_line(
+        f"https://www.google.com/maps/place/Cafe{encoded}Max/@39.7,-104.9,17z"
+    )
+    assert r.name == "Cafe Max"
+
+
+def test_nul_zero_width_and_bidi_are_still_stripped():
+    assert map_links.clean_line("a\x00b\u200bc\u202ed\u2066e") == "abcde"
+
+
+def test_zwnj_and_zwj_survive_in_names_and_emoji_sequences():
+    persian = "می\u200cخواهم"
+    family = "\U0001f468\u200d\U0001f469\u200d\U0001f467 Cafe"
+    assert map_links.clean_line(persian) == persian
+    assert map_links.clean_name(family) == family
+    assert read_line(persian).name == persian
+
+
+def test_a_place_segment_that_is_a_coordinate_pair_is_not_a_name():
+    r = read_line(
+        "https://www.google.com/maps/place/40.7128,-74.0060/@40.7128,-74.0060,17z"
+    )
+    assert (r.kind, r.name) == ("coords", None)
+    assert (r.lat, r.lng) == (40.7128, -74.006)
+
+
+def test_maps_search_text_is_a_name():
+    r = read_line("https://www.google.com/maps/search/Union+Station%20Denver")
+    assert (r.kind, r.name) == ("name_link", "Union Station Denver")
+
+
+@pytest.mark.parametrize(
+    "path", ["39.7392,+-104.9903", "39.7392,-104.9903", "39.7392%2C+-104.9903"]
+)
+def test_maps_search_coordinates_are_a_position(path):
+    r = read_line(f"https://www.google.com/maps/search/{path}")
+    assert (r.kind, r.lat, r.lng, r.name) == ("coords", 39.7392, -104.9903, None)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://www.google.com/maps",
+        "https://www.google.com/maps/",
+        "https://www.google.com/maps/dir/Union+Station/Red+Rocks",
+        "https://www.google.com/maps/search/",
+        "https://www.openstreetmap.org/node/123",
+        "https://www.openstreetmap.org/way/456",
+        "https://openstreetmap.org/relation/789",
+    ],
+)
+def test_a_known_map_host_with_nothing_readable_is_never_searched(url):
+    r = read_line(url)
+    assert r.kind == "unreadable_link"
+    assert r.host in {"www.google.com", "www.openstreetmap.org", "openstreetmap.org"}
+
+
+def test_an_unknown_host_stays_plain_text():
+    assert read_line("https://example.org/node/123").kind == "name"

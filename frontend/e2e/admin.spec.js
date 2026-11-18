@@ -1,6 +1,3 @@
-import { mkdir, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
 import { ADMIN_AREAS } from '../src/components/adminAreas.js'
@@ -377,14 +374,14 @@ test('spots add bar: search by name, save, and the new private spot is marked Ne
     // One result opens its row.
     await expect(page.getByText(name).first()).toBeVisible()
     await expect(page.getByText('1 Test Street, Denver')).toBeVisible()
-    if (testInfo.project.name === 'phone') {
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      )
-      expect(overflow).toBeLessThanOrEqual(1)
-    }
+    // The phone width: nothing in the review makes the page scroll sideways.
+    await page.setViewportSize({ width: 400, height: 900 })
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
     await page.getByRole('button', { name: 'Save place' }).click()
     await expect(
       page
@@ -436,31 +433,15 @@ test('spots add bar: several results offer Add by hand, which carries the typed 
 // Real backend and database, no stubs. A coordinate link and a short link are
 // read without any search, so Nominatim is never reached. The desktop and the
 // phone project share one database, and the page offers to continue the newest
-// pasted list, so the two cases of both projects take one lock between them.
+// pasted list, so the paste cases run in the desktop project only (no lock to
+// leave stale behind a killed run); case 1 also checks the phone width by
+// resizing the viewport inside the test.
 
-const LOCK_DIR = join(tmpdir(), 'joey-haas-e2e-paste-lock')
-
-async function takeLock() {
-  for (let tries = 0; tries < 240; tries += 1) {
-    try {
-      await mkdir(LOCK_DIR)
-      return
-    } catch {
-      // Held by the other project; a lock older than two minutes is a crash.
-      try {
-        const { mtimeMs } = await stat(LOCK_DIR)
-        if (Date.now() - mtimeMs > 120000)
-          await rm(LOCK_DIR, { recursive: true })
-      } catch {
-        // Released in between: try again at once.
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-  }
-  throw new Error('The paste cases could not take their lock')
-}
-
-const releaseLock = () => rm(LOCK_DIR, { recursive: true, force: true })
+const desktopOnly = (testInfo) =>
+  test.skip(
+    testInfo.project.name !== 'desktop',
+    'The paste cases share one database and run once, in the desktop project',
+  )
 
 // Every open places sitting that came from a paste (its entries carry
 // `source_line`): what a failed earlier run could have left behind.
@@ -503,18 +484,17 @@ async function openPasteWay(page) {
 test('paste a list: coordinate links are ready, a short link waits for a name, and Save puts the ready ones in as private spots', async ({
   page,
 }, testInfo) => {
+  desktopOnly(testInfo)
   const stamp = `${testInfo.project.name} ${Date.now()}`
   const first = `E2E Paste Alpha ${stamp}`
   const second = `E2E Paste Beta ${stamp}`
-  // Coordinates in the open country east of Denver, a little apart per
-  // project; the names are what make each spot unique.
-  const shift = testInfo.project.name === 'phone' ? 0.05 : 0
+  // Coordinates in the open country east of Denver; the names are what
+  // make each spot unique.
   const lines = [
-    `https://www.google.com/maps/place/${first.replaceAll(' ', '+')}/@${(39.7 + shift).toFixed(4)},-104.9000,17z`,
-    `https://www.google.com/maps/place/${second.replaceAll(' ', '+')}/data=!3d${(39.71 + shift).toFixed(4)}!4d-104.9100`,
+    `https://www.google.com/maps/place/${first.replaceAll(' ', '+')}/@39.7000,-104.9000,17z`,
+    `https://www.google.com/maps/place/${second.replaceAll(' ', '+')}/data=!3d39.7100!4d-104.9100`,
     'https://maps.app.goo.gl/abc123',
   ]
-  await takeLock()
   try {
     await dropPastedSittings(page)
     await openPasteWay(page)
@@ -535,14 +515,14 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
     ).toBeVisible()
     await checkGroup.getByRole('button', { name: /Type the name/ }).click()
     await expect(checkGroup.getByLabel('Place name')).toBeVisible()
-    if (testInfo.project.name === 'phone') {
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      )
-      expect(overflow).toBeLessThanOrEqual(1)
-    }
+    // The phone width: nothing in the review makes the page scroll sideways.
+    await page.setViewportSize({ width: 400, height: 900 })
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
 
     await page.getByRole('button', { name: 'Save 2 places' }).click()
     await expect(
@@ -560,21 +540,19 @@ test('paste a list: coordinate links are ready, a short link waits for a name, a
   } finally {
     await deleteSpotsNamed(page, [first, second])
     await dropPastedSittings(page)
-    await releaseLock()
   }
 })
 
 test('paste a list: continue your list after a reload, then start a new one', async ({
   page,
 }, testInfo) => {
+  desktopOnly(testInfo)
   const stamp = `${testInfo.project.name} ${Date.now()}`
   const name = `E2E Paste Resume ${stamp}`
-  const shift = testInfo.project.name === 'phone' ? 0.05 : 0
   const lines = [
     'https://maps.app.goo.gl/abc123',
-    `https://www.google.com/maps/place/${name.replaceAll(' ', '+')}/@${(39.72 + shift).toFixed(4)},-104.9200,17z`,
+    `https://www.google.com/maps/place/${name.replaceAll(' ', '+')}/@39.7200,-104.9200,17z`,
   ]
-  await takeLock()
   try {
     await dropPastedSittings(page)
     await openPasteWay(page)
@@ -605,6 +583,5 @@ test('paste a list: continue your list after a reload, then start a new one', as
     expect(await pastedSittings(page)).toHaveLength(0)
   } finally {
     await dropPastedSittings(page)
-    await releaseLock()
   }
 })

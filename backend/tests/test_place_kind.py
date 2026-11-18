@@ -873,3 +873,18 @@ async def test_a_hostile_search_result_is_cleaned_on_add(
     assert body["chosen"]["title"] == CLEANED
     assert body["chosen"]["address"] == CLEANED
     assert body["chosen"]["category"] == CLEANED
+
+
+@pytest.mark.asyncio
+async def test_a_blurb_with_a_newline_keeps_its_words_apart(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = (await new_sitting(client)).json()
+        added = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/places",
+            json={"name": "My tree", "coords": "39.75, -104.99"},
+        )
+        response = await client.patch(
+            f"/api/intake/entries/{added.json()['id']}",
+            json={"payload": {"blurb": "Great patio\nLoud on Fridays"}},
+        )
+    assert response.json()["payload"]["blurb"] == "Great patio Loud on Fridays"

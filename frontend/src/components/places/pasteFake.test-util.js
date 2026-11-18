@@ -6,7 +6,10 @@ import { vi } from 'vitest'
  * resolve, pick, PATCH, commit, list, read and delete. It keeps the
  * server's rules: entry states and notes, the 200-line paste cap, duplicate
  * lines, one search per resolve, two failed searches make a check entry,
- * a 409 while another call holds the entry, a pick that copies the stored
+ * a 409 while another call holds the entry, a resolve from a check entry
+ * dropping its old position and choice, a left-out place not blocking its
+ * twin, links with nothing readable never searched, `g.co` as a short link,
+ * a 404 for a sitting that is gone, a pick that copies the stored
  * candidate, ready needing a position and a name, commit writing only the
  * ready entries and keeping check and reading ones, deleting the sitting
  * when none is kept.
@@ -48,7 +51,11 @@ const metres = (a, b) =>
   )
 
 const key = (text) => text.trim().replace(/\s+/g, ' ').toLowerCase()
-const SHORT = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co)\//i
+// Short links: these hosts on any path (`g.co/kgs/...` included).
+const SHORT = /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl|g\.co)\//i
+// A known map host: a link on it with nothing readable is never searched.
+const MAP_HOST =
+  /^https?:\/\/(www\.google\.com\/maps|google\.com\/maps|maps\.google\.com|(www\.)?openstreetmap\.org)/i
 
 /** What a pasted line makes, as `place_paste.entry_for_line` decides. */
 function entryFor(line) {
@@ -64,7 +71,7 @@ function entryFor(line) {
       state: 'check',
       payload: {
         ...base,
-        name: 'Short link from maps.app.goo.gl',
+        name: `Short link from ${new URL(line).hostname}`,
         note: 'This short link could not be read.',
       },
     }
@@ -95,6 +102,27 @@ function entryFor(line) {
         lat: Number(osm[1]),
         lng: Number(osm[2]),
         note: 'This place needs a name.',
+      },
+    }
+  }
+  const search = line.match(/google\.com\/maps\/search\/([^/?]+)/i)
+  if (search) {
+    return {
+      state: 'reading',
+      payload: {
+        ...base,
+        name: decodeURIComponent(search[1].replace(/\+/g, ' ')),
+        attempts: 0,
+      },
+    }
+  }
+  if (MAP_HOST.test(line)) {
+    return {
+      state: 'check',
+      payload: {
+        ...base,
+        name: `Link from ${new URL(line).hostname}`,
+        note: 'Could not read a place from this link. Type the name.',
       },
     }
   }
@@ -204,8 +232,13 @@ export function fakePaste(options = {}) {
       entry.state = 'owned'
       payload.note = 'Already on your list'
     } else if (
+      // Only entries that will be written count: a place left out (check,
+      // with `chosen` kept) does not block its twin.
       sitting.entries.some(
-        (other) => other !== entry && other.chosen?.source_id === row.source_id,
+        (other) =>
+          other !== entry &&
+          ['ready', 'owned'].includes(other.state) &&
+          other.chosen?.source_id === row.source_id,
       )
     ) {
       entry.state = 'ignored'
@@ -241,6 +274,13 @@ export function fakePaste(options = {}) {
       const payload = { ...entry.payload }
       delete payload.candidates
       delete payload.note
+      if (entry.state === 'check') {
+        // A new search drops the old position and choice first.
+        delete payload.lat
+        delete payload.lng
+        delete payload.owned_spot_id
+        entry.chosen = null
+      }
       let attempts = entry.state === 'check' ? 0 : (payload.attempts ?? 0)
       if (failsLeft[key(name)] > 0) {
         failsLeft[key(name)] -= 1

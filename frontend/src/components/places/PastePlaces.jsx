@@ -11,6 +11,7 @@ import PasteRow, { rowButtonId, rowFieldId } from './PasteRow.jsx'
 import {
   GROUPS,
   MAX_LINES,
+  MAX_PASTE_CHARS as MAX_CHARS,
   addressOf,
   countLines,
   fieldsOf,
@@ -32,8 +33,6 @@ const CAP = 10
 const PHONE_CAP = 6
 /** How many open sittings the resume looks through, newest first. */
 const RESUME_LOOK = 5
-/** The most characters one paste holds (the server's limit). */
-const MAX_CHARS = 80000
 
 /** A 409 that clears by itself: another call holds the entry, or a save the list. */
 const isBusyAnswer = (answer) =>
@@ -58,7 +57,7 @@ const keepStates = new Set(['check', 'reading'])
  * @param {string[]} props.cities Cities other than Denver, as keys.
  */
 export default function PastePlaces({ cities }) {
-  const [phase, setPhase] = useState('checking') // checking | offer | paste | done
+  const [phase, setPhase] = useState('checking') // checking | offer | paste | review | done | gone
   const [offer, setOffer] = useState(null)
   const [entries, setEntries] = useState([])
   const [text, setText] = useState('')
@@ -612,6 +611,17 @@ export default function PastePlaces({ cities }) {
         : made
       if (!alive.current) return
       setSaving(false)
+      if (outcome.status === 404) {
+        // Another tab saved everything or discarded the list: the id is dead.
+        sitting.current = null
+        putEntries([])
+        setLookupIds(new Set())
+        setOpenId(null)
+        setNotice('')
+        setPhase('gone')
+        focusNext.current = { id: 'paste-gone-h' }
+        return
+      }
       if (!outcome.ok) return setError(outcome.message || words.commitFailed)
       const data = outcome.data
       const fresh = data.spots_new ?? []
@@ -696,12 +706,15 @@ export default function PastePlaces({ cities }) {
   } else if (!running && waiting && total) {
     status = words.stopped(doneCount, total)
   } else if (!notice) {
-    status = words.tally(
+    const failedRows = grouped.check.filter(
+      (e) => kinds.get(e.id) === 'failed',
+    ).length
+    status = `${words.tally(
       ready,
       check,
       grouped.saved.length,
       grouped.same.length,
-    )
+    )}${failedRows ? ` ${words.failedNotice(failedRows)}` : ''}`
   }
   // The live region speaks every tenth lookup, a row's result, and the end.
   let spoken = notice
@@ -757,7 +770,10 @@ export default function PastePlaces({ cities }) {
     groupOpen[group] ??
     (group === 'ready'
       ? grouped.ready.length <= CAP
-      : !['wait', 'same'].includes(group))
+      : group === 'wait'
+        ? // a line that already got no answer once is shown, not folded away
+          grouped.wait.some((e) => (e.payload?.attempts ?? 0) > 0)
+        : group !== 'same')
 
   const summary =
     counts &&
@@ -864,6 +880,18 @@ export default function PastePlaces({ cities }) {
               <p className="place-status" role="status">
                 {words.checking}
               </p>
+            )}
+            {phase === 'gone' && (
+              <div className="place-paste-offer">
+                <p id="paste-gone-h" tabIndex={-1} role="alert">
+                  {words.listGone}
+                </p>
+                <div className="intake-actions">
+                  <button type="button" className="btn primary" onClick={again}>
+                    {words.startNew}
+                  </button>
+                </div>
+              </div>
             )}
             {phase === 'offer' && offer && (
               <div className="place-paste-offer">

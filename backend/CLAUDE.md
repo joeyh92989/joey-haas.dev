@@ -39,8 +39,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `paste`, `resolve`, `pick`) and `spot_sources/map_links.py` (the pure link
   reader); read `intake/README.md` ("Paste a list") and the map-link section
   of `spot_sources/README.md` first. Rules when editing: never fetch a pasted
-  link (short links stay `check` entries); sanitise with `clean_line` and
-  `clean_name` before storing or comparing, and on the owner-edit path too;
+  link (short links, `g.co` on any path, and links on a known map host with
+  nothing readable stay `check` entries and are never searched); sanitise with
+  `clean_line` and `clean_name` before storing or comparing, and on the
+  owner-edit path too (whitespace controls become spaces; every Cf character
+  but ZWNJ/ZWJ goes); the IGNORED "same place" check counts only `ready` and
+  `owned` entries; resolving from a `check` entry clears its old position and
+  `chosen`; new entries' `created_at` never precedes the sitting's newest;
+  the paste cap is 400,000 characters (match `MAX_PASTE_CHARS` in the page);
   the search candidates are server-only (PATCH cannot plant them) and pick
   takes an index into the stored list, never a place from the client; lock
   the entry first and the sitting second in a lookup (both `NOWAIT`), since a

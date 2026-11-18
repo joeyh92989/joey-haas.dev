@@ -196,6 +196,7 @@ export const placesAdd = {
       several: (n) => `${n} places found. Pick the one you mean.`,
       none: 'No place found.',
       short: 'Short link, could not be read.',
+      unreadable: 'Link, could not be read.',
       failed: 'Search did not answer.',
       long: 'Too long to read.',
       unusable: 'The place found could not be used.',
@@ -206,13 +207,14 @@ export const placesAdd = {
       several: 'Pick',
       none: 'Rename',
       short: 'Type the name',
+      unreadable: 'Type the name',
       long: 'Type the name',
       unusable: 'Rename',
       coords: 'Name it',
       left: 'Put back',
       failed: 'Try again',
       wait: 'Look up now',
-      details: 'Details',
+      edit: 'Edit',
     },
     fromGoogle: 'From a Google Maps link',
     fromOsm: 'From an OpenStreetMap link',
@@ -238,6 +240,10 @@ export const placesAdd = {
     shortHint:
       'Type the name. Or open the link yourself and paste the full address from the browser.',
     shortSubmit: 'Search',
+    unreadableBody:
+      'Could not read a place from this link. Type the name. The server never opens links.',
+    unreadableHint:
+      'Type the name. Or open the link yourself and paste the full address from the browser.',
     longBody: 'This line is too long to read. Type the place name.',
     unusableBody:
       'The place OpenStreetMap found could not be used. Change the name and search again.',
@@ -288,6 +294,13 @@ export const placesAdd = {
     alreadySavedCount: (n) => `${n} already saved, not saved again.`,
     addAnother: 'Add another list',
     viewOnSpots: 'View on Spots',
+    listGone:
+      'This list is gone. It was saved or discarded in another tab, so nothing more can be saved from here.',
+    startNew: 'Start a new list',
+    failedNotice: (n) =>
+      n === 1
+        ? '1 line got no answer from the search. Try it again from its row.'
+        : `${n} lines got no answer from the search. Try them again from their rows.`,
     commitFailed: 'The list was not saved. Nothing was added.',
     noAnswerRow: 'The server did not answer for this line. Try it again.',
   },

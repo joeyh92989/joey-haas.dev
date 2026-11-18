@@ -1,7 +1,14 @@
 import { placesAdd } from '../../content/placesAdd.js'
 import PasteFixForm from './PasteFixForm.jsx'
 import PlaceFields from './PlaceFields.jsx'
-import { addressOf, fromOf, lineOf, nameOf, setParts } from './pasteModel.js'
+import {
+  addressOf,
+  fromOf,
+  lineOf,
+  nameOf,
+  savedAddressOf,
+  setParts,
+} from './pasteModel.js'
 
 const words = placesAdd.paste
 
@@ -53,11 +60,18 @@ function Candidates({ entry, busy, onPick }) {
           </li>
         ))}
       </ul>
-      <div className="place-credit">
-        <p className="place-osm">
-          <a href={placesAdd.osmCopyright}>{placesAdd.osmCredit}</a>
-        </p>
-      </div>
+      <Credit />
+    </div>
+  )
+}
+
+/** The OpenStreetMap credit, under the form of a state that shows a search outcome. */
+function Credit() {
+  return (
+    <div className="place-credit">
+      <p className="place-osm">
+        <a href={placesAdd.osmCopyright}>{placesAdd.osmCredit}</a>
+      </p>
     </div>
   )
 }
@@ -150,6 +164,23 @@ function Body({
       </>
     )
   }
+  if (kind === 'unreadable') {
+    return (
+      <>
+        <p className="place-paste-why">{words.unreadableBody}</p>
+        <PasteFixForm
+          inputId={fieldId}
+          label={words.shortLabel}
+          initial=""
+          button={words.shortSubmit}
+          hint={words.unreadableHint}
+          disabled={busy}
+          onSubmit={onSearch}
+        />
+        {close}
+      </>
+    )
+  }
   if (kind === 'failed') {
     return (
       <>
@@ -163,6 +194,7 @@ function Body({
           disabled={busy}
           onSubmit={onSearch}
         />
+        <Credit />
         {close}
       </>
     )
@@ -184,13 +216,7 @@ function Body({
         disabled={busy}
         onSubmit={onSearch}
       />
-      {kind === 'none' && (
-        <div className="place-credit">
-          <p className="place-osm">
-            <a href={placesAdd.osmCopyright}>{placesAdd.osmCredit}</a>
-          </p>
-        </div>
-      )}
+      {(kind === 'none' || kind === 'unusable') && <Credit />}
       {close}
     </>
   )
@@ -241,7 +267,12 @@ export default function PasteRow({
   let sub = ''
   if (toCheck) sub = busy ? words.searchingOsm : whyOf(kind, entry)
   else if (kind === 'ready') sub = addressOf(entry)
+  else if (kind === 'saved') sub = savedAddressOf(entry)
   else if (kind === 'same') sub = words.sameAs
+  // The pasted link, on the rows whose title is the server's wording.
+  const link = ['short', 'unreadable', 'long'].includes(kind)
+    ? (entry.payload?.source_line ?? '')
+    : ''
   const from = kind === 'ready' || kind === 'saved' ? fromOf(entry, words) : ''
   const hidden = <span className="visually-hidden"> {title}</span>
 
@@ -277,7 +308,7 @@ export default function PasteRow({
         aria-expanded={open}
         onClick={onToggle}
       >
-        {words.rowButton.details}
+        {words.rowButton.edit}
         {hidden}
       </button>
     )
@@ -328,6 +359,11 @@ export default function PasteRow({
         <span className="place-result-title">{title}</span>
         {sub && <span className="muted">{sub}</span>}
         {from && <span className="place-paste-from">{from}</span>}
+        {link && (
+          <span className="place-paste-line" title={link}>
+            {link}
+          </span>
+        )}
       </span>
       {mark}
       {action}

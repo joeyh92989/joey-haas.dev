@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 
 import httpx2
 import pytest
@@ -190,7 +191,7 @@ async def test_a_short_link_is_never_fetched(sessionmaker_for_test):
             await paste(
                 client,
                 sitting,
-                "https://maps.app.goo.gl/xyz\nhttps://goo.gl/maps/abc\nhttps://g.co/maps/q",
+                "https://maps.app.goo.gl/xyz\nhttps://goo.gl/maps/abc\nhttps://g.co/kgs/q",
             )
         ).json()
     assert [e["state"] for e in body["entries"]] == ["check"] * 3
@@ -277,8 +278,8 @@ async def test_unknown_sitting_and_oversize_text(sessionmaker_for_test):
             "/api/intake/sittings/00000000-0000-0000-0000-000000000000/paste",
             json={"text": "a"},
         )
-        big = await paste(client, sitting, "a" * 80_001)
-        edge = await paste(client, sitting, "a" * 80_000)
+        big = await paste(client, sitting, "a" * 400_001)
+        edge = await paste(client, sitting, "a" * 400_000)
     assert missing.status_code == 404
     assert big.status_code == 422
     assert edge.status_code == 200
@@ -885,8 +886,9 @@ async def test_a_nul_in_a_line_is_cleaned_not_a_500(sessionmaker_for_test):
     "hidden",
     [
         "\u200b",
-        "\u200c",
-        "\u200d",
+        "\u200e",
+        "\u061c",
+        "\u00ad",
         "\u2060",
         "\ufeff",
         "\u202e",
@@ -1243,3 +1245,163 @@ async def test_a_long_map_url_is_read_and_its_source_line_is_clipped(
     assert entry["payload"]["name"] == "Confluence Park"
     assert len(entry["payload"]["source_line"]) == 300
     assert url.startswith(entry["payload"]["source_line"])
+
+
+# --- final fix wave (A1 to A9) --------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_a_hundred_fifty_long_map_urls_are_one_paste(sessionmaker_for_test):
+    urls = [
+        f"https://www.google.com/maps/place/Cafe+{i}/@39.7,-104.9,17z/data="
+        + "!4m6!3m5" * 100
+        + f"!3d39.{i:03d}!4d-104.9"
+        for i in range(150)
+    ]
+    text = "\n".join(urls)
+    assert len(text) > 100_000
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        response = await paste(client, sitting, text)
+    assert response.status_code == 200
+    assert response.json()["added"] == 150
+
+
+@pytest.mark.asyncio
+async def test_links_with_nothing_readable_are_check_rows_and_never_searched(
+    monkeypatch, sessionmaker_for_test
+):
+    fake = patch_search(monkeypatch, SearchOk([]))  # must stay unused until Resolve
+    lines = [
+        "https://www.google.com/maps/dir/A/B",
+        "https://www.google.com/maps",
+        "https://www.openstreetmap.org/node/123",
+        "https://www.openstreetmap.org/way/456",
+    ]
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, "\n".join(lines))).json()
+        first = body["entries"][0]
+        gone = await client.post(resolve_url(first))  # Resolve searches the typed name
+    assert [e["state"] for e in body["entries"]] == ["check"] * 4
+    assert first["payload"]["name"] == "Link from www.google.com"
+    assert first["payload"]["note"] == place_paste.UNREADABLE_NOTE
+    assert first["payload"]["source_line"] == lines[0]
+    assert gone.status_code == 200
+    assert fake.calls == ["Link from www.google.com"]
+
+
+@pytest.mark.asyncio
+async def test_maps_search_links_and_g_co_paste_without_a_search(
+    monkeypatch, sessionmaker_for_test
+):
+    fake = patch_search(monkeypatch)
+    text = "\n".join(
+        [
+            "https://www.google.com/maps/search/39.7392,+-104.9903",
+            "https://www.google.com/maps/search/Union+Station",
+            "https://g.co/kgs/abc123",
+        ]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, text)).json()
+    coords, named, short = body["entries"]
+    assert (coords["state"], coords["payload"]["lat"]) == ("check", 39.7392)
+    assert (named["state"], named["payload"]["name"]) == ("reading", "Union Station")
+    assert short["state"] == "check"
+    assert short["payload"]["name"] == "Short link from g.co"
+    assert fake.calls == []
+
+
+@pytest.mark.asyncio
+async def test_a_place_segment_pair_is_check_needing_a_name(sessionmaker_for_test):
+    url = "https://www.google.com/maps/place/40.7128,-74.0060/@40.7128,-74.0060,17z"
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        [entry] = (await paste(client, sitting, url)).json()["entries"]
+    assert entry["state"] == "check"
+    assert entry["payload"]["name"] == "Place at 40.71280, -74.00600"
+    assert entry["payload"]["note"] == place_paste.NAME_NEEDED_NOTE
+
+
+@pytest.mark.asyncio
+async def test_a_blurb_newline_keeps_its_words_apart(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        [entry] = (await paste(client, sitting, "39.7, -104.9")).json()["entries"]
+        response = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {"blurb": "Great patio\nLoud on Fridays\tbusy"}},
+        )
+    assert response.status_code == 200
+    assert response.json()["payload"]["blurb"] == "Great patio Loud on Fridays busy"
+
+
+@pytest.mark.asyncio
+async def test_zwnj_and_emoji_zwj_are_kept_in_a_pasted_name(sessionmaker_for_test):
+    name = "می‌خواهم \U0001f468‍\U0001f469"
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        [entry] = (await paste(client, sitting, name)).json()["entries"]
+    assert entry["payload"]["name"] == name
+
+
+@pytest.mark.asyncio
+async def test_a_left_out_place_does_not_block_its_twin(
+    monkeypatch, sessionmaker_for_test
+):
+    patch_search(monkeypatch, SearchOk(hits("one")))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [first, second] = await pasted(
+            client, "red rocks\nred rocks amphitheatre"
+        )
+        a = (await client.post(resolve_url(first))).json()
+        left = await client.patch(
+            f"/api/intake/entries/{first['id']}", json={"state": "check"}
+        )
+        b = (await client.post(resolve_url(second))).json()
+    assert a["state"] == "ready"
+    assert left.status_code == 200 and left.json()["state"] == "check"
+    assert b["state"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_resolving_a_coordinate_check_entry_clears_its_old_position(
+    monkeypatch, sessionmaker_for_test
+):
+    patch_search(monkeypatch, SearchOk([hit(i) for i in range(3)]))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client, "39.7392, -104.9903")
+        assert entry["payload"]["lat"] == 39.7392
+        body = (await client.post(resolve_url(entry))).json()
+        ready = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"state": "ready"}
+        )
+    assert body["state"] == "check"
+    assert len(body["payload"]["candidates"]) == 3
+    assert "lat" not in body["payload"] and "lng" not in body["payload"]
+    assert ready.status_code == 422
+    assert "coordinates" in ready.json()["detail"]
+    [(_, _, chosen)] = await entries_of(sessionmaker_for_test, sitting)
+    assert chosen is None
+
+
+@pytest.mark.asyncio
+async def test_new_entries_sort_after_a_newer_clock_row(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        await paste(client, sitting, "first stop")
+        async with sessionmaker_for_test() as session:
+            row = await session.scalar(
+                select(IntakeEntry).where(IntakeEntry.sitting_id == sitting["id"])
+            )
+            row.created_at = datetime.now(UTC) + timedelta(minutes=1)
+            await session.commit()
+        await paste(client, sitting, "second stop\nthird stop")
+        loaded = (await client.get(f"/api/intake/sittings/{sitting['id']}")).json()
+    assert [e["payload"]["name"] for e in loaded["entries"]] == [
+        "first stop",
+        "second stop",
+        "third stop",
+    ]

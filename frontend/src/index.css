@@ -14092,6 +14092,7 @@ a.btn.sm {
 
 .place-paste-summary p,
 .place-paste-offer p {
+  font-size: var(--fs-14);
   margin: 0;
 }
 
@@ -14183,6 +14184,16 @@ a.btn.sm {
   color: var(--text-3);
   font-size: var(--fs-12);
   overflow-wrap: anywhere;
+}
+
+/* The pasted link on a short-link, unreadable-link or too-long row: one
+   line, cut with an ellipsis (the whole text is in its title). */
+.place-paste-line {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .place-paste-cands {
@@ -14305,11 +14316,21 @@ a.btn.sm {
     bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-2));
   }
 
+  /* A row or button focused by Tab lands above the sticky Save bar and the
+     fixed tab bar: the tab bar's height, the Save bar's own height (its
+     padding, a 44px button and a wrapped note) and a gap. */
+  .place-col {
+    --place-tabbar-h: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+    --place-savebar-h: 5.5rem;
+  }
+
   .place-col .btn,
   .place-paste-group-btn,
+  .place-paste-group .place-result,
+  .place-paste-group .capped-toggle,
   .place-result.open {
     scroll-margin-bottom: calc(
-      3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-4) + 3.5rem
+      var(--place-tabbar-h) + var(--place-savebar-h) + var(--space-4)
     );
   }
 

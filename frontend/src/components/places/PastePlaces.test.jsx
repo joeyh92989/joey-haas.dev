@@ -226,7 +226,7 @@ describe('PastePlaces: what each line becomes', () => {
     ])
     expect(
       screen.getByText(
-        '3 ready to save, 6 to check, 1 already saved, 1 the same place as another line.',
+        '3 ready to save, 6 to check, 1 already saved, 1 the same place as another line. 1 line got no answer from the search. Try it again from its row.',
       ),
     ).toBeInTheDocument()
   })
@@ -547,7 +547,7 @@ describe('PastePlaces: fixing a row', () => {
     await waitFor(() =>
       expect(
         within(row('Denver Union Station')).getByRole('button', {
-          name: /^Details/,
+          name: /^Edit/,
         }),
       ).toHaveFocus(),
     )
@@ -630,7 +630,7 @@ describe('PastePlaces: fixing a row', () => {
     expect(list('Ready')).toContainElement(row('City Park'))
     await waitFor(() =>
       expect(
-        within(row('City Park')).getByRole('button', { name: /^Details/ }),
+        within(row('City Park')).getByRole('button', { name: /^Edit/ }),
       ).toHaveFocus(),
     )
   })
@@ -665,7 +665,7 @@ describe('PastePlaces: ready rows', () => {
     renderPaste()
     await addLines(GOOGLE)
     await lookedUp()
-    await user.click(screen.getByRole('button', { name: /^Details/ }))
+    await user.click(screen.getByRole('button', { name: /^Edit/ }))
     const form = screen.getByRole('group', {
       name: 'Details for Confluence Park',
     })
@@ -700,7 +700,7 @@ describe('PastePlaces: ready rows', () => {
       screen.getByRole('button', { name: 'Save 2 places' }),
     ).toBeInTheDocument()
     await user.click(
-      within(row('Confluence Park')).getByRole('button', { name: /^Details/ }),
+      within(row('Confluence Park')).getByRole('button', { name: /^Edit/ }),
     )
     await user.click(screen.getByRole('button', { name: /^Leave out/ }))
     expect(callsTo(calls, 'PATCH', '/entries/').at(-1).body).toEqual({
@@ -783,7 +783,7 @@ describe('PastePlaces: save', () => {
     renderPaste()
     await addLines(GOOGLE)
     await lookedUp()
-    await user.click(screen.getByRole('button', { name: /^Details/ }))
+    await user.click(screen.getByRole('button', { name: /^Edit/ }))
     await user.click(screen.getByRole('button', { name: 'Park' }))
     await user.click(
       screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
@@ -1275,7 +1275,7 @@ describe('PastePlaces: fix round 1', () => {
     await addLines(`${park(39.1, -105.1)}\n${park(39.9, -105.9)}`)
     await lookedUp()
     const [first, second] = within(list('Ready')).getAllByRole('listitem')
-    await user.click(within(second).getByRole('button', { name: /^Details/ }))
+    await user.click(within(second).getByRole('button', { name: /^Edit/ }))
     await user.click(
       screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
     )
@@ -1327,7 +1327,7 @@ describe('PastePlaces: fix round 1', () => {
       expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0),
     )
     await user.click(
-      (await screen.findAllByRole('button', { name: /^Details/ }))[0],
+      (await screen.findAllByRole('button', { name: /^Edit/ }))[0],
     )
     await user.click(screen.getByRole('button', { name: /^Leave out/ }))
     await said('left out. It will not be saved.')
@@ -1369,14 +1369,18 @@ describe('PastePlaces: fix round 1', () => {
     expect(list('Ready')).toBeInTheDocument()
   })
 
-  it('refuses a paste over 80,000 characters before sending it', async () => {
+  it('refuses a paste over 400,000 characters before sending it, and takes 400,000', async () => {
     const { calls } = setup()
     renderPaste()
-    await addLines('a'.repeat(80001))
+    await addLines('a'.repeat(400001))
     expect(
-      await screen.findByText(/The box holds more than 80,000 characters/),
+      await screen.findByText(/The box holds more than 400,000 characters/),
     ).toHaveAttribute('role', 'alert')
     expect(callsTo(calls, 'POST', '/paste')).toHaveLength(0)
+    await addLines('a'.repeat(400000))
+    await waitFor(() =>
+      expect(callsTo(calls, 'POST', '/paste')).toHaveLength(1),
+    )
   })
 
   it('words a server refusal of the text plainly', async () => {
@@ -1390,7 +1394,7 @@ describe('PastePlaces: fix round 1', () => {
             json: () =>
               Promise.resolve({
                 detail: [
-                  { msg: 'String should have at most 80000 characters' },
+                  { msg: 'String should have at most 400000 characters' },
                 ],
               }),
           })
@@ -1474,7 +1478,7 @@ describe('PastePlaces: fix round 1', () => {
     await waitFor(() => expect(callsTo(calls, 'POST', '/pick')).toHaveLength(1))
     await screen.findByRole('button', { name: 'Save 2 places' })
     await user.click(
-      within(row('Confluence Park')).getByRole('button', { name: /^Details/ }),
+      within(row('Confluence Park')).getByRole('button', { name: /^Edit/ }),
     )
     const leave = screen.getByRole('button', { name: /^Leave out/ })
     act(() => {
@@ -1487,5 +1491,181 @@ describe('PastePlaces: fix round 1', () => {
         (c) => c.body.state === 'check',
       ),
     ).toHaveLength(1)
+  })
+})
+
+describe('PastePlaces: final fix wave', () => {
+  const MAPS_DIR = 'https://www.google.com/maps/dir/Union+Station/Red+Rocks'
+
+  it('draws an unreadable map link as its own row with the pasted link, never searched', async () => {
+    const user = userEvent.setup()
+    const { calls } = setup()
+    renderPaste()
+    await addLines(`${MAPS_DIR}\n${SHORT}`)
+    await screen.findByRole('button', { name: /^Save|Save places/ })
+    const unreadable = row('Link from www.google.com')
+    expect(
+      within(unreadable).getByText('Link, could not be read.'),
+    ).toBeInTheDocument()
+    expect(within(unreadable).getByText(MAPS_DIR)).toHaveAttribute(
+      'title',
+      MAPS_DIR,
+    )
+    expect(
+      within(row('Short link from maps.app.goo.gl')).getByText(SHORT),
+    ).toHaveAttribute('title', SHORT)
+    expect(resolves(calls)).toHaveLength(0)
+    // Its row is a Name field, and Resolve searches the typed name.
+    await user.click(
+      within(unreadable).getByRole('button', { name: /^Type the name/ }),
+    )
+    expect(
+      screen.getByText(/Could not read a place from this link\. Type the name/),
+    ).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Place name'), 'Union Station Denver')
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => expect(list('Ready')).toBeInTheDocument())
+    expect(resolves(calls)).toHaveLength(1)
+    expect(callsTo(calls, 'PATCH', '/entries/')[0].body).toEqual({
+      payload: { name: 'Union Station Denver' },
+    })
+  })
+
+  it('does not take an unreadable link for a short link or a long line', async () => {
+    const { kindOf } = await import('./pasteModel.js')
+    const entry = (name) => ({
+      id: 'e',
+      state: 'check',
+      payload: { name, source_line: 'x', note: 'n' },
+    })
+    const none = new Set()
+    expect(kindOf(entry('Link from www.google.com'), none, none)).toBe(
+      'unreadable',
+    )
+    expect(kindOf(entry('Short link from g.co'), none, none)).toBe('short')
+    expect(kindOf(entry('A long line'), none, none)).toBe('long')
+  })
+
+  it('treats g.co as a short link on any path', async () => {
+    setup()
+    renderPaste()
+    await addLines('https://g.co/kgs/abc123')
+    await screen.findByRole('button', { name: /^Type the name/ })
+    expect(
+      within(row('Short link from g.co')).getByText(
+        'Short link, could not be read.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('names the ready row action Edit', async () => {
+    setup()
+    renderPaste()
+    await addLines(GOOGLE)
+    await lookedUp()
+    expect(
+      within(row('Confluence Park')).getByRole('button', { name: /^Edit/ }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /^Details/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the address of an already-saved row when it has one, and none when it has none', async () => {
+    setup({
+      world: {
+        'denver botanic gardens': [
+          hit('Denver Botanic Gardens', { owned_spot_id: 'spot-9' }),
+        ],
+      },
+      spots: [
+        { id: 'spot-9', source_id: hit('Denver Botanic Gardens').source_id },
+        { id: 'spot-4', name: 'Confluence Park', lat: 39.7546, lng: -105.0078 },
+      ],
+    })
+    renderPaste()
+    await addLines(`Denver Botanic Gardens\n${GOOGLE}`)
+    await lookedUp()
+    const saved = within(list('Already saved'))
+    const withAddress = saved.getByText('Denver Botanic Gardens').closest('li')
+    expect(
+      within(withAddress).getByText('22 Main St, Denver'),
+    ).toBeInTheDocument()
+    const byDistance = saved.getByText('Confluence Park').closest('li')
+    expect(byDistance.querySelector('.muted')).toBeNull()
+  })
+
+  it('shows the OpenStreetMap credit in the no-place state', async () => {
+    const user = userEvent.setup()
+    setup({ world: { 'tacos near federal': [] } })
+    renderPaste()
+    await addLines('Tacos near Federal')
+    await lookedUp()
+    await user.click(screen.getByRole('button', { name: /^Rename/ }))
+    const form = screen.getByRole('group', { name: /^Fix/ })
+    expect(
+      within(form).getByRole('link', {
+        name: 'Search by OpenStreetMap contributors',
+      }),
+    ).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright')
+  })
+
+  it('says the list is gone when the commit answers 404, and starts a new one', async () => {
+    const user = userEvent.setup()
+    const { sittings, calls } = setup()
+    renderPaste()
+    await addLines(`${GOOGLE}\nAspen Grove`)
+    await lookedUp()
+    sittings.clear() // another tab saved or discarded it
+    await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
+    const gone = await screen.findByText(/This list is gone/)
+    expect(gone).toHaveAttribute('role', 'alert')
+    expect(
+      screen.queryByRole('button', { name: /^Save/ }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Start a new list' }))
+    await addLines('Red Rocks')
+    await lookedUp()
+    // A new sitting, not the dead id.
+    expect(
+      calls.filter(
+        (c) => c.method === 'POST' && c.url === '/api/intake/sittings',
+      ),
+    ).toHaveLength(2)
+    expect(callsTo(calls, 'POST', '/commit')).toHaveLength(1)
+  })
+
+  it('counts private and public places in the done summary', async () => {
+    const user = userEvent.setup()
+    setup()
+    renderPaste()
+    await addLines(
+      `${GOOGLE}\nhttps://www.google.com/maps/place/Red+Rocks/@39.66,-105.2,17z`,
+    )
+    await lookedUp()
+    await user.click(
+      within(row('Confluence Park')).getByRole('button', { name: /^Edit/ }),
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
+    await screen.findByRole('heading', { name: 'Saved 2 places' })
+    expect(
+      screen.getByText('1 private, 1 on the public Denver page.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a line that got no answer once, not folded away, and says so after the second failure', async () => {
+    setup({ fails: { 'meow wolf': 2 } })
+    renderPaste()
+    await addLines('Meow Wolf')
+    await lookedUp()
+    expect(
+      within(list('To check')).getByText('Search did not answer.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText(/1 line got no answer from the search/).length,
+    ).toBeGreaterThan(0)
   })
 })

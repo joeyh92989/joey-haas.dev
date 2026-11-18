@@ -4,6 +4,10 @@ import { HOME_CITY, cityLabel, emptyFields } from './PlaceFields.jsx'
  *  other note on a searched entry says the place found could not be used. */
 export const NO_PLACE_NOTE = 'No place found. Change the words and look again.'
 
+/** The most characters one paste takes: 200 lines of 2,000 characters. It
+ *  must match `MAX_PASTE_CHARS` in backend/intake/place_paste.py. */
+export const MAX_PASTE_CHARS = 400000
+
 /** The most lines one paste takes; the server counts the rest as over. */
 export const MAX_LINES = 200
 
@@ -16,6 +20,7 @@ const CHECK_KINDS = new Set([
   'unusable',
   'coords',
   'short',
+  'unreadable',
   'long',
   'none',
   'failed',
@@ -45,7 +50,7 @@ export const isPasted = (entry) =>
  * @param {object} entry The server's entry.
  * @param {Set<string>} failedIds
  * @param {Set<string>} leftOut
- * @returns {'ready'|'saved'|'same'|'wait'|'failed'|'several'|'coords'|'short'|'long'|'none'|'unusable'|'left'|'other'}
+ * @returns {'ready'|'saved'|'same'|'wait'|'failed'|'several'|'coords'|'short'|'unreadable'|'long'|'none'|'unusable'|'left'|'other'}
  */
 export function kindOf(entry, failedIds, leftOut) {
   switch (entry.state) {
@@ -69,9 +74,13 @@ export function kindOf(entry, failedIds, leftOut) {
       if ('attempts' in payload) {
         return payload.note === NO_PLACE_NOTE ? 'none' : 'unusable'
       }
-      // A short link is named "Short link from <host>" by the server; any
-      // other line the paste could not read is one that was too long.
-      return /^Short link from /.test(payload.name ?? '') ? 'short' : 'long'
+      // The server names a short link "Short link from <host>" and a link
+      // it could not read "Link from <host>"; any other line the paste
+      // could not read was too long.
+      const name = payload.name ?? ''
+      if (/^Short link from /.test(name)) return 'short'
+      if (/^Link from /.test(name)) return 'unreadable'
+      return 'long'
     }
     default:
       return 'other'
@@ -120,6 +129,13 @@ export function addressOf(entry) {
     return `${entry.payload.lat.toFixed(4)}, ${entry.payload.lng.toFixed(4)}`
   }
   return ''
+}
+
+/** The address line of an already-saved row: the one the search gave, or the
+ *  one the entry carries; nothing when it has none (a pasted coordinate line
+ *  owned by name and distance never had one). */
+export function savedAddressOf(entry) {
+  return entry.chosen?.address || entry.payload?.address || ''
 }
 
 /** What the pasted line was, when the place's name is not it. */
