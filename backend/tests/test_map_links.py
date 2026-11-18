@@ -159,7 +159,7 @@ def test_split_crlf():
 
 def test_split_dedupe_ignores_inner_whitespace_and_case():
     s = split_lines("Red  Rocks\nred rocks")
-    assert s.lines == ["Red  Rocks"]
+    assert s.lines == ["Red Rocks"]  # inner whitespace is collapsed
     assert s.duplicates == 1
 
 
@@ -262,3 +262,21 @@ def test_space_separated_q_pair_is_coords_not_a_name():
 def test_unusable_link_names_are_dropped(tail):
     r = read_line(f"https://www.google.com/maps/place/{tail}/@39.7,-104.9,15z")
     assert (r.kind, r.name) == ("coords", None)
+
+
+@pytest.mark.parametrize(
+    "hidden", ["\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\u202e", "\u2066"]
+)
+def test_invisible_characters_are_removed_from_names_and_lines(hidden):
+    assert read_line(f"Red{hidden}Rocks").name == "RedRocks"
+    link = f"https://www.google.com/maps/place/A{hidden}B/@39.7,-104.9,15z"
+    assert read_line(link).name == "AB"
+    assert read_line(hidden * 3).kind == "empty"
+    s = split_lines(f"Red{hidden} Rocks\n{hidden}\nRed Rocks")
+    assert (s.lines, s.blank, s.duplicates) == (["Red Rocks"], 1, 1)
+
+
+def test_nul_and_controls_are_removed_from_lines_but_tab_is_a_space():
+    s = split_lines("abc\x00def\n\x00\na\tb\x07c")
+    assert s.lines == ["abcdef", "a bc"]
+    assert s.blank == 1

@@ -8,18 +8,20 @@ real `search` runs over a mock transport with the fake clock of
 from __future__ import annotations
 
 import asyncio
+import json
 
 import httpx2
 import pytest
 from sqlalchemy import select
 
-from intake import place_kind
+from intake import place_kind, place_paste
 from models import IntakeEntry, IntakeEntryState, Spot
 from sources.base import Throttle
 from spot_sources import nominatim
 from spot_sources.nominatim import PlaceHit, SearchFailure, SearchOk
 from tests.test_intake_kinds import client_for
-from tests.test_place_kind import add_spot, hits, new_sitting, patch_search
+from tests.test_place_kind import add_spot, hits, new_sitting
+from tests.test_place_kind import patch_search as count_search
 
 _REAL_SEARCH = nominatim.search  # captured at import, before any fixture patches it
 
@@ -46,8 +48,9 @@ def hit(i: int, name: str | None = None) -> PlaceHit:
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    """Anything that tries a real HTTP request, or builds a Nominatim client
-    without a test saying so, fails the test. `search` is replaced per test."""
+    """Anything that builds a Nominatim client, makes a real HTTP request or
+    runs a search nobody asked for fails the test. A test that looks a place
+    up goes through `patch_search`, which allows the (stub) client."""
 
     def forbidden():
         raise AssertionError("an HTTP client was built")
@@ -55,22 +58,30 @@ def no_network(monkeypatch):
     async def refused(self, request):
         raise AssertionError(f"an HTTP request was made: {request.url}")
 
-    monkeypatch.setattr(place_kind, "http_client", forbidden)
-    monkeypatch.setattr(httpx2.AsyncHTTPTransport, "handle_async_request", refused)
-
     async def no_search(client, query):
         raise AssertionError(f"an unexpected search: {query}")
 
+    monkeypatch.setattr(place_kind, "http_client", forbidden)
+    monkeypatch.setattr(httpx2.AsyncHTTPTransport, "handle_async_request", refused)
     monkeypatch.setattr(nominatim, "search", no_search)
 
-    class Nothing:
-        async def __aenter__(self):
-            return None
 
-        async def __aexit__(self, *exc):
-            return False
+class _NoClient:
+    async def __aenter__(self):
+        return None
 
-    monkeypatch.setattr(place_kind, "http_client", lambda: Nothing())
+    async def __aexit__(self, *exc):
+        return False
+
+
+def allow_client(monkeypatch):
+    """For a test that resolves: the client is a stub, `search` is the fake."""
+    monkeypatch.setattr(place_kind, "http_client", lambda: _NoClient())
+
+
+def patch_search(monkeypatch, outcome=None, delay=0.0):
+    allow_client(monkeypatch)
+    return count_search(monkeypatch, outcome, delay)
 
 
 async def paste(client, sitting, text):
@@ -376,6 +387,7 @@ async def test_an_exception_from_search_is_a_failure_not_a_500(
     async def boom(client, query):
         raise RuntimeError("down")
 
+    allow_client(monkeypatch)
     monkeypatch.setattr(nominatim, "search", boom)
     async with client_for(sessionmaker_for_test) as client:
         sitting, [entry] = await pasted(client)
@@ -454,20 +466,68 @@ async def test_a_short_link_check_entry_resolves_once_named(
     assert body["state"] == "ready"
 
 
+class BlockedSearch:
+    """A search that waits for the test to let it finish."""
+
+    def __init__(self, outcome):
+        self.outcome = outcome
+        self.calls: list[str] = []
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def __call__(self, client, query):
+        self.calls.append(query)
+        self.started.set()
+        await self.release.wait()
+        return self.outcome
+
+
+def block_search(monkeypatch, outcome) -> BlockedSearch:
+    allow_client(monkeypatch)
+    blocked = BlockedSearch(outcome)
+    monkeypatch.setattr(nominatim, "search", blocked)
+    return blocked
+
+
 @pytest.mark.asyncio
 async def test_a_second_concurrent_resolve_is_a_409(monkeypatch, sessionmaker_for_test):
-    fake = patch_search(monkeypatch, SearchOk(hits("one")), delay=0.4)
+    blocked = block_search(monkeypatch, SearchOk(hits("one")))
     async with client_for(sessionmaker_for_test) as client:
         sitting, [entry] = await pasted(client)
-        results = await asyncio.gather(
-            client.post(resolve_url(entry)), client.post(resolve_url(entry))
+        first = asyncio.create_task(client.post(resolve_url(entry)))
+        await asyncio.wait_for(blocked.started.wait(), 10)
+        second = await client.post(resolve_url(entry))
+        blocked.release.set()
+        done = await first
+    assert second.status_code == 409
+    assert "being looked up" in second.json()["detail"]
+    assert done.status_code == 200
+    assert len(blocked.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_patch_during_a_resolve_is_a_409_and_keeps_the_answer(
+    monkeypatch, sessionmaker_for_test
+):
+    blocked = block_search(monkeypatch, SearchOk(hits("one")))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client)
+        first = asyncio.create_task(client.post(resolve_url(entry)))
+        await asyncio.wait_for(blocked.started.wait(), 10)
+        patched = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": {"blurb": "late"}}
         )
-    assert sorted(r.status_code for r in results) == [200, 409]
-    assert (
-        "being looked up"
-        in next(r for r in results if r.status_code == 409).json()["detail"]
-    )
-    assert len(fake.calls) == 1
+        blocked.release.set()
+        done = (await first).json()
+        stored = await entries_of(sessionmaker_for_test, sitting)
+    assert patched.status_code == 409
+    assert "being looked up" in patched.json()["detail"]
+    assert done["state"] == "ready"
+    [(state, payload, chosen)] = stored
+    assert state == "ready"
+    assert payload["lat"] == pytest.approx(39.6653917)
+    assert "blurb" not in payload or payload["blurb"] is None
+    assert chosen["source_id"] == "way/229359697"
 
 
 @pytest.mark.asyncio
@@ -766,3 +826,277 @@ async def test_a_named_pasted_pair_can_be_made_ready(sessionmaker_for_test):
         )
     assert response.status_code == 200
     assert response.json()["state"] == "ready"
+
+
+# --- untrusted text ------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_a_nul_in_a_line_is_cleaned_not_a_500(sessionmaker_for_test):
+    text = "\n".join(
+        [
+            "abc\x00def",
+            "\x00",
+            "https://www.google.com/maps/place/Red\x00+Rocks/@39.7,-104.9,17z",
+            "x" * 299 + "\x00" + "y" * 5,
+            "plain line",
+        ]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        response = await paste(client, sitting, text)
+    body = response.json()
+    assert response.status_code == 200
+    assert body["blank"] == 1
+    states = [(e["state"], e["payload"]["name"]) for e in body["entries"]]
+    assert states[0] == ("reading", "abcdef")
+    assert states[1] == ("ready", "Red Rocks")
+    assert states[2][0] == "check"  # too long once the NUL is gone
+    assert states[3] == ("reading", "plain line")
+    assert all("\x00" not in json.dumps(e) for e in body["entries"])
+    assert body["entries"][0]["payload"]["source_line"] == "abcdef"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "hidden",
+    [
+        "\u200b",
+        "\u200c",
+        "\u200d",
+        "\u2060",
+        "\ufeff",
+        "\u202e",
+        "\u202a",
+        "\u2066",
+        "\u2069",
+    ],
+)
+async def test_invisible_format_characters_are_removed(hidden, sessionmaker_for_test):
+    text = f"Red{hidden} Rocks\n{hidden}\n{hidden}{hidden}"
+    link = f"https://www.google.com/maps/place/Union{hidden}+Station/@39.7,-104.9,17z"
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, text + "\n" + link)).json()
+    assert body["blank"] == 2
+    [name_entry, link_entry] = body["entries"]
+    assert name_entry["payload"]["name"] == "Red Rocks"
+    assert name_entry["payload"]["source_line"] == "Red Rocks"
+    assert link_entry["state"] == "ready"
+    assert link_entry["payload"]["name"] == "Union Station"
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_variant_is_a_duplicate_of_the_plain_line(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, "Red Rocks\nRed\u200b Rocks")).json()
+    assert (body["added"], body["duplicates"]) == (1, 1)
+
+
+@pytest.mark.asyncio
+async def test_two_pastes_racing_make_no_duplicate_entries(
+    monkeypatch, sessionmaker_for_test
+):
+    # Hold each paste between reading the sitting's entries and writing its
+    # own; only the sitting lock keeps the second from reading too early.
+    real = place_paste.flag_owned
+
+    async def slow(session, rows):
+        await asyncio.sleep(0.3)
+        await real(session, rows)
+
+    monkeypatch.setattr(place_paste, "flag_owned", slow)
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        a, b = await asyncio.gather(
+            paste(client, sitting, "one\ntwo\n39.7, -104.9"),
+            paste(client, sitting, "two\nthree\n39.7, -104.9"),
+        )
+        assert a.status_code == b.status_code == 200
+        stored = await entries_of(sessionmaker_for_test, sitting)
+    names = sorted(payload["name"] for _, payload, _ in stored)
+    assert names == sorted(set(names))
+    assert len(stored) == 4
+    assert a.json()["added"] + b.json()["added"] == 4
+
+
+@pytest.mark.asyncio
+async def test_a_hit_that_fails_the_checks_is_a_check_entry(
+    monkeypatch, sessionmaker_for_test
+):
+    bad = PlaceHit(
+        name="Nowhere",
+        display_name="Nowhere",
+        lat=999.0,
+        lng=-104.9,
+        osm_type="node",
+        osm_id=5,
+        source_id="node/5",
+        category="x",
+        type="y",
+        address={},
+    )
+    patch_search(monkeypatch, SearchOk([bad]))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client)
+        response = await client.post(resolve_url(entry))
+    body = response.json()
+    assert response.status_code == 200
+    assert body["state"] == "check"
+    assert "latitude" in body["payload"]["note"]
+    assert body["chosen"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "change", [{"lat": 999.0}, {"source_id": "not-an-id"}, {"title": ""}]
+)
+async def test_a_tampered_stored_candidate_is_a_422_and_changes_nothing(
+    change, monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entry = await checked(client, monkeypatch)
+        async with sessionmaker_for_test() as session:
+            row = await session.get(IntakeEntry, entry["id"])
+            candidates = [dict(c) for c in row.payload["candidates"]]
+            candidates[0].update(change)
+            row.payload = {**row.payload, "candidates": candidates}
+            await session.commit()
+        before = await entries_of(sessionmaker_for_test, sitting)
+        response = await client.post(pick_url(entry), json={"index": 0})
+        after = await entries_of(sessionmaker_for_test, sitting)
+    assert response.status_code == 422
+    assert after == before
+    assert after[0][0] == "check"
+    assert after[0][2] is None
+
+
+@pytest.mark.asyncio
+async def test_a_named_pair_near_a_saved_place_with_the_same_name_is_owned(
+    sessionmaker_for_test,
+):
+    spot_id = await add_spot(
+        sessionmaker_for_test,
+        name="Red Rocks Amphitheatre",
+        lat=39.66508,  # about 9 m from the pasted pin (39.665, -105.2058)
+        lng=-105.20575,
+    )
+    far = await add_spot(
+        sessionmaker_for_test, name="Union Station", lat=39.7, lng=-105.0
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, LONG_PLACE)).json()
+    [entry] = body["entries"]
+    assert entry["state"] == "owned"
+    assert entry["payload"]["owned_spot_id"] == spot_id != far
+
+
+@pytest.mark.asyncio
+async def test_a_named_pair_over_75_metres_from_a_namesake_is_ready(
+    sessionmaker_for_test,
+):
+    await add_spot(
+        sessionmaker_for_test,
+        name="Red Rocks Amphitheatre",
+        lat=39.6660,  # about 110 m north
+        lng=-105.2058,
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        body = (await paste(client, sitting, LONG_PLACE)).json()
+    assert body["entries"][0]["state"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_ten_parallel_resolves_all_finish_and_none_times_out(
+    monkeypatch, sessionmaker_for_test
+):
+    class Clock:
+        now = 1000.0
+
+        def time(self):
+            return self.now
+
+        async def sleep(self, seconds):
+            self.now += seconds
+            await asyncio.sleep(0)
+
+    clock = Clock()
+    monkeypatch.setattr(
+        nominatim, "_throttle", Throttle(1.1, clock=clock.time, sleep=clock.sleep)
+    )
+    running = 0
+    most = 0
+    count = 0
+
+    def handler(request):
+        nonlocal count
+        count += 1
+        row = {
+            "lat": str(39.7 + count / 10000),
+            "lon": "-104.9",
+            "osm_type": "node",
+            "osm_id": 7000 + count,
+            "display_name": f"Spot {count}, Denver",
+            "name": f"Spot {count}",
+            "category": "amenity",
+            "type": "cafe",
+            "address": {},
+        }
+        return httpx2.Response(200, json=[row])
+
+    class Counting(httpx2.AsyncClient):
+        async def get(self, *args, **kwargs):
+            nonlocal running, most
+            running += 1
+            most = max(most, running)
+            try:
+                await asyncio.sleep(0.05)
+                return await super().get(*args, **kwargs)
+            finally:
+                running -= 1
+
+    monkeypatch.setattr(
+        place_kind,
+        "http_client",
+        lambda: Counting(transport=httpx2.MockTransport(handler)),
+    )
+    monkeypatch.setattr(nominatim, "search", _REAL_SEARCH)
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entries = await pasted(client, "\n".join(f"s{i}" for i in range(10)))
+        results = await asyncio.gather(*(client.post(resolve_url(e)) for e in entries))
+    assert [r.status_code for r in results] == [200] * 10
+    assert {r.json()["state"] for r in results} == {"ready"}
+    assert all(r.json()["payload"]["attempts"] == 0 for r in results)
+    assert count == 10
+    assert most <= place_paste.MAX_LOOKUPS
+
+
+@pytest.mark.asyncio
+async def test_the_typed_words_are_kept_as_searched_as(
+    monkeypatch, sessionmaker_for_test
+):
+    patch_search(monkeypatch, SearchOk(hits("one")))
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, [entry] = await pasted(client, "red rocks")
+        body = (await client.post(resolve_url(entry))).json()
+    assert body["payload"]["name"] == "Red Rocks Amphitheatre"
+    assert body["payload"]["searched_as"] == "red rocks"
+
+
+@pytest.mark.asyncio
+async def test_searched_as_is_cleaned_and_capped_after_a_pick(
+    monkeypatch, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entry = await checked(client, monkeypatch, text="cafe")
+        async with sessionmaker_for_test() as session:
+            row = await session.get(IntakeEntry, entry["id"])
+            row.payload = {**row.payload, "name": "Ca\u200bfe " + "z" * 300}
+            await session.commit()
+        body = (await client.post(pick_url(entry), json={"index": 0})).json()
+    assert body["payload"]["name"] == "Cafe 0"
+    assert body["payload"]["searched_as"].startswith("Cafe zzz")
+    assert len(body["payload"]["searched_as"]) == 200

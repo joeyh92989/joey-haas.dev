@@ -60,11 +60,23 @@ class SplitResult:
     over_limit: int
 
 
+_HIDDEN = ("Cc", "Cf")  # control and format characters (NUL, zero-width, bidi)
+
+
+def clean_line(value: str) -> str:
+    """A pasted line as text a person can see: control characters (NUL
+    included, but not tab) and invisible format characters (zero-width,
+    bidi overrides) removed, whitespace collapsed. May come out empty."""
+    kept = (c for c in value if c == "\t" or unicodedata.category(c) not in _HIDDEN)
+    return " ".join("".join(kept).split())
+
+
 def clean_name(value: str | None) -> str | None:
-    """Control characters removed, whitespace collapsed, cut to 200; else None."""
+    """Control and format characters removed, whitespace collapsed, cut to
+    200; else None."""
     if not value:
         return None
-    text = "".join(c for c in value if unicodedata.category(c) != "Cc")
+    text = "".join(c for c in value if unicodedata.category(c) not in _HIDDEN)
     text = " ".join(text.split())[:MAX_NAME_CHARS].strip()
     return text or None
 
@@ -150,7 +162,7 @@ def _result(candidate: tuple[str, str] | None, name: str | None) -> LineRead:
 
 def read_line(text: str) -> LineRead:
     """Classify one pasted line; never raises and never touches the network."""
-    line = text.strip()
+    line = clean_line(text)
     if not line:
         return LineRead("empty")
     if len(line) > MAX_LINE_CHARS:
@@ -191,7 +203,7 @@ def split_lines(text: str) -> SplitResult:
     seen: set[str] = set()
     blank = duplicates = 0
     for raw in text.splitlines():
-        line = raw.strip()
+        line = clean_line(raw)
         if not line:
             blank += 1
             continue

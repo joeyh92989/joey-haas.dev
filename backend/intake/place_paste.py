@@ -27,8 +27,10 @@ Entry states (the line kind or outcome decides; the client never does):
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
+import weakref
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -52,7 +54,13 @@ from intake.place_kind import (
 from intake.schemas import EntryOut, PasteOut, ResolveOut
 from models import IntakeArea, IntakeEntry, IntakeEntryState, IntakeSitting
 from spot_sources import nominatim
-from spot_sources.map_links import LineRead, read_line, split_lines
+from spot_sources.map_links import (
+    LineRead,
+    clean_line,
+    clean_name,
+    read_line,
+    split_lines,
+)
 from spot_sources.nominatim import SearchFailure
 
 logger = logging.getLogger(__name__)
@@ -78,6 +86,24 @@ NOT_A_PLACES_SITTING = "Paste works on a places sitting"
 NOT_RESOLVABLE = "Only a place that is waiting or to check can be looked up"
 NOT_PICKABLE = "Only a place to check with candidates can be picked"
 NO_NAME = "This place has no name to look up yet"
+
+
+# Lookups run at most this many at a time. The search shares one 1 s throttle
+# and a 7 s deadline, so more waiting in it would make the later ones time out
+# and burn their attempts; the rest queue here, before any row is locked.
+MAX_LOOKUPS = 2
+_slots: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore] = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _lookup_slots() -> asyncio.Semaphore:
+    """The lookup semaphore of the running loop (one per loop, so tests that
+    each run their own loop never share one)."""
+    loop = asyncio.get_running_loop()
+    if loop not in _slots:
+        _slots[loop] = asyncio.Semaphore(MAX_LOOKUPS)
+    return _slots[loop]
 
 
 class PasteIn(BaseModel):
@@ -111,6 +137,7 @@ def entry_for_line(
     line: str, read: LineRead
 ) -> tuple[IntakeEntryState, dict[str, Any]]:
     """The state and payload of the entry one pasted line makes. Pure."""
+    line = clean_line(line)
     payload = _base_payload(line)
     if read.kind == "coords" and read.lat is not None and read.lng is not None:
         payload.update(lat=read.lat, lng=read.lng)
@@ -156,7 +183,7 @@ def _is_lock_failure(error: DBAPIError) -> bool:
     )
 
 
-async def _claim(session: AsyncSession, entry_id: uuid.UUID) -> IntakeEntry:
+async def claim_entry(session: AsyncSession, entry_id: uuid.UUID) -> IntakeEntry:
     """The entry, its row locked so no second call works on it at once: a
     second concurrent call is a 409, not a second search. The lock is the
     claim, so a request that dies leaves nothing stale behind."""
@@ -204,7 +231,10 @@ async def _apply_choice(
         for key, value in (entry.payload or {}).items()
         if key not in ("candidates", "note", "owned_spot_id")
     }
+    searched = clean_name((entry.payload or {}).get("name"))
     payload.update(name=part["name"], lat=lat, lng=lng)
+    if searched:  # display only: what was typed, before the hit's name replaced it
+        payload["searched_as"] = searched
     source_id = chosen["source_id"]
     owned = await owned_spot_id(
         session, source_id=source_id, name=part["name"], lat=lat, lng=lng
@@ -344,12 +374,19 @@ def register_paste_routes(
     async def resolve(
         entry_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
+        async with _lookup_slots():
+            return await _resolve(entry_id, session)
+
+    async def _resolve(entry_id: uuid.UUID, session: AsyncSession) -> dict[str, Any]:
         """One Nominatim search for one waiting or to-check place. The row is
         locked for the whole call (a second call is a 409), and what the entry
-        becomes is decided from the server's own hit count. A search that
+        becomes is decided from the server's own hit count. At most two lookups
+        run at once (the rest wait before locking anything), so a page may fire
+        them in parallel or one after another without a timeout burning an
+        entry's attempts. A search that
         fails is not an error: the entry waits for another go, and after two
         failures it is left to check."""
-        entry = await _claim(session, entry_id)
+        entry = await claim_entry(session, entry_id)
         sitting = await _places_sitting(session, entry)
         if entry.state not in (IntakeEntryState.READING, IntakeEntryState.CHECK):
             raise HTTPException(409, NOT_RESOLVABLE)
@@ -424,7 +461,7 @@ def register_paste_routes(
         """Choose one of the candidates the server stored on a CHECK entry.
         The client sends only the index; `chosen` and the position are
         copied from the stored candidate and checked again."""
-        entry = await _claim(session, entry_id)
+        entry = await claim_entry(session, entry_id)
         sitting = await _places_sitting(session, entry)
         candidates = (entry.payload or {}).get("candidates")
         if (
