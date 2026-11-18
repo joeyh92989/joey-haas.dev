@@ -50,6 +50,9 @@ export const outings = {
   failedTitle: 'Not saved',
   failed: (message, name, isNew) =>
     `${/[.!?]$/.test(message) ? message : `${message}.`} Nothing was written: the outing at ${name} was not logged${isNew ? ` and ${name} was not added to Spots` : ''}. What you entered is still here.`,
+  // No answer from the server: the save may or may not have landed.
+  maybeSaved: (name, isNew) =>
+    `The server did not answer, so the outing at ${name} may or may not have been saved${isNew ? ` and ${name} may or may not be on Spots now` : ''}. The list behind this sheet is being read again: check it before you try again. What you entered is still here.`,
   saved: (name, created) =>
     created
       ? `Logged an outing at ${name} and added it to Spots as a private spot.`

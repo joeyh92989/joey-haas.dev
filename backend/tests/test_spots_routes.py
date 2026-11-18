@@ -773,6 +773,21 @@ async def test_a_new_place_without_a_city_is_denver_and_a_typed_one_has_no_sourc
     assert body["spot"]["source_id"] is None
 
 
+async def test_a_null_city_in_a_new_place_is_denver_and_a_blank_one_is_refused(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        null = await client.post(
+            "/api/spots/outings", json={"place": {**PLACE, "city": None}}
+        )
+        blank = await client.post(
+            "/api/spots/outings", json={"place": {**PLACE, "name": "B", "city": " "}}
+        )
+    assert null.status_code == 201 and null.json()["spot"]["city"] == "denver"
+    assert blank.status_code == 422
+    assert blank.json()["detail"] == "A city is required."
+
+
 async def test_an_owned_place_takes_the_visit_and_no_second_spot_is_made(
     sessionmaker_for_test,
 ):

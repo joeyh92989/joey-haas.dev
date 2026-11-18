@@ -556,9 +556,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                     place_kind.check_source_id(source_id)
             except ValueError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
-            city = (
-                _city(place.city) if "city" in place.model_fields_set else spots.DENVER
-            )
+            city = _city(place.city) if place.city is not None else spots.DENVER
             await lock_place_commits(session)
             owned = await place_kind.owned_spot_id(
                 session, source_id=source_id, name=name, lat=lat, lng=lng

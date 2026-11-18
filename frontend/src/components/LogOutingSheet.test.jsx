@@ -109,7 +109,7 @@ function stubApi(handlers = {}) {
   return calls
 }
 
-function Harness({ onSaved = () => {}, onClose = () => {} }) {
+function Harness({ onSaved = () => {}, onClose = () => {}, onMaybeSaved }) {
   const [open, setOpen] = useState(true)
   return (
     <LogOutingSheet
@@ -119,6 +119,7 @@ function Harness({ onSaved = () => {}, onClose = () => {} }) {
         setOpen(false)
       }}
       onSaved={onSaved}
+      onMaybeSaved={onMaybeSaved}
     />
   )
 }
@@ -340,6 +341,71 @@ describe('LogOutingSheet', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('a server 500 still says nothing was written and does not re-read', async () => {
+    stubApi({
+      'POST /api/spots/outings': () => json({ detail: 'Internal error' }, 500),
+    })
+    const onMaybeSaved = vi.fn()
+    const { user } = await openSheet({ onMaybeSaved })
+    await user.type(screen.getByLabelText('Place'), 'coors')
+    await user.click(await screen.findByRole('button', { name: /Coors Field/ }))
+    await user.click(screen.getByLabelText('Fine'))
+    await user.click(screen.getByRole('button', { name: 'Save outing' }))
+    expect(await screen.findByText(/Nothing was written/)).toHaveTextContent(
+      'Internal error. Nothing was written: the outing at Coors Field was not logged.',
+    )
+    expect(onMaybeSaved).not.toHaveBeenCalled()
+  })
+
+  it('ignores a search answer that arrives after the words changed', async () => {
+    let answer
+    stubApi({
+      'GET /api/intake/search': () =>
+        new Promise((resolve) => {
+          answer = () => resolve(json({ results: [FILLMORE], sources: [] }))
+        }),
+    })
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Place'), 'Fillmore{Enter}')
+    await screen.findByText(/Searching OpenStreetMap/)
+    await user.type(screen.getByLabelText('Place'), 'x')
+    await act(async () => answer())
+    expect(
+      screen.queryByRole('button', { name: /Fillmore Auditorium/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Searching OpenStreetMap/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Denver first, then the cities on saved spots, else the fixed few', async () => {
+    stubApi()
+    const first = await openSheet()
+    await first.user.type(screen.getByLabelText('Place'), 'Fillmore{Enter}')
+    await first.user.click(
+      await screen.findByRole('button', { name: /Fillmore Auditorium/ }),
+    )
+    const names = () =>
+      [...screen.getByLabelText('City').querySelectorAll('option')].map(
+        (o) => o.textContent,
+      )
+    expect(names()).toEqual(['Denver', 'Boulder', 'Another city…'])
+    first.view.unmount()
+    stubApi({ 'GET /api/spots': () => json([SPOTS[0]]) })
+    const second = await openSheet()
+    await second.user.type(screen.getByLabelText('Place'), 'Fillmore{Enter}')
+    await second.user.click(
+      await screen.findByRole('button', { name: /Fillmore Auditorium/ }),
+    )
+    expect(names()).toEqual([
+      'Denver',
+      'Boulder',
+      'Golden',
+      'Fort Collins',
+      'Another city…',
+    ])
+  })
+
   it('a double click on Save posts once', async () => {
     const calls = stubApi({
       'POST /api/spots/outings': () => new Promise(() => {}),
@@ -357,7 +423,9 @@ describe('LogOutingSheet', () => {
 
   it('a hung save gives up at the deadline and unlocks the sheet', async () => {
     stubApi({ 'POST /api/spots/outings': () => new Promise(() => {}) })
-    const { user } = await openSheet()
+    const onMaybeSaved = vi.fn()
+    const onSaved = vi.fn()
+    const { user } = await openSheet({ onMaybeSaved, onSaved })
     await user.type(screen.getByLabelText('Place'), 'coors')
     await user.click(await screen.findByRole('button', { name: /Coors Field/ }))
     await user.click(screen.getByLabelText('Fine'))
@@ -370,10 +438,13 @@ describe('LogOutingSheet', () => {
       await vi.advanceTimersByTimeAsync(READ_DEADLINE_MS + 1)
     })
     expect(
-      screen.getByText(
-        /The server did not answer; try again\. Nothing was written/,
-      ),
-    ).toHaveTextContent('the outing at Coors Field was not logged')
+      screen.getByText(/may or may not have been saved/),
+    ).toHaveTextContent(
+      'The server did not answer, so the outing at Coors Field may or may not have been saved.',
+    )
+    expect(screen.queryByText(/Nothing was written/)).not.toBeInTheDocument()
+    expect(onMaybeSaved).toHaveBeenCalledTimes(1)
+    expect(onSaved).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
   })

@@ -3,22 +3,20 @@ import Sheet from './Sheet.jsx'
 import { call } from './places/placeApi.js'
 import { outings as words } from '../content/outings.js'
 import { placesAdd } from '../content/placesAdd.js'
-import { HOME_CITY, cityLabel, spotCity } from '../lib/cities.js'
+import {
+  FALLBACK_CITIES,
+  HOME_CITY,
+  citiesFrom,
+  cityLabel,
+  spotCity,
+} from '../lib/cities.js'
 import { formatDate } from '../lib/formatDate.js'
+import { addDays } from '../lib/daily.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, WaitTimeout, withDeadline } from '../lib/waits.js'
 
-const CITIES = [HOME_CITY, 'boulder', 'golden']
 const OTHER = 'other'
 const SAVED_ROWS = 4
-
-/** `YYYY-MM-DD` one day after the given one. */
-function dayAfter(iso) {
-  const [y, m, d] = iso.split('-').map(Number)
-  const next = new Date(y, m - 1, d + 1)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`
-}
 
 /** A saved spot's second line: neighbourhood, city when not Denver, state. */
 function spotSub(spot) {
@@ -56,8 +54,16 @@ function matchSaved(spots, text) {
  * @param {() => void} props.onClose
  * @param {(result: {visit: object, spot: object, created: boolean}) => void} props.onSaved
  *   Called once the outing is saved, before the sheet closes.
+ * @param {() => void} [props.onMaybeSaved]
+ *   Called when the save got no answer: the outing may or may not have been
+ *   written, so the page should read its list again. The sheet stays open.
  */
-export default function LogOutingSheet({ open, onClose, onSaved }) {
+export default function LogOutingSheet({
+  open,
+  onClose,
+  onSaved,
+  onMaybeSaved,
+}) {
   const titleId = useId()
   const [saving, setSaving] = useState(false)
   return (
@@ -73,6 +79,7 @@ export default function LogOutingSheet({ open, onClose, onSaved }) {
           titleId={titleId}
           onClose={onClose}
           onSaved={onSaved}
+          onMaybeSaved={onMaybeSaved}
           saving={saving}
           setSaving={setSaving}
         />
@@ -81,9 +88,16 @@ export default function LogOutingSheet({ open, onClose, onSaved }) {
   )
 }
 
-function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
+function OutingBody({
+  titleId,
+  onClose,
+  onSaved,
+  onMaybeSaved,
+  saving,
+  setSaving,
+}) {
   const today = useMemo(() => localToday(), [])
-  const tomorrow = useMemo(() => dayAfter(today), [today])
+  const tomorrow = useMemo(() => addDays(today, 1), [today])
   const [spots, setSpots] = useState(null)
   const [spotsFailed, setSpotsFailed] = useState(false)
   const [q, setQ] = useState('')
@@ -125,6 +139,12 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     () => matchSaved(spots, q).slice(0, SAVED_ROWS),
     [spots, q],
   )
+  // Denver first, then the cities already on saved spots (or the short fixed
+  // list until a spot outside Denver exists).
+  const cityKeys = useMemo(() => {
+    const own = citiesFrom(spots)
+    return [HOME_CITY, ...(own.length ? own : FALLBACK_CITIES)]
+  }, [spots])
   const futureDate = !!date && date > tomorrow
   const dateError = futureDate ? words.futureDate : errors.date
   const placeName = place ? (place.spot?.name ?? place.title) : ''
@@ -169,11 +189,17 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     setSearch({ phase: 'results', q: text, results: rows })
   }
 
+  /** Back to idle; a search still out is stale and its answer is dropped. */
+  function resetSearch() {
+    searchSeq.current += 1
+    setSearch({ phase: 'idle', q: '', results: [] })
+  }
+
   function pickSpot(spot) {
     setPlace({ spot })
     setErrors((e) => ({ ...e, place: null }))
     setFailure(null)
-    setSearch({ phase: 'idle', q: '', results: [] })
+    resetSearch()
   }
 
   function useResult(row) {
@@ -193,10 +219,11 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
     setCityOther('')
     setErrors((e) => ({ ...e, place: null }))
     setFailure(null)
-    setSearch({ phase: 'idle', q: '', results: [] })
+    resetSearch()
   }
 
   function changePlace() {
+    resetSearch()
     setPlace(null)
     setFailure(null)
     // After the search box is back on the page.
@@ -256,7 +283,14 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
       ) {
         setErrors((e) => ({ ...e, title: answer.message }))
       }
-      setFailure(words.failed(answer.message, placeName, !place.spot))
+      if (answer.status === 0) {
+        // No answer: the save may have landed. Say so, and have the page
+        // read its list again so the owner can look before trying again.
+        setFailure(words.maybeSaved(placeName, !place.spot))
+        onMaybeSaved?.()
+      } else {
+        setFailure(words.failed(answer.message, placeName, !place.spot))
+      }
       return
     }
     onSaved?.(answer.data)
@@ -309,7 +343,7 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                     >
-                      {CITIES.map((key) => (
+                      {cityKeys.map((key) => (
                         <option key={key} value={key}>
                           {cityLabel(key)}
                         </option>
@@ -360,8 +394,7 @@ function OutingBody({ titleId, onClose, onSaved, saving, setSaving }) {
                   onChange={(e) => {
                     setQ(e.target.value)
                     // New words: the last search's rows no longer answer them.
-                    searchSeq.current += 1
-                    setSearch({ phase: 'idle', q: '', results: [] })
+                    resetSearch()
                   }}
                   aria-invalid={errors.place ? 'true' : undefined}
                   aria-describedby={errors.place ? 'lo-err-place' : 'lo-q-hint'}

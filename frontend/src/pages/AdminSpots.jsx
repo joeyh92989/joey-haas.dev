@@ -279,6 +279,8 @@ export default function AdminSpots() {
   // again (a new place is a new row; a saved one has a new last visit).
   async function outingSaved({ spot, created }) {
     setError(null)
+    setNewId(null)
+    setMarkedId(null)
     setNotice(outings.saved(spot.name, created))
     const ok = await rereadSpots(spot.id)
     setRefreshFailed(!ok)
@@ -421,6 +423,7 @@ export default function AdminSpots() {
         open={logging}
         onClose={() => setLogging(false)}
         onSaved={outingSaved}
+        onMaybeSaved={() => rereadSpots()}
       />
 
       {error && (

@@ -482,6 +482,7 @@ export default function AdminWeekend() {
         open={logging}
         onClose={() => setLogging(false)}
         onSaved={again}
+        onMaybeSaved={again}
       />
       <div className="wk-foot">
         <Panel
