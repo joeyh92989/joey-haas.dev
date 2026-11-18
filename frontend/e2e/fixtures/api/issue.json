@@ -10,13 +10,31 @@
   "large_url": null,
   "description": ["An invented issue for the test fixture."],
   "state": "owned",
-  "held_as": "In Volume One",
-  "edition": {
-    "slug": "ed-1-1",
-    "label": "Volume One"
-  },
-  "released": 1,
-  "ongoing": false,
+  "owned": true,
+  "read": false,
+  "held_single": true,
+  "also_in": [
+    {
+      "slug": "ed-1-1",
+      "label": "Volume One",
+      "kind": "trade",
+      "line_number": 1,
+      "title_id": "22222222-bbbb-4bbb-8bbb-000000000002",
+      "title": "Paper Moons",
+      "same_title": true
+    },
+    {
+      "slug": "vol-1",
+      "label": "Harbor Lights, Book One",
+      "kind": "trade",
+      "line_number": 1,
+      "title_id": "55555555-bbbb-4bbb-8bbb-000000000005",
+      "title": "Harbor Lights",
+      "same_title": false
+    }
+  ],
+  "released": 8,
+  "ongoing": true,
   "neighbours": [
     {
       "number": 1,
@@ -24,7 +42,5 @@
       "state": "owned"
     }
   ],
-  "source_url": "https://comicvine.gamespot.com/",
-  "owned": true,
-  "read": false
+  "source_url": "https://comicvine.gamespot.com/"
 }

@@ -317,6 +317,7 @@ a:hover {
 .intake-demo-fine a,
 .attribution a,
 .comic-issue-attribution a,
+.comic-issue-held a,
 .volume-collects a,
 p.muted a,
 .now-finished a,
@@ -12600,6 +12601,11 @@ a.state-pill {
 a.state-pill:hover,
 a.state-pill:focus-visible {
   border-color: var(--accent);
+}
+
+.comic-issue-held {
+  font-size: var(--fs-14);
+  margin: var(--space-3) 0 0;
 }
 
 .comic-issue-facts {

@@ -89,6 +89,13 @@ for (const [name, kind] of Object.entries(SHELF_KINDS)) {
       const heading = page.locator('h1:visible').first()
       if (isFixture) {
         await expect(heading).toHaveText(h1)
+        if (name === 'issue') {
+          // The fixture holds the issue as a single and in two books, one of
+          // another title (#332).
+          await expect(page.locator('.comic-issue-held')).toContainText(
+            'I have this as a single issue, and it is also in: Volume One, Harbor Lights, Book One (Harbor Lights)',
+          )
+        }
       } else {
         await expect(heading).toHaveText(/\S/)
       }

@@ -7,6 +7,9 @@ import { spine } from '../content/spine.js'
 import { LOAD_ERROR, SAVED_NOT_REFRESHED } from '../content/status.js'
 import { axeViolations } from '../lib/axe.test-util.js'
 import * as edits from '../lib/comicEdits.js'
+import both from '../../e2e/fixtures/api/issue.json'
+import single from '../../e2e/fixtures/api/issue-single.json'
+import volumes from '../../e2e/fixtures/api/issue-volumes.json'
 import ComicIssue from './ComicIssue.jsx'
 
 vi.mock('../lib/comicEdits.js', () => ({
@@ -30,8 +33,8 @@ const PAGE = {
   large_url: 'https://example.test/58.jpg',
   description: ['First paragraph.'],
   state: 'owned',
-  held_as: 'Single issue',
-  edition: null,
+  held_single: true,
+  also_in: [],
   released: 72,
   ongoing: true,
   neighbours: [
@@ -116,7 +119,7 @@ describe('ComicIssue, public', () => {
   })
 
   it('dims the Comic Vine cover of an unowned issue and says Not owned', async () => {
-    stubApi({ page: { state: 'missing', held_as: 'Not owned' } })
+    stubApi({ page: { state: 'missing' } })
     renderIssue()
     const img = await screen.findByAltText('Cover of Saga #58')
     expect(img.closest('.cover')).toHaveAttribute('data-unowned')
@@ -129,7 +132,6 @@ describe('ComicIssue, public', () => {
     stubApi({
       page: {
         state: 'missing',
-        held_as: 'Not owned',
         cover_url: null,
         large_url: null,
       },
@@ -183,7 +185,7 @@ describe('ComicIssue, public', () => {
   })
 
   it('does not dim an upcoming issue or call it not owned', async () => {
-    stubApi({ page: { state: 'not-out', held_as: 'Not out yet' } })
+    stubApi({ page: { state: 'not-out' } })
     renderIssue()
     await screen.findByRole('heading', { level: 1 })
     expect(screen.queryByText(COPY.notOwned)).toBeNull()
@@ -199,25 +201,78 @@ describe('ComicIssue, public', () => {
     ).toBeInTheDocument()
   })
 
-  it('lists the Held as and Read facts', async () => {
-    stubApi({ page: { held_as: 'In Volume Nine (trade paperback)' } })
+  it('lists the Read fact and no Held as row', async () => {
+    stubApi()
     renderIssue()
     await screen.findByRole('heading', { level: 1 })
     expect(screen.getByText('#58 of 72+')).toBeInTheDocument()
-    expect(screen.getByText('In Volume Nine (trade paperback)')).toBeVisible()
-    expect(screen.getByText('Held as')).toBeInTheDocument()
     expect(screen.getByText('Not yet')).toBeInTheDocument()
+    expect(screen.queryByText('Held as')).toBeNull()
   })
 
-  it('links the edition pill to its page', async () => {
-    stubApi({
-      page: {
-        edition: { slug: 'ed-55-60', label: 'Volume Nine', kind: 'trade' },
-      },
+  describe('the also-in line', () => {
+    const held = () => document.querySelector('.comic-issue-held')
+
+    it('says a single only', async () => {
+      stubApi({ page: single })
+      renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(held()).toHaveTextContent(/^I have this as a single issue\.$/)
+      expect(within(held()).queryByRole('link')).toBeNull()
     })
-    renderIssue()
-    const link = await screen.findByRole('link', { name: 'In Volume Nine →' })
-    expect(link).toHaveAttribute('href', `/shelf/${ID}/ed-55-60/`)
+
+    it('lists the books when only volumes hold it, the other title named', async () => {
+      stubApi({ page: volumes })
+      renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(held()).toHaveTextContent(
+        'Also in: Lantern Tales, Book Two, Harbor Lights, Book One (Harbor Lights)',
+      )
+      expect(held()).not.toHaveTextContent('single issue')
+      const links = within(held()).getAllByRole('link')
+      expect(links.map((l) => l.textContent)).toEqual([
+        'Lantern Tales, Book Two',
+        'Harbor Lights, Book One (Harbor Lights)',
+      ])
+      expect(links.map((l) => l.getAttribute('href'))).toEqual([
+        `/shelf/${volumes.also_in[0].title_id}/vol-2/`,
+        `/shelf/${volumes.also_in[1].title_id}/vol-1/`,
+      ])
+    })
+
+    it('says both a single and the books', async () => {
+      stubApi({ page: both })
+      renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(held()).toHaveTextContent(
+        'I have this as a single issue, and it is also in: Volume One, Harbor Lights, Book One (Harbor Lights)',
+      )
+      expect(within(held()).getAllByRole('link')).toHaveLength(2)
+    })
+
+    it('says nothing when it is not held', async () => {
+      stubApi({
+        page: { state: 'missing', held_single: false, also_in: [] },
+      })
+      renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(held()).toBeNull()
+    })
+
+    it('has no leftover counted-once line or edition pill', async () => {
+      stubApi({ page: both })
+      renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(document.body).not.toHaveTextContent(/counted once/i)
+      expect(screen.queryByRole('link', { name: /→/ })).toBeNull()
+    })
+
+    it('has no accessibility violations with the links in', async () => {
+      stubApi({ page: both })
+      const { container } = renderIssue()
+      await screen.findByRole('heading', { level: 1 })
+      expect(await axeViolations(container)).toEqual([])
+    })
   })
 
   it('shows the first paragraph and reveals the rest on More', async () => {
@@ -337,7 +392,7 @@ describe('ComicIssue, public', () => {
 describe('ComicIssue, signed in', () => {
   it('shows the owner box and I own this marks the book owned', async () => {
     stubApi({
-      page: { state: 'missing', held_as: 'Not owned' },
+      page: { state: 'missing' },
       stored: { ...STORED, issues_owned: '1–10' },
     })
     renderIssue({ signedIn: true })
@@ -384,7 +439,18 @@ describe('ComicIssue, signed in', () => {
     stubApi({
       page: {
         state: 'owned',
-        edition: { slug: 'ed-55-60', label: 'Volume Nine', kind: 'trade' },
+        held_single: false,
+        also_in: [
+          {
+            slug: 'ed-55-60',
+            label: 'Volume Nine',
+            kind: 'trade',
+            line_number: null,
+            title_id: ID,
+            title: 'Saga',
+            same_title: true,
+          },
+        ],
       },
       stored: { ...STORED, issues_owned: '1–10' },
     })
@@ -473,7 +539,7 @@ describe('ComicIssue, Undo', () => {
   it('Undo of owning a skipped issue puts the skip back, and focus returns to Owned', async () => {
     vi.mocked(edits.setMark).mockResolvedValue({ previous: null })
     stubApi({
-      page: { state: 'missing', held_as: 'Not owned' },
+      page: { state: 'missing' },
       stored: { ...STORED, issues_owned: '1–10', issues_skipped: '58' },
     })
     renderIssue({ signedIn: true })
