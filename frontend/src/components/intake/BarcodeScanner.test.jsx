@@ -3,12 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const decodeFromConstraints = vi.fn()
+const reset = vi.fn()
 vi.mock('@zxing/library', () => ({
   BarcodeFormat: { EAN_13: 'EAN_13' },
   DecodeHintType: { POSSIBLE_FORMATS: 'POSSIBLE_FORMATS' },
   BrowserMultiFormatReader: class {
     decodeFromConstraints = decodeFromConstraints
-    reset = vi.fn()
+    reset = reset
   },
 }))
 
@@ -49,5 +50,21 @@ describe('BarcodeScanner', () => {
     await waitFor(() => expect(onScan).toHaveBeenCalledWith('9781607066019'))
     expect(onScan).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('stops a camera that starts after the sheet closed', async () => {
+    reset.mockClear()
+    let started
+    decodeFromConstraints.mockImplementationOnce(
+      () => new Promise((resolve) => (started = resolve)),
+    )
+    const { unmount } = render(
+      <BarcodeScanner open onClose={() => {}} onScan={() => {}} />,
+    )
+    await waitFor(() => expect(decodeFromConstraints).toHaveBeenCalled())
+    unmount()
+    const before = reset.mock.calls.length
+    started() // getUserMedia answers late
+    await waitFor(() => expect(reset.mock.calls.length).toBeGreaterThan(before))
   })
 })

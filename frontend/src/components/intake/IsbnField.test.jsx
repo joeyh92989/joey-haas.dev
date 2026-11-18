@@ -127,4 +127,52 @@ describe('IsbnField', () => {
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled())
     expect(screen.getByLabelText('ISBN, book 1')).toHaveValue(SAGA)
   })
+
+  it('keeps what was typed while the lookup was pending', async () => {
+    let finish
+    globalThis.fetch = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({
+                found: true,
+                isbn: SAGA,
+                title: 'Saga',
+                subtitle: 'Volume One',
+                volume_number: 1,
+                on_shelf: [],
+              }),
+            })
+        }),
+    )
+    render(<LabelHarness />)
+    type(SAGA)
+    fireEvent.click(screen.getByRole('button', { name: /Look up the ISBN/ }))
+    fireEvent.change(screen.getByLabelText('Label'), {
+      target: { value: 'My label' },
+    })
+    finish()
+    await waitFor(() =>
+      expect(screen.getByTestId('isbn')).toHaveTextContent(SAGA),
+    )
+    expect(screen.getByLabelText('Label')).toHaveValue('My label')
+  })
 })
+
+function LabelHarness() {
+  const [row, setRow] = useState(BLANK)
+  return (
+    <MemoryRouter>
+      <input
+        aria-label="Label"
+        value={row.label}
+        onChange={(event) => setRow({ ...row, label: event.target.value })}
+      />
+      <IsbnField row={row} name="book 1" onChange={setRow} />
+      <output data-testid="isbn">{row.isbn}</output>
+    </MemoryRouter>
+  )
+}

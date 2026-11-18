@@ -63,7 +63,7 @@ export function fillRow(row, result) {
   if (!result?.found) return row
   return {
     ...row,
-    isbn: result.isbn,
+    isbn: toIsbn13(row.isbn ?? '') ?? row.isbn,
     label: row.label.trim() ? row.label : labelFor(result),
   }
 }

@@ -103,6 +103,10 @@ def test_normalize_rejects(raw):
         ("", None),
         ("The Complete Collection", None),
         ("Volumetric", None),
+        ("Book Nine Lives", None),
+        ("A Book One Hundred Years Hence", None),
+        ("Saga: Book Three", 3),
+        ("Vol. 2.", 2),
     ],
 )
 def test_parse_volume_number(subtitle, number):

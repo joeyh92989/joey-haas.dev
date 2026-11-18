@@ -116,10 +116,13 @@ _NUMBER_WORDS = {
         start=1,
     )
 }
+# The keyword must open the subtitle or follow a separator, and the number
+# must close it ("Volume One", "Saga: Book Three"), so "Book Nine Lives" and
+# "A Book One Hundred Years Hence" read as nothing.
 _VOLUME = re.compile(
-    r"\b(?:volume|vol|book|tome)\b\.?\s*(\d{1,3}|"
+    r"(?:^|[:,(\-\u2013\u2014]\s*)(?:volume|vol|book|tome)\b\.?\s*(\d{1,3}|"
     + "|".join(sorted(_NUMBER_WORDS, key=len, reverse=True))
-    + r")\b",
+    + r")\s*(?:$|[:,;.)\-\u2013\u2014])",
     re.IGNORECASE,
 )
 

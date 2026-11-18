@@ -14,6 +14,7 @@ function ScannerBody({ onClose, onScan }) {
 
   useEffect(() => {
     let live = true
+    let cancelled = false
     let reader = null
     ;(async () => {
       try {
@@ -40,6 +41,12 @@ function ScannerBody({ onClose, onScan }) {
             latest.current.onScan(isbn)
           },
         )
+        // The sheet closed while the camera was starting: the stream attached
+        // after the cleanup's reset, so stop it here or the camera stays on.
+        if (cancelled) {
+          reader.reset()
+          return
+        }
         if (live) setState('scanning')
       } catch (error) {
         if (!live) return
@@ -54,6 +61,7 @@ function ScannerBody({ onClose, onScan }) {
     })()
     return () => {
       live = false
+      cancelled = true
       try {
         reader?.reset()
       } catch {

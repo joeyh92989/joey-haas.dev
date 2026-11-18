@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { isbnIntake as words } from '../../content/isbnIntake.js'
 import { apiFetch } from '../../lib/api.js'
@@ -30,6 +30,12 @@ export default function IsbnField({ row, name, onChange }) {
   const [scanning, setScanning] = useState(false)
   const [note, setNote] = useState(null)
   const isbn = row.isbn ?? ''
+  // A lookup answers later than it was asked: it merges into the row as it
+  // is then, never the row it started from, so nothing typed meanwhile is lost.
+  const latest = useRef({ row, onChange })
+  useEffect(() => {
+    latest.current = { row, onChange }
+  })
 
   async function lookUp(code = isbn) {
     const valid = toIsbn13(code)
@@ -48,7 +54,9 @@ export default function IsbnField({ row, name, onChange }) {
         return
       }
       const result = await response.json()
-      onChange(fillRow({ ...row, isbn: valid }, result))
+      const { row: now, onChange: change } = latest.current
+      // The ISBN was changed meanwhile: this answer is for another book.
+      if (toIsbn13(now.isbn ?? '') === valid) change(fillRow(now, result))
       setNote({
         found: result.found ? foundLine(result) : null,
         cover: result.found ? result.cover_url : null,
@@ -126,6 +134,7 @@ export default function IsbnField({ row, name, onChange }) {
                   className="comic-edition-isbn-cover"
                   src={note.cover}
                   alt=""
+                  referrerPolicy="no-referrer"
                   loading="lazy"
                 />
               )}

@@ -59,7 +59,7 @@ describe('fillRow', () => {
 
   it('never overwrites typed text', () => {
     const typed = { ...blank, kind: 'Hardcover', label: 'Deluxe', from: '1' }
-    expect(fillRow(typed, FOUND)).toEqual({ ...typed, isbn: SAGA })
+    expect(fillRow(typed, FOUND)).toEqual(typed)
   })
 
   it('leaves the row alone on a miss', () => {

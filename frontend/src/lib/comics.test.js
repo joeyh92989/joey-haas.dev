@@ -282,10 +282,16 @@ describe('book rows', () => {
 
   it('carries an ISBN, and keeps a row that has only that', () => {
     const typed = [
-      { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6', isbn: ' 978-1 ' },
+      {
+        kind: 'Trade',
+        label: 'Vol. 1',
+        from: '1',
+        to: '6',
+        isbn: ' 978-1-60706-601-9 ',
+      },
     ]
     expect(parseBookRows(typed).books).toEqual([
-      { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6, isbn: '978-1' },
+      { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6, isbn: '9781607066019' },
     ])
     expect(bookRows([{ ...books[0], isbn: '9781607066019' }])[0].isbn).toBe(
       '9781607066019',
@@ -294,6 +300,22 @@ describe('book rows', () => {
       parseBookRows([{ kind: '', label: '', from: '', to: '', isbn: '9' }])
         .error,
     ).toMatch('Book 1')
+  })
+
+  it('refuses a half-typed ISBN by row, and reads back what it stores', () => {
+    const half = [
+      { kind: 'Trade', label: 'Vol. 1', from: '1', to: '6', isbn: '97816' },
+    ]
+    const bad = parseBookRows(half)
+    expect(bad.books).toBeNull()
+    expect(bad.error).toMatch(/^Book 1: that ISBN is not valid/)
+    // The editor's rows (typed form) parse to the stored ISBN-13, so the
+    // Details editor does not snap back after a save.
+    const typed = [{ ...half[0], isbn: '1-60706-601-7' }]
+    const stored = [
+      { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6, isbn: '9781607066019' },
+    ]
+    expect(parseBookRows(typed).books).toEqual(stored)
   })
 
   it('names the row it cannot read', () => {

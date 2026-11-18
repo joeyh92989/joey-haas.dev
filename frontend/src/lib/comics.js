@@ -1,4 +1,5 @@
 import { DAY as DAY_MONTH, MONTH_YEAR } from './formatDate.js'
+import { toIsbn13 } from './isbn.js'
 import { titleKind } from './titleKind.js'
 import { spine } from '../content/spine.js'
 /**
@@ -286,8 +287,9 @@ export function parseBookRows(rows) {
     const label = row.label.trim()
     const from = String(row.from).trim()
     const to = String(row.to).trim() || from
-    const isbn = String(row.isbn ?? '').trim()
-    if (!kind && !label && !from && !String(row.to).trim() && !isbn) continue
+    const typedIsbn = String(row.isbn ?? '').trim()
+    if (!kind && !label && !from && !String(row.to).trim() && !typedIsbn)
+      continue
     if (!kind || !label || !ISSUE_NUMBER.test(from) || !ISSUE_NUMBER.test(to)) {
       return {
         books: null,
@@ -295,8 +297,17 @@ export function parseBookRows(rows) {
       }
     }
     const book = { kind, label, from: Number(from), to: Number(to) }
-    // Sent as typed: the API checks it and stores the ISBN-13.
-    if (isbn) book.isbn = isbn
+    // Sent as the ISBN-13, so the editor's rows match what the server stores.
+    if (typedIsbn) {
+      const isbn = toIsbn13(typedIsbn)
+      if (!isbn) {
+        return {
+          books: null,
+          error: `Book ${index + 1}: that ISBN is not valid. Check the digits, or clear it.`,
+        }
+      }
+      book.isbn = isbn
+    }
     books.push(book)
   }
   return { books: books.length ? books : null, error: null }
