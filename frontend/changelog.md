@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-18
 
+- The figures on the [comics shelf](/shelf/comics) now count books owned, volumes I’m missing and issues read, alongside issues. Volumes missing only counts gaps below the highest volume I own in a line, so it never guesses how long a line is. The old Read tile is now Share read.
 - A comic issue page now says how I have it: as a single issue, in one or more books, or both. Each book is a link to its page, and a book from another series says which series.
 - Each card on the [comics shelf](/shelf/comics) now says what it is: a run of issues, a line of books, a single book, or books and issues. A line of books says which volumes I own, like Vol. 1, 2 and 4, and there are new Books and Single issues filters.
 - A comic on the [comics shelf](/shelf/comics) that is a line of books now shows its books in order, with an empty place for each one I’m missing. A single book gets a page that leads with the book, and a comic I have both books and issues of shows Books, then Issues.

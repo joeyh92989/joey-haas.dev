@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  bookFigures,
   chipCounts,
   comicPayload,
   comicErrorField,
@@ -347,5 +348,59 @@ describe('comicPayload', () => {
       shelf_format: 'trades',
       following: true,
     })
+  })
+})
+
+describe('bookFigures', () => {
+  const row = (fields) => ({
+    wanted: false,
+    ongoing: false,
+    owned: 0,
+    released: null,
+    read: 0,
+    issues_read: 0,
+    kind: 'run',
+    volumes_owned: 0,
+    volume_numbers: [],
+    ...fields,
+  })
+
+  it('counts owned volumes, a one-issue book once, and gaps up to the highest', () => {
+    const rows = [
+      // Vol. 1, 2 and 4 of a line: 3 books, Vol. 3 missing.
+      row({ kind: 'book_line', volumes_owned: 3, volume_numbers: [1, 2, 4] }),
+      // Vol. 1 and 5: 2 books, 3 missing.
+      row({ kind: 'book_line', volumes_owned: 2, volume_numbers: [1, 5] }),
+      // A one-issue trade held as a single: 1 book.
+      row({ owned: 1, released: 1, read: 9, issues_read: 1 }),
+      // A volume and the same one-issue run: the volume only.
+      row({ kind: 'both', owned: 1, released: 1, volumes_owned: 1 }),
+      // A first issue of a running series is not a book.
+      row({ owned: 1, released: 1, ongoing: true }),
+      // A want is not a book.
+      row({ wanted: true, released: 1, owned: 1 }),
+    ]
+    expect(bookFigures(rows)).toEqual({
+      books: 7,
+      volumesMissing: 4,
+      issuesRead: 1,
+      hasLine: true,
+    })
+  })
+
+  it('is all zero over nothing', () => {
+    expect(bookFigures([])).toEqual({
+      books: 0,
+      volumesMissing: 0,
+      issuesRead: 0,
+      hasLine: false,
+    })
+  })
+
+  it('adds no missing for a line with no numbered book', () => {
+    expect(
+      bookFigures([row({ kind: 'book_line', volumes_owned: 2 })])
+        .volumesMissing,
+    ).toBe(0)
   })
 })

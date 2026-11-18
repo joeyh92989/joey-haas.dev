@@ -208,7 +208,10 @@
         "month": "2026-11-01",
         "count": 0
       }
-    ]
+    ],
+    "books_owned": 7,
+    "volumes_missing": 1,
+    "issues_read": 4
   },
   "this_week": {
     "weeks": [

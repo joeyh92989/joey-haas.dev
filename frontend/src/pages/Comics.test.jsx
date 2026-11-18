@@ -109,6 +109,9 @@ const COMICS = {
       { publisher: 'DC', count: 1 },
     ],
     added_by_month: months,
+    books_owned: 9,
+    volumes_missing: 4,
+    issues_read: 7,
   },
   this_week: {
     weeks: [
@@ -181,16 +184,86 @@ describe('Comics', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows four figures, with the read share as a percentage', () => {
+  it('shows the figures, with the read share as a percentage', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
     const tiles = document.querySelector('.stat-tiles')
     expect(
       [...tiles.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ).toEqual(['Series', 'Issues owned', 'Missing', 'Read'])
-    expect(tiles).toHaveTextContent('116')
-    expect(tiles).toHaveTextContent('24')
-    expect(tiles).toHaveTextContent('47%')
+    ).toEqual([
+      'Series',
+      'Books owned',
+      'Issues owned',
+      'Missing',
+      'Volumes missing',
+      'Issues read',
+      'Share read',
+    ])
+    const value = (label) =>
+      screen.getByText(label, { selector: 'dt' }).parentElement
+    expect(value('Issues owned')).toHaveTextContent('116')
+    expect(value('Missing')).toHaveTextContent('24')
+    expect(value('Share read')).toHaveTextContent('47%')
+    expect(value('Books owned')).toHaveTextContent('9')
+    expect(value('Volumes missing')).toHaveTextContent('4')
+    expect(value('Issues read')).toHaveTextContent('7')
+  })
+
+  it('says what each new figure counts in the tile, not only on hover', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    const tiles = document.querySelector('.stat-tiles')
+    expect(tiles).toHaveTextContent(copy.figures.booksOwnedNote)
+    expect(tiles).toHaveTextContent(copy.figures.volumesMissingNote)
+    expect(tiles).toHaveTextContent(copy.figures.issuesReadNote)
+    expect(tiles.querySelector('[title]')).toBeNull()
+  })
+
+  it('leaves the new tiles out of a body that does not carry them', () => {
+    const { books_owned, volumes_missing, issues_read, ...older } = COMICS.stats
+    expect([books_owned, volumes_missing, issues_read]).toEqual([9, 4, 7])
+    mockComics({
+      data: { ...COMICS, stats: older },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(
+      [...document.querySelectorAll('.stat-tiles dt')].map(
+        (dt) => dt.textContent,
+      ),
+    ).toEqual(['Series', 'Issues owned', 'Missing', 'Share read'])
+  })
+
+  it('hides Volumes missing at 0 when no book line is on the shelf', () => {
+    mockComics({
+      data: { ...COMICS, stats: { ...COMICS.stats, volumes_missing: 0 } },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(screen.queryByText('Volumes missing')).toBeNull()
+    expect(screen.getByText('Books owned')).toBeInTheDocument()
+  })
+
+  it('shows Volumes missing as 0 when a book line is on the shelf', () => {
+    mockComics({
+      data: {
+        ...COMICS,
+        series: [
+          ...COMICS.series,
+          series('Lantern Tales', { kind: 'book_line', volumes_owned: 2 }),
+        ],
+        stats: { ...COMICS.stats, volumes_missing: 0 },
+      },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const tile = screen.getByText('Volumes missing', {
+      selector: 'dt',
+    }).parentElement
+    expect(tile).toHaveTextContent('0')
   })
 
   it('shows a dash when nothing is on the shelf to read', () => {
@@ -200,8 +273,23 @@ describe('Comics', () => {
       failed: false,
     })
     renderPage()
-    const read = screen.getByText('Read', { selector: 'dt' }).parentElement
+    const read = screen.getByText('Share read', {
+      selector: 'dt',
+    }).parentElement
     expect(read).toHaveTextContent('—')
+  })
+
+  it('shows the backend fixture’s own figures', () => {
+    mockComics({ data: KINDS, live: true, failed: false })
+    renderPage()
+    const value = (label) =>
+      screen.getByText(label, { selector: 'dt' }).parentElement
+    expect(value('Books owned')).toHaveTextContent(
+      String(KINDS.stats.books_owned),
+    )
+    expect(value('Issues read')).toHaveTextContent(
+      String(KINDS.stats.issues_read),
+    )
   })
 
   it('leaves Out this week to What’s next', () => {

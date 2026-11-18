@@ -26,6 +26,7 @@ from comics import (
     RangeError,
     apply_comic_fields,
     held_ranges,
+    issues_read_many,
     load_holds_many,
     row_run,
     sync_marks,
@@ -972,9 +973,9 @@ def create_items_router(
         """
         if not items:
             return
-        holds = await load_holds_many(
-            session, [i.id for i in items if i.type == ItemType.COMIC]
-        )
+        comic_ids = [i.id for i in items if i.type == ItemType.COMIC]
+        holds = await load_holds_many(session, comic_ids)
+        read_marks = await issues_read_many(session, comic_ids) if comic_ids else {}
         for item in items:
             item.comic_run = (
                 {
@@ -986,6 +987,7 @@ def create_items_router(
                         item.source_metadata,
                     ),
                     **title_shape(holds[item.id], item.issues_owned),
+                    "issues_read": read_marks[item.id],
                 }
                 if item.type == ItemType.COMIC
                 else None

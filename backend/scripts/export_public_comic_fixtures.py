@@ -17,7 +17,9 @@ single_book, both) and `public-comic-wall-both.json` (the issue wall of the
 the shelf's `GET /api/public/comics` body with one title of each kind: its rows
 are built by the real `public_comics._row` (`kind`, `volumes_owned` and
 `volume_numbers` included) over unattached `Item` rows, and the whole body is
-validated through `PublicComicsOut`. All data is invented.
+validated through `PublicComicsOut`; its `stats` (`books_owned`,
+`volumes_missing`, `issues_read` included) come from the real `comic_stats`
+over the same books. All data is invented.
 """
 
 import json
@@ -212,10 +214,16 @@ def shelf():
     series = {kind: series_of(item) for kind, item in items.items()}
     marks = {item.id: 2 if LOOSE[k] else 0 for k, item in items.items()}
     by_id = {s.id: kind for kind, s in series.items()}
+    books = {}
     rows = []
     for s in sort_series(series.values(), "next", today):
         kind = by_id[s.id]
         owned_books = [v for v in BOOKS[kind] if v.owned]
+        numbers = owned_line_numbers(v.line_number for v in owned_books)
+        if owned_books:
+            # What `owned_volume_shelf` returns, so the stats come from the
+            # real `comic_stats` over the same books as the rows.
+            books[s.id] = (len(owned_books), numbers)
         rows.append(
             _row(
                 items[kind],
@@ -223,13 +231,13 @@ def shelf():
                 today,
                 marks[items[kind].id],
                 len(owned_books),
-                owned_line_numbers(v.line_number for v in owned_books),
+                numbers,
             )
         )
         assert rows[-1].kind == kind, (rows[-1].kind, kind)
     return PublicComicsOut(
         series=rows,
-        stats=comic_stats(list(items.values()), today, marks),
+        stats=comic_stats(list(items.values()), today, marks, books),
         this_week=comic_weeks(items.values(), today),
     )
 

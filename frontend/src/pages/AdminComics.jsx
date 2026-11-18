@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CardActionsShell from '../components/CardActionsShell.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
+import ComicFigures from '../components/ComicFigures.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import PosterCard from '../components/PosterCard.jsx'
@@ -13,7 +14,6 @@ import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import { RunKey } from '../components/RunLanes.jsx'
 import SortControl from '../components/SortControl.jsx'
-import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { publishAllDetail } from '../content/shelfPublish.js'
 import { ACTION_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
@@ -26,6 +26,7 @@ import {
 import { apiFetch } from '../lib/api.js'
 import {
   COMIC_SORTS,
+  bookFigures,
   chipCounts,
   filterComics,
   publishersByCount,
@@ -96,6 +97,8 @@ function asRow(item) {
     run_state: run.state ?? null,
     segments: run.segments ?? [],
     read: run.read ?? 0,
+    // Distinct read marks, the public figure's own definition (#333).
+    issues_read: run.issues_read ?? 0,
     read_to: item.read_to,
     read_next: run.read_next ?? null,
     next_issue: null,
@@ -123,6 +126,7 @@ function figures(rows) {
     owned,
     missing: held.reduce((sum, row) => sum + row.missing, 0),
     readPercent: owned > 0 ? Math.round((read / owned) * 100) : null,
+    ...bookFigures(rows),
   }
 }
 
@@ -572,20 +576,19 @@ export default function AdminComics() {
         </p>
       )}
 
-      <StatTiles label="Comic totals">
-        <StatTile
-          label={copy.figures.series}
-          value={fig.series}
-          detail={copy.figures.runs(fig.complete, fig.gaps)}
-        />
-        <StatTile label={copy.figures.issues} value={fig.owned} />
-        <StatTile label={copy.figures.missing} value={fig.missing} />
-        <StatTile
-          label={copy.figures.read}
-          value={fig.readPercent == null ? '—' : `${fig.readPercent}%`}
-          detail={fig.readPercent == null ? null : copy.figures.readOf}
-        />
-      </StatTiles>
+      <ComicFigures
+        label="Comic totals"
+        series={fig.series}
+        complete={fig.complete}
+        gaps={fig.gaps}
+        issues={fig.owned}
+        missing={fig.missing}
+        readPercent={fig.readPercent}
+        books={fig.books}
+        volumesMissing={fig.volumesMissing}
+        issuesRead={fig.issuesRead}
+        hasLine={fig.hasLine}
+      />
 
       <div className="shelf-top">
         <label className="shelf-search">

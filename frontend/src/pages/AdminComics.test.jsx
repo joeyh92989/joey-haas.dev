@@ -72,6 +72,7 @@ const ITEMS = [
         { kind: 'missing', length: 18 },
       ],
       read: 40,
+      issues_read: 12,
       read_next: 41,
     }),
     read_to: 40,
@@ -151,13 +152,24 @@ describe('AdminComics', () => {
     expect(screen.getByText('1 of 2 public')).toBeInTheDocument()
   })
 
-  it('shows four figures and the series count', async () => {
+  it('shows the figures and the series count', async () => {
     stubApi()
     await renderPage()
     const tiles = document.querySelector('.stat-tiles')
     expect(
       [...tiles.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ).toEqual(['Series', 'Issues owned', 'Missing', 'Read'])
+    ).toEqual([
+      'Series',
+      'Books owned',
+      'Issues owned',
+      'Missing',
+      'Issues read',
+      'Share read',
+    ])
+    // Issues read is the read marks (12), not the read-to count (40).
+    expect(
+      screen.getByText('Issues read', { selector: 'dt' }).parentElement,
+    ).toHaveTextContent('12')
     expect(tiles).toHaveTextContent('64')
     expect(tiles).toHaveTextContent('18')
     expect(screen.getByText('2 titles')).toBeInTheDocument()

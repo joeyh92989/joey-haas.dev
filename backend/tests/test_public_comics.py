@@ -59,7 +59,8 @@ ROW_FIELDS = {
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",
-    "publishers", "added_by_month",
+    "publishers", "added_by_month", "books_owned", "volumes_missing",
+    "issues_read",
 }  # fmt: skip
 ISSUE_FIELDS = {
     "item_id", "title", "publisher", "number", "store_date", "cover_url",

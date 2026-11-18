@@ -635,6 +635,24 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   does not read comics.json). Never published: non-owned volumes, intake ids,
   `edited`, source, `kind_raw`, position, collects, skips, following.
   `scripts/audit_comics.py` is the read-only pre-migration report.
+  **Public comics stats, book-first (#333, PR 10):** `PublicComicStats` gains
+  `books_owned`, `volumes_missing` and `issues_read` (additive; every older
+  field and number is unchanged), all over PUBLIC titles only, from the one
+  grouped `owned_volume_shelf` read and the existing read-marks read (no extra
+  query, no N+1). `books_owned` = owned volumes, plus one per title with NO
+  owned volume that is a one-issue Comic Vine volume (`released == 1`, not
+  ongoing) with its issue held (Comic Vine models some trades as one-issue
+  volumes); a title that has an owned volume never adds it, so nothing counts
+  twice; an unowned volume counts nothing. `volumes_missing` = for each
+  `book_line` title (2+ owned volumes, no loose issues) the line numbers from
+  1 to the HIGHEST owned number that no owned volume has; never past the
+  highest owned, no line size invented, unnumbered books add 0.
+  `book_lines_started` is not published. `issues_read` = the count of
+  `comic_issues` rows with `read` (a mark per (title, number), so an issue read
+  as a single and through a volume is one; `sync_marks` makes read imply
+  owned); it is not `read_percent`, which stays the read-to marker over owned
+  issues. Definitions live in `book_figures` and `comic_stats`; the hand-count
+  tests are `tests/test_public_comics_stats.py`.
   **Admin volume editor (#334, PR 4a, migration `0022`):** `comic_volumes.edited`
   (default false) is set by every hand edit (create, replace, move, link). The
   shim (`sync_volumes_from_editions`) never writes, repositions or deletes an
