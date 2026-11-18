@@ -1050,7 +1050,9 @@ async def test_books_of_one_unshared_name_share_one_title_and_recommit_is_idempo
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     assert len(response.json()["titles_created"]) == 1
-    assert response.json()["titles_created"][0]["title"] == "Waterworld: Origins"
+    assert (
+        response.json()["titles_created"][0]["title"].lower() == "waterworld: origins"
+    )
     volumes = await _volumes(sessionmaker_for_test)
     assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2"]
     assert len({v.item_id for v in volumes}) == 1

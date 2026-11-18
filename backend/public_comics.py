@@ -11,18 +11,21 @@ from __future__ import annotations
 
 import uuid
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from comics import (
     ComicSeries,
     Issue,
+    expand,
     format_ranges,
     next_issue,
+    parse_ranges,
     pull_weeks,
     read_next,
     read_state,
@@ -30,9 +33,18 @@ from comics import (
     shelf_figures,
     shown_status,
     sort_series,
+    title_kind,
     validate_editions,
 )
-from models import ComicIssue, ComicShelfFormat, Item, ItemStatus, ItemType, OwnedFormat
+from models import (
+    ComicIssue,
+    ComicShelfFormat,
+    ComicVolume,
+    Item,
+    ItemStatus,
+    ItemType,
+    OwnedFormat,
+)
 
 ADDED_MONTHS = 12
 
@@ -101,6 +113,11 @@ class PublicComicRow(BaseModel):
     next_issue: PublicNextIssue | None
     tags: list[PublicTag]
     created_at: datetime
+    # What the title is, derived from its owned books and issues
+    # (`comics.title_kind`), and how many books it holds: the shelf (#331)
+    # draws "Vol. 1, 2 and 4 of 6" from them.
+    kind: str
+    volumes_owned: int
 
 
 class PublicRunCounts(BaseModel):
@@ -181,6 +198,26 @@ class PublicEdition(BaseModel):
     to_issue: int
 
 
+class PublicTitleVolume(BaseModel):
+    """One OWNED book on a title's page: enough to draw its tile and link to
+    its page. Never an intake id, source, raw kind, position or contents."""
+
+    slug: str
+    label: str
+    kind: str
+    line_number: int | None
+    cover_url: str | None
+    read: bool
+
+
+class PublicVolumeSlot(BaseModel):
+    """One place in a book line, 1..the highest owned number: the book on it,
+    or None where nothing owned has that number."""
+
+    number: int
+    slug: str | None
+
+
 class PublicComicDetail(BaseModel):
     """The comic block on /shelf/:id: enough for What's next, the run's
     lanes and box, and the editions card."""
@@ -209,6 +246,50 @@ class PublicComicDetail(BaseModel):
     shelf_format: ComicShelfFormat | None
     # The day the issues were last fetched from Comic Vine.
     as_of: date | None
+    # What the title is (`comics.title_kind`: run, book_line, single_book or
+    # both) from its owned volumes and its issues; derived, never stored.
+    kind: str
+    # The OWNED books in line order (numbered first, then position).
+    volumes: list[PublicTitleVolume]
+    volumes_owned: int
+    # A book line's places 1..max owned line number; [] for any other kind or
+    # when no owned book has a number. A line size is never invented.
+    slots: list[PublicVolumeSlot]
+
+
+def line_order(volume: ComicVolume) -> tuple:
+    """A book's place in its title's line: numbered books by number, the rest
+    after them, ties by position."""
+    return (
+        volume.line_number is None,
+        volume.line_number or 0,
+        volume.position,
+        volume.slug,
+    )
+
+
+def loose_issues(item: Item) -> int:
+    """How many single issues the title holds loose (`issues_owned`). The
+    issue marks are not used: they also mark what an owned volume links, and
+    a title of trades alone has no issues of its own."""
+    try:
+        return len(expand(parse_ranges(item.issues_owned)))
+    except ValueError:
+        return 0
+
+
+def volume_slots(volumes: Sequence[ComicVolume]) -> list[PublicVolumeSlot]:
+    """The line's places for these OWNED volumes: every number from 1 to the
+    highest `line_number` held, the first book (in line order) on each and
+    None where there is none. Empty when no book has a number."""
+    by_number: dict[int, str] = {}
+    for volume in sorted(volumes, key=line_order):
+        if volume.line_number is not None:
+            by_number.setdefault(volume.line_number, volume.slug)
+    top = max(by_number, default=0)
+    return [
+        PublicVolumeSlot(number=n, slug=by_number.get(n)) for n in range(1, top + 1)
+    ]
 
 
 def _publisher(item: Item) -> str | None:
@@ -250,7 +331,11 @@ def _segments(series: ComicSeries) -> list[PublicRunSegment]:
 
 
 def _row(
-    item: Item, series: ComicSeries, today: date, read_marks: int = 0
+    item: Item,
+    series: ComicSeries,
+    today: date,
+    read_marks: int = 0,
+    volumes_owned: int = 0,
 ) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
@@ -279,6 +364,8 @@ def _row(
         next_issue=_next(series, today),
         tags=public_tags(item.tags),
         created_at=item.created_at,
+        kind=title_kind(volumes_owned, loose_issues(item)),
+        volumes_owned=volumes_owned,
     )
 
 
@@ -392,14 +479,19 @@ def comic_detail(
     today: date,
     read_marks: int | None = None,
     volumes: tuple[int, int] = (0, 0),
+    owned_volumes: Sequence[ComicVolume] = (),
 ) -> PublicComicDetail:
     """`read_marks` is the count of owned issues whose row says read (5c: read
     is per book); `read_to` still counts for a row the marks have not reached.
     `volumes` is (owned, read) volumes of the title for `shown_status`; the
-    public callers leave it (0, 0) until the public volume read (#329)."""
+    public callers leave it (0, 0) until the public volume read (#329).
+    `owned_volumes` are the title's OWNED volumes (`owned_volumes_of`): they
+    give `kind`, `volumes` and `slots`."""
     series = series_of(item)
     run = series.run()
     status, caught_up = derived_status(item, series, read_marks or 0, volumes)
+    books = sorted((v for v in owned_volumes if v.owned), key=line_order)
+    kind = title_kind(len(books), loose_issues(item))
     fetched = (item.source_metadata or {}).get("fetched_on")
     try:
         as_of = date.fromisoformat(fetched) if isinstance(fetched, str) else None
@@ -433,6 +525,20 @@ def comic_detail(
         next_issue=_next(series, today),
         shelf_format=item.shelf_format,
         as_of=as_of,
+        kind=kind,
+        volumes=[
+            PublicTitleVolume(
+                slug=v.slug,
+                label=v.label,
+                kind=v.kind,
+                line_number=v.line_number,
+                cover_url=v.cover_url,
+                read=v.read,
+            )
+            for v in books
+        ],
+        volumes_owned=len(books),
+        slots=volume_slots(books) if kind == "book_line" else [],
     )
 
 
@@ -451,6 +557,35 @@ async def read_marks_by_item(
             ComicIssue.read.is_(True),
         )
         .group_by(ComicIssue.item_id)
+    )
+    return {item_id: count for item_id, count in rows}
+
+
+async def owned_volumes_of(
+    session: AsyncSession, item_id: uuid.UUID
+) -> list[ComicVolume]:
+    """The title's OWNED volumes (not the description: the page does not
+    draw it), for `comic_detail`."""
+    result = await session.scalars(
+        select(ComicVolume)
+        .where(ComicVolume.item_id == item_id, ComicVolume.owned.is_(True))
+        .options(defer(ComicVolume.description))
+    )
+    return list(result)
+
+
+async def owned_volume_counts(
+    session: AsyncSession, item_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Owned volumes per title, for the titles that have any: one query for
+    every row of the shelf."""
+    ids = list(item_ids)
+    if not ids:
+        return {}
+    rows = await session.execute(
+        select(ComicVolume.item_id, func.count())
+        .where(ComicVolume.item_id.in_(ids), ComicVolume.owned.is_(True))
+        .group_by(ComicVolume.item_id)
     )
     return {item_id: count for item_id, count in rows}
 
@@ -481,9 +616,13 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
     items = await public_comic_items(session)
     pairs = {item.id: (item, series_of(item)) for item in items}
     marks = await read_marks_by_item(session, pairs)
+    books = await owned_volume_counts(session, pairs)
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
     return PublicComicsOut(
-        series=[_row(pairs[s.id][0], s, today, marks.get(s.id, 0)) for s in ordered],
+        series=[
+            _row(pairs[s.id][0], s, today, marks.get(s.id, 0), books.get(s.id, 0))
+            for s in ordered
+        ],
         stats=comic_stats(items, today, marks),
         this_week=comic_weeks(items, today),
     )

@@ -55,7 +55,7 @@ ROW_FIELDS = {
     "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
     "read_to", "read", "read_next", "next_issue", "tags", "created_at",
-    "caught_up",
+    "caught_up", "kind", "volumes_owned",
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",
@@ -70,6 +70,7 @@ DETAIL_FIELDS = {
     "segments", "read_to", "read", "read_next", "editions", "next_issue",
     "issue_count",
     "shelf_format", "as_of", "status", "caught_up",
+    "kind", "volumes", "volumes_owned", "slots",
 }  # fmt: skip
 
 
@@ -217,7 +218,7 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "neighbours", "source_url",
     }  # fmt: skip
     assert set(PublicComicIndex.model_fields) == {
-        "item_id", "series_title", "issues", "volumes",
+        "item_id", "series_title", "kind", "issues", "volumes",
     }  # fmt: skip
     assert set(PublicComicIndexVolume.model_fields) == {
         "slug", "label", "kind", "line_number", "cover_url",
