@@ -8,6 +8,7 @@ import PlaceFields, {
   emptyFields,
   fieldsPayload,
 } from '../components/places/PlaceFields.jsx'
+import PastePlaces from '../components/places/PastePlaces.jsx'
 import PlaceResultRow from '../components/places/PlaceResultRow.jsx'
 import { placesAdd as words } from '../content/placesAdd.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -66,7 +67,8 @@ function typedErrorField(message) {
  * the row, Save place to commit it as a private spot, and the place joins
  * "Added this visit". One sitting per visit, made on the first Add. Typing
  * sends nothing; only submit searches. Type it by hand takes a name and
- * coordinates. "Paste a list" is not drawn (a later story, #342).
+ * coordinates. "Paste a list" opens PastePlaces (story #342), which keeps
+ * its own sitting and its own flow.
  */
 export default function PlacesAdd() {
   const [query, setQuery] = useState('')
@@ -81,6 +83,7 @@ export default function PlacesAdd() {
   const [doneName, setDoneName] = useState('')
   const [donePublic, setDonePublic] = useState(false)
   const [typeOpen, setTypeOpen] = useState(false)
+  const [pasteOpen, setPasteOpen] = useState(false)
   const [typed, setTyped] = useState({ name: '', coords: '' })
   const [typedValues, setTypedValues] = useState(emptyFields)
   const [typedError, setTypedError] = useState(null)
@@ -548,6 +551,15 @@ export default function PlacesAdd() {
           <button
             type="button"
             className="btn"
+            aria-expanded={pasteOpen}
+            aria-controls="paste-way"
+            onClick={() => setPasteOpen(!pasteOpen)}
+          >
+            {words.paste.way}
+          </button>
+          <button
+            type="button"
+            className="btn"
             aria-expanded={typeOpen}
             aria-controls="place-type-way"
             onClick={openType}
@@ -655,6 +667,7 @@ export default function PlacesAdd() {
             </div>
           </section>
         )}
+        {pasteOpen && <PastePlaces cities={cities} />}
         {phase === 'done' && (
           <section className="panel place-done">
             <div className="panel-body place-stack-sm">

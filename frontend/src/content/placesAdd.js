@@ -90,4 +90,196 @@ export const placesAdd = {
     noneHelp:
       'Check the spelling or add the city, then search again. A place that is not on OpenStreetMap can be added by hand.',
   },
+  // Paste a list (story #342), from the mockup
+  // docs/planning/mockups/2026-11-18-places-paste/a-steps.html. The fields,
+  // the OpenStreetMap credit and the refusals are above.
+  paste: {
+    way: 'Paste a list',
+    heading: 'Paste a list',
+    checking: 'Looking for a list you started…',
+    boxLabel: 'Places, one per line',
+    boxHint:
+      'A name, or a full Google Maps or OpenStreetMap link. Up to 200 lines. Nothing is sent until you press Add lines.',
+    addLines: 'Add lines',
+    adding: 'Adding…',
+    lineCount: (n) => (n === 1 ? '1 line' : `${n} lines`),
+    over: (total) =>
+      `${total} lines in the box. Only the first 200 will be added.`,
+    zeroEmpty: 'Paste at least one line first.',
+    zeroBlank: (n) =>
+      `Nothing was added. ${n === 1 ? 'The line was' : `All ${n} lines were`} blank.`,
+    zeroKnown: 'Nothing was added. Every line is already in the list.',
+    pasteFailed:
+      'The server did not answer; try again. Nothing was added, and your lines are still in the box.',
+    // The summary after Add lines.
+    added: (n) => (n === 1 ? '1 line added.' : `${n} lines added.`),
+    ignored: (blank, duplicates) => {
+      const parts = [
+        blank && (blank === 1 ? '1 blank line' : `${blank} blank lines`),
+        duplicates &&
+          (duplicates === 1
+            ? '1 duplicate line'
+            : `${duplicates} duplicate lines`),
+      ].filter(Boolean)
+      return parts.length ? ` ${parts.join(' and ')} ignored.` : ''
+    },
+    overDropped: (n) =>
+      ` ${n === 1 ? '1 line' : `${n} lines`} over the limit ${n === 1 ? 'was' : 'were'} dropped.`,
+    inList: (n) =>
+      n === 1 ? 'Your list has 1 line.' : `Your list has ${n} lines.`,
+    showText: 'Show the pasted text',
+    hideText: 'Hide the pasted text',
+    pastedLabel: 'The pasted text',
+    // Resume.
+    resumeLead: (n) =>
+      n === 1
+        ? 'You started a list with 1 line and did not finish it.'
+        : `You started a list with ${n} lines and did not finish it.`,
+    resumeContinue: (n) =>
+      n === 1
+        ? 'Continue your list (1 line)'
+        : `Continue your list (${n} lines)`,
+    resumeNew: 'Start a new list',
+    resumeNewConfirm: 'Discard the old list',
+    resumeNewIntro: 'The old list is deleted. Places you saved stay saved.',
+    resumeFailed: 'The old list could not be discarded. Try again.',
+    // Progress.
+    stop: 'Stop',
+    resume: 'Continue',
+    looking: (done, total, line) =>
+      `Looking up ${done + 1} of ${total}, “${line}”.`,
+    stopped: (done, total) =>
+      `Stopped after ${done} of ${total}. ${total - done === 1 ? '1 line is' : `${total - done} lines are`} not looked up yet.`,
+    progressLabel: 'Lookups done',
+    runningHint:
+      'About a second for each name. If you reload the page, it carries on from here.',
+    stoppedHint:
+      'Ready places can be saved now. The rest wait until you continue.',
+    announce: (done, total) => `${done} of ${total} looked up.`,
+    announceDone: 'All lines are looked up.',
+    tally: (ready, check, saved, same) => {
+      const parts = [
+        [ready, 'ready to save'],
+        [check, 'to check'],
+        [saved, 'already saved'],
+        [same, 'the same place as another line'],
+      ].filter(([n]) => n)
+      return parts.length
+        ? `${parts.map(([n, word]) => `${n} ${word}`).join(', ')}.`
+        : ''
+    },
+    // Groups.
+    groups: {
+      check: 'To check',
+      ready: 'Ready',
+      wait: 'Not looked up yet',
+      saved: 'Already saved',
+      same: 'Same place as another line',
+    },
+    groupNotes: {
+      saved: 'On your list already. Not saved again.',
+      same: 'Found as a place another line already gave. Not saved twice.',
+    },
+    showAll: (n) => `Show all ${n}`,
+    showFewer: 'Show fewer',
+    // Rows.
+    looking1: 'Looking up…',
+    searchingOsm: 'Searching OpenStreetMap…',
+    waiting: 'Waiting',
+    savedMark: 'Already saved',
+    sameAs: 'Same place as another line.',
+    why: {
+      several: (n) => `${n} places found. Pick the one you mean.`,
+      none: 'No place found.',
+      short: 'Short link, could not be read.',
+      failed: 'Search did not answer.',
+      long: 'Over 300 characters.',
+      coords: 'Needs a name.',
+      left: 'Left out. Not saved.',
+    },
+    rowButton: {
+      several: 'Pick',
+      none: 'Rename',
+      short: 'Type the name',
+      long: 'Rename',
+      coords: 'Name it',
+      left: 'Put back',
+      failed: 'Try again',
+      details: 'Details',
+    },
+    fromGoogle: 'From a Google Maps link',
+    fromOsm: 'From an OpenStreetMap link',
+    fromLink: 'From a map link',
+    pastedAs: (line) => `Pasted as “${line}”`,
+    set: (city, isPublic, tags) =>
+      `${city}, ${isPublic ? 'public' : 'private'}${tags ? `, ${tags === 1 ? '1 tag' : `${tags} tags`}` : ''}`,
+    // What an open row holds.
+    detailsFor: (title) => `Details for ${title}`,
+    fixFor: (title) => `Fix ${title}`,
+    done: 'Done',
+    leaveOut: 'Leave out',
+    pickLabel: (title, address) =>
+      `Pick ${title}${address ? `, ${address}` : ''}`,
+    pick: 'Pick',
+    candidatesFor: (line) => `Places found for “${line}”`,
+    changeAndSearch: 'None of these? Change the name and search again',
+    searchAgain: 'Search again',
+    searchAgainHint: 'Search again as it is, or change the name first.',
+    shortBody:
+      'This short link could not be read. The server never follows short links.',
+    shortLabel: 'Place name',
+    shortHint:
+      'Type the name. Or open the link yourself and paste the full address from the browser.',
+    shortSubmit: 'Search',
+    longBody: 'This line is over 300 characters, so it was not searched.',
+    noneBody: (name) =>
+      `No place found for “${name}”. Check the spelling or add the city.`,
+    failedBody:
+      'The OpenStreetMap search did not answer for this line again. The line is kept.',
+    coordsBody:
+      'The link carries no name. The place is saved under the name you type.',
+    useName: 'Use this name',
+    nameRequired: 'Type a name first.',
+    cancel: 'Cancel',
+    close: 'Close',
+    // Notices after a row action.
+    foundReady: (title) => `${title} found. It is ready to save.`,
+    pickedReady: (title) => `${title} picked. It is ready to save.`,
+    namedReady: (title) => `${title} is ready to save.`,
+    foundSaved: (title) => `${title} is already saved.`,
+    foundSame: (title) => `${title} is in the list already.`,
+    stillCheck: (name, why) => `“${name}”: ${why}`,
+    leftOutNotice: (title) => `${title} left out. It will not be saved.`,
+    putBackNotice: (title) => `${title} put back. It is ready to save.`,
+    // The Save bar.
+    save: 'Save places',
+    saveN: (n) => (n === 1 ? 'Save 1 place' : `Save ${n} places`),
+    saving: 'Saving…',
+    saveNotes: {
+      running: 'Press Stop to save what is ready so far.',
+      allDone: 'Every line is accounted for.',
+      stays: (n) => `${n} to check ${n === 1 ? 'stays' : 'stay'} in the list.`,
+      notLooked: (n) =>
+        `${n === 1 ? '1 line' : `${n} lines`} not looked up yet ${n === 1 ? 'stays' : 'stay'} in the list.`,
+      nothingReady: 'Nothing is ready yet. Pick or rename a line above.',
+      nothingToSave: 'Nothing to save. Every place is already saved.',
+    },
+    // After saving.
+    savedHeading: (n) => (n === 1 ? 'Saved 1 place' : `Saved ${n} places`),
+    savedPrivate: (n) =>
+      n === 1
+        ? 'It is a private spot. Only you can see it.'
+        : 'They are private spots. Only you can see them.',
+    savedMixed: (privateN, publicN) =>
+      privateN
+        ? `${privateN} private, ${publicN} on the public Denver page.`
+        : `${publicN === 1 ? 'It is' : 'They are'} on the public Denver page.`,
+    stillToCheck: (n) =>
+      `${n} still to check. ${n === 1 ? 'It stays' : 'They stay'} in the list below.`,
+    alreadySavedCount: (n) => `${n} already saved, not saved again.`,
+    addAnother: 'Add another list',
+    viewOnSpots: 'View on Spots',
+    commitFailed: 'The list was not saved. Nothing was added.',
+    noAnswerRow: 'The server did not answer for this line. Try it again.',
+  },
 }

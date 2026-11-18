@@ -14026,3 +14026,308 @@ a.btn.sm {
     justify-items: end;
   }
 }
+
+/* ---------- Paste a list (/admin/places/add, story #342) ----------
+   Direction A of the mockup a-steps.html: one column that moves through
+   steps. Reuses the place-* rules above; every colour is a token. */
+.place-paste-stack,
+.place-paste-box,
+.place-paste-progress,
+.place-paste-offer,
+.place-paste-fix,
+.place-paste-group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.place-paste-group,
+.place-paste-fix {
+  gap: var(--space-1);
+}
+
+.place-paste-fix {
+  max-width: 30rem;
+}
+
+.place-paste-fix label {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.place-paste-box textarea {
+  display: block;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  padding-block: var(--space-2);
+  resize: vertical;
+}
+
+.place-paste-box-foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.place-paste-count {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+.place-paste-over {
+  color: var(--text);
+  font-size: var(--fs-13);
+}
+
+.place-paste-summary {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-14);
+  gap: var(--space-1) var(--space-3);
+  justify-content: space-between;
+}
+
+.place-paste-summary p,
+.place-paste-offer p {
+  margin: 0;
+}
+
+.place-paste-pasted {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font: var(--fs-13) / 1.5 var(--font-sans);
+  margin: 0;
+  max-height: 12rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-3);
+  white-space: pre-wrap;
+}
+
+.place-paste-progress-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  justify-content: space-between;
+}
+
+.place-paste-progress-row .place-status {
+  flex: 1;
+  min-width: 12rem;
+}
+
+/* Determinate: N of M is known. The 4px track matches .place-progress. */
+.place-paste-meter {
+  appearance: none;
+  background: var(--sunken);
+  border: 0;
+  border-radius: 999px;
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.place-paste-meter::-webkit-progress-bar {
+  background: var(--sunken);
+}
+
+.place-paste-meter::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.place-paste-meter::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-paste-meter::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+/* State in words; colour is a second cue only. */
+.place-paste-mark {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.place-paste-mark.saved,
+.place-paste-mark.wait {
+  color: var(--text-3);
+}
+
+.place-paste-set {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  white-space: nowrap;
+}
+
+.place-paste-why {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  margin: 0;
+}
+
+.place-paste-from {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.place-paste-cands {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.place-paste-cands ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.place-paste-cands .place-result:last-child {
+  border-bottom: 0;
+}
+
+.place-paste-group h3 {
+  font-size: var(--fs-14);
+  margin: 0;
+}
+
+.place-paste-group .place-results {
+  padding-top: 0;
+}
+
+.place-paste-group .place-results > ul > li:last-child {
+  border-bottom: 0;
+}
+
+.place-paste-group .capped-toggle {
+  justify-self: start;
+}
+
+.place-paste-group-note {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  margin: 0;
+}
+
+/* A group heading is a disclosure button: the name, the count, a caret. */
+.place-paste-group-btn {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 var(--fs-14) var(--font-sans);
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  text-align: left;
+}
+
+.place-paste-caret {
+  border-bottom: 2px solid var(--text-3);
+  border-right: 2px solid var(--text-3);
+  height: 0.45rem;
+  margin-inline: 0.15rem var(--space-1); /* space-exception: drawn caret offset */
+  transform: rotate(-45deg);
+  width: 0.45rem;
+}
+
+[aria-expanded='true'] > .place-paste-caret {
+  transform: rotate(45deg);
+}
+
+.place-paste-savebar {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  bottom: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  position: sticky;
+  z-index: 5;
+}
+
+.place-paste-savebar p {
+  flex: 1;
+  font-size: var(--fs-13);
+  margin: 0;
+  min-width: 10rem;
+}
+
+.place-paste-done-list {
+  display: grid;
+  font-size: var(--fs-14);
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.place-col > .place-osm {
+  margin: 0;
+}
+
+.place-paste-group-btn:focus-visible,
+.place-paste-pasted:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The shell's phone layout: 44px targets, and the Save bar and every
+   action clear of the fixed tab bar (.admin-tabs: 3.25rem and the safe
+   area), as the Spots add bar does. */
+@media (max-width: 900px) {
+  .place-paste-group-btn,
+  .place-paste-savebar .btn {
+    min-height: 2.75rem;
+  }
+
+  .place-paste-savebar {
+    bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-2));
+  }
+
+  .place-col .btn,
+  .place-paste-group-btn,
+  .place-result.open {
+    scroll-margin-bottom: calc(
+      3.25rem + env(safe-area-inset-bottom, 0px) + var(--space-4) + 3.5rem
+    );
+  }
+
+  .place-col :is(textarea) {
+    font-size: var(--fs-16);
+    min-height: 2.75rem;
+  }
+
+  .place-result > .place-paste-set {
+    grid-area: kind;
+  }
+
+  .place-result > .place-paste-mark {
+    grid-area: act;
+  }
+
+  .place-result > .place-form {
+    grid-area: auto;
+    grid-column: 1 / -1;
+  }
+}
