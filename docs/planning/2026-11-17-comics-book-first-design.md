@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: architectural + ui
 mode: auto
 ---
@@ -134,3 +134,26 @@ code sweep of 2026-11-17 (alembic head is `0020`; `items` has no `cv_id`, the se
 
 After PR 1 deploys: `GET /api/version` reports the SHA, `scripts/smoke.sh` green, Neon at `0021`,
 `select count(*) from comic_volumes` equals the audit's edition count.
+
+## Shipped (2026-11-17 and 18)
+
+| PR | Stories | Notes |
+|---|---|---|
+| #428, #430 | #324, #325 | Tables, audit script, migration 0021. The first deploy failed on a non-list `editions` value; #430 fixed it. |
+| #429 | #326 | Marks come from volumes; the compat shim `sync_volumes_from_editions`. |
+| #431, #432 | #335, #329 | Public volume endpoint, the Book page, the old edition endpoint removed. |
+| #433, #434 | #334 | Admin routes and migration 0022 (`edited`), the admin Book page and Books panel. |
+| #435 | #327 | Contents parser (rules, then a grounded model fallback inside the budget). |
+| #436, #437 | #328 | Intake commits volumes, migration 0023 (`intake_entry_id`), Check and Done. |
+| #438, #439 | #330 | `comics.shares_title` (60%), public kind, volumes and slots, the title pages. |
+| #440 | #331 | Shelf kind and Books / Single issues chips. |
+| #441 | #332 | The issue page "Also in". |
+| #442 | #333 | Books owned, volumes missing, issues read. |
+
+Verified on production after the last deploy: four volumes, `comic_volumes` matches the audit's four edition entries, the marks backfill returned no mismatches, and `books_owned` 7 equals a hand count (four Creepshow trades plus the three one-issue Comic Vine volumes).
+
+## Follow-ups (not done)
+
+- **Drop `items.editions`** is a separate destructive release and an always-stop. Before it: retire `comics.sync_volumes_from_editions`, the old `PUT /api/comics/{id}/editions/{slug}/link` route and the `editions` field on the items API and `ItemForm`, intake's Details `editions` path, and every reader still on `items.editions` (`comics_routes._state`, `row_run`, `series_from_row`).
+- #336 (ISBN and barcode lookup) and #337 (GCD as a contents source) stay deferred.
+- Known limits, each noted in `backend/CLAUDE.md`: an add-bar retry duplicates a volume (no idempotence key); a model re-parse can clear a rules-linked entry's link; `check_skips` in `apply_comic_fields` looks only at editions; the shelf card says "1 book with no number" when two books share one line number; the audit report is not posted on #324.
