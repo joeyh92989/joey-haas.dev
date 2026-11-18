@@ -267,7 +267,7 @@ and the entries read from them or typed in.
   `volume_plan.typed_key(entry_id, index)` (a uuid5 of the entry id, stored
   in `intake_entry_id`), so a second commit of the entry writes none. An
   entry kept as typed with no series match goes on the title of its name like
-  a photographed book with no match. Intake writes nothing to `items.editions`:
+  a photographed book with no match. Intake writes nothing to `items.editions` (unused, pending its drop):
   a non-empty `editions` on an entry, add or patch payload is a 422 (a
   sitting typed before the rename still holds `editions`, which commit reads as
   `books`). A volume's covered range clears the skips it covers (Got it's
@@ -275,16 +275,16 @@ and the entries read from them or typed in.
   One rule counts what a series gains, in a sitting and in the add bar:
   the typed issues not held before the commit (loose or through volumes) are
   written loose as typed (`issues_added`), and the typed books it gains are
-  listed apart (`editions_added`, same `{kind, label, from, to}` shape; the
-  name stays until PR 4). A series gaining neither issues nor a volume is
+  listed apart (`books_added`, `{kind, label, from, to}`; a new series lists them as
+  `series_new[].books`). A series gaining neither issues nor a volume is
   `already_owned`; one gaining only a volume is grown, not already owned.
   Each such series is also reported on its own in `series_grew`
   (`SeriesGrew`): `{item_id, title, is_public, cover_url, before: {owned,
-  released}, ongoing, added, already, editions_added, after_owned_text}`,
+  released}, ongoing, added, already, books_added, after_owned_text}`,
   where `added` and `already` split the typed issues against what the row
-  held before (loose or in a volume), and `editions_added` is the
+  held before (loose or in a volume), and `books_added` is the
   typed books it gained, for Done's "Series that grew". An issue already inside
-  a stored edition is held, so it is neither gained nor written again as a
+  an owned volume is held, so it is neither gained nor written again as a
   loose single; a refused commit reports `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The
   reader does not read an issue number off a photo (the importer's schema

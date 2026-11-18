@@ -1,9 +1,9 @@
 """A collected book as a volume: what it adds, and writing it (#328).
 
 A photographed or typed collected book commits as a `comic_volumes` row on a
-title, never as an `items.editions` entry. This module is the one place that
-decides what that volume is, so Check's preview and the commit cannot
-disagree:
+title, never as an `items.editions` entry (that column is unused, pending its
+drop). This module is the one place that decides what that volume is, so
+Check's preview and the commit cannot disagree:
 
 - `book_plan` is pure: the volume's label, kind and number in its line, and
   the contents it would write (the printed range, then the reprint note read
@@ -377,8 +377,8 @@ async def write_volume(
     plan: VolumePlan,
 ) -> tuple[ComicVolume, bool]:
     """Writes the plan's volume on `title` (a row the caller holds locked),
-    owned, unread and `edited` (so the editions shim never touches it), with
-    its contents as `plan.source` entries. Returns `(volume, created)`: when the
+    owned, unread and `edited`, with its contents as `plan.source` entries.
+    Returns `(volume, created)`: when the
     entry's volume exists already, as a second writer may have made it between
     the caller's look and this insert (the unique `intake_entry_id`), that
     volume and False."""

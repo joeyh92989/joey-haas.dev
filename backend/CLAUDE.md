@@ -478,7 +478,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   A single: `issue_number` becomes `issues_owned` (unioned per series,
   `got_issues` for a series on the shelf), as before. A collected book never
   writes `items.editions`: it is a `comic_volumes` row (owned, unread,
-  `edited` true so the editions shim leaves it alone; label = the detected
+  `edited` true; label = the detected
   title up to 80 characters, `kind` = `edition_kind` or `trade`, `line_number`,
   slug `vol-<n>` with the smallest unused n, position last) on a title: the
   matched series (on the shelf, or made from the match as before), or, with
@@ -528,8 +528,9 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   (`volume_plan.typed_key`, a uuid5 of the entry id). Two books over the same
   issues are two volumes. Intake never writes `items.editions`: a non-empty
   `editions` on an entry, add or patch payload is a 422. `series_grew[].
-  editions_added` and `series_new[].editions` still carry the typed books
-  (names kept for Done; PR 4 may rename).
+  books_added` and `series_new[].books` carry the typed books
+  (`{kind, label, from, to}`, for Done; renamed from `editions_added` and
+  `editions` in the retire plan's PR 4).
   **Which title a matched book goes to (#330, `comics.shares_title`; the
   commit, the add bar and Check's preview all decide it in `commit._placed`):**
   a book that matched a series joins its title only when BOTH hold: (a) its
@@ -641,8 +642,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `isbn`, `pages`, `owned`, `read`. `comic_volume_collects` lists its
   contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo,
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
-  migration copied every `editions` entry into a volume plus one collects row;
-  `items.editions` is untouched until a later, destructive drop.
+  migration copied every `editions` entry into a volume plus one collects row.
+  `items.editions` is now unused (nothing reads or writes it; the retire plan's
+  PR 5 drops it): the compat shim that mirrored it into `ed-*` volumes is gone,
+  and an `ed-*` volume is an ordinary volume.
   **Volumes are the source of the marks (#326):** `comics.sync_marks` counts a
   row's loose singles plus the linked ranges (`collects.item_id` = the row,
   both bounds set) of every OWNED volume, a cross-series link marking the
@@ -650,12 +653,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   or unlinked collects mark nothing. `comics.load_holds` is the one query,
   `held_ranges` turns it into the `{from, to, label}` entries the pure
   functions always took for editions, and `held_through(session, item_id,
-  number)` lists the owned volumes covering an issue. **The public issue page body** (`GET /api/public/items/{id}/issues/{n}`, #332) has no single-edition `held_as`/`edition` fields; it carries `held_single` (the number is in `issues_owned`, so the page can say single only, volumes only or both) and `also_in`, a list (empty when none) of every OWNED volume, of any PUBLIC title (`items.is_public`), that has a LINKED collects entry (`item_id` = this title, `from_number <= n <= to_number`), as `{slug, label, kind, line_number, title_id, title, same_title}`: one query in `public_issues._also_in` (it needs the volume's kind and title, which `load_holds` does not carry), each volume once, same title first, then title name, `line_number` nulls last, position. A text-only or unlinked entry, an unowned volume and a private title's volume never appear, and the private title's id and name never leak; no skip, intake id, `edited`, `source`, position or collects text is in the body. The links go to `/shelf/<title_id>/<slug>/`. **The compat
-  shim** `comics.sync_volumes_from_editions` runs first inside `sync_marks`
-  (no writer of `editions` is left: the item API and intake both refuse it) and mirrors `items.editions` into
-  the edition-origin (`ed-*`) volumes and their one `migrated` collects row; it
-  never touches another slug, never resets `owned` or `read` on an existing
-  volume, and writes only what differs. `PATCH /api/comics/volumes/{id}`
+  number)` lists the owned volumes covering an issue. **The public issue page body** (`GET /api/public/items/{id}/issues/{n}`, #332) has no single-edition `held_as`/`edition` fields; it carries `held_single` (the number is in `issues_owned`, so the page can say single only, volumes only or both) and `also_in`, a list (empty when none) of every OWNED volume, of any PUBLIC title (`items.is_public`), that has a LINKED collects entry (`item_id` = this title, `from_number <= n <= to_number`), as `{slug, label, kind, line_number, title_id, title, same_title}`: one query in `public_issues._also_in` (it needs the volume's kind and title, which `load_holds` does not carry), each volume once, same title first, then title name, `line_number` nulls last, position. A text-only or unlinked entry, an unowned volume and a private title's volume never appear, and the private title's id and name never leak; no skip, intake id, `edited`, `source`, position or collects text is in the body. The links go to `/shelf/<title_id>/<slug>/`. **Volume writes:** `PATCH /api/comics/volumes/{id}`
   `{owned?, read?}` is the volume's own write: it re-syncs every title the
   collects touch and keeps `read_to` in step. `shown_status` takes
   `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
@@ -671,9 +669,8 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   that very title, one entry per linked range (slug = the volume's own slug,
   `kind` = `kind_raw` else the mapped kind, cover = the volume's), so a
   `vol-*` book with a linked range shows too and a column entry with no volume
-  shows nowhere; no extra query (the holds were already loaded). What still
-  reads `items.editions` is only the writers and the shim, until the retire
-  plan's later PRs; an un-owned `ed-*` volume no longer shows on a book page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
+  shows nowhere; no extra query (the holds were already loaded). Nothing reads
+  `items.editions` any more; an un-owned `ed-*` volume no longer shows on a book page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
   through another volume, but `read_to` cannot protect them (it is derived from
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.
@@ -716,11 +713,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   issues. Definitions live in `book_figures` and `comic_stats`; the hand-count
   tests are `tests/test_public_comics_stats.py`.
   **Admin volume editor (#334, PR 4a, migration `0022`):** `comic_volumes.edited`
-  (default false) is set by every hand edit (create, replace, move, link). The
-  shim (`sync_volumes_from_editions`) never writes, repositions or deletes an
-  `edited` volume, and an edition whose volume is edited makes no second volume
-  under the same slug; un-edited `ed-*` volumes follow `items.editions` exactly
-  as before (intake commit still writes editions until #328). Routes in
+  (default false) is set by every hand edit (create, replace, move, link). Routes in
   `comics_routes.py`, all admin-only with response models: `GET
   /{item_id}/volumes` (the Books panel: a title's books in line order, owned
   or not, each `id, slug, label, kind, line_number, owned, read, edited,
@@ -733,19 +726,13 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `id` unchanged keeps its source, a new or changed one is `typed`, an unknown
   id is a 422; 422 `detail` is FastAPI-shaped, `loc` `["body","collects",i,...]`),
   `POST /volumes/{id}/move` (keeps the slug unless the new title has it;
-  answers `slug_kept`/`previous_slug`; marks the volume edited, because an
-  unedited `ed-*` volume on a title with no matching edition would be deleted
-  by the shim), `GET /volumes/{id}/delete-preview` (`issues_unheld` per title,
+  answers `slug_kept`/`previous_slug`; marks the volume edited), `GET /volumes/{id}/delete-preview` (`issues_unheld` per title,
   `read_marks_lost`), `DELETE /volumes/{id}`, `PUT /volumes/{id}/link`
   (Comic Vine cover and description fetched server-side, never from the
   client). Every write locks the touched `items` rows first in sorted id
-  order, then the volume, runs the shim on each touched title, and ends in
+  order, then the volume, and ends in
   `sync_marks` for every touched title (old and new title, old and new link
-  targets) plus the `read_to` follow-up, in one commit. **Mirror removal:**
-  deleting or moving any `ed-*` volume, edited or not, also removes its
-  entry from the old title's `items.editions` (the entry `edition_slugs` gives
-  its slug over the current list; none matching is a no-op), or the shim would
-  recreate it; a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` is
+  targets) plus the `read_to` follow-up, in one commit. a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` is
   gone and the item API takes no `editions` (below).
   **Editions writers retired (plan `2026-11-18-retire-items-editions-design.md`,
   PR 3/5):** the item API no longer writes `items.editions`. A non-empty
@@ -753,12 +740,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   /api/items/{id}` is a 422, "editions are retired: add books as volumes" (for
   one release, to find a forgotten writer); empty or absent is fine. `ItemOut`
   no longer carries `editions`, and `editions` is out of `items.MARK_FIELDS`.
-  `ItemIn.editions` stays only because intake's commit builds its rows through
-  `ItemIn`: **the one writer left is the intake Details step** (a typed
-  comic entry, with no photographed book behind it, can set its series'
-  `editions` there; the ComicBooks step covers photographed books only). It
-  is removed with the shim in PR 4, once a typed entry has a way to add
-  books. `apply_comic_fields`/`validate_editions` stay for it.
+  `ItemIn.editions`/`ItemPatch.editions` stay only to answer that 422
+  (`items._refuse_editions`, no `validate_editions`): they are never stored, and
+  PR 5 removes them with the column. The compat shim, `validate_editions`,
+  `edition_slugs` and the mirror-removal in the volume move/delete routes were
+  removed in PR 4/5. `apply_comic_fields(changes, is_comic, current, held)` takes
+  the owned volumes' `held_ranges` as `held`, so a skip on a held issue is still
+  refused (`check_skips`); `item.editions` is not read. Tests seed a comic's
+  books with `tests/volume_seed.py` (`seed_volumes`, `make_item`).
   **Contents parse (#327, PR 5, no migration):** `comic_contents.py` (pure,
   in `test_physical_imports.py`'s purity list) turns a description or reprint
   note into `Entry{series_name, issue_text, year}`. `parse_contents` is rules

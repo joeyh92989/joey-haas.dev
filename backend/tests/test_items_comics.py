@@ -15,6 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from items import create_items_router
 from models import Item, ItemStatus, ItemType
+from tests.volume_seed import seed_volumes
 
 pytestmark = pytest.mark.asyncio
 
@@ -128,8 +129,13 @@ async def test_bulk_create_refuses_a_bad_range_naming_the_row(sessionmaker_for_t
     assert response.json()["detail"] == "Y: Issues owned: issue numbers start at 1"
 
 
-async def _patch(factory, seed: dict, body: dict):
+async def _patch(factory, seed: dict, body: dict, volumes: list | None = None):
+    """`volumes` are edition-shaped dicts, seeded as owned volumes."""
     item_id = await _seed(factory, **seed)
+    if volumes:
+        async with factory() as session:
+            await seed_volumes(session, await session.get(Item, item_id), volumes)
+            await session.commit()
     async with client_for(factory) as client:
         response = await client.patch(f"/api/items/{item_id}", json=body)
         stored = (await client.get(f"/api/items/{item_id}")).json()
@@ -145,10 +151,10 @@ async def test_patch_refuses_a_skip_on_an_owned_issue(sessionmaker_for_test):
     assert stored["issues_skipped"] is None
 
 
-async def test_patch_refuses_a_skip_on_an_edition_issue(sessionmaker_for_test):
-    editions = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
+async def test_patch_refuses_a_skip_on_a_volume_issue(sessionmaker_for_test):
+    books = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
     response, _ = await _patch(
-        sessionmaker_for_test, {"editions": editions}, {"issues_skipped": "4-5"}
+        sessionmaker_for_test, {}, {"issues_skipped": "4-5"}, volumes=books
     )
     assert response.status_code == 422
     assert response.json()["detail"] == "#4 is owned, so it can't be skipped"
@@ -333,6 +339,9 @@ async def test_empty_or_absent_editions_are_fine(sessionmaker_for_test):
         )
     assert patched.status_code == 200, patched.text
     assert "editions" not in patched.json()  # no longer part of the item
+    async with sessionmaker_for_test() as session:
+        stored = await session.get(Item, uuid.UUID(created.json()["id"]))
+        assert stored.editions is None  # an empty list is never written
 
 
 async def test_the_edition_link_route_is_gone(sessionmaker_for_test):

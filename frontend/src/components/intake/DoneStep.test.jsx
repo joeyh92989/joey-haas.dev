@@ -44,13 +44,13 @@ describe('DoneStep comic lines', () => {
           title: 'Waterworld',
           cover_url: null,
           issues: [1, 2, 3, 4],
-          editions: [],
+          books: [],
         },
         {
           title: 'Saga',
           cover_url: null,
           issues: [],
-          editions: [{ kind: 'Trade', label: 'Vol. 4', from: 19, to: 24 }],
+          books: [{ kind: 'Trade', label: 'Vol. 4', from: 19, to: 24 }],
         },
       ],
     })
@@ -71,9 +71,7 @@ describe('DoneStep comic lines', () => {
           ongoing: false,
           added: [],
           already: [],
-          editions_added: [
-            { kind: 'Omnibus', label: 'Vol. 1', from: 1, to: 5 },
-          ],
+          books_added: [{ kind: 'Omnibus', label: 'Vol. 1', from: 1, to: 5 }],
           after_owned_text: '1–5',
         },
       ],
@@ -95,7 +93,7 @@ describe('DoneStep comic lines', () => {
       external_id: id,
       cover_url: null,
       issues: [1],
-      editions: [],
+      books: [],
     })
     done({ series_new: [series('1'), series('2')] })
     expect(screen.getAllByText('Waterworld · adds #1')).toHaveLength(2)

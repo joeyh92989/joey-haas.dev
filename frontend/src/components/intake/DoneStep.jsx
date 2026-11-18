@@ -85,8 +85,8 @@ export default function DoneStep({
     .join(', ')
 
   // "<Series> · adds #1–4" for a series the sitting created, and the
-  // editions a series already on the shelf gained.
-  const editionParts = (editions) => (editions ?? []).map(words.addsEdition)
+  // typed books a series already on the shelf gained.
+  const bookParts = (books) => (books ?? []).map(words.addsEdition)
   const addedLines = [
     ...(answer.series_new ?? []).map((series) => ({
       key: series.external_id
@@ -95,15 +95,15 @@ export default function DoneStep({
       title: series.title,
       parts: [
         series.issues.length ? words.adds(hashRanges(series.issues)) : null,
-        ...editionParts(series.editions),
+        ...bookParts(series.books),
       ].filter(Boolean),
     })),
     ...(report ?? [])
-      .filter((series) => series.editions_added?.length)
+      .filter((series) => series.books_added?.length)
       .map((series) => ({
         key: `grew-${series.item_id}`,
         title: series.title,
-        parts: editionParts(series.editions_added),
+        parts: bookParts(series.books_added),
       })),
   ]
 

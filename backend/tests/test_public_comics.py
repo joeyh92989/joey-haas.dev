@@ -36,7 +36,7 @@ from public_issues import (
     PublicWallEdition,
     PublicWallIssue,
 )
-from tests.volume_seed import mirror_editions
+from tests.volume_seed import make_item, seed_row_volumes
 
 pytestmark = pytest.mark.asyncio
 
@@ -116,7 +116,7 @@ def _comic(title: str, **fields) -> Item:
         owned_format=OwnedFormat.PHYSICAL,
         created_at=datetime(2026, 10, 3, tzinfo=UTC),
     )
-    return Item(**{**base, **fields})
+    return make_item({**base, **fields})
 
 
 def _saga(**fields) -> Item:
@@ -179,7 +179,7 @@ def _shelf() -> list[Item]:
 async def _add(factory, *rows):
     async with factory() as session:
         session.add_all(rows)
-        await mirror_editions(session, *rows)
+        await seed_row_volumes(session, *rows)
         await session.commit()
 
 
@@ -400,7 +400,7 @@ async def test_the_item_page_carries_the_comic_block(sessionmaker_for_test):
         ({"read_to": 72}, None),
         # Not started: the first held issue.
         ({"read_to": None}, 1),
-        ({"read_to": None, "issues_owned": "3–5", "editions": None}, 3),
+        ({"read_to": None, "issues_owned": "3–5", "seed_editions": None}, 3),
     ],
 )
 async def test_read_next_is_the_first_held_issue_past_read_to(

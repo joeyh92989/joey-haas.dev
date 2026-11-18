@@ -147,7 +147,7 @@ class SeriesGrewOut(BaseModel):
     ongoing: bool
     added: list[int]
     already: list[int]
-    editions_added: list[dict[str, Any]]
+    books_added: list[dict[str, Any]]
     after_owned_text: str
 
 

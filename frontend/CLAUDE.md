@@ -232,9 +232,9 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `collects.2.link.to_number`); the words are `content/adminVolume.js`. Delete
   is `ShelfConfirm` given a `source` (the volume's own delete preview and
   words), never `window.confirm`. A private target title carries a Private
-  tag. The comic edit page's Editions panel is gone, and the UI no longer
-  writes `items.editions` (3/5 removed the item form's rows; 3b/5 made
-  intake's Details books volumes):
+  tag. The comic edit page's Editions panel is gone, and nothing in the UI
+  reads or writes `items.editions` (the column is unused, pending its drop in
+  5/5):
   its **Books** panel (`BooksPanel.jsx`) lists the title's books and adds
   one. Component tests build their bodies from
   `e2e/fixtures/api/admin-volume*.json`, which
@@ -247,7 +247,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   links to `/admin/shelf/comics/<title_id>/<slug>`). A collected book has the
   five-kind Format select (`edition_kind`) and a Number in the line
   (`line_number`), saved and refused like the other Check fields. Done
-  (`DoneStep.jsx`) lists `volumes_new` and `titles_created`; no intake text
+  (`DoneStep.jsx`) lists `volumes_new` and `titles_created`, and the typed
+  books a series gained (`series_new[].books`, `series_grew[].books_added`); no intake text
   says "edition". Details' collected-books rows (`BookRows` in `ItemForm.jsx`,
   `bookRows`/`parseBookRows` in `lib/comics.js`) save as the payload's `books`
   and become volumes at commit; a comic that is itself a photographed book

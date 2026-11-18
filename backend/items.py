@@ -593,12 +593,15 @@ def _check_disc_format(changes: dict, row: Item | None) -> dict:
     return changes
 
 
-def _write_fields(changes: dict, row: Item | None) -> dict:
+def _write_fields(
+    changes: dict, row: Item | None, held: list[dict] | None = None
+) -> dict:
     """The comic rules, the disc rule, then the copy rules; CopyFieldError or
-    RangeError."""
+    RangeError. `held` is the owned volumes' `held_ranges`, which a skip may
+    not cover."""
     current = None if row is None else {key: getattr(row, key) for key in HELD_FIELDS}
     checked = _check_disc_format(
-        apply_comic_fields(changes, _is_comic(changes, row), current), row
+        apply_comic_fields(changes, _is_comic(changes, row), current, held), row
     )
     return apply_copy_fields(checked, row)
 
@@ -613,10 +616,12 @@ def _refuse_editions(editions: list[dict] | None) -> None:
         raise HTTPException(status_code=422, detail=EDITIONS_RETIRED)
 
 
-def _copy_fields(changes: dict, row: Item | None) -> dict:
+def _copy_fields(
+    changes: dict, row: Item | None, held: list[dict] | None = None
+) -> dict:
     """Runs the write rules, answering a refusal as a 422 in words."""
     try:
-        return _write_fields(changes, row)
+        return _write_fields(changes, row, held)
     except (CopyFieldError, RangeError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
@@ -873,9 +878,13 @@ async def commit_items(
     duplicates = 0
 
     for index, item in enumerate(rows):
-        values = item.model_dump()
+        values = item.model_dump(exclude={"editions"})
         try:
-            values.update(_write_fields(item.model_dump(exclude_unset=True), None))
+            values.update(
+                _write_fields(
+                    item.model_dump(exclude_unset=True, exclude={"editions"}), None
+                )
+            )
         except (CopyFieldError, RangeError) as error:
             raise RowRefused(index, error) from error
         # Every row names tags: a multi-row INSERT fills a missing key with
@@ -1053,8 +1062,12 @@ def create_items_router(
         """Adds one item and returns it, including its generated id."""
         _refuse_editions(payload.editions)
         await _require_favorite_slots(session, int(payload.favorite))
-        values = payload.model_dump()
-        values.update(_copy_fields(payload.model_dump(exclude_unset=True), None))
+        values = payload.model_dump(exclude={"editions"})
+        values.update(
+            _copy_fields(
+                payload.model_dump(exclude_unset=True, exclude={"editions"}), None
+            )
+        )
         item = Item(**values)
         _retag_game(item)
         session.add(item)
@@ -1388,7 +1401,12 @@ def create_items_router(
                 session, item, body["edition_id"]
             )
         given_tags = body.pop("tags", None)
-        changes = _copy_fields(body, item)
+        held = None
+        if item.type == ItemType.COMIC and (
+            "issues_owned" in body or "issues_skipped" in body
+        ):
+            held = held_ranges((await load_holds_many(session, [item.id]))[item.id])
+        changes = _copy_fields(body, item, held)
         if given_tags is not None:
             try:
                 changes["tags"] = clean_tags(
