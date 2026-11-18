@@ -1,6 +1,6 @@
 ---
 status: planned
-kind: architectural
+kind: architectural + ui
 mode: gated
 ---
 
@@ -21,9 +21,14 @@ add bar #341, paste #342), and every later place story builds on the kind this a
 
 In:
 
-- A `place` kind in the intake registry, ways in `search` and `type` only.
+- A new intake area `places` (an additive enum migration), and a `place` kind registered under
+  it, ways in `search` and `type` only, with a small `Kind.search` hook so a kind with no
+  metadata source can search (added after task 3 of the first plan found the story's premise
+  wrong: the kind does not appear on `/admin/add` with no new page).
 - A Nominatim client (`backend/spot_sources/nominatim.py`): on submit only, at most one request
-  a second, the catalogue's `USER_AGENT`, a timeout inside intake's 8 s per-source limit.
+  a second, its own client name with no email address, a 7 s total deadline inside intake's 8 s
+  per-source limit. Built and reviewed (tasks 1 and 2).
+- The page `/admin/places/add` (the chosen mockup, direction C), reached from the Denver area.
 - Ready / Check mark computed from the result count.
 - Commit creates a private spot through the existing spot write path.
 - Owned-place detection (same OSM id, else same name within a short distance).
@@ -119,6 +124,30 @@ Sources: the policy (https://operations.osmfoundation.org/policies/nominatim/), 
 9. **No cache beyond the request.** The policy asks for caching on bulk use; a single submit by
    one owner is not bulk, and a cache would hide a changed OSM record. Recorded in the README.
 
+11. **An optional `Kind.search` hook** (task 4). `intake/search.py` only searches kinds with a
+    `source`, so a kind with its own search function never runs. `Kind` gains `search: Callable |
+    None = None` (additive, default `None`); `search_area` runs kinds that have a source or a
+    `search`, inside the same `SEARCH_TIMEOUT` and with the same states (ok, busy, failed). The
+    search result rows gain optional place keys (address, coordinates, `source_id`, category, map
+    link), `None` for shelf kinds, so shelf output is unchanged.
+12. **Search-born entries.** Intake entries come from photos or typing today, and none is created
+    from a search result with a state. Task 4 adds the route that creates a place entry from a
+    chosen result in a `places` sitting, with its state from the count rule (decision 3). One
+    sitting per visit to the page, so "Added this visit" in the mockup is the sitting's committed
+    entries. Task 4 verifies this against `intake/routes.py` first and stops if it does not fit.
+13. **Tags use the existing six** (Coffee, Park, Food, Kid-OK, Rainy day, Bike-friendly). The
+    mockup also drew Outdoors and Music, which are not in `backend/spots.py`; growing the
+    vocabulary is #351.
+14. **City:** a select defaulting to Denver, listing the cities already on saved spots plus
+    "Another city". It does not follow the address (Red Rocks is Morrison, stays Denver until the
+    owner changes it); guessing a city from an address is wrong too often to be a default.
+15. **The public toggle is off limits unless the city is Denver**, with a one-line hint, since the
+    public page is Denver only until #343. The server enforces it: a public place in another city
+    is a 422. This keeps the story's "spots never become public through this path" true for
+    everything but a Denver place the owner chose to show.
+16. **Navigation:** "Add a place" is a page in the Denver area beside Weekend and Spots
+    (`/admin/places/add`), reached from the area's page list and the area tabs on a phone.
+
 ## Sources
 
 Repo: `backend/intake/kinds.py`, `intake/routes.py` (import registration at 31-32, 422 at ~318 and
@@ -128,58 +157,103 @@ Repo: `backend/intake/kinds.py`, `intake/routes.py` (import registration at 31-3
 External: the two Nominatim URLs above. The policy quotes in the researcher's report came from a
 fetch summary; task 1 re-reads the page and quotes it verbatim.
 
+## Design
+
+Chosen: **C · Inline add**, `docs/planning/mockups/2026-11-17-places-add/c-inline.html` (out of
+git; also published privately as an Artifact). Index: `index.html` in the same folder.
+
+Rejected: **A · Stepper** (a full trip through four steps for every place; results out of sight
+while the fields are filled, and a place added in a row needs the whole flow again). **B · Split
+view** (a second pane that falls under the list on a phone; with one result the two columns repeat
+each other).
+
+Why C: the add bar (#341) and the paste way (#342) both produce a list of rows to check and add,
+and C is already that list, so they arrive as more rows and not a new layout. It reuses the shape
+of the existing `AddResults` row (an Add button, or a link when already owned).
+
+Screens and states (all in `c-inline.html`): empty search; searching (a progress bar, the status
+line says the wait); one result (its row open with the fields: city, tags, blurb, public toggle,
+Save place); several results (up to five rows, each with Add, plus "None of these? Change the
+words, or type it by hand"); no results (a message, Change the words, Type it by hand); already
+saved (a row marked "Already saved" with a link to Spots, no Add); search failed (a message with
+Try again and Type it by hand); saved (a "Saved <name>" panel, Add another, View on Spots, and the
+place listed under "Added this visit"). Type it by hand is a collapsed panel with name, coordinates
+and the same fields. "Paste a list" is room left for #342. The OpenStreetMap credit sits under every
+list of results.
+
+Interactions: typing sends nothing; Enter or the Search button submits; Search is disabled while a
+request is in flight. Add opens the fields in the row and moves focus to that row's place name;
+Save place closes it and adds the place to "Added this visit".
+
+Responsive and theme: phone width (400) and desktop (1100), light and dark, as in the mockup;
+controls are 44 px at phone width and 36 px on a desktop, as on `/admin/add`.
+
+Accessibility: the line under the search box is `role="status"` (polite) and says the wait or the
+count; the failure is `.admin-error` with `role="alert"`; focus moves to the heading or row of what
+came back; every control has a label (no placeholder-only inputs); the map link carries the place
+name in a visually hidden span; visible focus on every control.
+
+Components: new `PlacesAdd` page and a place result row; reused: `.btn`, `.chip`, `.panel`,
+`.intake-result`, `.intake-field`, `.empty-state`, `.admin-error`, the admin shell and nav.
+Acceptance for the build: **matches `c-inline.html` at 1100 and 400, dark and light**; the finish
+review compares screenshots at those widths.
+
 ## Open questions
 
-- Does `Kind.source = None` (as the garment kind does) pass through `intake/search.py` for the
-  search way, which filters `kind.source is not None` at line 82? If not, the place kind needs its
-  own search hook. Task 3 settles it by reading the code first.
-- Can the generic Check screen in `AdminAdd.jsx` draw a place (name, address, a map link)? If it
-  needs more than a field label, this becomes a UI change and goes through `sdlc-design` with a
-  mockup before more work. Stop and ask, do not improvise.
-- Does `ALTER TYPE ... ADD VALUE` need a non-transactional migration step here (Postgres rule:
-  the new value cannot be used in the same transaction)? Check against the existing migration
-  style and `test_migrations.py` before writing it.
+- Does `ALTER TYPE ... ADD VALUE` need special handling here (the new value cannot be used in the
+  same transaction)? Task 3 checks against the existing migration style and `test_migrations.py`.
+- Does the search-born entry route (decision 12) fit the sitting model, or does it need more than
+  one additive route? Task 4 reads `intake/routes.py` first and stops if it grows.
 - Changelog: `frontend/changelog.md` is public and this is owner-only. Proposal: no entry.
+- Decisions 13 to 15 are proposals for Joey; the mockup's open questions were not answered.
 
 ## Smoke check
 
-After deploy: `GET /api/intake/kinds` lists `place`; `GET /api/public/spots` is byte-identical to
-before; Joey adds one real place by name on `/admin/add` and sees it on `/admin/spots`, private.
+After deploy: `GET /api/intake/kinds` lists `place` under area `places`; `GET /api/public/spots` is
+byte-identical to before; Joey opens `/admin/places/add`, searches one real place by name, adds it
+and sees it on `/admin/spots`, private.
 
 ## Plan
 
-All tasks are Sonnet unless noted. One implementer at a time.
+All tasks are Sonnet unless noted. One implementer at a time. Tasks 1 and 2 are done and reviewed.
+Numbers below are the new order; in the ledger the old numbers are: old 3 (place kind) is now 4,
+old 4 (commit) is now 5, old 5 (migration) is now 3.
 
-1. **Policy, ids, fixture (research and README).** Re-read the Nominatim policy and write the
-   binding rules (rate, User-Agent, no autocomplete, caching, attribution) into
-   `backend/spot_sources/README.md`. Add a Nominatim function to
-   `scripts/record_spot_fixtures.py`, record one real response (two or three queries, spaced over
-   a second apart) to `tests/fixtures/`, and record in the README whether `osm_type`/`osm_id`
-   equal the finder's `source_id`. *Accept:* README has the rules and the id answer; the fixture is
-   a real response; no code parses anything else. *Files:* `spot_sources/README.md`,
-   `scripts/record_spot_fixtures.py`, `tests/fixtures/nominatim_*.json`.
-2. **Nominatim client.** `spot_sources/nominatim.py`: `search(client, query)`, the throttle, the
-   `USER_AGENT`, the 6 s timeout, a parser tested on the fixture, errors as a typed result.
-   *Accept:* two submits in one second send requests at least 1 s apart (fake clock); every
-   request carries `NOMINATIM_USER_AGENT` (no `@` in it; decision 10); timeout and HTTP error return a failure, not an exception.
-   *Tests:* `tests/test_nominatim.py`.
-3. **Place kind and search.** `intake/place_kind.py`, registered in `routes.py`; resolve the
-   `source=None` question and the area question first. *Accept:* `/api/intake/kinds` lists `place`
-   with ways `search` and `type` only; typing sends no request (test); 1 result is ready, 0 or
-   several are Check; an owned place is flagged and not duplicated; a Nominatim failure shows a
-   message within the per-source timeout. *Tests:* `test_intake_kinds.py`, a new place-kind test file.
-4. **Commit to a spot.** Share the `create_spot` core, add the place branch to `commit_one`.
-   *Accept:* a committed place is a private spot with city (default Denver), tags, blurb and the
-   public flag; a refused row is 422; `/api/public/spots` is unchanged (`test_public_outputs.py`
-   gains the case). *Tests:* `test_intake_commit.py`, `test_spots_routes.py`.
-5. **Migration (only if task 1 or 3 needs the area value).** Additive enum value, rehearsed.
-   *Accept:* `test_migrations.py` upgrade, downgrade, upgrade passes; `neon-rehearsal` is green.
-   Ship note: the migration is additive; the deploy workflow applies it on merge.
-6. **Frontend (only if the open question says so).** Show a place's entry and the attribution
-   line. If it needs a layout, stop for design.
+1. **Policy, ids, fixture (done).** Commits 389314d..91de513.
+2. **Nominatim client (done).** Commits 91de513..ffe3050: `spot_sources/nominatim.py`,
+   `NOMINATIM_USER_AGENT`, a 7.0 s total deadline, a 1.1 s throttle, 23 tests.
+3. **Migration: the `places` area.** Add `places` to the Postgres enum `intake_area` and to
+   `IntakeArea` in `models.py`. *Accept:* additive; `test_migrations.py` upgrade, downgrade,
+   upgrade passes; `neon-rehearsal` green; shelf and closet sittings behave as before (existing
+   intake tests pass). Ship note: additive, applied by the Deploy API workflow on merge, never
+   by hand. *Files:* `backend/models.py`, a new `backend/migrations/versions/` revision,
+   `backend/tests/test_migrations.py`.
+4. **Place kind, the search hook and search-born entries.** `Kind.search` (decision 11),
+   `intake/place_kind.py` registered under area `places`, the result-count mark (decision 3), owned
+   detection (same `source_id`, else name within 75 m), the route that creates an entry from a
+   chosen result (decision 12). *Accept:* `GET /api/intake/kinds` lists `place` with ways `search`
+   and `type` only; typing sends no request (test); 1 result is ready, 0 or several are check; a
+   failure is a message on the entry and never a 500; the search runs inside `SEARCH_TIMEOUT`; an
+   owned place is flagged and not created twice; shelf search output is unchanged (existing tests
+   pass). *Tests:* `test_place_kind.py`, `test_intake_kinds.py`, the intake search tests.
+5. **Commit to a spot.** Share the `create_spot` core, add the place branch to `commit_one`.
+   *Accept:* a committed place is a private spot with city, tags, blurb and the public flag (decision
+   15 enforced, 422 otherwise); a refused row is a 422; `/api/public/spots` is unchanged
+   (`test_public_outputs.py` gains the case). *Tests:* `test_intake_commit.py`,
+   `test_spots_routes.py`.
+6. **Frontend: `/admin/places/add`.** Route, nav entry (decision 16), `areaOfPath` and `addPath`
+   in `lib/intake.js`, the page and result row per the chosen mockup. Load the `frontend-design`
+   skill. *Accept:* matches `c-inline.html` at 1100 and 400, dark and light; the states above;
+   keyboard and screen-reader notes as in Design; `npm run lint`, format, build, test and
+   `npm audit --omit=dev` pass; an e2e or component test per state. *Files:* `frontend/src/pages/`,
+   `frontend/src/lib/intake.js`, the admin nav, their tests.
 7. **Docs.** `backend/CLAUDE.md` (intake and Denver spots sections), `backend/intake/README.md`,
-   `docs/learnings.md` decision entry at ship, and the epic's checklist (#339).
+   `backend/spot_sources/README.md` (quote the policy's "very few users" sentence behind the
+   no-cache decision; rephrase "dedupe can key on the shared id" as a decision), a `docs/learnings.md`
+   decision entry (at ship), the epic's checklist (#339), and a comment on #340 that its premise
+   ("appears on /admin/add with no new page") was wrong.
 
-Ship notes: additive migration at most (task 5); no new env var or secret; no change to
-`render.yaml`. Each PR names its CI gates in the brief: ruff, pytest (targeted locally; the full
-suite is CI's), pip-audit, and for any frontend change lint, format, build, `npm audit --omit=dev`.
+Ship notes: one additive migration (task 3); no new env var or secret; no change to `render.yaml`.
+Each brief names its CI gates: ruff, pytest (targeted locally; the full suite is CI's), pip-audit,
+and for the frontend lint, format, build and `npm audit --omit=dev`. The finish review includes
+`/security-review` (a new external call, a new admin write path) and the screenshot comparison.
