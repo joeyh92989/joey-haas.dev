@@ -589,9 +589,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   failed on a model stop, no model or an exception) are recorded the same
   way, and the same read returns `issues.last_run`, `refresh.last_run` and
   `tags.last_run` for the Comic refresh, Comic issues and Comic tags rows. An
-  edition links to its Comic Vine issue by `cv_id` (`GET
-  /api/comics/issues/search`, `PUT /api/comics/{id}/editions/{slug}/link`);
-  an edit that changes the edition's range changes its slug and unlinks it.
+  book links to its Comic Vine issue by `cv_id` (`GET
+  /api/comics/issues/search`, then the volume's own `PUT
+  /api/comics/volumes/{id}/link`); `PUT /api/comics/{id}/editions/{slug}/link`
+  is gone (retire plan PR 3).
   Public reads: `GET /api/public/items/{id}/issues`, `/issues/{n}`,
   `/volumes/{slug}`, and `GET /api/public/comic-issues` (the snapshot the
   build prerenders from). Frontend routes `/shelf/<id>/<n>/` and
@@ -621,7 +622,8 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   functions always took for editions, and `held_through(session, item_id,
   number)` lists the owned volumes covering an issue. **The public issue page body** (`GET /api/public/items/{id}/issues/{n}`, #332) has no single-edition `held_as`/`edition` fields; it carries `held_single` (the number is in `issues_owned`, so the page can say single only, volumes only or both) and `also_in`, a list (empty when none) of every OWNED volume, of any PUBLIC title (`items.is_public`), that has a LINKED collects entry (`item_id` = this title, `from_number <= n <= to_number`), as `{slug, label, kind, line_number, title_id, title, same_title}`: one query in `public_issues._also_in` (it needs the volume's kind and title, which `load_holds` does not carry), each volume once, same title first, then title name, `line_number` nulls last, position. A text-only or unlinked entry, an unowned volume and a private title's volume never appear, and the private title's id and name never leak; no skip, intake id, `edited`, `source`, position or collects text is in the body. The links go to `/shelf/<title_id>/<slug>/`. **The compat
   shim** `comics.sync_volumes_from_editions` runs first inside `sync_marks`
-  (every writer of `editions` ends in it) and mirrors `items.editions` into
+  (the one writer of `editions` left is intake's Details step; the item API
+  refuses it, see below) and mirrors `items.editions` into
   the edition-origin (`ed-*`) volumes and their one `migrated` collects row; it
   never touches another slug, never resets `owned` or `read` on an existing
   volume, and writes only what differs. `PATCH /api/comics/volumes/{id}`
@@ -714,8 +716,20 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   deleting or moving any `ed-*` volume, edited or not, also removes its
   entry from the old title's `items.editions` (the entry `edition_slugs` gives
   its slug over the current list; none matching is a no-op), or the shim would
-  recreate it; a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` and the
-  `editions` PATCH keep working until a later PR drops them.
+  recreate it; a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` is
+  gone and the item API takes no `editions` (below).
+  **Editions writers retired (plan `2026-11-18-retire-items-editions-design.md`,
+  PR 3/5):** the item API no longer writes `items.editions`. A non-empty
+  `editions` on `POST /api/items`, `POST /api/items/bulk` or `PATCH
+  /api/items/{id}` is a 422, "editions are retired: add books as volumes" (for
+  one release, to find a forgotten writer); empty or absent is fine. `ItemOut`
+  no longer carries `editions`, and `editions` is out of `items.MARK_FIELDS`.
+  `ItemIn.editions` stays only because intake's commit builds its rows through
+  `ItemIn`: **the one writer left is the intake Details step** (a typed
+  comic entry, with no photographed book behind it, can set its series'
+  `editions` there; the ComicBooks step covers photographed books only). It
+  is removed with the shim in PR 4, once a typed entry has a way to add
+  books. `apply_comic_fields`/`validate_editions` stay for it.
   **Contents parse (#327, PR 5, no migration):** `comic_contents.py` (pure,
   in `test_physical_imports.py`'s purity list) turns a description or reprint
   note into `Entry{series_name, issue_text, year}`. `parse_contents` is rules

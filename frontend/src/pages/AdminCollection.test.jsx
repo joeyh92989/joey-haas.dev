@@ -177,6 +177,25 @@ describe('AdminCollection arriving from the pull list', () => {
     ).toHaveAttribute('href', '/admin/shelf/comics')
   })
 
+  it('has no collected-edition rows on a comic: books are volumes', async () => {
+    stubApi()
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/admin/collection',
+            state: { prefill: { type: 'comic', title: 'Saga' } },
+          },
+        ]}
+      >
+        <AdminCollection />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByLabelText('Single issues I own')).toBeVisible()
+    expect(screen.queryByText('Collected editions')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add an edition' })).toBeNull()
+  })
+
   it('applies a second prefill that arrives while mounted', async () => {
     stubApi()
     function Go() {

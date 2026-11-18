@@ -251,7 +251,9 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained; a
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
-  collected `editions` set in Details count only on a trades or omnibus row
+  collected `editions` set in Details (the last writer of `items.editions`:
+  the item API refuses it since retire-plan PR 3, and a typed entry has no
+  photographed book to become a volume) count only on a trades or omnibus row
   (a singles row writes none, and a stale invalid edition on a row switched
   back to singles is dropped before validation, never refused). They are merged: a new series' row gets every
   such entry's editions, and a series already on the shelf gets them added to
