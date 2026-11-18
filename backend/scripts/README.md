@@ -738,7 +738,11 @@ the `both` title (`public-comic-wall-both.json`, `GET /api/public/items/{id}/iss
 and the shelf's list body `frontend/e2e/fixtures/snapshot/comics.json`
 (`GET /api/public/comics`, one title of each kind, rows built by the real
 `public_comics._row` so `kind`, `volumes_owned` and `volume_numbers` come from
-the backend; the e2e build paints it on `/shelf/comics`).
+the backend; the e2e build paints it on `/shelf/comics`). It also writes the
+issue page bodies `issue.json` (a single and two books, one of another title),
+`issue-single.json` and `issue-volumes.json` (`GET /api/public/items/{id}/issues/{n}`):
+`also_in` comes from the real `public_issues.also_in_rows` and `held_single`
+from `public_issues.held_single`, validated through `PublicIssuePage`.
 The `kind` and the book line's `slots` come from the real `comics.title_kind`
 and `public_comics.volume_slots` run over unattached `ComicVolume` rows (the
 script asserts each title's kind is the one it names), and each body is
@@ -750,5 +754,5 @@ changes, then format the JSON the way `format:check` wants and commit it:
 
 ```sh
 cd backend && ./.venv/bin/python scripts/export_public_comic_fixtures.py
-cd ../frontend && npx prettier --write e2e/fixtures/api/public-comic-*.json e2e/fixtures/snapshot/comics.json
+cd ../frontend && npx prettier --write e2e/fixtures/api e2e/fixtures/snapshot/comics.json
 ```

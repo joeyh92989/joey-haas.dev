@@ -47,7 +47,10 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
 Responses for the two live endpoints the issue and volume pages call,
 `/api/public/items/<id>/issues/<n>` and `.../volumes/<slug>`. The spec
 fulfils them with `page.route`. They mirror the shapes `ComicIssue.jsx` and
-`ComicVolume.jsx` read, and must change with those endpoints. `volume.json`
+`ComicVolume.jsx` read, and must change with those endpoints. `issue.json` (held as a single and in two books, one of another title),
+`issue-single.json` and `issue-volumes.json` come from
+`backend/scripts/export_public_comic_fixtures.py` (the real `also_in_rows`,
+validated through `PublicIssuePage`), and `volume.json`
 was written from the backend's own `PublicVolumePage` model
 (`model_dump_json`), so its keys cannot drift from the real body; regenerate
 it the same way when the model changes. Their series, issue and volume match

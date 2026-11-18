@@ -1,0 +1,46 @@
+{
+  "series_id": "33333333-bbbb-4bbb-8bbb-000000000003",
+  "series_title": "Lantern Tales",
+  "publisher": "Fixture Press",
+  "number": 2,
+  "name": null,
+  "store_date": "2020-01-08",
+  "cover_date": "2020-03-01",
+  "cover_url": null,
+  "large_url": null,
+  "description": ["An invented issue for the test fixture."],
+  "state": "owned",
+  "owned": true,
+  "read": false,
+  "held_single": false,
+  "also_in": [
+    {
+      "slug": "vol-2",
+      "label": "Lantern Tales, Book Two",
+      "kind": "hardcover",
+      "line_number": 2,
+      "title_id": "33333333-bbbb-4bbb-8bbb-000000000003",
+      "title": "Lantern Tales",
+      "same_title": true
+    },
+    {
+      "slug": "vol-1",
+      "label": "Harbor Lights, Book One",
+      "kind": "trade",
+      "line_number": 1,
+      "title_id": "55555555-bbbb-4bbb-8bbb-000000000005",
+      "title": "Harbor Lights",
+      "same_title": false
+    }
+  ],
+  "released": 3,
+  "ongoing": false,
+  "neighbours": [
+    {
+      "number": 2,
+      "cover_url": null,
+      "state": "owned"
+    }
+  ],
+  "source_url": "https://comicvine.gamespot.com/"
+}

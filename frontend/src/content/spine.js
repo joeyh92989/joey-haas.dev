@@ -881,12 +881,19 @@ export const spine = {
       facts: {
         issue: 'Issue',
         inStores: 'In stores',
-        heldAs: 'Held as',
         read: 'Read',
       },
       of: (n, released, ongoing) => `#${n} of ${released}${ongoing ? '+' : ''}`,
       read: { yes: 'Yes', notYet: 'Not yet', none: '—' },
-      inEdition: (label) => `In ${label} →`,
+      /** Under the state: how the issue is held (#332). */
+      alsoIn: {
+        single: 'I have this as a single issue.',
+        volumes: 'Also in:',
+        both: 'I have this as a single issue, and it is also in:',
+        /** Between books; a label may hold a comma. */
+        separator: '; ',
+        other: (label, title) => `${label} (${title})`,
+      },
       noDescription: 'Comic Vine has no description for this issue.',
       more: 'More',
       less: 'Less',

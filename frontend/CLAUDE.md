@@ -157,6 +157,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `/editions/<slug>` endpoint are gone), in the sitemap like items, no
   `/spine` mirror; the owner's write tools are the admin page below) stay on the catch-all, so their prerendered heads
   are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
+  The issue page's "Held" line (#332) reads `held_single` and `also_in` from
+  `/api/public/items/<id>/issues/<n>` (`ComicIssue.jsx`, copy in `spine.comics.issue.alsoIn`): single only, "Also in: ..." or both, each book a link built by `volumePath(title_id, slug)`, a book of another title shown as "label (title)". Its fixtures (`e2e/fixtures/api/issue*.json`) come from `backend/scripts/export_public_comic_fixtures.py`.
   `og:url`, sitemap entry and feed link uses that form, built by
   `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.
   Don't add a slash with a redirect rule: on Render it loops for any path

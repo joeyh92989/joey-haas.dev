@@ -30,6 +30,36 @@ function storedView(row) {
 }
 
 /**
+ * How the issue is held: a single, books, or both. A book of another title
+ * carries that title's name. Nothing when it is neither.
+ *
+ * @param {object} props
+ * @param {boolean} props.single - Held as a single issue.
+ * @param {Array<object>} [props.books] - The owned books that collect it.
+ */
+function AlsoIn({ single, books = [] }) {
+  if (!single && books.length === 0) return null
+  return (
+    <p className="comic-issue-held">
+      {single && books.length === 0 && COPY.alsoIn.single}
+      {single && books.length > 0 && COPY.alsoIn.both}
+      {!single && books.length > 0 && COPY.alsoIn.volumes}
+      {books.map((book, i) => (
+        <span key={`${book.title_id}/${book.slug}`}>
+          {i > 0 && COPY.alsoIn.separator}
+          {i === 0 && ' '}
+          <Link to={volumePath(book.title_id, book.slug)}>
+            {book.same_title
+              ? book.label
+              : COPY.alsoIn.other(book.label, book.title)}
+          </Link>
+        </span>
+      ))}
+    </p>
+  )
+}
+
+/**
  * The public page for one issue: /shelf/<id>/<n>/. Cover, facts,
  * description, the neighbour strip and Comic Vine's attribution; the
  * owner's controls appear only when signed in. A skip is private, so the
@@ -130,6 +160,8 @@ export default function ComicIssue({ id, n }) {
   // The series is in the trail and the title; the kicker names the publisher.
   const kicker = page.publisher
   const upcoming = page.state === 'not-out'
+  // The one book of this title that holds it: the owner's controls name it.
+  const ownTitleBook = page.also_in?.find((book) => book.same_title) ?? null
 
   return (
     <article className="comic-issue">
@@ -183,16 +215,8 @@ export default function ComicIssue({ id, n }) {
           </h1>
           <p className="comic-issue-pills">
             <StatePill state={pill} />
-            {page.edition && (
-              <Link
-                className="state-pill"
-                data-state="book"
-                to={volumePath(page.series_id, page.edition.slug)}
-              >
-                {COPY.inEdition(page.edition.label)}
-              </Link>
-            )}
           </p>
+          <AlsoIn single={page.held_single} books={page.also_in} />
 
           <dl className="comic-issue-facts">
             <dt>{COPY.facts.issue}</dt>
@@ -203,8 +227,6 @@ export default function ComicIssue({ id, n }) {
                 <dd>{formatDate(page.store_date)}</dd>
               </>
             )}
-            <dt>{COPY.facts.heldAs}</dt>
-            <dd>{page.held_as}</dd>
             <dt>{COPY.facts.read}</dt>
             <dd>{readFact}</dd>
           </dl>
@@ -221,7 +243,7 @@ export default function ComicIssue({ id, n }) {
               n={page.number}
               state={page.state}
               stored={stored}
-              edition={page.edition}
+              edition={ownTitleBook}
               onChanged={reload}
             />
           )}

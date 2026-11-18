@@ -7,6 +7,10 @@ Here the kind and the slots come from the real `comics.title_kind` and
 whole body is validated through `PublicItemDetailOut`, so the frontend's tests
 cannot carry a key the API never sends. Run from `backend/`:
 `./.venv/bin/python scripts/export_public_comic_fixtures.py`.
+It also writes the issue page bodies `issue.json` (held as a single and in two
+books, one of another title), `issue-single.json` and `issue-volumes.json`:
+`also_in` comes from the real `public_issues.also_in_rows` and `held_single`
+from `held_single`, and each body is validated through `PublicIssuePage`.
 Writes `frontend/e2e/fixtures/api/public-comic-<kind>.json` (run, book_line,
 single_book, both) and `public-comic-wall-both.json` (the issue wall of the
 `both` title). It also writes `frontend/e2e/fixtures/snapshot/comics.json`,
@@ -38,7 +42,7 @@ from public_comics import (
     series_of,
     volume_slots,
 )
-from public_issues import PublicWall
+from public_issues import PublicIssuePage, PublicWall, also_in_rows, held_single
 
 FIXTURES = Path(__file__).resolve().parents[2] / "frontend/e2e/fixtures"
 OUT = str(FIXTURES / "api") + "/"
@@ -261,3 +265,77 @@ write(
 )
 
 write("comics.json", shelf(), SNAPSHOT)
+
+
+def issue_page(kind, number, books, *, state="owned"):
+    """One issue page body: `books` are (ComicVolume, title name) pairs."""
+    item = shelf_item(kind)
+    for v, _ in books:
+        if v.item_id is None:
+            v.item_id = item.id
+    return PublicIssuePage.model_validate(
+        dict(
+            series_id=IDS[kind],
+            series_title=TITLES[kind],
+            publisher="Fixture Press",
+            number=number,
+            name="First Light" if number == 1 else None,
+            store_date="2020-01-08",
+            cover_date="2020-03-01",
+            cover_url=None,
+            large_url=None,
+            description=["An invented issue for the test fixture."],
+            state=state,
+            owned=True,
+            read=False,
+            held_single=held_single(item, number),
+            also_in=[
+                a.model_dump()
+                for a in also_in_rows(item.id, {v.id: (v, t) for v, t in books})
+            ],
+            released=8 if LOOSE[kind] else 3,
+            ongoing=bool(LOOSE[kind]),
+            neighbours=[dict(number=number, cover_url=None, state=state)],
+            source_url="https://comicvine.gamespot.com/",
+        )
+    )
+
+
+def book(slug, label, line_number, title_kind, kind="trade"):
+    v = volume(slug, label, kind, line_number)
+    v.item_id = uuid.UUID(IDS[title_kind])
+    return v
+
+
+# Paper Moons holds 1-6 as singles. #1 is also in its own Volume One and in a
+# book of another title; #5 is a single only. Lantern Tales holds no singles:
+# its #2 is in two books, one of them Harbor Lights'.
+write(
+    "issue.json",
+    issue_page(
+        "run",
+        1,
+        [
+            (book("ed-1-1", "Volume One", 1, "run"), TITLES["run"]),
+            (
+                book("vol-1", "Harbor Lights, Book One", 1, "both"),
+                TITLES["both"],
+            ),
+        ],
+    ),
+)
+write("issue-single.json", issue_page("run", 5, []))
+write(
+    "issue-volumes.json",
+    issue_page(
+        "book_line",
+        2,
+        [
+            (
+                book("vol-2", "Lantern Tales, Book Two", 2, "book_line", "hardcover"),
+                TITLES["book_line"],
+            ),
+            (book("vol-1", "Harbor Lights, Book One", 1, "both"), TITLES["both"]),
+        ],
+    ),
+)

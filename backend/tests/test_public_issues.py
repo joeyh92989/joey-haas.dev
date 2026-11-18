@@ -28,6 +28,7 @@ from public_issues import (
     PublicComicIndex,
     PublicComicIndexIssue,
     PublicComicIndexVolume,
+    PublicIssueAlsoIn,
     PublicIssuePage,
     PublicVolumeBody,
     PublicVolumeCollect,
@@ -56,8 +57,11 @@ WALL_EDITION_FIELDS = {
 ISSUE_FIELDS = {
     "series_id", "series_title", "publisher", "number", "name", "store_date",
     "cover_date", "cover_url", "large_url", "description", "state", "owned",
-    "read", "held_as",
-    "edition", "released", "ongoing", "neighbours", "source_url",
+    "read", "held_single", "also_in", "released", "ongoing", "neighbours",
+    "source_url",
+}  # fmt: skip
+ALSO_IN_FIELDS = {
+    "slug", "label", "kind", "line_number", "title_id", "title", "same_title",
 }  # fmt: skip
 
 
@@ -294,26 +298,211 @@ async def test_the_issue_page_loads_one_description_and_a_bounded_strip(
     )
 
 
-async def test_issue_page_held_as(sessionmaker_for_test):
+def _issue_path(item_id, n):
+    return f"/api/public/items/{item_id}/issues/{n}"
+
+
+async def _also_in(factory, item_id, n):
+    body = (await _get(factory, _issue_path(item_id, n))).json()
+    return body["held_single"], body["also_in"]
+
+
+async def _link(factory, volume_id, target_id, low, high, position=1):
+    async with factory() as session:
+        session.add(
+            ComicVolumeCollect(
+                volume_id=volume_id,
+                position=position,
+                series_name="Saga",
+                issue_text=f"#{low}-{high}",
+                source="typed",
+                item_id=target_id,
+                from_number=low,
+                to_number=high,
+            )
+        )
+        await session.commit()
+
+
+async def test_issue_page_single_only(sessionmaker_for_test):
     item_id = await _seed(sessionmaker_for_test)
+    assert await _also_in(sessionmaker_for_test, item_id, 1) == (True, [])
+    assert await _also_in(sessionmaker_for_test, item_id, 7) == (False, [])
 
-    async def held(n):
-        body = (
-            await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues/{n}")
-        ).json()
-        return body["held_as"], body["edition"]
 
-    assert await held(1) == ("Single issue", None)
-    assert await held(7) == ("Not owned", None)
-    # 5 is only in the trade; 6 is also a single.
-    assert await held(5) == (
-        "In Volume Two (trade paperback)",
-        {"slug": "ed-5-6", "label": "Volume Two", "kind": "Trade paperback"},
+async def test_issue_page_volume_only_and_both(sessionmaker_for_test):
+    item_id, (vol,) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Volume Two"),
+        issues=(5, 6),
     )
-    assert await held(6) == (
-        "In Volume Two (trade paperback) and as a single, counted once",
-        {"slug": "ed-5-6", "label": "Volume Two", "kind": "Trade paperback"},
+    await _link(sessionmaker_for_test, vol, item_id, 5, 6)
+    # 5 is only in the book; 6 is also a single (issues_owned "1-4, 6").
+    held, also = await _also_in(sessionmaker_for_test, item_id, 5)
+    assert held is False
+    assert also == [
+        {
+            "slug": "vol-1", "label": "Volume Two", "kind": "trade",
+            "line_number": 1, "title_id": str(item_id), "title": "Saga",
+            "same_title": True,
+        }
+    ]  # fmt: skip
+    assert set(also[0]) == ALSO_IN_FIELDS
+    held, also = await _also_in(sessionmaker_for_test, item_id, 6)
+    assert (held, [a["slug"] for a in also]) == (True, ["vol-1"])
+
+
+async def test_the_same_issue_in_two_books_lists_both(sessionmaker_for_test):
+    item_id, (one, two) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Trade"),
+        lambda i: _volume(i, "vol-2", 2, label="Deluxe", kind="hardcover"),
+        issues=(5,),
     )
+    await _link(sessionmaker_for_test, one, item_id, 5, 6)
+    await _link(sessionmaker_for_test, two, item_id, 5, 6)
+    _, also = await _also_in(sessionmaker_for_test, item_id, 5)
+    assert [(a["slug"], a["kind"]) for a in also] == [
+        ("vol-1", "trade"),
+        ("vol-2", "hardcover"),
+    ]
+
+
+async def test_a_volume_of_another_public_title_lists_with_its_title(
+    sessionmaker_for_test,
+):
+    item_id, (own,) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Own book", line_number=None),
+        issues=(5,),
+    )
+    other = _series(title="Absolute Saga")
+    other_id, (far,) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-9", 1, label="Absolute One", line_number=1),
+        item=other,
+        issues=(1,),
+    )
+    await _link(sessionmaker_for_test, own, item_id, 5, 5)
+    await _link(sessionmaker_for_test, far, item_id, 4, 6)
+    _, also = await _also_in(sessionmaker_for_test, item_id, 5)
+    # The page's own title first, then the other title.
+    assert [(a["label"], a["same_title"]) for a in also] == [
+        ("Own book", True),
+        ("Absolute One", False),
+    ]
+    assert also[1]["title"] == "Absolute Saga"
+    assert also[1]["title_id"] == str(other_id)
+    assert also[1]["slug"] == "vol-9"
+
+
+async def test_volumes_are_ordered_by_title_then_line_number_nulls_last(
+    sessionmaker_for_test,
+):
+    item_id, (a, b) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="No number", line_number=None),
+        lambda i: _volume(i, "vol-2", 2, label="Numbered", line_number=3),
+        issues=(5,),
+    )
+    other_id, (c, d) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Zed", line_number=1),
+        lambda i: _volume(i, "vol-2", 2, label="Aye", line_number=1),
+        item=_series(title="Zed Title"),
+        issues=(1,),
+    )
+    third_id, (e,) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Bee", line_number=2),
+        item=_series(title="Alpha Title"),
+        issues=(1,),
+    )
+    for vol in (a, b):
+        await _link(sessionmaker_for_test, vol, item_id, 5, 5)
+    for vol in (c, d, e):
+        await _link(sessionmaker_for_test, vol, item_id, 5, 5)
+    _, also = await _also_in(sessionmaker_for_test, item_id, 5)
+    assert [x["label"] for x in also] == ["Numbered", "No number", "Bee", "Zed", "Aye"]
+
+
+async def test_a_private_title_volume_never_appears_or_leaks(sessionmaker_for_test):
+    item_id, _ = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1), issues=(5,)
+    )
+    hidden_id, (vol,) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1, label="Secret Omnibus"),
+        item=_series(is_public=False, title="Hidden Title"),
+        issues=(1,),
+    )
+    await _link(sessionmaker_for_test, vol, item_id, 5, 5)
+    response = await _get(sessionmaker_for_test, _issue_path(item_id, 5))
+    assert response.json()["also_in"] == []
+    for secret in (str(hidden_id), "Hidden Title", "Secret Omnibus"):
+        assert secret not in response.text
+
+
+async def test_unlinked_and_not_owned_volumes_do_not_appear(sessionmaker_for_test):
+    item_id, (text_only, unowned, linked_other) = await _seed_volumes(
+        sessionmaker_for_test,
+        lambda i: _volume(i, "vol-1", 1),
+        lambda i: _volume(i, "vol-2", 2, owned=False),
+        lambda i: _volume(i, "vol-3", 3),
+        issues=(5,),
+    )
+    async with sessionmaker_for_test() as session:
+        # Text only: the issues are written down, never linked.
+        session.add(
+            ComicVolumeCollect(
+                volume_id=text_only,
+                position=1,
+                series_name="Saga",
+                issue_text="#5",
+                source="typed",
+            )  # fmt: skip
+        )
+        await session.commit()
+    await _link(sessionmaker_for_test, unowned, item_id, 5, 5)
+    await _link(sessionmaker_for_test, linked_other, item_id, 6, 8)  # not 5
+    assert await _also_in(sessionmaker_for_test, item_id, 5) == (False, [])
+
+
+async def test_two_entries_of_one_volume_list_it_once(sessionmaker_for_test):
+    item_id, (vol,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1), issues=(5,)
+    )
+    await _link(sessionmaker_for_test, vol, item_id, 4, 6, position=1)
+    await _link(sessionmaker_for_test, vol, item_id, 5, 5, position=2)
+    _, also = await _also_in(sessionmaker_for_test, item_id, 5)
+    assert [a["slug"] for a in also] == ["vol-1"]
+
+
+async def test_the_also_in_body_has_no_private_keys(sessionmaker_for_test):
+    item_id, (vol,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1), issues=(5,)
+    )
+    await _link(sessionmaker_for_test, vol, item_id, 5, 5)
+    body = (await _get(sessionmaker_for_test, _issue_path(item_id, 5))).json()
+    assert set(PublicIssueAlsoIn.model_fields) == ALSO_IN_FIELDS
+    assert body["also_in"]
+    assert VOLUME_FORBIDDEN.isdisjoint(set(_keys(body)))
+    assert "edition" not in body and "held_as" not in body
+
+
+async def test_also_in_is_one_query(sessionmaker_for_test, statements):
+    item_id, vols = await _seed_volumes(
+        sessionmaker_for_test,
+        *[lambda i, k=k: _volume(i, f"vol-{k}", k) for k in range(1, 5)],
+        issues=(5,),
+    )
+    for vol in vols:
+        await _link(sessionmaker_for_test, vol, item_id, 5, 5)
+    statements.clear()
+    assert (
+        await _get(sessionmaker_for_test, _issue_path(item_id, 5))
+    ).status_code == 200
+    assert len([q for q in statements if "FROM comic_volumes" in q]) == 1
 
 
 async def test_issue_page_owned_without_cv_row(sessionmaker_for_test):
@@ -476,6 +665,12 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
                     row.pop("volumes")
                     row.pop("kind")
                 content = json.dumps(rows).encode()
+            else:
+                # The same mirror makes books that cover 5 and 6: `also_in`
+                # gains them (and only it).
+                page = json.loads(content)
+                page.pop("also_in", None)
+                content = json.dumps(page).encode()
             out.append(content)
         return out
 
@@ -848,6 +1043,9 @@ async def test_volume_keys_dodge_the_smoke_private_keys(sessionmaker_for_test):
     bodies = [
         (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).text,
         (await _get(sessionmaker_for_test, "/api/public/comic-issues")).text,
+        (
+            await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues/1")
+        ).text,
     ]
     for text in bodies:
         assert private.search(text) is None, private.search(text)
@@ -860,6 +1058,8 @@ async def test_volume_keys_dodge_the_smoke_private_keys(sessionmaker_for_test):
         | set(PublicVolumeLink.model_fields)
         | set(PublicVolumeNeighbour.model_fields)
         | set(PublicComicIndexVolume.model_fields)
+        | set(PublicIssuePage.model_fields)
+        | set(PublicIssueAlsoIn.model_fields)
     )
     assert not [f for f in fields if private.search(f'"{f}":')]
 
