@@ -10,6 +10,7 @@ caller can show. Policy and the reasons for these choices:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from typing import Literal
@@ -22,14 +23,22 @@ from spot_sources.limits import NOMINATIM_USER_AGENT
 logger = logging.getLogger(__name__)
 
 SEARCH_URL = "https://nominatim.openstreetmap.org/search"
+# httpx's timeout applies per phase (connect, write, read), not to the whole
+# call, so it alone does not bound a search.
 REQUEST_TIMEOUT_SECONDS = 6.0
+# One deadline over the throttle wait AND the request. Intake wraps each
+# source in an 8 s asyncio.wait_for (intake/search.py); staying just under it
+# means a queued search returns the typed `timeout` failure instead of being
+# cancelled from outside and shown as "busy".
+TOTAL_TIMEOUT_SECONDS = 7.0
 RESULT_LIMIT = 5
 # Denver, as a boost only (never bounded=1): left, top, right, bottom as
 # lng/lat pairs.
 DENVER_VIEWBOX = "-105.35,39.95,-104.60,39.55"
-# Policy maximum is 1 request per second; a little over it.
+# Spaces request starts; policy maximum is 1 request per second, so a little over it.
 _throttle = Throttle(1.1)
 
+# Why a search failed; the caller branches on this, `message` is for display.
 FailureReason = Literal["timeout", "http_error", "bad_response", "empty_query"]
 
 
@@ -66,6 +75,7 @@ class SearchFailure:
     ok: Literal[False] = False
 
 
+# What `search` returns: check `.ok`, or isinstance, to tell the two apart.
 SearchResult = SearchOk | SearchFailure
 
 
@@ -111,6 +121,18 @@ async def search(client: httpx2.AsyncClient, query: str) -> SearchResult:
     query = query.strip()
     if not query:
         return SearchFailure("empty_query", "Type a place to search for.")
+    try:
+        # A search cancelled while waiting for the throttle never sets its
+        # slot (Throttle sets it after the wait) and releases the lock.
+        async with asyncio.timeout(TOTAL_TIMEOUT_SECONDS):
+            return await _search(client, query)
+    except TimeoutError:
+        logger.warning("nominatim search %r: deadline passed", query)
+        return SearchFailure("timeout", "The place search took too long.")
+
+
+async def _search(client: httpx2.AsyncClient, query: str) -> SearchResult:
+    """The throttled request behind `search`, with no overall deadline."""
     await _throttle.wait()
     params = {
         "q": query,
