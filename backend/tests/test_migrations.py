@@ -60,8 +60,9 @@ def _diff_against_models(connection) -> list:
     """Autogenerate's view of how the live schema differs from the models."""
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
-    # The models no longer carry items.editions (its drop is a later
-    # migration), so a schema that still has the column is not drift.
+    # The models no longer carry items.editions (dropped by 0025), so every
+    # revision below 0025 still has it: not drift. The 0025 tests check the
+    # column's absence directly.
     return [
         entry
         for entry in diff
@@ -1901,3 +1902,94 @@ async def test_0024_downgrade_deletes_places_sittings_and_their_entries(
     assert entries == 0
     up = _alembic("upgrade", "0024")  # the label stayed, IF NOT EXISTS copes
     assert up.returncode == 0, up.stderr
+
+
+# --- Revision 0025: drop items.editions. -------------------------------------
+
+
+def _editions_column_exists(connection) -> object:
+    return connection.scalar(
+        text(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_name = 'items' AND column_name = 'editions'"
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_0025_drops_the_editions_column_and_matches_the_models(clean_database):
+    assert _alembic("upgrade", "0024").returncode == 0
+    async with clean_database.connect() as connection:
+        assert await _editions_column_exists(connection) == "jsonb"
+    result = _alembic("upgrade", "0025")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        assert await _editions_column_exists(connection) is None
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0025_downgrade_readds_the_column_rebuilt_from_owned_volumes(
+    clean_database,
+):
+    assert _alembic("upgrade", "0024").returncode == 0
+    async with clean_database.begin() as connection:
+        for title in ("Saga", "Plain"):
+            await connection.execute(
+                text(
+                    "INSERT INTO items (id, type, title, status) VALUES "
+                    "(gen_random_uuid(), 'comic', :t, 'backlog')"
+                ),
+                {"t": title},
+            )
+        saga = await connection.scalar(text("SELECT id FROM items WHERE title='Saga'"))
+        volumes = (
+            ("ed-1-6", 0, "Book One", "TPB", "trade", True, 1, 6),
+            ("ed-7-12", 1, "Book Two", None, "hardcover", True, 7, 12),
+            ("ed-13-18", 2, "Not owned", "Trade", "trade", False, 13, 18),
+            ("vol-1", 3, "Typed later", None, "trade", True, 1, 2),
+        )
+        for slug, pos, label, raw, kind, owned, low, high in volumes:
+            volume = await connection.scalar(
+                text(
+                    "INSERT INTO comic_volumes (id, item_id, position, slug, label, "
+                    "kind, kind_raw, owned) VALUES (gen_random_uuid(), :i, :p, :s, "
+                    ":l, :k, :r, :o) RETURNING id"
+                ),
+                {
+                    "i": saga,
+                    "p": pos,
+                    "s": slug,
+                    "l": label,
+                    "k": kind,
+                    "r": raw,
+                    "o": owned,
+                },
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO comic_volume_collects (id, volume_id, position, "
+                    "series_name, issue_text, source, item_id, from_number, "
+                    "to_number) VALUES (gen_random_uuid(), :v, 0, 'Saga', 'x', "
+                    "'migrated', :i, :f, :t)"
+                ),
+                {"v": volume, "i": saga, "f": low, "t": high},
+            )
+    assert _alembic("upgrade", "0025").returncode == 0
+    result = _alembic("downgrade", "0024")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        assert await _editions_column_exists(connection) == "jsonb"
+        rebuilt = await connection.scalar(
+            text("SELECT editions FROM items WHERE title = 'Saga'")
+        )
+        plain = await connection.scalar(
+            text("SELECT editions FROM items WHERE title = 'Plain'")
+        )
+    assert rebuilt == [
+        {"kind": "TPB", "label": "Book One", "from": 1, "to": 6},
+        {"kind": "Hardcover", "label": "Book Two", "from": 7, "to": 12},
+    ]
+    assert plain is None
+    assert _alembic("upgrade", "0025").returncode == 0
