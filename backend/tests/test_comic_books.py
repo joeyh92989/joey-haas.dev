@@ -330,3 +330,83 @@ def test_an_edit_to_the_reprint_note_is_checked_and_an_absent_one_is_kept():
         with pytest.raises(BookEditError) as caught:
             edit_book(old, {"reprint_note": bad})
         assert caught.value.field == "reprint_note"
+
+
+# --- Five volume kinds and the number in the line (#328) -------------------
+
+VOLUME_KINDS = ("trade", "hardcover", "omnibus", "compendium", "ogn")
+
+
+@pytest.mark.parametrize("kind", VOLUME_KINDS)
+def test_every_volume_kind_is_an_edition_kind(kind):
+    assert edit_book({}, {"format": "collected", "edition_kind": kind})[
+        "edition_kind"
+    ] == (kind)
+
+
+@pytest.mark.parametrize("kind", ["zine", "Trade", "", None, 5, "graphic novel"])
+def test_other_edition_kinds_are_refused_with_a_field(kind):
+    with pytest.raises(BookEditError) as caught:
+        edit_book({}, {"edition_kind": kind})
+    assert caught.value.field == "edition_kind"
+
+
+def test_the_edition_kinds_are_exactly_the_volume_kinds():
+    from comics_schemas import VolumeKind
+    from intake.comic_books import EDITION_KINDS
+    from models import ComicVolume
+
+    assert set(EDITION_KINDS) == set(VolumeKind.__args__) == set(VOLUME_KINDS)
+    check = next(
+        c.sqltext.text
+        for c in ComicVolume.__table__.constraints
+        if getattr(c, "name", None) == "comic_volumes_kind"
+    )
+    assert all(f"'{kind}'" in check for kind in VOLUME_KINDS)
+
+
+def test_the_reader_schema_and_prompt_offer_the_five_kinds():
+    item = COMIC_DETECTION_SCHEMA["properties"]["books"]["items"]
+    assert item["properties"]["edition_kind"] == {
+        "type": "string",
+        "enum": list(VOLUME_KINDS),
+    }
+    assert "edition_kind" not in item["required"]
+    for word in ("edition_kind", "compendium", "original graphic novel"):
+        assert word in COMIC_EXTRACTION_PROMPT
+
+
+def test_a_read_edition_kind_is_kept_and_anything_else_is_a_trade():
+    answer = {
+        "books": [
+            {"series": "A", "issue_number_seen": False, "format": "collected",
+             "edition_kind": "ogn"},
+            {"series": "B", "issue_number_seen": False, "format": "collected",
+             "edition_kind": "zine"},
+            {"series": "C", "issue_number_seen": False, "format": "collected"},
+            {"series": "D", "issue_number_seen": True, "format": "single",
+             "issue_number": "3", "edition_kind": "omnibus"},
+        ]
+    }  # fmt: skip
+    kinds = [book.edition_kind for book in parse_books(answer)]
+    assert kinds == ["ogn", "trade", "trade", None]
+
+
+def test_the_line_number_is_a_whole_number_or_nothing():
+    assert edit_book({}, {"line_number": 4})["line_number"] == 4
+    assert edit_book({}, {"line_number": "12"})["line_number"] == 12
+    assert edit_book({}, {"line_number": 9999})["line_number"] == 9999
+    for clear in (None, "", "  "):
+        assert (
+            edit_book({"line_number": 3}, {"line_number": clear})["line_number"] is None
+        )
+    for bad in (0, -1, 10000, 1.5, True, "x", "²", ["1"], "1" * 7):
+        with pytest.raises(BookEditError) as caught:
+            edit_book({}, {"line_number": bad})
+        assert caught.value.field == "line_number"
+
+
+def test_an_absent_line_number_is_kept_like_the_reprint_note():
+    old = {"format": "collected", "line_number": 2}
+    assert edit_book(old, {"format": "collected"})["line_number"] == 2
+    assert "line_number" not in edit_book({}, {"format": "collected"})

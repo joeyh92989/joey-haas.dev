@@ -14,10 +14,11 @@ from __future__ import annotations
 from typing import Any
 
 from comics import MAX_ISSUE, RangeError, parse_ranges
-from importer import MAX_REPRINT_NOTE
+from importer import COMIC_EDITION_KINDS, MAX_REPRINT_NOTE
 
 FORMATS = ("single", "collected", "unknown")
-EDITION_KINDS = ("trade", "omnibus", "hardcover")
+# The five kinds of volume (`comic_volumes.kind`).
+EDITION_KINDS = COMIC_EDITION_KINDS
 SOURCES = ("read", "typed", "none")
 
 NUMBER_STATES = ("in_run", "out_of_run", "read", "typed", "none")
@@ -133,7 +134,9 @@ def edit_book(old: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]
         raise BookEditError("A book is a single, collected or unknown.", "format")
     if "edition_kind" in new and new["edition_kind"] not in EDITION_KINDS:
         raise BookEditError(
-            "An edition is a trade, omnibus or hardcover.", "edition_kind"
+            "A book is a trade, hardcover, omnibus, compendium or original "
+            "graphic novel.",
+            "edition_kind",
         )
     if "reprint_note" in new:
         # Read off the book by the server; an edit is checked, not trusted.
@@ -148,6 +151,13 @@ def edit_book(old: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]
         out["reprint_note"] = note.strip()
     elif old.get("reprint_note"):
         out["reprint_note"] = old["reprint_note"]  # a payload sent without it
+    if "line_number" in new:
+        # The book's number in its line, typed at Check; blank clears.
+        out["line_number"] = _whole(
+            new["line_number"], "line_number", "The number in the line"
+        )
+    elif old.get("line_number") is not None:
+        out["line_number"] = old["line_number"]  # a payload sent without it
     if "collects_from" in new or "collects_to" in new:
         low = _whole(new.get("collects_from"), "collects_from", "The first issue")
         high = _whole(new.get("collects_to"), "collects_to", "The last issue")

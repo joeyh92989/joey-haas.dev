@@ -181,7 +181,7 @@ def _book_payload(detection: Detection) -> dict[str, Any]:
     if detection.format == "collected":
         book["collects_from"] = detection.collects_from
         book["collects_to"] = detection.collects_to
-        book["edition_kind"] = "trade"
+        book["edition_kind"] = detection.edition_kind or "trade"
         if detection.reprint_note:
             book["reprint_note"] = detection.reprint_note
     return book
