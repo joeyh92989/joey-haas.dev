@@ -13684,6 +13684,14 @@ a.btn.sm {
   font-size: var(--fs-13);
 }
 
+/* The global `a` rule draws no underline until hover; a link beside text
+   must not rest on colour alone, so these keep the one the mockup draws. */
+.place-maplink {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
 .place-result-kind {
   color: var(--text-3);
   font-size: var(--fs-12);
@@ -13770,6 +13778,7 @@ a.btn.sm {
   color: var(--text);
   font-size: var(--fs-18);
   font-weight: 600;
+  line-height: 1.65; /* the body's, as the mockup's heading has it */
   margin: 0;
 }
 
