@@ -46,6 +46,7 @@ from sqlalchemy import delete, func, select, text, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import spots
 from closet_routes import GarmentFields, apply_garment_fields
 from comics import (
     RangeError,
@@ -291,7 +292,9 @@ def _place_fields(entry: IntakeEntry) -> dict[str, Any] | "Refusal":
         source_id = chosen["source_id"]
     city = owner.get("city", DEFAULT_CITY)
     is_public = owner.get("is_public", False)
-    if is_public and city.lower() != DEFAULT_CITY:
+    try:
+        spots.check_public_city(city, is_public)
+    except ValueError:
         return Refusal(entry.id, "is_public", PLACE_NOT_DENVER)
     return {
         "name": name,

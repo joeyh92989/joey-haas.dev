@@ -31,7 +31,7 @@ from spot_sources.nominatim import PlaceHit, SearchFailure
 logger = logging.getLogger(__name__)
 
 ATTRIBUTION = "Search by OpenStreetMap contributors"
-DEFAULT_CITY = "denver"
+DEFAULT_CITY = spots.DENVER
 # Builds the client a search uses; tests swap it.
 http_client: Callable[[], httpx2.AsyncClient] = httpx2.AsyncClient
 
@@ -141,7 +141,11 @@ def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
         if key == "name":
             out[key] = clean_name(value)
         elif key == "city":
-            out[key] = (_text(value, CITY_MAX, "city") or DEFAULT_CITY).lower()
+            # A lone omitted or blank city stays Denver (the page's "Another
+            # city" field relies on it); anything else goes through the one
+            # city rule.
+            text = _text(value, CITY_MAX, "city")
+            out[key] = spots.normalize_city(text) if text else DEFAULT_CITY
         elif key == "blurb":
             out[key] = _text(value, BLURB_MAX, "blurb")
         elif key == "neighbourhood":

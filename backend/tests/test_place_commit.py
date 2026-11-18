@@ -434,3 +434,32 @@ async def test_a_bad_stored_latitude_is_refused_under_coords_not_source_id(
         done = await client.post(f"/api/intake/sittings/{sid}/commit")
     assert done.status_code == 422
     assert [r["field"] for r in done.json()["refused"]] == ["coords"]
+
+
+@pytest.mark.asyncio
+async def test_the_commit_stores_the_normalised_city_and_keeps_the_old_refusal(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = (await new_sitting(client)).json()
+        await typed(
+            client,
+            sitting["id"],
+            "Pearl cafe",
+            "40.01, -105.27",
+            city="  Boulder ",
+            is_public=True,
+        )
+        done = await client.post(f"/api/intake/sittings/{sitting['id']}/commit")
+        assert done.status_code == 422
+        assert (
+            done.json()["refused"][0]["message"] == "Only a Denver place can be public"
+        )
+        sitting = (await new_sitting(client)).json()
+        await typed(
+            client, sitting["id"], "Pearl cafe", "40.01, -105.27", city="  Boulder "
+        )
+        done = await client.post(f"/api/intake/sittings/{sitting['id']}/commit")
+    assert done.status_code == 200
+    [spot] = await spots_in(sessionmaker_for_test)
+    assert spot.city == "boulder"

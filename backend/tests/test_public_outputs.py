@@ -51,6 +51,7 @@ from public_outputs import (
     PublicSummaryOut,
     PublicTonight,
     PublicTonightCard,
+    load_public_spots,
 )
 from recommendations_routes import create_recommendations_router
 
@@ -1680,3 +1681,22 @@ async def test_tonights_comic_progress_counts_read_marks(sessionmaker_for_test):
     tonight = (await _next(sessionmaker_for_test))["tonight"]
     (comic,) = tonight["read_next"]
     assert comic["progress"]["read"] == 5
+
+
+async def test_only_denver_spots_are_public_whatever_the_stored_case(
+    sessionmaker_for_test,
+):
+    """A published Boulder spot is not on /denver; a legacy "Denver" row is."""
+    await _add(
+        sessionmaker_for_test,
+        _spot("Boulder cafe", city="boulder"),
+        _spot("Legacy cafe", city="Denver"),
+        _spot("Plain cafe", city="denver"),
+    )
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert sorted(row["name"] for row in body) == ["Legacy cafe", "Plain cafe"]
+    async with sessionmaker_for_test() as session:
+        loaded = await load_public_spots(session)
+    assert sorted(row.name for row in loaded) == ["Legacy cafe", "Plain cafe"]

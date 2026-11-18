@@ -536,8 +536,10 @@ entry.
    chosen result. The entry is never trusted. A refusal names the entry and the
    field and the whole commit is a 422 that writes nothing.
 2. The public rule: `is_public` with a city other than Denver is refused
-   (`PLACE_NOT_DENVER`), since the public `/denver` page is Denver only until
-   #343. The page disables the toggle, and the server enforces it.
+   (`PLACE_NOT_DENVER`, via `spots.check_public_city`), since the public
+   `/denver` page is Denver only. The city is stored through
+   `spots.normalize_city`; a blank one stays Denver. The page disables the
+   toggle, and the server enforces it.
 3. Then `lock_place_commits` takes `pg_advisory_xact_lock(7243000002)` for the
    rest of the transaction (`PLACE_COMMIT_LOCK_KEY`). A second commit waits,
    and its duplicate check, a new statement under READ COMMITTED, sees the

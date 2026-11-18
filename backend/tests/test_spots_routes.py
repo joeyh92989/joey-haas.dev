@@ -223,3 +223,93 @@ async def test_status_reports_each_job_or_null(sessionmaker_for_test):
         "candidates.last_run": {"new": 9, "status": "ok"},
         "weather.last_run": None,
     }
+
+
+# --- city (story #343) ---------------------------------------------------------
+
+
+async def _stored_city(factory, spot_id):
+    async with factory() as session:
+        return (await session.get(Spot, spot_id)).city
+
+
+async def test_a_spot_with_no_city_is_denver_and_spellings_are_one_city(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        plain = await client.post("/api/spots", json=SLOANS)
+        one = await client.post("/api/spots", json={**SLOANS, "city": "Denver"})
+        two = await client.post("/api/spots", json={**SLOANS, "city": " DENVER "})
+    assert [r.json()["city"] for r in (plain, one, two)] == ["denver"] * 3
+
+
+async def test_a_private_boulder_spot_is_stored_lower_case(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/spots", json={**SLOANS, "city": "Boulder"})
+    assert made.status_code == 201
+    assert made.json()["city"] == "boulder"
+    assert await _stored_city(sessionmaker_for_test, made.json()["id"]) == "boulder"
+
+
+@pytest.mark.parametrize("city", ["", "   "])
+async def test_a_blank_city_is_a_422_not_denver(sessionmaker_for_test, city):
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/spots", json={**SLOANS, "city": city})
+    assert made.status_code == 422
+    assert made.json()["detail"] == "A city is required."
+
+
+async def test_a_public_spot_outside_denver_is_a_422_on_create(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post(
+            "/api/spots", json={**SLOANS, "city": "Boulder", "is_public": True}
+        )
+        listed = await client.get("/api/spots")
+    assert made.status_code == 422
+    assert made.json()["detail"] == "A public place has to be in Denver."
+    assert listed.json() == []
+
+
+async def test_publishing_a_boulder_spot_is_a_422(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/spots", json={**SLOANS, "city": "Boulder"})
+        ).json()
+        url = f"/api/spots/{made['id']}"
+        refused = await client.patch(url, json={"is_public": True})
+        both_ok = await client.patch(url, json={"city": "Denver", "is_public": True})
+    assert refused.status_code == 422
+    assert refused.json()["detail"] == "A public place has to be in Denver."
+    assert await _stored_city(sessionmaker_for_test, made["id"]) == "denver"
+    assert both_ok.status_code == 200 and both_ok.json()["is_public"] is True
+
+
+async def test_moving_a_public_spot_away_from_denver_needs_it_private(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/spots", json={**SLOANS, "is_public": True})
+        ).json()
+        url = f"/api/spots/{made['id']}"
+        refused = await client.patch(url, json={"city": "Boulder"})
+        assert refused.status_code == 422
+        assert await _stored_city(sessionmaker_for_test, made["id"]) == "denver"
+        moved = await client.patch(url, json={"city": "Boulder", "is_public": False})
+    assert moved.status_code == 200
+    assert (moved.json()["city"], moved.json()["is_public"]) == ("boulder", False)
+
+
+async def test_a_city_patch_normalises_and_a_blank_one_is_refused(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        made = (
+            await client.post("/api/spots", json={**SLOANS, "city": "Boulder"})
+        ).json()
+        url = f"/api/spots/{made['id']}"
+        blank = await client.patch(url, json={"city": " "})
+        null = await client.patch(url, json={"city": None})
+        back = await client.patch(url, json={"city": "denver "})
+    assert blank.status_code == 422 and null.status_code == 422
+    assert back.status_code == 200 and back.json()["city"] == "denver"
