@@ -155,3 +155,21 @@ It makes three requests, one per case, at least 1.1 s apart, sending
 `NOMINATIM_USER_AGENT`. It needs the network and nothing else. Re-record when
 the search parameters change or Nominatim's answer shape does, then run
 `./.venv/bin/pytest tests/test_nominatim.py`.
+
+## Map links (`map_links.py`)
+
+The reader behind the paste way (story #342): `read_line(text)` classifies one
+pasted line as a position with an optional name, a name to search, a short
+link or a line that is too long. It reads Google Maps links (`google.com` and
+`www.google.com` under `/maps`, `maps.google.com`), OpenStreetMap links
+(`openstreetmap.org`, `www.openstreetmap.org`) and recognises the short hosts
+`maps.app.goo.gl`, `goo.gl` and `g.co` (`/maps` only). **A short link is never
+fetched**: it is reported as a short link and the owner types the name.
+Positions come from `!3d..!4d..`, `@lat,lng`, `?q=`, `?query=`, `?ll=`,
+`mlat`/`mlon` and the `map=z/lat/lng` fragment, and are range-checked.
+Caps: a line over 300 characters is read as too long unless it is a known
+map URL, which may be up to 2,000; a name is at most 200. `clean_line` and
+`clean_name` remove control and format characters and collapse whitespace.
+The module is pure (no network, database or FastAPI import; a test in
+`tests/test_map_links.py` bans them by name). Details of the entries it
+feeds: `intake/README.md`, "Paste a list".

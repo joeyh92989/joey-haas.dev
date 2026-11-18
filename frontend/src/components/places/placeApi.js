@@ -4,8 +4,8 @@ import { placesAdd as words } from '../../content/placesAdd.js'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 /**
- * One call to the intake API, as `call` in pages/PlacesAdd.jsx makes it (a
- * second copy, so the paste way imports no page). Resolves `{ok: true,
+ * One call to the intake API, shared by the paste way and pages/PlacesAdd.jsx
+ * (`SpotsAddBar.jsx` still has its own copy). Resolves `{ok: true,
  * data}`, or `{ok: false, status, message}` in the server's words: a 409
  * here is intake's own conflict, a commit refusal (422) says
  * `refused[0].message`, and `status` 0 means the server did not answer.

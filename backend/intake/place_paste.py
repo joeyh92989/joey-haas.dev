@@ -28,6 +28,7 @@ Entry states (the line kind or outcome decides; the client never does):
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import uuid
 import weakref
@@ -125,14 +126,26 @@ def _key(text: str) -> str:
     return " ".join(text.split()).casefold()
 
 
+def _line_key(line: str) -> str:
+    """The duplicate key of a whole line. A line longer than the stored
+    `source_line` is keyed by a hash, so the stored and the pasted side agree."""
+    key = _key(line)
+    if len(key) <= MAX_SOURCE_LINE:
+        return key
+    return "sha1:" + hashlib.sha1(key.encode()).hexdigest()
+
+
 def _base_payload(line: str) -> dict[str, Any]:
     """The owner's fields of a typed place (empty tags and blurb, private)."""
-    return {
+    payload = {
         **clean_fields(
             {"city": DEFAULT_CITY, "tags": [], "blurb": None, "is_public": False}
         ),
         "source_line": line[:MAX_SOURCE_LINE],
     }
+    if len(line) > MAX_SOURCE_LINE:
+        payload["source_key"] = _line_key(line)
+    return payload
 
 
 def entry_for_line(
@@ -166,7 +179,7 @@ def _held_keys(held: list[IntakeEntry]) -> set[str]:
     keys: set[str] = set()
     for entry in held:
         payload = entry.payload or {}
-        for field in ("source_line", "name"):
+        for field in ("source_line", "name", "source_key"):
             value = payload.get(field)
             if isinstance(value, str) and value.strip():
                 keys.add(_key(value))
@@ -331,7 +344,7 @@ def register_paste_routes(
         duplicates = split.duplicates
         fresh: list[str] = []
         for line in split.lines:
-            if _key(line) in known:
+            if _line_key(line) in known:
                 duplicates += 1
             else:
                 fresh.append(line)

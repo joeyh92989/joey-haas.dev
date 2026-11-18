@@ -235,6 +235,21 @@ async def test_pasting_the_same_lines_twice_makes_no_duplicates(sessionmaker_for
 
 
 @pytest.mark.asyncio
+async def test_the_same_long_url_in_two_pastes_makes_one_entry(sessionmaker_for_test):
+    url = "https://www.google.com/maps/place/Long/@39.7,-104.9,17z/data=" + "a" * 450
+    assert len(url) > place_paste.MAX_SOURCE_LINE
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        first = (await paste(client, sitting, url)).json()
+        again = (await paste(client, sitting, url)).json()
+        other = (await paste(client, sitting, url[:-1] + "b")).json()
+    assert first["added"] == 1
+    assert (again["added"], again["duplicates"]) == (0, 1)
+    assert other["added"] == 1
+    assert len(await entries_of(sessionmaker_for_test, sitting)) == 2
+
+
+@pytest.mark.asyncio
 async def test_entries_keep_the_pasted_order(sessionmaker_for_test):
     names = [f"stop {i}" for i in range(30)]
     async with client_for(sessionmaker_for_test) as client:

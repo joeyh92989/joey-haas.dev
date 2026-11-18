@@ -1,3 +1,6 @@
+import { mkdir, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
 import { ADMIN_AREAS } from '../src/components/adminAreas.js'
@@ -427,4 +430,181 @@ test('spots add bar: several results offer Add by hand, which carries the typed 
   await expect(form).toHaveValue(name)
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(form).toHaveCount(0)
+})
+
+// --- Paste a list (story #342) ------------------------------------------------
+// Real backend and database, no stubs. A coordinate link and a short link are
+// read without any search, so Nominatim is never reached. The desktop and the
+// phone project share one database, and the page offers to continue the newest
+// pasted list, so the two cases of both projects take one lock between them.
+
+const LOCK_DIR = join(tmpdir(), 'joey-haas-e2e-paste-lock')
+
+async function takeLock() {
+  for (let tries = 0; tries < 240; tries += 1) {
+    try {
+      await mkdir(LOCK_DIR)
+      return
+    } catch {
+      // Held by the other project; a lock older than two minutes is a crash.
+      try {
+        const { mtimeMs } = await stat(LOCK_DIR)
+        if (Date.now() - mtimeMs > 120000)
+          await rm(LOCK_DIR, { recursive: true })
+      } catch {
+        // Released in between: try again at once.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+  }
+  throw new Error('The paste cases could not take their lock')
+}
+
+const releaseLock = () => rm(LOCK_DIR, { recursive: true, force: true })
+
+// Every open places sitting that came from a paste (its entries carry
+// `source_line`): what a failed earlier run could have left behind.
+async function pastedSittings(page) {
+  const list = await page.request.get('/api/intake/sittings?area=places')
+  if (!list.ok()) return []
+  const found = []
+  for (const sitting of await list.json()) {
+    const detail = await page.request.get(`/api/intake/sittings/${sitting.id}`)
+    if (!detail.ok()) continue
+    const { entries } = await detail.json()
+    if (entries.some((e) => typeof e.payload?.source_line === 'string')) {
+      found.push(sitting.id)
+    }
+  }
+  return found
+}
+
+async function dropPastedSittings(page) {
+  for (const id of await pastedSittings(page)) {
+    await page.request.delete(`/api/intake/sittings/${id}`)
+  }
+}
+
+async function deleteSpotsNamed(page, names) {
+  const list = await page.request.get('/api/spots')
+  if (!list.ok()) return
+  for (const spot of (await list.json()).filter((s) =>
+    names.includes(s.name),
+  )) {
+    await page.request.delete(`/api/spots/${spot.id}`)
+  }
+}
+
+async function openPasteWay(page) {
+  await page.goto('/admin/places/add')
+  await page.getByRole('button', { name: 'Paste a list' }).click()
+}
+
+test('paste a list: coordinate links are ready, a short link waits for a name, and Save puts the ready ones in as private spots', async ({
+  page,
+}, testInfo) => {
+  const stamp = `${testInfo.project.name} ${Date.now()}`
+  const first = `E2E Paste Alpha ${stamp}`
+  const second = `E2E Paste Beta ${stamp}`
+  // Coordinates in the open country east of Denver, a little apart per
+  // project; the names are what make each spot unique.
+  const shift = testInfo.project.name === 'phone' ? 0.05 : 0
+  const lines = [
+    `https://www.google.com/maps/place/${first.replaceAll(' ', '+')}/@${(39.7 + shift).toFixed(4)},-104.9000,17z`,
+    `https://www.google.com/maps/place/${second.replaceAll(' ', '+')}/data=!3d${(39.71 + shift).toFixed(4)}!4d-104.9100`,
+    'https://maps.app.goo.gl/abc123',
+  ]
+  await takeLock()
+  try {
+    await dropPastedSittings(page)
+    await openPasteWay(page)
+    await page.getByLabel('Places, one per line').fill(lines.join('\n'))
+    await page.getByRole('button', { name: 'Add lines' }).click()
+
+    await expect(page.getByText('3 lines added.')).toBeVisible()
+    const readyGroup = page.getByRole('region', { name: 'Ready' })
+    await expect(
+      readyGroup.locator('.place-result-title', { hasText: first }),
+    ).toBeVisible()
+    await expect(
+      readyGroup.locator('.place-result-title', { hasText: second }),
+    ).toBeVisible()
+    const checkGroup = page.getByRole('region', { name: 'To check' })
+    await expect(
+      checkGroup.getByText('Short link, could not be read.'),
+    ).toBeVisible()
+    await checkGroup.getByRole('button', { name: /Type the name/ }).click()
+    await expect(checkGroup.getByLabel('Place name')).toBeVisible()
+    if (testInfo.project.name === 'phone') {
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(1)
+    }
+
+    await page.getByRole('button', { name: 'Save 2 places' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Saved 2 places' }),
+    ).toBeVisible()
+    await expect(page.getByText('1 still to check.')).toBeVisible()
+
+    const list = await page.request.get('/api/spots')
+    expect(list.ok()).toBe(true)
+    const spots = (await list.json()).filter((s) =>
+      [first, second].includes(s.name),
+    )
+    expect(spots.map((s) => s.name).sort()).toEqual([first, second].sort())
+    for (const spot of spots) expect(spot.is_public).toBe(false)
+  } finally {
+    await deleteSpotsNamed(page, [first, second])
+    await dropPastedSittings(page)
+    await releaseLock()
+  }
+})
+
+test('paste a list: continue your list after a reload, then start a new one', async ({
+  page,
+}, testInfo) => {
+  const stamp = `${testInfo.project.name} ${Date.now()}`
+  const name = `E2E Paste Resume ${stamp}`
+  const shift = testInfo.project.name === 'phone' ? 0.05 : 0
+  const lines = [
+    'https://maps.app.goo.gl/abc123',
+    `https://www.google.com/maps/place/${name.replaceAll(' ', '+')}/@${(39.72 + shift).toFixed(4)},-104.9200,17z`,
+  ]
+  await takeLock()
+  try {
+    await dropPastedSittings(page)
+    await openPasteWay(page)
+    await page.getByLabel('Places, one per line').fill(lines.join('\n'))
+    await page.getByRole('button', { name: 'Add lines' }).click()
+    await expect(page.getByText('2 lines added.')).toBeVisible()
+    expect(await pastedSittings(page)).toHaveLength(1)
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Paste a list' }).click()
+    await expect(
+      page.getByRole('button', { name: 'Continue your list (2 lines)' }),
+    ).toBeVisible()
+    await page
+      .getByRole('button', { name: 'Continue your list (2 lines)' })
+      .click()
+    await expect(
+      page.locator('.place-result-title', { hasText: name }),
+    ).toBeVisible()
+    await expect(page.getByText('Short link, could not be read.')).toBeVisible()
+
+    // Start over: reload, then the inline confirm deletes the old list.
+    await page.reload()
+    await page.getByRole('button', { name: 'Paste a list' }).click()
+    await page.getByRole('button', { name: 'Start a new list' }).click()
+    await page.getByRole('button', { name: 'Discard the old list' }).click()
+    await expect(page.getByLabel('Places, one per line')).toBeVisible()
+    expect(await pastedSittings(page)).toHaveLength(0)
+  } finally {
+    await dropPastedSittings(page)
+    await releaseLock()
+  }
 })

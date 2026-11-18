@@ -1285,14 +1285,10 @@ describe('PastePlaces: fix round 1', () => {
       name: 'Added this visit',
     })
     const items = within(added).getAllByRole('listitem')
-    expect(items.map((li) => li.textContent)).toEqual(
-      [
-        expect.stringContaining('39.1000, -105.1000'),
-        expect.stringContaining('39.9000, -105.9000'),
-      ]
-        .reverse()
-        .reverse(),
-    )
+    expect(items.map((li) => li.textContent)).toEqual([
+      expect.stringContaining('39.1000, -105.1000'),
+      expect.stringContaining('39.9000, -105.9000'),
+    ])
     expect(within(items[0]).getByText('Saved, private')).toBeInTheDocument()
     expect(within(items[1]).getByText('Saved, public')).toBeInTheDocument()
   })
