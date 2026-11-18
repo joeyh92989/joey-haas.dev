@@ -48,3 +48,25 @@ test('Books and Single issues filter the shelf and are tappable', async ({
     expect(box.height).toBeGreaterThanOrEqual(44)
   }
 })
+
+test('the figures row counts books, missing volumes and issues read', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  await openRoute('/shelf/comics', 'light')
+  const tiles = page.locator('.stat-tiles')
+  // The fixture's stats are the backend's own sums over its four titles:
+  // 7 books, 1 volume missing (Lantern Tales has Vol. 1, 2 and 4) and 4
+  // issues read.
+  const tile = (label) => tiles.locator('.stat-tile').filter({ hasText: label })
+  await expect(tile('Books owned')).toContainText('7')
+  await expect(tile('Volumes missing')).toContainText('1')
+  await expect(tile('Issues read')).toContainText('4')
+  await expect(tile('Share read')).toContainText('40%')
+  // Set E2E_SHOT_DIR to save the figures row (the review shots).
+  if (process.env.E2E_SHOT_DIR) {
+    await tiles.screenshot({
+      path: `${process.env.E2E_SHOT_DIR}/comics-figures-${testInfo.project.name}.png`,
+    })
+  }
+})

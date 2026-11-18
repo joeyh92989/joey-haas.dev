@@ -138,6 +138,17 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
     const shelfCard = page.locator('.poster-card').filter({ hasText: title })
     await expect(shelfCard).toContainText('Single book')
     await expect(shelfCard).toContainText('Vol. 1')
+    // The figures row counts it (#333): the book is one of the books owned,
+    // and Issues read is there beside the Share read tile.
+    const tiles = page.getByRole('group', { name: 'Comic totals' })
+    await expect(tiles.getByText('Books owned', { exact: true })).toBeVisible()
+    await expect(tiles.getByText('Issues read', { exact: true })).toBeVisible()
+    await expect(tiles.getByText('Share read', { exact: true })).toBeVisible()
+    if (process.env.E2E_SHOT_DIR) {
+      await tiles.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/admin-comics-figures-${testInfo.project.name}.png`,
+      })
+    }
     await page.goto(`/admin/shelf/comics/${id}/vol-1`)
     await expect(
       page.getByRole('heading', { level: 1, name: 'Deluxe One' }),
