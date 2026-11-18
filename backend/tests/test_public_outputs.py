@@ -1558,6 +1558,34 @@ async def test_no_spots_is_an_empty_list(sessionmaker_for_test):
     assert await _spots(sessionmaker_for_test) == []
 
 
+async def test_a_place_spot_leaks_no_place_or_intake_field(sessionmaker_for_test):
+    """A spot written by the place commit (source osm, a source_id) is public
+    only through the same fields as any other: no source, source_id, city,
+    owned flag or intake key."""
+    from models import CandidateSource
+
+    shown = _spot(
+        "Red Rocks",
+        source=CandidateSource.OSM,
+        source_id="way/229359697",
+        city="denver",
+    )
+    hidden = _spot("Boulder cafe", is_public=False, city="boulder")
+    await _add(sessionmaker_for_test, shown, hidden)
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert [row["name"] for row in body] == ["Red Rocks"]
+    assert set(body[0]) == SPOT_FIELDS
+    assert set(PublicSpot.model_fields) == SPOT_FIELDS
+    text = json.dumps(body)
+    for leaked in (
+        "source", "source_id", "way/229359697", "owned_spot_id", "city",
+        "map_url", "attribution", "intake", "is_public", "anchor",
+    ):  # fmt: skip
+        assert leaked not in text
+
+
 # --- /api/public/stats?type= (shelf split) -------------------------------
 
 STATS_FIELDS = {

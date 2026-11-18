@@ -1,0 +1,46 @@
+{
+ "query": "Red Rocks Amphitheatre Morrison",
+ "params": {
+  "q": "Red Rocks Amphitheatre Morrison",
+  "format": "jsonv2",
+  "addressdetails": "1",
+  "limit": "5",
+  "countrycodes": "us"
+ },
+ "recorded": "2026-11-17",
+ "results": [
+  {
+   "place_id": 331839566,
+   "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+   "osm_type": "way",
+   "osm_id": 229359697,
+   "lat": "39.6653917",
+   "lon": "-105.2057171",
+   "category": "amenity",
+   "type": "theatre",
+   "place_rank": 30,
+   "importance": 0.4331140649681303,
+   "addresstype": "amenity",
+   "name": "Red Rocks Amphitheatre",
+   "display_name": "Red Rocks Amphitheatre, 18300, West Alameda Parkway, Morrison, Jefferson County, Colorado, 80465, United States",
+   "address": {
+    "amenity": "Red Rocks Amphitheatre",
+    "house_number": "18300",
+    "road": "West Alameda Parkway",
+    "village": "Morrison",
+    "county": "Jefferson County",
+    "state": "Colorado",
+    "ISO3166-2-lvl4": "US-CO",
+    "postcode": "80465",
+    "country": "United States",
+    "country_code": "us"
+   },
+   "boundingbox": [
+    "39.6650427",
+    "39.6657334",
+    "-105.2062504",
+    "-105.2051735"
+   ]
+  }
+ ]
+}

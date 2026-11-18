@@ -54,7 +54,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Figure | `StatTile` (`StatTiles` for a row) | Every number shown as a figure, public and admin. |
 | Filter row | `FilterChips` with `labelled` | Every chip row has a visible label naming what it filters, on both sides. A row whose chips would match nothing is not drawn (`FilterChips` hides a group of one; a type with no rows gets no chip). |
 | State pill | `StatePill` | A thing's state in words and colour: owned, read, missing, not out, skipped, and the play statuses. One pill per state, the same words everywhere (`content/spine.js`). |
-| Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. No page writes its own empty box or `*-empty` class (`designConsistency.test.js`). |
+| Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. More than one next step is `actions` (buttons under the text). No page writes its own empty box or `*-empty` class (`designConsistency.test.js`). |
 | Load error | `LoadState` | A failed read says so in the shared words (`content/status.js`) with Try again; a stale but painted page says it quietly. A bare `{LOAD_ERROR}` paragraph is refused, and every `admin-error` is a `role="alert"` (`designConsistency.test.js`). |
 | Dialog | `Sheet` | The one modal (CLAUDE.md), and the only `role="dialog"`: the card action sheet on touch renders through it. A non-modal panel, such as the inline add drawer, is a labelled `aside`, not a dialog. |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
@@ -303,6 +303,7 @@ it up).
 | `/admin/store-list` | Store list | tool | live |
 | `/admin/closet`, `/today`, `/review`, `/profile`, `/add`, `/:id` | Closet | tool, detail | live (admin only) |
 | `/admin/weekend`, `/admin/spots` | Weekend, Spots | tool | live (admin only) |
+| `/admin/places/add` | Add a place | tool | live (admin only) |
 | `/admin/analytics` | Analytics | tool | live |
 | `*`, `/admin/*` | Not found | prose | live |
 | — | Board games (BGG source) | — | parked: BGG needs a registered app (#14) |
