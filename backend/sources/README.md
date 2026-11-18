@@ -82,6 +82,7 @@ only those rows.
 | IGDB | `game` | Twitch client-credentials token, cached | 4 req/s | Working |
 | ComicVine | `comic` | `api_key` query param | ~1 req/s | Working |
 | BGG | `boardgame` | Registered app + token | — | **Blocked** |
+| Open Library | none (ISBN lookup) | none | 1 req/s | Working, see below |
 
 ### TMDB — `TMDB_API_TOKEN`
 
@@ -198,6 +199,44 @@ parser: paragraphs only, tables and scripts dropped). Probe and fixtures:
 
 Strictly non-commercial; a personal portfolio qualifies. **A link back to Comic
 Vine is required** where its data is shown.
+
+### Open Library — ISBN lookup, no key
+
+`sources/openlibrary.py`, for the intake's ISBN box and barcode scan (story
+#336). **Not a `SourceAdapter`**: it answers "what is this ISBN", not "find a
+title", so it has no item type and is not in the registry; `intake/isbn_route.py`
+calls `lookup(isbn)` directly. Comic Vine has no ISBN field on anything; Google
+Books needs a key; ISBNdb is paid; WorldCat Classify is retired.
+
+`GET https://openlibrary.org/api/books?bibkeys=ISBN:<isbn13>&jscmd=data&format=json`.
+Confirmed live (2026-11-18, fixtures recorded with curl):
+
+- The answer is an object keyed `ISBN:<isbn13>`; **a book Open Library does not
+  have is `{}` with a 200**, never a 404, so a miss is `lookup` returning `None`.
+- It has `title`, `subtitle`, `publishers[].name`, `publish_date` (free text:
+  read the four-digit year), `number_of_pages` and `cover.{small,medium,large}`.
+  **No series and no volume number**: "Volume One" arrives in the subtitle, so
+  `parse_volume_number` reads "Volume One", "Vol. 2", "Book Three" (and
+  nothing else, never a guess). Open Library data is also uneven: a random valid
+  ISBN usually exists, with whatever a contributor typed.
+- `normalize_isbn` runs first: hyphens and spaces dropped, ISBN-10 (with `X`)
+  checked and converted to 13, ISBN-13 must start 978/979 and pass its check
+  digit. A bad code raises `InvalidIsbn` and no request is made.
+- Rate limit 1 request a second, 3 with an identifying `User-Agent`
+  (https://openlibrary.org/developers/api): `USER_AGENT` names joey-haas.dev,
+  and the adapter throttles at 1 a second. `TIMEOUT` is 10 s.
+- Errors: 429 is `SourceRateLimited`, a timeout, dropped connection or 5xx is
+  `SourceUnavailable`, anything else `SourceError`. The route turns all of
+  them into `found: false` with a `reason`.
+- **Covers are linked, never copied** (the Internet Archive asserts no
+  proprietary rights over the data, https://openlibrary.org/developers/licensing,
+  but a hot-linked image is the lighter choice); only bibliographic facts are
+  kept.
+
+Fixtures: `tests/fixtures/openlibrary_saga.json` (9781607066019) and
+`openlibrary_miss.json` (`{}`, recorded for 9789999999995) are real; the 429,
+timeout and 5xx cases in `tests/test_sources_openlibrary.py` are hand-written
+fakes of the HTTP client and say so.
 
 ### BGG — blocked
 
