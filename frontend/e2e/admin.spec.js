@@ -132,6 +132,17 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
       page.getByRole('heading', { level: 1, name: 'Deluxe One' }),
     ).toBeVisible()
 
+    // The admin shelf says the title's kind and its volume (#331), from the
+    // real API: one owned numbered book and no issues is a single book.
+    await page.goto('/admin/shelf/comics')
+    const shelfCard = page.locator('.poster-card').filter({ hasText: title })
+    await expect(shelfCard).toContainText('Single book')
+    await expect(shelfCard).toContainText('Vol. 1')
+    await page.goto(`/admin/shelf/comics/${id}/vol-1`)
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Deluxe One' }),
+    ).toBeVisible()
+
     await page.getByRole('button', { name: 'Add entry' }).click()
     await page.getByLabel('Series as printed').fill('E2E Saga')
     await page.getByLabel('Issues as printed').fill('#1-6')

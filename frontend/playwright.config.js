@@ -15,6 +15,7 @@ export default defineConfig({
     'smoke.spec.js',
     'a11y.spec.js',
     'dynamic.spec.js',
+    'comics-shelf.spec.js',
     'verify.spec.js',
   ],
   forbidOnly: !!process.env.CI,
