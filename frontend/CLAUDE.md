@@ -370,14 +370,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `been` for one or more, `null` for an anchor; `stateCounts`); no column, no
   route, no backend field. The "Show" select (All places, Want (n), Been (n)) sits
   beside the City filter, shows while the loaded spots hold at least one
-  non-anchor, is page state, and a Want or Been pick hides anchors. Its counts
+  non-anchor (a pick whose places have all gone counts as All places, like the
+  City filter), is page state, and a Want or Been pick hides anchors. Its counts
   are taken after the text and City filters, so they equal the rows under any
   combination. Each non-anchor row has a muted line under the name (`.spots-state`:
-  "Want", or "Been, <date>"), so a phone sees it too; never a column. The Log a
-  visit update bumps `visit_count`, so a row leaves Want live. "Show in table"
-  (and a save the filter would hide) clears the text, City and state filters
-  together when any of them hides the row. A finder candidate is not a spot and
-  never appears here.
+  "Want", or "Been"; "Been, <date>" only on a phone, where the Last visit column
+  is hidden, so a screen reader hears the date once); never a column. Log a visit
+  bumps `visit_count`, so a row leaves a Want pick live, by design. One helper,
+  `revealRow`, serves every path that puts a row on the page (Show in table, a
+  by-hand save, the add bar's save, a finder accept): when the text, City or
+  state filter hides the row, all three clear. A finder candidate is not a spot
+  and never appears here.
 - **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
   with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`
   (pure), the shared `call` in `placeApi.js` and the `paste` group of

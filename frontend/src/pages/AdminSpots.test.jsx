@@ -88,6 +88,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  // A test that stubs scrollIntoView never leaks it, even when it fails.
+  delete Element.prototype.scrollIntoView
   vi.useRealTimers()
   vi.unstubAllGlobals()
   media.phone = false
@@ -1046,6 +1048,22 @@ describe('AdminSpots add bar (story #341)', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('clears a Show filter that would hide the place the bar saved', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    const show = screen.getByRole('combobox', { name: 'Show' })
+    await user.selectOptions(show, 'been')
+    expect(rowNames()).toEqual(['Corvus Coffee'])
+    await addRocks(user)
+    const row = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+    expect(within(row).getByText('New')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Show' })).toHaveValue('')
+  })
+
   // Horizontal overflow at phone width cannot be measured in jsdom; it is
   // left to the screenshot review.
 })
@@ -1282,7 +1300,8 @@ describe('AdminSpots want and been states (story #345)', () => {
     api(MIX)
     render(<AdminSpots />)
     await screen.findByRole('table')
-    expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
+    // On desktop the Last visit column holds the date, so it is said once.
+    expect(marker('a')).toHaveTextContent(/^Been$/)
     expect(marker('c')).toHaveTextContent(/^Want$/)
     expect(marker('b')).toBeNull()
     expect(
@@ -1290,7 +1309,8 @@ describe('AdminSpots want and been states (story #345)', () => {
     ).toBeInTheDocument()
   })
 
-  it('says just Been when the last visit is missing', async () => {
+  it('says just Been when the last visit is missing, even on a phone', async () => {
+    media.phone = true
     api([spot('a', 'No Date', { visit_count: 2, last_visit: null })])
     render(<AdminSpots />)
     await screen.findByRole('table')
@@ -1303,6 +1323,7 @@ describe('AdminSpots want and been states (story #345)', () => {
     render(<AdminSpots />)
     await screen.findByRole('table')
     expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
+    expect(screen.queryByText('Last visit')).toBeNull()
   })
 
   it('hides anchors under Want and Been and shows them under All places', async () => {
@@ -1388,7 +1409,10 @@ describe('AdminSpots want and been states (story #345)', () => {
     expect(calls.some((c) => c.path === '/api/spots/c/visits')).toBe(true)
     await user.selectOptions(showBox(), 'been')
     expect(rowNames()).toContain("Sloan's Lake")
-    expect(marker('c')).toHaveTextContent('Been, November 9, 2026')
+    expect(marker('c')).toHaveTextContent(/^Been$/)
+    expect(
+      within(document.getElementById('spot-c')).getByText('November 9, 2026'),
+    ).toBeInTheDocument()
   })
 
   it('never lists a finder candidate that is not a spot', async () => {
@@ -1410,6 +1434,84 @@ describe('AdminSpots want and been states (story #345)', () => {
     expect(
       within(screen.getByRole('table')).queryByText('Candidate Cafe'),
     ).toBeNull()
+  })
+
+  it('does not trap the user on a pick whose places are all gone', async () => {
+    let reads = 0
+    stubApi({
+      'GET /api/spots': () => {
+        reads += 1
+        return json(reads === 1 ? MIX : [MIX[1]])
+      },
+    })
+    const fetchBefore = globalThis.fetch
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url).replace(/^.*\/api/, '/api')
+        if (path.startsWith('/api/intake/search')) {
+          return json({
+            results: [
+              {
+                kind: 'place',
+                external_source: 'osm',
+                external_id: 'way/1',
+                source_id: 'way/1',
+                title: 'Red Rocks',
+                address: 'x',
+                category: 'Amphitheatre',
+                lat: 39.6,
+                lng: -105.2,
+                map_url: 'https://www.openstreetmap.org/way/1',
+                owned_spot_id: null,
+              },
+            ],
+            sources: [],
+          })
+        }
+        if (path === '/api/intake/add' && options.method === 'POST') {
+          return json({ spots_new: [{ id: 'zz', name: 'Red Rocks' }] }, 201)
+        }
+        return fetchBefore(url, options)
+      }),
+    )
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.selectOptions(showBox(), 'want')
+    await user.type(
+      screen.getByLabelText('Add a place by name'),
+      'rocks{Enter}',
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await waitFor(() => expect(reads).toBe(2))
+    await waitFor(() =>
+      expect(screen.queryByRole('combobox', { name: 'Show' })).toBeNull(),
+    )
+    expect(rowNames()).toEqual(['Home'])
+    expect(screen.queryByText('No spot matches that search.')).toBeNull()
+  })
+
+  it('a save clears the text filter that no longer matches the saved row', async () => {
+    stubApi({
+      'GET /api/spots': () => json(MIX),
+      'PATCH /api/spots/d': () => json(spot('d', 'Walk', { city: 'boulder' })),
+    })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    const search = screen.getByRole('searchbox', { name: 'Search spots' })
+    await user.type(search, 'pearl')
+    await user.click(
+      screen.getByRole('button', { name: 'Edit Pearl Street Walk' }),
+    )
+    const form = screen.getByRole('form')
+    const name = within(form).getByLabelText('Name')
+    await user.clear(name)
+    await user.type(name, 'Walk')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(rowNames()).toContain('Walk'))
+    expect(search).toHaveValue('')
   })
 
   describe('Show in table clears all three filters', () => {

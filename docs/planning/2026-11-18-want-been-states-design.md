@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: ui (small, frontend only)
 mode: auto
 ---
@@ -76,3 +76,7 @@ One task, Sonnet, frontend only.
    one with a visit is Been with the latest date; filter counts agree with the rows with and without the
    text and City filters; marking a spot Been moves it out of Want live; Show in table clears all
    filters; no inline strings (copy scan green); existing tests pass; 400 px no horizontal scroll.
+
+## Known limits
+
+Month and year outings are not distinguished in the Been line yet (SpotOut has no precision; the history stories handle it). Log a visit under a Want or Been pick moves the row out of the filter by design.

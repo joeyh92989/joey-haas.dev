@@ -10122,7 +10122,7 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-13);
   font-weight: 400;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .spots-counts {

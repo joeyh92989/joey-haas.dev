@@ -52,6 +52,17 @@ async function fetchSpots() {
   }
 }
 
+/**
+ * The words of a row's want/been line. The date rides along only where the
+ * Last visit column is hidden (phone), so a screen reader hears it once.
+ */
+function stateText(state, spot, phone) {
+  if (state === 'want') return denver.admin.want
+  return phone && spot.last_visit
+    ? denver.admin.beenOn(formatDate(spot.last_visit))
+    : denver.admin.been
+}
+
 /** Whether a spot matches the search: its name, neighbourhood or a tag. */
 function matches(spot, query) {
   const q = query.trim().toLowerCase()
@@ -125,13 +136,15 @@ export default function AdminSpots() {
   // Resolves true when the list was refreshed. A read that began before a
   // row write landed is dropped and run once more, so the older answer
   // cannot undo the newer write; a second stale read counts as a failure.
-  async function rereadSpots() {
+  async function rereadSpots(revealId) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const start = writeSeq.current
       const result = await fetchSpots()
       if (!result.spots) return false
       if (writeSeq.current === start) {
         setSpots(result.spots)
+        const row = revealId && result.spots.find((s) => s.id === revealId)
+        if (row) revealRow(row)
         return true
       }
     }
@@ -157,17 +170,39 @@ export default function AdminSpots() {
   )
   const states = useMemo(() => stateCounts(afterTextCity), [afterTextCity])
   // Shown while the catalogue holds at least one place that is not an anchor.
-  const hasStates = useMemo(
-    () => (spots ?? []).some((spot) => spotState(spot) !== null),
-    [spots],
-  )
+  const catalogueStates = useMemo(() => stateCounts(spots), [spots])
+  const hasStates = catalogueStates.want + catalogueStates.been > 0
+  // A pick whose places have all gone counts as All places.
+  const stateFilter = hasStates ? statePick : ''
   const shown = useMemo(
     () =>
-      statePick
-        ? afterTextCity.filter((spot) => spotState(spot) === statePick)
+      stateFilter
+        ? afterTextCity.filter((spot) => spotState(spot) === stateFilter)
         : afterTextCity,
-    [afterTextCity, statePick],
+    [afterTextCity, stateFilter],
   )
+  // The filters as they are now, for code that runs after an await.
+  const filtersNow = useRef({})
+  useEffect(() => {
+    filtersNow.current = { query, cityFilter, stateFilter }
+  })
+
+  // One rule for every path that puts a row on the page (a save, an accept,
+  // Show in table): when the text, City or state filter hides it, all three
+  // clear, so the row is never saved out of sight.
+  function revealRow(row) {
+    const now = filtersNow.current
+    if (
+      !matches(row, now.query ?? '') ||
+      (now.cityFilter && spotCity(row) !== now.cityFilter) ||
+      (now.stateFilter && spotState(row) !== now.stateFilter)
+    ) {
+      setQuery('')
+      setCityPick('')
+      setStatePick('')
+    }
+  }
+
   // The cities already on saved spots, offered beside Denver; the bar's
   // short fixed list stands until a spot outside Denver exists.
   const cityKeys = useMemo(() => citiesFrom(spots), [spots])
@@ -221,16 +256,8 @@ export default function AdminSpots() {
     }
     const row = list.find((spot) => spot.id === id)
     if (!row) return
-    // A row any filter hides clears all three.
-    if (
-      !matches(row, query) ||
-      (cityFilter && spotCity(row) !== cityFilter) ||
-      (statePick && spotState(row) !== statePick)
-    ) {
-      setQuery('')
-      setCityPick('')
-      setStatePick('')
-    }
+    // The list just set above is not in the ref yet; the filters are.
+    revealRow(row)
     setMarkedId(id)
     pendingShow.current = id
     setShowTick((n) => n + 1)
@@ -241,7 +268,7 @@ export default function AdminSpots() {
     setError(null)
     setNewId(id)
     setMarkedId(id)
-    const ok = await rereadSpots()
+    const ok = await rereadSpots(id)
     setRefreshFailed(!ok)
   }
 
@@ -277,9 +304,8 @@ export default function AdminSpots() {
       setMarkedId(null)
     }
     replace(spot)
-    // A city the active filter hides would make the saved row vanish.
-    if (cityFilter && spotCity(spot) !== cityFilter) setCityPick('')
-    if (statePick && spotState(spot) !== statePick) setStatePick('')
+    // A filter that hides the saved row would make it vanish.
+    revealRow(spot)
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
@@ -416,7 +442,7 @@ export default function AdminSpots() {
 
       <div className="finder-layout">
         <SpotFinder
-          onAccepted={rereadSpots}
+          onAccepted={(id) => rereadSpots(id)}
           onRestored={(id) => {
             writeSeq.current += 1
             setSpots((current) =>
@@ -479,7 +505,7 @@ export default function AdminSpots() {
                   <label className="spots-city-filter">
                     <span>{denver.admin.stateFilter}</span>
                     <select
-                      value={statePick}
+                      value={stateFilter}
                       onChange={(event) => setStatePick(event.target.value)}
                     >
                       <option value="">{denver.admin.allPlaces}</option>
@@ -523,100 +549,99 @@ export default function AdminSpots() {
                       </tr>
                     </thead>
                     <tbody>
-                      {shown.map((spot) => (
-                        <tr
-                          key={spot.id}
-                          id={`spot-${spot.id}`}
-                          tabIndex={-1}
-                          className={
-                            spot.id === markedId ? 'is-marked' : undefined
-                          }
-                        >
-                          <th scope="row" className="spots-name">
-                            {spot.id === newId && (
-                              <span className="spots-new">
-                                {denver.admin.newMark}
-                              </span>
-                            )}
-                            <span className="spots-name-text">{spot.name}</span>
-                            {spot.anchor && (
-                              <span className="spots-anchor">
-                                {adminCopy.spots.anchor}
-                              </span>
-                            )}
-                            {spot.neighbourhood && (
-                              <span className="spots-hood">
-                                {spot.neighbourhood}
-                              </span>
-                            )}
-                            {showCity(spot) && (
-                              <span className="spots-city">
-                                {cityLabel(spotCity(spot))}
-                              </span>
-                            )}
-                            {spotState(spot) && (
-                              <span className="spots-state">
-                                {spotState(spot) === 'want'
-                                  ? denver.admin.want
-                                  : spot.last_visit
-                                    ? denver.admin.beenOn(
-                                        formatDate(spot.last_visit),
-                                      )
-                                    : denver.admin.been}
-                              </span>
-                            )}
-                          </th>
-                          <td>
-                            <ul className="spots-tags">
-                              {spot.tags.map((tag) => (
-                                <li key={tag}>{tagLabel(tag)}</li>
-                              ))}
-                            </ul>
-                          </td>
-                          {!phone && (
-                            <td className="spots-visit">
-                              {spot.last_visit
-                                ? formatDate(spot.last_visit)
-                                : '—'}
-                              {spot.visit_count > 1 && (
-                                <span className="spots-hood">
-                                  {spot.visit_count} visits
+                      {shown.map((spot) => {
+                        const state = spotState(spot)
+                        return (
+                          <tr
+                            key={spot.id}
+                            id={`spot-${spot.id}`}
+                            tabIndex={-1}
+                            className={
+                              spot.id === markedId ? 'is-marked' : undefined
+                            }
+                          >
+                            <th scope="row" className="spots-name">
+                              {spot.id === newId && (
+                                <span className="spots-new">
+                                  {denver.admin.newMark}
                                 </span>
                               )}
+                              <span className="spots-name-text">
+                                {spot.name}
+                              </span>
+                              {spot.anchor && (
+                                <span className="spots-anchor">
+                                  {adminCopy.spots.anchor}
+                                </span>
+                              )}
+                              {spot.neighbourhood && (
+                                <span className="spots-hood">
+                                  {spot.neighbourhood}
+                                </span>
+                              )}
+                              {showCity(spot) && (
+                                <span className="spots-city">
+                                  {cityLabel(spotCity(spot))}
+                                </span>
+                              )}
+                              {state && (
+                                <span className="spots-state">
+                                  {stateText(state, spot, phone)}
+                                </span>
+                              )}
+                            </th>
+                            <td>
+                              <ul className="spots-tags">
+                                {spot.tags.map((tag) => (
+                                  <li key={tag}>{tagLabel(tag)}</li>
+                                ))}
+                              </ul>
                             </td>
-                          )}
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={spot.is_public}
-                              disabled={
-                                busy.has(spot.id) ||
-                                (!spot.is_public &&
-                                  spotCity(spot) !== HOME_CITY)
-                              }
-                              onChange={() => togglePublic(spot)}
-                              aria-label={`Public: ${spot.name}`}
-                            />
-                          </td>
-                          <td className="spots-actions">
-                            <button
-                              type="button"
-                              onClick={(event) => openForm(event, spot)}
-                              aria-label={`Edit ${spot.name}`}
-                            >
-                              {adminCopy.spots.edit}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => logVisit(spot)}
-                              disabled={busy.has(spot.id)}
-                              aria-label={`Log a visit to ${spot.name}`}
-                            >
-                              {adminCopy.spots.logVisit}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            {!phone && (
+                              <td className="spots-visit">
+                                {spot.last_visit
+                                  ? formatDate(spot.last_visit)
+                                  : '—'}
+                                {spot.visit_count > 1 && (
+                                  <span className="spots-hood">
+                                    {spot.visit_count} visits
+                                  </span>
+                                )}
+                              </td>
+                            )}
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={spot.is_public}
+                                disabled={
+                                  busy.has(spot.id) ||
+                                  (!spot.is_public &&
+                                    spotCity(spot) !== HOME_CITY)
+                                }
+                                onChange={() => togglePublic(spot)}
+                                aria-label={`Public: ${spot.name}`}
+                              />
+                            </td>
+                            <td className="spots-actions">
+                              <button
+                                type="button"
+                                onClick={(event) => openForm(event, spot)}
+                                aria-label={`Edit ${spot.name}`}
+                              >
+                                {adminCopy.spots.edit}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => logVisit(spot)}
+                                disabled={busy.has(spot.id)}
+                                aria-label={`Log a visit to ${spot.name}`}
+                              >
+                                {adminCopy.spots.logVisit}
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
