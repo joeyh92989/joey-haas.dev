@@ -1,0 +1,109 @@
+{
+  "id": "33333333-bbbb-4bbb-8bbb-000000000003",
+  "type": "comic",
+  "title": "Lantern Tales",
+  "year": 2020,
+  "creator": "Fixture Press",
+  "cover_url": null,
+  "status": "active",
+  "rating": null,
+  "favorite": false,
+  "finished_at": null,
+  "genres": [],
+  "tags": [],
+  "community_score": null,
+  "platforms": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "wanted": false,
+  "release_date": null,
+  "platform": null,
+  "physical_format": null,
+  "disc_format": null,
+  "completeness": null,
+  "time_to_beat_hours": null,
+  "pinned": false,
+  "playing_since": null,
+  "paused_on": null,
+  "finishes": [],
+  "times_completed": 0,
+  "last_played_on": null,
+  "description": "An invented comic for the test fixture.",
+  "community_votes": null,
+  "started_at": null,
+  "similar_in_collection": [],
+  "themes": [],
+  "time_to_beat": null,
+  "comic": {
+    "publisher": "Fixture Press",
+    "owned_text": "",
+    "released": 0,
+    "ongoing": false,
+    "run_state": "unrecorded",
+    "missing": 0,
+    "segments": [],
+    "read_to": null,
+    "read": 0,
+    "status": "active",
+    "caught_up": false,
+    "read_next": null,
+    "issue_count": null,
+    "editions": [],
+    "next_issue": null,
+    "shelf_format": "trades",
+    "as_of": null,
+    "kind": "book_line",
+    "volumes": [
+      {
+        "slug": "vol-1",
+        "label": "Lantern Tales, Book One",
+        "kind": "hardcover",
+        "line_number": 1,
+        "cover_url": null,
+        "read": true
+      },
+      {
+        "slug": "vol-2",
+        "label": "Lantern Tales, Book Two",
+        "kind": "hardcover",
+        "line_number": 2,
+        "cover_url": null,
+        "read": false
+      },
+      {
+        "slug": "vol-4",
+        "label": "Lantern Tales, Book Four",
+        "kind": "hardcover",
+        "line_number": 4,
+        "cover_url": null,
+        "read": false
+      },
+      {
+        "slug": "vol-5",
+        "label": "Lantern Tales: Origins",
+        "kind": "ogn",
+        "line_number": null,
+        "cover_url": null,
+        "read": false
+      }
+    ],
+    "volumes_owned": 4,
+    "slots": [
+      {
+        "number": 1,
+        "slug": "vol-1"
+      },
+      {
+        "number": 2,
+        "slug": "vol-2"
+      },
+      {
+        "number": 3,
+        "slug": null
+      },
+      {
+        "number": 4,
+        "slug": "vol-4"
+      }
+    ]
+  }
+}

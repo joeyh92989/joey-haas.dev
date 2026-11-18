@@ -908,5 +908,59 @@
         "tag": "sci-fi"
       }
     ]
+  },
+  {
+    "type": "comic",
+    "id": "33333333-bbbb-4bbb-8bbb-000000000003",
+    "title": "Lantern Tales",
+    "creator": "Fixture Press",
+    "status": "active",
+    "rating": null,
+    "favorite": false,
+    "wanted": false,
+    "year": 2020,
+    "genres": [],
+    "cover_url": null,
+    "description": "An invented comic title for the test fixture.",
+    "finished_at": null,
+    "finishes": [],
+    "times_completed": 0,
+    "tags": []
+  },
+  {
+    "type": "comic",
+    "id": "44444444-bbbb-4bbb-8bbb-000000000004",
+    "title": "Salt Road",
+    "creator": "Fixture Press",
+    "status": "active",
+    "rating": null,
+    "favorite": false,
+    "wanted": false,
+    "year": 2020,
+    "genres": [],
+    "cover_url": null,
+    "description": "An invented comic title for the test fixture.",
+    "finished_at": null,
+    "finishes": [],
+    "times_completed": 0,
+    "tags": []
+  },
+  {
+    "type": "comic",
+    "id": "55555555-bbbb-4bbb-8bbb-000000000005",
+    "title": "Harbor Lights",
+    "creator": "Fixture Press",
+    "status": "active",
+    "rating": null,
+    "favorite": false,
+    "wanted": false,
+    "year": 2020,
+    "genres": [],
+    "cover_url": null,
+    "description": "An invented comic title for the test fixture.",
+    "finished_at": null,
+    "finishes": [],
+    "times_completed": 0,
+    "tags": []
   }
 ]

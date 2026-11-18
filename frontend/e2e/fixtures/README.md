@@ -21,14 +21,16 @@ mkdir -p public/snapshot && cp e2e/fixtures/snapshot/*.json public/snapshot/
 VITE_DAILY_SALT=ci npm run build && npm run e2e
 ```
 
-- `items.json` has 32 items, each with a few `tags` (the Games page's tag
+- `items.json` has 35 items, each with a few `tags` (the Games page's tag
   chips read them): one finished game (gives the year and month
-  pages), one comic series, and 30 filler games. The prerender refuses a
+  pages), four comic titles (a run, a line of books, a single book and a title
+  of both: `Paper Moons`, `Lantern Tales`, `Salt Road`, `Harbor Lights`), and 30
+  filler games. The prerender refuses a
   build when fewer than 30 games are eligible for the daily puzzle
   (`MIN_POOL` in `src/lib/daily.js`).
 - `stats.json` carries the full shape `Games.jsx` reads, not just the
   fields the shape check requires.
-- `comic-issues.json` feeds the issue and volume pages' heads; its
+- `comic-issues.json` (rows carry `kind`, which the link-preview text reads) feeds the issue and volume pages' heads; its
   `volumes` mirror `PublicComicIndexVolume` (the old `ed-1-1` edition is also
   the volume `ed-1-1`).
 - Shapes mirror `SNAPSHOTS` in `scripts/fetch-snapshot.mjs`.
@@ -59,3 +61,16 @@ invented data through the real response models in `comics_schemas.py`, so a
 key the API does not send cannot be hand-written here. Rerun it when one of
 those models changes, then `npx prettier --write e2e/fixtures/api`.
 `e2e/admin.spec.js` covers the same page against a real backend.
+
+### Public title bodies
+
+`public-comic-run.json`, `-book_line.json`, `-single_book.json` and `-both.json`
+(`GET /api/public/items/<id>`) and `public-comic-wall-both.json` (`.../issues`)
+are one fixture title of each kind. `e2e/dynamic.spec.js` serves them with
+`page.route` for the title pages (so the Books and Issues sections, axe and the
+no-console-errors check run on each kind), and `Item.test.jsx` and
+`BookWall.test.jsx` import them. `backend/scripts/export_public_comic_fixtures.py`
+writes them by validating invented data through `PublicItemDetailOut` and
+`PublicWall`; rerun it when `PublicComicDetail` changes, then
+`npx prettier --write e2e/fixtures/api`. The ids match `snapshot/items.json`
+and `snapshot/comic-issues.json`.

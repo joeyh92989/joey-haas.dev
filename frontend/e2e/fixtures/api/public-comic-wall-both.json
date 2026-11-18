@@ -1,0 +1,71 @@
+{
+  "series_title": "Harbor Lights",
+  "publisher": "Fixture Press",
+  "issues": [
+    {
+      "number": 1,
+      "owned": true,
+      "read": true,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 2,
+      "owned": true,
+      "read": true,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 3,
+      "owned": true,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 4,
+      "owned": true,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 5,
+      "owned": false,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 6,
+      "owned": false,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 7,
+      "owned": false,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    },
+    {
+      "number": 8,
+      "owned": false,
+      "read": false,
+      "name": null,
+      "store_date": "2020-01-01",
+      "cover_url": null
+    }
+  ],
+  "editions": []
+}

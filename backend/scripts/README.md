@@ -728,3 +728,23 @@ the way the frontend's `format:check` wants, then commit it:
 cd backend && ./.venv/bin/python scripts/export_intake_comic_fixtures.py
 cd ../frontend && npx prettier --write e2e/fixtures/api/intake-comic-*.json
 ```
+
+## export_public_comic_fixtures.py
+
+Writes a public comic title's detail body (`GET /api/public/items/{id}`) for
+each title kind, `frontend/e2e/fixtures/api/public-comic-run.json`,
+`-book_line.json`, `-single_book.json` and `-both.json`, plus the issue wall of
+the `both` title (`public-comic-wall-both.json`, `GET /api/public/items/{id}/issues`).
+The `kind` and the book line's `slots` come from the real `comics.title_kind`
+and `public_comics.volume_slots` run over unattached `ComicVolume` rows (the
+script asserts each title's kind is the one it names), and each body is
+validated through `PublicItemDetailOut` or `PublicWall`, so the title page's
+tests and the e2e fixtures cannot carry a key the API never sends. The data is
+invented; the ids match the fixture titles in
+`frontend/e2e/fixtures/snapshot/`. Run it again whenever `PublicComicDetail`
+changes, then format the JSON the way `format:check` wants and commit it:
+
+```sh
+cd backend && ./.venv/bin/python scripts/export_public_comic_fixtures.py
+cd ../frontend && npx prettier --write e2e/fixtures/api/public-comic-*.json
+```
