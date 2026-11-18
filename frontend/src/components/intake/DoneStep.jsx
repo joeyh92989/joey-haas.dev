@@ -74,6 +74,16 @@ export default function DoneStep({
     0,
   )
 
+  // The books and titles the commit wrote (a collected book is a volume).
+  const volumes = answer.volumes_new ?? []
+  const titles = answer.titles_created ?? []
+  const madeLine = [
+    volumes.length ? words.doneBookCount(volumes.length) : null,
+    titles.length ? words.doneTitleCount(titles.length) : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
   // "<Series> · adds #1–4" for a series the sitting created, and the
   // editions a series already on the shelf gained.
   const editionParts = (editions) => (editions ?? []).map(words.addsEdition)
@@ -174,6 +184,55 @@ export default function DoneStep({
           />
         )}
       </StatTiles>
+      {madeLine && <p className="intake-done-made">{madeLine}</p>}
+      {volumes.length > 0 && (
+        <>
+          <h3 className="kicker intake-skim-head" id="intake-done-books">
+            {words.doneBooksHead}
+          </h3>
+          <ul className="intake-adds" aria-labelledby="intake-done-books">
+            {volumes.map((volume) => (
+              <li key={volume.id}>
+                <p className="intake-adds-title">
+                  <Link
+                    to={`/admin/shelf/comics/${volume.title_id}/${volume.slug}`}
+                  >
+                    {volume.label}
+                  </Link>
+                </p>
+                <p className="intake-adds-what muted">
+                  {[
+                    volume.line_number != null
+                      ? words.doneLineNumber(volume.line_number)
+                      : null,
+                    volume.title,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {titles.length > 0 && (
+        <>
+          <h3 className="kicker intake-skim-head" id="intake-done-titles">
+            {words.doneTitlesHead}
+          </h3>
+          <ul className="intake-adds" aria-labelledby="intake-done-titles">
+            {titles.map((title) => (
+              <li key={title.id}>
+                <p className="intake-adds-title">
+                  <Link to={`/admin/shelf/comics/${title.id}`}>
+                    {title.title}
+                  </Link>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {grew.length > 0 && (
         <>
           <h3 className="kicker intake-skim-head">Series that grew</h3>

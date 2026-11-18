@@ -12,11 +12,39 @@ export const comicIntake = {
   collectsFrom: 'First issue collected',
   collectsTo: 'Last issue collected',
   formatLabel: 'This book is',
-  formats: { single: 'A single issue', collected: 'A collected edition' },
-  editionKindLabel: 'Edition',
-  editionKinds: { trade: 'Trade', omnibus: 'Omnibus', hardcover: 'Hardcover' },
+  formats: { single: 'A single issue', collected: 'A collected book' },
+  editionKindLabel: 'Format',
+  /** The five kinds of book the server takes (`edition_kind`). */
+  editionKinds: {
+    trade: 'Trade paperback',
+    hardcover: 'Hardcover',
+    omnibus: 'Omnibus',
+    compendium: 'Compendium',
+    ogn: 'Original graphic novel',
+  },
+  lineLabel: 'Number in the line',
+  lineHint: 'Leave blank if it has none.',
+  badLine: 'Whole numbers from 1 to 9999 only.',
   collectedNote:
-    'Added to the series as a book, not as single issues. Without a range it adds the series only.',
+    'Added as a book of its own, not as single issues. Without a range it still adds the book.',
+  /** What committing one entry adds, one plain line under its title. */
+  addsIssue: (number, title) =>
+    number == null
+      ? `Adds an issue to ${title}`
+      : `Adds issue #${number} to ${title}`,
+  addsBook: (title) => `Adds a book to ${title}`,
+  addsNewTitle: (title) => `Starts a new title: ${title}`,
+  addsTo: (title) => `Adds to ${title}`,
+  contentsHead: 'Contents',
+  contentsLine: (series, issues) => `${series} · ${issues}`,
+  willLink: 'will count toward the run',
+  contentsEmpty:
+    'Nothing read yet - you can add contents on the book’s page after',
+  alreadyHave: (label) => ({
+    before: 'You already have ',
+    label,
+    after: ' with these issues. Adding it makes a second book.',
+  }),
   marks: {
     in_run: 'Read from the cover. In the run.',
     out_of_run: 'Read from the cover. Not in this series’ run.',
@@ -40,5 +68,10 @@ export const comicIntake = {
     `${n === 1 ? '1 book needs' : `${n} books need`} a number first.`,
   nothingTicked: 'Nothing ticked.',
   doneHead: 'Added to the shelf',
+  doneBooksHead: 'New books',
+  doneTitlesHead: 'New titles',
+  doneBookCount: (n) => `${n} new ${n === 1 ? 'book' : 'books'}`,
+  doneTitleCount: (n) => `${n} new ${n === 1 ? 'title' : 'titles'}`,
+  doneLineNumber: (n) => `Vol. ${n}`,
   doneLine: (title, what) => `${title} · ${what}`,
 }

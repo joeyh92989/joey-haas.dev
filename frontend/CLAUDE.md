@@ -234,3 +234,15 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `e2e/fixtures/api/admin-volume*.json`, which
   `backend/scripts/export_admin_volume_fixtures.py` writes from the real
   response models.
+- **Intake speaks books (story #328).** A comic sitting's Check
+  (`intake/ComicBooks.jsx`, words in `content/comicIntake.js`) shows what each
+  entry commits from the server's own plan: `adds`, `title_will_be_created`,
+  `contents_preview` and `already_held` (a warning, never a block; the label
+  links to `/admin/shelf/comics/<title_id>/<slug>`). A collected book has the
+  five-kind Format select (`edition_kind`) and a Number in the line
+  (`line_number`), saved and refused like the other Check fields. Done
+  (`DoneStep.jsx`) lists `volumes_new` and `titles_created`; no intake text
+  says "edition". Details' old `editions` rows still work (the server merges
+  them). Tests build bodies from `e2e/fixtures/api/intake-comic-*.json`,
+  which `backend/scripts/export_intake_comic_fixtures.py` writes from the real
+  `SittingOut`, `CommitOut` and `volume_plan` functions.

@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+// Built by backend/scripts/export_intake_comic_fixtures.py from CommitOut.
+import commit from '../../../e2e/fixtures/api/intake-comic-commit.json'
 import DoneStep from './DoneStep.jsx'
 
 vi.mock('../../lib/api.js', () => ({
@@ -133,5 +135,61 @@ describe('DoneStep after a seed file', () => {
     done({ file_import: null, images_missing: 0 }, closet)
     expect(screen.queryByText(/skipped, not owned/)).toBeNull()
     expect(screen.queryByText('added without a photo')).toBeNull()
+  })
+})
+
+describe('DoneStep books and titles', () => {
+  it('counts the new books and titles in one line', () => {
+    done(commit)
+    expect(screen.getByText('2 new books, 1 new title')).toBeVisible()
+  })
+
+  it('lists each new book with its number in the line, linked to its page', () => {
+    done(commit)
+    const list = screen.getByRole('list', { name: 'New books' })
+    const [first, second] = within(list).getAllByRole('listitem')
+    expect(first).toHaveTextContent('Saga Book Two')
+    expect(first).toHaveTextContent('Vol. 2')
+    expect(first).toHaveTextContent('Saga')
+    expect(
+      within(first).getByRole('link', { name: 'Saga Book Two' }),
+    ).toHaveAttribute(
+      'href',
+      `/admin/shelf/comics/${commit.volumes_new[0].title_id}/vol-2`,
+    )
+    expect(second).toHaveTextContent('Hidden Run')
+    expect(second).not.toHaveTextContent('Vol.')
+  })
+
+  it('lists each new title, linked to its page', () => {
+    done(commit)
+    const list = screen.getByRole('list', { name: 'New titles' })
+    expect(
+      within(list).getByRole('link', { name: 'Hidden Run' }),
+    ).toHaveAttribute(
+      'href',
+      `/admin/shelf/comics/${commit.titles_created[0].id}`,
+    )
+  })
+
+  it('says one book and no titles in the singular, and omits empty lists', () => {
+    done({
+      ...commit,
+      volumes_new: [commit.volumes_new[0]],
+      titles_created: [],
+    })
+    expect(screen.getByText('1 new book')).toBeVisible()
+    expect(screen.queryByRole('list', { name: 'New titles' })).toBeNull()
+  })
+
+  it('has neither list for an answer from before books', () => {
+    done({})
+    expect(screen.queryByText('New books')).toBeNull()
+    expect(screen.queryByText('New titles')).toBeNull()
+  })
+
+  it('never says edition to the reader', () => {
+    done(commit)
+    expect(document.body.textContent.toLowerCase()).not.toContain('edition')
   })
 })

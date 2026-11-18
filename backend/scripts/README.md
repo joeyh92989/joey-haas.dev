@@ -711,3 +711,20 @@ models changes, then commit the JSON:
 ```sh
 cd backend && ./.venv/bin/python scripts/export_admin_volume_fixtures.py
 ```
+
+## export_intake_comic_fixtures.py
+
+Writes a comic sitting at Check (`GET /api/intake/sittings/{id}`) and the
+commit's answer (`POST /api/intake/sittings/{id}/commit`) to
+`frontend/e2e/fixtures/api/intake-comic-sitting.json` and
+`intake-comic-commit.json`. A book's `adds`, `contents_preview` and
+`already_held` come from the real `intake.volume_plan.book_plan` and
+`preview`; the whole body is then validated through `SittingOut` or
+`CommitOut`, so the intake tests cannot carry a key the API never sends. The
+data is invented. Run it again whenever those shapes change, format the JSON
+the way the frontend's `format:check` wants, then commit it:
+
+```sh
+cd backend && ./.venv/bin/python scripts/export_intake_comic_fixtures.py
+cd ../frontend && npx prettier --write e2e/fixtures/api/intake-comic-*.json
+```

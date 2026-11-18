@@ -194,3 +194,106 @@ test('a book: add it to a comic, add an entry, toggle owned, delete it', async (
     await page.request.delete(`/api/items/${id}`)
   }
 })
+
+// A comic sitting at Check and Done, as the intake API answers them
+// (story #328). There is no way to seed a comic sitting's books without a
+// photo read by the model, so the sitting is made for real (the page needs a
+// route that exists) and its GET answers are the bodies the backend's own
+// models and plan functions produced
+// (backend/scripts/export_intake_comic_fixtures.py), not hand-written ones.
+test('a comic sitting: Check says what each book adds, Done lists the new books', async ({
+  page,
+}, testInfo) => {
+  const sittings = await import('./fixtures/api/intake-comic-sitting.json', {
+    with: { type: 'json' },
+  })
+  const commit = await import('./fixtures/api/intake-comic-commit.json', {
+    with: { type: 'json' },
+  })
+  const made = await page.request.post('/api/intake/sittings', {
+    data: { area: 'shelf', kind: 'comic' },
+  })
+  expect(made.status()).toBe(201)
+  const { id } = await made.json()
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  )
+  try {
+    await page.route('**/api/intake/photos/*/image', (route) =>
+      route.fulfill({ contentType: 'image/png', body: png }),
+    )
+    await page.route(`**/api/intake/sittings/${id}`, (route) =>
+      route.request().method() === 'GET'
+        ? route.fulfill({
+            json: { ...sittings.default, id, step: 'check' },
+          })
+        : route.fallback(),
+    )
+    await page.route(`**/api/intake/sittings/${id}/commit`, (route) =>
+      route.fulfill({ json: commit.default }),
+    )
+    await page.goto(`/admin/collection/add/${id}`)
+
+    await expect(page.getByText('Adds issue #7 to Saga')).toBeVisible()
+    await expect(page.getByText('Adds a book to Saga').first()).toBeVisible()
+    await expect(page.getByText('Starts a new title: Hidden Run')).toBeVisible()
+    await expect(page.getByLabel('Number in the line').first()).toHaveValue('2')
+    await expect(
+      page.getByRole('list', { name: 'Contents' }).getByRole('listitem'),
+    ).toHaveCount(2)
+    await expect(page.getByText(/You already have/)).toContainText(
+      'Saga, Book Two with these issues',
+    )
+    await expect(
+      page.getByRole('link', { name: 'Saga, Book Two' }),
+    ).toHaveAttribute('href', /\/admin\/shelf\/comics\/[0-9a-f-]+\/vol-2$/)
+    await expect(
+      page
+        .getByText(
+          'Nothing read yet - you can add contents on the book’s page after',
+        )
+        .first(),
+    ).toBeVisible()
+    if (process.env.E2E_SHOT_DIR) {
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/intake-check-${testInfo.project.name}.png`,
+        fullPage: true,
+      })
+    }
+
+    if (testInfo.project.name === 'desktop') {
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      expect(
+        results.violations
+          .filter((v) => GATED.includes(v.impact))
+          .map(describe),
+      ).toEqual([])
+    }
+
+    await page.getByRole('button', { name: /Details/ }).click()
+    await expect(page.getByRole('heading', { name: 'Details' })).toBeVisible()
+    await page.getByRole('button', { name: /^Add \d+ to/ }).click()
+    await expect(page.getByText('2 new books, 1 new title')).toBeVisible()
+    const books = page.getByRole('list', { name: 'New books' })
+    await expect(books.getByRole('listitem')).toHaveCount(2)
+    await expect(
+      books.getByRole('link', { name: 'Saga Book Two' }),
+    ).toHaveAttribute('href', /\/admin\/shelf\/comics\/[0-9a-f-]+\/vol-2$/)
+    await expect(
+      page
+        .getByRole('list', { name: 'New titles' })
+        .getByRole('link', { name: 'Hidden Run' }),
+    ).toBeVisible()
+    if (process.env.E2E_SHOT_DIR) {
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/intake-done-${testInfo.project.name}.png`,
+        fullPage: true,
+      })
+    }
+  } finally {
+    await page.request.delete(`/api/intake/sittings/${id}`)
+  }
+})

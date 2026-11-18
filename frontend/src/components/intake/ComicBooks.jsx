@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router'
 import { comicIntake as words } from '../../content/comicIntake.js'
 import { API_URL } from '../../lib/api.js'
 import {
@@ -150,8 +151,115 @@ function CollectsField({ entry, onSave, error }) {
   )
 }
 
+/** A collected book's number in its line, saved when the box is left. */
+function LineField({ entry, onSave, error }) {
+  const id = useId()
+  const saved = entry.payload?.line_number ?? null
+  const [draft, setDraft] = useState(saved == null ? '' : String(saved))
+  const [bad, setBad] = useState(false)
+  const message = bad ? words.badLine : error
+  const shown = Boolean(message)
+
+  function commit() {
+    const number = parseNumber(draft)
+    setBad(number === undefined)
+    if (number === undefined || number === saved) return
+    onSave({ line_number: number })
+  }
+
+  return (
+    <div className="intake-book-field">
+      <label htmlFor={id}>{words.lineLabel}</label>
+      <span className="intake-book-num">
+        <span aria-hidden="true">#</span>
+        <input
+          id={id}
+          inputMode="numeric"
+          autoComplete="off"
+          value={draft}
+          aria-invalid={shown || undefined}
+          aria-describedby={`${id}-hint${shown ? ` ${id}-bad` : ''}`}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commit()
+          }}
+        />
+      </span>
+      <p id={`${id}-hint`} className="intake-book-mark muted">
+        {words.lineHint}
+      </p>
+      {shown && (
+        <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
+          {message}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** What committing the book adds, from the server's own plan (`adds`). */
+function addsLine(entry, title) {
+  const adds = entry.adds
+  const name = adds?.title || title
+  if (!adds) return words.addsTo(name)
+  if (adds.kind === 'issue') return words.addsIssue(adds.issue_number, name)
+  return entry.title_will_be_created
+    ? words.addsNewTitle(name)
+    : words.addsBook(name)
+}
+
+/** A collected book's contents as the commit will write them. */
+function Contents({ lines, id }) {
+  if (!lines?.length)
+    return <p className="intake-book-mark muted">{words.contentsEmpty}</p>
+  return (
+    <div className="intake-book-contents">
+      <p id={id} className="kicker">
+        {words.contentsHead}
+      </p>
+      <ul aria-labelledby={id}>
+        {lines.map((line, index) => (
+          <li key={`${line.series_name}-${line.issue_text}-${index}`}>
+            {words.contentsLine(line.series_name, line.issue_text)}
+            {line.will_link && (
+              <span className="muted">
+                {' · '}
+                {words.willLink}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** The warning when the shelf holds this book already; it never blocks. */
+function HeldWarning({ held, titleId }) {
+  const text = words.alreadyHave(held.label)
+  return (
+    <p className="intake-book-mark" data-state="bad">
+      {text.before}
+      {titleId && held.slug ? (
+        <Link to={`/admin/shelf/comics/${titleId}/${held.slug}`}>
+          {held.label}
+        </Link>
+      ) : (
+        held.label
+      )}
+      {text.after}
+    </p>
+  )
+}
+
 // Refusals drawn inside their own field; any other shows under the selects.
-const NUMBER_FIELDS = ['issue_number', 'collects_from', 'collects_to']
+const NUMBER_FIELDS = [
+  'issue_number',
+  'collects_from',
+  'collects_to',
+  'line_number',
+]
 
 /** One book: its photo, its match, and its number to read or correct. */
 function BookRow({
@@ -207,6 +315,7 @@ function BookRow({
         {entry.payload?.detected_title && (
           <p className="intake-book-read">{entry.payload.detected_title}</p>
         )}
+        <p className="intake-book-adds">{addsLine(entry, title)}</p>
         <p className="intake-book-links">
           <button
             type="button"
@@ -276,9 +385,25 @@ function BookRow({
                 ))}
               </select>
             </div>
+            <LineField
+              key={`line-${entry.payload?.line_number ?? 'none'}`}
+              entry={entry}
+              onSave={onSave}
+              error={error?.field === 'line_number' ? error.message : null}
+            />
             <p className="intake-book-mark" data-state="typed">
               {words.collectedNote}
             </p>
+            {entry.already_held && (
+              <HeldWarning
+                held={entry.already_held}
+                titleId={entry.adds?.title_id}
+              />
+            )}
+            <Contents
+              lines={entry.contents_preview}
+              id={`${markId}-contents`}
+            />
           </>
         ) : (
           <>
