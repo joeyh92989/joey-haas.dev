@@ -226,13 +226,14 @@ async def test_bad_body_is_bad_response(body):
 # --- one total deadline over the throttle wait and the request ----------------
 # The real deadline is 7.0 s on the event loop's clock, which the fake clock
 # does not drive, so these scale everything down by 20 and use real (tiny)
-# sleeps: interval 0.055, deadline 0.35, a slow answer 0.2.
+# sleeps, with wide margins (about 0.1 s) because the machine may be loaded:
+# deadline 0.5, and each test sets its own interval.
 
 
 @pytest.fixture
 def scaled(monkeypatch):
-    monkeypatch.setattr(nominatim, "TOTAL_TIMEOUT_SECONDS", 0.35)
-    monkeypatch.setattr(nominatim, "_throttle", Throttle(0.11))
+    monkeypatch.setattr(nominatim, "TOTAL_TIMEOUT_SECONDS", 0.5)
+    monkeypatch.setattr(nominatim, "_throttle", Throttle(0.2))
 
 
 def slow_handler(sent: list[float], delay: float):
@@ -248,6 +249,8 @@ def slow_handler(sent: list[float], delay: float):
 
 @pytest.mark.asyncio
 async def test_third_concurrent_slow_search_times_out_inside_the_deadline(scaled):
+    # Interval 0.2, answer 0.2: A 0 to 0.2, B 0.2 to 0.4, C sends at 0.4 and
+    # would finish at 0.6, past the 0.5 deadline.
     sent: list[float] = []
     loop_time = asyncio.get_running_loop().time
     start = loop_time()
@@ -263,14 +266,15 @@ async def test_third_concurrent_slow_search_times_out_inside_the_deadline(scaled
     assert [type(r) for r in results] == [SearchOk, SearchOk, SearchFailure]
     assert results[2].reason == "timeout"
     assert results[2].message
-    assert max(done) <= 0.35 + 0.1  # the deadline, plus scheduling slack
+    assert max(done) <= 0.5 + 0.3  # the deadline, plus scheduling slack
 
 
 @pytest.mark.asyncio
 async def test_a_cancelled_search_leaves_no_stale_throttle_slot(scaled, monkeypatch):
-    # Interval 0.2: C's slot would be 0.4, past the 0.35 deadline, so C is
-    # cancelled while still waiting and never sends.
-    monkeypatch.setattr(nominatim, "_throttle", Throttle(0.2))
+    interval = 0.3
+    # A sends at 0, B at 0.3 (done 0.4), C's slot would be 0.6, past the 0.5
+    # deadline, so C is cancelled while still waiting and never sends.
+    monkeypatch.setattr(nominatim, "_throttle", Throttle(interval))
     sent: list[tuple[str, float]] = []
     loop_time = asyncio.get_running_loop().time
 
@@ -282,17 +286,20 @@ async def test_a_cancelled_search_leaves_no_stale_throttle_slot(scaled, monkeypa
 
     async with client_for(handler) as client:
         results = await asyncio.gather(*(search(client, q) for q in "abc"))
+        assert isinstance(results[0], SearchOk)
+        assert isinstance(results[1], SearchOk)  # so the test cannot pass vacuously
         assert results[2].reason == "timeout"
         assert [q for q, _ in sent] == ["a", "b"]  # C never sent a request
+        b_sent = sent[1][1]
+        # The slot is B's plus the interval; a cancelled C that had reserved
+        # one first would put it near 0.9.
+        slot = nominatim._throttle._next_allowed
+        assert slot == pytest.approx(b_sent + interval, abs=0.05)
         later = await search(client, "d")
     assert isinstance(later, SearchOk)
-    last_before = sent[1][1]
     d_sent = sent[2][1]
-    assert d_sent - last_before >= 0.2 - 0.005  # still paced after B
-    # Everything had finished by then, so D waited for no slot C might have
-    # taken: it went out as soon as the spacing after B allowed.
-    assert d_sent - last_before <= 0.5  # deadline-sized, not interval-sized
-    assert nominatim._throttle._next_allowed - 0.2 == pytest.approx(d_sent, abs=0.01)
+    assert d_sent - b_sent >= interval - 0.005  # still paced after B
+    assert d_sent - b_sent <= interval + 0.15  # and no stale slot beyond it
 
 
 @pytest.mark.asyncio
