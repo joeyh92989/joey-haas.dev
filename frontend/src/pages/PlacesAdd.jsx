@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import PlaceFields, {
@@ -74,7 +74,9 @@ export default function PlacesAdd() {
   const [typedError, setTypedError] = useState(null)
   const [cities, setCities] = useState(FALLBACK_CITIES)
 
-  const sitting = useRef(null) // the visit's sitting id, or its pending request
+  const sitting = useRef(null) // the sitting's pending request, then {ok, id}
+  const inflight = useRef(false) // a request of the page is under way
+  const typedEntry = useRef(null) // the typed place's entry, kept across a failed commit
   const entries = useRef(new Map()) // result key -> entry id
   const focusNext = useRef(null)
   const inputRef = useRef(null)
@@ -149,9 +151,13 @@ export default function PlacesAdd() {
   // The empty state and the Done heading carry these words themselves.
   const statusHidden = ['empty', 'failed', 'done'].includes(phase) || none
 
-  async function search(q) {
+  function search(q) {
     const text = q.trim()
     if (!text || busy || phase === 'searching') return
+    return exclusive(() => runSearch(text))
+  }
+
+  async function runSearch(text) {
     setPhase('searching')
     setSearched({ q: text, results: [] })
     setNotice(null)
@@ -167,7 +173,8 @@ export default function PlacesAdd() {
         )
       : null
     if (!answer.ok || (!rows.length && problem)) {
-      setFailure(answer.ok ? (problem.reason ?? null) : answer.message)
+      // The reason is the source's own words; a status string is not shown.
+      setFailure(answer.ok ? (problem.reason ?? null) : null)
       setPhase('failed')
       focusNext.current = 'fail'
       return
@@ -183,59 +190,95 @@ export default function PlacesAdd() {
     }
   }
 
-  const ensureSitting = useCallback(async () => {
+  /** Forgets the visit's sitting and entries: the server deletes a sitting
+   *  when a commit leaves nothing to check, and the next Add makes a new one. */
+  function forgetSitting() {
+    sitting.current = null
+    entries.current.clear()
+    typedEntry.current = null
+  }
+
+  /** `attempt()` once; on a 404 (the sitting or entry is gone) a fresh
+   *  sitting and the same attempt once more. */
+  async function retryGone(attempt) {
+    const first = await attempt()
+    if (first.ok || first.status !== 404) return first
+    forgetSitting()
+    return attempt()
+  }
+
+  /** One request at a time: a second press in the same tick is ignored. */
+  async function exclusive(work) {
+    if (inflight.current) return
+    inflight.current = true
+    try {
+      await work()
+    } finally {
+      inflight.current = false
+    }
+  }
+
+  async function ensureSitting() {
     if (!sitting.current) {
-      sitting.current = (async () => {
+      const pending = (async () => {
         const made = await call('/api/intake/sittings', 'POST', {
           area: 'places',
           kind: 'place',
           label: sittingLabel({ label: 'Place' }),
         })
         if (!made.ok) {
-          sitting.current = null
+          if (sitting.current === pending) sitting.current = null
           return made
         }
         return { ok: true, id: made.data.id }
       })()
+      sitting.current = pending
     }
-    const outcome = await sitting.current
-    return outcome.ok ? outcome : { ok: false, message: outcome.message }
-  }, [])
+    return sitting.current
+  }
 
   /** The entry for a result: made once, then reused (a second POST is a 409). */
   async function ensureEntry(row) {
     const key = keyOf(row)
-    if (entries.current.has(key))
-      return { ok: true, id: entries.current.get(key) }
     const made = await ensureSitting()
     if (!made.ok) return made
+    if (entries.current.has(key)) {
+      return { ok: true, id: entries.current.get(key), sittingId: made.id }
+    }
     const entry = await call(`/api/intake/sittings/${made.id}/places`, 'POST', {
       chosen: row,
       result_count: results.length,
     })
     if (!entry.ok) return entry
     entries.current.set(key, entry.data.id)
-    return { ok: true, id: entry.data.id }
+    return { ok: true, id: entry.data.id, sittingId: made.id }
   }
 
-  async function addRow(row) {
-    setBusy(true)
-    setNotice(null)
-    const entry = await ensureEntry(row)
-    setBusy(false)
-    if (!entry.ok) {
-      setNotice(entry.message)
-      return
-    }
-    setOpenKey(keyOf(row))
-    setValues(emptyFields())
-    focusNext.current = 'head'
+  function addRow(row) {
+    return exclusive(async () => {
+      setBusy(true)
+      setNotice(null)
+      const entry = await retryGone(() => ensureEntry(row))
+      setBusy(false)
+      if (!entry.ok) {
+        setNotice(entry.message)
+        return
+      }
+      setOpenKey(keyOf(row))
+      setValues(emptyFields())
+      focusNext.current = 'head'
+    })
   }
 
   function commit(sittingId) {
     return call(`/api/intake/sittings/${sittingId}/commit`, 'POST', {
       today: localToday(),
     })
+  }
+
+  /** A failed commit leaves no READY entry the owner thinks was not saved. */
+  function parkEntry(entryId) {
+    return call(`/api/intake/entries/${entryId}`, 'PATCH', { state: 'check' })
   }
 
   /** Remembers what the commit wrote and moves the page to Saved. */
@@ -256,89 +299,108 @@ export default function PlacesAdd() {
     focusNext.current = 'done'
   }
 
-  async function saveRow(row) {
-    setBusy(true)
-    setNotice(null)
-    const entry = await ensureEntry(row)
-    if (!entry.ok) {
+  function saveRow(row) {
+    return exclusive(async () => {
+      setBusy(true)
+      setNotice(null)
+      const payload = fieldsPayload(values)
+      const outcome = await retryGone(async () => {
+        const entry = await ensureEntry(row)
+        if (!entry.ok) return entry
+        const patched = await call(`/api/intake/entries/${entry.id}`, 'PATCH', {
+          payload,
+          state: 'ready',
+        })
+        if (!patched.ok) return patched
+        const committed = await commit(entry.sittingId)
+        if (!committed.ok) await parkEntry(entry.id)
+        return committed
+      })
       setBusy(false)
-      setNotice(entry.message)
-      return
-    }
-    const payload = fieldsPayload(values)
-    const sittingId = (await sitting.current).id
-    const patched = await call(`/api/intake/entries/${entry.id}`, 'PATCH', {
-      payload,
-      state: 'ready',
+      if (!outcome.ok) {
+        setNotice(outcome.message)
+        return
+      }
+      // The commit may have deleted the sitting: the next Add starts afresh.
+      forgetSitting()
+      const fresh = outcome.data.spots_new ?? []
+      const already = outcome.data.spots_owned ?? []
+      if (!fresh.length && already.length) {
+        // Saved meanwhile (from another tab or a lookalike): the row says so.
+        setSearched((old) => ({
+          ...old,
+          results: old.results.map((r) =>
+            keyOf(r) === keyOf(row)
+              ? { ...r, owned_spot_id: already[0].id }
+              : r,
+          ),
+        }))
+        setOpenKey(null)
+        setNotice(words.alreadyOnList)
+        return
+      }
+      finish(outcome.data, row.title, payload.is_public, row.address)
     })
-    if (!patched.ok) {
-      setBusy(false)
-      setNotice(patched.message)
-      return
-    }
-    const committed = await commit(sittingId)
-    setBusy(false)
-    if (!committed.ok) {
-      setNotice(committed.message)
-      return
-    }
-    const fresh = committed.data.spots_new ?? []
-    const already = committed.data.spots_owned ?? []
-    if (!fresh.length && already.length) {
-      // Saved meanwhile (from another tab or a lookalike): the row says so.
-      setSearched((old) => ({
-        ...old,
-        results: old.results.map((r) =>
-          keyOf(r) === keyOf(row) ? { ...r, owned_spot_id: already[0].id } : r,
-        ),
-      }))
-      setOpenKey(null)
-      setNotice(words.alreadyOnList)
-      return
-    }
-    finish(committed.data, row.title, payload.is_public, row.address)
   }
 
-  async function saveTyped(event) {
+  function saveTyped(event) {
     event.preventDefault()
-    if (busy) return
-    setBusy(true)
-    setTypedError(null)
-    const made = await ensureSitting()
-    if (!made.ok) {
-      setBusy(false)
-      setTypedError({ field: 'form', message: made.message })
-      return
-    }
-    const payload = fieldsPayload(typedValues)
-    const entry = await call(`/api/intake/sittings/${made.id}/places`, 'POST', {
-      name: typed.name.trim(),
-      coords: typed.coords.trim(),
-      ...payload,
-    })
-    if (!entry.ok) {
-      setBusy(false)
-      setTypedError({
-        field: entry.status === 422 ? typedErrorField(entry.message) : 'form',
-        message: entry.message,
+    return exclusive(async () => {
+      setBusy(true)
+      setTypedError(null)
+      const payload = fieldsPayload(typedValues)
+      const name = typed.name.trim()
+      const coords = typed.coords.trim()
+      const outcome = await retryGone(async () => {
+        const made = await ensureSitting()
+        if (!made.ok) return made
+        let entryId
+        const held = typedEntry.current
+        if (held && held.name === name && held.coords === coords) {
+          // A retry after a failed commit: the entry is still there.
+          entryId = held.id
+          const patched = await call(
+            `/api/intake/entries/${entryId}`,
+            'PATCH',
+            { payload, state: 'ready' },
+          )
+          if (!patched.ok) return patched
+        } else {
+          const entry = await call(
+            `/api/intake/sittings/${made.id}/places`,
+            'POST',
+            { name, coords, ...payload },
+          )
+          if (!entry.ok) return { ...entry, atPost: true }
+          entryId = entry.data.id
+          typedEntry.current = { id: entryId, name, coords }
+        }
+        const committed = await commit(made.id)
+        if (!committed.ok) await parkEntry(entryId)
+        return committed
       })
-      return
-    }
-    const committed = await commit(made.id)
-    setBusy(false)
-    if (!committed.ok) {
-      setTypedError({ field: 'form', message: committed.message })
-      return
-    }
-    if (!(committed.data.spots_new ?? []).length) {
-      setTypedError({ field: 'form', message: words.alreadyOnList })
-      return
-    }
-    setTyped({ name: '', coords: '' })
-    setTypedValues(emptyFields())
-    setTypeOpen(false)
-    setSearched({ q: searched.q, results: [] })
-    finish(committed.data, typed.name.trim(), payload.is_public)
+      setBusy(false)
+      if (!outcome.ok) {
+        setTypedError({
+          field:
+            outcome.atPost && outcome.status === 422
+              ? typedErrorField(outcome.message)
+              : 'form',
+          message: outcome.message,
+        })
+        return
+      }
+      forgetSitting()
+      if (!(outcome.data.spots_new ?? []).length) {
+        setTypedError({ field: 'form', message: words.alreadyOnList })
+        return
+      }
+      setTyped({ name: '', coords: '' })
+      setTypedValues(emptyFields())
+      setTypeOpen(false)
+      setSearched({ q: searched.q, results: [] })
+      finish(outcome.data, name, payload.is_public)
+    })
   }
 
   function openType() {

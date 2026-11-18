@@ -54,6 +54,9 @@ export function cityLabel(city) {
 export default function PlaceFields({ values, onChange, cities }) {
   const id = useId()
   const isHome = effectiveCity(values) === HOME_CITY
+  let publicHint = words.publicOff
+  if (!isHome) publicHint = words.publicOnlyDenver
+  else if (values.isPublic) publicHint = ''
 
   function set(patch) {
     const next = { ...values, ...patch }
@@ -141,20 +144,18 @@ export default function PlaceFields({ values, onChange, cities }) {
           <input
             type="checkbox"
             id={`${id}-public`}
-            aria-describedby={`${id}-public-h`}
+            aria-describedby={publicHint ? `${id}-public-h` : undefined}
             disabled={!isHome}
             checked={values.isPublic}
             onChange={(event) => set({ isPublic: event.target.checked })}
           />{' '}
           {words.isPublic}
         </label>
-        <p className="place-hint" id={`${id}-public-h`}>
-          {!isHome
-            ? words.publicOnlyDenver
-            : values.isPublic
-              ? ''
-              : words.publicOff}
-        </p>
+        {publicHint && (
+          <p className="place-hint" id={`${id}-public-h`}>
+            {publicHint}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -52,15 +58,37 @@ const json = (body, status = 200) =>
   })
 
 /**
- * A fake of the intake API. `answers` overrides a route by "METHOD path"
- * prefix; every call is kept in `calls`.
+ * A fake of the intake API that keeps the server's rules: a commit writes
+ * the READY entries as spots and deletes the sitting unless a CHECK entry
+ * is left (intake/commit.py); a dead sitting or entry is a 404; a place
+ * already saved or already in the sitting is a 409. `answers` overrides a
+ * route by "METHOD path" prefix; `once` does the same for the next call
+ * only (an array, used in order). Every call is kept in `calls`.
  */
-function fakeApi({ search, answers = {} } = {}) {
+function fakeApi({ search, answers = {}, once = {} } = {}) {
   const calls = []
+  const sittings = new Map() // id -> entries
+  const spots = [] // saved: {id, name, source_id}
+  let sittingN = 0
+  let entryN = 0
+  const find = (entryId) => {
+    for (const entries of sittings.values()) {
+      const entry = entries.find((e) => e.id === entryId)
+      if (entry) return entry
+    }
+    return null
+  }
   const fetch = vi.fn((url, options = {}) => {
     const method = options.method ?? 'GET'
     const body = options.body ? JSON.parse(options.body) : undefined
     calls.push({ method, url, body })
+    const onceKey = Object.keys(once).find(
+      (k) => `${method} ${url}`.startsWith(k) && once[k].length,
+    )
+    if (onceKey) {
+      const answer = once[onceKey].shift()
+      return typeof answer === 'function' ? answer(body) : answer
+    }
     const key = Object.keys(answers).find((k) =>
       `${method} ${url}`.startsWith(k),
     )
@@ -74,28 +102,64 @@ function fakeApi({ search, answers = {} } = {}) {
     if (url.startsWith('/api/intake/search')) {
       return search ? search(url) : json({ results: [], sources: [] })
     }
-    if (url === '/api/intake/sittings') return json({ id: 'sit-1' }, 201)
-    if (url.endsWith('/places')) return json({ id: 'entry-1' }, 201)
-    if (url.startsWith('/api/intake/entries/')) return json({ id: 'entry-1' })
-    if (url.endsWith('/commit')) {
+    if (url === '/api/intake/sittings' && method === 'POST') {
+      const id = `sit-${++sittingN}`
+      sittings.set(id, [])
+      return json({ id }, 201)
+    }
+    const places = url.match(/^\/api\/intake\/sittings\/([^/]+)\/places$/)
+    if (places) {
+      const entries = sittings.get(places[1])
+      if (!entries) return json({ detail: 'No such sitting' }, 404)
+      const sourceId = body.chosen?.source_id
+      if (sourceId && spots.some((x) => x.source_id === sourceId)) {
+        return json({ detail: 'That place is already on your list' }, 409)
+      }
+      if (sourceId && entries.some((e) => e.source_id === sourceId)) {
+        return json({ detail: 'That place is already in this visit' }, 409)
+      }
+      const entry = {
+        id: `entry-${++entryN}`,
+        name: body.chosen?.title ?? body.name,
+        source_id: sourceId ?? null,
+        state: body.chosen && body.result_count > 1 ? 'check' : 'ready',
+      }
+      entries.push(entry)
+      return json({ id: entry.id }, 201)
+    }
+    const patch = url.match(/^\/api\/intake\/entries\/(.+)$/)
+    if (patch && method === 'PATCH') {
+      const entry = find(patch[1])
+      if (!entry) return json({ detail: 'No such entry' }, 404)
+      if (body.state) entry.state = body.state
+      return json({ id: entry.id })
+    }
+    const commit = url.match(/^\/api\/intake\/sittings\/([^/]+)\/commit$/)
+    if (commit) {
+      const entries = sittings.get(commit[1])
+      if (!entries) return json({ detail: 'No such sitting' }, 404)
+      const ready = entries.filter((e) => e.state === 'ready')
+      if (!ready.length) return json({ detail: 'Nothing to add' }, 409)
+      const fresh = ready.map((e, i) => ({
+        id: `spot-${spots.length + i + 1}`,
+        name: e.name,
+        source_id: e.source_id,
+      }))
+      spots.push(...fresh)
+      const left = entries.filter((e) => e.state !== 'ready')
+      if (left.some((e) => e.state === 'check')) {
+        sittings.set(commit[1], left)
+      } else sittings.delete(commit[1])
       return json({
-        added: 1,
-        spots_new: [{ id: 'spot-9', name: lastName(calls) }],
+        added: fresh.length,
+        spots_new: fresh.map(({ id, name }) => ({ id, name })),
         spots_owned: [],
       })
     }
     return json({}, 404)
   })
   vi.stubGlobal('fetch', fetch)
-  return { calls, fetch }
-}
-
-/** The name a commit is for: the last place POSTed. */
-function lastName(calls) {
-  const posted = [...calls]
-    .reverse()
-    .find((c) => c.url.endsWith('/places') && c.body)
-  return posted.body.chosen?.title ?? posted.body.name
+  return { calls, fetch, sittings, spots }
 }
 
 const found =
@@ -589,5 +653,247 @@ describe('PlacesAdd', () => {
     await submitSearch(user, 'Red Rocks')
     await screen.findByRole('group', { name: /Details for/ })
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  /** A search that answers by its words. */
+  const byQuery = (table) => (url) =>
+    json({
+      results: table[decodeURIComponent(url.split('query=')[1])] ?? [],
+      sources: [],
+    })
+
+  it('adds a second place in the same visit after the first commit deleted its sitting', async () => {
+    const user = userEvent.setup()
+    const { calls, sittings } = fakeApi({
+      search: byQuery({ 'Union Station': [UNION, BUS], 'Red Rocks': [ROCKS] }),
+    })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Denver Union Station' })
+    // The server deleted the sitting with the commit.
+    expect(sittings.size).toBe(0)
+    await user.click(screen.getByRole('button', { name: 'Add another' }))
+    await submitSearch(user, 'Red Rocks')
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Red Rocks Amphitheatre' })
+    expect(screen.queryByText(/No such sitting/)).not.toBeInTheDocument()
+    expect(calls.filter((c) => c.url === '/api/intake/sittings')).toHaveLength(
+      2,
+    )
+    const added = screen.getByRole('region', { name: 'Added this visit' })
+    expect(within(added).getByText('Denver Union Station')).toBeInTheDocument()
+    expect(
+      within(added).getByText('Red Rocks Amphitheatre'),
+    ).toBeInTheDocument()
+  })
+
+  it('adds, cancels, then adds another place of the same list', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(UNION, BUS) })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Union Station Bus/ }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', {
+      name: 'Saved Union Station Bus Concourse',
+    })
+    // The sitting lives on with the cancelled CHECK entry; the page starts a new one.
+    await user.click(screen.getByRole('button', { name: 'Add another' }))
+    await submitSearch(user, 'again')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    expect(
+      await screen.findByRole('group', {
+        name: 'Details for Denver Union Station',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('recovers once from a 404 on the add call, and then says what the server said', async () => {
+    const user = userEvent.setup()
+    const dead = () => json({ detail: 'No such sitting' }, 404)
+    const { calls } = fakeApi({
+      search: found(UNION, BUS),
+      once: { 'POST /api/intake/sittings/': [dead] },
+    })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    expect(
+      await screen.findByRole('group', {
+        name: 'Details for Denver Union Station',
+      }),
+    ).toBeInTheDocument()
+    expect(calls.filter((c) => c.url === '/api/intake/sittings')).toHaveLength(
+      2,
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the server’s message when the retry also fails', async () => {
+    const user = userEvent.setup()
+    const dead = () => json({ detail: 'No such sitting' }, 404)
+    const { calls } = fakeApi({
+      search: found(UNION, BUS),
+      once: { 'POST /api/intake/sittings/': [dead, dead] },
+    })
+    renderPage()
+    await submitSearch(user, 'Union Station')
+    await user.click(
+      await screen.findByRole('button', { name: /^Add Denver Union Station/ }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No such sitting',
+    )
+    expect(calls.filter((c) => c.url.endsWith('/places'))).toHaveLength(2)
+  })
+
+  it.each([
+    [
+      'a 422',
+      () => json({ detail: '1 to fix before anything is added' }, 422),
+      '1 to fix',
+    ],
+    ['a 409', () => json({ detail: 'Nothing to add' }, 409), 'Nothing to add'],
+    [
+      'a network error',
+      () => Promise.reject(new TypeError('offline')),
+      'did not answer',
+    ],
+  ])(
+    'moves the entry back to check when the commit fails with %s, so a later save writes only that place',
+    async (_name, fail, words) => {
+      const user = userEvent.setup()
+      const { calls, spots } = fakeApi({
+        search: found(UNION, BUS),
+        once: { 'POST /api/intake/sittings/sit-1/commit': [fail] },
+      })
+      renderPage()
+      await submitSearch(user, 'Union Station')
+      await user.click(
+        await screen.findByRole('button', {
+          name: /^Add Denver Union Station/,
+        }),
+      )
+      await user.click(
+        await screen.findByRole('button', { name: 'Save place' }),
+      )
+      expect(await screen.findByRole('alert')).toHaveTextContent(words)
+      const patches = calls.filter((c) => c.method === 'PATCH')
+      expect(patches.map((c) => c.body.state)).toEqual(['ready', 'check'])
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+      await user.click(
+        await screen.findByRole('button', { name: /^Add Union Station Bus/ }),
+      )
+      await user.click(
+        await screen.findByRole('button', { name: 'Save place' }),
+      )
+      await screen.findByRole('heading', {
+        name: 'Saved Union Station Bus Concourse',
+      })
+      expect(spots.map((x) => x.name)).toEqual(['Union Station Bus Concourse'])
+    },
+  )
+
+  it('keeps a failed typed save out of the sitting as ready, and a retry reuses the entry', async () => {
+    const user = userEvent.setup()
+    const { calls, spots } = fakeApi({
+      once: {
+        'POST /api/intake/sittings/sit-1/commit': [
+          () => json({ detail: 'Nothing to add' }, 409),
+        ],
+      },
+    })
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Type it by hand' }))
+    await user.type(screen.getByLabelText('Name'), 'Cherry Creek Trail')
+    await user.type(screen.getByLabelText('Coordinates'), '39.75, -104.99')
+    await user.click(screen.getByRole('button', { name: 'Save place' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nothing to add')
+    expect(
+      calls.filter((c) => c.method === 'PATCH').map((c) => c.body.state),
+    ).toEqual(['check'])
+    await user.click(screen.getByRole('button', { name: 'Save place' }))
+    await screen.findByRole('heading', { name: 'Saved Cherry Creek Trail' })
+    expect(calls.filter((c) => c.url.endsWith('/places'))).toHaveLength(1)
+    expect(spots).toHaveLength(1)
+  })
+
+  it('makes one request for two clicks in the same tick on Add, Save and Search', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi({ search: found(UNION, BUS) })
+    renderPage()
+    const box = screen.getByLabelText('Place name')
+    await user.type(box, 'Union Station')
+    const form = screen.getByRole('search')
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    await screen.findByRole('list')
+    expect(searchCalls(calls)).toHaveLength(1)
+
+    const add = await screen.findByRole('button', {
+      name: /^Add Denver Union Station/,
+    })
+    fireEvent.click(add)
+    fireEvent.click(add)
+    await screen.findByRole('group', { name: /Details for/ })
+    expect(calls.filter((c) => c.url.endsWith('/places'))).toHaveLength(1)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    const save = screen.getByRole('button', { name: 'Save place' })
+    fireEvent.click(save)
+    fireEvent.click(save)
+    await screen.findByRole('heading', { name: 'Saved Denver Union Station' })
+    expect(calls.filter((c) => c.url.endsWith('/commit'))).toHaveLength(1)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('makes one request for two typed saves in the same tick', async () => {
+    const user = userEvent.setup()
+    const { calls } = fakeApi()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Type it by hand' }))
+    await user.type(screen.getByLabelText('Name'), 'Cherry Creek Trail')
+    await user.type(screen.getByLabelText('Coordinates'), '39.75, -104.99')
+    const form = screen.getByRole('form', { name: 'Type a place by hand' })
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    await screen.findByRole('heading', { name: 'Saved Cherry Creek Trail' })
+    expect(calls.filter((c) => c.url.endsWith('/commit'))).toHaveLength(1)
+  })
+
+  it('shows no status string under a failed search, and the reason only when given', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: () => json({ detail: 'down' }, 500) })
+    renderPage()
+    await submitSearch(user, 'timeout')
+    const alert = await screen.findByRole('alert')
+    expect(alert).not.toHaveTextContent(/server answered|down/)
+    expect(alert.querySelectorAll('p')).toHaveLength(1)
+  })
+
+  it('drops the public hint and its description once the box is checked', async () => {
+    const user = userEvent.setup()
+    fakeApi({ search: found(ROCKS) })
+    renderPage()
+    await submitSearch(user, 'Red Rocks')
+    const box = await screen.findByLabelText(/Show on the public Denver page/)
+    expect(box).toHaveAttribute('aria-describedby')
+    await user.click(box)
+    expect(box).not.toHaveAttribute('aria-describedby')
   })
 })
