@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-18 · lesson · A recorded fixture run against the real clock is a time bomb
+`test_refresh_upserts_the_hours_and_records_the_run` read a forecast recorded 9 to 15 November while the job drops hours older than two days, so at 06:00 UTC on 18 November it went red on every PR at once (#443 had passed twenty minutes earlier on the same code). A test that feeds recorded dated data to code that reads `datetime.now` freezes that clock inside the recording; check the date arithmetic of any new fixture-based test, and read a red check's own assertion before blaming the branch.
+PR #443
+
 ### 2026-11-17 · decision · Nominatim gets its own client name, with no email address
 The catalogue's `USER_AGENT` carries the owner's email, which Overpass and the store hosts already receive. Joey chose a separate `NOMINATIM_USER_AGENT` (app name and site URL) over reusing it; a test asserts no `@` in the header. A new external service gets its own client name, not the shared one.
 PR #443 · docs/planning/2026-11-17-place-kind-intake-design.md
