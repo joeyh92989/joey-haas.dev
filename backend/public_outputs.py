@@ -17,9 +17,10 @@ import uuid
 from datetime import UTC, date, datetime
 
 from pydantic import BaseModel
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import spots
 from continuing import ContinuingCard, build_continuing, hours_to_beat
 from models import (
     ComicShelfFormat,
@@ -479,11 +480,16 @@ class PublicSpot(BaseModel):
 
 
 async def load_public_spots(session: AsyncSession) -> list[PublicSpot]:
-    """Published spots, anchors never, by neighbourhood then name. Uncached:
-    a select over a few dozen rows (spec, decision 9)."""
+    """Published Denver spots (any stored case, stray outer spaces ignored),
+    anchors never, by neighbourhood then name. Uncached: a select over a few
+    dozen rows (spec, decision 9)."""
     rows = await session.execute(
         select(Spot)
-        .where(Spot.is_public.is_(True), Spot.anchor.is_(False))
+        .where(
+            Spot.is_public.is_(True),
+            Spot.anchor.is_(False),
+            func.lower(func.trim(Spot.city)) == spots.DENVER,
+        )
         .order_by(Spot.neighbourhood.asc().nullslast(), Spot.name.asc())
     )
     return [

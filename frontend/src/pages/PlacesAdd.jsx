@@ -3,8 +3,6 @@ import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import PlaceFields, {
-  FALLBACK_CITIES,
-  HOME_CITY,
   emptyFields,
   fieldsPayload,
 } from '../components/places/PlaceFields.jsx'
@@ -13,6 +11,7 @@ import { call } from '../components/places/placeApi.js'
 import PlaceResultRow from '../components/places/PlaceResultRow.jsx'
 import { placesAdd as words } from '../content/placesAdd.js'
 import { apiFetch } from '../lib/api.js'
+import { FALLBACK_CITIES, citiesFrom } from '../lib/cities.js'
 import { localToday, sittingLabel } from '../lib/intake.js'
 
 /** A search row's identity: its OpenStreetMap id, else its title. */
@@ -83,13 +82,7 @@ export default function PlacesAdd() {
       .then((response) => (response.ok ? response.json() : []))
       .then((spots) => {
         if (!live || !Array.isArray(spots)) return
-        const found = [
-          ...new Set(
-            spots
-              .map((spot) => String(spot.city ?? '').toLowerCase())
-              .filter((city) => city && city !== HOME_CITY),
-          ),
-        ].sort()
+        const found = citiesFrom(spots)
         if (found.length) setCities(found)
       })
       .catch(() => {})

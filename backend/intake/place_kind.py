@@ -32,7 +32,7 @@ from spot_sources.nominatim import PlaceHit, SearchFailure
 logger = logging.getLogger(__name__)
 
 ATTRIBUTION = "Search by OpenStreetMap contributors"
-DEFAULT_CITY = "denver"
+DEFAULT_CITY = spots.DENVER
 # Builds the client a search uses; tests swap it.
 http_client: Callable[[], httpx2.AsyncClient] = httpx2.AsyncClient
 
@@ -49,7 +49,7 @@ def map_url(hit: PlaceHit) -> str:
 SOURCE_ID = re.compile(r"(node|way|relation)/[0-9]+")
 SOURCE_ID_MAX = 60  # Spot.source_id is String(60)
 NAME_MAX, TEXT_MAX = 200, 200
-CITY_MAX, BLURB_MAX, NEIGHBOURHOOD_MAX = 40, 500, 100
+BLURB_MAX, NEIGHBOURHOOD_MAX = 500, 100
 # The fields an owner may edit on an entry; nothing else in a payload is theirs.
 EDITABLE = ("name", "city", "tags", "blurb", "neighbourhood", "is_public")
 
@@ -148,7 +148,11 @@ def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
         if key == "name":
             out[key] = clean_name(value)
         elif key == "city":
-            out[key] = (_text(value, CITY_MAX, "city") or DEFAULT_CITY).lower()
+            # A lone omitted or blank city stays Denver (the page's "Another
+            # city" field relies on it); anything else goes through the one
+            # city rule.
+            text = _text(value, spots.CITY_MAX, "city")
+            out[key] = spots.normalize_city(text) if text else DEFAULT_CITY
         elif key == "blurb":
             out[key] = _text(value, BLURB_MAX, "blurb")
         elif key == "neighbourhood":

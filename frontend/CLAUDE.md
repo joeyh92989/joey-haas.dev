@@ -344,6 +344,28 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   the loaded spots. Browser coverage is the
   two "spots add bar" cases in `e2e/admin.spec.js`: they stub only the
   browser's search answer, never Nominatim, and delete what they save.
+- **City on `/admin/spots` (story #343).** `lib/cities.js` is the one city
+  helper (`HOME_CITY`, `FALLBACK_CITIES`, `cityKey`, `cityLabel`,
+  `spotCity`, `citiesFrom`, `cityCounts`); every importer reads it directly
+  (`PlaceFields.jsx` no longer re-exports). `cityKey` also drops control and
+  zero-width characters, like `normalize_city`. `SpotForm` has a City input with a `datalist` of the cities
+  in use (Denver first; the `cities` prop), Denver by default, the saved city
+  when editing. Public is disabled with `placesAdd.publicOnlyDenver` off
+  Denver; the box keeps the state the owner set (retyping "Denver" does not
+  unpublish) and is only forced off on save, when the city is not Denver
+  (`is_public: isPublic && isHome`). In the table, the Public checkbox is
+  disabled for a private row outside Denver (a legacy public one can still be
+  unpublished). Saving a spot the active City filter hides resets the filter to
+  All cities. A blank city reads as Denver on
+  screen but is refused (`denver.form.cityRequired`) rather than sent. An edit
+  sends `city` only when it changed (compared as the server keys it), a create
+  always. The table's City filter (`denver.admin.cityFilter`, counts, Denver
+  first) shows only while the loaded spots hold more than one city, is page
+  state, and "Show in table" clears it with the text filter when either hides
+  the row. A muted line under the name (`.spots-city`) names the city for every
+  non-Denver row, and for Denver rows too under All cities when there is more
+  than one city; never a column. The page mirrors the server: city lower-cased
+  and at most 40 characters, a public spot only in Denver.
 - **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
   with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`
   (pure), the shared `call` in `placeApi.js` and the `paste` group of

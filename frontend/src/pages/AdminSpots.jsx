@@ -4,10 +4,16 @@ import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
-import { HOME_CITY } from '../components/places/PlaceFields.jsx'
 import SpotsAddBar from '../components/places/SpotsAddBar.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import {
+  HOME_CITY,
+  cityCounts,
+  spotCity,
+  cityLabel,
+  citiesFrom,
+} from '../lib/cities.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
@@ -74,6 +80,8 @@ export default function AdminSpots() {
   const [attempt, setAttempt] = useState(0)
   const [notice, setNotice] = useState(null)
   const [query, setQuery] = useState('')
+  // The City filter's choice: a city key, or '' for all cities. Page state.
+  const [cityPick, setCityPick] = useState('')
   // null: no form; 'new': adding; a spot: editing it.
   const [editing, setEditing] = useState(null)
   // The ids of the rows with a write in flight; each row waits on its own.
@@ -127,23 +135,33 @@ export default function AdminSpots() {
     return false
   }
 
+  const counts = useMemo(() => cityCounts(spots), [spots])
+  // The filter shows only when the spots hold more than one city, and a pick
+  // whose city has left the list (its last spot moved) counts as All cities.
+  const manyCities = counts.length > 1
+  const cityFilter =
+    manyCities && counts.some((c) => c.city === cityPick) ? cityPick : ''
   const shown = useMemo(
-    () => (spots ?? []).filter((spot) => matches(spot, query)),
-    [spots, query],
+    () =>
+      (spots ?? []).filter(
+        (spot) =>
+          matches(spot, query) &&
+          (!cityFilter || spotCity(spot) === cityFilter),
+      ),
+    [spots, query, cityFilter],
   )
   // The cities already on saved spots, offered beside Denver; the bar's
   // short fixed list stands until a spot outside Denver exists.
-  const cities = useMemo(() => {
-    const found = [
-      ...new Set(
-        (spots ?? [])
-          .map((spot) => String(spot.city ?? '').toLowerCase())
-          .filter((city) => city && city !== HOME_CITY),
-      ),
-    ].sort()
-    return found.length ? found : undefined
-  }, [spots])
+  const cityKeys = useMemo(() => citiesFrom(spots), [spots])
+  const cities = cityKeys.length ? cityKeys : undefined
   const publicCount = (spots ?? []).filter((spot) => spot.is_public).length
+
+  // A city line under the name: every city but Denver, and Denver too while
+  // the table lists all cities of a catalogue with more than one.
+  function showCity(spot) {
+    const city = spotCity(spot)
+    return city !== HOME_CITY || (manyCities && !cityFilter)
+  }
 
   function replace(saved) {
     writeSeq.current += 1
@@ -186,6 +204,9 @@ export default function AdminSpots() {
     const row = list.find((spot) => spot.id === id)
     if (!row) return
     if (!matches(row, query)) setQuery('')
+    if (cityFilter && spotCity(row) !== cityFilter) {
+      setCityPick('')
+    }
     setMarkedId(id)
     pendingShow.current = id
     setShowTick((n) => n + 1)
@@ -232,6 +253,8 @@ export default function AdminSpots() {
       setMarkedId(null)
     }
     replace(spot)
+    // A city the active filter hides would make the saved row vanish.
+    if (cityFilter && spotCity(spot) !== cityFilter) setCityPick('')
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
@@ -348,6 +371,7 @@ export default function AdminSpots() {
             key={editing === 'new' ? `new:${handName}` : editing.id}
             spot={editing === 'new' ? null : editing}
             initialName={editing === 'new' ? handName : undefined}
+            cities={cityKeys}
             onSaved={saved}
             onCancel={() => setEditing(null)}
           />
@@ -410,6 +434,22 @@ export default function AdminSpots() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
+                {manyCities && (
+                  <label className="spots-city-filter">
+                    <span>{denver.admin.cityFilter}</span>
+                    <select
+                      value={cityFilter}
+                      onChange={(event) => setCityPick(event.target.value)}
+                    >
+                      <option value="">{denver.admin.allCities}</option>
+                      {counts.map(({ city, count }) => (
+                        <option key={city} value={city}>
+                          {denver.admin.cityOption(cityLabel(city), count)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
 
               {spots.length === 0 && <p>{denver.admin.empty}</p>}
@@ -461,6 +501,11 @@ export default function AdminSpots() {
                                 {spot.neighbourhood}
                               </span>
                             )}
+                            {showCity(spot) && (
+                              <span className="spots-city">
+                                {cityLabel(spotCity(spot))}
+                              </span>
+                            )}
                           </th>
                           <td>
                             <ul className="spots-tags">
@@ -485,7 +530,11 @@ export default function AdminSpots() {
                             <input
                               type="checkbox"
                               checked={spot.is_public}
-                              disabled={busy.has(spot.id)}
+                              disabled={
+                                busy.has(spot.id) ||
+                                (!spot.is_public &&
+                                  spotCity(spot) !== HOME_CITY)
+                              }
                               onChange={() => togglePublic(spot)}
                               aria-label={`Public: ${spot.name}`}
                             />
