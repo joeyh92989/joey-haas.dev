@@ -717,6 +717,7 @@ def create_comics_router(
                 volumes=volume_counts(holds, read_numbers, item.read_to),
                 owned_volumes=await owned_volumes_of(session, item_id),
                 held=held_ranges(holds),
+                holds=holds,
             ),
         }
 

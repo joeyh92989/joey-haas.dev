@@ -170,7 +170,7 @@ async def test_the_models_publish_exactly_these_fields():
 
 
 async def test_wall_lists_issues_and_editions_in_order(sessionmaker_for_test):
-    item_id = await _seed(sessionmaker_for_test)
+    item_id = await _seed(sessionmaker_for_test, mirror=True)
     response = await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
     assert response.status_code == 200
     body = response.json()
@@ -199,7 +199,7 @@ async def test_wall_edition_prefers_its_own_cover(sessionmaker_for_test):
             },
         ]  # fmt: skip
     )
-    item_id = await _seed(sessionmaker_for_test, item)
+    item_id = await _seed(sessionmaker_for_test, item, mirror=True)
     body = (
         await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
     ).json()
@@ -1178,3 +1178,112 @@ async def test_a_skipped_range_links_exactly_as_if_it_were_not(
     )
     assert [_link_of(link) for link in plain] == [(1, 3)]
     assert [_link_of(link) for link in skipped] == [(1, 3)]
+
+
+# --- Public editions come from owned volumes (retire items.editions, PR 2) ---
+
+
+async def _add_volume(factory, item_id, slug, label, low, high, *, owned=True,
+                      kind="omnibus", kind_raw=None, cover=None, on=None):  # fmt: skip
+    """A volume of `item_id` with one linked collects entry on `on` (default
+    the same title), made by hand, as the volume routes and intake do."""
+    from models import ComicVolume, ComicVolumeCollect
+
+    async with factory() as session:
+        volume = ComicVolume(
+            id=uuid.uuid4(), item_id=item_id, slug=slug, label=label, kind=kind,
+            kind_raw=kind_raw, position=50, owned=owned, cover_url=cover,
+        )  # fmt: skip
+        session.add(volume)
+        await session.flush()
+        session.add(
+            ComicVolumeCollect(
+                id=uuid.uuid4(), volume_id=volume.id, position=0,
+                series_name="Saga", issue_text=f"#{low}-{high}", source="typed",
+                item_id=on or item_id, from_number=low, to_number=high,
+            )
+        )  # fmt: skip
+        await session.commit()
+
+
+async def test_wall_edition_slugs_match_the_old_rule(sessionmaker_for_test):
+    """The slug set is what `edition_slugs` gave over `items.editions`."""
+    from comics import edition_slugs
+
+    item = _series()
+    item_id = await _seed(sessionmaker_for_test, item, mirror=True)
+    body = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    assert [e["slug"] for e in body["editions"]] == edition_slugs(item.editions)
+    assert [(e["kind"], e["label"], e["from_issue"], e["to_issue"])
+            for e in body["editions"]] == [
+        ("Trade paperback", "Volume Two", 5, 6),
+        ("Hardcover", "Deluxe", 5, 6),
+    ]  # fmt: skip
+    detail = (await _get(sessionmaker_for_test, f"/api/public/items/{item_id}")).json()[
+        "comic"
+    ]
+    assert detail["editions"] == [
+        {
+            "kind": "Trade paperback",
+            "label": "Volume Two",
+            "from_issue": 5,
+            "to_issue": 6,
+        },
+        {"kind": "Hardcover", "label": "Deluxe", "from_issue": 5, "to_issue": 6},
+    ]
+
+
+async def test_a_volume_with_empty_editions_is_an_edition(sessionmaker_for_test):
+    item = _series(editions=None)
+    item_id = await _seed(sessionmaker_for_test, item)
+    await _add_volume(sessionmaker_for_test, item_id, "vol-1", "Book One", 1, 4,
+                      cover="https://cv.test/b1.jpg")  # fmt: skip
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    assert [(e["slug"], e["kind"], e["label"], e["from_issue"], e["to_issue"],
+             e["cover_url"]) for e in wall["editions"]] == [
+        ("vol-1", "omnibus", "Book One", 1, 4, "https://cv.test/b1.jpg")
+    ]  # fmt: skip
+    detail = (await _get(sessionmaker_for_test, f"/api/public/items/{item_id}")).json()[
+        "comic"
+    ]
+    assert detail["editions"] == [
+        {"kind": "omnibus", "label": "Book One", "from_issue": 1, "to_issue": 4}
+    ]
+    rows = (await _get(sessionmaker_for_test, "/api/public/comics")).json()["series"]
+    assert [r["edition_labels"] for r in rows if r["item_id"] == str(item_id)] == [
+        ["Book One"]
+    ]
+
+
+async def test_editions_in_the_column_without_a_volume_are_not_public(
+    sessionmaker_for_test,
+):
+    item_id = await _seed(sessionmaker_for_test)  # editions set, no volumes
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    detail = (await _get(sessionmaker_for_test, f"/api/public/items/{item_id}")).json()[
+        "comic"
+    ]
+    rows = (await _get(sessionmaker_for_test, "/api/public/comics")).json()["series"]
+    assert wall["editions"] == [] and detail["editions"] == []
+    assert [r["edition_labels"] for r in rows if r["item_id"] == str(item_id)] == [[]]
+
+
+async def test_unowned_and_other_title_volumes_are_not_editions(
+    sessionmaker_for_test,
+):
+    item_id = await _seed(sessionmaker_for_test, _series(editions=None))
+    other = await _seed(sessionmaker_for_test, _series(editions=None, title="Other"))
+    await _add_volume(sessionmaker_for_test, item_id, "vol-1", "Unowned", 1, 2,
+                      owned=False)  # fmt: skip
+    await _add_volume(sessionmaker_for_test, other, "vol-1", "Elsewhere", 1, 2,
+                      on=item_id)  # fmt: skip
+    wall = (
+        await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
+    ).json()
+    assert wall["editions"] == []

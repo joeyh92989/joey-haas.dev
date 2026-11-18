@@ -446,6 +446,11 @@ class VolumeHold:
     ranges: tuple[tuple[int, int], ...] = ()
     # The book's number in its title's line (1..9999), if it has one.
     line_number: int | None = None
+    # What the public editions list shows (`own_editions`): the mapped kind,
+    # the free text it came from, and the book's own cover.
+    kind: str = "trade"
+    kind_raw: str | None = None
+    cover_url: str | None = None
 
 
 def held_ranges(holds: Iterable[VolumeHold] | None) -> list[dict]:
@@ -455,6 +460,28 @@ def held_ranges(holds: Iterable[VolumeHold] | None) -> list[dict]:
         {"from": low, "to": high, "label": hold.label, "slug": hold.slug}
         for hold in holds or []
         if hold.owned
+        for low, high in hold.ranges
+    ]
+
+
+def own_editions(holds: Iterable[VolumeHold] | None) -> list[dict]:
+    """What the public `editions` fields list: one `{slug, kind, label, from,
+    to, cover_url}` per linked range of every OWNED volume of this very title
+    (a cross-title book is not an edition of it), in the holds' order (the
+    volume position). `kind` is the free text the book came from (`kind_raw`,
+    what `items.editions` held), else the mapped kind. A volume with no linked
+    range here has no range to show and gives none."""
+    return [
+        {
+            "slug": hold.slug,
+            "kind": hold.kind_raw or hold.kind,
+            "label": hold.label,
+            "from": low,
+            "to": high,
+            "cover_url": hold.cover_url,
+        }
+        for hold in holds or []
+        if hold.owned and hold.own
         for low, high in hold.ranges
     ]
 
@@ -579,6 +606,9 @@ async def load_holds_many(
                     own=volume.item_id == item_id,
                     ranges=tuple(merge(mine)),
                     line_number=volume.line_number,
+                    kind=volume.kind,
+                    kind_raw=volume.kind_raw,
+                    cover_url=volume.cover_url,
                 )
             )
     return out

@@ -27,11 +27,11 @@ from comic_issues import load_issues
 from comics import (
     MAX_ISSUE,
     ComicSeries,
-    edition_slugs,
     expand,
     held_ranges,
     load_holds,
     next_issue,
+    own_editions,
     parse_ranges,
     title_kind,
 )
@@ -43,7 +43,6 @@ from models import (
     ItemType,
 )
 from public_comics import (
-    _editions,
     line_order,
     loose_issues,
     public_comic_items,
@@ -328,7 +327,8 @@ async def build_wall(
     item = await _public_comic(session, item_id, public_only)
     if item is None:
         return None
-    series = series_of(item, held_ranges(await load_holds(session, item.id)))
+    holds = await load_holds(session, item.id)
+    series = series_of(item, held_ranges(holds))
     released = series.run().released
     every = await load_issues(session, item.id, include_stubs=True)
     held = _held(series, every)
@@ -337,9 +337,9 @@ async def build_wall(
     # numbered blank. A skipped stub is no page (skips stay private).
     rows = [row for row in every if row.cv_id is not None or row.owned]
     by_number = {row.number: row for row in rows}
-    editions = _editions(item)
     out_editions = []
-    for slug, edition in zip(edition_slugs(editions), editions, strict=True):
+    for edition in own_editions(holds):
+        slug = edition["slug"]
         cover = _edition_cover(edition, by_number)
         out_editions.append(
             PublicWallEdition(
