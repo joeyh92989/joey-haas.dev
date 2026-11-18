@@ -75,6 +75,12 @@ class EntryOut(TypedDict):
     garment_id: str | None
     on_shelf: dict[str, Any] | None
     number_check: NotRequired[NumberCheckOut]
+    # A comic's alone (`intake.commit.comic_adds_for`): what the entry adds
+    # (a volume or an issue), and for a collected book its contents.
+    adds: NotRequired[dict[str, Any]]
+    contents_preview: NotRequired[list[dict[str, Any]]]
+    title_will_be_created: NotRequired[bool]
+    already_held: NotRequired[dict[str, Any] | None]
 
 
 class SittingOut(BaseModel):
@@ -134,6 +140,24 @@ class RefusalOut(BaseModel):
     message: str
 
 
+class VolumeNewOut(BaseModel):
+    """A volume a commit wrote (a collected book)."""
+
+    id: str
+    slug: str
+    label: str
+    kind: str
+    line_number: int | None
+    title: str
+    title_id: str
+    title_created: bool
+
+
+class TitleCreatedOut(BaseModel):
+    id: str
+    title: str
+
+
 class AddOut(BaseModel):
     """`POST /add`, 200 or 201."""
 
@@ -143,6 +167,8 @@ class AddOut(BaseModel):
     series_grew: list[SeriesGrewOut]
     created: list[str]
     garment_id: str | None
+    volumes_new: list[VolumeNewOut] = []
+    titles_created: list[TitleCreatedOut] = []
 
 
 class RefusedOut(BaseModel):
@@ -206,6 +232,8 @@ class CommitOut(BaseModel):
     file_import: FileCountsOut | None
     refused: list[RefusalOut]
     created: list[str]
+    volumes_new: list[VolumeNewOut] = []
+    titles_created: list[TitleCreatedOut] = []
 
 
 class CommitRefusedOut(CommitOut):

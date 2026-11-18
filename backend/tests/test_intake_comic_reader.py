@@ -127,6 +127,27 @@ async def test_a_collected_book_defaults_to_a_trade_with_its_range(
     assert entry.payload["issue_number"] is None
 
 
+async def test_a_read_edition_kind_lands_in_the_payload(sessionmaker_for_test):
+    sitting_id, _ = await _sitting(sessionmaker_for_test)
+    await _make_comic(sessionmaker_for_test, sitting_id)
+    provider = PromptProvider(
+        {
+            "books": [
+                {
+                    "series": "Blankets",
+                    "issue_number_seen": False,
+                    "format": "collected",
+                    "edition_kind": "ogn",
+                }
+            ]
+        }
+    )
+    await _read(sessionmaker_for_test, sitting_id, provider, registry=_comic_registry())
+    [entry] = await _entries(sessionmaker_for_test, sitting_id)
+    assert entry.payload["edition_kind"] == "ogn"
+    assert len(provider.prompts) == 1  # still one request per photo
+
+
 async def test_a_collected_books_reprint_note_lands_in_its_payload(
     sessionmaker_for_test,
 ):

@@ -114,6 +114,8 @@ Rules:
 
 
 COMIC_FORMATS = ("single", "collected", "unknown")
+# The five kinds of book a volume can be (`comic_volumes.kind`).
+COMIC_EDITION_KINDS = ("trade", "hardcover", "omnibus", "compendium", "ogn")
 
 COMIC_DETECTION_SCHEMA = {
     "type": "object",
@@ -128,6 +130,10 @@ COMIC_DETECTION_SCHEMA = {
                     "issue_number_seen": {"type": "boolean"},
                     "format": {"type": "string", "enum": list(COMIC_FORMATS)},
                     "volume_range": {"type": "string"},
+                    "edition_kind": {
+                        "type": "string",
+                        "enum": list(COMIC_EDITION_KINDS),
+                    },
                     "reprint_note": {"type": "string"},
                     "publisher": {"type": "string"},
                 },
@@ -142,7 +148,8 @@ COMIC_DETECTION_SCHEMA = {
 # eight of the owner's covers (docs/planning/2026-11-13-comics-book-design.md).
 COMIC_EXTRACTION_PROMPT = """\
 This photograph shows one or more physical comic books: single issues, or
-collected editions (trade paperbacks, hardcovers, omnibuses).
+collected editions (trade paperbacks, hardcovers, omnibuses, compendiums,
+original graphic novels).
 
 Return one entry per physical book you can see, not one per series. Four
 issues of one series are four entries.
@@ -155,7 +162,13 @@ For each book:
   it; never guess from the art or from other books in the photo.
 - issue_number_seen: true only if you read the number off this book.
 - format: "single" for a stapled issue, "collected" for a trade paperback,
-  hardcover or omnibus, "unknown" if you cannot tell (a spine only).
+  hardcover, omnibus, compendium or original graphic novel, "unknown" if
+  you cannot tell (a spine only).
+- edition_kind: for a collected edition only, what kind of book it is:
+  "trade" (trade paperback), "hardcover", "omnibus", "compendium" (a
+  Compendium or similar large paperback) or "ogn" (an original graphic
+  novel, written as a book and never serialised in single issues). Leave it
+  out if you cannot tell; never guess.
 - volume_range: for a collected edition, the issues it collects if printed
   ("1-6"); otherwise leave it out.
 - reprint_note: for a collected edition, the printed "Collects ..." or
@@ -201,6 +214,9 @@ class Detection:
     format: str | None = None
     collects_from: int | None = None
     collects_to: int | None = None
+    # A collected edition's kind (one of COMIC_EDITION_KINDS; a trade when
+    # the model gave none or an unknown one), None for any other book.
+    edition_kind: str | None = None
     # A collected edition's printed "Collects ..." text, <= MAX_REPRINT_NOTE
     # characters, empty when none. Story #328 reads it at commit.
     reprint_note: str = ""
@@ -295,7 +311,11 @@ def parse_books(payload: dict) -> list[Detection]:
         number = None
         low = high = None
         note = ""
+        kind = None
         if book_format == "collected":
+            kind = raw.get("edition_kind")
+            if kind not in COMIC_EDITION_KINDS:
+                kind = "trade"
             raw_note = raw.get("reprint_note")
             if isinstance(raw_note, str):
                 note = raw_note.strip()[:MAX_REPRINT_NOTE].strip()
@@ -318,6 +338,7 @@ def parse_books(payload: dict) -> list[Detection]:
                 format=book_format,
                 collects_from=low,
                 collects_to=high,
+                edition_kind=kind,
                 reprint_note=note,
             )
         )

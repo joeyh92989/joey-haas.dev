@@ -415,7 +415,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   normalise_issue_number`), `number_source` (`read` when the model says it
   saw the number, `typed` once an edit changes it, else `none`), `format`
   (`single`, `collected`, `unknown`) and, for a collected book, its
-  `collects_from`/`collects_to` and `edition_kind` (default `trade`). A
+  `collects_from`/`collects_to`, `edition_kind` (one of the five volume
+  kinds `trade`, `hardcover`, `omnibus`, `compendium`, `ogn`; the model reads
+  it from `COMIC_DETECTION_SCHEMA`'s enum, default `trade`, still one request
+  per photo), `reprint_note` and `line_number`. A
   mixed sitting keeps the shelf prompt. A series whose best match is not
   exact and whose title ends ": <story>" is searched again without it
   (`reader._without_story`). The mark under a number is `number_check` on
@@ -424,11 +427,58 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   highest issue the series on the shelf has (`on_shelf.issue_max`); never
   the model's opinion. `PATCH /api/intake/entries/{id}` validates a comic
   entry's number, format, edition kind and range (422) and a changed number
-  becomes `typed`. The commit turns a book into the existing path:
-  `issue_number` becomes `issues_owned` (unioned per series, `got_issues`
-  for a series on the shelf), a collected book a shelf format and an
-  `editions` row when its range is known, and the answer's `series_new`
-  lists a created series' issues for Done. The comic `issues_owned` field
+  becomes `typed`; `line_number` (the book's number in its line, typed at
+  Check) is a whole number 1 to 9999 or blank, and an `edition_kind` outside
+  the five is a 422. **The commit turns a single into an issue and a
+  collected book into a volume** (story #328, `intake/volume_plan.py`).
+  A single: `issue_number` becomes `issues_owned` (unioned per series,
+  `got_issues` for a series on the shelf), as before. A collected book never
+  writes `items.editions`: it is a `comic_volumes` row (owned, unread,
+  `edited` true so the editions shim leaves it alone; label = the detected
+  title up to 80 characters, `kind` = `edition_kind` or `trade`, `line_number`,
+  slug `vol-<n>` with the smallest unused n, position last) on a title: the
+  matched series (on the shelf, or made from the match as before), or, with
+  no usable match, a title with no external ids: an existing one of the same
+  name (`volume_plan.title_key`: case, a leading "The" and punctuation do not
+  count; the oldest by `created_at`, `id`) is **reused**, so books of one
+  name land on one title across sittings and add-bar adds, and only when
+  there is none is a new **private** one made with the detected name. Books
+  of one name in a sitting share it, and their Details `editions` all merge
+  onto it. A collected book with no match is never an error, and one marked
+  `owned` with no match writes nothing (counted as already owned). Its contents are `photo` collects
+  entries: the printed `collects_from`/`collects_to` as `#a-b` (or `#n`),
+  linked to the title when the series is matched and the range is 1 to
+  9999, then the entries `comic_contents.parse_contents` reads from
+  `reprint_note` (rules only, never the model), skipping any that repeat the
+  range, linked only by the contents route's rule (own title, one plain range
+  within the known issue count, a bracketed year that is the title's, else
+  text only). The links are what make the marks derive: `sync_marks` runs for
+  every touched title, and a linked range takes its issues out of the
+  title's skipped ones. **The same issues in two books are two books**: the
+  old "a photo of a book already recorded" skip by `(from, to)` is gone.
+  **Idempotent:** a volume carries `intake_entry_id` (migration `0023`, no
+  foreign key, a partial unique index), so committing the same entry again
+  (a retry, a second device) finds its volume and writes nothing; a second
+  writer that wins the unique index is read back, not an error. The add bar
+  (`commit_one`) writes a book the same way (its `entry_id` argument is the
+  idempotence key, a fresh one per call by default). The answer gains
+  `volumes_new` (`id, slug, label, kind, line_number, title, title_id,
+  title_created`) and `titles_created` (`id, title`) beside the unchanged
+  `series_new` (which also lists `volumes`) and `series_grew`. **Check's
+  preview** is built by the same `volume_plan.book_plan` the commit uses: every
+  comic entry the intake routes answer with gains `adds` (`{kind: "issue",
+  issue_number}` or `{kind: "volume", label, edition_kind, line_number,
+  title, title_id}`) and `title_will_be_created`, and a collected book
+  `contents_preview` (`[{series_name, issue_text, will_link}]`, exactly the
+  entries the commit writes) and `already_held` (null, or `{volume_id, slug,
+  label}` of an owned volume of the same title and kind that already links
+  the same range: a warning only, the commit still writes the second book);
+  `title_will_be_created` is false when a same-named title will be reused;
+  no model call, no network. **Known limit:** an add-bar retry has no
+  idempotence key (`/add` sends none), so a repeated request makes a second
+  volume. The `editions` a
+  row carries from Details (a typed list) are the old path and still merge.
+  The answer's `series_new` lists a created series' issues for Done. The comic `issues_owned` field
   is `in_details: false`, so Details does not ask for it (the add bar still
   does). Check lists the books (`ComicBooks`, `lib/comicBooks.js`, words in
   `content/comicIntake.js`) and holds Next until every kept single book has

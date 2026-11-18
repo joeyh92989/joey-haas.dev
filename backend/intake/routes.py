@@ -39,6 +39,7 @@ from intake.commit import (
     SITTING_GONE,
     NothingToAdd,
     SittingGone,
+    comic_adds_for,
     commit_one,
     commit_sitting,
     series_on_shelf_for,
@@ -185,13 +186,17 @@ def photo_json(photo: IntakePhoto) -> dict[str, Any]:
 
 
 def entry_json(
-    entry: IntakeEntry, on_shelf: dict[str, Any] | None = None
+    entry: IntakeEntry,
+    on_shelf: dict[str, Any] | None = None,
+    adds: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The page's view of an entry. `on_shelf` is the comic series the
     entry would add issues to, as it stands now (`series_on_shelf_for`),
     else null. A comic also carries `number_check`, the mark under its
     issue number, decided from the payload and the match
-    (`intake.comic_books.number_check`), never stored."""
+    (`intake.comic_books.number_check`), never stored. `adds` is the comic's
+    preview (`comic_adds_for`: `adds`, `title_will_be_created` and, for a
+    collected book, `contents_preview`), merged in as it is."""
     shown = {
         "id": str(entry.id),
         "photo_id": str(entry.photo_id) if entry.photo_id else None,
@@ -205,6 +210,7 @@ def entry_json(
     }
     if entry.kind == "comic":
         shown["number_check"] = number_check(entry.payload, entry.chosen, on_shelf)
+        shown.update(adds or {})
     return shown
 
 
@@ -214,7 +220,10 @@ async def entries_json(
     """Entries as the page sees them, each comic marked with the series
     already on the shelf it matches."""
     shelf = await series_on_shelf_for(session, entries)
-    return [entry_json(entry, shelf.get(entry.id)) for entry in entries]
+    adds = await comic_adds_for(session, entries)
+    return [
+        entry_json(entry, shelf.get(entry.id), adds.get(entry.id)) for entry in entries
+    ]
 
 
 def _check_kind(area: IntakeArea, kind: str | None) -> None:
@@ -328,6 +337,8 @@ def create_intake_router(
                 "already_owned": outcome.already_owned,
                 "issues_added": outcome.issues_added,
                 "series_grew": [grew.as_json() for grew in outcome.series_grew],
+                "volumes_new": outcome.volumes_new,
+                "titles_created": outcome.titles_created,
                 "created": [str(i) for i in outcome.created],
                 "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
             },

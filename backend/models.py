@@ -1593,6 +1593,14 @@ class ComicVolume(Base):
             name="comic_volumes_kind",
         ),
         Index("ix_comic_volumes_item_position", "item_id", "position"),
+        # Migration 0023: one volume per intake entry, so committing an entry
+        # twice finds its volume. Volumes with no entry are left out.
+        Index(
+            "ux_comic_volumes_intake_entry",
+            "intake_entry_id",
+            unique=True,
+            postgresql_where=text("intake_entry_id IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -1623,6 +1631,11 @@ class ComicVolume(Base):
     # compat shim never overwrites, repositions or deletes such a volume.
     edited: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
+    )
+    # Migration 0023: the intake entry this volume was committed from. No
+    # foreign key: the entry goes with its sitting, the volume stays.
+    intake_entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
