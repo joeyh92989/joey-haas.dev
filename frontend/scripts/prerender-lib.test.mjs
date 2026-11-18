@@ -458,6 +458,82 @@ describe('comic issue and volume pages', () => {
   })
 })
 
+describe('publicRoutes: a comic title page by kind (#330)', () => {
+  const COMIC = '6f1c2c1e-0000-4000-8000-0000000000c1'
+  const item = { type: 'comic', id: COMIC, title: 'Lantern Tales' }
+  const book = (n) => ({
+    slug: `vol-${n}`,
+    label: `Book ${n}`,
+    kind: 'trade',
+    line_number: n,
+    cover_url: null,
+  })
+  const issue = (number) => ({ number, name: null, cover_url: null })
+  const page = (row) =>
+    routeAt(
+      publicRoutes({
+        posts: [],
+        items: [item],
+        comicIssues: [
+          { item_id: COMIC, series_title: 'Lantern Tales', ...row },
+        ],
+      }),
+      `/shelf/${COMIC}`,
+    )
+
+  it('keeps a run as it was, with or without a kind', () => {
+    const run = { issues: [issue(1)], volumes: [] }
+    const old = 'Lantern Tales, in Joey Haas’s comic collection on My Shelf.'
+    expect(page({ kind: 'run', ...run }).description).toBe(old)
+    expect(page(run).description).toBe(old)
+    expect(page(run).title).toBe('Lantern Tales · My Shelf')
+  })
+
+  it('says a line of books and counts them', () => {
+    expect(
+      page({
+        kind: 'book_line',
+        issues: [],
+        volumes: [book(1), book(2), book(4)],
+      }).description,
+    ).toBe(
+      'Lantern Tales: a line of 3 books, in Joey Haas’s comic collection on My Shelf.',
+    )
+  })
+
+  it('says a single book', () => {
+    expect(
+      page({ kind: 'single_book', issues: [], volumes: [book(1)] }).description,
+    ).toBe(
+      'Lantern Tales: a single book, in Joey Haas’s comic collection on My Shelf.',
+    )
+  })
+
+  it('says books and issues, singular and plural', () => {
+    expect(
+      page({
+        kind: 'both',
+        issues: [issue(1), issue(2)],
+        volumes: [book(1), book(3)],
+      }).description,
+    ).toBe(
+      'Lantern Tales: 2 books and 2 issues, in Joey Haas’s comic collection on My Shelf.',
+    )
+    expect(
+      page({ kind: 'both', issues: [issue(1)], volumes: [book(1)] })
+        .description,
+    ).toBe(
+      'Lantern Tales: 1 book and 1 issue, in Joey Haas’s comic collection on My Shelf.',
+    )
+  })
+
+  it('leaves a kind the build does not know alone', () => {
+    expect(
+      page({ kind: 'mystery', issues: [], volumes: [book(1)] }).description,
+    ).toBe('Lantern Tales, in Joey Haas’s comic collection on My Shelf.')
+  })
+})
+
 describe('strayTripDirs', () => {
   it('names every travel folder that is not a published trip', () => {
     // A draft's built photos are copied from public/ like any other file;

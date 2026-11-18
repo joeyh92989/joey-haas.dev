@@ -24,6 +24,121 @@
         "line_number": 2,
         "cover_url": null
       }
+    ],
+    "kind": "run"
+  },
+  {
+    "item_id": "33333333-bbbb-4bbb-8bbb-000000000003",
+    "series_title": "Lantern Tales",
+    "kind": "book_line",
+    "issues": [],
+    "volumes": [
+      {
+        "slug": "vol-1",
+        "label": "Lantern Tales, Book One",
+        "kind": "hardcover",
+        "line_number": 1,
+        "cover_url": null
+      },
+      {
+        "slug": "vol-2",
+        "label": "Lantern Tales, Book Two",
+        "kind": "hardcover",
+        "line_number": 2,
+        "cover_url": null
+      },
+      {
+        "slug": "vol-4",
+        "label": "Lantern Tales, Book Four",
+        "kind": "hardcover",
+        "line_number": 4,
+        "cover_url": null
+      },
+      {
+        "slug": "vol-5",
+        "label": "Lantern Tales: Origins",
+        "kind": "ogn",
+        "line_number": null,
+        "cover_url": null
+      }
+    ]
+  },
+  {
+    "item_id": "44444444-bbbb-4bbb-8bbb-000000000004",
+    "series_title": "Salt Road",
+    "kind": "single_book",
+    "issues": [],
+    "volumes": [
+      {
+        "slug": "vol-1",
+        "label": "Salt Road",
+        "kind": "ogn",
+        "line_number": null,
+        "cover_url": null
+      }
+    ]
+  },
+  {
+    "item_id": "55555555-bbbb-4bbb-8bbb-000000000005",
+    "series_title": "Harbor Lights",
+    "kind": "both",
+    "issues": [
+      {
+        "number": 1,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 2,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 3,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 4,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 5,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 6,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 7,
+        "name": null,
+        "cover_url": null
+      },
+      {
+        "number": 8,
+        "name": null,
+        "cover_url": null
+      }
+    ],
+    "volumes": [
+      {
+        "slug": "vol-1",
+        "label": "Harbor Lights, Book One",
+        "kind": "trade",
+        "line_number": 1,
+        "cover_url": null
+      },
+      {
+        "slug": "vol-3",
+        "label": "Harbor Lights, Book Three",
+        "kind": "trade",
+        "line_number": 3,
+        "cover_url": null
+      }
     ]
   }
 ]

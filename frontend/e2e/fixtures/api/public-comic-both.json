@@ -1,0 +1,85 @@
+{
+  "id": "55555555-bbbb-4bbb-8bbb-000000000005",
+  "type": "comic",
+  "title": "Harbor Lights",
+  "year": 2020,
+  "creator": "Fixture Press",
+  "cover_url": null,
+  "status": "active",
+  "rating": null,
+  "favorite": false,
+  "finished_at": null,
+  "genres": [],
+  "tags": [],
+  "community_score": null,
+  "platforms": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "wanted": false,
+  "release_date": null,
+  "platform": null,
+  "physical_format": null,
+  "disc_format": null,
+  "completeness": null,
+  "time_to_beat_hours": null,
+  "pinned": false,
+  "playing_since": null,
+  "paused_on": null,
+  "finishes": [],
+  "times_completed": 0,
+  "last_played_on": null,
+  "description": "An invented comic for the test fixture.",
+  "community_votes": null,
+  "started_at": null,
+  "similar_in_collection": [],
+  "themes": [],
+  "time_to_beat": null,
+  "comic": {
+    "publisher": "Fixture Press",
+    "owned_text": "1-4",
+    "released": 8,
+    "ongoing": true,
+    "run_state": "gaps",
+    "missing": 4,
+    "segments": [
+      {
+        "kind": "owned",
+        "length": 4
+      },
+      {
+        "kind": "missing",
+        "length": 4
+      }
+    ],
+    "read_to": 2,
+    "read": 2,
+    "status": "active",
+    "caught_up": false,
+    "read_next": 3,
+    "issue_count": 8,
+    "editions": [],
+    "next_issue": null,
+    "shelf_format": "trades",
+    "as_of": "2026-11-10",
+    "kind": "both",
+    "volumes": [
+      {
+        "slug": "vol-1",
+        "label": "Harbor Lights, Book One",
+        "kind": "trade",
+        "line_number": 1,
+        "cover_url": null,
+        "read": false
+      },
+      {
+        "slug": "vol-3",
+        "label": "Harbor Lights, Book Three",
+        "kind": "trade",
+        "line_number": 3,
+        "cover_url": null,
+        "read": false
+      }
+    ],
+    "volumes_owned": 2,
+    "slots": []
+  }
+}

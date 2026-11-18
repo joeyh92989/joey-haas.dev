@@ -8829,6 +8829,18 @@ a.cover-tile:focus-visible {
   border-radius: 4px;
 }
 
+/* A place in a book line nothing owned fills: the frame is the dashed
+   missing outline, the block inside only holds the cover's shape. */
+.cover-tile-hollow {
+  aspect-ratio: 2 / 3;
+  display: block;
+}
+
+.book-wall-have {
+  font-size: var(--fs-14);
+  margin: 0 0 var(--space-4);
+}
+
 .cover-tile-chip {
   background: var(--surface);
   border-radius: 3px;
@@ -13457,4 +13469,25 @@ a.btn.sm {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+}
+
+/* A single book's lead card: the cover beside its name, format and state. */
+.single-book {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.single-book-cover {
+  flex: 0 0 7rem;
+}
+
+.single-book-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.single-book-text p {
+  margin: var(--space-2) 0 0;
 }

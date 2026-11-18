@@ -89,7 +89,10 @@ export function parseNumber(text) {
  *
  * @param {object[]} entries The sitting's entries.
  * @returns {Array<{key: string, title: string, added: number[],
- *   already: number[], editions: object[], missing: number}>}
+ *   already: number[], editions: object[], books: number,
+ *   newTitle: boolean, missing: number}>} `books` counts the collected books
+ *   with no range (they add a book, not issues); `newTitle` is true when the
+ *   server will create the title for one of them.
  */
 export function seriesAdds(entries) {
   const groups = new Map()
@@ -101,6 +104,8 @@ export function seriesAdds(entries) {
       numbers: new Set(),
       held: new Set(expandRanges(entry.on_shelf?.owned_text)),
       editions: [],
+      books: 0,
+      newTitle: false,
       missing: 0,
     }
     if (isCollected(entry)) {
@@ -112,6 +117,8 @@ export function seriesAdds(entries) {
           from,
           to,
         })
+      else group.books += 1
+      if (entry.title_will_be_created) group.newTitle = true
     } else if (entry.payload?.issue_number != null) {
       group.numbers.add(entry.payload.issue_number)
     } else if (entry.payload?.issues_owned) {
@@ -123,7 +130,7 @@ export function seriesAdds(entries) {
     groups.set(key, group)
   }
   return [...groups.values()].map(
-    ({ numbers, held, editions, missing, key, title }) => {
+    ({ numbers, held, editions, books, newTitle, missing, key, title }) => {
       const sorted = [...numbers].sort((a, b) => a - b)
       return {
         key,
@@ -131,6 +138,8 @@ export function seriesAdds(entries) {
         added: sorted.filter((n) => !held.has(n)),
         already: sorted.filter((n) => held.has(n)),
         editions,
+        books,
+        newTitle,
         missing,
       }
     },

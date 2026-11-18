@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-18
+
+- A comic on the [comics shelf](/shelf/comics) that is a line of books now shows its books in order, with an empty place for each one I’m missing. A single book gets a page that leads with the book, and a comic I have both books and issues of shows Books, then Issues.
+
 ## 2026-11-17
 
 - The [comics shelf](/shelf/comics) now has a page for each book that shows what it collects, with a link to each issue I have a page for, and links to the books before and after it in the same series.

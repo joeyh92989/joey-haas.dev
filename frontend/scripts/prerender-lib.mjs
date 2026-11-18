@@ -249,6 +249,26 @@ function itemDate(item) {
 }
 
 /**
+ * What a comic title's link preview says after its name: ": a line of 3
+ * books", ": a single book", ": 2 books and 5 issues". A run, a row missing
+ * from the index (or from before it had a kind) and a kind this build does
+ * not know say nothing, so the text stays what it was.
+ *
+ * @param {{kind?: string, issues?: unknown[], volumes?: unknown[]}} [row]
+ *   The title's comic-issues index row.
+ * @returns {string}
+ */
+export function comicLead(row) {
+  const say = spine.comics.books.preview
+  const books = Array.isArray(row?.volumes) ? row.volumes.length : 0
+  const issues = Array.isArray(row?.issues) ? row.issues.length : 0
+  if (row?.kind === 'book_line') return `: ${say.book_line(books)}`
+  if (row?.kind === 'single_book') return `: ${say.single_book()}`
+  if (row?.kind === 'both') return `: ${say.both(books, issues)}`
+  return ''
+}
+
+/**
  * The name each item is titled by: its title, and where two rows share one,
  * qualified by year, then platform, then creator, then a short id, so no two
  * pages share a <title> (#268). Only colliding rows change.
@@ -438,6 +458,12 @@ export function publicRoutes({
   }
   const labels = itemLabels(items)
   const seriesDate = new Map()
+  // A comic title's kind and counts, from the comic-issues index rows.
+  const titles = new Map(
+    (Array.isArray(comicIssues) ? comicIssues : [])
+      .filter((row) => row?.item_id)
+      .map((row) => [row.item_id, row]),
+  )
   for (const item of items) {
     if (item?.id == null || !item.title) continue
     const label = labels.get(item.id)
@@ -449,11 +475,12 @@ export function publicRoutes({
     const place = item.wanted
       ? `on ${profile.name}’s want list`
       : `in ${profile.name}’s ${kind}`
+    const lead = item.type === 'comic' ? comicLead(titles.get(item.id)) : ''
     routes.push({
       ...page(
         `${spine.path}/${encodeURIComponent(item.id)}`,
         `${label} · ${spine.name}`,
-        `${item.title}${where}, ${place} on ${spine.name}.${rated}`,
+        `${item.title}${lead}${where}, ${place} on ${spine.name}.${rated}`,
       ),
       slash: true,
       legacy: true,

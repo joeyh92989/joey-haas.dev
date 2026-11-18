@@ -76,6 +76,35 @@ describe('ComicBooks', () => {
     )
   })
 
+  it('counts a collected book with no range instead of adding nothing', () => {
+    const bare = (id, extra = {}) =>
+      book(id, null, 'none', {
+        payload: {
+          detected_title: 'Salt Road',
+          number_source: 'none',
+          format: 'collected',
+        },
+        ...extra,
+      })
+    show([bare('1')])
+    expect(screen.getByText('adds a book')).toBeVisible()
+    expect(screen.queryByText('adds nothing yet')).toBeNull()
+  })
+
+  it('says a collected book with no match starts a new title', () => {
+    show([
+      book('1', null, 'none', {
+        title_will_be_created: true,
+        payload: {
+          detected_title: 'Salt Road',
+          number_source: 'none',
+          format: 'collected',
+        },
+      }),
+    ])
+    expect(screen.getByText('starts a new title')).toBeVisible()
+  })
+
   it('says a book still needs a number, in the sum', () => {
     show([book('1', 1), book('2', null)])
     expect(screen.getByText(/1 book needs a number/)).toBeVisible()

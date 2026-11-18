@@ -101,6 +101,8 @@ function OwnerTile({ tile, series, onTap, linked }) {
  * @param {object} props.detail - The public item detail (`comic` block).
  * @param {{id: string, title: string}} props.series
  * @param {Set<number>} [props.skipped] - Signed in only, when already held.
+ * @param {string} [props.title] - The heading; "Every issue in the run" when
+ *   the title also has books.
  * @param {boolean} [props.linked] - Whether the covers open their pages
  *   (default). The admin page of a private series has none to open.
  * @param {(n: number, state: 'missing'|'owned'|'read') => Promise<void>} [props.onMark]
@@ -108,6 +110,7 @@ function OwnerTile({ tile, series, onTap, linked }) {
  *   the new data; rejects with an Error whose message is shown.
  */
 export default function CoverWall({
+  title = WALL.title,
   wall,
   detail,
   series,
@@ -324,7 +327,7 @@ export default function CoverWall({
       aria-labelledby="item-wall"
     >
       <h2 id="item-wall" tabIndex={-1} data-focus="heading">
-        {WALL.title}
+        {title}
       </h2>
       <div className="wall-bar">
         <div className="ctl-row">

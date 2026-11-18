@@ -5,6 +5,7 @@ import { volumePath, issuePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
 
 const WALL = spine.comics.wall
+const BOOKS = spine.comics.books
 
 /**
  * The caption's short form of an edition label: a leading "Volume" becomes
@@ -27,6 +28,12 @@ export function shortEditionLabel(label) {
  * with a stacked edge, captioned "Vol. One" over "#1–6" and "· read to 4"
  * when partly read; a link to the edition's page, named in full.
  *
+ * A title page's book (`kind: 'volume'`, owned, from the public `volumes`)
+ * links to its page, captioned "Vol. 2" over Owned or Read, or by its label
+ * when it has no number. A place in the line nothing owned fills
+ * (`kind: 'vol-gap'`) is a hollow block with the same dashed frame as a
+ * missing issue, captioned "Vol. 3" over "not owned": a word, never hover.
+ *
  * @param {object} props
  * @param {{kind: 'cover'|'not-out', n: number, cover_url?: string|null,
  *   store_date: string|null, state?: string}|{kind: 'book', slug: string,
@@ -47,6 +54,8 @@ export default function CoverTile({
 }) {
   if (tile.kind === 'book')
     return <BookLink tile={tile} series={series} linked={linked} />
+  if (tile.kind === 'volume') return <VolumeLink tile={tile} series={series} />
+  if (tile.kind === 'vol-gap') return <VolumeGap tile={tile} />
   const date = tile.store_date ? monthYear(tile.store_date) : null
   if (tile.kind === 'not-out') {
     return (
@@ -141,5 +150,55 @@ function BookLink({ tile, series, linked }) {
         </em>
       </span>
     </Link>
+  )
+}
+
+/**
+ * An owned book of a title: a stacked cover that links to the book's page.
+ * The state is a word under the cover and in the link's name.
+ */
+function VolumeLink({ tile, series }) {
+  const state = tile.read ? 'read' : 'owned'
+  return (
+    <Link
+      to={volumePath(series.id, tile.slug)}
+      className="cover-tile book-tile"
+      data-size="wall"
+      data-state={state}
+      aria-label={BOOKS.tileName(tile.label, BOOKS.names[state])}
+    >
+      <span className="cover-tile-frame">
+        <CoverImage src={tile.cover_url} type="comic" alt="" />
+      </span>
+      <span className="cover-tile-cap" aria-hidden="true">
+        <span>
+          {tile.line_number != null
+            ? spine.comics.volume.number(tile.line_number)
+            : tile.label}
+        </span>
+        <em>{BOOKS.states[state]}</em>
+      </span>
+    </Link>
+  )
+}
+
+/** A place in a book line that no owned book fills. */
+function VolumeGap({ tile }) {
+  return (
+    <div
+      className="cover-tile book-tile"
+      data-size="wall"
+      data-state="missing"
+      role="group"
+      aria-label={BOOKS.gapName(tile.number)}
+    >
+      <span className="cover-tile-frame" aria-hidden="true">
+        <span className="cover-tile-hollow" />
+      </span>
+      <span className="cover-tile-cap" aria-hidden="true">
+        <span>{spine.comics.volume.number(tile.number)}</span>
+        <em>{BOOKS.states.gap}</em>
+      </span>
+    </div>
   )
 }
