@@ -1,5 +1,5 @@
 """#334 (PR 4a): the admin routes that add, edit, move, delete and link a
-volume. Marks follow every touched title; the edition shim never resurrects
+volume. Marks follow every touched title; a resync never resurrects
 or overwrites what the admin did."""
 
 from __future__ import annotations
@@ -416,25 +416,7 @@ async def test_replace_422s_name_the_field(sessionmaker_for_test):
         ).status_code == 404
 
 
-async def test_replace_404s_after_the_shim_drops_a_vanished_edition_volume(
-    sessionmaker_for_test,
-):
-    """The shim runs after the title is locked and before the volume is read:
-    a volume whose edition is gone is already gone by then."""
-    factory = sessionmaker_for_test
-    item_id = await make(factory, editions=[ed("Vol 1", 1, 6)])
-    (volume,) = await volumes(factory, item_id)
-    async with factory() as session:
-        item = await session.get(Item, item_id)
-        item.editions = []  # a writer that skipped sync_marks
-        await session.commit()
-    async with client_for(factory, PagingComicVine()) as client:
-        response = await client.put(f"{BASE}/volumes/{volume.id}", json=put_body())
-    assert response.status_code == 404
-    assert await volumes(factory, item_id) == []
-
-
-async def test_an_edited_volume_is_not_overwritten_by_the_shim_afterwards(
+async def test_an_edited_volume_is_not_overwritten_by_a_resync(
     sessionmaker_for_test,
 ):
     factory = sessionmaker_for_test
@@ -446,9 +428,7 @@ async def test_an_edited_volume_is_not_overwritten_by_the_shim_afterwards(
         )
         assert response.status_code == 200
     async with factory() as session:
-        item = await session.get(Item, item_id)
-        item.editions = [ed("Theirs", 1, 6, "Hardcover")]
-        await sync_marks(session, item)
+        await sync_marks(session, await session.get(Item, item_id))
         await session.commit()
     (after,) = await volumes(factory, item_id)
     assert (after.label, after.kind, after.edited) == ("Mine", "ogn", True)
@@ -490,7 +470,7 @@ async def test_move_keeps_a_free_slug_and_renames_on_collision(sessionmaker_for_
         assert missing.status_code == 404
 
 
-async def test_move_follows_the_marks_and_pulls_an_edition_entry_out(
+async def test_move_follows_the_marks_and_the_book_stays_moved(
     sessionmaker_for_test,
 ):
     factory = sessionmaker_for_test
@@ -504,11 +484,8 @@ async def test_move_follows_the_marks_and_pulls_an_edition_entry_out(
         )
         assert response.status_code == 200, response.text
         assert response.json()["slug_kept"] is True  # ed-1-6 is free on B
-    async with factory() as session:
-        item = await session.get(Item, a)
-        assert [e["label"] for e in item.editions] == ["V2"]
     # The moved book's collects still link A's 1-6, so A still holds them;
-    # but the shim cannot recreate the book on A.
+    # but nothing recreates the book on A.
     for _ in range(2):
         async with factory() as session:
             await sync_marks(session, await session.get(Item, a))
@@ -553,7 +530,7 @@ async def test_delete_preview_names_what_stops_being_held(sessionmaker_for_test)
 
 
 async def test_delete_an_edition_volume_stays_gone_after_resyncs(sessionmaker_for_test):
-    """The key regression: the shim must not recreate a deleted ed-* volume."""
+    """A deleted ed-* volume is not recreated by a later sync."""
     factory = sessionmaker_for_test
     item_id = await make(factory, editions=[ed("V1", 1, 6), ed("V2", 7, 9)])
     v1 = (await volumes(factory, item_id))[0]
@@ -573,8 +550,6 @@ async def test_delete_an_edition_volume_stays_gone_after_resyncs(sessionmaker_fo
     assert [v.slug for v in await volumes(factory, item_id)] == ["ed-7-9"]
     assert sorted(await marks(factory, item_id)) == [7, 8, 9]
     async with factory() as session:
-        item = await session.get(Item, item_id)
-        assert [e["label"] for e in item.editions] == ["V2"]
         assert not list(
             await session.scalars(
                 select(ComicVolumeCollect).where(ComicVolumeCollect.volume_id == v1.id)
@@ -643,7 +618,7 @@ async def test_link_fetches_cover_and_description_server_side(sessionmaker_for_t
     )
 
 
-async def test_link_marks_an_edition_volume_edited_so_the_shim_leaves_it(
+async def test_link_marks_an_edition_volume_edited_so_a_resync_leaves_it(
     sessionmaker_for_test,
 ):
     factory = sessionmaker_for_test
@@ -656,9 +631,7 @@ async def test_link_marks_an_edition_volume_edited_so_the_shim_leaves_it(
             await client.put(f"{BASE}/volumes/{volume.id}/link", json={"cv_id": 99})
         ).status_code == 200
     async with factory() as session:
-        item = await session.get(Item, item_id)
-        item.editions = [ed("V1", 1, 6)]  # no cover on the edition
-        await sync_marks(session, item)
+        await sync_marks(session, await session.get(Item, item_id))
         await session.commit()
     assert (await get_volume(factory, volume.id)).cover_url == "https://img/99.jpg"
 
@@ -673,11 +646,6 @@ async def resync_twice(factory, item_id):
             await session.commit()
 
 
-async def editions_of(factory, item_id):
-    async with factory() as session:
-        return (await session.get(Item, item_id)).editions
-
-
 async def test_deleting_an_edited_edition_volume_keeps_it_gone(sessionmaker_for_test):
     factory = sessionmaker_for_test
     item_id = await make(factory, editions=[ed("V1", 1, 6), ed("V2", 7, 9)])
@@ -690,7 +658,6 @@ async def test_deleting_an_edited_edition_volume_keeps_it_gone(sessionmaker_for_
         assert (await client.delete(f"{BASE}/volumes/{v1.id}")).status_code == 200
     await resync_twice(factory, item_id)
     assert [v.slug for v in await volumes(factory, item_id)] == ["ed-7-9"]
-    assert [e["label"] for e in await editions_of(factory, item_id)] == ["V2"]
 
 
 async def test_moving_an_edited_edition_volume_does_not_duplicate_it(
@@ -709,11 +676,10 @@ async def test_moving_an_edited_edition_volume_does_not_duplicate_it(
     await resync_twice(factory, a)
     await resync_twice(factory, b)
     assert await volumes(factory, a) == []
-    assert await editions_of(factory, a) == []
     assert [v.id for v in await volumes(factory, b)] == [v1.id]
 
 
-async def test_deleting_the_second_of_two_same_range_editions_removes_its_entry(
+async def test_deleting_the_second_of_two_same_range_editions_keeps_the_first(
     sessionmaker_for_test,
 ):
     factory = sessionmaker_for_test
@@ -724,26 +690,9 @@ async def test_deleting_the_second_of_two_same_range_editions_removes_its_entry(
         await client.put(f"{BASE}/volumes/{second.id}", json=put_body(label="B2"))
         assert (await client.delete(f"{BASE}/volumes/{second.id}")).status_code == 200
     await resync_twice(factory, item_id)
-    assert [e["label"] for e in await editions_of(factory, item_id)] == ["A"]
     assert [(v.id, v.slug) for v in await volumes(factory, item_id)] == [
         (first.id, "ed-1-3")
     ]
-
-
-async def test_deleting_an_edited_edition_volume_whose_entry_is_gone_is_fine(
-    sessionmaker_for_test,
-):
-    factory = sessionmaker_for_test
-    item_id = await make(factory, editions=[ed("V1", 1, 6)])
-    (v1,) = await volumes(factory, item_id)
-    async with client_for(factory, PagingComicVine()) as client:
-        await client.put(f"{BASE}/volumes/{v1.id}", json=put_body(label="Mine"))
-        async with factory() as session:
-            (await session.get(Item, item_id)).editions = []
-            await session.commit()
-        response = await client.delete(f"{BASE}/volumes/{v1.id}")
-    assert response.status_code == 200, response.text
-    assert await volumes(factory, item_id) == []
 
 
 async def test_replace_refuses_the_same_entry_id_twice(sessionmaker_for_test):

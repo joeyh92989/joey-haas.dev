@@ -7,11 +7,13 @@ from sqlalchemy import select
 from models import ComicIssue, Item, ItemStatus, ItemType, OwnedFormat
 from tests.test_comic_marks_paths import marks
 from tests.test_comics_routes import FakeComicVine, client_for
+from tests.volume_seed import seed_volumes
 
 pytestmark = pytest.mark.asyncio
 
 
 async def _comic(factory, title, **fields) -> Item:
+    editions = fields.pop("editions", None)  # seeded as owned volumes
     item = Item(
         type=ItemType.COMIC,
         title=title,
@@ -21,6 +23,7 @@ async def _comic(factory, title, **fields) -> Item:
     )
     async with factory() as session:
         session.add(item)
+        await seed_volumes(session, item, editions)
         await session.commit()
     return item
 

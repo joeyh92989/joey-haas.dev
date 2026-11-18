@@ -38,7 +38,7 @@ from public_issues import (
     PublicVolumeTitle,
     PublicWall,
 )
-from tests.volume_seed import mirror_editions
+from tests.volume_seed import make_item, seed_row_volumes
 
 pytestmark = pytest.mark.asyncio
 
@@ -126,7 +126,7 @@ def _series(**fields) -> Item:
             ],
         },
     )  # fmt: skip
-    return Item(**{**base, **fields})
+    return make_item({**base, **fields})
 
 
 def _row(item_id, number, **fields) -> ComicIssue:
@@ -153,7 +153,7 @@ async def _seed(factory, item=None, numbers=(1, 2, 3, 4, 5, 6, 7), mirror=False)
         session.add(item)
         await session.flush()
         if mirror:
-            await mirror_editions(session, item)
+            await seed_row_volumes(session, item)
         session.add_all(_row(item.id, n) for n in numbers)
         await session.commit()
     return item.id
@@ -1207,15 +1207,13 @@ async def _add_volume(factory, item_id, slug, label, low, high, *, owned=True,
 
 
 async def test_wall_edition_slugs_match_the_old_rule(sessionmaker_for_test):
-    """The slug set is what `edition_slugs` gave over `items.editions`."""
-    from comics import edition_slugs
-
+    """A repeated range gets `-2`: the slugs the old public URLs used."""
     item = _series()
     item_id = await _seed(sessionmaker_for_test, item, mirror=True)
     body = (
         await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues")
     ).json()
-    assert [e["slug"] for e in body["editions"]] == edition_slugs(item.editions)
+    assert [e["slug"] for e in body["editions"]] == ["ed-5-6", "ed-5-6-2"]
     assert [(e["kind"], e["label"], e["from_issue"], e["to_issue"])
             for e in body["editions"]] == [
         ("Trade paperback", "Volume Two", 5, 6),

@@ -554,7 +554,7 @@ async def test_typed_issues_are_written_loose_beside_a_covering_trade(
     body = second.json()
     assert (body["issues_added"], body["already_owned"]) == (5, 0)
     [grew] = body["series_grew"]
-    assert (grew["added"], grew["editions_added"]) == ([2, 3, 4, 5, 6], [TRADE])
+    assert (grew["added"], grew["books_added"]) == ([2, 3, 4, 5, 6], [TRADE])
 
 
 @pytest.mark.asyncio
@@ -570,7 +570,7 @@ async def test_a_series_gaining_only_a_typed_book_is_grown_not_already_owned(
     body = second.json()
     assert (body["issues_added"], body["already_owned"]) == (0, 0)
     [grew] = body["series_grew"]
-    assert (grew["added"], grew["editions_added"]) == ([], [TRADE])
+    assert (grew["added"], grew["books_added"]) == ([], [TRADE])
 
 
 @pytest.mark.asyncio

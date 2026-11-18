@@ -37,7 +37,6 @@ from comics import (
     MarksResult,
     RangeError,
     comic_snapshot,
-    edition_slugs,
     expand,
     format_ranges,
     held_ranges,
@@ -52,7 +51,6 @@ from comics import (
     row_run,
     series_from_row,
     sync_marks,
-    sync_volumes_from_editions,
     volume_counts,
     volume_reads,
 )
@@ -182,7 +180,7 @@ class MarkBody(BaseModel):
 def _state(item: Item, held: list[dict]) -> dict:
     """A row's comic state after a write, for the page to redraw in place.
     `held` is the owned volumes' `held_ranges`; the routes pass it through
-    `_state_of`, so the run counts volumes (#326), not the `editions` mirror."""
+    `_state_of`, so the run counts owned volumes (#326)."""
     return {
         "item_id": str(item.id),
         "title": item.title,
@@ -604,12 +602,13 @@ def create_comics_router(
     ) -> dict:
         """Records the issue as skipped: off the pull list, a gap on the bar."""
         item = await _comic(session, item_id)
-        await sync_volumes_from_editions(session, item)
         held = held_ranges(await load_holds(session, item.id))
         if number in owned_set(item.issues_owned, held):
             raise HTTPException(status_code=409, detail=f"#{number} is already owned")
         skipped = expand(parse_ranges(item.issues_skipped)) | {number}
-        changes = _copy_fields({"issues_skipped": format_ranges(skipped)}, item)
+        changes = _copy_fields(
+            {"issues_skipped": format_ranges(skipped)}, item, held=held
+        )
         for field, value in changes.items():
             setattr(item, field, value)
         await sync_marks(session, item)
@@ -629,7 +628,6 @@ def create_comics_router(
         marks on the issue rows are the record; the range text and `read_to`
         are kept in step from them. Undo posts the previous state back."""
         item = await _comic(session, item_id)
-        await sync_volumes_from_editions(session, item)
         held = held_ranges(await load_holds(session, item.id))
         reads = set(
             await session.scalars(
@@ -660,7 +658,7 @@ def create_comics_router(
         if body.state != "missing" and item.owned_format == OwnedFormat.NONE:
             body_fields.update(owned_format=OwnedFormat.PHYSICAL)
             await apply_status(session, item, ItemStatus.BACKLOG, _today())
-        for field, value in _copy_fields(body_fields, item).items():
+        for field, value in _copy_fields(body_fields, item, held=held).items():
             setattr(item, field, value)
         await sync_marks(session, item, reads=set(change.reads))
         await session.commit()
@@ -1236,8 +1234,6 @@ def create_comics_router(
         for each in touched:
             row = await session.get(Item, each, with_for_update=True)
             if row is not None and row.type == ItemType.COMIC:
-                # The volume may be one the shim is about to drop or rename.
-                await sync_volumes_from_editions(session, row)
                 items.append(row)
         volume = await session.get(
             ComicVolume, volume_id, with_for_update=True, populate_existing=True
@@ -1300,8 +1296,7 @@ def create_comics_router(
     # --- The admin volume editor (#334) ---------------------------------------
     # Every write locks the touched `items` rows first, in sorted id order,
     # then the volume (the order PATCH /volumes/{id} and the item routes use),
-    # runs the compat shim on each touched title before reading volumes, and
-    # ends in `sync_marks` for every touched title: the old and the new link
+    # and ends in `sync_marks` for every touched title: the old and the new link
     # targets, the old and the new title.
 
     async def _linked_ids(session: AsyncSession, volume_id: uuid.UUID) -> set:
@@ -1315,13 +1310,12 @@ def create_comics_router(
         )
 
     async def _lock_titles(session: AsyncSession, ids: set) -> dict:
-        """Locks the comic rows among `ids` in sorted order and runs the shim
-        on each; returns {id: Item} for those that exist and are comics."""
+        """Locks the comic rows among `ids` in sorted order;
+        returns {id: Item} for those that exist and are comics."""
         items: dict = {}
         for each in sorted(ids, key=str):
             row = await session.get(Item, each, with_for_update=True)
             if row is not None and row.type == ItemType.COMIC:
-                await sync_volumes_from_editions(session, row)
                 items[each] = row
         return items
 
@@ -1329,8 +1323,8 @@ def create_comics_router(
         session: AsyncSession, volume_id: uuid.UUID, extra: set = frozenset()
     ) -> tuple[ComicVolume, dict]:
         """Items first (the volume's title, its collects' targets, `extra`),
-        then the volume. 404 when the volume is gone, also after the shim
-        dropped it; 409 when it moved to another title meanwhile."""
+        then the volume. 404 when the volume is gone; 409 when it moved to
+        another title meanwhile."""
         peek = await session.get(ComicVolume, volume_id)
         if peek is None:
             raise HTTPException(status_code=404, detail="No such volume")
@@ -1340,7 +1334,7 @@ def create_comics_router(
             ComicVolume, volume_id, with_for_update=True, populate_existing=True
         )
         if volume is None:
-            await session.commit()  # keep what the shim did
+            await session.commit()
             raise HTTPException(status_code=404, detail="No such volume")
         if volume.item_id != peek.item_id or not (
             await _linked_ids(session, volume_id) <= set(items) | {None}
@@ -1358,22 +1352,6 @@ def create_comics_router(
             await _follow_read_to(session, items[each], result)
         await session.commit()
         return [str(each) for each in sorted(items, key=str)]
-
-    def _drop_edition_entry(item: Item, volume: ComicVolume) -> bool:
-        """An edition-origin volume (`ed-*`, edited or not) stands for an entry
-        of `items.editions`: take the entry out, so the shim cannot recreate
-        the volume where it was. The entry is the one `edition_slugs` gives
-        the volume's slug over the CURRENT list; none matching (range edited
-        away, already removed) is a quiet False."""
-        if not volume.slug.startswith("ed-"):
-            return False
-        editions = [dict(e) for e in item.editions or [] if isinstance(e, dict)]
-        slugs = edition_slugs(editions)
-        if volume.slug not in slugs:
-            return False
-        del editions[slugs.index(volume.slug)]
-        item.editions = editions
-        return True
 
     async def _free_slug(session: AsyncSession, item_id: uuid.UUID) -> str:
         taken = set(
@@ -1655,7 +1633,7 @@ def create_comics_router(
             await _finish(session, items)
             await session.refresh(volume)
         else:
-            await session.commit()  # keep what the shim did
+            await session.commit()
         view = await _view(session, volume)
         replaced = min(added, removed)
         return {
@@ -1851,17 +1829,14 @@ def create_comics_router(
     ) -> dict:
         """Moves a book to another comic title. It keeps its slug unless the
         new title already has it (then `vol-<n>`), goes last, and counts as
-        edited. An un-edited `ed-*` book also leaves the old title's
-        `items.editions`, or the shim would recreate it there."""
+        edited."""
         volume, items = await _lock_volume(session, volume_id, {body.item_id})
         target = items.get(body.item_id)
         if target is None:
             raise HTTPException(status_code=404, detail="No such comic")
         if volume.item_id == body.item_id:
             raise HTTPException(status_code=422, detail="Already on that title")
-        old = items[volume.item_id]
         previous = volume.slug
-        _drop_edition_entry(old, volume)
         taken = set(
             await session.scalars(
                 select(ComicVolume.slug).where(ComicVolume.item_id == body.item_id)
@@ -1952,13 +1927,11 @@ def create_comics_router(
     async def delete_volume(
         volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> dict:
-        """Deletes the volume (its collects go with it). An un-edited `ed-*`
-        book also leaves `items.editions`, so the shim cannot bring it back.
+        """Deletes the volume (its collects go with it).
         Every title its collects touched is re-synced (the link targets too),
         and loose issue records stay except what the marks recompute."""
         volume, items = await _lock_volume(session, volume_id)
         item_id = volume.item_id
-        _drop_edition_entry(items[item_id], volume)
         for collect in await session.scalars(
             select(ComicVolumeCollect).where(ComicVolumeCollect.volume_id == volume_id)
         ):

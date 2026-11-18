@@ -1,9 +1,5 @@
-"""The comic readers count the owned volumes' held ranges, not the stale
-`items.editions` mirror (retire items.editions, PR 1).
-
-Each case pairs a row whose column and volumes disagree, to show which one a
-reader trusts: a volume with `editions` empty counts; `editions` with no
-volume does not.
+"""The comic readers count the owned volumes' held ranges (retire
+items.editions): a volume counts, a row with none counts its loose issues only.
 """
 
 import uuid
@@ -29,8 +25,6 @@ from tests.test_public_comics import client_for as public_client_for
 
 pytestmark = pytest.mark.asyncio
 
-EDITION = {"kind": "TPB", "label": "Vol. 1", "from": 5, "to": 6}
-
 
 def _comic(**fields) -> Item:
     base = dict(
@@ -50,7 +44,7 @@ def _comic(**fields) -> Item:
 
 
 async def _with_volume(factory, item: Item, low=5, high=6) -> None:
-    """A row plus an owned book linked over `low`-`high`, `editions` untouched."""
+    """A row plus an owned book linked over `low`-`high`."""
     async with factory() as session:
         session.add(item)
         await session.flush()
@@ -88,8 +82,8 @@ async def _public_row(factory, item: Item) -> dict:
     return {"row": row, "stats": body["stats"], "comic": detail["comic"]}
 
 
-async def test_the_public_run_counts_a_volume_with_no_editions(sessionmaker_for_test):
-    item = _comic(editions=None)
+async def test_the_public_run_counts_a_volume(sessionmaker_for_test):
+    item = _comic()
     await _with_volume(sessionmaker_for_test, item)
     got = await _public_row(sessionmaker_for_test, item)
     assert got["row"]["owned"] == 6
@@ -97,8 +91,10 @@ async def test_the_public_run_counts_a_volume_with_no_editions(sessionmaker_for_
     assert got["stats"]["issues_owned"] == 6
 
 
-async def test_the_public_run_ignores_editions_with_no_volume(sessionmaker_for_test):
-    item = _comic(editions=[EDITION])
+async def test_the_public_run_counts_loose_issues_with_no_volume(
+    sessionmaker_for_test,
+):
+    item = _comic()
     async with sessionmaker_for_test() as session:
         session.add(item)
         await session.commit()
@@ -108,24 +104,22 @@ async def test_the_public_run_ignores_editions_with_no_volume(sessionmaker_for_t
 
 
 async def test_picker_counts_the_held_ranges_it_is_given():
-    item = _comic(editions=[EDITION], read_to=2)
+    item = _comic(read_to=2)
     held = [{"from": 5, "to": 8, "label": "Book", "slug": "vol-1"}]
     assert to_picker_item(item).issues_owned_count == 4  # the column is not read
     picked = to_picker_item(item, held=held)
     assert (picked.issues_owned_count, picked.issues_span) == (8, 8)
 
 
-async def test_unfollow_ignores_stale_editions(
+async def test_unfollow_a_followed_only_row(
     sessionmaker_for_test,
 ):
-    """Followed-only means no loose issues and no book; the `editions` column
-    no longer decides it."""
+    """Followed-only means no loose issues and no book."""
     stale = _comic(
         owned_format=OwnedFormat.NONE,
         is_public=False,
         issues_owned=None,
         following=True,
-        editions=[EDITION],
     )
     async with sessionmaker_for_test() as session:
         session.add(stale)
@@ -138,13 +132,12 @@ async def test_unfollow_ignores_stale_editions(
 
 
 async def test_a_series_that_grew_is_measured_by_its_volumes(sessionmaker_for_test):
-    """Issues 5-6 are held in a book that `editions` does not list: they are
-    already held, and the run before and after counts them."""
+    """Issues 5-6 are held in a book: they are already held, and the run
+    before and after counts them."""
     item = _comic(
         owned_format=OwnedFormat.NONE,
         is_public=False,
         issues_owned="1-2",
-        editions=None,
         external_id="7",
         title="Waterworld",
     )

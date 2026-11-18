@@ -21,9 +21,9 @@ from typing import TYPE_CHECKING
 from comic_contents import normalize_name
 
 MAX_ISSUE = 9999
-MAX_EDITIONS = 50
-EDITION_KIND_MAX = 20
-EDITION_LABEL_MAX = 80
+MAX_BOOKS = 50
+BOOK_KIND_MAX = 20
+BOOK_LABEL_MAX = 80
 
 # The upcoming segment on an ongoing run: this share of released issues,
 # never fewer than TAIL_MIN. The frontend's lanes draw the tail at a fixed
@@ -137,25 +137,7 @@ def issue_number(text: str | None) -> int | None:
     return number if 1 <= number <= MAX_ISSUE else None
 
 
-# --- Editions ---------------------------------------------------------------
-
-
-URL_MAX = 2000
-
-
-def edition_slugs(editions: Sequence[dict]) -> list[str]:
-    """`ed-<from>-<to>`, with `-2`, `-3`... on a repeated range.
-
-    The same rule as `editionSlugs` in frontend/src/lib/coverWall.js: the
-    link route and the public pages name an edition by it.
-    """
-    seen: dict[str, int] = {}
-    slugs = []
-    for edition in editions or []:
-        base = f"ed-{edition.get('from')}-{edition.get('to')}"
-        seen[base] = seen.get(base, 0) + 1
-        slugs.append(base if seen[base] == 1 else f"{base}-{seen[base]}")
-    return slugs
+# --- Collected books ----------------------------------------------------------
 
 
 def volume_kind_from_edition(text: str | None) -> str:
@@ -323,100 +305,6 @@ def shares_title(
     return mine / total + 1e-9 >= SHARE_MIN_FRACTION
 
 
-def _server_keys(entry: dict) -> dict:
-    """The server-written link keys of an edition entry, cleaned; absent or
-    malformed ones are left out."""
-    out: dict = {}
-    for key in ("cover_url", "large_url"):
-        value = entry.get(key)
-        if isinstance(value, str) and value and len(value) <= URL_MAX:
-            out[key] = value
-    description = entry.get("description")
-    if isinstance(description, list) and all(isinstance(p, str) for p in description):
-        out["description"] = list(description)
-    return out
-
-
-def validate_editions(
-    raw: object, current: Sequence[dict] | None = None, *, stored_rows: bool = False
-) -> list[dict]:
-    """Editions as stored: [{kind, label, from, to}] plus an optional
-    Comic Vine link (`cv_id`, with the server-written `cover_url`,
-    `large_url` and `description`), or RangeError.
-
-    `current` is the stored editions. With it, an edition is matched to its
-    stored twin by slug, so an ordinary edit that sends no link keys keeps the
-    link (when slug, kind and label all match), and a `cv_id`
-    that changed or was cleared drops the server-written keys with it: they
-    describe the old issue. The server-written keys are never taken from the
-    request, only from the stored twin. `stored_rows=True` is for reading the
-    stored column itself, whose keys are kept as they are.
-    """
-    if raw is None:
-        return []
-    if not isinstance(raw, list):
-        raise RangeError("editions must be a list")
-    if len(raw) > MAX_EDITIONS:
-        raise RangeError(f"at most {MAX_EDITIONS} editions")
-    editions: list[dict] = []
-    sent_entries: list[dict] = []
-    for entry in raw:
-        if not isinstance(entry, dict):
-            raise RangeError("each edition needs a kind, a label and a range")
-        kind = str(entry.get("kind") or "").strip()
-        label = str(entry.get("label") or "").strip()
-        if not kind or len(kind) > EDITION_KIND_MAX:
-            raise RangeError(f"edition kind must be 1-{EDITION_KIND_MAX} characters")
-        if not label or len(label) > EDITION_LABEL_MAX:
-            raise RangeError(f"edition label must be 1-{EDITION_LABEL_MAX} characters")
-        low, high = entry.get("from"), entry.get("to")
-        if not all(isinstance(n, int) and not isinstance(n, bool) for n in (low, high)):
-            raise RangeError(f"{label}: collects needs two issue numbers")
-        if not (1 <= low <= MAX_ISSUE and 1 <= high <= MAX_ISSUE):
-            raise RangeError(f"{label}: issue numbers run 1 to {MAX_ISSUE}")
-        if low > high:
-            raise RangeError(f"{label}: collects #{low}–{high} runs backwards")
-        cv_id = entry.get("cv_id")
-        if cv_id is not None and (
-            not isinstance(cv_id, int) or isinstance(cv_id, bool) or cv_id < 1
-        ):
-            raise RangeError(
-                f"{label}: the Comic Vine issue id must be a positive whole number"
-            )
-        edition = {"kind": kind, "label": label, "from": low, "to": high}
-        if cv_id is not None:
-            edition["cv_id"] = cv_id
-        editions.append(edition)
-        sent_entries.append(entry)
-    stored = dict(zip(edition_slugs(current or []), current or [], strict=True))
-    slugs = edition_slugs(editions)
-    for slug, edition, sent in zip(slugs, editions, sent_entries, strict=True):
-        if stored_rows:
-            # Reading what the server stored: its keys are its own.
-            if edition.get("cv_id") is not None:
-                edition.update(_server_keys(sent))
-            continue
-        twin = stored.get(slug)
-        # Only the link route writes the server keys: a request never does.
-        if "cv_id" not in sent:
-            # No link sent: an ordinary edit keeps the stored link, but only
-            # on the same edition (slug, kind and label), never on a range
-            # that merely reuses a slug after a swap or a delete.
-            if (
-                twin
-                and twin.get("cv_id") is not None
-                and twin.get("kind") == edition["kind"]
-                and twin.get("label") == edition["label"]
-            ):
-                edition["cv_id"] = twin["cv_id"]
-                edition.update(_server_keys(twin))
-        elif edition.get("cv_id") is None:
-            continue  # cleared: no link, no server keys
-        elif twin and twin.get("cv_id") == edition["cv_id"]:
-            edition.update(_server_keys(twin))
-    return editions
-
-
 def edition_issues(editions: Sequence[dict] | None) -> set[int]:
     return expand((e["from"], e["to"]) for e in editions or [])
 
@@ -455,7 +343,7 @@ class VolumeHold:
 
 def held_ranges(holds: Iterable[VolumeHold] | None) -> list[dict]:
     """The `{from, to, label, slug}` entries of every OWNED volume's linked
-    ranges: what `items.editions` used to give the readers."""
+    ranges the pure range functions take."""
     return [
         {"from": low, "to": high, "label": hold.label, "slug": hold.slug}
         for hold in holds or []
@@ -628,222 +516,6 @@ async def held_through(
     return holds_covering(await load_holds(session, item_id), number)
 
 
-SMALLINT_MAX = 32767
-
-
-def _bound(value: object) -> int | None:
-    if isinstance(value, bool) or not isinstance(value, int):
-        return None
-    return value if 0 <= value <= SMALLINT_MAX else None
-
-
-def _edition_base(slug: str) -> str:
-    """`ed-1-3` for `ed-1-3` and `ed-1-3-2`."""
-    parts = slug.split("-")
-    return "-".join(parts[:3])
-
-
-def _match_volumes(wanted, slugs, existing, text) -> dict:
-    """Which existing edition-origin volume stands for which edition (index
-    to volume), so owned and read follow the book, not its slug: a range
-    change renames the slug and a removed duplicate shifts the `-2` ones.
-
-    In order: the same range with the same label, then the same slug, then the
-    same Comic Vine issue, then (when the leftovers pair up one to one) by
-    position. An edition left without a volume is new; a volume left without
-    an edition is deleted."""
-    claimed: dict[int, object] = {}
-    free = dict(existing)  # slug -> volume
-
-    def take(index: int, volume) -> None:
-        claimed[index] = volume
-        free.pop(volume.slug, None)
-
-    def label_of(edition) -> str | None:
-        return text(edition.get("label"))
-
-    def cv_of(edition) -> int | None:
-        cv_id = edition.get("cv_id")
-        return cv_id if isinstance(cv_id, int) and not isinstance(cv_id, bool) else None
-
-    for i, edition in enumerate(wanted):
-        same = [
-            v
-            for v in free.values()
-            if _edition_base(v.slug) == _edition_base(slugs[i])
-            and v.label == (label_of(edition) or None)
-        ]
-        if same:
-            take(i, same[0])
-    for i, slug in enumerate(slugs):
-        if i not in claimed and slug in free:
-            take(i, free[slug])
-    for i, edition in enumerate(wanted):
-        cv_id = cv_of(edition)
-        if i in claimed or cv_id is None:
-            continue
-        match = next((v for v in free.values() if v.cv_id == cv_id), None)
-        if match is not None:
-            take(i, match)
-    left = [i for i in range(len(wanted)) if i not in claimed]
-    if left and len(left) == len(free):
-        for i, volume in zip(left, sorted(free.values(), key=lambda v: v.position)):
-            take(i, volume)
-    return claimed
-
-
-async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
-    """Compat shim (design call 6): keeps the row's EDITION-ORIGIN volumes
-    (slug `ed-*`) in step with `items.editions`, which stays written as a
-    mirror until the destructive drop.
-
-    Matches each edition to its volume (`_match_volumes`: same range and label,
-    then slug, then Comic Vine issue, then by position when the leftovers pair
-    up, so a range change keeps `owned` and `read`) and upserts: label, kind
-    (`volume_kind_from_edition`, the raw text in `kind_raw`), covers,
-    description, cv_id, position, and the one `migrated` collects entry (the
-    title, `#from-to`, linked to this row). A new volume
-    starts owned and unread; an existing one keeps its `owned` and `read`, so
-    a volume marked on the volume route stays marked. Volumes whose edition is
-    gone are deleted. A volume with any other slug (`vol-*`, made by hand or
-    intake) is never touched, and neither is a volume with `edited` true (#334:
-    the admin changed it by hand): no field written, no reposition, no delete
-    when its edition vanishes, and its edition (still in `items.editions`) does
-    not make a second volume under the same slug. Idempotent, writes only what
-    differs, flushes, never commits. A row that is not a comic has none.
-    """
-    import uuid
-
-    from sqlalchemy import select
-
-    from models import ComicVolume, ComicVolumeCollect, ItemType
-
-    await session.flush()  # the item has its id
-    wanted = item.editions if item.type == ItemType.COMIC else None
-    wanted = (
-        [e for e in wanted if isinstance(e, dict)] if isinstance(wanted, list) else []
-    )
-    every = list(
-        await session.scalars(
-            select(ComicVolume).where(
-                ComicVolume.item_id == item.id, ComicVolume.slug.startswith("ed-")
-            )
-        )
-    )
-    # An edited volume is the admin's: it is matched to nothing, and its slug
-    # is reserved so no edition makes a second volume under it.
-    fixed = {v.slug: v for v in every if v.edited}
-    existing = {v.slug: v for v in every if not v.edited}
-    collects: dict[object, list[ComicVolumeCollect]] = {}
-    if existing:
-        for collect in await session.scalars(
-            select(ComicVolumeCollect)
-            .where(ComicVolumeCollect.volume_id.in_([v.id for v in existing.values()]))
-            .order_by(ComicVolumeCollect.position)
-        ):
-            collects.setdefault(collect.volume_id, []).append(collect)
-
-    def text(value: object) -> str | None:
-        return (value.strip() or None) if isinstance(value, str) else None
-
-    slugs = edition_slugs(wanted)
-    assigned = _match_volumes(wanted, slugs, existing, text)
-    skip = {i for i, slug in enumerate(slugs) if i not in assigned and slug in fixed}
-    for i in [
-        i for i, v in assigned.items() if slugs[i] in fixed and v.slug != slugs[i]
-    ]:
-        skip.add(i)  # its slug is an edited volume's: leave this one as it is
-    protected = {assigned.pop(i).id for i in list(assigned) if i in skip}
-    # Two volumes may swap slugs: park every rename first, so the unique
-    # (item, slug) index is never hit mid-flush.
-    renamed = [
-        (volume, slugs[i]) for i, volume in assigned.items() if volume.slug != slugs[i]
-    ]
-    for volume, _ in renamed:
-        volume.slug = f"tmp-{volume.id}"
-    if renamed:
-        await session.flush()
-    for volume, slug in renamed:
-        volume.slug = slug
-    for position, (slug, edition) in enumerate(zip(slugs, wanted, strict=True)):
-        if position in skip:
-            continue
-        raw = edition.get("kind")
-        raw = raw if isinstance(raw, str) and raw else None
-        low, high = _bound(edition.get("from")), _bound(edition.get("to"))
-        if low is None or high is None:
-            low = high = None
-            issue_text = text(edition.get("label")) or item.title
-        elif low == high:
-            issue_text = f"#{low}"
-        else:
-            issue_text = f"#{low}-{high}"
-        description = edition.get("description")
-        if isinstance(description, list):
-            description = "\n\n".join(p for p in description if isinstance(p, str))
-        cv_id = edition.get("cv_id")
-        fields = {
-            "position": position,
-            "label": text(edition.get("label")) or item.title,
-            "kind": volume_kind_from_edition(raw),
-            "kind_raw": raw,
-            "description": (description if isinstance(description, str) else None)
-            or None,
-            "cover_url": text(edition.get("cover_url")),
-            "large_url": text(edition.get("large_url")),
-            "cv_id": cv_id
-            if isinstance(cv_id, int) and not isinstance(cv_id, bool)
-            else None,
-        }
-        volume = assigned.get(position)
-        if volume is None:
-            volume = ComicVolume(
-                id=uuid.uuid4(),
-                item_id=item.id,
-                slug=slug,
-                owned=True,
-                read=False,
-                **fields,
-            )
-            session.add(volume)
-            await session.flush()
-        else:
-            for key, value in fields.items():
-                if getattr(volume, key) != value:
-                    setattr(volume, key, value)
-        link = {
-            "series_name": item.title,
-            "issue_text": issue_text,
-            "item_id": item.id,
-            "from_number": low,
-            "to_number": high,
-        }
-        rows = collects.get(volume.id, [])
-        mine = next((c for c in rows if c.source == "migrated"), None)
-        if mine is None and not rows:
-            session.add(
-                ComicVolumeCollect(
-                    id=uuid.uuid4(),
-                    volume_id=volume.id,
-                    position=0,
-                    source="migrated",
-                    **link,
-                )
-            )
-        elif mine is not None:
-            for key, value in link.items():
-                if getattr(mine, key) != value:
-                    setattr(mine, key, value)
-    kept = {v.id for v in assigned.values()} | protected
-    for volume in existing.values():
-        if volume.id in kept:
-            continue
-        for collect in collects.get(volume.id, []):
-            session.expunge(collect)  # the volume's delete cascades in the database
-        await session.delete(volume)
-    await session.flush()
-
-
 # --- Writes ------------------------------------------------------------------
 
 # The comic columns on items. Every write path passes them through
@@ -851,7 +523,6 @@ async def sync_volumes_from_editions(session: AsyncSession, item: Item) -> None:
 COMIC_FIELDS = (
     "issues_owned",
     "issues_skipped",
-    "editions",
     "read_to",
     "shelf_format",
     "following",
@@ -860,7 +531,10 @@ RANGE_LABELS = {"issues_owned": "Issues owned", "issues_skipped": "Issues skippe
 
 
 def apply_comic_fields(
-    changes: dict, is_comic: bool, current: dict | None = None
+    changes: dict,
+    is_comic: bool,
+    current: dict | None = None,
+    held: Sequence[dict] | None = None,
 ) -> dict:
     """`changes` with its comic fields canonicalised; RangeError otherwise.
 
@@ -868,17 +542,18 @@ def apply_comic_fields(
     govern pass through untouched. A non-comic row may carry only empty comic
     fields, so a game's create form sending `following: false` is not refused.
 
-    `current` is the stored row's issues_owned, issues_skipped and editions
-    (absent on a create): whichever of them the request leaves out is read
-    from it, and the result may not skip an issue it holds (the pull list's
-    Skip rule, so the item form cannot get round it).
+    `current` is the stored row's issues_owned and issues_skipped (absent on a
+    create): whichever of them the request leaves out is read from it, and the
+    result may not skip an issue it holds (the pull list's Skip rule, so the
+    item form cannot get round it). `held` is the owned volumes' linked ranges
+    (`held_ranges`), which count as held too.
     """
     sent = {key: changes[key] for key in COMIC_FIELDS if key in changes}
     if not sent:
         return changes
     empty = (None, False, "", [])
     if not is_comic and any(value not in empty for value in sent.values()):
-        raise RangeError("Issues, editions and reading are for comics only.")
+        raise RangeError("Issues and reading are for comics only.")
     result = dict(changes)
     for key, label in RANGE_LABELS.items():
         if key in result:
@@ -886,11 +561,6 @@ def apply_comic_fields(
                 result[key] = canonical(result[key])
             except RangeError as error:
                 raise RangeError(f"{label}: {error}") from error
-    if "editions" in result:
-        result["editions"] = (
-            validate_editions(result["editions"], (current or {}).get("editions"))
-            or None
-        )
     read_to = result.get("read_to")
     if read_to is not None and not (
         isinstance(read_to, int) and 1 <= read_to <= MAX_ISSUE
@@ -899,37 +569,38 @@ def apply_comic_fields(
     if any(key in result for key in HELD_FIELDS):
         stored = {key: (current or {}).get(key) for key in HELD_FIELDS}
         merged = stored | {key: result[key] for key in HELD_FIELDS if key in result}
-        check_skips(**merged, before=stored if current else None)
+        check_skips(**merged, held=held, before=stored if current else None)
     return result
 
 
-HELD_FIELDS = ("issues_owned", "issues_skipped", "editions")
+HELD_FIELDS = ("issues_owned", "issues_skipped")
 
 
 def _clash(
     issues_owned: str | None,
     issues_skipped: str | None,
-    editions: Sequence[dict] | None,
+    held: Sequence[dict] | None,
 ) -> set[int]:
-    return expand(parse_ranges(issues_skipped)) & owned_set(issues_owned, editions)
+    return expand(parse_ranges(issues_skipped)) & owned_set(issues_owned, held)
 
 
 def check_skips(
     issues_owned: str | None,
     issues_skipped: str | None,
-    editions: Sequence[dict] | None,
+    held: Sequence[dict] | None = None,
     before: dict | None = None,
 ) -> None:
     """RangeError naming the first skipped issue that is held, loose or in an
-    edition: a skip is for an issue I chose not to buy.
+    owned volume (`held` is its `held_ranges`): a skip is for an issue I chose
+    not to buy.
 
     Only a clash the write introduces is refused. `before` is the stored
-    row's three fields: a row saved before this rule, skipping an issue it
+    row's two fields: a row saved before this rule, skipping an issue it
     now holds, still takes every other write rather than locking until it is
     cleaned up."""
-    clash = _clash(issues_owned, issues_skipped, editions)
+    clash = _clash(issues_owned, issues_skipped, held)
     if before is not None:
-        clash -= _clash(**before)
+        clash -= _clash(**before, held=held)
     if clash:
         raise RangeError(f"#{min(clash)} is owned, so it can't be skipped")
 
@@ -1012,11 +683,9 @@ async def sync_marks(
     """Sets the marks on a comic's issue rows from its ranges, its owned
     volumes and read_to: the one writer of `comic_issues.owned/read/skipped`.
 
-    Volumes are the source of what a book holds (#326): first the compat shim
-    brings the row's edition-origin volumes in step with `items.editions`
-    (`sync_volumes_from_editions`; every writer of editions ends here, so none
-    needs its own call), then the owned volumes' linked collects ranges count
-    as held, and a volume marked read marks its issues read.
+    Volumes are the source of what a book holds (#326): the owned volumes'
+    linked collects ranges count as held, and a volume marked read marks its
+    issues read.
 
     From 5c the marks are the record of what is read, one book at a time, so
     a write that does not say otherwise keeps every `read` mark of a row that
@@ -1042,7 +711,6 @@ async def sync_marks(
     # A row that is not (or is no longer) a comic holds no marks: an empty
     # plan clears its rows and removes its stubs.
     await session.flush()  # the item has its id, and its ranges are written
-    await sync_volumes_from_editions(session, item)
     volume_read: set[int] = set()
     if item.type == ItemType.COMIC:
         holds = await load_holds(session, item.id)
