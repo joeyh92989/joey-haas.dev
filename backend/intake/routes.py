@@ -483,7 +483,7 @@ def create_intake_router(
                 height=thumb.height,
             )
             session.add(row)
-        else:
+        elif sitting.area is IntakeArea.CLOSET:
             (thumb,) = await convert_upload(photo, make_garment_image)
             garment = await add_garment_photo(session, thumb, datetime.now(UTC))
             row = IntakePhoto(
@@ -505,6 +505,9 @@ def create_intake_router(
                     garment_id=garment.id,
                 )
             )
+        else:
+            await photo.close()
+            raise HTTPException(409, f"A {sitting.area.value} sitting takes no photos.")
         await session.commit()
         return photo_json(row)
 

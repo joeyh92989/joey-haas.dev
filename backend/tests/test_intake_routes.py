@@ -208,6 +208,33 @@ async def test_a_kind_must_belong_to_the_area(sessionmaker_for_test):
 
 
 @pytest.mark.asyncio
+async def test_the_places_area_takes_no_shelf_or_closet_kind(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        wrong = await client.post(
+            "/api/intake/sittings", json={"area": "places", "kind": "game"}
+        )
+        reverse = await client.post(
+            "/api/intake/sittings", json={"area": "shelf", "kind": "garment"}
+        )
+        kinds = (await client.get("/api/intake/kinds")).json()
+    assert wrong.status_code == 422
+    assert reverse.status_code == 422
+    areas = {kind["key"]: kind["area"] for kind in kinds}
+    assert areas["game"] == "shelf" and areas["garment"] == "closet"
+    assert "places" not in set(areas.values())
+
+
+@pytest.mark.asyncio
+async def test_a_places_sitting_refuses_photos(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, area="places")
+        response = await client.post(
+            f"/api/intake/sittings/{sitting['id']}/photos", files=_photo()
+        )
+    assert response.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_patch_sitting_and_entry_last_write_wins(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         sitting = await _sitting(client)
@@ -246,7 +273,7 @@ async def test_counts_include_probable_entries(sessionmaker_for_test):
         await session.commit()
     async with client_for(sessionmaker_for_test) as client:
         counts = (await client.get("/api/intake/counts")).json()
-    assert counts == {"shelf": 2, "closet": 0}
+    assert counts == {"shelf": 2, "closet": 0, "places": 0}
 
 
 @pytest.mark.asyncio
@@ -267,7 +294,7 @@ async def test_counts_are_entries_left_to_check_per_area(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test) as client:
         counts = (await client.get("/api/intake/counts")).json()
         budget = (await client.get("/api/intake/budget")).json()
-    assert counts == {"shelf": 2, "closet": 0}
+    assert counts == {"shelf": 2, "closet": 0, "places": 0}
     assert budget["enforced"] is True
     assert budget["remaining"] > 0
 

@@ -1822,3 +1822,56 @@ async def test_0023_cycle_downgrades_and_matches_models(clean_database):
         assert await connection.scalar(text("SELECT count(*) FROM comic_volumes")) == 3
         diff = await connection.run_sync(_diff_against_models)
     assert diff == []
+
+
+# --- Revision 0024: the places intake area. ----------------------------------
+
+
+async def _insert_sitting(connection, area: str) -> None:
+    await connection.execute(
+        text(
+            "INSERT INTO intake_sittings (id, area) "
+            "VALUES (gen_random_uuid(), CAST(:area AS intake_area))"
+        ),
+        {"area": area},
+    )
+
+
+@pytest.mark.asyncio
+async def test_0024_a_sitting_can_be_stored_with_the_places_area(clean_database):
+    assert _alembic("upgrade", "0023").returncode == 0
+    with pytest.raises(Exception, match="places"):
+        async with clean_database.begin() as connection:
+            await _insert_sitting(connection, "places")
+    result = _alembic("upgrade", "0024")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.begin() as connection:
+        await _insert_sitting(connection, "places")
+    async with clean_database.connect() as connection:
+        assert (
+            await connection.scalar(text("SELECT area::text FROM intake_sittings"))
+            == "places"
+        )
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0024_downgrade_moves_places_sittings_to_shelf(clean_database):
+    assert _alembic("upgrade", "0024").returncode == 0
+    async with clean_database.begin() as connection:
+        await _insert_sitting(connection, "places")
+        await _insert_sitting(connection, "closet")
+    result = _alembic("downgrade", "0023")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        areas = sorted(
+            row[0]
+            for row in await connection.execute(
+                text("SELECT area::text FROM intake_sittings")
+            )
+        )
+    # No sitting is lost; the places one reads as shelf, the closet one is left.
+    assert areas == ["closet", "shelf"]
+    up = _alembic("upgrade", "0024")  # the label stayed, IF NOT EXISTS copes
+    assert up.returncode == 0, up.stderr
