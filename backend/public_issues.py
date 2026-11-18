@@ -88,10 +88,17 @@ class PublicNeighbour(BaseModel):
     state: str
 
 
-class PublicIssueEdition(BaseModel):
+class PublicIssueAlsoIn(BaseModel):
+    """One owned book that collects the issue (a linked entry only)."""
+
     slug: str
     label: str
     kind: str
+    line_number: int | None
+    # The book's own title: the Book page is /shelf/<title_id>/<slug>/.
+    title_id: uuid.UUID
+    title: str
+    same_title: bool
 
 
 class PublicIssuePage(BaseModel):
@@ -111,8 +118,10 @@ class PublicIssuePage(BaseModel):
     state: str
     owned: bool
     read: bool
-    held_as: str
-    edition: PublicIssueEdition | None
+    # Held as a single issue (the marks' `issues_owned`), apart from any book.
+    held_single: bool
+    # Every owned book of a public title that collects it through a linked entry.
+    also_in: list[PublicIssueAlsoIn]
     released: int
     ongoing: bool
     neighbours: list[PublicNeighbour]
@@ -358,12 +367,62 @@ async def build_wall(
     )
 
 
-def _held_as(number: int, item: Item, edition: dict | None) -> str:
-    single = number in expand(parse_ranges(item.issues_owned))
-    if edition is None:
-        return "Single issue" if single else "Not owned"
-    inside = f"In {edition['label']} ({edition['kind'].lower()})"
-    return f"{inside} and as a single, counted once" if single else inside
+async def _also_in(
+    session: AsyncSession, item: Item, number: int
+) -> list[PublicIssueAlsoIn]:
+    """Every OWNED book, of any PUBLIC title, with a linked collects entry
+    that covers this issue. One query. A text-only entry, an unowned book and
+    a private title's book never appear (nor that title's id or name)."""
+    result = await session.execute(
+        select(ComicVolume, Item.title)
+        .join(ComicVolumeCollect, ComicVolumeCollect.volume_id == ComicVolume.id)
+        .join(Item, Item.id == ComicVolume.item_id)
+        .where(
+            ComicVolumeCollect.item_id == item.id,
+            ComicVolumeCollect.from_number <= number,
+            ComicVolumeCollect.to_number >= number,
+            ComicVolume.owned.is_(True),
+            Item.is_public.is_(True),
+            Item.type == ItemType.COMIC,
+        )
+    )
+    return also_in_rows(
+        item.id, {volume.id: (volume, title) for volume, title in result}
+    )
+
+
+def held_single(item: Item, number: int) -> bool:
+    """The issue is held as a single: in the marks' `issues_owned`."""
+    return number in expand(parse_ranges(item.issues_owned))
+
+
+def also_in_rows(
+    item_id: uuid.UUID, books: dict[uuid.UUID, tuple[ComicVolume, str]]
+) -> list[PublicIssueAlsoIn]:
+    """The `also_in` entries for books (volume id -> (volume, its title's
+    name)): the page's own title first, then by title name, `line_number`
+    nulls last, position. Pure, so the e2e fixtures use it too."""
+    ordered = sorted(
+        books.values(),
+        key=lambda pair: (
+            pair[0].item_id != item_id,
+            pair[1].casefold(),
+            pair[1],
+            *line_order(pair[0]),
+        ),
+    )
+    return [
+        PublicIssueAlsoIn(
+            slug=volume.slug,
+            label=volume.label,
+            kind=volume.kind,
+            line_number=volume.line_number,
+            title_id=volume.item_id,
+            title=title,
+            same_title=volume.item_id == item_id,
+        )
+        for volume, title in ordered
+    ]
 
 
 async def build_issue_page(
@@ -397,16 +456,7 @@ async def build_issue_page(
     rows = {r.number: r for r in around if r.cv_id is not None}
     if row is not None and row.cv_id is None:
         row = None  # a stub has no name, cover or description to publish
-    editions = _editions(item)
-    slugs = edition_slugs(editions)
-    covering = next(
-        (
-            (slug, edition)
-            for slug, edition in zip(slugs, editions, strict=True)
-            if edition["from"] <= number <= edition["to"]
-        ),
-        None,
-    )
+    also_in = await _also_in(session, item, number)
     return PublicIssuePage(
         series_id=item.id,
         series_title=item.title,
@@ -421,14 +471,8 @@ async def build_issue_page(
         state=state,
         owned=number in held,
         read=held.get(number, False),
-        held_as=_held_as(number, item, covering[1] if covering else None),
-        edition=(
-            PublicIssueEdition(
-                slug=covering[0], label=covering[1]["label"], kind=covering[1]["kind"]
-            )
-            if covering
-            else None
-        ),
+        held_single=held_single(item, number),
+        also_in=also_in,
         released=released,
         ongoing=series.ongoing,
         neighbours=_neighbours(number, held, released, upcoming, rows),

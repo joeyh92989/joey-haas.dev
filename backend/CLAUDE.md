@@ -619,7 +619,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   or unlinked collects mark nothing. `comics.load_holds` is the one query,
   `held_ranges` turns it into the `{from, to, label}` entries the pure
   functions always took for editions, and `held_through(session, item_id,
-  number)` lists the owned volumes covering an issue (#332). **The compat
+  number)` lists the owned volumes covering an issue. **The public issue page body** (`GET /api/public/items/{id}/issues/{n}`, #332) has no single-edition `held_as`/`edition` fields; it carries `held_single` (the number is in `issues_owned`, so the page can say single only, volumes only or both) and `also_in`, a list (empty when none) of every OWNED volume, of any PUBLIC title (`items.is_public`), that has a LINKED collects entry (`item_id` = this title, `from_number <= n <= to_number`), as `{slug, label, kind, line_number, title_id, title, same_title}`: one query in `public_issues._also_in` (it needs the volume's kind and title, which `load_holds` does not carry), each volume once, same title first, then title name, `line_number` nulls last, position. A text-only or unlinked entry, an unowned volume and a private title's volume never appear, and the private title's id and name never leak; no skip, intake id, `edited`, `source`, position or collects text is in the body. The links go to `/shelf/<title_id>/<slug>/`. **The compat
   shim** `comics.sync_volumes_from_editions` runs first inside `sync_marks`
   (every writer of `editions` ends in it) and mirrors `items.editions` into
   the edition-origin (`ed-*`) volumes and their one `migrated` collects row; it
@@ -647,8 +647,12 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `slots` (only for a `book_line`: `[{number, slug|null}]` for 1..the highest
   owned `line_number`, null where nothing owned has the number; `[]` when no
   owned book is numbered, never a size beyond the highest owned number). Each
-  `PublicComicRow` of `GET /api/public/comics` gains `kind` and
-  `volumes_owned` (one grouped query for the whole shelf, no N+1), and each
+  `PublicComicRow` of `GET /api/public/comics` gains `kind`,
+  `volumes_owned` and (#331) `volume_numbers` (the line numbers 1..9999 of the
+  OWNED books that have one, ascending, each once; never the line's size;
+  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1). The
+  admin item read's `comic_run` carries the same three keys (`comics.title_shape`,
+  from the row's own owned volumes), so the admin shelf says the same words, and each
   `comic-issues` index row gains `kind` (what the build's prerender reads; it
   does not read comics.json). Never published: non-owned volumes, intake ids,
   `edited`, source, `kind_raw`, position, collects, skips, following.

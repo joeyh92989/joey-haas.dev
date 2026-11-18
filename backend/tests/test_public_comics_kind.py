@@ -212,20 +212,29 @@ async def test_the_shelf_rows_carry_kind_and_volumes_owned(sessionmaker_for_test
         lambda i: _volume(i, "vol-1", 0, line_number=1),
         lambda i: _volume(i, "vol-2", 1, line_number=2),
         lambda i: _volume(i, "vol-3", 2, line_number=3, owned=False),
+        # A second book on 2 and one with no number: 2 is listed once.
+        lambda i: _volume(i, "vol-2b", 3, line_number=2),
+        lambda i: _volume(i, "vol-x", 4),
     )
     both = _comic("Both", issues_owned="1", source_metadata={"released": 5})
     await _seed(sessionmaker_for_test, both, lambda i: _volume(i, "vol-1", 0))
     async with client_for(sessionmaker_for_test) as client:
         rows = (await client.get("/api/public/comics")).json()["series"]
-    by_title = {r["title"]: (r["kind"], r["volumes_owned"]) for r in rows}
+    by_title = {
+        r["title"]: (r["kind"], r["volumes_owned"], r["volume_numbers"]) for r in rows
+    }
+    # Owned books only: Vol. 3 is not owned, so 3 is never published; an
+    # unnumbered book counts in volumes_owned but has no number.
     assert by_title == {
-        "Saga": ("run", 0),
-        "One": ("single_book", 1),
-        "Line": ("book_line", 2),
-        "Both": ("both", 1),
+        "Saga": ("run", 0, []),
+        "One": ("single_book", 1, []),
+        "Line": ("book_line", 4, [1, 2]),
+        "Both": ("both", 1, []),
     }
     assert {str(one), str(line)} <= {r["item_id"] for r in rows}
-    assert {"kind", "volumes_owned"} <= set(PublicComicRow.model_fields)
+    assert {"kind", "volumes_owned", "volume_numbers"} <= set(
+        PublicComicRow.model_fields
+    )
 
 
 @pytest.fixture
@@ -254,6 +263,7 @@ async def test_the_shelf_reads_volumes_in_one_query_for_any_number_of_titles(
     async with client_for(sessionmaker_for_test) as client:
         rows = (await client.get("/api/public/comics")).json()["series"]
     assert len(rows) == 12 and all(r["volumes_owned"] == 2 for r in rows)
+    assert all(r["volume_numbers"] == [1, 2] for r in rows)
     assert len([q for q in statements if "FROM comic_volumes" in q]) == 1
 
 
@@ -280,7 +290,7 @@ async def test_the_new_field_names_dodge_the_smoke_private_keys(sessionmaker_for
     fields = (
         set(PublicTitleVolume.model_fields)
         | set(PublicVolumeSlot.model_fields)
-        | {"kind", "volumes", "slots", "volumes_owned"}
+        | {"kind", "volumes", "slots", "volumes_owned", "volume_numbers"}
     )
     assert not [f for f in fields if private.search(f'"{f}":')]
 

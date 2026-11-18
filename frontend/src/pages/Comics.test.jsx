@@ -9,6 +9,9 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { LOAD_ERROR, STALE_COPY, WAKING } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import Comics from './Comics.jsx'
+// The shelf body as the backend writes it (backend/scripts/export_public_comic_fixtures.py):
+// one title of each kind.
+import KINDS from '../../e2e/fixtures/snapshot/comics.json'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
@@ -236,10 +239,10 @@ describe('Comics', () => {
   it('counts the series in the result bar, and Clear filters only while filtered', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
-    expect(screen.getByText('4 series')).toBeInTheDocument()
+    expect(screen.getByText('4 titles')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /^Gaps/ }))
-    expect(screen.getByText('2 of 4 series')).toBeInTheDocument()
+    expect(screen.getByText('2 of 4 titles')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(runTitles()).toHaveLength(4)
   })
@@ -407,7 +410,7 @@ describe('Comics', () => {
     expect(document.querySelector('.poster-grid')).toBeInTheDocument()
   })
 
-  it('searches series by title', async () => {
+  it('searches titles by title', async () => {
     mockComics({ data: COMICS, live: true, failed: false })
     renderPage()
     await userEvent.type(screen.getByRole('searchbox'), 'mon')
@@ -483,5 +486,96 @@ describe('Comics', () => {
     mockComics({ data: COMICS, live: true, failed: false })
     const { container } = renderPage()
     expect(await axeViolations(container)).toEqual([])
+  })
+})
+
+describe('Comics: the title kind and the Books and Single issues chips', () => {
+  const card = (title) =>
+    screen
+      .getByText(title, { selector: '.poster-title' })
+      .closest('.poster-card')
+
+  it('shows each card’s kind, and which volumes are owned, in words', async () => {
+    mockComics({ data: KINDS, live: true, failed: false })
+    const { container } = renderPage()
+    expect(card('Paper Moons')).toHaveTextContent('Run of issues')
+    expect(card('Lantern Tales')).toHaveTextContent('Line of books')
+    expect(card('Lantern Tales')).toHaveTextContent(
+      'Vol. 1, 2 and 4, and 1 book with no number',
+    )
+    expect(card('Salt Road')).toHaveTextContent('Single book')
+    expect(card('Harbor Lights')).toHaveTextContent('Books and issues')
+    expect(card('Harbor Lights')).toHaveTextContent('Vol. 1 and 3')
+    // The line's size is not stored, so no card says "of N" for books.
+    expect(card('Lantern Tales')).not.toHaveTextContent(/of \d/)
+    // Lanes only where issues are held.
+    expect(card('Lantern Tales').querySelector('.lanes')).toBeNull()
+    expect(card('Salt Road').querySelector('.lanes')).toBeNull()
+    expect(card('Paper Moons').querySelector('.lanes')).not.toBeNull()
+    expect(card('Harbor Lights').querySelector('.lanes')).not.toBeNull()
+    expect(
+      screen.getByRole('group', { name: 'Lantern Tales: Line of books' }),
+    ).toBeInTheDocument()
+    expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('filters to Books and to Single issues, with counts, and says how many', async () => {
+    mockComics({ data: KINDS, live: true, failed: false })
+    renderPage()
+    expect(screen.getByRole('button', { name: /^Books/ })).toHaveTextContent(
+      '3',
+    )
+    expect(
+      screen.getByRole('button', { name: /^Single issues/ }),
+    ).toHaveTextContent('2')
+    await userEvent.click(screen.getByRole('button', { name: /^Books/ }))
+    expect(runTitles().sort()).toEqual([
+      'Harbor Lights',
+      'Lantern Tales',
+      'Salt Road',
+    ])
+    expect(screen.getByText('3 of 4 titles')).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: /^Single issues/ }),
+    )
+    expect(runTitles().sort()).toEqual(['Harbor Lights', 'Paper Moons'])
+    expect(screen.getByText('2 of 4 titles')).toBeInTheDocument()
+  })
+
+  it('keeps the chip like the other filters: stored, restored, cleared', async () => {
+    mockComics({ data: KINDS, live: true, failed: false })
+    const { unmount } = renderPage()
+    await userEvent.click(screen.getByRole('button', { name: /^Books/ }))
+    expect(localStorage.getItem('shelf.public.comics.chip')).toBe('"books"')
+    unmount()
+    renderPage()
+    expect(screen.getByRole('button', { name: /^Books/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(runTitles()).toHaveLength(3)
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(runTitles()).toHaveLength(4)
+  })
+
+  it('hides a chip with nothing behind it', () => {
+    const runsOnly = {
+      ...KINDS,
+      series: KINDS.series.filter((row) => row.kind === 'run'),
+    }
+    mockComics({ data: runsOnly, live: true, failed: false })
+    renderPage()
+    expect(screen.queryByRole('button', { name: /^Books/ })).toBeNull()
+    // Every title holds issues, and the chip still has something to show.
+    expect(
+      screen.getByRole('button', { name: /^Single issues/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('reads an older snapshot with no kind as runs', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    expect(card('Saga')).toHaveTextContent('Run of issues')
+    expect(screen.queryByRole('button', { name: /^Books/ })).toBeNull()
   })
 })

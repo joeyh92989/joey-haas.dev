@@ -29,6 +29,7 @@ from comics import (
     load_holds_many,
     row_run,
     sync_marks,
+    title_shape,
 )
 from formats import CopyFieldError, apply_copy_fields
 from models import (
@@ -976,13 +977,16 @@ def create_items_router(
         )
         for item in items:
             item.comic_run = (
-                row_run(
-                    item.issues_owned,
-                    item.issues_skipped,
-                    held_ranges(holds[item.id]),
-                    item.read_to,
-                    item.source_metadata,
-                )
+                {
+                    **row_run(
+                        item.issues_owned,
+                        item.issues_skipped,
+                        held_ranges(holds[item.id]),
+                        item.read_to,
+                        item.source_metadata,
+                    ),
+                    **title_shape(holds[item.id], item.issues_owned),
+                }
                 if item.type == ItemType.COMIC
                 else None
             )
