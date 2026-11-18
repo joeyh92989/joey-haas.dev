@@ -297,51 +297,33 @@ async def test_the_admin_read_carries_the_title_kind_and_owned_volume_numbers(
     assert line_body["volume_numbers"] == [1, 4]
 
 
-# --- Editions are retired (3/5): books are volumes ---------------------------
+# --- Editions are gone (5/5): a stray key is ignored -------------------------
 
-RETIRED = "editions are retired: add books as volumes"
 TPB = [{"kind": "TPB", "label": "Vol. 1", "from": 1, "to": 6}]
 
 
-async def test_create_refuses_editions(sessionmaker_for_test):
+async def test_a_stray_editions_key_is_ignored_not_refused(sessionmaker_for_test):
+    """The column and its schema field are dropped (0025): `editions` is an
+    unknown key like any other, so an old client gets a 2xx, not a 422 or 500,
+    and nothing is stored or echoed."""
     async with client_for(sessionmaker_for_test) as client:
-        response = await client.post("/api/items", json=_comic(editions=TPB))
-    assert response.status_code == 422
-    assert RETIRED in response.json()["detail"]
-
-
-async def test_bulk_create_refuses_editions(sessionmaker_for_test):
-    async with client_for(sessionmaker_for_test) as client:
-        response = await client.post(
-            "/api/items/bulk", json={"items": [_comic(editions=TPB)]}
-        )
-    assert response.status_code == 422
-    assert RETIRED in response.json()["detail"]
-
-
-async def test_patch_refuses_editions_and_keeps_the_row(sessionmaker_for_test):
-    response, stored = await _patch(
-        sessionmaker_for_test, {"issues_owned": "1-3"}, {"editions": TPB}
-    )
-    assert response.status_code == 422
-    assert RETIRED in response.json()["detail"]
-    assert stored["issues_owned"] == "1-3"  # as seeded, unchanged
-
-
-async def test_empty_or_absent_editions_are_fine(sessionmaker_for_test):
-    async with client_for(sessionmaker_for_test) as client:
-        created = await client.post("/api/items", json=_comic(editions=[]))
+        created = await client.post("/api/items", json=_comic(editions=TPB))
         assert created.status_code == 201, created.text
-        none = await client.post("/api/items", json=_comic(title="B", editions=None))
-        assert none.status_code == 201, none.text
+        bulk = await client.post(
+            "/api/items/bulk", json={"items": [_comic(title="B", editions=TPB)]}
+        )
+        assert bulk.status_code == 201, bulk.text
         patched = await client.patch(
-            f"/api/items/{created.json()['id']}", json={"editions": []}
+            f"/api/items/{created.json()['id']}",
+            json={"editions": TPB, "issues_owned": "1-3"},
         )
     assert patched.status_code == 200, patched.text
-    assert "editions" not in patched.json()  # no longer part of the item
+    assert "editions" not in created.json()
+    assert "editions" not in patched.json()
+    assert patched.json()["issues_owned"] == "1–3"  # canonicalised
     async with sessionmaker_for_test() as session:
         stored = await session.get(Item, uuid.UUID(created.json()["id"]))
-        assert stored.editions is None  # an empty list is never written
+        assert not hasattr(stored, "editions")
 
 
 async def test_the_edition_link_route_is_gone(sessionmaker_for_test):

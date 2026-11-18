@@ -1,8 +1,8 @@
 """A collected book as a volume: what it adds, and writing it (#328).
 
 A photographed or typed collected book commits as a `comic_volumes` row on a
-title, never as an `items.editions` entry (that column is unused, pending its
-drop). This module is the one place that decides what that volume is, so
+title, never as an `items.editions` entry (that column is unmapped, pending its drop).
+This module is the one place that decides what that volume is, so
 Check's preview and the commit cannot disagree:
 
 - `book_plan` is pure: the volume's label, kind and number in its line, and

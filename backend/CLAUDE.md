@@ -637,8 +637,9 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo,
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
   migration copied every `editions` entry into a volume plus one collects row.
-  `items.editions` is now unused (nothing reads or writes it; the retire plan's
-  PR 5 drops it): the compat shim that mirrored it into `ed-*` volumes is gone,
+  `items.editions` is unmapped (no model attribute; nothing reads or writes the
+  column) and is dropped by migration `0025` in the release after this one (the
+  retire plan's PR 5b, so the old code never maps a missing column): the compat shim that mirrored it into `ed-*` volumes is gone,
   and an `ed-*` volume is an ordinary volume.
   **Volumes are the source of the marks (#326):** `comics.sync_marks` counts a
   row's loose singles plus the linked ranges (`collects.item_id` = the row,
@@ -687,7 +688,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `comic-issues` index row gains `kind` (what the build's prerender reads; it
   does not read comics.json). Never published: non-owned volumes, intake ids,
   `edited`, source, `kind_raw`, position, collects, skips, following.
-  `scripts/audit_comics.py` is the read-only pre-migration report.
+  The pre-migration audit script (`scripts/audit_comics.py`) was removed with the column.
   **Public comics stats, book-first (#333, PR 10):** `PublicComicStats` gains
   `books_owned`, `volumes_missing` and `issues_read` (additive; every older
   field and number is unchanged), all over PUBLIC titles only, from the one
@@ -729,14 +730,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   targets) plus the `read_to` follow-up, in one commit. a `PUT` that changes `kind` clears `kind_raw`; the old `PUT /{id}/editions/{slug}/link` is
   gone and the item API takes no `editions` (below).
   **Editions writers retired (plan `2026-11-18-retire-items-editions-design.md`,
-  PR 3/5):** the item API no longer writes `items.editions`. A non-empty
+  PR 3/5):** the item API no longer writes `items.editions`. For one release a non-empty
   `editions` on `POST /api/items`, `POST /api/items/bulk` or `PATCH
-  /api/items/{id}` is a 422, "editions are retired: add books as volumes" (for
-  one release, to find a forgotten writer); empty or absent is fine. `ItemOut`
+  /api/items/{id}` was a 422, "editions are retired: add books as volumes" (to
+  find a forgotten writer; removed in PR 5a). `ItemOut`
   no longer carries `editions`, and `editions` is out of `items.MARK_FIELDS`.
-  `ItemIn.editions`/`ItemPatch.editions` stay only to answer that 422
-  (`items._refuse_editions`, no `validate_editions`): they are never stored, and
-  PR 5 removes them with the column. The compat shim, `validate_editions`,
+  PR 5a unmapped the column and removed
+  `ItemIn.editions`/`ItemPatch.editions` and `items._refuse_editions`: a stray
+  `editions` key in an item body is now ignored like any unknown field, not a 422. The compat shim, `validate_editions`,
   `edition_slugs` and the mirror-removal in the volume move/delete routes were
   removed in PR 4/5. `apply_comic_fields(changes, is_comic, current, held)` takes
   the owned volumes' `held_ranges` as `held`, so a skip on a held issue is still

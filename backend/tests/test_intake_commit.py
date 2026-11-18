@@ -781,7 +781,6 @@ async def test_a_new_series_typed_books_become_volumes_never_the_column(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
-    assert row.editions is None
     assert row.issues_owned == "7"
     assert await _volume_rows(sessionmaker_for_test) == [
         (
@@ -933,7 +932,6 @@ async def test_two_entries_of_one_new_series_each_write_their_books(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
-    assert row.editions is None
     rows = await _volume_rows(sessionmaker_for_test)
     assert sorted(r[1] for r in rows) == ["Vol. 1", "Vol. 2"]
     [new] = response.json()["series_new"]
@@ -975,7 +973,7 @@ async def test_a_typed_book_with_no_series_match_goes_on_a_title_of_its_name(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
-    assert row.title == "Maus" and row.editions is None
+    assert row.title == "Maus"
     [(slug, label, *_rest, collects)] = await _volume_rows(sessionmaker_for_test)
     assert (slug, label) == ("vol-1", "Vol. 1")
     assert collects == [("typed", "Maus", "#1-6", 1, 6)]
@@ -999,7 +997,6 @@ async def test_typed_issues_are_written_loose_beside_a_covering_trade(
     assert grew["after_owned_text"] == "1–6"
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–6"
-    assert row.editions is None
 
 
 @pytest.mark.asyncio
@@ -1091,7 +1088,6 @@ async def test_four_books_numbered_one_to_four_make_a_series_holding_one_to_four
     assert response.json()["added"] == 1
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned == "1–4"
-    assert row.editions is None
     # Done reads "<Series> · adds #1–4" from this.
     [new] = response.json()["series_new"]
     assert (new["title"], new["issues"], new["books"]) == (
@@ -1182,7 +1178,6 @@ async def test_a_collected_book_adds_a_volume_not_a_number(sessionmaker_for_test
     [row] = await _items(sessionmaker_for_test)
     assert row.issues_owned is None
     assert row.shelf_format is ComicShelfFormat.OMNIBUS
-    assert row.editions is None  # a book is a volume, never an editions row
     [volume] = await _volumes(sessionmaker_for_test)
     assert (volume.kind, volume.label, volume.slug) == (
         "omnibus",
@@ -1206,7 +1201,7 @@ async def test_a_collected_book_with_no_range_still_adds_the_series(
         response = await _commit(client, sitting_id)
     assert response.json()["added"] == 1
     [row] = await _items(sessionmaker_for_test)
-    assert row.issues_owned is None and not row.editions
+    assert row.issues_owned is None
     assert row.shelf_format is ComicShelfFormat.TRADES
 
 
@@ -1306,7 +1301,6 @@ async def test_two_photos_of_one_trade_in_a_sitting_are_two_books(
     async with client_for(sessionmaker_for_test) as client:
         await _commit(client, sitting_id)
     [row] = await _items(sessionmaker_for_test)
-    assert row.editions is None
     volumes = await _volumes(sessionmaker_for_test)
     assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2"]
     assert {v.label for v in volumes} == {"Vol. 1", "Volume One"}
@@ -1344,7 +1338,6 @@ async def test_a_collected_book_does_not_override_the_series_shelf_format(
         await _commit(client, sitting_id)
     [row] = await _items(sessionmaker_for_test)
     assert row.shelf_format is ComicShelfFormat.OMNIBUS
-    assert row.editions is None
     [volume] = await _volumes(sessionmaker_for_test)
     assert volume.kind == "trade"
 
@@ -1377,7 +1370,6 @@ async def test_details_saying_singles_keeps_a_read_trades_volume(
     assert response.status_code == 200, response.text
     [row] = await _items(sessionmaker_for_test)
     assert row.shelf_format is ComicShelfFormat.SINGLES
-    assert row.editions is None
     [volume] = await _volumes(sessionmaker_for_test)
     assert [
         (c.from_number, c.to_number)

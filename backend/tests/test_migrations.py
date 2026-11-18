@@ -59,7 +59,18 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
 def _diff_against_models(connection) -> list:
     """Autogenerate's view of how the live schema differs from the models."""
     context = MigrationContext.configure(connection)
-    return compare_metadata(context, Base.metadata)
+    diff = compare_metadata(context, Base.metadata)
+    # The models no longer carry items.editions (its drop is a later
+    # migration), so a schema that still has the column is not drift.
+    return [
+        entry
+        for entry in diff
+        if not (
+            entry[0] == "remove_column"
+            and entry[2] == "items"
+            and entry[3].name == "editions"
+        )
+    ]
 
 
 @pytest_asyncio.fixture

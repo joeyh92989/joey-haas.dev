@@ -111,7 +111,7 @@ async def test_a_collected_book_is_a_volume_with_linked_contents_and_marks(
         ("Waterworld", "#1-6", "photo", 1, 6)
     ]
     # Never an editions row; the link is what holds issues 1-6.
-    assert item.editions is None and item.issues_owned is None
+    assert item.issues_owned is None
     marks = await _marks(sessionmaker_for_test, item.id)
     assert {n for n, (owned, _) in marks.items() if owned} == {1, 2, 3, 4, 5, 6}
     assert body["volumes_new"] == [
@@ -145,7 +145,6 @@ async def test_a_book_on_a_series_already_on_the_shelf_is_a_volume_not_a_title(
     assert body["volumes_new"][0]["title_created"] is False
     [grew] = body["series_grew"]
     assert grew["books_added"] == []
-    assert item.editions is None
     assert item.issues_skipped == "8"  # the book holds #2 now
 
 
@@ -269,7 +268,6 @@ async def test_a_book_with_no_match_is_a_new_private_title_with_a_volume(
     assert (item.type, item.title) == (ItemType.COMIC, "Blankets")
     assert (item.external_source, item.external_id) == (None, None)
     assert item.is_public is False and item.status.value == "backlog"
-    assert item.editions is None
     [volume] = await _volumes(sessionmaker_for_test)
     assert (volume.item_id, volume.kind, volume.label) == (item.id, "ogn", "Blankets")
     # No series to point at: the printed range is text, never a link.
@@ -488,7 +486,6 @@ async def test_the_add_bar_adds_a_book_as_a_volume(sessionmaker_for_test):
     )
     assert body["titles_created"][0]["title"] == "Waterworld"
     [item] = await _items(sessionmaker_for_test)
-    assert item.editions is None
     marks = await _marks(sessionmaker_for_test, item.id)
     assert {n for n, (owned, _) in marks.items() if owned} == {1, 2, 3, 4, 5, 6}
 
@@ -912,7 +909,6 @@ async def test_a_groups_typed_books_are_all_volumes_of_the_one_title(
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [item] = await _items(sessionmaker_for_test)
-    assert item.editions is None
     volumes = await _volumes(sessionmaker_for_test)
     assert sorted(v.label for v in volumes) == ["A", "A", "B"]
     assert {v.item_id for v in volumes} == {item.id}
@@ -938,7 +934,7 @@ async def test_a_book_that_does_not_share_the_series_title_is_its_own_title(
     titles = await _titles(sessionmaker_for_test)
     own = titles["Waterworld: The Complete Collection"]
     assert (own.external_source, own.external_id) == (None, None)
-    assert own.is_public is False and own.editions is None
+    assert own.is_public is False
     [volume] = await _volumes(sessionmaker_for_test)
     assert volume.item_id == own.id  # not on the series
     # The series' issues are recorded as text: no link, the volume is not there.
