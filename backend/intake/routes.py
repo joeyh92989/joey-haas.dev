@@ -69,6 +69,7 @@ from intake.place_kind import (
     not_ready_reason,
     owned_spot_id,
 )
+from intake.place_paste import register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -1088,4 +1089,5 @@ def create_intake_router(
         row = await session.get(IntakeSetting, LAST_RUN_KEY)
         return {LAST_RUN_KEY: row.value if row is not None else None}
 
+    register_paste_routes(router, get_session, entries_json)
     return router

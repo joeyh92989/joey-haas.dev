@@ -31,7 +31,6 @@ SHORT_LINK_NOTE = "Short links can't be read; open it and paste the full address
 TOO_LONG_NOTE = f"Line is over {MAX_LINE_CHARS} characters"
 
 _OSM_FRAGMENT = re.compile(rf"map=\d+(?:\.\d+)?/({_NUMBER})/({_NUMBER})")
-_PAIR_TEXT = re.compile(rf"^\s*({_NUMBER})\s*,\s*({_NUMBER})\s*$")
 
 
 @dataclass(frozen=True)
@@ -78,8 +77,24 @@ def _valid(lat: str, lng: str) -> tuple[float, float] | None:
 
 
 def _pair_in(value: str) -> tuple[str, str] | None:
-    match = _PAIR_TEXT.match(value)
+    """A bare pair, comma or space separated (the shape a bare line uses)."""
+    match = _PAIR.match(value)
     return (match.group(1), match.group(2)) if match else None
+
+
+def _link_name(value: str | None) -> str | None:
+    """A name taken from a link: cleaned, and dropped when it is not text a
+    person wrote (bad UTF-8 decodes to U+FFFD; `/place/@1,2` is a position)."""
+    name = clean_name(value)
+    if name is None or "\ufffd" in name or name.startswith("@"):
+        return None
+    return name
+
+
+def _is_maps_path(path: str) -> bool:
+    """`/maps` alone or followed by `/`, any case; not `/mapsfoo`."""
+    lowered = path.lower()
+    return lowered == "/maps" or lowered.startswith("/maps/")
 
 
 def _google(parts, query: dict[str, list[str]]) -> LineRead:
@@ -101,12 +116,12 @@ def _google(parts, query: dict[str, list[str]]) -> LineRead:
     if "place" in segments:
         index = segments.index("place") + 1
         if index < len(segments):
-            name = clean_name(unquote_plus(segments[index]))
+            name = _link_name(unquote_plus(segments[index]))
     if name is None:
         for key in ("q", "query"):
             for value in query.get(key, []):
-                if not _pair_in(value) and clean_name(value):
-                    name = clean_name(value)
+                if not _pair_in(value) and _link_name(value):
+                    name = _link_name(value)
                     break
             if name:
                 break
@@ -150,11 +165,11 @@ def read_line(text: str) -> LineRead:
             return plain
         path = parts.path
         if host in SHORT_ANY_PATH_HOSTS or (
-            host in SHORT_MAPS_PATH_HOSTS and path.startswith("/maps")
+            host in SHORT_MAPS_PATH_HOSTS and _is_maps_path(path)
         ):
             return LineRead("short_link", host=host, note=SHORT_LINK_NOTE)
         if host in GOOGLE_MAPS_ONLY_HOSTS or (
-            host in GOOGLE_MAPS_HOSTS and path.startswith("/maps")
+            host in GOOGLE_MAPS_HOSTS and _is_maps_path(path)
         ):
             found = _google(parts, query)
         elif host in OSM_HOSTS:

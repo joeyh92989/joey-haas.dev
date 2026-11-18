@@ -172,17 +172,25 @@ def test_split_cap():
 
 def test_module_is_pure():
     tree = ast.parse(Path(map_links.__file__).read_text())
-    roots = set()
+    names = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            roots |= {a.name.split(".")[0] for a in node.names}
+            names |= {a.name for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.module:
-            roots.add(node.module.split(".")[0])
+            names.add(node.module)
+            names |= {f"{node.module}.{a.name}" for a in node.names}
     banned = {
         "httpx",
+        "httpx2",
         "requests",
+        "urllib.request",
         "urllib3",
         "socket",
+        "ssl",
+        "ftplib",
+        "smtplib",
+        "asyncio",
+        "subprocess",
         "fastapi",
         "sqlalchemy",
         "aiohttp",
@@ -191,4 +199,66 @@ def test_module_is_pure():
         "time",
         "datetime",
     }
-    assert not roots & banned
+    # Full dotted names: `urllib.parse` is allowed, `urllib.request` is not,
+    # and a banned package bans everything under it.
+    found = {
+        name
+        for name in names
+        if any(name == ban or name.startswith(ban + ".") for ban in banned)
+    }
+    assert not found
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "https://maps.google.com.evil.example/maps/place/X/@39.7,-104.9,17z",
+        "https://evil.example/maps.google.com/maps/@39.7,-104.9",
+        "https://maps.google.com@evil.example/maps/@39.7,-104.9",
+        "javascript:alert(1)",
+        "//www.google.com/maps/@39.7,-104.9",
+        "https://www.google.com/mapsfoo/@39.7,-104.9",
+    ],
+)
+def test_foreign_or_odd_hosts_are_plain_names(line):
+    r = read_line(line)
+    assert r.kind == "name"
+    assert r.lat is None
+
+
+def test_userinfo_does_not_hide_the_osm_host():
+    r = read_line("https://user:pass@www.openstreetmap.org/#map=17/39.7/-104.9")
+    assert (r.kind, r.lat, r.lng) == ("coords", 39.7, -104.9)
+
+
+def test_maps_path_is_case_insensitive():
+    r = read_line("https://www.google.com/MAPS/@39.7,-104.9,17z")
+    assert (r.kind, r.lat) == ("coords", 39.7)
+
+
+def test_both_data_pin_and_at_pair_the_pin_wins():
+    r = read_line("https://www.google.com/maps/@39.0,-105.0,17z/data=!3d39.7!4d-104.9")
+    assert (r.lat, r.lng) == (39.7, -104.9)
+
+
+def test_osm_fragment_and_mlat_mlon_mlat_wins():
+    r = read_line(
+        "https://www.openstreetmap.org/?mlat=39.7&mlon=-104.9#map=17/40.0/-105.0"
+    )
+    assert (r.lat, r.lng) == (39.7, -104.9)
+
+
+def test_negative_bare_pair():
+    r = read_line("-33.8688, 151.2093")
+    assert (r.kind, r.lat, r.lng) == ("coords", -33.8688, 151.2093)
+
+
+def test_space_separated_q_pair_is_coords_not_a_name():
+    r = read_line("https://maps.google.com/?q=39.7 -104.9")
+    assert (r.kind, r.lat, r.lng, r.name) == ("coords", 39.7, -104.9, None)
+
+
+@pytest.mark.parametrize("tail", ["%ff%fe", "@1,2"])
+def test_unusable_link_names_are_dropped(tail):
+    r = read_line(f"https://www.google.com/maps/place/{tail}/@39.7,-104.9,15z")
+    assert (r.kind, r.name) == ("coords", None)
