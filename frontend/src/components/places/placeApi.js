@@ -13,13 +13,15 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' }
  * @param {string} path
  * @param {string} method
  * @param {object} [body]
+ * @param {AbortSignal} [signal]
  */
-export async function call(path, method, body) {
+export async function call(path, method, body, signal) {
   try {
     const response = await apiFetch(path, {
       method,
       headers: body ? JSON_HEADERS : undefined,
       body: body ? JSON.stringify(body) : undefined,
+      signal,
     })
     if (!response.ok) {
       const answer = await response.json().catch(() => null)

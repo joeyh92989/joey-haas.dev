@@ -58,6 +58,19 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   place is public only when its city is Denver, enforced at commit as a
   422 (`spots.check_public_city`; the same rule holds on the by-hand routes). The Nominatim client sends
   `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
+- **Log an outing (story #346, epic #339).** `POST /api/spots/outings`
+  (`spots_routes.log_outing`, admin) takes the `VisitIn` fields plus exactly
+  one of `spot_id` or `place` (`name`, `lat`, `lng`, optional `city` default
+  Denver, optional OSM `source_id`) and answers `{visit, spot, created}` with
+  the spot shaped as the list returns it. `build_visit` is the one check
+  (title length, future date, row) both visit routes use and runs before
+  anything is added. A new place goes through `place_kind.clean_name`,
+  `clean_position` and the `source_id` rule, `lock_place_commits` and
+  `owned_spot_id`; an owned place takes the visit (`created` false), else a
+  private `build_spot` is flushed and the visit added under ONE
+  `commit_spot`, so any failure leaves no spot. Keep it one transaction:
+  never commit the spot before the visit. `intake` is imported inside the
+  handler because `intake.commit` imports `spots_routes`. No outbound call.
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and

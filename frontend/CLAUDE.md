@@ -381,6 +381,20 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   by-hand save, the add bar's save, a finder accept): when the text, City or
   state filter hides the row, all three clear. A finder candidate is not a spot
   and never appears here.
+- **Log an outing (story #346).** `components/LogOutingSheet.jsx` (copy in
+  `content/outings.js`, search and failure words reused from `placesAdd`) is one
+  `Sheet` that picks a place and logs a visit in one `POST /api/spots/outings`.
+  Typing in the place box only filters the saved spots (read once on open); the
+  OpenStreetMap search runs on submit only, and Enter never saves. A result
+  with `owned_spot_id` picks the saved spot (sends `spot_id`); a new one shows
+  the private/City card and sends `place`. Verdict is required in the sheet,
+  optional in the API; title and kid start empty and `kid_along` is sent only
+  when toggled. Open state lives in the page: the `/admin/spots` header button
+  rereads spots (`rereadSpots(id)`), the Weekend Visits panel button re-reads the
+  plan. The per-row Log visit stays. Save and search run under `withDeadline`
+  (`READ_DEADLINE_MS`; `call` takes an optional signal) with an `inflight` guard; a
+  server 422 about the date or the title also shows beside that field. Styles are the `lo-*` block at the end of
+  `index.css`.
 - **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
   with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`
   (pure), the shared `call` in `placeApi.js` and the `paste` group of

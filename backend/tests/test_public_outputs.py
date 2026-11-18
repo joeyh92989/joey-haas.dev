@@ -1570,6 +1570,42 @@ async def test_an_outing_s_fields_never_reach_a_public_spot(sessionmaker_for_tes
     assert not {"last_verdict", "visit_count", "last_visit"} & keys
 
 
+async def test_a_place_saved_through_the_outing_route_is_private_and_unpublished(
+    sessionmaker_for_test,
+):
+    from spots_routes import create_spots_router
+
+    app = FastAPI()
+    app.include_router(create_spots_router(sessionmaker_for_test))
+    app.include_router(create_public_router(sessionmaker_for_test))
+
+    @app.middleware("http")
+    async def _sign_in(request, call_next):
+        request.session["user"] = {"sub": "1", "email": "admin@example.com"}
+        return await call_next(request)
+
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        made = await client.post(
+            "/api/spots/outings",
+            json={
+                "place": {"name": "Quiet Bench", "lat": 39.73, "lng": -104.96},
+                "verdict": "loved",
+                "title": "Secret outing title",
+                "note": "Secret outing note",
+            },
+        )
+        body = (await client.get("/api/public/spots")).json()
+    assert made.status_code == 201
+    assert made.json()["spot"]["is_public"] is False
+    assert body == []
+    async with sessionmaker_for_test() as session:
+        assert await load_public_spots(session) == []
+    assert "Quiet Bench" not in json.dumps(body)
+
+
 async def test_public_spots_sort_by_neighbourhood_then_name(sessionmaker_for_test):
     await _add(
         sessionmaker_for_test,
