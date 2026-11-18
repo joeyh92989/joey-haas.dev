@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { placesAdd as words } from '../../content/placesAdd.js'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import EmptyState from '../EmptyState.jsx'
-import { FALLBACK_CITIES, emptyFields, fieldsPayload } from './PlaceFields.jsx'
+import { FALLBACK_CITIES } from '../../lib/cities.js'
+import { emptyFields, fieldsPayload } from './PlaceFields.jsx'
 import PlaceResultRow from './PlaceResultRow.jsx'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }

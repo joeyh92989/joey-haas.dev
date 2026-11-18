@@ -1,12 +1,15 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { TAGS, denver, tagLabel } from '../content/denver.js'
+import { placesAdd } from '../content/placesAdd.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { HOME_CITY, cityKey, cityLabel } from '../lib/cities.js'
 
 /** The form's fields for a spot, or blank ones for a new spot. */
 function startingFields(spot, initialName = '') {
   return {
     name: spot?.name ?? initialName,
     coords: spot ? `${spot.lat}, ${spot.lng}` : '',
+    city: cityLabel(spot ? cityKey(spot.city) || HOME_CITY : HOME_CITY),
     neighbourhood: spot?.neighbourhood ?? '',
     blurb: spot?.blurb ?? '',
     tags: spot?.tags ?? [],
@@ -53,14 +56,24 @@ async function saveError(response) {
  * @param {object|null} props.spot The spot to edit, or null to add one.
  * @param {string} [props.initialName] A name to start a new spot's Name
  *   field with (the add bar's typed words); ignored when editing.
+ * @param {string[]} [props.cities] Cities already in use other than Denver,
+ *   as keys; offered in the City field beside Denver.
  * @param {(spot: object) => void} props.onSaved Called with the saved spot.
  * @param {() => void} props.onCancel Called when the form is closed unsaved.
  */
-export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
+export default function SpotForm({
+  spot,
+  initialName,
+  cities = [],
+  onSaved,
+  onCancel,
+}) {
   const id = useId()
   const [initial] = useState(() => startingFields(spot, initialName))
   const [name, setName] = useState(initial.name)
   const [coords, setCoords] = useState(initial.coords)
+  const [city, setCity] = useState(initial.city)
+  const [cityError, setCityError] = useState(null)
   const [neighbourhood, setNeighbourhood] = useState(initial.neighbourhood)
   const [blurb, setBlurb] = useState(initial.blurb)
   const [tags, setTags] = useState(initial.tags)
@@ -84,13 +97,27 @@ export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
     )
   }
 
+  // A blank field reads as Denver on screen; save refuses it.
+  const isHome = (cityKey(city) || HOME_CITY) === HOME_CITY
+
+  function changeCity(value) {
+    setCity(value)
+    setCityError(null)
+    if ((cityKey(value) || HOME_CITY) !== HOME_CITY) setIsPublic(false)
+  }
+
   async function save(event) {
     event.preventDefault()
+    if (!cityKey(city)) {
+      setCityError(denver.form.cityRequired)
+      return
+    }
     setSaving(true)
     setError(null)
     const fields = {
       name,
       coords,
+      city: city.trim(),
       neighbourhood,
       blurb,
       tags,
@@ -100,6 +127,8 @@ export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
     // An edit sends only what changed, so a switch flipped in the table
     // while the form was open is not written back to its old value.
     const body = spot ? changedFields(initial, fields) : fields
+    // Typed "boulder" for a saved "Boulder" is no change.
+    if (spot && cityKey(city) === cityKey(spot.city)) delete body.city
     try {
       const response = await apiFetch(
         spot ? `/api/spots/${spot.id}` : '/api/spots',
@@ -144,6 +173,38 @@ export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
         required
         maxLength={200}
       />
+      <label htmlFor={`${id}-city`}>{denver.form.city}</label>
+      <div>
+        <input
+          id={`${id}-city`}
+          value={city}
+          onChange={(event) => changeCity(event.target.value)}
+          maxLength={40}
+          list={`${id}-cities`}
+          autoComplete="off"
+          aria-invalid={cityError ? true : undefined}
+          aria-describedby={
+            cityError ? `${id}-city-error ${id}-city-hint` : `${id}-city-hint`
+          }
+        />
+        <datalist id={`${id}-cities`}>
+          {[HOME_CITY, ...cities.filter((c) => c !== HOME_CITY)].map((c) => (
+            <option key={c} value={cityLabel(c)} />
+          ))}
+        </datalist>
+        {cityError && (
+          <p
+            className="admin-error spot-form-hint"
+            id={`${id}-city-error`}
+            role="alert"
+          >
+            {cityError}
+          </p>
+        )}
+        <p className="spot-form-hint" id={`${id}-city-hint`}>
+          {denver.form.cityHint}
+        </p>
+      </div>
       <label htmlFor={`${id}-coords`}>Coordinates</label>
       <div>
         <input
@@ -209,11 +270,12 @@ export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
           id={`${id}-public`}
           type="checkbox"
           checked={isPublic}
+          disabled={!isHome}
           onChange={(event) => setIsPublic(event.target.checked)}
           aria-describedby={`${id}-public-hint`}
         />
         <span className="spot-form-hint" id={`${id}-public-hint`}>
-          {denver.form.publicHint}
+          {isHome ? denver.form.publicHint : placesAdd.publicOnlyDenver}
         </span>
       </span>
       <div className="item-detail-actions">
