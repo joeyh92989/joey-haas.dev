@@ -10115,6 +10115,16 @@ a.cover-tile-cap:focus-visible span {
   outline-offset: 2px;
 }
 
+/* The want/been line under a spot's name (#345), like the city line. */
+.spots-state {
+  color: var(--text-3);
+  display: block;
+  font-size: var(--fs-13);
+  font-weight: 400;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 .spots-counts {
   display: flex;
   gap: var(--space-2);
