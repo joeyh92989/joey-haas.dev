@@ -45,6 +45,7 @@ from intake.commit import (
     commit_one,
     commit_sitting,
     series_on_shelf_for,
+    spot_answer,
 )
 from intake.kinds import REGISTRY, describe
 from intake.link_import import (
@@ -372,6 +373,7 @@ def create_intake_router(
                 "series_grew": [grew.as_json() for grew in outcome.series_grew],
                 "volumes_new": outcome.volumes_new,
                 "titles_created": outcome.titles_created,
+                **spot_answer(outcome.spots_new, outcome.spots_owned),
                 "created": [str(i) for i in outcome.created],
                 "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
             },
@@ -865,6 +867,7 @@ def create_intake_router(
     @router.post(
         "/sittings/{sitting_id}/commit",
         response_model=CommitOut,
+        response_model_exclude_unset=True,
         responses={422: {"model": CommitRefusedOut}},
     )
     async def commit(
@@ -885,6 +888,7 @@ def create_intake_router(
             raise HTTPException(409, refused.detail) from None
         if outcome.refused:
             await session.rollback()
+            outcome.spots_new, outcome.spots_owned = [], []  # nothing was written
             count = len(outcome.refused)
             return JSONResponse(
                 status_code=422,

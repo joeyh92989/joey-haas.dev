@@ -79,6 +79,14 @@ def clean_name(value: Any) -> str:
     return name
 
 
+def clean_position(lat: Any, lng: Any) -> tuple[float, float]:
+    """A finite, in-range `(lat, lng)`; ValueError otherwise."""
+    return (
+        _number(lat, -90, 90, "latitude"),
+        _number(lng, -180, 180, "longitude"),
+    )
+
+
 def clean_chosen(hit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """`(payload part, chosen)` for a search result the client sent back.
 

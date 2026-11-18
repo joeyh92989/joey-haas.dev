@@ -146,6 +146,57 @@ async def slug_for(
     return spots.unique_slug(name, (await session.scalars(query)).all())
 
 
+async def build_spot(
+    session: AsyncSession,
+    *,
+    name: str,
+    lat: float,
+    lng: float,
+    neighbourhood: str | None = None,
+    blurb: str | None = None,
+    tags: list[str] | None = None,
+    anchor: bool = False,
+    is_public: bool = False,
+    city: str | None = None,
+    source: CandidateSource | None = None,
+    source_id: str | None = None,
+) -> Spot:
+    """The one place a `Spot` is built and checked from fields, shared by
+    the by-hand route and the intake place commit so they cannot drift. The
+    name must be non-empty, the position finite and in range, the tags in the
+    vocabulary, and the slug unique-able. Adds nothing to the session (the
+    slug is read from it, so a caller writing several spots flushes between).
+    Raises ValueError with a message fit to show."""
+    name = name.strip()
+    if not name:
+        raise ValueError("A spot needs a name")
+    if not (
+        isinstance(lat, int | float)
+        and isinstance(lng, int | float)
+        and -90 <= lat <= 90
+        and -180 <= lng <= 180
+    ):
+        raise ValueError("A spot needs a latitude and longitude in range")
+    canonical = spots.canonical_tags(tags or [])
+    slug = await slug_for(session, name)
+    row = Spot(
+        name=name,
+        slug=slug,
+        lat=lat,
+        lng=lng,
+        neighbourhood=_clean(neighbourhood),
+        blurb=_clean(blurb),
+        tags=canonical,
+        anchor=anchor,
+        is_public=is_public,
+        source=source,
+        source_id=source_id,
+    )
+    if city is not None:
+        row.city = city
+    return row
+
+
 async def commit_spot(session: AsyncSession) -> None:
     # Two writes racing for one slug: the unique index decides, and the
     # loser is told to try again rather than given a 500.
@@ -207,22 +258,20 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         if not name:
             raise HTTPException(status_code=422, detail="A spot needs a name")
         lat, lng = _parse_coords(payload.coords)
-        tags = _tags(payload.tags)
         try:
-            slug = await slug_for(session, name)
+            row = await build_spot(
+                session,
+                name=name,
+                lat=lat,
+                lng=lng,
+                neighbourhood=payload.neighbourhood,
+                blurb=payload.blurb,
+                tags=payload.tags,
+                anchor=payload.anchor,
+                is_public=payload.is_public,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        row = Spot(
-            name=name,
-            slug=slug,
-            lat=lat,
-            lng=lng,
-            neighbourhood=_clean(payload.neighbourhood),
-            blurb=_clean(payload.blurb),
-            tags=tags,
-            anchor=payload.anchor,
-            is_public=payload.is_public,
-        )
         session.add(row)
         await commit_spot(session)
         await session.refresh(row)
