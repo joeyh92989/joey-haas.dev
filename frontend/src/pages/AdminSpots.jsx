@@ -14,6 +14,7 @@ import {
   cityLabel,
   citiesFrom,
 } from '../lib/cities.js'
+import { spotState, stateCounts } from '../lib/spotState.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
@@ -82,6 +83,8 @@ export default function AdminSpots() {
   const [query, setQuery] = useState('')
   // The City filter's choice: a city key, or '' for all cities. Page state.
   const [cityPick, setCityPick] = useState('')
+  // The Show filter's choice: 'want', 'been', or '' for all places. Page state.
+  const [statePick, setStatePick] = useState('')
   // null: no form; 'new': adding; a spot: editing it.
   const [editing, setEditing] = useState(null)
   // The ids of the rows with a write in flight; each row waits on its own.
@@ -141,7 +144,9 @@ export default function AdminSpots() {
   const manyCities = counts.length > 1
   const cityFilter =
     manyCities && counts.some((c) => c.city === cityPick) ? cityPick : ''
-  const shown = useMemo(
+  // The rows the text and City filters let through; the Show counts are
+  // taken here, so they always equal the rows under any combination.
+  const afterTextCity = useMemo(
     () =>
       (spots ?? []).filter(
         (spot) =>
@@ -149,6 +154,19 @@ export default function AdminSpots() {
           (!cityFilter || spotCity(spot) === cityFilter),
       ),
     [spots, query, cityFilter],
+  )
+  const states = useMemo(() => stateCounts(afterTextCity), [afterTextCity])
+  // Shown while the catalogue holds at least one place that is not an anchor.
+  const hasStates = useMemo(
+    () => (spots ?? []).some((spot) => spotState(spot) !== null),
+    [spots],
+  )
+  const shown = useMemo(
+    () =>
+      statePick
+        ? afterTextCity.filter((spot) => spotState(spot) === statePick)
+        : afterTextCity,
+    [afterTextCity, statePick],
   )
   // The cities already on saved spots, offered beside Denver; the bar's
   // short fixed list stands until a spot outside Denver exists.
@@ -203,9 +221,15 @@ export default function AdminSpots() {
     }
     const row = list.find((spot) => spot.id === id)
     if (!row) return
-    if (!matches(row, query)) setQuery('')
-    if (cityFilter && spotCity(row) !== cityFilter) {
+    // A row any filter hides clears all three.
+    if (
+      !matches(row, query) ||
+      (cityFilter && spotCity(row) !== cityFilter) ||
+      (statePick && spotState(row) !== statePick)
+    ) {
+      setQuery('')
       setCityPick('')
+      setStatePick('')
     }
     setMarkedId(id)
     pendingShow.current = id
@@ -255,6 +279,7 @@ export default function AdminSpots() {
     replace(spot)
     // A city the active filter hides would make the saved row vanish.
     if (cityFilter && spotCity(spot) !== cityFilter) setCityPick('')
+    if (statePick && spotState(spot) !== statePick) setStatePick('')
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
@@ -450,6 +475,29 @@ export default function AdminSpots() {
                     </select>
                   </label>
                 )}
+                {hasStates && (
+                  <label className="spots-city-filter">
+                    <span>{denver.admin.stateFilter}</span>
+                    <select
+                      value={statePick}
+                      onChange={(event) => setStatePick(event.target.value)}
+                    >
+                      <option value="">{denver.admin.allPlaces}</option>
+                      <option value="want">
+                        {denver.admin.stateOption(
+                          denver.admin.want,
+                          states.want,
+                        )}
+                      </option>
+                      <option value="been">
+                        {denver.admin.stateOption(
+                          denver.admin.been,
+                          states.been,
+                        )}
+                      </option>
+                    </select>
+                  </label>
+                )}
               </div>
 
               {spots.length === 0 && <p>{denver.admin.empty}</p>}
@@ -504,6 +552,17 @@ export default function AdminSpots() {
                             {showCity(spot) && (
                               <span className="spots-city">
                                 {cityLabel(spotCity(spot))}
+                              </span>
+                            )}
+                            {spotState(spot) && (
+                              <span className="spots-state">
+                                {spotState(spot) === 'want'
+                                  ? denver.admin.want
+                                  : spot.last_visit
+                                    ? denver.admin.beenOn(
+                                        formatDate(spot.last_visit),
+                                      )
+                                    : denver.admin.been}
                               </span>
                             )}
                           </th>

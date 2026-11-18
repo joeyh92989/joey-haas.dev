@@ -1229,3 +1229,260 @@ describe('AdminSpots city filter (story #343)', () => {
     ])
   })
 })
+
+describe('AdminSpots want and been states (story #345)', () => {
+  const MIX = [
+    spot('a', 'Corvus Coffee', { last_visit: '2026-03-03', visit_count: 2 }),
+    spot('b', 'Home', {
+      anchor: true,
+      visit_count: 5,
+      last_visit: '2026-01-01',
+    }),
+    spot('c', "Sloan's Lake"),
+    spot('d', 'Pearl Street Walk', { city: 'boulder' }),
+    spot('e', 'Boulder Falls', {
+      city: 'boulder',
+      last_visit: '2026-02-02',
+      visit_count: 1,
+    }),
+    spot('f', 'Coors Field', { visit_count: 0 }),
+  ]
+  const showBox = () => screen.getByRole('combobox', { name: 'Show' })
+  const options = () =>
+    within(showBox())
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+  const marker = (id) =>
+    document.getElementById(`spot-${id}`).querySelector('.spots-state')
+  const cityBox = () => screen.getByRole('combobox', { name: 'City' })
+  const rowCount = () => document.querySelectorAll('.spots-name-text').length
+
+  function api(list) {
+    return stubApi({ 'GET /api/spots': () => json(list) })
+  }
+
+  it('has a Show select with the counts, beside the City filter', async () => {
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(options()).toEqual(['All places', 'Want (3)', 'Been (2)'])
+    const toolbar = document.querySelector('.spots-toolbar')
+    expect(toolbar).toContainElement(showBox())
+    expect(toolbar).toContainElement(cityBox())
+  })
+
+  it('has no Show select when every spot is an anchor', async () => {
+    api([spot('b', 'Home', { anchor: true })])
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(screen.queryByRole('combobox', { name: 'Show' })).toBeNull()
+  })
+
+  it('marks Want, Been with the date, and no marker on an anchor', async () => {
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
+    expect(marker('c')).toHaveTextContent(/^Want$/)
+    expect(marker('b')).toBeNull()
+    expect(
+      within(document.getElementById('spot-b')).getByText('Anchor'),
+    ).toBeInTheDocument()
+  })
+
+  it('says just Been when the last visit is missing', async () => {
+    api([spot('a', 'No Date', { visit_count: 2, last_visit: null })])
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(marker('a')).toHaveTextContent(/^Been$/)
+  })
+
+  it('shows the marker on a phone, where Last visit is dropped', async () => {
+    media.phone = true
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
+  })
+
+  it('hides anchors under Want and Been and shows them under All places', async () => {
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.selectOptions(showBox(), 'want')
+    expect(rowNames()).toEqual([
+      "Sloan's Lake",
+      'Pearl Street Walk',
+      'Coors Field',
+    ])
+    await user.selectOptions(showBox(), 'been')
+    expect(rowNames()).toEqual(['Corvus Coffee', 'Boulder Falls'])
+    expect(rowNames()).not.toContain('Home')
+    await user.selectOptions(showBox(), '')
+    expect(rowNames()).toContain('Home')
+  })
+
+  it('takes the counts after the text and City filters, and they equal the rows', async () => {
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    const search = screen.getByRole('searchbox', { name: 'Search spots' })
+    const check = async () => {
+      const [, w, b] = options()
+      const want = Number(/\((\d+)\)/.exec(w)[1])
+      const been = Number(/\((\d+)\)/.exec(b)[1])
+      await user.selectOptions(showBox(), 'want')
+      expect(rowCount()).toBe(want)
+      await user.selectOptions(showBox(), 'been')
+      expect(rowCount()).toBe(been)
+      await user.selectOptions(showBox(), '')
+    }
+    await user.type(search, 'coffee')
+    expect(options()).toEqual(['All places', 'Want (0)', 'Been (1)'])
+    await check()
+    await user.clear(search)
+    // City filter on.
+    await user.selectOptions(cityBox(), 'boulder')
+    expect(options()).toEqual(['All places', 'Want (1)', 'Been (1)'])
+    await check()
+    // Both.
+    await user.type(search, 'pearl')
+    expect(options()).toEqual(['All places', 'Want (1)', 'Been (0)'])
+    await check()
+  })
+
+  it('keeps a pick whose state is empty and says no spot matches', async () => {
+    api(MIX)
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.selectOptions(showBox(), 'been')
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Search spots' }),
+      'sloan',
+    )
+    expect(showBox()).toHaveValue('been')
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.getByText('No spot matches that search.')).toBeVisible()
+  })
+
+  it('moves a row out of Want live when Log a visit is pressed', async () => {
+    const calls = stubApi({
+      'GET /api/spots': () => json(MIX),
+      'POST /api/spots/c/visits': () => json({}, 201),
+    })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.selectOptions(showBox(), 'want')
+    expect(options()).toEqual(['All places', 'Want (3)', 'Been (2)'])
+    await user.click(
+      screen.getByRole('button', { name: "Log a visit to Sloan's Lake" }),
+    )
+    await waitFor(() =>
+      expect(rowNames()).toEqual(['Pearl Street Walk', 'Coors Field']),
+    )
+    expect(options()).toEqual(['All places', 'Want (2)', 'Been (3)'])
+    expect(calls.some((c) => c.path === '/api/spots/c/visits')).toBe(true)
+    await user.selectOptions(showBox(), 'been')
+    expect(rowNames()).toContain("Sloan's Lake")
+    expect(marker('c')).toHaveTextContent('Been, November 9, 2026')
+  })
+
+  it('never lists a finder candidate that is not a spot', async () => {
+    stubApi({
+      'GET /api/spots': () => json(MIX),
+      'GET /api/spots/candidates': () =>
+        json([{ id: 'x', name: 'Candidate Cafe', slug: 'candidate-cafe' }]),
+    })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(rowNames()).toEqual([
+      'Corvus Coffee',
+      'Home',
+      "Sloan's Lake",
+      'Pearl Street Walk',
+      'Boulder Falls',
+      'Coors Field',
+    ])
+    expect(
+      within(screen.getByRole('table')).queryByText('Candidate Cafe'),
+    ).toBeNull()
+  })
+
+  describe('Show in table clears all three filters', () => {
+    async function showHidden(target, setup) {
+      api(MIX)
+      const base = globalThis.fetch
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url, options = {}) => {
+          const path = String(url).replace(/^.*\/api/, '/api')
+          if (path.startsWith('/api/intake/search')) {
+            return json({
+              results: [
+                {
+                  kind: 'place',
+                  external_source: 'osm',
+                  external_id: 'way/9',
+                  source_id: 'way/9',
+                  title: target.name,
+                  address: 'x',
+                  category: 'Street',
+                  lat: 40,
+                  lng: -105,
+                  map_url: 'https://www.openstreetmap.org/way/9',
+                  owned_spot_id: target.id,
+                },
+              ],
+              sources: [],
+            })
+          }
+          return base(url, options)
+        }),
+      )
+      Element.prototype.scrollIntoView = vi.fn()
+      render(<AdminSpots />)
+      await screen.findByRole('table')
+      const user = userEvent.setup()
+      await setup(user)
+      expect(document.getElementById(`spot-${target.id}`)).toBeNull()
+      await user.type(
+        screen.getByLabelText('Add a place by name'),
+        `${target.name}{Enter}`,
+      )
+      await user.click(
+        await screen.findByRole('link', { name: /Show in table/ }),
+      )
+      expect(document.getElementById(`spot-${target.id}`)).toHaveClass(
+        'is-marked',
+      )
+      delete Element.prototype.scrollIntoView
+    }
+
+    it('when only the state filter hides the row', async () => {
+      await showHidden({ id: 'a', name: 'Corvus Coffee' }, async (user) => {
+        await user.selectOptions(showBox(), 'want')
+      })
+      expect(showBox()).toHaveValue('')
+    })
+
+    it('and the text and City filters too', async () => {
+      await showHidden({ id: 'a', name: 'Corvus Coffee' }, async (user) => {
+        await user.selectOptions(cityBox(), 'boulder')
+        await user.selectOptions(showBox(), 'want')
+        await user.type(
+          screen.getByRole('searchbox', { name: 'Search spots' }),
+          'pearl',
+        )
+      })
+      expect(showBox()).toHaveValue('')
+      expect(cityBox()).toHaveValue('')
+      expect(
+        screen.getByRole('searchbox', { name: 'Search spots' }),
+      ).toHaveValue('')
+    })
+  })
+})

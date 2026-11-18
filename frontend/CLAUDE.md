@@ -365,6 +365,19 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   non-Denver row, and for Denver rows too under All cities when there is more
   than one city; never a column. The page mirrors the server: city lower-cased
   and at most 40 characters, a public spot only in Denver.
+- **Want and been on `/admin/spots` (story #345).** A spot's state is derived on
+  read by `lib/spotState.js` from `visit_count` (`spotState`: `want` for none,
+  `been` for one or more, `null` for an anchor; `stateCounts`); no column, no
+  route, no backend field. The "Show" select (All places, Want (n), Been (n)) sits
+  beside the City filter, shows while the loaded spots hold at least one
+  non-anchor, is page state, and a Want or Been pick hides anchors. Its counts
+  are taken after the text and City filters, so they equal the rows under any
+  combination. Each non-anchor row has a muted line under the name (`.spots-state`:
+  "Want", or "Been, <date>"), so a phone sees it too; never a column. The Log a
+  visit update bumps `visit_count`, so a row leaves Want live. "Show in table"
+  (and a save the filter would hide) clears the text, City and state filters
+  together when any of them hides the row. A finder candidate is not a spot and
+  never appears here.
 - **The Paste way on `/admin/places/add` (story #342).** `PastePlaces.jsx`
   with `PasteRow.jsx`, `PasteGroup.jsx`, `PasteFixForm.jsx`, `pasteModel.js`
   (pure), the shared `call` in `placeApi.js` and the `paste` group of
