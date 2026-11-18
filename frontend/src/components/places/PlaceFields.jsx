@@ -1,10 +1,7 @@
 import { useId } from 'react'
 import { TAG_LABELS, TAGS } from '../../content/denver.js'
 import { placesAdd as words } from '../../content/placesAdd.js'
-import { HOME_CITY, FALLBACK_CITIES, cityLabel } from '../../lib/cities.js'
-
-// The city helper lives in lib/cities.js; these stay importable from here.
-export { HOME_CITY, FALLBACK_CITIES, cityLabel }
+import { HOME_CITY, cityKey, cityLabel } from '../../lib/cities.js'
 
 /** The fields a found place starts with. */
 export function emptyFields() {
@@ -20,7 +17,7 @@ export function emptyFields() {
 /** The city these values stand for, as the server keeps it (lower case). */
 export function effectiveCity(values) {
   const city = values.city === 'other' ? values.otherCity : values.city
-  return city.trim().toLowerCase() || HOME_CITY
+  return cityKey(city) || HOME_CITY
 }
 
 /** The owner fields as the API takes them. */

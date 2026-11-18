@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  cityLabel,
-  effectiveCity,
-  emptyFields,
-  fieldsPayload,
-} from './PlaceFields.jsx'
+import { cityLabel } from '../../lib/cities.js'
+import { effectiveCity, emptyFields, fieldsPayload } from './PlaceFields.jsx'
 
 describe('place fields', () => {
   it('start in Denver, private, with nothing chosen', () => {

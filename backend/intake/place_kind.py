@@ -49,7 +49,7 @@ def map_url(hit: PlaceHit) -> str:
 SOURCE_ID = re.compile(r"(node|way|relation)/[0-9]+")
 SOURCE_ID_MAX = 60  # Spot.source_id is String(60)
 NAME_MAX, TEXT_MAX = 200, 200
-CITY_MAX, BLURB_MAX, NEIGHBOURHOOD_MAX = 40, 500, 100
+BLURB_MAX, NEIGHBOURHOOD_MAX = 500, 100
 # The fields an owner may edit on an entry; nothing else in a payload is theirs.
 EDITABLE = ("name", "city", "tags", "blurb", "neighbourhood", "is_public")
 
@@ -151,7 +151,7 @@ def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
             # A lone omitted or blank city stays Denver (the page's "Another
             # city" field relies on it); anything else goes through the one
             # city rule.
-            text = _text(value, CITY_MAX, "city")
+            text = _text(value, spots.CITY_MAX, "city")
             out[key] = spots.normalize_city(text) if text else DEFAULT_CITY
         elif key == "blurb":
             out[key] = _text(value, BLURB_MAX, "blurb")

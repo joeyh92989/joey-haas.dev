@@ -19,8 +19,8 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `PublicSpot` carries `spot_id` and no anchor, visit or distance. City:
   `spots.normalize_city` is the one rule for a stored city (trim, collapse,
   lower case, 1 to 40 characters, no control characters), `DENVER` the one
-  constant, and `load_public_spots` returns only Denver spots (the stored
-  case is ignored). A public spot has to be in Denver on every write path
+  constant, and `load_public_spots` returns only Denver spots (the filter is
+  case-insensitive and trimmed: `lower(trim(city))`). A public spot has to be in Denver on every write path
   (`check_public_city`: by-hand create and PATCH, the place commit). The
   planner and the finder are admin-only and not city-aware yet. The
   Dashboard's Weekend forecast and Spot finder rows read

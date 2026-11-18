@@ -1124,6 +1124,39 @@ describe('AdminSpots city filter (story #343)', () => {
     expect(cityLine('c')).toHaveTextContent('Boulder')
   })
 
+  it('resets the City filter after a save moves the row out of it', async () => {
+    const calls = stubApi({
+      'GET /api/spots': () => json(TWO),
+      'PATCH /api/spots/b': () => json(spot('b', 'Home', { city: 'golden' })),
+    })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await user.selectOptions(filterBox(), 'denver')
+    await user.click(screen.getByRole('button', { name: 'Edit Home' }))
+    const city = await screen.findByLabelText('City', { selector: 'input' })
+    await user.clear(city)
+    await user.type(city, 'Golden')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Saved Home.')
+    expect(calls.some((c) => c.method === 'PATCH')).toBe(true)
+    expect(filterBox()).toHaveValue('')
+    expect(nameCell('b')).not.toBeNull()
+  })
+
+  it('disables the table Public box for a private row outside Denver only', async () => {
+    api([
+      spot('a', 'Corvus Coffee'),
+      spot('c', 'Pearl Street Walk', { city: 'boulder' }),
+      spot('d', 'Old Town Brewery', { city: 'fort collins', is_public: true }),
+    ])
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(screen.getByLabelText('Public: Pearl Street Walk')).toBeDisabled()
+    expect(screen.getByLabelText('Public: Corvus Coffee')).toBeEnabled()
+    expect(screen.getByLabelText('Public: Old Town Brewery')).toBeEnabled()
+  })
+
   it('Show in table clears a city filter that hides the row', async () => {
     api(TWO)
     const base = globalThis.fetch

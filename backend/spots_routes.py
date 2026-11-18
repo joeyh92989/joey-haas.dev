@@ -50,7 +50,8 @@ class SpotIn(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=len(spots.TAGS) * 2)
     anchor: bool = False
     is_public: bool = False
-    # Omitted means Denver; a city that is sent and blank is a 422.
+    # Omitted means Denver; a city that is sent blank, or as an explicit null,
+    # is a 422 (not Denver).
     city: str | None = Field(default=None, max_length=CITY_BODY_MAX)
 
 

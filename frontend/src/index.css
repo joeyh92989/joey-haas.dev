@@ -10090,6 +10090,8 @@ a.cover-tile-cap:focus-visible span {
   display: flex;
   font-size: var(--fs-14);
   gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .spots-city-filter select {
@@ -10102,7 +10104,9 @@ a.cover-tile-cap:focus-visible span {
   min-height: 44px;
   min-width: 0;
   max-width: 100%;
+  overflow: hidden;
   padding: var(--space-2);
+  text-overflow: ellipsis;
 }
 
 .spots-city-filter select:focus-visible {

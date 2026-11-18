@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: feature + ui (small)
 mode: auto
 ---
@@ -47,14 +47,14 @@ flowchart LR
 
 ### Decisions (my call, auto mode)
 
-1. **One filter, case-insensitive:** `load_public_spots` adds `func.lower(Spot.city) == "denver"`
+1. **One filter, case-insensitive:** `load_public_spots` adds `func.lower(func.trim(Spot.city)) == "denver"`
    (the constant is `DEFAULT_CITY`). Legacy rows written before normalisation, in any case, still
    match. `PublicSpot` is untouched; the test seeds a PUBLISHED Boulder spot and asserts it is
    absent from the endpoint and the snapshot read, and that `SPOT_FIELDS` is unchanged.
 2. **`normalize_city(raw) -> str`** in `backend/spots.py` (pure, next to `parse_coords`): strip,
    collapse whitespace, lower-case; raises `ValueError` with a plain message when empty after
    trimming or over 40 characters. The place commit's `clean_fields` and the by-hand routes both use
-   it (the commit keeps its current default of Denver for an OMITTED city; a PROVIDED blank is a 422).
+   it (the commit keeps its current default of Denver for an OMITTED city). A provided blank city on the place commit stays Denver (the page's Another city field relies on it); by-hand routes 422 on blank or null.
    Case-insensitive matching against existing cities needs no query: every write path lower-cases,
    so two spellings of one city cannot be stored. Rows already stored in another case are read
    case-insensitively and a one-line read-only production check

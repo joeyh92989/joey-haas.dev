@@ -205,19 +205,24 @@ function fakeSpotsApi(existing = null) {
     const body = JSON.parse(options.body)
     const base = existing ?? { ...SPOT, id: 'new', is_public: false }
     const next = { ...base, ...body }
-    if ('city' in body) {
-      const city = String(body.city ?? '')
-        .trim()
-        .replace(/\s+/g, ' ')
-        .toLowerCase()
-      if (!city) return json({ detail: 'A city is required.' }, 422)
-      if (city.length > 40) {
-        return json({ detail: 'A city is at most 40 characters.' }, 422)
+    // Like the route: the city rule and the public-city rule run only when
+    // the body carries city or is_public; length is counted after normalising.
+    if ('city' in body || 'is_public' in body) {
+      if ('city' in body) {
+        const city = String(body.city ?? '')
+          .replace(/[\p{Cc}\p{Cf}]/gu, (ch) => (/\s/.test(ch) ? ch : ''))
+          .trim()
+          .replace(/\s+/g, ' ')
+          .toLowerCase()
+        if (!city) return json({ detail: 'A city is required.' }, 422)
+        if (city.length > 40) {
+          return json({ detail: 'A city is at most 40 characters.' }, 422)
+        }
+        next.city = city
       }
-      next.city = city
-    }
-    if (next.is_public && next.city !== 'denver') {
-      return json({ detail: 'A public place has to be in Denver.' }, 422)
+      if (next.is_public && next.city !== 'denver') {
+        return json({ detail: 'A public place has to be in Denver.' }, 422)
+      }
     }
     return json(next, existing ? 200 : 201)
   })
@@ -245,7 +250,7 @@ describe('SpotForm city (story #343)', () => {
     ).toEqual(['Denver', 'Boulder', 'Fort Collins'])
   })
 
-  it('disables Public with the Denver-only hint off Denver, clears it, and re-enables on return', async () => {
+  it('disables Public with the Denver-only hint off Denver and re-checks it on return', async () => {
     open()
     const user = userEvent.setup()
     const city = screen.getByLabelText('City')
@@ -262,7 +267,56 @@ describe('SpotForm city (story #343)', () => {
     await user.clear(city)
     await user.type(city, ' denver ')
     expect(box).toBeEnabled()
-    expect(box).not.toBeChecked()
+    expect(box).toBeChecked()
+  })
+
+  it('keeps a public spot public when "Denver" is retyped, and sends false only when it really leaves', async () => {
+    const fetch = fakeSpotsApi()
+    vi.stubGlobal('fetch', fetch)
+    open()
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Name'), 'X')
+    await user.type(screen.getByLabelText('Coordinates'), '39.7, -104.9')
+    await user.click(screen.getByLabelText('Public'))
+    const city = screen.getByLabelText('City')
+    await user.clear(city)
+    await user.type(city, 'Bo')
+    await user.clear(city)
+    await user.type(city, 'Denver')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(JSON.parse(fetch.mock.calls[0][1].body).is_public).toBe(true)
+  })
+
+  it('sends is_public false when saved off Denver', async () => {
+    const fetch = fakeSpotsApi()
+    vi.stubGlobal('fetch', fetch)
+    open()
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Name'), 'X')
+    await user.type(screen.getByLabelText('Coordinates'), '39.7, -104.9')
+    await user.click(screen.getByLabelText('Public'))
+    const city = screen.getByLabelText('City')
+    await user.clear(city)
+    await user.type(city, 'Boulder')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(JSON.parse(fetch.mock.calls[0][1].body).is_public).toBe(false)
+  })
+
+  it('refuses a zero-width-only city on the client', async () => {
+    const fetch = fakeSpotsApi()
+    vi.stubGlobal('fetch', fetch)
+    open()
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Name'), 'X')
+    await user.type(screen.getByLabelText('Coordinates'), '39.7, -104.9')
+    const city = screen.getByLabelText('City')
+    await user.clear(city)
+    await user.paste('\u200b\u200d')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A city is required.',
+    )
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('treats a blank city as Denver on screen but refuses to send it', async () => {

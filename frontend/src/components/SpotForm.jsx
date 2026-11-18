@@ -2,14 +2,14 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { TAGS, denver, tagLabel } from '../content/denver.js'
 import { placesAdd } from '../content/placesAdd.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { HOME_CITY, cityKey, cityLabel } from '../lib/cities.js'
+import { HOME_CITY, cityKey, cityLabel, spotCity } from '../lib/cities.js'
 
 /** The form's fields for a spot, or blank ones for a new spot. */
 function startingFields(spot, initialName = '') {
   return {
     name: spot?.name ?? initialName,
     coords: spot ? `${spot.lat}, ${spot.lng}` : '',
-    city: cityLabel(spot ? cityKey(spot.city) || HOME_CITY : HOME_CITY),
+    city: cityLabel(spot ? spotCity(spot) : HOME_CITY),
     neighbourhood: spot?.neighbourhood ?? '',
     blurb: spot?.blurb ?? '',
     tags: spot?.tags ?? [],
@@ -103,7 +103,6 @@ export default function SpotForm({
   function changeCity(value) {
     setCity(value)
     setCityError(null)
-    if ((cityKey(value) || HOME_CITY) !== HOME_CITY) setIsPublic(false)
   }
 
   async function save(event) {
@@ -122,7 +121,8 @@ export default function SpotForm({
       blurb,
       tags,
       anchor,
-      is_public: isPublic,
+      // Kept as the owner set it while typing; only a save off Denver drops it.
+      is_public: isPublic && isHome,
     }
     // An edit sends only what changed, so a switch flipped in the table
     // while the form was open is not written back to its old value.
@@ -269,7 +269,7 @@ export default function SpotForm({
         <input
           id={`${id}-public`}
           type="checkbox"
-          checked={isPublic}
+          checked={isPublic && isHome}
           disabled={!isHome}
           onChange={(event) => setIsPublic(event.target.checked)}
           aria-describedby={`${id}-public-hint`}

@@ -1700,3 +1700,19 @@ async def test_only_denver_spots_are_public_whatever_the_stored_case(
     async with sessionmaker_for_test() as session:
         loaded = await load_public_spots(session)
     assert sorted(row.name for row in loaded) == ["Legacy cafe", "Plain cafe"]
+
+
+async def test_a_denver_spot_with_stray_whitespace_is_still_public(
+    sessionmaker_for_test,
+):
+    """Admin reads " denver" as Denver, so the public page must too."""
+    await _add(
+        sessionmaker_for_test,
+        _spot("Leading cafe", city=" denver"),
+        _spot("Trailing cafe", city="denver "),
+        _spot("Boulder cafe", city="boulder"),
+    )
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert sorted(row["name"] for row in body) == ["Leading cafe", "Trailing cafe"]

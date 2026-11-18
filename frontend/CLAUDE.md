@@ -345,11 +345,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   browser's search answer, never Nominatim, and delete what they save.
 - **City on `/admin/spots` (story #343).** `lib/cities.js` is the one city
   helper (`HOME_CITY`, `FALLBACK_CITIES`, `cityKey`, `cityLabel`,
-  `citiesFrom`, `cityCounts`); `PlaceFields.jsx` re-exports the first three so
-  old imports work. `SpotForm` has a City input with a `datalist` of the cities
+  `spotCity`, `citiesFrom`, `cityCounts`); every importer reads it directly
+  (`PlaceFields.jsx` no longer re-exports). `cityKey` also drops control and
+  zero-width characters, like `normalize_city`. `SpotForm` has a City input with a `datalist` of the cities
   in use (Denver first; the `cities` prop), Denver by default, the saved city
   when editing. Public is disabled with `placesAdd.publicOnlyDenver` off
-  Denver and clears when the city leaves it; a blank city reads as Denver on
+  Denver; the box keeps the state the owner set (retyping "Denver" does not
+  unpublish) and is only forced off on save, when the city is not Denver
+  (`is_public: isPublic && isHome`). In the table, the Public checkbox is
+  disabled for a private row outside Denver (a legacy public one can still be
+  unpublished). Saving a spot the active City filter hides resets the filter to
+  All cities. A blank city reads as Denver on
   screen but is refused (`denver.form.cityRequired`) rather than sent. An edit
   sends `city` only when it changed (compared as the server keys it), a create
   always. The table's City filter (`denver.admin.cityFilter`, counts, Denver

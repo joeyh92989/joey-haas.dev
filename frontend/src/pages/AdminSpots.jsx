@@ -10,7 +10,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import {
   HOME_CITY,
   cityCounts,
-  cityKey,
+  spotCity,
   cityLabel,
   citiesFrom,
 } from '../lib/cities.js'
@@ -146,7 +146,7 @@ export default function AdminSpots() {
       (spots ?? []).filter(
         (spot) =>
           matches(spot, query) &&
-          (!cityFilter || (cityKey(spot.city) || HOME_CITY) === cityFilter),
+          (!cityFilter || spotCity(spot) === cityFilter),
       ),
     [spots, query, cityFilter],
   )
@@ -159,7 +159,7 @@ export default function AdminSpots() {
   // A city line under the name: every city but Denver, and Denver too while
   // the table lists all cities of a catalogue with more than one.
   function showCity(spot) {
-    const city = cityKey(spot.city) || HOME_CITY
+    const city = spotCity(spot)
     return city !== HOME_CITY || (manyCities && !cityFilter)
   }
 
@@ -204,7 +204,7 @@ export default function AdminSpots() {
     const row = list.find((spot) => spot.id === id)
     if (!row) return
     if (!matches(row, query)) setQuery('')
-    if (cityFilter && (cityKey(row.city) || HOME_CITY) !== cityFilter) {
+    if (cityFilter && spotCity(row) !== cityFilter) {
       setCityPick('')
     }
     setMarkedId(id)
@@ -253,6 +253,8 @@ export default function AdminSpots() {
       setMarkedId(null)
     }
     replace(spot)
+    // A city the active filter hides would make the saved row vanish.
+    if (cityFilter && spotCity(spot) !== cityFilter) setCityPick('')
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
@@ -501,7 +503,7 @@ export default function AdminSpots() {
                             )}
                             {showCity(spot) && (
                               <span className="spots-city">
-                                {cityLabel(cityKey(spot.city) || HOME_CITY)}
+                                {cityLabel(spotCity(spot))}
                               </span>
                             )}
                           </th>
@@ -528,7 +530,11 @@ export default function AdminSpots() {
                             <input
                               type="checkbox"
                               checked={spot.is_public}
-                              disabled={busy.has(spot.id)}
+                              disabled={
+                                busy.has(spot.id) ||
+                                (!spot.is_public &&
+                                  spotCity(spot) !== HOME_CITY)
+                              }
                               onChange={() => togglePublic(spot)}
                               aria-label={`Public: ${spot.name}`}
                             />

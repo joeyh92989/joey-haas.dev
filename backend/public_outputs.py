@@ -480,15 +480,15 @@ class PublicSpot(BaseModel):
 
 
 async def load_public_spots(session: AsyncSession) -> list[PublicSpot]:
-    """Published Denver spots (any stored case of the city), anchors never, by
-    neighbourhood then name. Uncached: a select over a few dozen rows (spec,
-    decision 9)."""
+    """Published Denver spots (any stored case, stray outer spaces ignored),
+    anchors never, by neighbourhood then name. Uncached: a select over a few
+    dozen rows (spec, decision 9)."""
     rows = await session.execute(
         select(Spot)
         .where(
             Spot.is_public.is_(True),
             Spot.anchor.is_(False),
-            func.lower(Spot.city) == spots.DENVER,
+            func.lower(func.trim(Spot.city)) == spots.DENVER,
         )
         .order_by(Spot.neighbourhood.asc().nullslast(), Spot.name.asc())
     )

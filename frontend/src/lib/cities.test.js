@@ -6,6 +6,7 @@ import {
   citiesFrom,
   FALLBACK_CITIES,
   HOME_CITY,
+  spotCity,
 } from './cities.js'
 
 const spots = [
@@ -26,6 +27,19 @@ describe('cities', () => {
   it('keys a city like the server: trimmed, collapsed, lower case', () => {
     expect(cityKey('  Fort   COLLINS ')).toBe('fort collins')
     expect(cityKey(null)).toBe('')
+  })
+
+  it('drops control and zero-width characters like the server', () => {
+    expect(cityKey('\u200b')).toBe('')
+    expect(cityKey('den\u200dver')).toBe('denver')
+    expect(cityKey('\u200c Den\u0007ver\ufeff ')).toBe('denver')
+    expect(cityKey('Fort\t\u200b  Collins')).toBe('fort collins')
+  })
+
+  it('reads a spot city, Denver when blank', () => {
+    expect(spotCity({ city: ' Boulder ' })).toBe('boulder')
+    expect(spotCity({ city: '' })).toBe('denver')
+    expect(spotCity({})).toBe('denver')
   })
 
   it('lists the distinct non-Denver cities, sorted', () => {
