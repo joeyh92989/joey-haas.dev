@@ -282,7 +282,9 @@ test('an ISBN on a typed book: Look up fills the label and the typed ISBN is sav
     })
     await page.goto(`/admin/collection/add/${id}`)
     await page.getByRole('button', { name: 'Add a book' }).click()
-    await page.getByLabel('ISBN, book 1').fill('978-1-60706-601-9')
+    await page
+      .getByLabel('ISBN, book 1', { exact: true })
+      .fill('978-1-60706-601-9')
     await page.getByRole('button', { name: /Look up the ISBN/ }).click()
     await expect(page.getByLabel('Label, Vol. 1')).toHaveValue('Vol. 1')
     await expect(page.getByText(/Found: Saga: Volume One/)).toBeVisible()
