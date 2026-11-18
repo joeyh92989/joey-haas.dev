@@ -2,6 +2,8 @@ import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
+import fixture from '../../../e2e/fixtures/api/intake-comic-sitting.json'
 import CheckStep from './CheckStep.jsx'
 
 const apiFetch = vi.fn()
@@ -49,14 +51,16 @@ function step(entries, props = {}) {
   const onNext = vi.fn()
   const onEntry = vi.fn()
   render(
-    <CheckStep
-      sitting={sitting(entries, props.kind)}
-      onEntry={onEntry}
-      onBack={vi.fn()}
-      onNext={onNext}
-      next="Details"
-      headingRef={{ current: null }}
-    />,
+    <MemoryRouter>
+      <CheckStep
+        sitting={sitting(entries, props.kind)}
+        onEntry={onEntry}
+        onBack={vi.fn()}
+        onNext={onNext}
+        next="Details"
+        headingRef={{ current: null }}
+      />
+    </MemoryRouter>,
   )
   return { onNext, onEntry }
 }
@@ -166,7 +170,7 @@ describe('CheckStep in a comic sitting', () => {
     await user.tab()
     await user.selectOptions(
       screen.getByLabelText('This book is'),
-      'A collected edition',
+      'A collected book',
     )
     // The second waits for the first: only one request is out.
     expect(apiFetch).toHaveBeenCalledTimes(1)
@@ -199,5 +203,33 @@ describe('CheckStep in a comic sitting', () => {
     expect(field.getAttribute('aria-describedby')).toContain(message.id)
     // Beside the field, not as the page's alert.
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('CheckStep line number', () => {
+  it('shows the 422 for the number in the line beside that field', async () => {
+    const user = userEvent.setup()
+    apiFetch.mockResolvedValue({
+      ok: false,
+      clone: () => ({
+        json: async () => ({
+          detail: {
+            field: 'line_number',
+            message: 'The number in the line is a whole number from 1 to 9999.',
+          },
+        }),
+      }),
+    })
+    step([fixture.entries[3]])
+    const field = screen.getByLabelText('Number in the line')
+    await user.type(field, '3')
+    await user.tab()
+    const message = await screen.findByText(/The number in the line is a whole/)
+    expect(field.closest('.intake-book-field')).toContainElement(message)
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(JSON.parse(apiFetch.mock.calls[0][1].body).payload).toMatchObject({
+      format: 'collected',
+      line_number: 3,
+    })
   })
 })

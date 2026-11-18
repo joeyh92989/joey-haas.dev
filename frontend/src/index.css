@@ -2659,6 +2659,10 @@ footer {
   gap: var(--space-2);
 }
 
+.intake-adds + .intake-actions {
+  margin-top: var(--space-4);
+}
+
 .intake-drop-actions {
   justify-content: center;
   margin-top: var(--space-2);
@@ -3103,6 +3107,36 @@ footer {
 
 .intake-book-links {
   margin-top: var(--space-1);
+}
+
+.intake-book-mark a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.intake-book-adds {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  margin: var(--space-1) 0 0;
+}
+
+.intake-book-contents {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.intake-book-contents ul {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.intake-done-made {
+  color: var(--text);
+  font-weight: 600;
+  margin: var(--space-4) 0 0;
 }
 
 .intake-book-number {

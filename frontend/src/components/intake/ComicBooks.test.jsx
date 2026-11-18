@@ -111,7 +111,7 @@ describe('ComicBooks', () => {
     expect(within(second).getByText('Already in this sitting')).toBeVisible()
   })
 
-  it('shows a collected book as a range and an edition kind', async () => {
+  it('shows a collected book as a range and a format', async () => {
     const user = userEvent.setup()
     const collected = book('1', null, 'read', {
       payload: {
@@ -127,11 +127,11 @@ describe('ComicBooks', () => {
     const { onSave } = show([collected])
     expect(screen.queryByLabelText('Issue number')).toBeNull()
     expect(screen.getByLabelText('First issue collected')).toHaveValue('1')
-    expect(screen.getByLabelText('Edition')).toHaveValue('trade')
+    expect(screen.getByLabelText('Format')).toHaveValue('trade')
     expect(
-      screen.getByText('adds Saga (Trade, #1–6)', { exact: false }),
+      screen.getByText('adds Saga (Trade paperback, #1–6)', { exact: false }),
     ).toBeVisible()
-    await user.selectOptions(screen.getByLabelText('Edition'), 'omnibus')
+    await user.selectOptions(screen.getByLabelText('Format'), 'omnibus')
     expect(onSave).toHaveBeenCalledWith(expect.anything(), {
       edition_kind: 'omnibus',
     })
@@ -161,7 +161,7 @@ describe('ComicBooks', () => {
     const { onSave, onToggle, onRemove } = show([book('1', 2)])
     await user.selectOptions(
       screen.getByLabelText('This book is'),
-      'A collected edition',
+      'A collected book',
     )
     expect(onSave).toHaveBeenCalledWith(expect.anything(), {
       format: 'collected',
