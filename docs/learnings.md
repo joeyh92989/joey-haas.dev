@@ -1,5 +1,21 @@
 # Learnings
 
+### 2026-11-17 · decision · Nominatim gets its own client name, with no email address
+The catalogue's `USER_AGENT` carries the owner's email, which Overpass and the store hosts already receive. Joey chose a separate `NOMINATIM_USER_AGENT` (app name and site URL) over reusing it; a test asserts no `@` in the header. A new external service gets its own client name, not the shared one.
+PR #443 · docs/planning/2026-11-17-place-kind-intake-design.md
+
+### 2026-11-17 · decision · Places are their own intake area, with a search hook on the kind
+Registering `place` under shelf would have run Nominatim on every shelf search and counted places as shelf work, so `IntakeArea` gained `places` (migration 0024, additive) and `Kind` an optional `search` for kinds with no metadata source. The commit takes an advisory lock and re-validates the entry, because `spots` has no unique constraint on `source_id`.
+PR #443 · docs/planning/2026-11-17-place-kind-intake-design.md
+
+### 2026-11-17 · lesson · Read the registry and the area code before writing "appears with no new page"
+Issue #340 said the new kind would show on `/admin/add` with no new page; the first implementer's read of the code found sittings store an area (a Postgres enum) and the Add page draws only shelf and closet, so the story grew a migration and a page and was re-planned mid-flight. Before a story claims a kind needs no migration or page, check where `area` and `kinds_for` are used.
+PR #443
+
+### 2026-11-17 · lesson · A test fake must delete what the server deletes
+The places page kept a sitting id after the commit that deleted the sitting, so "Add another" would 404 on the second place; the mocked tests passed because the fake kept the sitting alive. The task review caught it only by reading the real commit code. Build a page's fake API from the server's lifecycle (deletes, 404s, 409s), and have reviewers compare the page's calls with the real routes.
+PR #443
+
 ### 2026-11-17 · lesson · A data-copying migration must be tested against odd values, and the rehearsal cannot do it
 0021's backfill passed CI and `neon-rehearsal` and failed on production: `WHERE jsonb_typeof(editions) = 'array' AND jsonb_array_length(editions) > 0` ran `jsonb_array_length` on a scalar (Postgres does not order AND), and a JSON-string value then broke `json.loads`. The rehearsal branch is schema-only, so it has no rows, and the tests only seeded arrays. The transaction rolled back, so production stayed at 0020. For a migration that reads existing JSONB: select plainly, filter in Python, and seed a scalar, a string, `null`, an object and an empty list in the test.
 PR #428 · fix PR for 0021
@@ -85,10 +101,6 @@ PR #238
 #173's deploy order said to run the sync by hand after merging; it merged 27 minutes after that night's nightly had started, nobody ran it, and the table stayed empty for a day with nothing on the Jobs page. Any job a deploy order relies on gets a Jobs row, so a run that never happened reads "No run recorded".
 docs/planning/2026-11-13-comic-issue-sync-design.md
 
-### 2026-11-13 · lesson · The API has no build signal
-The Ship "live when" check cannot tell the old backend from the new one for a change with no new route; a commit field on `/api/public/status` would.
-PR #218
-
 ### 2026-11-12 · decision · Admin browser tests sign in through a local-only test route
 Chose a `POST /api/auth/test-login` mounted only with `E2E_TEST_LOGIN=1`, refused at config load unless `FRONTEND_URL` is localhost, over minting Starlette's cookie in Node (couples tests to the cookie format and the secret) or mocking every `/api` call (tests mocks, not the API). The admin suite runs against its own `joeyhaas_e2e` database, locally and in CI (the `e2e-admin` job, #216).
 docs/planning/2026-11-12-admin-e2e-design.md
@@ -129,21 +141,13 @@ PR #174 · docs/planning/2026-11-12-comic-sitting-fixes-design.md
 `/shelf/<id>/<n>/` shipped with no pattern in `backend/analytics.py`, so its views would have been dropped; only the full backend suite (`test_every_public_route_in_the_app_is_counted`) caught it, after every task review passed. Next time, list analytics, prerender, sitemap and `render.yaml` in the plan for any new public route.
 PR #173 · docs/planning/2026-11-11-comic-issue-pages-plan.md
 
-### 2026-11-12 · lesson · Check the schema before writing interfaces into a plan
-The plan typed `item_id` as an int; `items.id` is a UUID. The Task 3 implementer caught it and every later task had to be told. Read `models.py` for the keys a plan's signatures name.
-PR #173 · docs/planning/2026-11-11-comic-issue-pages-plan.md
-
 ### 2026-11-12 · lesson · Contract tests on both sides of an API can each be wrong
 The neighbour strip's API dropped the current issue while the frontend's fixtures included it; both suites passed and only the whole-branch review saw it. Build frontend fixtures from the backend's response shape (or one shared fixture) for any new public body.
 PR #173 · docs/planning/2026-11-11-comic-issue-pages-design.md
 
-### 2026-11-14 · lesson · A targeted local test run misses files
-A local run over a guessed name pattern skipped `test_recommendations_routes.py` and CI caught it on #229. Build the pattern from the files the diff imports, and let CI run the full suite before merging.
-PR #229
-
-### 2026-11-14 · lesson · The migration head is pinned
-Adding a migration means bumping the head pin in `test_schema_check.py`; forgetting it failed CI on #225. Put the bump in the migration task of the plan.
-PR #225
+### 2026-11-14 · lesson · A targeted local run misses files, and the migration head is pinned
+A local run over a guessed name pattern skipped `test_recommendations_routes.py` (#229); adding a migration means bumping the head pin in `test_schema_check.py`, and forgetting it failed CI on #225 and again on #443 (the plan's migration task never named the file, and no targeted run included it). Name `test_schema_check.py` in the migration task's brief and run it; build local test lists from the files a diff imports, and let CI run the full suite before merging.
+PR #229 · PR #225 · PR #443
 
 ### 2026-11-14 · lesson · A run across midnight UTC can flake
 A test date read once at import and a server clock read per request drift a day apart when CI crosses 00:00 UTC (#227). Give the code one injectable clock and freeze it in the test.
