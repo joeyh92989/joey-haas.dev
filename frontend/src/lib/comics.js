@@ -329,3 +329,46 @@ export function comicErrorField(detail) {
     return 'editions'
   return null
 }
+
+/**
+ * The book-first figures over a list of rows, for the admin shelf (the public
+ * page reads the same three from the API's `stats`; the definitions are
+ * `backend/public_comics.py` `comic_stats`).
+ *
+ * `books`: owned volumes, plus one for each title with no owned volume that
+ * is a finished one-issue volume with its issue held. `volumesMissing`: per
+ * book line, the line numbers from 1 to the highest owned that no owned book
+ * has. `issuesRead`: the rows' read counts (the admin read carries the
+ * read-to marker, not the marks the public figure counts).
+ *
+ * @param {Array<object>} rows Admin shelf rows.
+ * @returns {{books: number, volumesMissing: number, issuesRead: number, hasLine: boolean}}
+ */
+export function bookFigures(rows) {
+  let books = 0
+  let volumesMissing = 0
+  let issuesRead = 0
+  let hasLine = false
+  for (const row of rows) {
+    issuesRead += row.read ?? 0
+    const owned = row.volumes_owned ?? 0
+    if (owned > 0) {
+      books += owned
+    } else if (
+      !row.wanted &&
+      row.released === 1 &&
+      !row.ongoing &&
+      row.owned > 0
+    ) {
+      books += 1
+    }
+    if (row.kind === 'book_line') {
+      hasLine = true
+      const numbers = row.volume_numbers ?? []
+      if (numbers.length > 0) {
+        volumesMissing += numbers[numbers.length - 1] - numbers.length
+      }
+    }
+  }
+  return { books, volumesMissing, issuesRead, hasLine }
+}

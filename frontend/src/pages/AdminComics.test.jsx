@@ -151,13 +151,20 @@ describe('AdminComics', () => {
     expect(screen.getByText('1 of 2 public')).toBeInTheDocument()
   })
 
-  it('shows four figures and the series count', async () => {
+  it('shows the figures and the series count', async () => {
     stubApi()
     await renderPage()
     const tiles = document.querySelector('.stat-tiles')
     expect(
       [...tiles.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ).toEqual(['Series', 'Issues owned', 'Missing', 'Read'])
+    ).toEqual([
+      'Series',
+      'Books owned',
+      'Issues owned',
+      'Missing',
+      'Issues read',
+      'Share read',
+    ])
     expect(tiles).toHaveTextContent('64')
     expect(tiles).toHaveTextContent('18')
     expect(screen.getByText('2 titles')).toBeInTheDocument()

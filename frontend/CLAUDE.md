@@ -116,7 +116,10 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   is given `select`, the public shelf's labeled select at every width.
   `FavoritesRow`, `StatusBar`, `RatingHistogram`, `FinishesStrip` and
   `OnCartridge` are exported from `components/ShelfOverview.jsx`; every shelf
-  figure is a `StatTile`. A `FilterChips` group takes a `limit` (the rest sit
+  figure is a `StatTile`. The comics figures row is `ComicFigures`, shared by
+  the public shelf and `AdminComics`; its book-first tiles (#333: Books owned,
+  Volumes missing, Issues read) are left out of a body that lacks them, and
+  Volumes missing is also left out at 0 with no book line. A `FilterChips` group takes a `limit` (the rest sit
   behind More…). A card's admin controls are a sibling of its link, never
   nested inside it, and a private admin row always carries a Private tag.
 - `FilterChips` hides a group with at most one chip to show and none

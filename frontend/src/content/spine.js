@@ -613,8 +613,15 @@ export const spine = {
         `${complete} complete ${complete === 1 ? 'run' : 'runs'}, ${gaps} with gaps`,
       issues: 'Issues owned',
       missing: 'Missing',
-      read: 'Read',
+      // The percentage keeps its own tile; "Issues read" is the count (#333).
+      read: 'Share read',
       readOf: 'of what I own',
+      booksOwned: 'Books owned',
+      booksOwnedNote: 'trades, hardcovers and other books',
+      volumesMissing: 'Volumes missing',
+      volumesMissingNote: 'gaps in the lines I’ve started',
+      issuesRead: 'Issues read',
+      issuesReadNote: 'each counted once',
     },
     /** Comic wording for the statuses; the shelf's own labels are game words. */
     status: {

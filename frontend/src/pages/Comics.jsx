@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import BarList from '../components/BarList.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
+import ComicFigures from '../components/ComicFigures.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import FilterChips from '../components/FilterChips.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -13,7 +14,6 @@ import { RunKey } from '../components/RunLanes.jsx'
 import { StatusBar } from '../components/ShelfOverview.jsx'
 import SortControl from '../components/SortControl.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
-import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { spine } from '../content/spine.js'
 import {
   COMIC_CHIPS,
@@ -172,24 +172,21 @@ const asPoster = (row) => ({
   row,
 })
 
-/** The four figures over the grid. */
-function ComicsFigures({ stats }) {
-  const fig = copy.figures
+/** The figures over the grid: the shared row, from the API's stats. */
+function ComicsFigures({ stats, rows }) {
   return (
-    <StatTiles>
-      <StatTile
-        label={fig.series}
-        value={stats.series}
-        detail={fig.runs(stats.runs.complete, stats.runs.gaps)}
-      />
-      <StatTile label={fig.issues} value={stats.issues_owned} />
-      <StatTile label={fig.missing} value={stats.missing} />
-      <StatTile
-        label={fig.read}
-        value={stats.read_percent == null ? '—' : `${stats.read_percent}%`}
-        detail={stats.read_percent == null ? null : fig.readOf}
-      />
-    </StatTiles>
+    <ComicFigures
+      series={stats.series}
+      complete={stats.runs.complete}
+      gaps={stats.runs.gaps}
+      issues={stats.issues_owned}
+      missing={stats.missing}
+      readPercent={stats.read_percent}
+      books={stats.books_owned}
+      volumesMissing={stats.volumes_missing}
+      issuesRead={stats.issues_read}
+      hasLine={rows.some((row) => row.kind === 'book_line')}
+    />
   )
 }
 
@@ -297,7 +294,7 @@ export default function Comics() {
         <EmptyState title={copy.empty} />
       ) : (
         <>
-          <ComicsFigures stats={stats} />
+          <ComicsFigures stats={stats} rows={series} />
 
           <div className="shelf-top">
             <label className="shelf-search">
