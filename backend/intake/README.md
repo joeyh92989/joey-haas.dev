@@ -251,27 +251,39 @@ and the entries read from them or typed in.
   becomes owned, To read), and `issues_added` counts the issues it gained; a
   shelf format set in Details (the first entry that has one) is saved on that
   existing row too, and not counted as an issue gained;
-  collected `editions` set in Details (the last writer of `items.editions`:
-  the item API refuses it since retire-plan PR 3, and a typed entry has no
-  photographed book to become a volume) count only on a trades or omnibus row
-  (a singles row writes none, and a stale invalid edition on a row switched
-  back to singles is dropped before validation, never refused). They are merged: a new series' row gets every
-  such entry's editions, and a series already on the shelf gets them added to
-  the editions it holds, an identical kind, label and range once only, all
-  re-checked by `comics.validate_editions`. An edition the write rules refuse
-  is a refusal on field `editions`; every series' merged editions are checked
-  before any item is changed, so a refused sitting writes and mutates nothing.
+  collected books set in Details (`payload.books`, rows of kind, label, from,
+  to) are volumes, written by the same code as a photographed book
+  (`volume_plan.typed_plans`, `commit._write_volumes`): one `vol-<n>` volume
+  per book (owned, unread, `edited`; kind mapped by
+  `comics.volume_kind_from_edition`, the typed text kept in `kind_raw`), with
+  one `typed` collects row linked to the title and the range. They count only
+  on a trades or omnibus row of an entry that is not itself a photographed
+  book (a photographed book's one volume wins; `books` on it is ignored), so a
+  singles row writes none and a stale invalid book on it is never refused. A
+  book the write rules refuse (`comic_books.typed_books`) is a refusal on field
+  `books`, checked before any item is changed, so a refused sitting writes and
+  mutates nothing. The same issues in two books are two books (no
+  range-dedupe). Each book is idempotent under
+  `volume_plan.typed_key(entry_id, index)` (a uuid5 of the entry id, stored
+  in `intake_entry_id`), so a second commit of the entry writes none. An
+  entry kept as typed with no series match goes on the title of its name like
+  a photographed book with no match. Intake writes nothing to `items.editions`:
+  a non-empty `editions` on an entry, add or patch payload is a 422 (a
+  sitting typed before the rename still holds `editions`, which commit reads as
+  `books`). A volume's covered range clears the skips it covers (Got it's
+  rule), as before.
   One rule counts what a series gains, in a sitting and in the add bar:
-  the typed issues not held before the commit's editions merged in are
-  written loose as typed (`issues_added`), and the editions it gains are
-  listed apart. A series gaining neither issues nor an edition is
-  `already_owned`; one gaining only an edition is grown, not already owned.
+  the typed issues not held before the commit (loose or through volumes) are
+  written loose as typed (`issues_added`), and the typed books it gains are
+  listed apart (`editions_added`, same `{kind, label, from, to}` shape; the
+  name stays until PR 4). A series gaining neither issues nor a volume is
+  `already_owned`; one gaining only a volume is grown, not already owned.
   Each such series is also reported on its own in `series_grew`
   (`SeriesGrew`): `{item_id, title, is_public, cover_url, before: {owned,
   released}, ongoing, added, already, editions_added, after_owned_text}`,
   where `added` and `already` split the typed issues against what the row
-  held before (loose or in an edition), and `editions_added` is the
-  editions it gained, for Done's "Series that grew". An issue already inside
+  held before (loose or in a volume), and `editions_added` is the
+  typed books it gained, for Done's "Series that grew". An issue already inside
   a stored edition is held, so it is neither gained nor written again as a
   loose single; a refused commit reports `series_grew: []`. Games, movies and board
   games keep the old rule: one row per key, later photos dropped. The
@@ -587,6 +599,93 @@ second commit of it is a 409.
   message misleads.
 - The advisory lock key is arbitrary and must stay distinct from
   `migration_lock.MIGRATION_LOCK_KEY`.
+
+## Paste a list (places, story #342)
+
+The paste way adds many places at once from lines the owner pastes: bare
+names, Google Maps or OpenStreetMap links, short links. Code:
+`place_paste.py` (the routes and the per-line rules), `spot_sources/map_links.py`
+(the pure link reader); the save is the `place` kind's `commit.write_places`. It makes
+no model call, adds no `JOB_ROUTES` entry and needs no migration: it only
+stores entries in an ordinary `places` sitting.
+
+### Routes
+
+| Route | What it does |
+|---|---|
+| `POST /sittings/{id}/paste` | One entry per pasted line, no network call. Answers the counts (`added`, `duplicates`, `blank`, `over_limit`). |
+| `POST /entries/{id}/resolve` | One Nominatim search for a `reading` or `check` entry (a short or unreadable link needs a name typed first via PATCH). A search that starts from a `check` entry first drops its old `lat`, `lng`, `owned_spot_id` and `chosen`, so a later PATCH to ready cannot save the new name at the old position. |
+| `POST /entries/{id}/pick` | Takes `{index}` into the entry's stored `candidates` and copies that hit; the client never sends a place. |
+
+### Entry states
+
+| Line kind or outcome | State | Payload notes |
+|---|---|---|
+| Map link with a position and a name | `ready` | name, lat, lng, city Denver, tags `[]`, blurb none, private, `source_line` |
+| Map link with a position, no name | `check` | name "Place at lat, lng", note that it needs a name |
+| That position and name are already a saved spot (database only) | `owned` | `owned_spot_id`, note |
+| Bare name, or a link with a name and no position | `reading` | name (max 200), `source_line`, `attempts` 0 |
+| Short link (`maps.app.goo.gl`, `goo.gl`, `g.co` on any path) | `check` | name "Short link from <host>", note that it cannot be read |
+| Link on a known map host with no position and no name | `check` | name "Link from <host>", note "Could not read a place from this link. Type the name."; never searched until a name is typed |
+| Line too long | `check` | name = first 200 characters, note |
+| Resolve, one hit | `ready` | `chosen` and name, lat, lng from the hit; `searched_as` keeps the typed words |
+| Resolve, one hit already saved | `owned` | `owned_spot_id`, note |
+| Resolve, the hit's source id is the `chosen` of another `ready` or `owned` entry | `ignored` | note "same place as another line" (a place the owner left out does not count) |
+| Resolve, several hits | `check` | `candidates` (max 5, owned ones flagged), note |
+| Resolve, no hit | `check` | note "No place found. Change the words and look again." |
+| Resolve, search failed (fewer than 2 attempts) | `reading` | `attempts` + 1, the failure as the note |
+| Resolve, search failed (2 attempts) | `check` | note "The search did not answer." |
+| Pick | `ready`, `owned` or `ignored`, as for one hit | `candidates` and the note cleared |
+
+### Caps and sanitising
+
+- At most 200 lines a paste (the rest count as `over_limit`), 300 entries a
+  sitting, 400,000 characters a paste (200 lines of 2,000; the page's
+  `MAX_PASTE_CHARS` in `pasteModel.js` must match `place_paste.MAX_PASTE_CHARS`).
+- New entries get `created_at` = the later of the app clock and the sitting's
+  newest entry plus one microsecond (then one microsecond apart), so the
+  order stays monotonic whatever the two clocks say.
+- A line is at most 300 characters, and 2,000 for a URL on a known map host
+  (`map_links.MAX_LINE_CHARS`, `MAX_URL_LINE`); a longer line is a `check`
+  entry. `source_line` is stored clipped to 300; a longer line also stores
+  `source_key` (a hash of the whole line) so the same long URL pasted twice is
+  caught as a duplicate.
+- Every line is sanitised before it is stored or compared: control (Cc) and
+  format (Cf) characters are removed (ZWNJ and ZWJ are kept) and whitespace is
+  collapsed; tab, newline and the other whitespace controls become a space
+  first (`map_links.clean_line`, `clean_name`). The owner-edit path (PATCH of a
+  place entry) uses the same functions.
+- **Short links are never fetched.** `maps.app.goo.gl`, `goo.gl` and `g.co`
+  (any path) become `check` entries that ask for a name; the server never
+  follows them. A link on a known map host with nothing readable
+  (`unreadable_link`) is the same: a `check` entry, never searched as URL text.
+
+### Locks
+
+- Resolve and pick take the entry `FOR UPDATE NOWAIT` (`claim_entry`): a
+  second call on the entry is a 409. PATCH of a place entry takes it the same
+  way, so an edit cannot land in the middle of a lookup.
+- Resolve and pick also take the sitting `NOWAIT` (`lock_sitting`, a few quick
+  tries, then 409). Commit takes the sitting and then the entries, so the order
+  is always entry then sitting for a lookup and sitting then entries for a
+  commit; a lookup never waits for a lock, which is what keeps the two from
+  deadlocking.
+- A semaphore of 2 (per event loop) bounds the searches in flight; the rest
+  queue before taking any database lock. Paste locks the sitting row
+  `FOR UPDATE` (two pastes queue).
+
+### Known limits
+
+- The page must resolve strictly one at a time; the server bounds the load
+  but does not keep Nominatim's one-a-second rate across parallel callers.
+- A resolve that meets a held sitting has already used one Nominatim search
+  before it answers 409.
+- The same long URL pasted in two separate pastes is caught at paste by
+  `source_key`; the same place reached through two different URLs is caught by
+  the owned check at save, not at paste.
+- Blurb newlines become spaces (the shared field cleaning); the blurb is one line.
+- The sittings list cannot tell a pasted sitting from a search-flow one; the
+  page decides by `payload.source_line` on the entries.
 
 ## Adding a kind
 

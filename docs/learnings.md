@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-18 · lesson · A cap or filter tuned on typical input breaks the real long tail
+#342 capped a pasted line at 300 characters, but real Google Maps place URLs run 200 to 900 characters, so the main use case was unreadable until the final review; and a sanitiser that dropped every control character glued the words around a newline. Test limits and cleaners with real-shaped long-tail input (a 700-character map URL, a blurb with a newline), and map whitespace to a space before dropping the rest.
+Story #342 · docs/planning/2026-11-18-places-paste-way-design.md
+
 ### 2026-11-18 · lesson · A guard test must be shown failing with the guard removed
 The add bar's double-Save test clicked twice with `fireEvent`, but the Save button is disabled by state and React flushes inside `fireEvent`, so the second click never reached the handler and the test passed with the in-flight ref deleted. Remove the guard and watch the test fail before trusting it; reach the handler twice in one `act`.
 Story #341 · docs/planning/2026-11-17-spots-add-bar-design.md
@@ -58,7 +62,7 @@ Several agents' first push was refused; they recovered with `git push origin HEA
 PR #405
 
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
-The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
+The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code. The same holds for a stale `dist`: #342's phone-overflow browser case passed locally against an old build and failed on CI; rebuild (`npm run build`) before every `e2e` run, and measure with real-shaped long data.
 PR #378
 
 ### 2026-11-16 · lesson · Briefs for implementer agents list every CI gate

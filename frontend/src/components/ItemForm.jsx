@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { spine } from '../content/spine.js'
-import { EMPTY_EDITION, SHELF_FORMATS } from '../lib/comics.js'
+import { EMPTY_BOOK, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
@@ -57,7 +57,7 @@ export const EMPTY_COMIC_FIELDS = {
   following: false,
 }
 
-/** Kinds offered for an edition; free text, so any other is fine too. */
+/** Kinds offered for a book; free text, so any other is fine too. */
 const EDITION_KINDS = ['Trade', 'Omnibus', 'Hardcover', 'Compendium', 'Deluxe']
 
 /** An error from the API, shown beside the field it is about. */
@@ -71,13 +71,13 @@ function FieldError({ id, message }) {
 }
 
 /**
- * Collected editions as rows: kind, label, the first and last issue it
+ * Collected books as rows: kind, label, the first and last issue it
  * collects, and Remove; Add appends a blank row. Only the intake Details
  * step uses it now (the item form's rows are retired, 3/5). The API is the one
  * validator; a blank row is dropped on save. `idPrefix` keeps the ids unique
  * when several editors share a page (the sitting's Details rows).
  */
-export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
+export function BookRows({ rows, onChange, error, idPrefix = 'comic' }) {
   const addRef = useRef(null)
   const update = (index, field) => (event) =>
     onChange(
@@ -88,22 +88,22 @@ export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
   return (
     <fieldset
       className="comic-editions"
-      aria-describedby={error ? `${idPrefix}-editions-error` : undefined}
+      aria-describedby={error ? `${idPrefix}-books-error` : undefined}
     >
-      <legend>Collected editions</legend>
-      <datalist id={`${idPrefix}-edition-kinds`}>
+      <legend>Collected books</legend>
+      <datalist id={`${idPrefix}-book-kinds`}>
         {EDITION_KINDS.map((kind) => (
           <option key={kind} value={kind} />
         ))}
       </datalist>
       {rows.map((row, index) => {
-        const name = row.label || `edition ${index + 1}`
+        const name = row.label || `book ${index + 1}`
         return (
           <div className="comic-edition" key={index}>
             <div className="comic-edition-row">
               <input
                 aria-label={`Kind, ${name}`}
-                list={`${idPrefix}-edition-kinds`}
+                list={`${idPrefix}-book-kinds`}
                 placeholder="Trade"
                 value={row.kind}
                 onChange={update(index, 'kind')}
@@ -136,7 +136,7 @@ export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
                   onChange(rows.filter((_, at) => at !== index))
                   // The row and its button are gone: land on Add, never on
                   // the next row's Remove, where a second Enter would remove
-                  // another edition.
+                  // another book.
                   addRef.current?.focus()
                 }}
               >
@@ -150,11 +150,11 @@ export function EditionRows({ rows, onChange, error, idPrefix = 'comic' }) {
         type="button"
         className="link-button"
         ref={addRef}
-        onClick={() => onChange([...rows, { ...EMPTY_EDITION }])}
+        onClick={() => onChange([...rows, { ...EMPTY_BOOK }])}
       >
-        Add an edition
+        Add a book
       </button>
-      <FieldError id={`${idPrefix}-editions-error`} message={error} />
+      <FieldError id={`${idPrefix}-books-error`} message={error} />
     </fieldset>
   )
 }

@@ -892,16 +892,18 @@ async def test_two_add_bar_books_of_one_name_share_a_title(sessionmaker_for_test
 
 
 @pytest.mark.asyncio
-async def test_a_groups_details_editions_are_all_kept(sessionmaker_for_test):
+async def test_a_groups_typed_books_are_all_volumes_of_the_one_title(
+    sessionmaker_for_test,
+):
+    """Entries of one name with no match share one title; each typed book is
+    its own volume (the same book typed twice is two books)."""
     one = {"kind": "Trade", "label": "A", "from": 1, "to": 3}
     two = {"kind": "Trade", "label": "B", "from": 4, "to": 6}
     entries = [
         (
             "comic",
             S.TYPED,
-            _trade(
-                None, None, detected_title="Maus", shelf_format="trades", editions=[e]
-            ),
+            {"detected_title": "Maus", "shelf_format": "trades", "books": [e]},
             None,
         )
         for e in (one, two, one)
@@ -911,7 +913,11 @@ async def test_a_groups_details_editions_are_all_kept(sessionmaker_for_test):
         response = await _commit(client, sitting_id)
     assert response.status_code == 200, response.text
     [item] = await _items(sessionmaker_for_test)
-    assert sorted(item.editions, key=lambda e: e["label"]) == [one, two]  # no repeat
+    assert item.editions is None
+    volumes = await _volumes(sessionmaker_for_test)
+    assert sorted(v.label for v in volumes) == ["A", "A", "B"]
+    assert {v.item_id for v in volumes} == {item.id}
+    assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2", "vol-3"]
 
 
 # --- Which title a book goes to (#330) ------------------------------------------

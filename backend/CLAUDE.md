@@ -41,6 +41,22 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   place is public only when its city is Denver, enforced at commit as a
   422 (`spots.check_public_city`; the same rule holds on the by-hand routes). The Nominatim client sends
   `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
+- **Paste a list for places (story #342).** `intake/place_paste.py` (routes
+  `paste`, `resolve`, `pick`) and `spot_sources/map_links.py` (the pure link
+  reader); read `intake/README.md` ("Paste a list") and the map-link section
+  of `spot_sources/README.md` first. Rules when editing: never fetch a pasted
+  link (short links, `g.co` on any path, and links on a known map host with
+  nothing readable stay `check` entries and are never searched); sanitise with
+  `clean_line` and `clean_name` before storing or comparing, and on the
+  owner-edit path too (whitespace controls become spaces; every Cf character
+  but ZWNJ/ZWJ goes); the IGNORED "same place" check counts only `ready` and
+  `owned` entries; resolving from a `check` entry clears its old position and
+  `chosen`; new entries' `created_at` never precedes the sitting's newest;
+  the paste cap is 400,000 characters (match `MAX_PASTE_CHARS` in the page);
+  the search candidates are server-only (PATCH cannot plant them) and pick
+  takes an index into the stored list, never a place from the client; lock
+  the entry first and the sitting second in a lookup (both `NOWAIT`), since a
+  commit takes the sitting and then the entries.
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers
@@ -471,8 +487,8 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   count; the oldest by `created_at`, `id`) is **reused**, so books of one
   name land on one title across sittings and add-bar adds, and only when
   there is none is a new **private** one made with the detected name. Books
-  of one name in a sitting share it, and their Details `editions` all merge
-  onto it. A collected book with no match is never an error, and one marked
+  of one name in a sitting share it, and the books typed in Details are
+  volumes on it too. A collected book with no match is never an error, and one marked
   `owned` with no match writes nothing (counted as already owned). Its contents are `photo` collects
   entries: the printed `collects_from`/`collects_to` as `#a-b` (or `#n`),
   linked to the title when the series is matched and the range is 1 to
@@ -504,8 +520,16 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `title_will_be_created` is false when a same-named title will be reused;
   no model call, no network. **Known limit:** an add-bar retry has no
   idempotence key (`/add` sends none), so a repeated request makes a second
-  volume. The `editions` a
-  row carries from Details (a typed list) are the old path and still merge.
+  volume. **Typed books (3b/5):** the collected books Details types on a comic entry
+  (`payload.books`, rows of kind, label, from, to; trades or omnibus rows of
+  an entry that is not a photographed book) are volumes through the same
+  `_write_volumes`: slug `vol-<n>`, `edited`, one `typed` collects row linked
+  to the title and range, `kind_raw` the typed kind, idempotent per book
+  (`volume_plan.typed_key`, a uuid5 of the entry id). Two books over the same
+  issues are two volumes. Intake never writes `items.editions`: a non-empty
+  `editions` on an entry, add or patch payload is a 422. `series_grew[].
+  editions_added` and `series_new[].editions` still carry the typed books
+  (names kept for Done; PR 4 may rename).
   **Which title a matched book goes to (#330, `comics.shares_title`; the
   commit, the add bar and Check's preview all decide it in `commit._placed`):**
   a book that matched a series joins its title only when BOTH hold: (a) its
@@ -628,8 +652,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   functions always took for editions, and `held_through(session, item_id,
   number)` lists the owned volumes covering an issue. **The public issue page body** (`GET /api/public/items/{id}/issues/{n}`, #332) has no single-edition `held_as`/`edition` fields; it carries `held_single` (the number is in `issues_owned`, so the page can say single only, volumes only or both) and `also_in`, a list (empty when none) of every OWNED volume, of any PUBLIC title (`items.is_public`), that has a LINKED collects entry (`item_id` = this title, `from_number <= n <= to_number`), as `{slug, label, kind, line_number, title_id, title, same_title}`: one query in `public_issues._also_in` (it needs the volume's kind and title, which `load_holds` does not carry), each volume once, same title first, then title name, `line_number` nulls last, position. A text-only or unlinked entry, an unowned volume and a private title's volume never appear, and the private title's id and name never leak; no skip, intake id, `edited`, `source`, position or collects text is in the body. The links go to `/shelf/<title_id>/<slug>/`. **The compat
   shim** `comics.sync_volumes_from_editions` runs first inside `sync_marks`
-  (the one writer of `editions` left is intake's Details step; the item API
-  refuses it, see below) and mirrors `items.editions` into
+  (no writer of `editions` is left: the item API and intake both refuse it) and mirrors `items.editions` into
   the edition-origin (`ed-*`) volumes and their one `migrated` collects row; it
   never touches another slug, never resets `owned` or `read` on an existing
   volume, and writes only what differs. `PATCH /api/comics/volumes/{id}`

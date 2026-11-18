@@ -739,10 +739,10 @@ the phone and finish at the desk.
   parts dropped. The title parts add up to the total; removed titles are in
   neither, and an unticked one stays listed since Check can retick it.
 - **Details** is one pass per kind present; a comic on a trades or omnibus
-  shelf format also gets the collected-editions editor (kind, label and the
-  issues each collects), saved on the entry's payload when focus leaves it
-  and checked again when Add is pressed, which will not commit past a
-  half-filled edition. **Done** shows the commit's own
+  shelf format also gets the collected-books editor (kind, label and the
+  issues each collects; each book is written as a volume at commit), saved
+  on the entry's payload as `books` when focus leaves it and checked again
+  when Add is pressed, which will not commit past a half-filled book. **Done** shows the commit's own
   four figures, and Publish these N publishes the commit's `created` ids
   through `POST /api/items/visibility`.
 - **The add bar** (`components/intake/AddSection.jsx`, with `AddBar`,

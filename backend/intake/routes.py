@@ -24,7 +24,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -36,7 +36,13 @@ from closet_images import make_garment_image, make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
 from intake.budget import budget_state
-from intake.comic_books import BookEditError, edit_book, number_check
+from intake.comic_books import (
+    BookEditError,
+    edit_book,
+    legacy_editions_to_books,
+    number_check,
+    refuse_legacy_editions,
+)
 from intake.commit import (
     SITTING_GONE,
     NothingToAdd,
@@ -69,6 +75,7 @@ from intake.place_kind import (
     not_ready_reason,
     owned_spot_id,
 )
+from intake.place_paste import BUSY, claim_entry, register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -142,6 +149,12 @@ class EntryCreate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     chosen: dict[str, Any] | None = None
 
+    @field_validator("payload")
+    @classmethod
+    def _no_legacy_editions(cls, payload):
+        """`editions` is retired: books are `books`, written as volumes."""
+        return refuse_legacy_editions(payload)
+
 
 class PlaceEntryIn(BaseModel):
     """A place entry for a places sitting. From search: `chosen` is the
@@ -180,6 +193,12 @@ class AddIn(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     today: date | None = None
 
+    @field_validator("payload")
+    @classmethod
+    def _no_legacy_editions(cls, payload):
+        """`editions` is retired: books are `books`, written as volumes."""
+        return refuse_legacy_editions(payload)
+
 
 CHOSEN_REFUSED = "A chosen result needs its external_source and external_id"
 
@@ -207,6 +226,13 @@ class EntryPatch(BaseModel):
     payload: dict[str, Any] | None = None
     state: IntakeEntryState | None = None
     chosen: dict[str, Any] | None = None
+
+    @field_validator("payload")
+    @classmethod
+    def _legacy_editions_become_books(cls, payload):
+        """Not a 422 as on create: Check re-sends a stored payload whole, and
+        one saved before `books` existed holds `editions`."""
+        return legacy_editions_to_books(payload)
 
 
 def photo_json(photo: IntakePhoto) -> dict[str, Any]:
@@ -921,6 +947,10 @@ def create_intake_router(
         entry = await session.get(IntakeEntry, entry_id)
         if entry is None:
             raise HTTPException(404, "No such entry")
+        if entry.kind == "place":
+            # A resolve or pick holds the row while it works: wait for none of
+            # them (409), so a stale copy never overwrites its answer.
+            entry = await claim_entry(session, entry_id, BUSY)
         want_state: IntakeEntryState | None = None
         for field in body.model_fields_set:
             value = getattr(body, field)
@@ -1088,4 +1118,5 @@ def create_intake_router(
         row = await session.get(IntakeSetting, LAST_RUN_KEY)
         return {LAST_RUN_KEY: row.value if row is not None else None}
 
+    register_paste_routes(router, get_session, entries_json)
     return router

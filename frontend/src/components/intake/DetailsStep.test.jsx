@@ -1,9 +1,16 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { entry } from '../../lib/intake.test-util.js'
 import DetailsStep from './DetailsStep.jsx'
+
+const apiFetch = vi.fn()
+vi.mock('../../lib/api.js', () => ({
+  API_URL: '',
+  apiFetch: (...args) => apiFetch(...args),
+  errorMessage: vi.fn(async () => 'refused'),
+}))
 
 const KINDS = [{ key: 'comic', label: 'Comic', fields: [] }]
 
@@ -31,18 +38,56 @@ function step(payload) {
 
 const VOL1 = { kind: 'Trade', label: 'Vol. 1', from: 1, to: 6 }
 
-describe('DetailsStep editions', () => {
-  it('shows the new editions when the payload changes from outside', async () => {
+describe('DetailsStep collected books', () => {
+  beforeEach(() => apiFetch.mockReset())
+
+  it('shows the new books when the payload changes from outside', async () => {
     const user = userEvent.setup()
     const { rerender } = render(step({}))
     const row = screen.getByRole('group', { name: 'Saga' })
-    await user.click(
-      within(row).getByRole('button', { name: 'Add an edition' }),
-    )
-    await user.type(within(row).getByLabelText('Kind, edition 1'), 'Omni')
-    rerender(step({ editions: [VOL1] }))
+    await user.click(within(row).getByRole('button', { name: 'Add a book' }))
+    await user.type(within(row).getByLabelText('Kind, book 1'), 'Omni')
+    rerender(step({ books: [VOL1] }))
     expect(within(row).getByLabelText('Label, Vol. 1')).toHaveValue('Vol. 1')
-    expect(within(row).queryByLabelText('Kind, edition 1')).toBeNull()
+    expect(within(row).queryByLabelText('Kind, book 1')).toBeNull()
+  })
+
+  it('saves the rows as `books`, never `editions`', async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({}) })
+    const user = userEvent.setup()
+    render(step({}))
+    const row = screen.getByRole('group', { name: 'Saga' })
+    await user.click(within(row).getByRole('button', { name: 'Add a book' }))
+    await user.type(within(row).getByLabelText('Kind, book 1'), 'Trade')
+    await user.type(within(row).getByLabelText('Label, book 1'), 'Vol. 1')
+    await user.type(within(row).getByLabelText('From issue, Vol. 1'), '1')
+    await user.type(within(row).getByLabelText('To issue, Vol. 1'), '6')
+    await user.click(document.body)
+    await vi.waitFor(() => expect(apiFetch).toHaveBeenCalled())
+    const [, init] = apiFetch.mock.calls.at(-1)
+    const sent = JSON.parse(init.body).payload
+    expect(sent.books).toEqual([VOL1])
+    expect(sent).not.toHaveProperty('editions')
+  })
+
+  it('reads books typed as `editions` before, and sends them as `books`', async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({}) })
+    const user = userEvent.setup()
+    render(step({ editions: [VOL1] }))
+    const row = screen.getByRole('group', { name: 'Saga' })
+    expect(within(row).getByLabelText('Label, Vol. 1')).toHaveValue('Vol. 1')
+    await user.clear(within(row).getByLabelText('Label, Vol. 1'))
+    await user.type(within(row).getByLabelText('Label, book 1'), 'Vol. 1b')
+    await user.click(document.body)
+    await vi.waitFor(() => expect(apiFetch).toHaveBeenCalled())
+    const sent = JSON.parse(apiFetch.mock.calls.at(-1)[1].body).payload
+    expect(sent.books).toEqual([{ ...VOL1, label: 'Vol. 1b' }])
+    expect(sent).not.toHaveProperty('editions')
+  })
+
+  it('is not offered on a photographed collected book: it is a volume already', () => {
+    render(step({ format: 'collected' }))
+    expect(screen.queryByText('Collected books')).toBeNull()
   })
 })
 

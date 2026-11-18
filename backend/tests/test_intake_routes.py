@@ -856,3 +856,81 @@ async def test_bodies_keep_their_exact_keys(sessionmaker_for_test):
         }  # fmt: skip
         budget = (await client.get("/api/intake/budget")).json()
         assert set(budget) == {"remaining", "enforced", "resets_at"}
+
+
+@pytest.mark.asyncio
+async def test_the_retired_editions_key_is_refused_on_create_and_patch(
+    sessionmaker_for_test,
+):
+    books = [{"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6}]
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await _sitting(client, kind="comic")
+        url = f"/api/intake/sittings/{sitting['id']}/entries"
+        refused = await client.post(
+            url, json={"kind": "comic", "payload": {"editions": books}}
+        )
+        typed = await client.post(
+            url, json={"kind": "comic", "payload": {"books": books, "editions": []}}
+        )
+        entry = typed.json()
+        patched = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": {"editions": books}}
+        )
+        both = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={
+                "payload": {
+                    "books": books[:1],
+                    "editions": [{**books[0], "label": "x"}],
+                }
+            },
+        )
+        bad = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {"books": [{"kind": "Trade", "label": "", "from": 1}]}},
+        )
+        fine = await client.patch(
+            f"/api/intake/entries/{entry['id']}", json={"payload": {"books": books}}
+        )
+    assert refused.status_code == 422 and "books" in str(refused.json())
+    assert typed.status_code == 201, typed.text
+    # PATCH is not a 422: Check re-sends a stored payload whole.
+    assert patched.status_code == 200 and patched.json()["payload"] == {"books": books}
+    assert both.status_code == 200 and both.json()["payload"] == {"books": books}
+    assert bad.status_code == 422
+    assert fine.status_code == 200, fine.text
+    assert fine.json()["payload"] == {"books": books}
+
+
+@pytest.mark.asyncio
+async def test_a_stored_legacy_payload_edited_at_check_commits_one_volume_per_book(
+    sessionmaker_for_test,
+):
+    from models import ComicVolume
+    from tests.test_intake_commit import _commit, _seed, _series
+
+    books = [
+        {"kind": "Trade", "label": "Vol. 1", "from": 1, "to": 6},
+        {"kind": "Trade", "label": "Vol. 2", "from": 7, "to": 12},
+    ]
+    stored = {"issues_owned": "7", "shelf_format": "trades", "editions": books}
+    sitting_id = await _seed(
+        sessionmaker_for_test,
+        entries=[("comic", IntakeEntryState.READY, stored, _series())],
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        [entry] = (await client.get(f"/api/intake/sittings/{sitting_id}")).json()[
+            "entries"
+        ]
+        patched = await client.patch(
+            f"/api/intake/entries/{entry['id']}",
+            json={"payload": {**entry["payload"], "issues_owned": "8"}},
+        )
+        assert patched.status_code == 200, patched.text
+        assert patched.json()["payload"] == {
+            "issues_owned": "8",
+            "shelf_format": "trades",
+            "books": books,
+        }
+        assert (await _commit(client, sitting_id)).status_code == 200
+    assert await _count(sessionmaker_for_test, ComicVolume) == 2

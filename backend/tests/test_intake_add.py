@@ -548,7 +548,7 @@ async def test_typed_issues_are_written_loose_beside_a_covering_trade(
     async with client_for(sessionmaker_for_test) as client:
         await client.post("/api/intake/add", json=_saga_add("1"))
         body = _saga_add("2-6")
-        body["payload"].update(shelf_format="trades", editions=[TRADE])
+        body["payload"].update(shelf_format="trades", books=[TRADE])
         second = await client.post("/api/intake/add", json=body)
     assert second.status_code == 200, second.text
     body = second.json()
@@ -558,16 +558,30 @@ async def test_typed_issues_are_written_loose_beside_a_covering_trade(
 
 
 @pytest.mark.asyncio
-async def test_a_series_gaining_only_an_edition_is_grown_not_already_owned(
+async def test_a_series_gaining_only_a_typed_book_is_grown_not_already_owned(
     sessionmaker_for_test,
 ):
     async with client_for(sessionmaker_for_test) as client:
         await client.post("/api/intake/add", json=_saga_add("1-6"))
         body = _saga_add("2")
-        body["payload"].update(shelf_format="trades", editions=[TRADE])
+        body["payload"].update(shelf_format="trades", books=[TRADE])
         second = await client.post("/api/intake/add", json=body)
     assert second.status_code == 200, second.text
     body = second.json()
     assert (body["issues_added"], body["already_owned"]) == (0, 0)
     [grew] = body["series_grew"]
     assert (grew["added"], grew["editions_added"]) == ([], [TRADE])
+
+
+@pytest.mark.asyncio
+async def test_the_retired_editions_key_is_a_422(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test) as client:
+        body = _saga_add("1")
+        body["payload"].update(shelf_format="trades", editions=[TRADE])
+        refused = await client.post("/api/intake/add", json=body)
+        empty = _saga_add("2")
+        empty["payload"].update(editions=[])
+        accepted = await client.post("/api/intake/add", json=empty)
+    assert refused.status_code == 422, refused.text
+    assert "books" in str(refused.json()["detail"])
+    assert accepted.status_code == 201, accepted.text

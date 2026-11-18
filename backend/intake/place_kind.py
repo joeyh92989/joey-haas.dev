@@ -26,6 +26,7 @@ from intake.kinds import select as options
 from models import CandidateSource, IntakeArea, IntakeEntryState, Spot
 from spot_sources import nominatim
 from spot_sources.dedupe import same_place
+from spot_sources.map_links import clean_line
 from spot_sources.nominatim import PlaceHit, SearchFailure
 
 logger = logging.getLogger(__name__)
@@ -71,11 +72,17 @@ def _clip(value: Any, limit: int) -> Any:
 
 
 def _text(value: Any, limit: int, label: str) -> str | None:
+    """Text an owner or a search result gave, as a person can see it: control
+    and invisible format characters (NUL included) removed, whitespace
+    collapsed (`map_links.clean_line`). Empty after cleaning is None."""
     if value is None:
         return None
-    if not isinstance(value, str) or len(value) > limit:
+    if not isinstance(value, str):
         raise ValueError(f"The {label} must be text of at most {limit} characters")
-    return value.strip() or None
+    text = clean_line(value)
+    if len(text) > limit:
+        raise ValueError(f"The {label} must be text of at most {limit} characters")
+    return text or None
 
 
 def clean_name(value: Any) -> str:
@@ -159,7 +166,7 @@ def clean_fields(values: dict[str, Any]) -> dict[str, Any]:
                 isinstance(tag, str) for tag in value
             ):
                 raise ValueError("Tags must be a list of text")
-            out[key] = spots.canonical_tags(value)
+            out[key] = spots.canonical_tags(clean_line(tag) for tag in value)
     return out
 
 
