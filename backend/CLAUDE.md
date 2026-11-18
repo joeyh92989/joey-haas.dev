@@ -438,9 +438,14 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   title up to 80 characters, `kind` = `edition_kind` or `trade`, `line_number`,
   slug `vol-<n>` with the smallest unused n, position last) on a title: the
   matched series (on the shelf, or made from the match as before), or, with
-  no usable match, a new **private** title made with the detected name and
-  no external ids (books of one name in a sitting share it; a collected book
-  with no match is never an error). Its contents are `photo` collects
+  no usable match, a title with no external ids: an existing one of the same
+  name (`volume_plan.title_key`: case, a leading "The" and punctuation do not
+  count; the oldest by `created_at`, `id`) is **reused**, so books of one
+  name land on one title across sittings and add-bar adds, and only when
+  there is none is a new **private** one made with the detected name. Books
+  of one name in a sitting share it, and their Details `editions` all merge
+  onto it. A collected book with no match is never an error, and one marked
+  `owned` with no match writes nothing (counted as already owned). Its contents are `photo` collects
   entries: the printed `collects_from`/`collects_to` as `#a-b` (or `#n`),
   linked to the title when the series is matched and the range is 1 to
   9999, then the entries `comic_contents.parse_contents` reads from
@@ -465,7 +470,13 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   issue_number}` or `{kind: "volume", label, edition_kind, line_number,
   title, title_id}`) and `title_will_be_created`, and a collected book
   `contents_preview` (`[{series_name, issue_text, will_link}]`, exactly the
-  entries the commit writes); no model call, no network. The `editions` a
+  entries the commit writes) and `already_held` (null, or `{volume_id, slug,
+  label}` of an owned volume of the same title and kind that already links
+  the same range: a warning only, the commit still writes the second book);
+  `title_will_be_created` is false when a same-named title will be reused;
+  no model call, no network. **Known limit:** an add-bar retry has no
+  idempotence key (`/add` sends none), so a repeated request makes a second
+  volume. The `editions` a
   row carries from Details (a typed list) are the old path and still merge.
   The answer's `series_new` lists a created series' issues for Done. The comic `issues_owned` field
   is `in_details: false`, so Details does not ask for it (the add bar still

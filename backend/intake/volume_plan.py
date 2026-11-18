@@ -20,6 +20,7 @@ off the book; everything else is text, and a link is never required.
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -31,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import comic_contents
 from comics import MAX_ISSUE
 from intake.comic_books import EDITION_KINDS
-from models import ComicVolume, ComicVolumeCollect, Item
+from models import ComicVolume, ComicVolumeCollect, Item, ItemType
 
 LABEL_MAX = 80
 
@@ -146,14 +147,82 @@ def book_plan(
     return VolumePlan(title, label, kind, line, tuple(collects))
 
 
+def title_key(name: str | None) -> str:
+    """A title for comparing: case, a leading "The", `&` and punctuation do
+    not tell two names apart."""
+    text = comic_contents.normalize_name(name)
+    return re.sub(r"[\W_]+", " ", text).strip() or (name or "").strip().lower()
+
+
+async def find_manual_titles(
+    session: AsyncSession, names: list[str], *, lock: bool = False
+) -> dict[str, Item]:
+    """The comic titles with no external id (made by hand, or for an earlier
+    book with no match) that these names mean, by `title_key`: the oldest
+    of each name, so books of one name keep landing on one title. `lock`
+    takes them FOR UPDATE, in id order, for a writer about to add a volume."""
+    wanted = {title_key(name) for name in names}
+    rows = await session.execute(
+        select(Item.id, Item.title)
+        .where(Item.type == ItemType.COMIC, Item.external_source.is_(None))
+        .order_by(Item.created_at, Item.id)
+    )
+    pick: dict[str, uuid.UUID] = {}
+    for item_id, title in rows:
+        key = title_key(title)
+        if key in wanted and key not in pick:
+            pick[key] = item_id
+    if not pick:
+        return {}
+    query = select(Item).where(Item.id.in_(pick.values())).order_by(Item.id)
+    items = {
+        i.id: i
+        for i in await session.scalars(query.with_for_update() if lock else query)
+    }
+    return {key: items[i] for key, i in pick.items() if i in items}
+
+
+async def already_held(
+    session: AsyncSession,
+    item: Item | None,
+    plan: VolumePlan,
+    payload: dict[str, Any],
+) -> dict[str, str] | None:
+    """An owned volume of this title of the same kind that already links the
+    same range: a warning for Check, never a refusal (the same issues in two
+    books are two books)."""
+    low, high = _int(payload.get("collects_from")), _int(payload.get("collects_to"))
+    if item is None or low is None or high is None:
+        return None
+    found = await session.scalar(
+        select(ComicVolume)
+        .join(ComicVolumeCollect, ComicVolumeCollect.volume_id == ComicVolume.id)
+        .where(
+            ComicVolume.item_id == item.id,
+            ComicVolume.owned.is_(True),
+            ComicVolume.kind == plan.kind,
+            ComicVolumeCollect.item_id == item.id,
+            ComicVolumeCollect.from_number == low,
+            ComicVolumeCollect.to_number == high,
+        )
+        .order_by(ComicVolume.position)
+        .limit(1)
+    )
+    if found is None:
+        return None
+    return {"volume_id": str(found.id), "slug": found.slug, "label": found.label}
+
+
 def preview(
     payload: dict[str, Any],
     plan: VolumePlan | None,
     item: Item | None,
+    held: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """What Check shows for a comic entry, additive to the entry:
     `adds` (a volume or an issue), `title_will_be_created`, and for a book
-    `contents_preview`, the entries the commit would write."""
+    `contents_preview`, the entries the commit would write, and
+    `already_held` (a warning, see `already_held`; null when none)."""
     shown: dict[str, Any] = {"title_will_be_created": item is None}
     if plan is None:
         shown["adds"] = {"kind": "issue", "issue_number": payload.get("issue_number")}
@@ -166,6 +235,7 @@ def preview(
         "title": plan.title,
         "title_id": str(item.id) if item is not None else None,
     }
+    shown["already_held"] = held
     shown["contents_preview"] = [
         {
             "series_name": c.series_name,

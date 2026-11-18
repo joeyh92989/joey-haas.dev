@@ -700,3 +700,208 @@ async def test_a_commit_that_refuses_a_row_writes_no_volume(sessionmaker_for_tes
     assert await _count(sessionmaker_for_test, Item) == 0
     body = response.json()
     assert body["volumes_new"] == [] and body["titles_created"] == []
+
+
+# --- Cold-review fixes (#436) ----------------------------------------------------
+
+
+async def _adds_of(factory, sitting_id) -> list[dict]:
+    async with client_for(factory) as client:
+        shown = (await client.get(f"/api/intake/sittings/{sitting_id}")).json()
+    return shown["entries"]
+
+
+@pytest.mark.asyncio
+async def test_an_unmatched_book_marked_owned_writes_nothing(sessionmaker_for_test):
+    payload = _trade(1, 3, detected_title="Maus")
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.OWNED, payload, None)]
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["added"], body["already_owned"]) == (0, 1)
+    assert body["volumes_new"] == [] and body["titles_created"] == []
+    assert await _count(sessionmaker_for_test, Item) == 0
+    assert await _count(sessionmaker_for_test, ComicVolume) == 0
+
+
+@pytest.mark.asyncio
+async def test_a_book_is_put_on_its_own_title_not_a_single_of_the_same_name(
+    sessionmaker_for_test,
+):
+    for n in range(8):  # insert order differs run to run: look several times
+        name = f"Saga {n}"
+        entries = [
+            ("comic", S.TYPED, _book(1, "none", detected_title=name), None),
+            ("comic", S.TYPED, _trade(None, None, detected_title=name), None),
+        ]
+        sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+        async with client_for(sessionmaker_for_test) as client:
+            response = await _commit(client, sitting_id)
+        assert response.status_code == 200, response.text
+        [made] = response.json()["volumes_new"]
+        async with sessionmaker_for_test() as session:
+            held = await session.get(Item, uuid.UUID(made["title_id"]))
+            others = (
+                await session.scalars(
+                    select(Item).where(Item.title == name, Item.id != held.id)
+                )
+            ).all()
+        assert held.issues_owned is None, name  # the book's title, not the single
+        assert [o.issues_owned for o in others] == ["1"], name
+
+
+async def _book_in_sitting(factory, title="Maus", state=S.TYPED, **extra):
+    payload = _trade(None, None, detected_title=title, **extra)
+    sitting_id = await _seed(factory, entries=[("comic", state, payload, None)])
+    return sitting_id
+
+
+@pytest.mark.asyncio
+async def test_a_re_photographed_book_is_flagged_but_still_a_second_volume(
+    sessionmaker_for_test,
+):
+    first = await _commit_book(sessionmaker_for_test, _trade(1, 6), _run())
+    [held] = first["volumes_new"]
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.OWNED, _trade(1, 6), _run())]
+    )
+    [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+    assert entry["already_held"] == {
+        "volume_id": held["id"],
+        "slug": "vol-1",
+        "label": "Waterworld",
+    }
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert [v["slug"] for v in response.json()["volumes_new"]] == ["vol-2"]
+
+
+@pytest.mark.asyncio
+async def test_a_different_range_or_kind_or_unowned_volume_is_not_flagged(
+    sessionmaker_for_test,
+):
+    await _commit_book(sessionmaker_for_test, _trade(1, 6), _run())
+    for payload in (_trade(1, 5), _trade(2, 6), _trade(1, 6, kind="hardcover")):
+        sitting_id = await _seed(
+            sessionmaker_for_test, entries=[("comic", S.OWNED, payload, _run())]
+        )
+        [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+        assert entry["already_held"] is None, payload
+    async with sessionmaker_for_test() as session:
+        for volume in await session.scalars(select(ComicVolume)):
+            volume.owned = False
+        await session.commit()
+    sitting_id = await _seed(
+        sessionmaker_for_test, entries=[("comic", S.OWNED, _trade(1, 6), _run())]
+    )
+    [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+    assert entry["already_held"] is None  # a volume I no longer own holds nothing
+
+
+@pytest.mark.asyncio
+async def test_a_book_with_no_title_yet_is_never_flagged(sessionmaker_for_test):
+    sitting_id = await _book_in_sitting(sessionmaker_for_test)
+    [entry] = await _adds_of(sessionmaker_for_test, sitting_id)
+    assert entry["already_held"] is None
+    assert (
+        "already_held"
+        not in (
+            await _adds_of(
+                sessionmaker_for_test,
+                await _seed(
+                    sessionmaker_for_test,
+                    entries=[("comic", S.EXACT, _book(2), _run())],
+                ),
+            )
+        )[0]
+    )
+
+
+@pytest.mark.asyncio
+async def test_an_unmatched_book_reuses_the_title_of_the_same_name(
+    sessionmaker_for_test,
+):
+    for title in ("Maus", "MAUS!", "The Maus"):
+        sitting_id = await _book_in_sitting(sessionmaker_for_test, title)
+        async with client_for(sessionmaker_for_test) as client:
+            response = await _commit(client, sitting_id)
+        assert response.status_code == 200, response.text
+    assert await _count(sessionmaker_for_test, Item) == 1
+    volumes = await _volumes(sessionmaker_for_test)
+    assert sorted(v.slug for v in volumes) == ["vol-1", "vol-2", "vol-3"]
+    assert len({v.item_id for v in volumes}) == 1
+
+
+@pytest.mark.asyncio
+async def test_the_preview_says_a_same_named_title_is_reused(sessionmaker_for_test):
+    first = await _book_in_sitting(sessionmaker_for_test)
+    [entry] = await _adds_of(sessionmaker_for_test, first)
+    assert entry["title_will_be_created"] is True
+    async with client_for(sessionmaker_for_test) as client:
+        await _commit(client, first)
+    [item] = await _items(sessionmaker_for_test)
+    second = await _book_in_sitting(sessionmaker_for_test)
+    [entry] = await _adds_of(sessionmaker_for_test, second)
+    assert entry["title_will_be_created"] is False
+    assert entry["adds"]["title_id"] == str(item.id)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, second)
+    assert response.json()["titles_created"] == []
+    assert response.json()["volumes_new"][0]["title_created"] is False
+
+
+@pytest.mark.asyncio
+async def test_a_different_name_makes_a_new_title(sessionmaker_for_test):
+    for title in ("Maus", "Maus II"):
+        async with client_for(sessionmaker_for_test) as client:
+            await _commit(client, await _book_in_sitting(sessionmaker_for_test, title))
+    assert await _count(sessionmaker_for_test, Item) == 2
+
+
+@pytest.mark.asyncio
+async def test_two_add_bar_books_of_one_name_share_a_title(sessionmaker_for_test):
+    bodies = []
+    async with client_for(sessionmaker_for_test) as client:
+        for _ in range(2):
+            response = await client.post(
+                "/api/intake/add",
+                json={
+                    "kind": "comic",
+                    "payload": {
+                        "title": "Blankets",
+                        "format": "collected",
+                        "edition_kind": "ogn",
+                    },
+                },
+            )
+            assert response.status_code in (200, 201), response.text
+            bodies.append(response.json())
+    assert await _count(sessionmaker_for_test, Item) == 1
+    assert [v["slug"] for b in bodies for v in b["volumes_new"]] == ["vol-1", "vol-2"]
+    assert bodies[1]["titles_created"] == []
+
+
+@pytest.mark.asyncio
+async def test_a_groups_details_editions_are_all_kept(sessionmaker_for_test):
+    one = {"kind": "Trade", "label": "A", "from": 1, "to": 3}
+    two = {"kind": "Trade", "label": "B", "from": 4, "to": 6}
+    entries = [
+        (
+            "comic",
+            S.TYPED,
+            _trade(
+                None, None, detected_title="Maus", shelf_format="trades", editions=[e]
+            ),
+            None,
+        )
+        for e in (one, two, one)
+    ]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        response = await _commit(client, sitting_id)
+    assert response.status_code == 200, response.text
+    [item] = await _items(sessionmaker_for_test)
+    assert sorted(item.editions, key=lambda e: e["label"]) == [one, two]  # no repeat

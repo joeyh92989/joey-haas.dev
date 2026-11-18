@@ -80,6 +80,7 @@ class EntryOut(TypedDict):
     adds: NotRequired[dict[str, Any]]
     contents_preview: NotRequired[list[dict[str, Any]]]
     title_will_be_created: NotRequired[bool]
+    already_held: NotRequired[dict[str, Any] | None]
 
 
 class SittingOut(BaseModel):
