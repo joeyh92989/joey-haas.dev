@@ -97,6 +97,8 @@ function asRow(item) {
     run_state: run.state ?? null,
     segments: run.segments ?? [],
     read: run.read ?? 0,
+    // Distinct read marks, the public figure's own definition (#333).
+    issues_read: run.issues_read ?? 0,
     read_to: item.read_to,
     read_next: run.read_next ?? null,
     next_issue: null,

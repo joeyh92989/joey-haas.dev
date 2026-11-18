@@ -338,8 +338,8 @@ export function comicErrorField(detail) {
  * `books`: owned volumes, plus one for each title with no owned volume that
  * is a finished one-issue volume with its issue held. `volumesMissing`: per
  * book line, the line numbers from 1 to the highest owned that no owned book
- * has. `issuesRead`: the rows' read counts (the admin read carries the
- * read-to marker, not the marks the public figure counts).
+ * has. `issuesRead`: the rows' `issues_read`, the count of read marks, the
+ * public figure's own definition.
  *
  * @param {Array<object>} rows Admin shelf rows.
  * @returns {{books: number, volumesMissing: number, issuesRead: number, hasLine: boolean}}
@@ -350,7 +350,7 @@ export function bookFigures(rows) {
   let issuesRead = 0
   let hasLine = false
   for (const row of rows) {
-    issuesRead += row.read ?? 0
+    issuesRead += row.issues_read ?? 0
     const owned = row.volumes_owned ?? 0
     if (owned > 0) {
       books += owned

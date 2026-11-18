@@ -72,6 +72,7 @@ const ITEMS = [
         { kind: 'missing', length: 18 },
       ],
       read: 40,
+      issues_read: 12,
       read_next: 41,
     }),
     read_to: 40,
@@ -165,6 +166,10 @@ describe('AdminComics', () => {
       'Issues read',
       'Share read',
     ])
+    // Issues read is the read marks (12), not the read-to count (40).
+    expect(
+      screen.getByText('Issues read', { selector: 'dt' }).parentElement,
+    ).toHaveTextContent('12')
     expect(tiles).toHaveTextContent('64')
     expect(tiles).toHaveTextContent('18')
     expect(screen.getByText('2 titles')).toBeInTheDocument()

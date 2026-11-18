@@ -358,6 +358,7 @@ describe('bookFigures', () => {
     owned: 0,
     released: null,
     read: 0,
+    issues_read: 0,
     kind: 'run',
     volumes_owned: 0,
     volume_numbers: [],
@@ -371,7 +372,7 @@ describe('bookFigures', () => {
       // Vol. 1 and 5: 2 books, 3 missing.
       row({ kind: 'book_line', volumes_owned: 2, volume_numbers: [1, 5] }),
       // A one-issue trade held as a single: 1 book.
-      row({ owned: 1, released: 1, read: 1 }),
+      row({ owned: 1, released: 1, read: 9, issues_read: 1 }),
       // A volume and the same one-issue run: the volume only.
       row({ kind: 'both', owned: 1, released: 1, volumes_owned: 1 }),
       // A first issue of a running series is not a book.

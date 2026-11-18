@@ -502,6 +502,30 @@ def volume_counts(
     return owned, read
 
 
+async def issues_read_many(
+    session: AsyncSession, item_ids: Iterable[object]
+) -> dict[object, int]:
+    """How many issues of each title carry a read mark, in one grouped query
+    (every asked id is a key, 0 when none). The one definition of "issues
+    read", the public stats' too: a mark is one (title, number), so an issue
+    read as a single and through a volume counts once."""
+    from sqlalchemy import func, select
+
+    from models import ComicIssue
+
+    ids = list(item_ids)
+    counts = dict.fromkeys(ids, 0)
+    if not ids:
+        return counts
+    rows = await session.execute(
+        select(ComicIssue.item_id, func.count())
+        .where(ComicIssue.item_id.in_(ids), ComicIssue.read.is_(True))
+        .group_by(ComicIssue.item_id)
+    )
+    counts.update({item_id: n for item_id, n in rows})
+    return counts
+
+
 async def load_holds_many(
     session: AsyncSession, item_ids: Iterable[object]
 ) -> dict[object, list[VolumeHold]]:

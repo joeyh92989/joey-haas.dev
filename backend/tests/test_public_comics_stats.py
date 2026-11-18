@@ -237,3 +237,44 @@ async def test_the_new_stats_keys_dodge_the_smoke_private_keys(sessionmaker_for_
     assert private.search(text) is None
     assert not [f for f in STATS_FIELDS if private.search(f'"{f}":')]
     assert NEW_FIELDS <= set(_keys((await _stats(sessionmaker_for_test))))
+
+
+async def test_the_admin_rows_issues_read_agree_with_the_public_figure(
+    sessionmaker_for_test,
+):
+    """One definition for both twins: the admin rows carry the same read
+    marks, so over the public titles their sum is the public `issues_read`.
+    The private title's mark is in the admin row too (5 read, 1 mark)."""
+    from tests.test_items_comics import client_for as admin_client
+
+    await _shelf(sessionmaker_for_test)
+    async with admin_client(sessionmaker_for_test) as client:
+        response = await client.get("/api/items")
+    assert response.status_code == 200
+    comics = [r for r in response.json() if r["type"] == "comic"]
+    public = sum(r["comic_run"]["issues_read"] for r in comics if r["is_public"])
+    private = sum(r["comic_run"]["issues_read"] for r in comics if not r["is_public"])
+    assert public == (await _stats(sessionmaker_for_test))["issues_read"] == 7
+    assert private == 1
+
+
+async def test_the_admin_list_reads_the_marks_in_one_query(
+    sessionmaker_for_test, engine
+):
+    from tests.test_items_comics import client_for as admin_client
+
+    seen: list[str] = []
+
+    def record(conn, cursor, statement, *args):
+        seen.append(statement)
+
+    for n in range(8):
+        await _add(sessionmaker_for_test, _title(f"Many {n}"))
+    event.listen(engine.sync_engine, "before_cursor_execute", record)
+    try:
+        async with admin_client(sessionmaker_for_test) as client:
+            rows = (await client.get("/api/items")).json()
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", record)
+    assert len(rows) == 8
+    assert len([q for q in seen if "FROM comic_issues" in q]) == 1
