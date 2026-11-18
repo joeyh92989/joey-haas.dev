@@ -27,6 +27,9 @@ function MapLink({ place }) {
  * @param {object} props.values The fields while open.
  * @param {string[]} props.cities
  * @param {(values: object) => void} props.onValues
+ * @param {(spotId: string) => void} [props.onShowInTable] When given, a saved
+ *   result offers this action (the Spots page's table) in place of the link
+ *   to /admin/spots.
  * @param {() => void} props.onAdd
  * @param {() => void} props.onSave
  * @param {() => void} props.onCancel
@@ -40,6 +43,7 @@ export default function PlaceResultRow({
   values,
   cities,
   onValues,
+  onShowInTable,
   onAdd,
   onSave,
   onCancel,
@@ -62,7 +66,25 @@ export default function PlaceResultRow({
       {place.category && (
         <span className="place-result-kind">{place.category}</span>
       )}
-      {saved && (
+      {saved && onShowInTable && (
+        <span className="place-result-act">
+          <span className="place-saved-mark">{words.alreadySaved}</span>
+          <a
+            className="btn"
+            href={`#spot-${place.owned_spot_id}`}
+            onClick={(event) => {
+              event.preventDefault()
+              onShowInTable(place.owned_spot_id)
+            }}
+          >
+            {words.bar.showInTable}
+            <span className="visually-hidden">
+              {words.bar.showInTableFor(place.title)}
+            </span>
+          </a>
+        </span>
+      )}
+      {saved && !onShowInTable && (
         <Link className="btn" to="/admin/spots">
           {words.alreadySaved}
           <span className="visually-hidden">
