@@ -4,6 +4,7 @@ import LoadState from '../components/LoadState.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
+import SpotsAddBar from '../components/places/SpotsAddBar.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
@@ -78,6 +79,14 @@ export default function AdminSpots() {
   const [busy, setBusy] = useState(() => new Set())
   // The button that opened the form, given focus back when it closes.
   const opener = useRef(null)
+  // The spot the add bar saved last, its row marked "New" until the next
+  // search or save (client state only).
+  const [markedId, setMarkedId] = useState(null)
+  // The words the bar carried to Add by hand, for the form's Name field.
+  const [handName, setHandName] = useState('')
+  // A "Show in table" waiting for its row to be on the page.
+  const pendingShow = useRef(null)
+  const [showTick, setShowTick] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -119,8 +128,48 @@ export default function AdminSpots() {
     opener.current = null
   }, [editing])
 
+  // Scroll to and focus the row "Show in table" asked for, once it is drawn.
+  useEffect(() => {
+    const id = pendingShow.current
+    if (!id) return
+    const row = document.getElementById(`spot-${id}`)
+    if (!row) return
+    pendingShow.current = null
+    row.scrollIntoView?.({ block: 'center' })
+    row.focus()
+  }, [shown, showTick])
+
+  async function showInTable(id) {
+    let list = spots ?? []
+    if (!list.some((spot) => spot.id === id)) {
+      // Not in the list yet: read once, and show nothing if still absent.
+      const result = await fetchSpots()
+      if (!result.spots) return
+      setSpots(result.spots)
+      list = result.spots
+    }
+    const row = list.find((spot) => spot.id === id)
+    if (!row) return
+    if (!matches(row, query)) setQuery('')
+    pendingShow.current = id
+    setShowTick((n) => n + 1)
+  }
+
+  function addedByBar({ id }) {
+    setMarkedId(id)
+    rereadSpots()
+  }
+
+  function addByHand(typedName) {
+    opener.current = null
+    setNotice(null)
+    setHandName(typedName ?? '')
+    setEditing('new')
+  }
+
   function openForm(event, target) {
     opener.current = event.currentTarget
+    setHandName('')
     setNotice(null)
     setEditing(target)
   }
@@ -211,7 +260,7 @@ export default function AdminSpots() {
       >
         <button
           type="button"
-          className="btn primary"
+          className="btn"
           onClick={(event) => openForm(event, 'new')}
           disabled={editing === 'new'}
         >
@@ -231,13 +280,21 @@ export default function AdminSpots() {
       {editing && (
         <div className="spot-form-wrap">
           <SpotForm
-            key={editing === 'new' ? 'new' : editing.id}
+            key={editing === 'new' ? `new:${handName}` : editing.id}
             spot={editing === 'new' ? null : editing}
+            initialName={editing === 'new' ? handName : undefined}
             onSaved={saved}
             onCancel={() => setEditing(null)}
           />
         </div>
       )}
+
+      <SpotsAddBar
+        onSaved={addedByBar}
+        onAddByHand={addByHand}
+        onShowInTable={showInTable}
+        onSearchStart={() => setMarkedId(null)}
+      />
 
       <div className="finder-layout">
         <SpotFinder
@@ -309,8 +366,20 @@ export default function AdminSpots() {
                     </thead>
                     <tbody>
                       {shown.map((spot) => (
-                        <tr key={spot.id}>
+                        <tr
+                          key={spot.id}
+                          id={`spot-${spot.id}`}
+                          tabIndex={-1}
+                          className={
+                            spot.id === markedId ? 'is-marked' : undefined
+                          }
+                        >
                           <th scope="row" className="spots-name">
+                            {spot.id === markedId && (
+                              <span className="spots-new">
+                                {denver.admin.newMark}
+                              </span>
+                            )}
                             <span>{spot.name}</span>
                             {spot.anchor && (
                               <span className="spots-anchor">

@@ -60,6 +60,7 @@ export const denver = {
     readError: 'The spots couldn’t be read.',
     sessionEnded: SESSION_ENDED,
     panelTitle: 'All spots',
+    newMark: 'New',
   },
   finder: {
     title: 'Spot finder',

@@ -10119,6 +10119,30 @@ a.cover-tile-cap:focus-visible span {
   font-weight: 400;
 }
 
+/* The row the add bar just saved (#341). The pill's word carries the
+   meaning; the tint is extra. */
+.spots-table tr.is-marked > * {
+  background: var(--accent-soft);
+}
+
+.spots-table tr.is-marked > th {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.spots-table tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.spots-new {
+  background: var(--accent);
+  border-radius: 999px;
+  color: var(--accent-ink);
+  font: 600 var(--fs-12) var(--font-mono);
+  margin-right: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
 .spots-anchor {
   border: 1px solid var(--line-strong);
   border-radius: 999px;

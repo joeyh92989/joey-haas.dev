@@ -58,12 +58,15 @@ async function call(path, method, body) {
  *   with the words last searched for.
  * @param {(spotId: string) => void} props.onShowInTable A spot already saved
  *   (or just saved) is to be shown in the table.
+ * @param {() => void} [props.onSearchStart] A search began (the page clears
+ *   its "New" mark).
  * @param {string[]} [props.cities] Cities other than Denver, as keys.
  */
 export default function SpotsAddBar({
   onSaved,
   onAddByHand,
   onShowInTable,
+  onSearchStart,
   cities = FALLBACK_CITIES,
 }) {
   const [query, setQuery] = useState('')
@@ -145,6 +148,7 @@ export default function SpotsAddBar({
   }
 
   async function runSearch(text) {
+    onSearchStart?.()
     setPhase('searching')
     setSearched({ q: text, results: [] })
     setNotice(null)

@@ -70,6 +70,12 @@ function stubApi(handlers = {}) {
   return calls
 }
 
+/** The page's own notice line; the add bar has a status of its own. */
+async function pageNotice() {
+  const all = await screen.findAllByRole('status')
+  return all.find((el) => el.classList.contains('spots-notice'))
+}
+
 function rowNames() {
   return screen
     .getAllByRole('rowheader')
@@ -175,7 +181,7 @@ describe('AdminSpots', () => {
       path: '/api/spots/b/visits',
       body: { visited_on: '2026-11-09' },
     })
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    expect(await pageNotice()).toHaveTextContent(
       'Logged a visit to Home today.',
     )
     expect(
@@ -204,9 +210,7 @@ describe('AdminSpots', () => {
     )
     await user.click(within(form).getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Saved Denver Central Market.',
-    )
+    expect(await pageNotice()).toHaveTextContent('Saved Denver Central Market.')
     expect(screen.queryByRole('form')).not.toBeInTheDocument()
     expect(rowNames()).toEqual([
       'Corvus Coffee',
@@ -509,4 +513,200 @@ describe('AdminSpots', () => {
       ).toBeInTheDocument()
     })
   })
+})
+
+describe('AdminSpots add bar (story #341)', () => {
+  const ROCKS = {
+    kind: 'place',
+    external_source: 'osm',
+    external_id: 'way/1',
+    source_id: 'way/1',
+    title: 'Red Rocks Amphitheatre',
+    address: '18300 W Alameda Pkwy, Morrison',
+    category: 'Amphitheatre',
+    lat: 39.665,
+    lng: -105.205,
+    map_url: 'https://www.openstreetmap.org/way/1',
+    owned_spot_id: null,
+  }
+  const ARVADA = {
+    ...ROCKS,
+    external_id: 'way/2',
+    source_id: 'way/2',
+    title: 'Arvada Center',
+  }
+
+  /**
+   * The page's API plus the two intake routes the bar calls: a search answers
+   * from `found` by query, and an add writes a spot that the next
+   * `GET /api/spots` then returns, as the server does.
+   */
+  function barApi(found = {}) {
+    const stored = [...SPOTS]
+    const calls = stubApi({
+      'GET /api/spots': () => json([...stored]),
+      'POST /api/intake/add': (options) => {
+        const body = JSON.parse(options.body)
+        const spotRow = spot(`n${stored.length}`, body.payload.name)
+        stored.push(spotRow)
+        stored.sort((a, b) => a.name.localeCompare(b.name))
+        return json(
+          { spots_new: [{ id: spotRow.id, name: spotRow.name }] },
+          201,
+        )
+      },
+    })
+    const base = globalThis.fetch
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url).replace(/^.*\/api/, '/api')
+        if (path.startsWith('/api/intake/search')) {
+          const q = new URL(path, 'http://x').searchParams.get('query')
+          return json({ results: found[q] ?? [], sources: [] })
+        }
+        return base(url, options)
+      }),
+    )
+    return calls
+  }
+
+  const bar = () => screen.getByRole('region', { name: 'Add a place' })
+  const marked = () => document.querySelectorAll('tr.is-marked')
+
+  async function search(user, text) {
+    const box = within(bar()).getByLabelText('Add a place by name')
+    await user.clear(box)
+    await user.type(box, `${text}{Enter}`)
+  }
+
+  async function addRocks(user) {
+    await search(user, 'red rocks')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Save place' }),
+    )
+  }
+
+  it('draws the bar between the header and the finder, and Add by hand opens the form', async () => {
+    barApi()
+    const { container } = render(<AdminSpots />)
+    await screen.findByRole('table')
+    const page = container.firstChild
+    const kids = [...page.children]
+    expect(kids.indexOf(bar())).toBeGreaterThan(0)
+    expect(kids.indexOf(bar())).toBeLessThan(
+      kids.findIndex((el) => el.classList.contains('finder-layout')),
+    )
+    const user = userEvent.setup()
+    await user.click(screen.getAllByRole('button', { name: 'Add by hand' })[0])
+    expect(
+      await screen.findByRole('form', { name: 'Add a spot' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Name')).toHaveValue('')
+  })
+
+  it('adds a place by name and marks its new row', async () => {
+    const calls = barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+
+    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
+    const row = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+    expect(within(row).getByText('New')).toBeInTheDocument()
+    expect(row).toHaveClass('is-marked')
+    expect(marked()).toHaveLength(1)
+    expect(calls.filter((c) => c.path === '/api/intake/add')).toHaveLength(1)
+  })
+
+  it('shows the row in the table: clears a hiding filter, scrolls and focuses', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+    const row = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+
+    const filter = screen.getByRole('searchbox', { name: 'Search spots' })
+    await user.type(filter, 'zzz')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await user.click(
+      await within(bar()).findByRole('link', { name: 'Show in table' }),
+    )
+    expect(filter).toHaveValue('')
+    const shown = await screen.findByRole('row', {
+      name: /Red Rocks Amphitheatre/,
+    })
+    expect(shown).toHaveFocus()
+    expect(scroll).toHaveBeenCalled()
+    expect(row).toBeDefined()
+
+    // No filter: it still scrolls and focuses.
+    scroll.mockClear()
+    screen.getByRole('searchbox', { name: 'Search spots' }).focus()
+    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
+    expect(shown).toHaveFocus()
+    expect(scroll).toHaveBeenCalledTimes(1)
+    delete Element.prototype.scrollIntoView
+  })
+
+  it('shows nothing, without an error, for a spot that is not in the list', async () => {
+    barApi({ 'red rocks': [ROCKS] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+    await within(bar()).findByText(/Saved Red Rocks/)
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
+    // The server forgets the spot: the link's read finds nothing.
+    stubApi({ 'GET /api/spots': () => json(SPOTS) })
+    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('carries the typed name into Add by hand after an empty search', async () => {
+    barApi({ nowhere: [] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await search(user, 'nowhere')
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Add by hand' }),
+    )
+    expect(
+      await screen.findByRole('form', { name: 'Add a spot' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
+  })
+
+  it('moves the New mark to the latest save and clears it on the next search', async () => {
+    barApi({ 'red rocks': [ROCKS], arvada: [ARVADA] })
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    const user = userEvent.setup()
+    await addRocks(user)
+    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
+
+    await search(user, 'arvada')
+    expect(marked()).toHaveLength(0)
+    await user.click(
+      await within(bar()).findByRole('button', { name: 'Save place' }),
+    )
+    const row = await screen.findByRole('row', { name: /Arvada Center/ })
+    expect(within(row).getByText('New')).toBeInTheDocument()
+    expect(marked()).toHaveLength(1)
+    expect(
+      within(screen.getByRole('row', { name: /Red Rocks/ })).queryByText('New'),
+    ).not.toBeInTheDocument()
+  })
+
+  // Horizontal overflow at phone width cannot be measured in jsdom; it is
+  // left to the screenshot review.
 })
