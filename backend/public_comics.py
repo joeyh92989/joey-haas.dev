@@ -22,11 +22,13 @@ from sqlalchemy.orm import defer
 from comics import (
     ComicSeries,
     Issue,
+    VolumeHold,
     format_ranges,
     held_ranges,
     load_holds_many,
     loose_issue_count,
     next_issue,
+    own_editions,
     owned_line_numbers,
     pull_weeks,
     read_next,
@@ -36,7 +38,6 @@ from comics import (
     shown_status,
     sort_series,
     title_kind,
-    validate_editions,
 )
 from models import (
     ComicIssue,
@@ -320,13 +321,6 @@ def series_of(item: Item, held: Sequence[dict] | None = None) -> ComicSeries:
     )
 
 
-def _editions(item: Item) -> list[dict]:
-    try:
-        return validate_editions(item.editions, stored_rows=True)
-    except ValueError:
-        return []
-
-
 def _next(series: ComicSeries, today: date) -> PublicNextIssue | None:
     upcoming = next_issue(series, today)
     if upcoming is None or upcoming.store_date is None:
@@ -345,6 +339,7 @@ def _row(
     read_marks: int = 0,
     volumes_owned: int = 0,
     volume_numbers: Sequence[int] = (),
+    editions: Sequence[dict] = (),
 ) -> PublicComicRow:
     run = series.run()
     wanted = not series.on_shelf
@@ -358,7 +353,7 @@ def _row(
         ongoing=series.ongoing,
         wanted=wanted,
         shelf_format=item.shelf_format,
-        edition_labels=[e["label"] for e in _editions(item)],
+        edition_labels=[e["label"] for e in editions],
         owned=run.owned,
         released=run.released,
         missing=0 if wanted else run.missing,
@@ -548,13 +543,15 @@ def comic_detail(
     volumes: tuple[int, int] = (0, 0),
     owned_volumes: Sequence[ComicVolume] = (),
     held: Sequence[dict] | None = None,
+    holds: Sequence[VolumeHold] | None = None,
 ) -> PublicComicDetail:
     """`read_marks` is the count of owned issues whose row says read (5c: read
     is per book); `read_to` still counts for a row the marks have not reached.
     `volumes` is (owned, read) volumes of the title for `shown_status`; the
     public callers leave it (0, 0) until the public volume read (#329).
     `owned_volumes` are the title's OWNED volumes (`owned_volumes_of`): they
-    give `kind`, `volumes` and `slots`. `held` is the title's `held_ranges`."""
+    give `kind`, `volumes` and `slots`. `held` is the title's `held_ranges`;
+    `holds` its `load_holds`, which give the `editions` list (`own_editions`)."""
     series = series_of(item, held)
     run = series.run()
     status, caught_up = derived_status(item, series, read_marks or 0, volumes)
@@ -588,7 +585,7 @@ def comic_detail(
             PublicEdition(
                 kind=e["kind"], label=e["label"], from_issue=e["from"], to_issue=e["to"]
             )
-            for e in _editions(item)
+            for e in own_editions(holds)
         ],
         next_issue=_next(series, today),
         shelf_format=item.shelf_format,
@@ -697,7 +694,8 @@ async def public_comic_items(session: AsyncSession) -> list[Item]:
 
 async def load_public_comics(session: AsyncSession, today: date) -> PublicComicsOut:
     items = await public_comic_items(session)
-    held = await public_holds(session, items)
+    holds = await load_holds_many(session, [item.id for item in items])
+    held = {item_id: held_ranges(rows) for item_id, rows in holds.items()}
     pairs = {item.id: (item, series_of(item, held[item.id])) for item in items}
     marks = await read_marks_by_item(session, pairs)
     books = await owned_volume_shelf(session, pairs)
@@ -710,6 +708,7 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
                 today,
                 marks.get(s.id, 0),
                 *books.get(s.id, (0, [])),
+                editions=own_editions(holds[s.id]),
             )
             for s in ordered
         ],
