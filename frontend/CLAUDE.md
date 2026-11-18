@@ -246,3 +246,24 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   them). Tests build bodies from `e2e/fixtures/api/intake-comic-*.json`,
   which `backend/scripts/export_intake_comic_fixtures.py` writes from the real
   `SittingOut`, `CommitOut` and `volume_plan` functions.
+- **Title pages by kind (#330).** `Item.jsx`'s comic path reads the public
+  block's `kind` (`lib/titleKind.js`: `run`, `book_line`, `single_book`,
+  `both`; a body without one, as an older API or snapshot sends, is a `run`
+  and draws exactly as before). A book line draws `BookWall` (`bookTiles`
+  from the block's `slots` and owned `volumes`; `CoverTile` kinds `volume`
+  and `vol-gap`), a single book `SingleBookCard`, and `both` draws Books and
+  then Issues (the run card and `CoverWall` under "Issues" and "Every issue
+  in the run"); only a run or `both` shows What's next and the run count, and
+  only a run shows the old Editions card. The admin comic header says the kind
+  in words (`kindWord`). Link previews read `kind` from the `comic-issues`
+  rows (`comicLead` in `prerender-lib.mjs`). Component and e2e fixtures are
+  `e2e/fixtures/api/public-comic-*.json`, which
+  `backend/scripts/export_public_comic_fixtures.py` writes from the real
+  `PublicItemDetailOut`; the e2e build has one fixture title of each kind.
+- **How a book joins a title.** A collected book shares a series' title page
+  only by the backend rule `comics.shares_title`: its title minus volume and
+  format words equals the series' name, and at least 60% of its known
+  contents (`SHARE_MIN_FRACTION`) are that series' issues; empty contents
+  leave the name to decide. The frontend never decides it: Check's preview
+  reads `adds` and `title_will_be_created` from the server. Rule and
+  thresholds: `backend/comics.py` and `backend/CLAUDE.md` (Comics).

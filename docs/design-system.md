@@ -50,7 +50,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Area band | `SpineHeader` | The shelf's name, tagline and tabs, on shelf list pages only. It is not a page header and never holds the page's `h1`. |
 | Breadcrumb | `Breadcrumb` | The one way back on detail and sub-detail pages, at the top. The trail is area › type page › parent › this page, every crumb but the last a link. No second "back" link anywhere on the page. |
 | Card (a thing) | `PosterCard` in `PosterGrid` | One card per item on every list page, games and comic series alike. A card's owner controls are a sibling of its link (CLAUDE.md). |
-| Cover (a book) | `CoverTile` | A comic issue or collected edition inside a series: the cover wall (`CoverWall`), the neighbour strip and the edition page. Never on a list page. |
+| Cover (a book) | `CoverTile` | A comic issue or collected book inside a title: the cover wall (`CoverWall`), the Books wall (`BookWall`, owned books and hollow "not owned" places), the neighbour strip and the book page. Never on a list page. |
 | Figure | `StatTile` (`StatTiles` for a row) | Every number shown as a figure, public and admin. |
 | Filter row | `FilterChips` with `labelled` | Every chip row has a visible label naming what it filters, on both sides. A row whose chips would match nothing is not drawn (`FilterChips` hides a group of one; a type with no rows gets no chip). |
 | State pill | `StatePill` | A thing's state in words and colour: owned, read, missing, not out, skipped, and the play statuses. One pill per state, the same words everywhere (`content/spine.js`). |
@@ -224,6 +224,26 @@ the public page shows plus the private rows: a collects entry linked to a
 title that is not public carries a **Private** tag, and each entry shows
 where it came from. Owned and Read save at once with a status line and Undo;
 Delete is `ShelfConfirm` reading the book's own preview.
+
+**The title page by kind** (#330): a comic title's page follows its `kind`
+(derived by the backend, never stored): a **run** is the run card and the issue
+wall, as ever; a **line of books** replaces them with a Books section, one
+`CoverTile` per place in the line (an owned book links to its page with its
+number and Owned or Read; a place nothing owned fills is a dashed, hollow
+"not owned" tile, a word and never hover-only), then the unnumbered books; a
+**single book** leads with that one book (cover, name, format, state, a link
+to its page) and draws no wall and no run bar; **books and issues** shows
+Books, then Issues (the run card and wall). The line's size is never stated
+beyond the highest number owned. The admin twin shows the same kind word in
+its header ("Run of issues", "Line of books", "Single book", "Books and
+issues"), and keeps the Books panel.
+
+**How a book joins a title** (#330): a collected book is on a series' title
+only when `comics.shares_title` (backend) says so: its title, with volume and
+format words dropped, equals the series' name, and when its contents are known
+at least 60% of their issues (`SHARE_MIN_FRACTION = 0.6`) are that series';
+empty contents leave the name match to decide. Otherwise the book is its own
+title. A page never needs to repeat the rule: it draws what the API says.
 
 **The public mirror**: a public detail page shows what its admin twin shows,
 minus the edit controls and the private fields (notes, skips, prices,
