@@ -50,7 +50,7 @@ sequenceDiagram
     O->>R: submit "Red Rocks"  (typing sends nothing)
     R->>P: search(query)  (8 s per-source timeout)
     P->>P: Throttle: wait until 1 s since the last call
-    P->>N: GET /search?q=...&format=jsonv2  (USER_AGENT)
+    P->>N: GET /search?q=...&format=jsonv2  (NOMINATIM_USER_AGENT)
     N-->>P: results
     P->>P: mark = READY if 1 result else CHECK
     P-->>O: entry (owned places flagged)

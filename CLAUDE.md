@@ -205,9 +205,11 @@ before pushing.
       requests in late 2025 and now returns 401 for everything; it needs a
       registered app and `BGG_TOKEN`. `sources/bgg.py` reports itself
       unavailable and board games import as manual rows until then
-- [ ] Places and outings — epic #339: places in through intake (Nominatim
-      search, paste), outings and a private history, a finder that learns from
-      them, and trip planning. Stories #340–#363. Brief:
+- [ ] Places and outings — epic #339: places in through intake, outings and a
+      private history, a finder that learns from them, and trip planning.
+      Stories #340–#363. Story #340 (search by name through intake: Nominatim,
+      the `places` area, the place kind, `/admin/places/add`) is built; the
+      rest remain (add bar #341, paste #342, ...). Brief:
       `docs/planning/2026-11-15-places-outings-brief.md`
 - History of shipped work lives in `git log` and `docs/planning/` (specs and plans); the
   migration list is `backend/migrations/versions/`.

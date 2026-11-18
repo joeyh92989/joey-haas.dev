@@ -16,10 +16,14 @@ and the entries read from them or typed in.
   ways in (photo, search, type), metadata source, `FieldSpec`s and a
   `to_row` that turns an entry into the row to write. `register()` adds or
   replaces one; `describe()` is what `GET /api/intake/kinds` serves,
-  including `source_state` ("ready", or why the source is not).
+  including `source_state` ("ready", or why the source is not). A kind may
+  also carry a `search` hook (see Places below).
 - `shelf_kinds.py` — game, movie, comic and board game. `to_row` keeps the
   chosen match's metadata plus the payload's `ItemIn` fields, and records a
   physical copy. Board games are typed only while BGG needs a token.
+- `place_kind.py` — the `places` area's one kind, `place` (story #340): its
+  search hook over Nominatim, the checks on what is stored, owned-place
+  detection and `to_row`. See Places below.
 - `volume_plan.py` — a collected comic book as a volume (#328). `book_plan`
   (pure) decides the volume (label, one of the five kinds, number in its
   line) and its contents (the printed range, then the reprint note read by
@@ -349,6 +353,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /sittings/{id}/seed-images` | Fetch the next few file pieces' photos (once each); answers the entries it changed and `pending` |
 | `POST /entries/{id}/not-owned` | Check's Don't own this (file pieces only; 409 otherwise) |
 | `POST /entries/{id}/tag-again` | Clothes · Check's Tag again: a piece the tag queue gave up on goes back in it (attempts reset); 409 for a piece tagged or saved by hand |
+| `POST /sittings/{id}/places` | Add a place to a `places` sitting: a chosen search result or one typed by hand (see Places) |
 | `POST /sittings/{id}/commit` | Write the sitting to the collection |
 | `GET /counts`, `GET /budget` | Entries to check or confirm (`check` and `probable`) per area; today's free reads |
 | `POST /jobs/nightly` | The nightly step; the **only** intake route the job token opens (`items.JOB_ROUTES`) |
@@ -426,10 +431,150 @@ above). The answer also carries `images_missing` and `file_import`
 covers and creators are filled in as `/bulk` does (`items._enrich`, best
 effort).
 
+## Places
+
+The `places` area (story #340, migration `0024`) holds one kind, `place`
+(`place_kind.py`). It has two ways in, `search` and `type`, and no photo way: a
+photo upload to a `places` sitting is a 409. It writes private Denver spots
+(`spots` table) instead of shelf items. The page is `/admin/places/add`. The
+Nominatim client, its policy and its fixtures are in
+`spot_sources/README.md`.
+
+### The `Kind.search` hook
+
+`search_area` used to run only kinds with a metadata `source`. `Kind` now has
+an optional `search: async (query) -> KindSearch`, `None` by default, for a
+kind with no source that can still be searched. `KindSearch` is either `rows`
+or a `failure` message. A kind with no source and no hook (the Closet) is not
+searched. A hook runs inside the same `SEARCH_TIMEOUT` (8 s) as a source and
+reports the same states: `ok`, `busy` (timeout), `failed` (the hook's own
+`failure` message, or "could not be searched just now" for an exception).
+`describe()` reports a hook's kind as `source_state` "ready".
+
+Typing sends nothing; only `GET /search?area=places&query=` calls Nominatim.
+Place rows carry optional keys that shelf rows lack (they are absent, not
+`null`, on a shelf row): `address`, `lat`, `lng`, `source_id`, `category`,
+`map_url`, `owned_spot_id` and `attribution`. `search_area` marks owned places
+after the search by the database (`flag_owned`): the spot with the same OSM
+`source_id`, else a spot of the same name within 75 m
+(`SAME_PLACE_METRES`). A row with `owned_spot_id` cannot be added again.
+
+### Adding a place
+
+`POST /sittings/{id}/places` creates a place entry in a `places` sitting. A
+sitting of that area needs a kind (`POST /sittings` is a 422 without one), and
+the generic `POST /sittings/{id}/entries` refuses a places sitting with a 422
+that names this route. Two shapes:
+
+- **Chosen from search:** `chosen` (the result row) and `result_count`, how
+  many results that search returned.
+- **Typed:** `name` and `coords` (`spots.parse_coords`; coordinates that do not
+  parse are a 422 at creation).
+
+Both take `city` (default `denver`), `neighbourhood`, `blurb`, `tags` (the
+canonical six, `spots.TAGS`) and `is_public`. The sitting row is locked
+(`FOR UPDATE`) first, so two presses of Add queue and the second sees the
+first's entry. A 409 means the place is already a spot (`PLACE_OWNED`) or
+already in this sitting (`PLACE_IN_SITTING`).
+
+**What is checked on the way in.** Every value is validated, because the
+entry's payload is what the commit later reads.
+
+- `clean_chosen` checks a chosen result like a typed one: a non-empty name of
+  at most 200 characters; `lat` and `lng` finite numbers in range (a bool, NaN
+  or a string is refused); `address` and `category` text of at most 200
+  characters. `source_id` may be absent (then only the name-and-distance rule
+  guards duplicates) but, when present, must fullmatch
+  `(node|way|relation)/<digits>` and fit 60 characters (the column is
+  `String(60)`).
+- `map_url` and `attribution` are not the client's: the server rebuilds
+  `map_url` from `source_id` (`https://www.openstreetmap.org/<source_id>`) and
+  sets `attribution` itself. Owned-ness is re-derived from the database, so a
+  client-sent `owned_spot_id` neither blocks nor allows anything.
+- `clean_fields` checks the owner's fields: `name`, `city` (lowercased, at
+  most 40), `tags` (a list of text, then `spots.canonical_tags`), `blurb`
+  (500), `neighbourhood` (100) and `is_public` (a real boolean). A field of
+  another name is dropped.
+- `clean_position` is the one range check for a position; the commit reuses it.
+- The request body caps `tags` at twice the vocabulary and `result_count` at
+  100.
+
+### The mark, and why `result_count` is a hint
+
+A chosen result's state comes from the count (`mark_for_count`): one result is
+`ready`, none or several are `check`. A typed place is `ready`. No model is
+involved. `result_count` comes from the client, so the mark is a hint for the
+page, not a trust boundary: the route is admin-only, the owner can only
+mislead themselves, and the commit validates the entry again whatever its
+mark.
+
+### Editing a place entry
+
+`PATCH /entries/{id}` on a place entry changes the owner's fields only:
+`payload` goes through `edit_place`, which merges `clean_fields` over the
+stored payload, so `lat`, `lng`, `source_id` and `map_url` can never be
+patched. `chosen` in a PATCH is ignored. `state` may only be `ready` or
+`check` (a 422 otherwise), and `ready` needs a stored name and a finite
+in-range position (`not_ready_reason`). There is no route to delete a single
+entry.
+
+### Committing places
+
+`POST /sittings/{id}/commit` and `POST /add` branch on the kind's area
+(`commit.py`, `write_places`). A place does not become a shelf item.
+
+1. Every place entry is checked again from what is stored (`_place_fields`):
+   `clean_name`, `clean_position`, `clean_fields`, and `clean_chosen` for the
+   chosen result. The entry is never trusted. A refusal names the entry and the
+   field and the whole commit is a 422 that writes nothing.
+2. The public rule: `is_public` with a city other than Denver is refused
+   (`PLACE_NOT_DENVER`), since the public `/denver` page is Denver only until
+   #343. The page disables the toggle, and the server enforces it.
+3. Then `lock_place_commits` takes `pg_advisory_xact_lock(7243000002)` for the
+   rest of the transaction (`PLACE_COMMIT_LOCK_KEY`). A second commit waits,
+   and its duplicate check, a new statement under READ COMMITTED, sees the
+   first's spots.
+4. Under the lock each place is checked against the spots table
+   (`owned_spot_id`): the same `source_id` with `source = osm`, else the same
+   name within 75 m. A typed place has no `source_id`, so it is deduped by name
+   and distance alone, and two identical typed entries in one sitting collapse
+   to one spot (the loop counts the spots it just wrote).
+5. A place not yet owned is built by `spots_routes.build_spot`, the same
+   function `POST /api/spots` uses, so the two cannot drift, and written
+   private unless it is a public Denver place. A chosen place stores
+   `source = osm` and its `source_id`.
+
+The answer gains `spots_new` and `spots_owned`, lists of `{id, name}`; they are
+absent from a shelf or closet commit. An owned place counts in `already_owned`
+and a new one in `added`. Written entries are deleted from the sitting like
+other kinds' are, so the sitting is gone when nothing is left to check, and a
+second commit of it is a 409.
+
+### Known limits
+
+- **A race with a by-hand spot.** The advisory lock is taken only by place
+  commits. A place commit racing a by-hand `POST /api/spots` for the same place
+  is not locked and could make a duplicate. `spots` has no unique
+  `(source, source_id)` constraint, so the database does not stop it either.
+  Accepted: one owner.
+- **Leftover CHECK entries keep their sitting.** A commit writes the `ready`
+  entries and leaves entries still in `check`, and a sitting with any left
+  stays alive and is listed as unfinished. The page starts a new sitting for
+  its next visit, so an abandoned several-results Add leaves one behind until
+  it is forgotten from the unfinished list.
+- **A lost response after a successful commit.** If the commit succeeds but
+  its answer never arrives, the page's retry finds the place already owned and
+  reports "That place is already on your list". The data is right; only the
+  message misleads.
+- The advisory lock key is arbitrary and must stay distinct from
+  `migration_lock.MIGRATION_LOCK_KEY`.
+
 ## Adding a kind
 
 Write a `Kind`, `register()` it in a module `routes.py` imports, and it is
-served. `kind` is text in the database, so no migration is needed. Field
+served. `kind` is text in the database, so no migration is needed. A new
+*area* is different: `IntakeArea` is the Postgres enum `intake_area`, so it
+needs an additive `ALTER TYPE ... ADD VALUE` migration (`0024` is the pattern). Field
 keys must be the row's own column names (`platform_id`, not `platform`),
 because `to_row` filters the payload by them.
 
