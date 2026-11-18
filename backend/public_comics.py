@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import uuid
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import date, datetime
 
 from pydantic import BaseModel
@@ -23,6 +23,8 @@ from comics import (
     ComicSeries,
     Issue,
     format_ranges,
+    held_ranges,
+    load_holds_many,
     loose_issue_count,
     next_issue,
     owned_line_numbers,
@@ -301,14 +303,16 @@ def _publisher(item: Item) -> str | None:
     return publisher if isinstance(publisher, str) and publisher else item.creator
 
 
-def series_of(item: Item) -> ComicSeries:
+def series_of(item: Item, held: Sequence[dict] | None = None) -> ComicSeries:
+    """The row's run. `held` is its owned volumes' `held_ranges` (None: only
+    the loose issues count), never the `items.editions` mirror."""
     return series_from_row(
         item.id,
         item.title,
         _publisher(item),
         item.issues_owned,
         item.issues_skipped,
-        item.editions,
+        held,
         item.read_to,
         item.source_metadata,
         on_shelf=item.owned_format != OwnedFormat.NONE,
@@ -441,6 +445,7 @@ def comic_stats(
     today: date,
     marks: dict[uuid.UUID, int] | None = None,
     books: dict[uuid.UUID, tuple[int, list[int]]] | None = None,
+    held: Mapping[uuid.UUID, Sequence[dict]] | None = None,
 ) -> PublicComicStats:
     """The figures over PUBLIC rows (callers pass only those).
 
@@ -455,7 +460,7 @@ def comic_stats(
       `read_percent` is a different figure (the read-to marker over owned
       issues) and is unchanged.
     """
-    pairs = [(item, series_of(item)) for item in items]
+    pairs = [(item, series_of(item, (held or {}).get(item.id))) for item in items]
     figures = shelf_figures(series for _, series in pairs)
     shelf = [(item, s) for item, s in pairs if s.on_shelf]
     states = Counter(s.run().state for _, s in shelf)
@@ -497,10 +502,18 @@ def comic_stats(
     )
 
 
-def comic_weeks(items: Iterable[Item], today: date) -> PublicComicWeeks:
+def comic_weeks(
+    items: Iterable[Item],
+    today: date,
+    held: Mapping[uuid.UUID, Sequence[dict]] | None = None,
+) -> PublicComicWeeks:
     """The pull list in public mode, over public followed series only."""
     by_id = {item.id: item for item in items}
-    pull = pull_weeks((series_of(item) for item in by_id.values()), today, public=True)
+    pull = pull_weeks(
+        (series_of(item, (held or {}).get(item.id)) for item in by_id.values()),
+        today,
+        public=True,
+    )
 
     def issue_row(row) -> PublicComicIssue:
         issue: Issue = row.issue
@@ -534,14 +547,15 @@ def comic_detail(
     read_marks: int | None = None,
     volumes: tuple[int, int] = (0, 0),
     owned_volumes: Sequence[ComicVolume] = (),
+    held: Sequence[dict] | None = None,
 ) -> PublicComicDetail:
     """`read_marks` is the count of owned issues whose row says read (5c: read
     is per book); `read_to` still counts for a row the marks have not reached.
     `volumes` is (owned, read) volumes of the title for `shown_status`; the
     public callers leave it (0, 0) until the public volume read (#329).
     `owned_volumes` are the title's OWNED volumes (`owned_volumes_of`): they
-    give `kind`, `volumes` and `slots`."""
-    series = series_of(item)
+    give `kind`, `volumes` and `slots`. `held` is the title's `held_ranges`."""
+    series = series_of(item, held)
     run = series.run()
     status, caught_up = derived_status(item, series, read_marks or 0, volumes)
     books = sorted((v for v in owned_volumes if v.owned), key=line_order)
@@ -665,6 +679,15 @@ async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
     ) or 0
 
 
+async def public_holds(
+    session: AsyncSession, items: Iterable[Item]
+) -> dict[uuid.UUID, list[dict]]:
+    """`held_ranges` of every owned volume that holds issues of each comic,
+    one query: what the series runs are built from."""
+    holds = await load_holds_many(session, [item.id for item in items])
+    return {item_id: held_ranges(rows) for item_id, rows in holds.items()}
+
+
 async def public_comic_items(session: AsyncSession) -> list[Item]:
     result = await session.execute(
         select(Item).where(Item.is_public.is_(True), Item.type == ItemType.COMIC)
@@ -674,7 +697,8 @@ async def public_comic_items(session: AsyncSession) -> list[Item]:
 
 async def load_public_comics(session: AsyncSession, today: date) -> PublicComicsOut:
     items = await public_comic_items(session)
-    pairs = {item.id: (item, series_of(item)) for item in items}
+    held = await public_holds(session, items)
+    pairs = {item.id: (item, series_of(item, held[item.id])) for item in items}
     marks = await read_marks_by_item(session, pairs)
     books = await owned_volume_shelf(session, pairs)
     ordered = sort_series((s for _, s in pairs.values()), "next", today)
@@ -689,6 +713,6 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
             )
             for s in ordered
         ],
-        stats=comic_stats(items, today, marks, books),
-        this_week=comic_weeks(items, today),
+        stats=comic_stats(items, today, marks, books, held),
+        this_week=comic_weeks(items, today, held),
     )

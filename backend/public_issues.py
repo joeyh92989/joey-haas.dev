@@ -29,6 +29,8 @@ from comics import (
     ComicSeries,
     edition_slugs,
     expand,
+    held_ranges,
+    load_holds,
     next_issue,
     parse_ranges,
     title_kind,
@@ -45,6 +47,7 @@ from public_comics import (
     line_order,
     loose_issues,
     public_comic_items,
+    public_holds,
     series_of,
 )
 
@@ -325,7 +328,7 @@ async def build_wall(
     item = await _public_comic(session, item_id, public_only)
     if item is None:
         return None
-    series = series_of(item)
+    series = series_of(item, held_ranges(await load_holds(session, item.id)))
     released = series.run().released
     every = await load_issues(session, item.id, include_stubs=True)
     held = _held(series, every)
@@ -433,7 +436,7 @@ async def build_issue_page(
     item = await _public_comic(session, item_id)
     if item is None:
         return None
-    series = series_of(item)
+    series = series_of(item, held_ranges(await load_holds(session, item.id)))
     released = series.run().released
     upcoming = _upcoming(series, today)
     # The issue in full; its strip needs only the covers around it. The marks
@@ -508,7 +511,7 @@ async def _linkable_numbers(
         item = await _public_comic(session, item_id)
         if item is None:
             continue
-        series = series_of(item)
+        series = series_of(item, held_ranges(await load_holds(session, item.id)))
         rows = await load_issues(session, item.id, include_stubs=True)
         held = _held(series, rows)
         pages = set(
@@ -627,9 +630,10 @@ async def load_comic_index(
             )
         ):
             volumes[volume.item_id].append(volume)
+    ranges = await public_holds(session, items)
     out = []
     for item in sorted(items, key=lambda i: (i.title, str(i.id))):
-        series = series_of(item)
+        series = series_of(item, ranges[item.id])
         released = series.run().released
         upcoming = _upcoming(series, today)
         every = by_item[item.id]

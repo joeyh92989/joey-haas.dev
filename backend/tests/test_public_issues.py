@@ -38,6 +38,7 @@ from public_issues import (
     PublicVolumeTitle,
     PublicWall,
 )
+from tests.volume_seed import mirror_editions
 
 pytestmark = pytest.mark.asyncio
 
@@ -144,11 +145,15 @@ def _row(item_id, number, **fields) -> ComicIssue:
     return ComicIssue(**{**base, **fields})
 
 
-async def _seed(factory, item=None, numbers=(1, 2, 3, 4, 5, 6, 7)):
+async def _seed(factory, item=None, numbers=(1, 2, 3, 4, 5, 6, 7), mirror=False):
+    """A public title with synced issues. `mirror` also gives it the `ed-*`
+    volumes its `editions` stand for (the readers count volumes)."""
     item = item or _series()
     async with factory() as session:
         session.add(item)
         await session.flush()
+        if mirror:
+            await mirror_editions(session, item)
         session.add_all(_row(item.id, n) for n in numbers)
         await session.commit()
     return item.id
@@ -225,7 +230,7 @@ async def test_issue_page_states(sessionmaker_for_test):
 
 
 async def test_issue_page_neighbours(sessionmaker_for_test):
-    item_id = await _seed(sessionmaker_for_test)
+    item_id = await _seed(sessionmaker_for_test, mirror=True)
     page = (
         await _get(sessionmaker_for_test, f"/api/public/items/{item_id}/issues/7")
     ).json()
@@ -502,7 +507,10 @@ async def test_also_in_is_one_query(sessionmaker_for_test, statements):
     assert (
         await _get(sessionmaker_for_test, _issue_path(item_id, 5))
     ).status_code == 200
-    assert len([q for q in statements if "FROM comic_volumes" in q]) == 1
+    # `also_in` is the one query that joins the books to their titles; the
+    # series run's own holds read (`load_holds`) is a second, separate one.
+    also_in = [q for q in statements if "FROM comic_volumes" in q and "JOIN items" in q]
+    assert len(also_in) == 1
 
 
 async def test_issue_page_owned_without_cv_row(sessionmaker_for_test):
@@ -645,7 +653,7 @@ async def test_stub_rows_draw_held_books_as_blanks_and_nothing_else(
 
     from comics import sync_marks
 
-    item_id = await _seed(sessionmaker_for_test, numbers=(1, 2, 3))
+    item_id = await _seed(sessionmaker_for_test, numbers=(1, 2, 3), mirror=True)
     wall = f"/api/public/items/{item_id}/issues"
     paths = [
         "/api/public/comic-issues",
@@ -1143,17 +1151,20 @@ async def test_a_link_skips_gaps_but_keeps_the_first_and_last(sessionmaker_for_t
     assert [_link_of(link) for link in links] == [(2, 5)]
 
 
-async def test_a_link_reaches_the_next_dated_issue_but_no_further(
+async def test_a_link_reaches_the_synced_issues_the_book_holds(
     sessionmaker_for_test,
 ):
-    # #9 is dated ahead (a page); #10 and #12 are Comic Vine rows with none.
+    """An owned book holds every issue its linked entry covers (the readers
+    count owned volumes), so #10 and #12 have pages and the link reaches them.
+    It used to stop at the next dated issue (#9) because only singles and
+    `editions` counted; a book held through a collects entry is now held."""
     links = await _linked(
         sessionmaker_for_test,
         (8, 12),
         (10, 12),
         issues=(1, 2, 9, 10, 12),
     )
-    assert [_link_of(link) for link in links] == [(9, 9), None]
+    assert [_link_of(link) for link in links] == [(9, 12), (10, 12)]
 
 
 async def test_a_skipped_range_links_exactly_as_if_it_were_not(

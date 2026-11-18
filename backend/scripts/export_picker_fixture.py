@@ -211,7 +211,7 @@ async def load(session, public_only: bool = False) -> tuple[list[dict], dict]:
     """Every item (or every public one) as the plain rows `anonymise` reads."""
     from sqlalchemy import select
 
-    from comics import owned_set, read_state
+    from comics import held_ranges, load_holds_many, owned_set, read_state
     from models import Item, OwnedFormat
     from playthroughs import runs_with_journal
 
@@ -219,11 +219,14 @@ async def load(session, public_only: bool = False) -> tuple[list[dict], dict]:
     if public_only:
         query = query.where(Item.is_public.is_(True))
     items = list((await session.execute(query)).scalars())
+    holds = await load_holds_many(
+        session, [item.id for item in items if item.type.value == "comic"]
+    )
     rows = []
     for item in items:
         owned_issues = read_issues = None
         if item.type.value == "comic":
-            issues = owned_set(item.issues_owned, item.editions)
+            issues = owned_set(item.issues_owned, held_ranges(holds.get(item.id)))
             owned_issues = len(issues)
             read_issues = read_state(item.read_to, issues).read
         rows.append(

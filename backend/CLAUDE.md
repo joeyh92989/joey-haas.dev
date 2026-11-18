@@ -628,12 +628,15 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `{owned?, read?}` is the volume's own write: it re-syncs every title the
   collects touch and keeps `read_to` in step. `shown_status` takes
   `volumes_owned`/`volumes_read` (owned unread volumes are never caught up;
-  `comics.volume_counts`); only the admin wall passes them until #329. Admin
-  surfaces (`_state`, the pull list, the item list's `comic_run`) count the
-  owned volumes (`load_holds_many`); the public wall and issue
-  page still read `items.editions`, the mirror; the volume page and the index
-  read the volumes only, so an un-owned `ed-*` volume no longer shows on a book
-  page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
+  `comics.volume_counts`); only the admin wall passes them until #329. Every
+  reader of a comic's run counts the owned volumes (`load_holds_many`):
+  `_state`, the followed-only unfollow check, the pull list, the item list's
+  `comic_run`, intake's `SeriesGrew` and Check's on-shelf run, Play Next and
+  the public picks (`to_picker_item(held=...)`), and the public series, wall,
+  issue page, index and stats (`series_of(item, held)`, `public_holds`). What
+  still reads `items.editions` is the public `editions` field itself (wall,
+  detail card), the writers and the shim, until the retire plan's later PRs;
+  an un-owned `ed-*` volume no longer shows on a book page. **Known limits (follow-ups):** (1) un-reading a volume keeps issues that are singles or read
   through another volume, but `read_to` cannot protect them (it is derived from
   the marks). `comics.title_kind(volumes, issues)` derives a
   title's kind (`run`, `book_line`, `single_book`, `both`); it is never stored.

@@ -467,4 +467,4 @@ async def test_state_reads_a_row_with_no_owned_format():
         is_public=False,
         following=True,
     )
-    assert comics_routes._state(item)["owned_format"] is None
+    assert comics_routes._state(item, [])["owned_format"] is None

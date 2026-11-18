@@ -264,7 +264,11 @@ async def test_the_shelf_reads_volumes_in_one_query_for_any_number_of_titles(
         rows = (await client.get("/api/public/comics")).json()["series"]
     assert len(rows) == 12 and all(r["volumes_owned"] == 2 for r in rows)
     assert all(r["volume_numbers"] == [1, 2] for r in rows)
-    assert len([q for q in statements if "FROM comic_volumes" in q]) == 1
+    # The line's own read filters on `owned`; the series runs' holds read
+    # (`load_holds_many`) is one more, not one per title.
+    owned = [q for q in statements if "comic_volumes.owned IS true" in q]
+    assert len(owned) == 1
+    assert len([q for q in statements if "FROM comic_volumes" in q]) == 2
 
 
 async def test_the_new_field_names_dodge_the_smoke_private_keys(sessionmaker_for_test):
