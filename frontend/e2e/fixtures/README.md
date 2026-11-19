@@ -31,7 +31,7 @@ VITE_DAILY_SALT=ci npm run build && npm run e2e
 - `stats.json` carries the full shape `Games.jsx` reads, not just the
   fields the shape check requires.
 - `comics.json` is the comics shelf's body (`GET /api/public/comics`), with one
-  title of each kind and each row's `kind`, `volumes_owned` and
+  title of each kind and each row's `kind`, `volumes_owned`, `volumes_unnumbered` and
   `volume_numbers`, and its `stats` (`books_owned`, `volumes_missing`,
   `issues_read` included); `backend/scripts/export_public_comic_fixtures.py`
   writes it from the real `PublicComicRow` and `comic_stats` code, so `/shelf/comics` paints cards and

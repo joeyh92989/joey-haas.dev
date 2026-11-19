@@ -56,7 +56,7 @@ ROW_FIELDS = {
     "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
     "read_to", "read", "read_next", "next_issue", "tags", "created_at",
-    "caught_up", "kind", "volumes_owned", "volume_numbers",
+    "caught_up", "kind", "volumes_owned", "volume_numbers", "volumes_unnumbered",
 }  # fmt: skip
 STATS_FIELDS = {
     "series", "issues_owned", "missing", "read_percent", "runs", "by_status",

@@ -737,7 +737,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `PublicComicRow` of `GET /api/public/comics` gains `kind`,
   `volumes_owned` and (#331) `volume_numbers` (the line numbers 1..9999 of the
   OWNED books that have one, ascending, each once; never the line's size;
-  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1). The
+  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1) and `volumes_unnumbered` (how many OWNED books have no `line_number`; two books sharing a number are both numbered, so the card's "and 1 book with no number" is this field, not `volumes_owned` minus the numbers listed; the admin `comic_run` carries it too, from `comics.title_shape`). The
   admin item read's `comic_run` carries the same three keys (`comics.title_shape`,
   from the row's own owned volumes), so the admin shelf says the same words, and each
   `comic-issues` index row gains `kind` (what the build's prerender reads; it

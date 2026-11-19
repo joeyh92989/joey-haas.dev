@@ -40,10 +40,14 @@ export function bookTiles(comic) {
  */
 export function haveLine(comic) {
   const volumes = comic.volumes ?? []
-  const numbers = volumes
-    .map((volume) => volume.line_number)
-    .filter((n) => n != null)
-  return BOOKS.have(numbers, volumes.length - numbers.length)
+  const numbers = [
+    ...new Set(
+      volumes.map((volume) => volume.line_number).filter((n) => n != null),
+    ),
+  ].sort((a, b) => a - b)
+  // Two books sharing a number are both numbered.
+  const unnumbered = volumes.filter((volume) => volume.line_number == null)
+  return BOOKS.have(numbers, unnumbered.length)
 }
 
 /**
