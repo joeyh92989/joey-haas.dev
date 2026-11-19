@@ -314,6 +314,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   from `HistoryOutingOut.tags` (the spot's tags, vocabulary order, unknown ones
   left out). `/admin/spots` rows link to `?spot=` through `historyHrefForSpot`.
   Pattern: `docs/design-system.md` (Filters sheet).
+- **Did you go? (`/admin/weekend`, story #349).** `components/DidYouGo.jsx`
+  renders the `asks` that `GET /api/spots/plan` returns (a plan with no
+  `asks` field reads as none), words in `denver.didYouGo`, styles `.dyg-*`
+  (plus `.ask-*`, `.vrow`, `.vbtn`, `.extras`, `.kidrow`). Been opens a
+  verdict row and the verdict posts `POST /api/spots/outings` (slot day,
+  precision `day`); Didn't posts `POST /api/spots/plan/didnt`; both go
+  through `withDeadline` with an in-flight ref (a timeout says it "may or may
+  not have been saved") and then call `onChanged` to read the plan again.
+  Answered rows are hidden locally at once. "Not now" is component state
+  only. The status line (`.wk-toast`) lives in the component so it outlives
+  the last row. No Undo: the exception is recorded in `docs/design-system.md`.
 - **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,
   with `components/places/` (`PlaceResultRow.jsx`, `PlaceFields.jsx`) and its
   words in `content/placesAdd.js`. It sits in the Denver area beside Weekend

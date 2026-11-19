@@ -14,6 +14,7 @@ import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { WEEKDAY_DAY } from '../lib/formatDate.js'
+import DidYouGo from '../components/DidYouGo.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 
@@ -387,6 +388,8 @@ export default function AdminWeekend() {
           {error}
         </p>
       )}
+
+      <DidYouGo asks={plan.asks ?? []} onChanged={again} />
 
       <div className="wk-pills">
         <span className="visually-hidden">{copy.constraintsTitle}: </span>

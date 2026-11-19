@@ -126,6 +126,36 @@ export const denver = {
     visitsTitle: 'Recent visits',
     noVisits: 'No visits logged yet.',
   },
+  // The Did you go? block on the weekend page (story #349), from the mockup
+  // docs/planning/2026-11-19-did-you-go/a-cards.html.
+  didYouGo: {
+    title: 'Did you go?',
+    count: (n) => `${n} to answer`,
+    notNow: 'Not now',
+    been: 'Been',
+    didnt: 'Didn’t',
+    didntFor: 'go',
+    howWas: 'How was it?',
+    hint: 'Picking one logs the outing.',
+    saving: 'Saving…',
+    verdictFor: (name) => `Verdict for ${name}`,
+    extras: 'Add a note or who came',
+    noteLabel: 'Note (optional, one line)',
+    kidLabel: 'Kid',
+    came: 'Came along',
+    stayed: 'Stayed home',
+    failedTitle: 'Not saved',
+    failed:
+      'That didn’t go through. Check your connection. Nothing was written.',
+    // No answer from the server: the write may or may not have landed.
+    maybeLogged: (name) =>
+      `The server did not answer, so the outing at ${name} may or may not have been saved. The plan is being read again: if this row is still here, nothing was logged and you can try again.`,
+    maybeDidnt: (name) =>
+      `The server did not answer, so ${name} may or may not have been marked as not gone. The plan is being read again: if this row is still here, you can try again.`,
+    logged: (verdict, name) => `Logged: ${verdict} at ${name}`,
+    notGone: (name) => `Marked as not gone: ${name}`,
+    hidden: 'Hidden for now. It asks again on your next visit.',
+  },
   form: {
     addTitle: 'Add a spot',
     editTitle: 'Edit spot',

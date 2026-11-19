@@ -553,3 +553,95 @@ describe('AdminWeekend', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 })
+
+describe('AdminWeekend: Did you go?', () => {
+  const ask = {
+    week: '2026-W46',
+    slot: 'best',
+    spot_id: 'ball',
+    spot_name: 'Ball Arena',
+    neighbourhood: 'Auraria',
+    day: '2026-11-14',
+    slot_label: 'Best fit',
+  }
+
+  it('shows the block above the pills, and nothing when there are no asks', async () => {
+    stubApi({
+      'GET /api/spots/plan?seed=0': () => json(plan({ asks: [ask] })),
+    })
+    const { unmount } = renderPage()
+    const block = await screen.findByRole('region', { name: /Did you go/ })
+    const pills = screen.getByText('Kid along')
+    expect(
+      block.compareDocumentPosition(pills) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    unmount()
+    stubApi({ 'GET /api/spots/plan?seed=0': () => json(plan({ asks: [] })) })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Saturday · Nov 14' })
+    expect(screen.queryByText(/Did you go/)).toBeNull()
+  })
+
+  it('reads a plan that has no asks field as no asks', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByRole('heading', { name: 'Saturday · Nov 14' })
+    expect(screen.queryByText(/Did you go/)).toBeNull()
+  })
+
+  it('logs Been, reads the plan again and the ask is gone', async () => {
+    let asks = [ask]
+    const calls = stubApi({
+      'GET /api/spots/plan?seed=0': () => json(plan({ asks })),
+      'POST /api/spots/outings': () => {
+        asks = []
+        return json({ created: false }, 201)
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(
+      await screen.findByRole('button', { name: 'Been: Ball Arena' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Loved' }))
+    await waitFor(() =>
+      expect(reads(calls)).toEqual([
+        '/api/spots/plan?seed=0',
+        '/api/spots/plan?seed=0',
+      ]),
+    )
+    expect(writes(calls)).toEqual([
+      {
+        method: 'POST',
+        path: '/api/spots/outings',
+        body: {
+          spot_id: 'ball',
+          visited_on: '2026-11-14',
+          precision: 'day',
+          verdict: 'loved',
+        },
+      },
+    ])
+    expect(screen.getByText('Logged: Loved at Ball Arena')).toBeVisible()
+    expect(screen.queryByRole('region', { name: /Did you go/ })).toBeNull()
+  })
+
+  it('posts Didn’t to the plan route and reads the plan again', async () => {
+    const calls = stubApi({
+      'GET /api/spots/plan?seed=0': () => json(plan({ asks: [ask] })),
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(
+      await screen.findByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    await waitFor(() => expect(reads(calls)).toHaveLength(2))
+    expect(writes(calls)).toEqual([
+      {
+        method: 'POST',
+        path: '/api/spots/plan/didnt',
+        body: { week: '2026-W46', slot: 'best' },
+      },
+    ])
+  })
+})
