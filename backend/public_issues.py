@@ -212,6 +212,10 @@ class PublicVolumePage(BaseModel):
     prev: PublicVolumeNeighbour | None
     next: PublicVolumeNeighbour | None
     source_url: str | None
+    # Set (true) only when a collects row came from Metron (CC BY-SA 4.0): the
+    # page then credits it. Left unset otherwise, and the route leaves unset
+    # fields out, so no other volume's body changes.
+    metron_credit: bool | None = None
 
 
 async def _public_comic(
@@ -569,7 +573,11 @@ async def build_volume_page(
     linkable = await _linkable_numbers(
         session, {e.item_id for e in entries if e.item_id is not None}, today
     )
+    credit = (
+        {"metron_credit": True} if any(e.source == "metron" for e in entries) else {}
+    )
     return PublicVolumePage(
+        **credit,
         title=PublicVolumeTitle(
             id=item.id,
             title=item.title,

@@ -340,7 +340,8 @@ class CollectLinkIn(BaseModel):
 class CollectIn(BaseModel):
     """One contents entry of `PUT /volumes/{id}`. `id` is sent back for an
     entry the client keeps; `source` may only be 'typed' for a new or changed
-    entry (an unchanged one keeps the stored source)."""
+    entry (or 'metron' for a NEW one the owner accepted from a Metron
+    proposal); an unchanged one keeps the stored source."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -351,7 +352,7 @@ class CollectIn(BaseModel):
     issue_text: Annotated[
         str, StringConstraints(strip_whitespace=True, max_length=200)
     ] = ""
-    source: Literal["migrated", "typed", "parsed", "photo"] | None = None
+    source: Literal["migrated", "typed", "parsed", "photo", "metron"] | None = None
     link: CollectLinkIn | None = None
 
 
@@ -387,6 +388,36 @@ class ContentsParseIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     note: Annotated[str, Field(max_length=2000)] | None = None
+
+
+class MetronEntryOut(BaseModel):
+    series_name: str
+    issue_text: str
+    year: int | None = None
+
+
+class MetronCandidateOut(BaseModel):
+    metron_id: int
+    title: str | None
+    series_name: str
+    series_type: str
+    isbn: str | None
+    pages: int | None
+    resource_url: str | None
+    strong: bool
+    entries: list[MetronEntryOut]
+    skipped: int
+
+
+class MetronProposalOut(BaseModel):
+    """`POST /volumes/{id}/contents/metron`: what Metron lists, to Accept or
+    not. Nothing is written. `replaces` counts this volume's `metron` rows an
+    Accept would swap out."""
+
+    status: str
+    message: str | None
+    candidates: list[MetronCandidateOut]
+    replaces: int
 
 
 class VolumeTitleOut(BaseModel):

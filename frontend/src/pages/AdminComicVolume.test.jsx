@@ -44,7 +44,7 @@ function applyPut(current, body) {
         position,
         series_name: entry.series_name,
         issue_text: entry.issue_text,
-        source: old ? old.source : 'typed',
+        source: old ? old.source : (entry.source ?? 'typed'),
         link: entry.link
           ? {
               ...entry.link,
@@ -59,7 +59,12 @@ function applyPut(current, body) {
   }
 }
 
-function stubApi({ fail = {}, current = view, parse = null } = {}) {
+function stubApi({
+  fail = {},
+  current = view,
+  parse = null,
+  metron = null,
+} = {}) {
   const writes = []
   let stored = current
   const fetch = vi.fn(async (url, options = {}) => {
@@ -95,6 +100,8 @@ function stubApi({ fail = {}, current = view, parse = null } = {}) {
       `${method} ${path}`.includes(key),
     )
     if (refusal) return reply(refusal[1].body, refusal[1].status)
+    if (method === 'POST' && path.endsWith('/contents/metron'))
+      return reply(metron)
     if (method === 'POST' && path.endsWith('/contents/parse')) {
       const result = parse ?? {
         entries_added: 0,
@@ -132,6 +139,115 @@ function stubApi({ fail = {}, current = view, parse = null } = {}) {
   vi.stubGlobal('fetch', fetch)
   return { fetch, writes }
 }
+
+const METRON_ENTRY = { series_name: 'Saga', issue_text: '#1-6' }
+const PROPOSAL = {
+  status: 'strong',
+  message: null,
+  replaces: 0,
+  candidates: [
+    {
+      metron_id: 52773,
+      title: 'Volume One',
+      series_name: 'Saga',
+      series_type: 'Trade Paperback',
+      isbn: '9781607066019',
+      pages: 160,
+      resource_url: 'https://metron.cloud/issue/saga-2012-1/',
+      strong: true,
+      entries: [METRON_ENTRY],
+      skipped: 0,
+    },
+  ],
+}
+
+describe('AdminComicVolume: Find contents from Metron', () => {
+  const findPath = `/api/comics/volumes/${VOL}/contents/metron`
+
+  it('shows the proposal and writes nothing until Accept', async () => {
+    const { writes } = stubApi({ metron: PROPOSAL })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(screen.getByRole('button', { name: 'Find contents' }))
+    expect(await screen.findByText(/The ISBN matches this book/)).toBeVisible()
+    expect(screen.getByText(/9781607066019/)).toBeVisible()
+    expect(screen.getByText(/160 pages/)).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Open on Metron' }),
+    ).toHaveAttribute('href', 'https://metron.cloud/issue/saga-2012-1/')
+    expect(writes).toEqual([['POST', findPath, {}]]) // a proposal, no save
+  })
+
+  it('Accept saves the whole list: every other entry back by id, the new ones as metron', async () => {
+    const { writes } = stubApi({
+      metron: PROPOSAL,
+      current: {
+        ...view,
+        collects: [
+          ...view.collects,
+          {
+            id: 'old-metron',
+            position: 9,
+            series_name: 'Old',
+            issue_text: '#1',
+            source: 'metron',
+            link: null,
+          },
+        ],
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(screen.getByRole('button', { name: 'Find contents' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Accept these' }),
+    )
+    expect(await screen.findByText('Added 1 entry from Metron.')).toBeVisible()
+    const put = writes.find(([method]) => method === 'PUT')
+    const sent = put[2].collects
+    expect(sent.some((entry) => entry.id === 'old-metron')).toBe(false)
+    expect(sent.filter((entry) => entry.id).length).toBe(view.collects.length)
+    expect(sent.at(-1)).toEqual({
+      ...METRON_ENTRY,
+      source: 'metron',
+      link: null,
+    })
+    expect(sent.filter((entry) => entry.source === 'metron')).toHaveLength(1)
+  })
+
+  it('says why when Metron has nothing or is not set up', async () => {
+    stubApi({
+      metron: {
+        status: 'not_configured',
+        message:
+          'Metron is not set up on this server (METRON_TOKEN is missing).',
+        candidates: [],
+        replaces: 0,
+      },
+    })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(screen.getByRole('button', { name: 'Find contents' }))
+    expect(await screen.findByText(/METRON_TOKEN is missing/)).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Accept these' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('dismiss drops the proposal without a write', async () => {
+    const { writes } = stubApi({ metron: PROPOSAL })
+    const user = userEvent.setup()
+    renderPage()
+    await ready()
+    await user.click(screen.getByRole('button', { name: 'Find contents' }))
+    await user.click(await screen.findByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByText(/ISBN matches/)).not.toBeInTheDocument()
+    expect(writes.map(([method]) => method)).toEqual(['POST'])
+  })
+})
 
 function renderPage(initial = PATH, props = {}) {
   return render(

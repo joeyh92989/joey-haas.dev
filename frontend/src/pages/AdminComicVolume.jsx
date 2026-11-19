@@ -528,6 +528,7 @@ export default function AdminComicVolume() {
             busy={busy}
             onSave={saveCollects}
             onParse={readContents}
+            volumeId={volume.id}
           />
           <StatusLine line={line} area="collects" error={error} />
         </Panel>

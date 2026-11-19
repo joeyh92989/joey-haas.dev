@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { volume as COPY } from '../content/adminVolume.js'
 import { collectBody, draftBody } from '../lib/volumeEdits.js'
 import ConfirmDelete from './ConfirmDelete.jsx'
+import MetronFind from './MetronFind.jsx'
 
 const C = COPY.collects
 
@@ -267,6 +268,8 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
  * @param {(list: object[], line: string, undo?: object[]) => Promise<object|null>} props.onSave
  * @param {(note: string) => Promise<unknown>} [props.onParse] - Reads the
  *   contents from the description and the pasted note; the page shows the result.
+ * @param {string} [props.volumeId] - With it, "Find contents" asks Metron and
+ *   the owner accepts what it proposes (nothing is written before).
  */
 export default function CollectsEditor({
   entries,
@@ -274,6 +277,7 @@ export default function CollectsEditor({
   busy,
   onSave,
   onParse,
+  volumeId,
 }) {
   const noteId = useId()
   const [editing, setEditing] = useState(null) // an entry id, or 'new'
@@ -340,6 +344,14 @@ export default function CollectsEditor({
             </div>
           )}
         </div>
+      )}
+      {volumeId && (
+        <MetronFind
+          volumeId={volumeId}
+          entries={entries}
+          busy={busy}
+          onSave={onSave}
+        />
       )}
       {entries.length === 0 ? (
         <p className="muted">{C.empty}</p>

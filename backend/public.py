@@ -756,7 +756,11 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
             raise HTTPException(status_code=404, detail="Not found")
         return page
 
-    @router.get("/items/{item_id}/volumes/{slug}", response_model=PublicVolumePage)
+    @router.get(
+        "/items/{item_id}/volumes/{slug}",
+        response_model=PublicVolumePage,
+        response_model_exclude_unset=True,
+    )
     async def public_volume_page(
         item_id: uuid.UUID,
         slug: str,

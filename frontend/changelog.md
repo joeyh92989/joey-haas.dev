@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-18
 
+- A comic book’s admin page now has Find contents: it asks Metron what a trade collects, shows the list with a link to Metron and whether the ISBN matches, and saves nothing until I accept. Books with contents from Metron credit it on their page (CC BY-SA 4.0).
 - The Check step now lists the collected books I typed in Details (label, kind, issues and ISBN) before I add them, so a wrong ISBN shows up while it can still be fixed.
 - A comic’s shelf card no longer says “1 book with no number” when two of my books share a line number: only a book with no number at all is counted that way.
 - Adding a book from the add bar and tapping again after a slow answer no longer makes a second copy of it.

@@ -20,6 +20,9 @@ const COPY = spine.comics.volume
 const ISSUE = spine.comics.issue
 // A title with no Comic Vine page of its own still credits the site.
 const COMIC_VINE_HOME = 'https://comicvine.gamespot.com/'
+// Metron's contents are CC BY-SA 4.0: the credit links the site and the licence.
+const METRON_HOME = 'https://metron.cloud/'
+const METRON_LICENCE = 'https://creativecommons.org/licenses/by-sa/4.0/'
 
 /**
  * The owner's buttons: Read to the end (when the book has a linked range on
@@ -251,6 +254,19 @@ export default function ComicVolume({ id, slug }) {
             </a>
             {ISSUE.attribution.after}
           </p>
+          {page.metron_credit && (
+            <p className="comic-issue-attribution">
+              {COPY.metron.before}{' '}
+              <a href={METRON_HOME} rel="noreferrer noopener">
+                {COPY.metron.label}
+              </a>
+              ,{' '}
+              <a href={METRON_LICENCE} rel="noreferrer noopener license">
+                {COPY.metron.licence}
+              </a>
+              {COPY.metron.after}
+            </p>
+          )}
         </div>
       </div>
 

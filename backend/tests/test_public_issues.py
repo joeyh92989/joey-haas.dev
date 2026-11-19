@@ -827,7 +827,8 @@ def _vol_path(item_id, slug):
 
 
 async def test_the_volume_models_publish_exactly_these_fields():
-    assert set(PublicVolumePage.model_fields) == VOLUME_FIELDS
+    # `metron_credit` is in the model but left out of a body unless it is true.
+    assert set(PublicVolumePage.model_fields) == VOLUME_FIELDS | {"metron_credit"}
     assert set(PublicVolumeTitle.model_fields) == VOLUME_TITLE_FIELDS
     assert set(PublicVolumeBody.model_fields) == VOLUME_BODY_FIELDS
     assert set(PublicVolumeCollect.model_fields) == VOLUME_COLLECT_FIELDS
@@ -1358,3 +1359,41 @@ async def test_unowning_an_ed_volume_drops_it_from_the_public_page(
     detail = (await _get(sessionmaker_for_test, path)).json()["comic"]
     assert [e["slug"] for e in wall["editions"]] == ["ed-5-6-2"]
     assert [e["label"] for e in detail["editions"]] == ["Deluxe"]
+
+
+async def _metron_volume(item_id, source):
+    return ComicVolumeCollect(
+        id=uuid.uuid4(), volume_id=item_id, position=0, series_name="Saga",
+        issue_text="#1-6", source=source,
+    )  # fmt: skip
+
+
+async def test_a_metron_row_adds_the_credit_flag_and_nothing_else(
+    sessionmaker_for_test,
+):
+    item_id, (volume_id,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1)
+    )
+    before = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).json()
+    assert "metron_credit" not in before  # other volumes' bodies are unchanged
+    async with sessionmaker_for_test() as session:
+        session.add(await _metron_volume(volume_id, "metron"))
+        await session.commit()
+    after = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).json()
+    assert after.pop("metron_credit") is True
+    assert set(after["collects"][0]) == VOLUME_COLLECT_FIELDS  # no `source`
+    assert "metron" not in str(after["collects"]).lower()
+    assert VOLUME_FORBIDDEN.isdisjoint(set(_keys(after)))
+    after["collects"] = before["collects"]
+    assert after == before
+
+
+async def test_a_typed_row_gives_no_credit(sessionmaker_for_test):
+    item_id, (volume_id,) = await _seed_volumes(
+        sessionmaker_for_test, lambda i: _volume(i, "vol-1", 1)
+    )
+    async with sessionmaker_for_test() as session:
+        session.add(await _metron_volume(volume_id, "typed"))
+        await session.commit()
+    body = (await _get(sessionmaker_for_test, _vol_path(item_id, "vol-1"))).json()
+    assert "metron_credit" not in body

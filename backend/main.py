@@ -43,6 +43,7 @@ from public import create_public_router
 from public_cache import add_public_cache
 from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
+from sources.metron import MetronClient
 from sources.registry import build_registry, configured_sources
 from spots_candidates_routes import create_candidates_router
 from spots_routes import create_spots_router
@@ -191,6 +192,7 @@ app.include_router(
         asyncio.Lock(),
         # The tag job is nightly: the free chain only, never the paid link.
         provider_factory=lambda: build_free_provider(config, recorder),
+        metron=MetronClient(config.metron_token),
     )
 )
 # So does the spot finder: it writes only spot rows. Overpass is read with
