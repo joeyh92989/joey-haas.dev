@@ -15,6 +15,7 @@ import {
   applyFilters,
   filterOptions,
   filteredYearCounts,
+  hasChoices,
   NO_FILTERS,
   parseFilters,
   placeName,
@@ -111,7 +112,7 @@ function ActiveChip({ chip, onRemove }) {
       onClick={() => onRemove(chip.key)}
     >
       <span>{chip.node}</span>
-      <span className="chip-x" aria-hidden="true">
+      <span className="history-chip-x" aria-hidden="true">
         &times;
       </span>
     </button>
@@ -128,6 +129,7 @@ function FilterSheet({
   shown,
   onChange,
   onRemove,
+  headingRef,
 }) {
   const titleId = useId()
   const placeId = useId()
@@ -140,11 +142,13 @@ function FilterSheet({
     {
       key: 'tag',
       label: history.tagRow,
+      total: rows.length,
       options: options.tags.map((o) => ({ ...o, label: tagLabel(o.value) })),
     },
     {
       key: 'verdict',
       label: history.verdictRow,
+      total: rows.length,
       options: options.verdicts.map((o) => ({
         ...o,
         label: (
@@ -165,7 +169,9 @@ function FilterSheet({
       className="history-sheet"
     >
       <div className="history-sheet-head">
-        <h2 id={titleId}>{history.filtersLabel}</h2>
+        <h2 id={titleId} ref={headingRef} tabIndex={-1}>
+          {history.filtersLabel}
+        </h2>
         <button type="button" className="btn ghost" onClick={onClose}>
           {history.filtersClose}
         </button>
@@ -265,6 +271,14 @@ export default function AdminHistory() {
   const [filtering, setFiltering] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const filtersButton = useRef(null)
+  const sheetHeading = useRef(null)
+  // The URL as last written. Router state only moves on the next render, so
+  // two changes in one tick would each start from the old URL and the second
+  // would undo the first; this ref carries the first one into the second.
+  const latestParams = useRef(searchParams)
+  useEffect(() => {
+    latestParams.current = searchParams
+  }, [searchParams])
 
   useEffect(() => {
     let live = true
@@ -303,15 +317,22 @@ export default function AdminHistory() {
   const chips = useMemo(() => activeChips(filters, rows), [filters, rows])
   const counts = filtered ? filteredYearCounts(matches, year?.year) : null
 
-  function changeFilters(next) {
-    setSearchParams(writeFilters(searchParams, next), { replace: true })
+  /** `update` is the whole new filter, or a function of the current one. */
+  function changeFilters(update) {
+    const current = parseFilters(latestParams.current, rows)
+    const next = typeof update === 'function' ? update(current) : update
+    latestParams.current = writeFilters(latestParams.current, next)
+    setSearchParams(latestParams.current, { replace: true })
   }
 
   function removeFilter(key) {
-    changeFilters({ ...filters, [key]: key === 'kid' ? false : null })
-    // The chip that was pressed is gone; with the sheet shut, focus goes to
-    // the Filters button (the sheet's own focus handling is Sheet's).
-    if (!filtering) filtersButton.current?.focus()
+    changeFilters((current) => ({
+      ...current,
+      [key]: key === 'kid' ? false : null,
+    }))
+    // The chip that was pressed is about to go; focus moves to something that
+    // stays: the sheet's heading while it is open, else the Filters button.
+    ;(filtering ? sheetHeading : filtersButton).current?.focus()
   }
   const openSheet = () => setLogging(true)
 
@@ -357,7 +378,7 @@ export default function AdminHistory() {
         role="group"
         aria-label={history.filtersLabel}
       >
-        {rows.length > 0 && (
+        {rows.length > 0 && (filtered || hasChoices(options, rows.length)) && (
           <>
             <div className="history-strip">
               <button
@@ -384,20 +405,20 @@ export default function AdminHistory() {
                 />
               ))}
             </div>
-            <p className={filtered ? 'result history-result' : 'result'}>
-              <strong aria-live="polite">
-                {filtered ? history.result(matches.length, rows.length) : ''}
-              </strong>
-              {filtered && matches.length > 0 && (
-                <button
-                  type="button"
-                  className="linkbtn"
-                  onClick={() => changeFilters(NO_FILTERS)}
-                >
-                  {history.filtersClear}
-                </button>
-              )}
-            </p>
+            {filtered && (
+              <p className="result history-result">
+                <strong>{history.result(matches.length, rows.length)}</strong>
+                {matches.length > 0 && (
+                  <button
+                    type="button"
+                    className="linkbtn"
+                    onClick={() => changeFilters(NO_FILTERS)}
+                  >
+                    {history.filtersClear}
+                  </button>
+                )}
+              </p>
+            )}
             <FilterSheet
               open={filtering}
               onClose={() => setFiltering(false)}
@@ -407,10 +428,14 @@ export default function AdminHistory() {
               shown={matches.length}
               onChange={changeFilters}
               onRemove={removeFilter}
+              headingRef={sheetHeading}
             />
           </>
         )}
       </div>
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {filtered ? history.result(matches.length, rows.length) : ''}
+      </p>
       <p className="history-saved" role="status">
         {notice}
       </p>

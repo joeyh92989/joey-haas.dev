@@ -17,6 +17,7 @@ import {
   citiesFrom,
 } from '../lib/cities.js'
 import { spotState, stateCounts } from '../lib/spotState.js'
+import { historyHrefForSpot } from '../lib/historyFilters.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
@@ -667,7 +668,7 @@ export default function AdminSpots() {
                                 {adminCopy.spots.logVisit}
                               </button>
                               <Link
-                                to={`/admin/history?spot=${encodeURIComponent(spot.id)}`}
+                                to={historyHrefForSpot(spot.id)}
                                 aria-label={history.placeHistoryLabel(
                                   spot.name,
                                 )}

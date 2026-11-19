@@ -1,7 +1,13 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigationType,
+} from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminHistory from './AdminHistory.jsx'
 
@@ -22,9 +28,13 @@ vi.mock('../components/LogOutingSheet.jsx', () => ({
   ),
 }))
 
+// The server sends lowercase UUID strings for ids.
+const uuid = (n) =>
+  `${'a'.repeat(8)}-aaaa-4aaa-8aaa-${String(n).padStart(12, 'a')}`
+
 const outing = (id, visited_on, more = {}) => ({
   id,
-  spot_id: id,
+  spot_id: uuid(id),
   spot_name: `Place ${id}`,
   neighbourhood: 'Highland',
   city: 'denver',
@@ -263,9 +273,11 @@ describe('AdminHistory filters', () => {
   })
 
   let here
+  let how
   function Where() {
     const location = useLocation()
     here = location.pathname + location.search
+    how = useNavigationType()
     return null
   }
 
@@ -352,6 +364,8 @@ describe('AdminHistory filters', () => {
       within(dialog).getByRole('button', { name: /^Boulder/ }),
     )
     expect(here).toBe('/admin/history?x=1&city=boulder')
+    // A replaced entry, so Back leaves the page instead of undoing filters.
+    expect(how).toBe('REPLACE')
     await userEvent.click(
       within(dialog).getByRole('button', { name: /^Loved/ }),
     )
@@ -413,8 +427,8 @@ describe('AdminHistory filters', () => {
   })
 
   it('the result line clears every filter', async () => {
-    renderAt('/admin/history?city=boulder&kid=1&spot=2')
-    await screen.findByText('1 of 5 outings')
+    renderAt(`/admin/history?city=boulder&kid=1&spot=${uuid(2)}`)
+    await within(strip()).findByText('1 of 5 outings')
     await userEvent.click(
       within(strip()).getByRole('button', { name: 'Clear filters' }),
     )
@@ -423,7 +437,7 @@ describe('AdminHistory filters', () => {
   })
 
   it('shows the Place chip from ?spot= and filters to that spot', async () => {
-    renderAt('/admin/history?spot=4')
+    renderAt(`/admin/history?spot=${uuid(4).toUpperCase()}`)
     expect(await screen.findByText('Meow Wolf')).toBeInTheDocument()
     expect(screen.queryByText('Ball Arena')).toBeNull()
     expect(
@@ -434,7 +448,7 @@ describe('AdminHistory filters', () => {
   })
 
   it('says "this place" for a spot with no outings and offers Clear filters', async () => {
-    renderAt('/admin/history?spot=zzz')
+    renderAt(`/admin/history?spot=${uuid(99)}`)
     expect(
       await screen.findByText('No outings match these filters.'),
     ).toBeInTheDocument()
@@ -486,5 +500,77 @@ describe('AdminHistory filters', () => {
       within(dialog).getByRole('button', { name: 'Show 5 outings' }),
     )
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('keeps a lone tag that narrows the list, and a lone verdict', async () => {
+    const outings = [
+      outing(1, '2026-06-01', { tags: ['coffee'], verdict: 'loved' }),
+      outing(2, '2026-06-02', { tags: [], verdict: 'loved' }),
+      outing(3, '2026-06-03', { tags: [], verdict: 'loved' }),
+    ]
+    fetchMock.mockImplementation(() =>
+      reply(200, { year: FILTERED.year, outings }),
+    )
+    renderAt('/admin/history')
+    await screen.findByText('Place 1')
+    const dialog = await openSheet()
+    // Coffee is on 1 of 3 outings, so it narrows; Loved is on all 3, so not.
+    expect(
+      within(dialog).getByRole('button', { name: 'Coffee 1' }),
+    ).toBeInTheDocument()
+    expect(within(dialog).queryByRole('group', { name: 'Verdict' })).toBeNull()
+  })
+
+  it('has no Filters button when there is nothing to choose', async () => {
+    const outings = [
+      outing(1, '2026-06-01', { tags: [], verdict: 'loved', kid_along: false }),
+      outing(2, '2026-06-02', { tags: [], verdict: 'loved', kid_along: false }),
+    ]
+    fetchMock.mockImplementation(() =>
+      reply(200, { year: FILTERED.year, outings }),
+    )
+    renderAt('/admin/history')
+    await screen.findByText('Place 1')
+    expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull()
+  })
+
+  it('removing the Place chip inside the sheet moves focus to its heading', async () => {
+    renderAt(`/admin/history?spot=${uuid(4)}`)
+    await screen.findByText('Meow Wolf')
+    const dialog = await openSheet()
+    await userEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Remove filter. Place: Meow Wolf',
+      }),
+    )
+    expect(here).toBe('/admin/history')
+    expect(
+      within(dialog).getByRole('heading', { name: 'Filters' }),
+    ).toHaveFocus()
+  })
+
+  it('two changes in one tick both land', async () => {
+    renderAt('/admin/history?city=boulder&tag=food')
+    await screen.findByText('Pearl Street')
+    const remove = (name) =>
+      within(strip()).getByRole('button', { name: `Remove filter. ${name}` })
+    const city = remove('City: Boulder')
+    const tag = remove('Tag: Food')
+    act(() => {
+      city.click()
+      tag.click()
+    })
+    expect(here).toBe('/admin/history')
+  })
+
+  it('announces the result in a status region that is always there', async () => {
+    renderAt('/admin/history')
+    await screen.findByText('Ball Arena')
+    const status = screen.getAllByRole('status')[0]
+    expect(status).toBeEmptyDOMElement()
+    await userEvent.click(
+      within(await openSheet()).getByRole('button', { name: /^Boulder/ }),
+    )
+    expect(status).toHaveTextContent('3 of 5 outings')
   })
 })

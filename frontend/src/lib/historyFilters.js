@@ -14,7 +14,13 @@ export const NO_FILTERS = {
 }
 
 /** The URL keys the filters own, in the order they are written. */
-const KEYS = ['city', 'tag', 'verdict', 'kid', 'spot']
+const SPOT_KEY = 'spot'
+const KEYS = ['city', 'tag', 'verdict', 'kid', SPOT_KEY]
+
+/** The History link for one place: the page filtered to that spot's id. */
+export function historyHrefForSpot(id) {
+  return `/admin/history?${new URLSearchParams({ [SPOT_KEY]: String(id) })}`
+}
 
 /** The city keys that occur in these outings, Denver first, then A to Z. */
 function citiesIn(rows) {
@@ -39,7 +45,7 @@ export function parseFilters(params, rows) {
   const city = params.get('city')
   const tag = params.get('tag')
   const verdict = params.get('verdict')
-  const spot = params.get('spot')
+  const spot = params.get(SPOT_KEY)?.toLowerCase()
   return {
     city: city && citiesIn(rows).includes(city) ? city : null,
     tag: tag && rows.some((row) => row.tags?.includes(tag)) ? tag : null,
@@ -84,7 +90,7 @@ export function applyFilters(rows, filters) {
       (!filters.tag || row.tags?.includes(filters.tag)) &&
       (!filters.verdict || row.verdict === filters.verdict) &&
       (!filters.kid || row.kid_along === true) &&
-      (!filters.spot || String(row.spot_id) === filters.spot),
+      (!filters.spot || String(row.spot_id).toLowerCase() === filters.spot),
   )
 }
 
@@ -106,7 +112,7 @@ export function filterOptions(rows) {
     tags: TAGS.filter((tag) => rows.some((row) => row.tags?.includes(tag))).map(
       (tag) => ({
         value: tag,
-        count: count((row) => row.tags.includes(tag)),
+        count: count((row) => row.tags?.includes(tag)),
       }),
     ),
     verdicts: VERDICT_FILTERS.map((verdict) => ({
@@ -136,7 +142,28 @@ export function filteredYearCounts(matches, year) {
   }
 }
 
+/**
+ * Whether the sheet has anything to choose: a city row (more than one city),
+ * a tag or verdict chip that narrows the list, or kid outings.
+ *
+ * @param {ReturnType<typeof filterOptions>} options
+ * @param {number} total How many outings there are.
+ */
+export function hasChoices(options, total) {
+  const narrows = (list) =>
+    list.length > 1 || (list.length === 1 && list[0].count < total)
+  return (
+    options.cities.length > 1 ||
+    narrows(options.tags) ||
+    narrows(options.verdicts) ||
+    options.kid > 0
+  )
+}
+
 /** The name the Place filter shows: the spot's own, from its outings. */
 export function placeName(rows, spotId) {
-  return rows.find((row) => String(row.spot_id) === spotId)?.spot_name ?? null
+  return (
+    rows.find((row) => String(row.spot_id).toLowerCase() === spotId)
+      ?.spot_name ?? null
+  )
 }

@@ -1034,6 +1034,25 @@ async def test_outings_carry_the_spots_tags_in_canonical_order(
     assert by_name["Bare"] == []
 
 
+async def test_outings_leave_out_a_stored_tag_outside_the_vocabulary(
+    sessionmaker_for_test, mid_june
+):
+    spot_id = await _seed_spot(sessionmaker_for_test, name="Old tags")
+    async with sessionmaker_for_test() as session:
+        (await session.get(Spot, spot_id)).tags = ["kid-ok", "retired", "coffee"]
+        await session.commit()
+    await _seed_visits(
+        sessionmaker_for_test,
+        Visit(
+            spot_id=spot_id, visited_on=datetime(2026, 6, 13, tzinfo=OWNER_TZ).date()
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/spots/outings")
+    assert response.status_code == 200
+    assert response.json()["outings"][0]["tags"] == ["coffee", "kid-ok"]
+
+
 async def test_outings_sort_by_date_then_precision_then_created_then_id(
     sessionmaker_for_test, mid_june
 ):

@@ -662,7 +662,9 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 verdict=visit.verdict,
                 kid_along=visit.kid_along,
                 note=visit.note,
-                tags=spots.canonical_tags(spot.tags or []),
+                # In vocabulary order; a tag since retired from it is left out, not an
+                # error, so one old row cannot fail the whole page.
+                tags=[t for t in spots.TAGS if t in (spot.tags or [])],
             )
             for visit, spot in rows
         ]

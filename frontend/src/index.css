@@ -14889,6 +14889,11 @@ fieldset.lo-field {
   align-items: center;
   display: inline-flex;
   gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
 }
 
 .history-filters .chip-on,
@@ -14903,7 +14908,7 @@ fieldset.lo-field {
   white-space: normal;
 }
 
-.chip-x {
+.history-chip-x {
   font-size: var(--fs-16);
   line-height: 1;
 }
@@ -15026,8 +15031,9 @@ fieldset.lo-field {
   }
 }
 
-/* Phone: 44px touch targets on the button, the chips and the links. */
-@media (max-width: 544px) {
+/* Phone (the admin shell's 700px breakpoint): 44px touch targets on the
+   button, the chips and the links. */
+@media (max-width: 700px) {
   .history-filters .btn,
   .history-filters .chip,
   .history-sheet .chip {
@@ -15045,6 +15051,19 @@ fieldset.lo-field {
     flex-wrap: wrap;
   }
 
+  .admin-history .empty-state .btn {
+    min-height: 44px;
+  }
+
+  .spots-actions a,
+  .spots-actions button {
+    align-items: center;
+    display: inline-flex;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 544px) {
   .history-sheet .ctl-row {
     align-items: start;
     grid-template-columns: 3.5rem minmax(0, 1fr);
@@ -15052,10 +15071,6 @@ fieldset.lo-field {
 
   .history-sheet .ctl-label {
     line-height: 44px;
-  }
-
-  .empty-state .btn {
-    min-height: 44px;
   }
 }
 

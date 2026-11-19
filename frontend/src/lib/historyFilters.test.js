@@ -6,6 +6,8 @@ import {
   applyFilters,
   filterOptions,
   filteredYearCounts,
+  hasChoices,
+  historyHrefForSpot,
   parseFilters,
   placeName,
   writeFilters,
@@ -206,5 +208,28 @@ describe('small helpers', () => {
   it('names the place from its outings, or nothing', () => {
     expect(placeName(ROWS, 's2')).toBe('Place 2')
     expect(placeName(ROWS, 'zzz')).toBeNull()
+  })
+})
+
+describe('place link and choices', () => {
+  it('builds the History link for a spot and reads it back, any case', () => {
+    const href = historyHrefForSpot('AB-12')
+    expect(href).toBe('/admin/history?spot=AB-12')
+    const query = new URLSearchParams(href.split('?')[1])
+    expect(parseFilters(query, ROWS).spot).toBe('ab-12')
+    expect(
+      applyFilters([row(1, { spot_id: 'ab-12' })], {
+        ...NO_FILTERS,
+        spot: 'ab-12',
+      }),
+    ).toHaveLength(1)
+  })
+
+  it('has choices only when something would narrow the list', () => {
+    expect(hasChoices(filterOptions(ROWS), ROWS.length)).toBe(true)
+    const same = [row(1), row(2)]
+    expect(hasChoices(filterOptions(same), same.length)).toBe(false)
+    const lone = [row(1, { tags: ['park'] }), row(2)]
+    expect(hasChoices(filterOptions(lone), lone.length)).toBe(true)
   })
 })
