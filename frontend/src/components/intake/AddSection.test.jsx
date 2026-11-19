@@ -149,6 +149,38 @@ describe('AddSection on the shelf', () => {
     expect(add).toHaveFocus()
   })
 
+  it('sends one request id per add action and reuses it when the add is retried', async () => {
+    const user = userEvent.setup()
+    let calls = 0
+    const api = fakeIntakeApi({
+      search: () => SAGA,
+      add: () =>
+        ++calls === 1
+          ? { status: 500, body: { detail: 'timed out' } }
+          : { status: 201, body: { added: 1, issues_added: 0 } },
+    })
+    renderAt()
+    await search(user)
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
+    const addToShelf = () =>
+      screen.getByRole('button', { name: 'Add to shelf' })
+    await user.click(addToShelf())
+    await waitFor(() => expect(calls).toBe(1))
+    await user.click(
+      await screen.findByRole('button', { name: 'Add to shelf' }),
+    )
+    await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
+    await user.click(screen.getByRole('button', { name: 'Add Saga' }))
+    await user.click(addToShelf())
+    await waitFor(() => expect(calls).toBe(3))
+    const [one, two, three] = api
+      .calls('POST', /\/api\/intake\/add$/)
+      .map((call) => call.body.request_id)
+    expect(one).toMatch(/^[0-9a-f-]{36}$/)
+    expect(two).toBe(one)
+    expect(three).not.toBe(one)
+  })
+
   it('says how many issues an owned series gained', async () => {
     const user = userEvent.setup()
     fakeIntakeApi({

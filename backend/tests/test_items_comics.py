@@ -295,6 +295,8 @@ async def test_the_admin_read_carries_the_title_kind_and_owned_volume_numbers(
     assert run_body["volume_numbers"] == []
     assert (line_body["kind"], line_body["volumes_owned"]) == ("book_line", 4)
     assert line_body["volume_numbers"] == [1, 4]
+    # vol-1 and vol-1b share a number (numbered); only vol-x has none.
+    assert (line_body["volumes_unnumbered"], run_body["volumes_unnumbered"]) == (1, 0)
 
 
 # --- Editions are gone (5/5): a stray key is ignored -------------------------

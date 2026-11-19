@@ -111,6 +111,7 @@ function asRow(item) {
     kind: run.kind,
     volumes_owned: run.volumes_owned ?? 0,
     volume_numbers: run.volume_numbers ?? [],
+    volumes_unnumbered: run.volumes_unnumbered ?? 0,
   }
 }
 

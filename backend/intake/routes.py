@@ -106,6 +106,7 @@ from intake.seed_import import (
     import_rows,
     keep_server_keys,
 )
+from intake.volume_plan import add_entry_id
 from items import _enrich, require_admin
 from llm import LLMError, LLMProvider
 from models import (
@@ -193,6 +194,9 @@ class AddIn(BaseModel):
     chosen: dict[str, Any] | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
     today: date | None = None
+    # One id per add action, reused by its retries: a book's volumes are
+    # written under ids derived from it, so a repeat writes nothing again.
+    request_id: uuid.UUID | None = None
 
     @field_validator("payload")
     @classmethod
@@ -380,7 +384,12 @@ def create_intake_router(
         refuse it, writing nothing."""
         today = body.today or date.today()
         outcome = await commit_one(
-            session, body.kind, chosen=body.chosen, payload=body.payload, today=today
+            session,
+            body.kind,
+            chosen=body.chosen,
+            payload=body.payload,
+            today=today,
+            entry_id=add_entry_id(body.request_id),
         )
         if outcome.refused:
             await session.rollback()

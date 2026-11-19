@@ -185,12 +185,13 @@ def owned_line_numbers(line_numbers: Iterable[int | None]) -> list[int]:
 def title_shape(holds: Iterable[VolumeHold], issues_owned: str | None) -> dict:
     """What the admin shelf's card says about a title, from the row's own
     OWNED volumes and its loose issues: the same words as the public shelf
-    (`kind`, `volumes_owned`, `volume_numbers`)."""
+    (`kind`, `volumes_owned`, `volume_numbers`, `volumes_unnumbered`)."""
     own = [hold for hold in holds if hold.own and hold.owned]
     return {
         "kind": title_kind(len(own), loose_issue_count(issues_owned)),
         "volumes_owned": len(own),
         "volume_numbers": owned_line_numbers(hold.line_number for hold in own),
+        "volumes_unnumbered": sum(hold.line_number is None for hold in own),
     }
 
 

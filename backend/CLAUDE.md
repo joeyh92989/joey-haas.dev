@@ -557,10 +557,19 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   entries the commit writes) and `already_held` (null, or `{volume_id, slug,
   label}` of an owned volume of the same title and kind that already links
   the same range: a warning only, the commit still writes the second book);
+  an entry with Details' typed books also carries `books_preview` (`[{label,
+  edition_kind, from, to, isbn}]`, one per volume the commit writes, `isbn` null
+  when none; `volume_plan.books_preview`), a sibling of `adds`, never inside it,
+  so `adds` keeps its pinned shape (a new key must also join `EntryOut` in
+  `intake/schemas.py`, or the response model drops it);
   `title_will_be_created` is false when a same-named title will be reused;
-  no model call, no network. **Known limit:** an add-bar retry has no
-  idempotence key (`/add` sends none), so a repeated request makes a second
-  volume. **Typed books (3b/5):** the collected books Details types on a comic entry
+  no model call, no network. **Add-bar retries:** `POST /api/intake/add` takes an optional
+  `request_id` (uuid, one per add action in the page, reused by its retries);
+  the route derives the transient entry id from it
+  (`volume_plan.add_entry_id`, a uuid5), so the volumes' `intake_entry_id`s
+  repeat and a second request writes nothing (200, `already_owned` 1, not the
+  first answer again: no result is stored). No id behaves as before. Only
+  books are idempotent this way; a closet garment add is not. **Typed books (3b/5):** the collected books Details types on a comic entry
   (`payload.books`, rows of kind, label, from, to; trades or omnibus rows of
   an entry that is not a photographed book) are volumes through the same
   `_write_volumes`: slug `vol-<n>`, `edited`, one `typed` collects row linked
@@ -728,7 +737,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `PublicComicRow` of `GET /api/public/comics` gains `kind`,
   `volumes_owned` and (#331) `volume_numbers` (the line numbers 1..9999 of the
   OWNED books that have one, ascending, each once; never the line's size;
-  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1). The
+  one grouped query, `owned_volume_shelf`, for the whole shelf, no N+1) and `volumes_unnumbered` (how many OWNED books have no `line_number`; two books sharing a number are both numbered, so the card's "and 1 book with no number" is this field, not `volumes_owned` minus the numbers listed; the admin `comic_run` carries it too, from `comics.title_shape`). The
   admin item read's `comic_run` carries the same three keys (`comics.title_shape`,
   from the row's own owned volumes), so the admin shelf says the same words, and each
   `comic-issues` index row gains `kind` (what the build's prerender reads; it
@@ -823,7 +832,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   items, then the volume (`_lock_volume`). `_apply_parsed` reconciles only
   this volume's `parsed` entries: typed, migrated and photo are never touched,
   a new entry equal to one of them is skipped, a parsed entry found again keeps
-  its row and position, one no longer found is deleted (`entries_removed` is
+  its row and position (and its link: a model answer, which never links, cannot clear a link an earlier parse set; a rules answer that no longer qualifies still can), one no longer found is deleted (`entries_removed` is
   those with nothing replacing them), the rest are appended, and a parse that
   finds nothing deletes nothing. An empty series takes the title's name. A
   RULES entry is linked to the title only when its normalised series equals

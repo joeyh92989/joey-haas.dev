@@ -124,6 +124,9 @@ class PublicComicRow(BaseModel):
     # The line numbers (1..9999) of the OWNED books that have one, ascending,
     # each once: "Vol. 1, 2 and 4". Never the line's size, which is not stored.
     volume_numbers: list[int]
+    # How many OWNED books have no line number (a number two books share is
+    # still a number): "and 1 book with no number".
+    volumes_unnumbered: int
 
 
 class PublicRunCounts(BaseModel):
@@ -339,6 +342,7 @@ def _row(
     read_marks: int = 0,
     volumes_owned: int = 0,
     volume_numbers: Sequence[int] = (),
+    volumes_unnumbered: int = 0,
     editions: Sequence[dict] = (),
 ) -> PublicComicRow:
     run = series.run()
@@ -371,6 +375,7 @@ def _row(
         kind=title_kind(volumes_owned, loose_issues(item)),
         volumes_owned=volumes_owned,
         volume_numbers=list(volume_numbers),
+        volumes_unnumbered=volumes_unnumbered,
     )
 
 
@@ -409,7 +414,7 @@ def _months_back(today: date, count: int) -> list[date]:
 
 def book_figures(
     pairs: Iterable[tuple[Item, ComicSeries]],
-    books: dict[uuid.UUID, tuple[int, list[int]]],
+    books: dict[uuid.UUID, tuple[int, list[int], int]],
 ) -> tuple[int, int]:
     """(books_owned, volumes_missing) over PUBLIC titles; `books` is
     `owned_volume_shelf` (owned volumes only, so an unowned book is never
@@ -422,7 +427,7 @@ def book_figures(
     """
     owned = missing = 0
     for item, series in pairs:
-        count, numbers = books.get(item.id, (0, []))
+        count, numbers, _ = books.get(item.id, (0, [], 0))
         if count:
             owned += count
             # Only a line of books alone (`title_kind` book_line): the slots
@@ -439,7 +444,7 @@ def comic_stats(
     items: list[Item],
     today: date,
     marks: dict[uuid.UUID, int] | None = None,
-    books: dict[uuid.UUID, tuple[int, list[int]]] | None = None,
+    books: dict[uuid.UUID, tuple[int, list[int], int]] | None = None,
     held: Mapping[uuid.UUID, Sequence[dict]] | None = None,
 ) -> PublicComicStats:
     """The figures over PUBLIC rows (callers pass only those).
@@ -641,10 +646,10 @@ async def owned_volumes_of(
 
 async def owned_volume_shelf(
     session: AsyncSession, item_ids: Iterable[uuid.UUID]
-) -> dict[uuid.UUID, tuple[int, list[int]]]:
-    """Per title with owned volumes: how many it owns and their line numbers
-    (ascending, once each, books with no number left out). One query for
-    every row of the shelf."""
+) -> dict[uuid.UUID, tuple[int, list[int], int]]:
+    """Per title with owned volumes: how many it owns, their line numbers
+    (ascending, once each, books with no number left out) and how many have
+    no line number at all. One query for every row of the shelf."""
     ids = list(item_ids)
     if not ids:
         return {}
@@ -658,7 +663,14 @@ async def owned_volume_shelf(
     for item_id, line_number in rows:
         counts[item_id] += 1
         numbers.setdefault(item_id, []).append(line_number)
-    return {i: (counts[i], owned_line_numbers(numbers[i])) for i in counts}
+    return {
+        i: (
+            counts[i],
+            owned_line_numbers(numbers[i]),
+            sum(n is None for n in numbers[i]),
+        )
+        for i in counts
+    }
 
 
 async def read_marks_count(session: AsyncSession, item_id: uuid.UUID) -> int:
@@ -707,7 +719,7 @@ async def load_public_comics(session: AsyncSession, today: date) -> PublicComics
                 s,
                 today,
                 marks.get(s.id, 0),
-                *books.get(s.id, (0, [])),
+                *books.get(s.id, (0, [], 0)),
                 editions=own_editions(holds[s.id]),
             )
             for s in ordered

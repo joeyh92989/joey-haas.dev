@@ -140,6 +140,9 @@ export default function AddSection({ area, onAdded, children }) {
   const sheet = useMediaQuery('(max-width: 900px)')
   const inputRef = useRef(null)
   const openerRef = useRef(null)
+  // One id per add action (a drawer opening), reused by its retries so the
+  // server writes a book once however many times the request is sent.
+  const requestIdRef = useRef(null)
   const [kinds, setKinds] = useState(null)
   const [sittings, setSittings] = useState(null)
   const [query, setQuery] = useState('')
@@ -211,6 +214,7 @@ export default function AddSection({ area, onAdded, children }) {
 
   function openDrawer(next, opener) {
     openerRef.current = opener
+    requestIdRef.current = null
     setDrawerError(null)
     setRefusals({})
     setDrawer(next)
@@ -417,6 +421,7 @@ export default function AddSection({ area, onAdded, children }) {
 
   async function add({ title, values }, again) {
     const { kind, chosen } = drawer
+    requestIdRef.current ??= crypto.randomUUID()
     const payload = fieldPayload(kind.fields, values)
     if (title !== undefined) payload.title = title.trim()
     const name = chosen?.title ?? payload.title ?? payload.name ?? drawer.typed
@@ -432,6 +437,7 @@ export default function AddSection({ area, onAdded, children }) {
           chosen,
           payload,
           today: localToday(),
+          request_id: requestIdRef.current,
         }),
       })
       if (response.status === 422) {
