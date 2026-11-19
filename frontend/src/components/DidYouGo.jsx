@@ -24,6 +24,16 @@ async function timed(path, body) {
   }
 }
 
+/** A refused or unanswered write in words. `status` 0 is no response at all. */
+function failureWords({ status, message }) {
+  if (status === 401 || status === 403) return copy.signedOut
+  if (status === 404 || status === 422) {
+    return message ? copy.refusedWith(message) : copy.refused
+  }
+  if (!status) return copy.offline
+  return copy.refused
+}
+
 /**
  * The "Did you go?" block (story #349) on /admin/weekend: a row for each
  * saved plan slot whose day has passed and that was neither logged nor
@@ -36,7 +46,8 @@ async function timed(path, body) {
  *
  * @param {object} props
  * @param {Array<object>} props.asks `asks` from `GET /api/spots/plan`.
- * @param {() => void} props.onChanged Read the plan again.
+ * @param {() => Promise<boolean>} props.onChanged Read the plan again; true
+ *   when the read landed.
  */
 export default function DidYouGo({ asks, onChanged }) {
   const [answered, setAnswered] = useState(() => new Set())
@@ -83,7 +94,7 @@ export default function DidYouGo({ asks, onChanged }) {
     setNote('')
     setKid(null)
     setFailure(null)
-    focusNext.current = next ? '.vbtn' : `[data-been="${key}"]`
+    focusNext.current = next ? '.dyg-vbtn' : `[data-been="${key}"]`
   }
 
   async function answer(ask, verdict) {
@@ -102,11 +113,17 @@ export default function DidYouGo({ asks, onChanged }) {
           ...(kid === null ? {} : { kid_along: kid }),
         }
       : { week: ask.week, slot: ask.slot }
-    const result = await timed(
-      verdict ? '/api/spots/outings' : '/api/spots/plan/didnt',
-      body,
-    )
-    inflight.current = false
+    let result
+    try {
+      result = await timed(
+        verdict ? '/api/spots/outings' : '/api/spots/plan/didnt',
+        body,
+      )
+    } catch {
+      result = { ok: false, status: 0 }
+    } finally {
+      inflight.current = false
+    }
     if (!live.current) return
     setBusy(null)
     if (result.ok) {
@@ -122,7 +139,7 @@ export default function DidYouGo({ asks, onChanged }) {
       setNote('')
       setKid(null)
       focusNext.current = '[data-been]'
-      onChanged()
+      reread()
       return
     }
     focusNext.current = verdict
@@ -136,10 +153,17 @@ export default function DidYouGo({ asks, onChanged }) {
           ? copy.maybeLogged(ask.spot_name)
           : copy.maybeDidnt(ask.spot_name),
       })
-      onChanged()
+      reread()
       return
     }
-    setFailure({ key, text: copy.failed })
+    setFailure({ key, text: failureWords(result) })
+  }
+
+  /** Read the plan again; once it lands the server decides what shows, so the
+   * local hide is dropped. A failed read keeps it. */
+  async function reread() {
+    const landed = await onChanged()
+    if (landed && live.current) setAnswered(new Set())
   }
 
   function notNow() {
@@ -156,7 +180,7 @@ export default function DidYouGo({ asks, onChanged }) {
         <section className="dyg panel" aria-labelledby="dyg-h">
           <div className="panel-head">
             <h2 id="dyg-h">
-              {copy.title}
+              {copy.title}{' '}
               <span className="dyg-count">{copy.count(rows.length)}</span>
             </h2>
             <button type="button" className="btn ghost" onClick={notNow}>
@@ -172,15 +196,15 @@ export default function DidYouGo({ asks, onChanged }) {
               return (
                 <li key={key} className="dyg-row" aria-labelledby={nameId}>
                   <div>
-                    <p className="ask-kicker">
+                    <p className="dyg-ask-kicker">
                       <b>{ask.slot_label}</b>
                       <span>{dayWords(ask.day)}</span>
                     </p>
-                    <h3 className="ask-name" id={nameId}>
+                    <h3 className="dyg-ask-name" id={nameId}>
                       {ask.spot_name}
                     </h3>
                     {ask.neighbourhood && (
-                      <p className="ask-hood">{ask.neighbourhood}</p>
+                      <p className="dyg-ask-hood">{ask.neighbourhood}</p>
                     )}
                   </div>
                   <div className="dyg-acts">
@@ -189,7 +213,7 @@ export default function DidYouGo({ asks, onChanged }) {
                       className={isOpen ? 'btn' : 'btn primary'}
                       data-been={key}
                       aria-expanded={isOpen}
-                      disabled={isBusy}
+                      disabled={busy !== null}
                       onClick={() => toggleBeen(ask)}
                     >
                       {copy.been}
@@ -199,7 +223,7 @@ export default function DidYouGo({ asks, onChanged }) {
                       type="button"
                       className="btn"
                       data-didnt={key}
-                      disabled={isBusy}
+                      disabled={busy !== null}
                       onClick={() => answer(ask, null)}
                     >
                       {copy.didnt}{' '}
@@ -211,13 +235,13 @@ export default function DidYouGo({ asks, onChanged }) {
                   {isOpen && (
                     <div className="dyg-open">
                       <p className="dyg-open-head">
-                        <span className="ask-label">{copy.howWas}</span>
-                        <span className="ask-hint">
+                        <span className="dyg-ask-label">{copy.howWas}</span>
+                        <span className="dyg-ask-hint">
                           {isBusy ? copy.saving : copy.hint}
                         </span>
                       </p>
                       <div
-                        className="vrow"
+                        className="dyg-verdicts"
                         role="group"
                         aria-label={copy.verdictFor(ask.spot_name)}
                       >
@@ -225,9 +249,9 @@ export default function DidYouGo({ asks, onChanged }) {
                           <button
                             key={value}
                             type="button"
-                            className="vbtn"
+                            className="dyg-vbtn"
                             data-v={value}
-                            disabled={isBusy}
+                            disabled={busy !== null}
                             onClick={() => answer(ask, value)}
                           >
                             <span
@@ -239,7 +263,7 @@ export default function DidYouGo({ asks, onChanged }) {
                         ))}
                       </div>
                       {extras ? (
-                        <div className="extras">
+                        <div className="dyg-fields">
                           <label>
                             {copy.noteLabel}
                             <input
@@ -252,7 +276,7 @@ export default function DidYouGo({ asks, onChanged }) {
                             />
                           </label>
                           <div
-                            className="kidrow"
+                            className="dyg-kid"
                             role="group"
                             aria-label={copy.kidLabel}
                           >

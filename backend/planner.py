@@ -480,7 +480,8 @@ def did_you_go(
     `visited` the `(spot_id, visited_on)` day-precision outings, `now` a
     Denver-aware moment. A slot is due when its day is before today, or is
     today, a Sunday, at or after `SUNDAY_EVENING_HOUR`. A slot with no day
-    takes that weekend's Sunday. Logged or answered slots are not asked, and
+    takes that weekend's Sunday and counts as logged for a visit on either
+    day of that weekend. Logged or answered slots are not asked, and
     rows older than `LOOK_BACK_WEEKS` weeks are not read."""
     today = now.date()
     this_monday = today - timedelta(days=today.weekday())
@@ -495,22 +496,40 @@ def did_you_go(
         if monday <= this_monday - timedelta(weeks=LOOK_BACK_WEEKS):
             continue
         key = str(row["week_key"]).removeprefix("plan:")
-        saved, days = row.get("saved") or {}, row.get("days") or {}
-        answered = row.get("didnt") or []
+        saved, days = row.get("saved"), row.get("days")
+        answered = row.get("didnt")
+        if not isinstance(saved, dict):
+            continue
+        days = days if isinstance(days, dict) else {}
+        answered = answered if isinstance(answered, list) else []
         for slot, spot_id in saved.items():
+            # A stored row is JSON: skip what is not a slot name and a spot id.
+            if not isinstance(slot, str) or not isinstance(spot_id, str):
+                continue
             if slot in answered:
                 continue
-            try:
-                day = date.fromisoformat(days[slot]) if days.get(slot) else sunday
-            except (TypeError, ValueError):
+            day = None
+            if isinstance(days.get(slot), str):
+                try:
+                    day = date.fromisoformat(days[slot])
+                except ValueError:
+                    day = None
+            # No (usable) day: Sunday, and a visit on either weekend day
+            # counts, since the card's Been may have logged Saturday.
+            dayless = day is None
+            if dayless:
                 day = sunday
             due = day < today or (
                 day == today
                 and today.weekday() == 6
                 and now.hour >= SUNDAY_EVENING_HOUR
             )
-            if due and (spot_id, day) not in logged:
-                asks.append(Ask(key, slot, spot_id, day))
+            if not due:
+                continue
+            seen = [saturday, sunday] if dayless else [day]
+            if any((spot_id, d) in logged for d in seen):
+                continue
+            asks.append(Ask(key, slot, spot_id, day))
     asks.sort(
         key=lambda a: (
             a.day,

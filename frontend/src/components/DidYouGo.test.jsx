@@ -5,10 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import DidYouGo from './DidYouGo.jsx'
 import { READ_DEADLINE_MS } from '../lib/waits.js'
 
+const BALL_ID = '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01'
+const GARDEN_ID = '0b9e4d2c-81a6-4f37-b6c5-2d4a9e7f3c02'
 const BALL = {
   week: '2026-W46',
   slot: 'best',
-  spot_id: 'ball',
+  spot_id: BALL_ID,
   spot_name: 'Ball Arena',
   neighbourhood: 'Auraria',
   day: '2026-11-14',
@@ -17,7 +19,7 @@ const BALL = {
 const GARDENS = {
   week: '2026-W46',
   slot: 'new',
-  spot_id: 'gardens',
+  spot_id: GARDEN_ID,
   spot_name: 'Denver Botanic Gardens',
   neighbourhood: null,
   day: '2026-11-15',
@@ -29,7 +31,22 @@ function json(body, status = 200) {
 }
 
 /** Records every write; `answer(path)` decides the response. */
-function stub(answer = () => json({ ok: true })) {
+const OUTING = {
+  visit: {
+    id: '1c3f5a7b-2d4e-4f60-8a1b-3c5d7e9f1a03',
+    visited_on: '2026-11-14',
+  },
+  spot: { id: BALL_ID, name: 'Ball Arena' },
+  created: false,
+}
+
+function stub(
+  answer = (path) =>
+    json(
+      path.endsWith('/outings') ? OUTING : { asks: [] },
+      path.endsWith('/outings') ? 201 : 200,
+    ),
+) {
   const calls = []
   vi.stubGlobal(
     'fetch',
@@ -47,7 +64,11 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function setup(asks = [BALL, GARDENS], onChanged = vi.fn()) {
+function setup(
+  asks = [BALL, GARDENS],
+  // A failed re-read keeps the local hide, which these tests lean on.
+  onChanged = vi.fn(async () => false),
+) {
   const view = render(<DidYouGo asks={asks} onChanged={onChanged} />)
   return { onChanged, ...view }
 }
@@ -121,7 +142,7 @@ describe('DidYouGo', () => {
       {
         path: '/api/spots/outings',
         body: {
-          spot_id: 'ball',
+          spot_id: BALL_ID,
           visited_on: '2026-11-14',
           precision: 'day',
           verdict: 'loved',
@@ -152,7 +173,7 @@ describe('DidYouGo', () => {
     await user.click(screen.getByRole('button', { name: 'Not again' }))
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0].body).toEqual({
-      spot_id: 'ball',
+      spot_id: BALL_ID,
       visited_on: '2026-11-14',
       precision: 'day',
       verdict: 'not_again',
@@ -199,7 +220,7 @@ describe('DidYouGo', () => {
     expect(screen.queryByRole('list')).toBeNull()
   })
 
-  it('keeps the row and says nothing was written when a write fails', async () => {
+  it('keeps the row and says nothing was written when the server refuses', async () => {
     const user = userEvent.setup()
     stub(() => json({ detail: 'boom' }, 500))
     const { onChanged } = setup([BALL])
@@ -208,13 +229,123 @@ describe('DidYouGo', () => {
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Not saved')
     expect(alert).toHaveTextContent(
-      'That didn’t go through. Check your connection. Nothing was written.',
+      'That didn’t go through. Nothing was written.',
     )
     expect(screen.getByText('Ball Arena', { selector: 'h3' })).toBeVisible()
     expect(screen.getByRole('group', { name: /Verdict for/ })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Fine' })).toBeEnabled()
     expect(onChanged).not.toHaveBeenCalled()
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('says the sign-in ended on a 401 or 403', async () => {
+    const user = userEvent.setup()
+    stub(() => json({ detail: 'Not authenticated' }, 401))
+    setup([BALL])
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your session ended. Sign in again. Nothing was written.',
+    )
+  })
+
+  it('shows the server’s own words for a 404 or 422', async () => {
+    const user = userEvent.setup()
+    stub(() => json({ detail: 'Nothing saved there' }, 404))
+    setup([BALL])
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Nothing saved there. Nothing was written.',
+    )
+  })
+
+  it('says to check the connection, and claims nothing, when there is no response', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('offline')
+      }),
+    )
+    setup([BALL])
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Check your connection.')
+    expect(alert).not.toHaveTextContent('Nothing was written')
+    expect(alert).not.toHaveTextContent('may or may not')
+    // The guard let go: a second try goes out.
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('names the dialog heading with a space before the count', () => {
+    setup([BALL])
+    expect(
+      screen.getByRole('heading', { name: 'Did you go? 1 to answer' }),
+    ).toBeVisible()
+  })
+
+  it('lets the server decide once the plan is read again', async () => {
+    const user = userEvent.setup()
+    stub()
+    // The read lands but the ask is still there: it shows again.
+    setup(
+      [BALL],
+      vi.fn(async () => true),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Marked as not gone',
+      ),
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Been: Ball Arena' }),
+    ).toBeVisible()
+  })
+
+  it('keeps the local hide when the re-read fails', async () => {
+    const user = userEvent.setup()
+    stub()
+    const onChanged = vi.fn(async () => false)
+    setup([BALL], onChanged)
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    await waitFor(() => expect(onChanged).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Marked as not gone',
+      ),
+    )
+    expect(screen.queryByRole('button', { name: /Been:/ })).toBeNull()
+  })
+
+  it('holds every row’s buttons while one write is out', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    setup()
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    expect(
+      screen.getByRole('button', { name: 'Been: Denver Botanic Gardens' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Didn’t go: Denver Botanic Gardens' }),
+    ).toBeDisabled()
   })
 
   it('keeps the row when Didn’t fails, and a retry can succeed', async () => {

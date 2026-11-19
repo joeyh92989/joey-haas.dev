@@ -558,7 +558,7 @@ describe('AdminWeekend: Did you go?', () => {
   const ask = {
     week: '2026-W46',
     slot: 'best',
-    spot_id: 'ball',
+    spot_id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
     spot_name: 'Ball Arena',
     neighbourhood: 'Auraria',
     day: '2026-11-14',
@@ -595,7 +595,20 @@ describe('AdminWeekend: Did you go?', () => {
       'GET /api/spots/plan?seed=0': () => json(plan({ asks })),
       'POST /api/spots/outings': () => {
         asks = []
-        return json({ created: false }, 201)
+        return json(
+          {
+            visit: {
+              id: '1c3f5a7b-2d4e-4f60-8a1b-3c5d7e9f1a03',
+              visited_on: '2026-11-14',
+            },
+            spot: {
+              id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
+              name: 'Ball Arena',
+            },
+            created: false,
+          },
+          201,
+        )
       },
     })
     const user = userEvent.setup()
@@ -615,7 +628,7 @@ describe('AdminWeekend: Did you go?', () => {
         method: 'POST',
         path: '/api/spots/outings',
         body: {
-          spot_id: 'ball',
+          spot_id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
           visited_on: '2026-11-14',
           precision: 'day',
           verdict: 'loved',

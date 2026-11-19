@@ -347,7 +347,7 @@ def test_a_sunday_slot_is_due_from_monday_on():
         assert len(_asks([week], _at(SUNDAY + timedelta(days=extra), 8))) == 1
 
 
-def test_a_saturday_slot_is_not_held_to_the_evening_hour_on_a_weekday():
+def test_a_saturday_slot_is_due_from_the_first_minute_of_sunday():
     # Only today's own day waits for the evening; Saturday is past on Sunday.
     assert len(_asks([_week()], _at(SUNDAY, 0, 1))) == 1
 
@@ -435,3 +435,48 @@ def test_asks_come_oldest_first_then_in_slot_order():
     )
     got = _asks([later, earlier], _at(date(2026, 11, 17)))
     assert [(a.spot_id) for a in got] == ["b", "a", "d", "c"]
+
+
+def test_a_no_day_slot_is_logged_by_a_visit_on_either_weekend_day():
+    week = _week(days={})
+    now = _at(date(2026, 11, 17))
+    assert _asks([week], now, visited=[("park", SATURDAY)]) == []
+    assert _asks([week], now, visited=[("park", SUNDAY)]) == []
+    assert len(_asks([week], now, visited=[("park", date(2026, 11, 13))])) == 1
+    assert len(_asks([week], now, visited=[("other", SATURDAY)])) == 1
+
+
+def test_a_slot_with_a_day_matches_that_day_only():
+    week = _week(days={"best": SUNDAY.isoformat()})
+    now = _at(date(2026, 11, 17))
+    assert len(_asks([week], now, visited=[("park", SATURDAY)])) == 1
+    assert _asks([week], now, visited=[("park", SUNDAY)]) == []
+
+
+def test_a_malformed_saved_entry_is_skipped_not_raised():
+    week = {
+        "week_key": "2026-W46",
+        "saved": {"best": 7, "new": ["x"], 3: "park", "while": "park"},
+        "days": {"while": 5},
+        "didnt": "best",
+    }
+    got = _asks([week], _at(date(2026, 11, 17)))
+    assert [(a.slot, a.day) for a in got] == [("while", SUNDAY)]
+    assert _asks([{"week_key": "2026-W46", "saved": ["x"]}], _at(SUNDAY, 20)) == []
+
+
+def test_the_iso_year_end_week_is_read():
+    # 2 January 2027 is a Saturday in ISO week 53 of 2026.
+    week = _week(key="2026-W53", days={"best": "2027-01-02"})
+    monday = date(2027, 1, 4)
+    (ask,) = _asks([week], _at(monday))
+    assert (ask.week, ask.day) == ("2026-W53", date(2027, 1, 2))
+    assert _asks([week], _at(date(2027, 1, 2), 10)) == []
+
+
+def test_the_evening_boundary_holds_on_the_fall_back_sunday():
+    # 1 November 2026: clocks go back at 2 am, the wall clock still reads 18:00.
+    day = date(2026, 11, 1)
+    week = _week(key="2026-W44", days={"best": day.isoformat()})
+    assert _asks([week], _at(day, 17, 59)) == []
+    assert len(_asks([week], _at(day, 18, 0))) == 1

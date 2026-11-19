@@ -15318,7 +15318,7 @@ fieldset.lo-field {
   text-align: left;
 }
 
-.ask-kicker {
+.dyg-ask-kicker {
   color: var(--text-3);
   display: flex;
   flex-wrap: wrap;
@@ -15327,14 +15327,14 @@ fieldset.lo-field {
   margin: 0;
 }
 
-.ask-kicker b {
+.dyg-ask-kicker b {
   color: var(--text);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.ask-name {
+.dyg-ask-name {
   color: var(--text);
   font-size: var(--fs-16);
   font-weight: 600;
@@ -15343,30 +15343,30 @@ fieldset.lo-field {
   overflow-wrap: anywhere;
 }
 
-.ask-hood {
+.dyg-ask-hood {
   color: var(--text-3);
   font-size: var(--fs-13);
   margin: 0;
 }
 
-.ask-label {
+.dyg-ask-label {
   color: var(--text);
   font-size: var(--fs-14);
   font-weight: 600;
 }
 
-.ask-hint {
+.dyg-ask-hint {
   color: var(--text-3);
   font-size: var(--fs-13);
 }
 
-.vrow {
+.dyg-verdicts {
   display: grid;
   gap: var(--space-2);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.vbtn {
+.dyg-vbtn {
   align-items: center;
   background: var(--sunken);
   border: 1px solid var(--line-strong);
@@ -15381,46 +15381,46 @@ fieldset.lo-field {
   padding: var(--space-2);
 }
 
-.vbtn:hover {
+.dyg-vbtn:hover {
   border-color: var(--text-3);
 }
 
-.vbtn:focus-visible {
+.dyg-vbtn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.vbtn:disabled {
+.dyg-vbtn:disabled {
   cursor: default;
   opacity: 0.55;
 }
 
-.extras {
+.dyg-fields {
   display: grid;
   gap: var(--space-3);
 }
 
-.extras label {
+.dyg-fields label {
   color: var(--text-2);
   display: grid;
   font-size: var(--fs-13);
   gap: var(--space-1);
 }
 
-.kidrow {
+.dyg-kid {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.kidrow > span {
+.dyg-kid > span {
   color: var(--text-2);
   font-size: var(--fs-13);
   margin-right: var(--space-1);
 }
 
-.kidrow .chip {
+.dyg-kid .chip {
   min-height: 44px;
   padding-inline: var(--space-4);
 }
@@ -15471,8 +15471,8 @@ fieldset.lo-field {
     grid-column: 1 / -1;
   }
 
-  .dyg-open .vrow,
-  .dyg-open .extras {
+  .dyg-open .dyg-verdicts,
+  .dyg-open .dyg-fields {
     max-width: 30rem;
   }
 }

@@ -317,12 +317,13 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 - **Did you go? (`/admin/weekend`, story #349).** `components/DidYouGo.jsx`
   renders the `asks` that `GET /api/spots/plan` returns (a plan with no
   `asks` field reads as none), words in `denver.didYouGo`, styles `.dyg-*`
-  (plus `.ask-*`, `.vrow`, `.vbtn`, `.extras`, `.kidrow`). Been opens a
+  (all prefixed `dyg-`). Been opens a
   verdict row and the verdict posts `POST /api/spots/outings` (slot day,
   precision `day`); Didn't posts `POST /api/spots/plan/didnt`; both go
   through `withDeadline` with an in-flight ref (a timeout says it "may or may
-  not have been saved") and then call `onChanged` to read the plan again.
-  Answered rows are hidden locally at once. "Not now" is component state
+  not have been saved") and then call `onChanged`, which reads the plan again and resolves true when it
+  landed. Answered rows are hidden locally at once and the local hide is
+  dropped once the re-read lands, so the server decides what shows. "Not now" is component state
   only. The status line (`.wk-toast`) lives in the component so it outlives
   the last row. No Undo: the exception is recorded in `docs/design-system.md`.
 - **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,

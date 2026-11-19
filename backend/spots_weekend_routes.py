@@ -31,7 +31,7 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Callable
 from dataclasses import asdict
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any, Literal
 
 import httpx2
@@ -100,10 +100,6 @@ def _empty_week() -> dict[str, Any]:
     return {"saved": {}, "days": {}, "skips": [], "didnt": []}
 
 
-def _owner_today() -> date:
-    return datetime.now(OWNER_TZ).date()
-
-
 def _owner_now() -> datetime:
     return datetime.now(OWNER_TZ)
 
@@ -120,18 +116,31 @@ def create_weekend_router(
     factory: async_sessionmaker[AsyncSession],
     http_client: Callable[[], httpx2.AsyncClient] | None = None,
     lock: asyncio.Lock | None = None,
-    today: Callable[[], date] = _owner_today,
-    now: Callable[[], datetime] = _owner_now,
+    today: Callable[[], date] | None = None,
+    now: Callable[[], datetime] | None = None,
 ) -> APIRouter:
     """`http_client` builds the client NWS is read with (main.py passes the
     catalogue's: NWS asks every caller for an identifying User-Agent);
-    `today` is the owner's Denver day and `now` the Denver moment (the
-    Sunday-evening rule reads it), both injectable for tests."""
+    `now` is the owner's Denver moment (the Sunday-evening rule reads it) and
+    `today` the Denver day, both injectable for tests. A request reads the
+    clock once: with only `today` given, the moment is noon on that day;
+    with neither, both come from one `_owner_now()`."""
     router = APIRouter(
         prefix="/api/spots",
         tags=["spots"],
         dependencies=[Depends(require_admin)],
     )
+
+    def moment() -> datetime:
+        if now is not None:
+            return now()
+        if today is not None:
+            return datetime.combine(today(), time(12), OWNER_TZ)
+        return _owner_now()
+
+    def day_of(at: datetime) -> date:
+        return today() if today is not None else at.date()
+
     run_lock = lock or asyncio.Lock()
     client_factory = http_client or httpx2.AsyncClient
 
@@ -153,8 +162,7 @@ def create_weekend_router(
         row = await session.get(SpotSetting, key)
         return None if row is None else row.value
 
-    async def _week(session: AsyncSession, key: str) -> dict[str, Any]:
-        stored = await _get(session, key)
+    def _clean_week(stored: Any) -> dict[str, Any]:
         week = _empty_week()
         if isinstance(stored, dict):
             for field, kind in (
@@ -168,9 +176,14 @@ def create_weekend_router(
                     week[field] = kind(value)
         return week
 
+    async def _week(session: AsyncSession, key: str) -> dict[str, Any]:
+        return _clean_week(await _get(session, key))
+
     def _release(week: dict[str, Any], slot: str) -> None:
         week["saved"].pop(slot, None)
         week["days"].pop(slot, None)
+        # An answer belongs to what was in the slot; the next spot is asked.
+        week["didnt"] = [s for s in week["didnt"] if s != slot]
 
     # --- the job ---------------------------------------------------------------
 
@@ -250,23 +263,37 @@ def create_weekend_router(
             for i, s, n, d in rows
         ]
 
-    async def _asks(session: AsyncSession) -> list[dict[str, Any]]:
+    async def _asks(session: AsyncSession, at: datetime) -> list[dict[str, Any]]:
         """The open "Did you go?" prompts, oldest first."""
-        moment = now()
+        keys = [
+            week_key(at.date() - timedelta(weeks=back))
+            for back in range(planner.LOOK_BACK_WEEKS)
+        ]
+        stored = {
+            row.key: row.value
+            for row in (
+                await session.scalars(
+                    select(SpotSetting).where(SpotSetting.key.in_(keys))
+                )
+            ).all()
+        }
         weeks = []
-        for back in range(planner.LOOK_BACK_WEEKS):
-            key = week_key(moment.date() - timedelta(weeks=back))
-            week = await _week(session, key)
+        for key in keys:
+            week = _clean_week(stored.get(key))
             weeks.append({"week_key": key.removeprefix("plan:"), **week})
+        oldest = at.date() - timedelta(
+            days=at.weekday(), weeks=planner.LOOK_BACK_WEEKS - 1
+        )
         visits = (
             await session.execute(
                 select(Visit.spot_id, Visit.visited_on).where(
-                    Visit.precision == OutingPrecision.DAY
+                    Visit.precision == OutingPrecision.DAY,
+                    Visit.visited_on >= oldest,
                 )
             )
         ).all()
         found = planner.did_you_go(
-            weeks, {(str(spot_id), on) for spot_id, on in visits}, moment
+            weeks, {(str(spot_id), on) for spot_id, on in visits}, at
         )
         spots = {
             str(s.id): s
@@ -300,7 +327,8 @@ def create_weekend_router(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
         """The coming weekend: two day views and up to three suggestions."""
-        day = today()
+        at = moment()
+        day = day_of(at)
         key = week_key(day)
         week = await _week(session, key)
         constraints_blob = await _get(session, CONSTRAINTS_KEY)
@@ -340,7 +368,7 @@ def create_weekend_router(
             ],
             "weather": await _get(session, STATUS_KEY),
             "recent_visits": await _recent(session),
-            "asks": await _asks(session),
+            "asks": await _asks(session, at),
             "seed": seed,
         }
 
@@ -368,7 +396,7 @@ def create_weekend_router(
         plan, so another saved card on the same day is released, and a spot
         sits in one slot. Saving also lifts the spot's skip."""
         await _spot(session, payload.spot_id)
-        key = week_key(today())
+        key = week_key(day_of(moment()))
         week = await _week(session, key)
         target = str(payload.spot_id)
         day = payload.day.isoformat() if payload.day else None
@@ -378,6 +406,7 @@ def create_weekend_router(
             same_day = day is not None and week["days"].get(slot) == day
             if same_day or week["saved"][slot] == target:
                 _release(week, slot)
+        week["didnt"] = [s for s in week["didnt"] if s != payload.slot_key]
         week["saved"][payload.slot_key] = target
         if day is None:
             week["days"].pop(payload.slot_key, None)
@@ -392,7 +421,7 @@ def create_weekend_router(
     async def unsave(
         payload: UnsaveIn, session: AsyncSession = Depends(get_session)
     ) -> dict[str, Any]:
-        key = week_key(today())
+        key = week_key(day_of(moment()))
         week = await _week(session, key)
         _release(week, payload.slot_key)
         await _put(session, key, week)
@@ -402,7 +431,7 @@ def create_weekend_router(
     async def _set_skip(
         session: AsyncSession, spot_id: uuid.UUID, skipped: bool
     ) -> dict[str, Any]:
-        key = week_key(today())
+        key = week_key(day_of(moment()))
         week = await _week(session, key)
         target = str(spot_id)
         week["skips"] = [s for s in week["skips"] if s != target]
@@ -447,6 +476,6 @@ def create_weekend_router(
             week["didnt"].append(payload.slot)
             await _put(session, key, week)
             await session.commit()
-        return {"asks": await _asks(session)}
+        return {"asks": await _asks(session, moment())}
 
     return router

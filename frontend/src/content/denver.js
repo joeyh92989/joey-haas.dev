@@ -145,11 +145,16 @@ export const denver = {
     came: 'Came along',
     stayed: 'Stayed home',
     failedTitle: 'Not saved',
-    failed:
-      'That didn’t go through. Check your connection. Nothing was written.',
+    // Per outcome: a real refusal wrote nothing; no response says only to
+    // check the connection; only a deadline timeout is "may or may not".
+    refused: 'That didn’t go through. Nothing was written.',
+    refusedWith: (message) =>
+      `${/[.!?]$/.test(message) ? message : `${message}.`} Nothing was written.`,
+    signedOut: `${SESSION_ENDED} Nothing was written.`,
+    offline: 'That didn’t go through. Check your connection.',
     // No answer from the server: the write may or may not have landed.
     maybeLogged: (name) =>
-      `The server did not answer, so the outing at ${name} may or may not have been saved. The plan is being read again: if this row is still here, nothing was logged and you can try again.`,
+      `The server did not answer, so the outing at ${name} may or may not have been saved. The plan is being read again: if this row is still here, check History before you try again.`,
     maybeDidnt: (name) =>
       `The server did not answer, so ${name} may or may not have been marked as not gone. The plan is being read again: if this row is still here, you can try again.`,
     logged: (verdict, name) => `Logged: ${verdict} at ${name}`,

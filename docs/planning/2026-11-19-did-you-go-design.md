@@ -57,8 +57,11 @@ flowchart LR
 4. Four weeks of look-back.
 5. No Undo. `docs/design-system.md` asks for Undo beside an instant write; here Been is a deliberate two-step (verdict) and Didn't only stops the asking, and an Undo needs a delete route. Record the exception in the design system's section on this.
 6. "Marked as not gone" replaces the designer's "Marked as skipped", since Skip already means skipping a suggestion on this page.
-7. The existing card-level Been (posts to the visits route with no verdict) stays as it is; it writes a day visit on the slot's day, so the rule already treats that slot as logged.
+7. The existing card-level Been (posts to the visits route with no verdict) stays as it is. It logs the slot's day once that day has come and today's date before then, so a day-dated slot still gets asked once if Been was pressed early (a Friday Been does not answer Saturday's slot). A slot with no day is answered by a day visit on either day of its weekend, because the card logs the card's own day, which may be Saturday while the ask is dated Sunday.
 8. "Denver home" in the issue is read as `/admin/weekend` (the admin Denver home). The public `/denver` page is untouched.
+9. `didnt` is keyed by slot name, so releasing a slot (unsave, skip) or saving into it clears its answer. Known limit: re-saving a slot whose day has passed (Sunday morning, Best fit again) replaces its open ask without a record.
+10. Known gap: a retry after a timeout can create a duplicate outing, since aborting the fetch does not stop the server. The "may or may not have been saved" wording tells Joey to check History first.
+11. A slot shown as "Snow day" is asked under its stored slot key's label (Best fit etc.), since the row stores no label.
 
 ## Tasks
 
