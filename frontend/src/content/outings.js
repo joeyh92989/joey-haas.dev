@@ -78,4 +78,31 @@ export const history = {
   emptyLine: 'Log one and it shows here, newest first.',
   readError: 'The history could not be read. Try again in a minute.',
   filtersLabel: 'Filters',
+  // Filters and place links (story #348), from the mockup
+  // docs/planning/mockups/2026-11-18-history-filters/b-filters-sheet.html.
+  filtersOn: ' on',
+  filtersClose: 'Close',
+  filtersClear: 'Clear filters',
+  filtersShow: (n) => `Show ${n} ${n === 1 ? 'outing' : 'outings'}`,
+  filtersNone: 'No outings match',
+  placeRow: 'Place',
+  cityRow: 'City',
+  tagRow: 'Tag',
+  verdictRow: 'Verdict',
+  kidRow: 'Kid',
+  kidFilter: 'Came along',
+  thisPlace: 'this place',
+  chipPlace: (name) => `Place: ${name}`,
+  chipCity: (name) => `City: ${name}`,
+  chipTag: (name) => `Tag: ${name}`,
+  chipVerdict: (word) => `Verdict: ${word}`,
+  removeFilter: (name) => `Remove filter. ${name}`,
+  result: (shown, total) =>
+    `${shown} of ${total} ${total === 1 ? 'outing' : 'outings'}`,
+  filteredCounts: (year, outings, places, loved) =>
+    `${year}, filtered: ${outings} ${outings === 1 ? 'outing' : 'outings'}, ${places} ${places === 1 ? 'place' : 'places'}, ${loved} loved.`,
+  noMatchTitle: 'No outings match these filters.',
+  noMatchLine: (names) => `${names.join(', ')}.`,
+  placeHistory: 'History',
+  placeHistoryLabel: (name) => `History for ${name}`,
 }

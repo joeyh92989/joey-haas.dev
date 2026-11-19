@@ -1,10 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadState from '../components/LoadState.jsx'
+import FilterChips from '../components/FilterChips.jsx'
 import LogOutingSheet from '../components/LogOutingSheet.jsx'
+import Sheet from '../components/Sheet.jsx'
+import { tagLabel } from '../content/denver.js'
 import { history, outings as sheetCopy } from '../content/outings.js'
 import { apiFetch } from '../lib/api.js'
+import { cityLabel } from '../lib/cities.js'
+import {
+  activeCount,
+  applyFilters,
+  filterOptions,
+  filteredYearCounts,
+  hasChoices,
+  NO_FILTERS,
+  parseFilters,
+  placeName,
+  writeFilters,
+} from '../lib/historyFilters.js'
 import {
   groupOutings,
   headingOf,
@@ -50,6 +66,163 @@ function Verdict({ verdict }) {
   )
 }
 
+/** The verdict's shape for a chip; the word always follows it. */
+function Mark({ verdict }) {
+  return <span className={`vmark vmark-${verdict}`} aria-hidden="true" />
+}
+
+/** The filters that are on, as chips: [{key, node, name}]. */
+function activeChips(filters, rows) {
+  const chips = []
+  if (filters.spot)
+    chips.push({
+      key: 'spot',
+      name: history.chipPlace(
+        placeName(rows, filters.spot) ?? history.thisPlace,
+      ),
+    })
+  if (filters.city)
+    chips.push({
+      key: 'city',
+      name: history.chipCity(cityLabel(filters.city)),
+    })
+  if (filters.tag)
+    chips.push({ key: 'tag', name: history.chipTag(tagLabel(filters.tag)) })
+  if (filters.verdict)
+    chips.push({
+      key: 'verdict',
+      name: history.chipVerdict(VERDICT_WORDS[filters.verdict]),
+      node: (
+        <>
+          <Mark verdict={filters.verdict} /> {VERDICT_WORDS[filters.verdict]}
+        </>
+      ),
+    })
+  if (filters.kid) chips.push({ key: 'kid', name: history.kid })
+  return chips.map((chip) => ({ ...chip, node: chip.node ?? chip.name }))
+}
+
+/** A filter that is on, with an x that takes it off. */
+function ActiveChip({ chip, onRemove }) {
+  return (
+    <button
+      type="button"
+      className="chip chip-on"
+      aria-label={history.removeFilter(chip.name)}
+      onClick={() => onRemove(chip.key)}
+    >
+      <span>{chip.node}</span>
+      <span className="history-chip-x" aria-hidden="true">
+        &times;
+      </span>
+    </button>
+  )
+}
+
+/** The sheet's choices: one labelled row each, from what the outings hold. */
+function FilterSheet({
+  open,
+  onClose,
+  filters,
+  rows,
+  options,
+  shown,
+  onChange,
+  onRemove,
+  headingRef,
+}) {
+  const titleId = useId()
+  const placeId = useId()
+  const groups = [
+    {
+      key: 'city',
+      label: history.cityRow,
+      options: options.cities,
+    },
+    {
+      key: 'tag',
+      label: history.tagRow,
+      total: rows.length,
+      options: options.tags.map((o) => ({ ...o, label: tagLabel(o.value) })),
+    },
+    {
+      key: 'verdict',
+      label: history.verdictRow,
+      total: rows.length,
+      options: options.verdicts.map((o) => ({
+        ...o,
+        label: (
+          <>
+            <Mark verdict={o.value} />
+            {VERDICT_WORDS[o.value]}
+          </>
+        ),
+      })),
+    },
+  ]
+  const placeChip = activeChips(filters, rows).find((c) => c.key === 'spot')
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      labelledBy={titleId}
+      className="history-sheet"
+    >
+      <div className="history-sheet-head">
+        <h2 id={titleId} ref={headingRef} tabIndex={-1}>
+          {history.filtersLabel}
+        </h2>
+        <button type="button" className="btn ghost" onClick={onClose}>
+          {history.filtersClose}
+        </button>
+      </div>
+      <div className="history-sheet-body">
+        {placeChip && (
+          <div className="ctl-row">
+            <span className="ctl-label" id={placeId}>
+              {history.placeRow}
+            </span>
+            <div className="chip-row" role="group" aria-labelledby={placeId}>
+              <ActiveChip chip={placeChip} onRemove={onRemove} />
+            </div>
+          </div>
+        )}
+        <FilterChips
+          labelled
+          groups={groups}
+          value={filters}
+          onChange={onChange}
+        />
+        {(options.kid > 0 || filters.kid) && (
+          <FilterChips
+            labelled
+            groups={[]}
+            togglesLabel={history.kidRow}
+            toggles={[
+              { key: 'kid', label: history.kidFilter, count: options.kid },
+            ]}
+            value={filters}
+            onChange={onChange}
+          />
+        )}
+      </div>
+      <div className="history-sheet-foot">
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={activeCount(filters) === 0}
+          onClick={() => onChange(NO_FILTERS)}
+        >
+          {history.filtersClear}
+        </button>
+        <button type="button" className="btn primary" onClick={onClose}>
+          {shown ? history.filtersShow(shown) : history.filtersNone}
+        </button>
+      </div>
+    </Sheet>
+  )
+}
+
 function Row({ outing }) {
   const when = whenWords(outing)
   const place = placeLine(outing)
@@ -85,7 +258,8 @@ function Row({ outing }) {
 /**
  * History (story #347): every logged outing, newest first, grouped by month,
  * each at the precision it was logged with. Private: the read route is admin
- * only. A free filter slot sits under the header for story #348.
+ * only. Story #348 adds filters (city, tag, verdict, kid along, one place),
+ * kept in the URL so a filtered view can be reopened from a link.
  */
 export default function AdminHistory() {
   const [data, setData] = useState(null)
@@ -94,6 +268,17 @@ export default function AdminHistory() {
   const [reload, setReload] = useState(0)
   const [logging, setLogging] = useState(false)
   const [notice, setNotice] = useState('')
+  const [filtering, setFiltering] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filtersButton = useRef(null)
+  const sheetHeading = useRef(null)
+  // The URL as last written. Router state only moves on the next render, so
+  // two changes in one tick would each start from the old URL and the second
+  // would undo the first; this ref carries the first one into the second.
+  const latestParams = useRef(searchParams)
+  useEffect(() => {
+    latestParams.current = searchParams
+  }, [searchParams])
 
   useEffect(() => {
     let live = true
@@ -120,8 +305,35 @@ export default function AdminHistory() {
     again()
   }
 
-  const rows = data?.outings ?? []
+  const rows = useMemo(() => data?.outings ?? [], [data])
   const year = data?.year
+  const filters = useMemo(
+    () => parseFilters(searchParams, rows),
+    [searchParams, rows],
+  )
+  const filtered = activeCount(filters) > 0
+  const matches = useMemo(() => applyFilters(rows, filters), [rows, filters])
+  const options = useMemo(() => filterOptions(rows), [rows])
+  const chips = useMemo(() => activeChips(filters, rows), [filters, rows])
+  const counts = filtered ? filteredYearCounts(matches, year?.year) : null
+
+  /** `update` is the whole new filter, or a function of the current one. */
+  function changeFilters(update) {
+    const current = parseFilters(latestParams.current, rows)
+    const next = typeof update === 'function' ? update(current) : update
+    latestParams.current = writeFilters(latestParams.current, next)
+    setSearchParams(latestParams.current, { replace: true })
+  }
+
+  function removeFilter(key) {
+    changeFilters((current) => ({
+      ...current,
+      [key]: key === 'kid' ? false : null,
+    }))
+    // The chip that was pressed is about to go; focus moves to something that
+    // stays: the sheet's heading while it is open, else the Filters button.
+    ;(filtering ? sheetHeading : filtersButton).current?.focus()
+  }
   const openSheet = () => setLogging(true)
 
   const header = (
@@ -129,7 +341,14 @@ export default function AdminHistory() {
       title={history.title}
       description={
         data && rows.length > 0
-          ? history.counts(year.year, year.outings, year.places, year.loved)
+          ? counts
+            ? history.filteredCounts(
+                year.year,
+                counts.outings,
+                counts.places,
+                counts.loved,
+              )
+            : history.counts(year.year, year.outings, year.places, year.loved)
           : undefined
       }
     >
@@ -154,8 +373,69 @@ export default function AdminHistory() {
           again()
         }}
       />
-      {/* Story #348's filters go here, between the header and the list. */}
-      <div className="history-filters" data-slot="filters" />
+      <div
+        className="history-filters"
+        role="group"
+        aria-label={history.filtersLabel}
+      >
+        {rows.length > 0 && (filtered || hasChoices(options, rows.length)) && (
+          <>
+            <div className="history-strip">
+              <button
+                ref={filtersButton}
+                type="button"
+                className="btn"
+                aria-haspopup="dialog"
+                onClick={() => setFiltering(true)}
+              >
+                {history.filtersLabel}
+                {filtered && (
+                  <>
+                    {' '}
+                    <span className="history-open-count">{chips.length}</span>
+                    <span className="visually-hidden">{history.filtersOn}</span>
+                  </>
+                )}
+              </button>
+              {chips.map((chip) => (
+                <ActiveChip
+                  key={chip.key}
+                  chip={chip}
+                  onRemove={removeFilter}
+                />
+              ))}
+            </div>
+            {filtered && (
+              <p className="result history-result">
+                <strong>{history.result(matches.length, rows.length)}</strong>
+                {matches.length > 0 && (
+                  <button
+                    type="button"
+                    className="linkbtn"
+                    onClick={() => changeFilters(NO_FILTERS)}
+                  >
+                    {history.filtersClear}
+                  </button>
+                )}
+              </p>
+            )}
+            <FilterSheet
+              open={filtering}
+              onClose={() => setFiltering(false)}
+              filters={filters}
+              rows={rows}
+              options={options}
+              shown={matches.length}
+              onChange={changeFilters}
+              onRemove={removeFilter}
+              headingRef={sheetHeading}
+            />
+          </>
+        )}
+      </div>
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {filtered ? history.result(matches.length, rows.length) : ''}
+      </p>
       <p className="history-saved" role="status">
         {notice}
       </p>
@@ -180,7 +460,17 @@ export default function AdminHistory() {
               action={{ label: sheetCopy.open, onClick: openSheet }}
             />
           )}
-          {groupOutings(rows).map((group) => (
+          {rows.length > 0 && matches.length === 0 && (
+            <EmptyState
+              title={history.noMatchTitle}
+              line={history.noMatchLine(chips.map((chip) => chip.name))}
+              action={{
+                label: history.filtersClear,
+                onClick: () => changeFilters(NO_FILTERS),
+              }}
+            />
+          )}
+          {groupOutings(matches).map((group) => (
             <section
               key={group.key}
               className="history-group"

@@ -14875,6 +14875,205 @@ fieldset.lo-field {
   display: none;
 }
 
+/* Filters and place links (story #348): a Filters button, the filters that
+   are on as chips, a result line, and the sheet that holds the choices. */
+.history-strip {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.history-filters .chip,
+.history-sheet .chip {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+
+.history-filters .chip-on,
+.history-sheet .chip-on {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+
+.history-chip-x {
+  font-size: var(--fs-16);
+  line-height: 1;
+}
+
+.history-open-count {
+  background: var(--text);
+  border-radius: 999px;
+  color: var(--bg);
+  font: 600 var(--fs-12) var(--font-mono);
+  min-width: 1.25rem;
+  padding: 0 var(--space-1);
+  text-align: center;
+}
+
+.history-result {
+  margin: var(--space-3) 0 0;
+}
+
+/* The verdict's shape in a chip, before its word. */
+.vmark {
+  display: inline-block;
+  flex: none;
+  height: 9px;
+  width: 9px;
+}
+
+.vmark-loved {
+  background: var(--ok);
+  border-radius: 50%;
+}
+
+.vmark-fine {
+  border: 2px solid var(--text-3);
+  border-radius: 50%;
+}
+
+.vmark-not_again {
+  background: var(--warn);
+  border-radius: 1px;
+}
+
+/* On a filled chip the shape takes the chip's ink; it still differs by shape. */
+.chip[aria-pressed='true'] .vmark-loved,
+.chip-on .vmark-loved,
+.chip[aria-pressed='true'] .vmark-not_again,
+.chip-on .vmark-not_again {
+  background: currentColor;
+}
+
+.chip[aria-pressed='true'] .vmark-fine,
+.chip-on .vmark-fine {
+  border-color: currentColor;
+}
+
+.history-sheet-head {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+}
+
+.history-sheet-head h2 {
+  font-size: var(--fs-18);
+  font-weight: 600;
+  margin: 0;
+}
+
+.history-sheet-body {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.history-sheet-foot {
+  align-items: center;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  position: sticky;
+}
+
+.history-sheet .btn {
+  min-height: 44px;
+}
+
+/* The Place link beside Edit and Log visit looks like them. */
+.spots-actions a {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  display: inline-block;
+  font-size: var(--fs-14);
+  padding: var(--space-2);
+  text-decoration: none;
+}
+
+.spots-actions a:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.spots-actions a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spots-actions button + a {
+  margin-left: var(--space-2);
+}
+
+@media (max-width: 700px) {
+  .spots-actions a {
+    margin: var(--space-1) 0;
+  }
+}
+
+/* Phone (the admin shell's 700px breakpoint): 44px touch targets on the
+   button, the chips and the links. */
+@media (max-width: 700px) {
+  .history-filters .btn,
+  .history-filters .chip,
+  .history-sheet .chip {
+    min-height: 44px;
+    padding-inline: var(--space-4);
+  }
+
+  .history-filters .linkbtn {
+    min-height: 44px;
+  }
+
+  .history-filters .result {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .admin-history .empty-state .btn {
+    min-height: 44px;
+  }
+
+  .spots-actions a,
+  .spots-actions button {
+    align-items: center;
+    display: inline-flex;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 544px) {
+  .history-sheet .ctl-row {
+    align-items: start;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .history-sheet .ctl-label {
+    line-height: 44px;
+  }
+}
+
 .history-saved {
   color: var(--text-2);
   font-size: var(--fs-14);

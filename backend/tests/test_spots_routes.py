@@ -993,7 +993,7 @@ async def test_outings_carry_the_spot_line_and_every_visit_field(
     (row,) = body["outings"]
     assert set(row) == {
         "id", "spot_id", "spot_name", "neighbourhood", "city", "visited_on",
-        "precision", "title", "verdict", "kid_along", "note",
+        "precision", "title", "verdict", "kid_along", "note", "tags",
     }  # fmt: skip
     assert (row["spot_name"], row["neighbourhood"], row["city"]) == (
         "Sloan's Lake",
@@ -1008,6 +1008,49 @@ async def test_outings_carry_the_spot_line_and_every_visit_field(
         False,
         "Long line",
     )
+
+
+async def test_outings_carry_the_spots_tags_in_canonical_order(
+    sessionmaker_for_test, mid_june
+):
+    tagged = await _seed_spot(sessionmaker_for_test, name="Tagged")
+    bare = await _seed_spot(sessionmaker_for_test, name="Bare")
+    async with sessionmaker_for_test() as session:
+        row = await session.get(Spot, tagged)
+        row.tags = ["kid-ok", "coffee"]
+        nulled = await session.get(Spot, bare)
+        nulled.tags = None
+        await session.commit()
+    day = datetime(2026, 6, 13, tzinfo=OWNER_TZ).date()
+    await _seed_visits(
+        sessionmaker_for_test,
+        Visit(spot_id=tagged, visited_on=day),
+        Visit(spot_id=bare, visited_on=day),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/spots/outings")).json()
+    by_name = {row["spot_name"]: row["tags"] for row in body["outings"]}
+    assert by_name["Tagged"] == ["coffee", "kid-ok"]
+    assert by_name["Bare"] == []
+
+
+async def test_outings_leave_out_a_stored_tag_outside_the_vocabulary(
+    sessionmaker_for_test, mid_june
+):
+    spot_id = await _seed_spot(sessionmaker_for_test, name="Old tags")
+    async with sessionmaker_for_test() as session:
+        (await session.get(Spot, spot_id)).tags = ["kid-ok", "retired", "coffee"]
+        await session.commit()
+    await _seed_visits(
+        sessionmaker_for_test,
+        Visit(
+            spot_id=spot_id, visited_on=datetime(2026, 6, 13, tzinfo=OWNER_TZ).date()
+        ),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.get("/api/spots/outings")
+    assert response.status_code == 200
+    assert response.json()["outings"][0]["tags"] == ["coffee", "kid-ok"]
 
 
 async def test_outings_sort_by_date_then_precision_then_created_then_id(

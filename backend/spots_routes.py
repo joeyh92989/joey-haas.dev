@@ -197,6 +197,7 @@ class HistoryOutingOut(BaseModel):
     verdict: OutingVerdict | None
     kid_along: bool | None
     note: str | None
+    tags: list[str]
 
 
 class YearCountsOut(BaseModel):
@@ -661,6 +662,9 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 verdict=visit.verdict,
                 kid_along=visit.kid_along,
                 note=visit.note,
+                # In vocabulary order; a tag since retired from it is left out, not an
+                # error, so one old row cannot fail the whole page.
+                tags=[t for t in spots.TAGS if t in (spot.tags or [])],
             )
             for visit, spot in rows
         ]
