@@ -954,6 +954,12 @@ export const spine = {
       number: (n) => `Vol. ${n}`,
       collects: 'Collects',
       collectsEmpty: 'What’s inside hasn’t been added yet.',
+      metron: {
+        before: 'Contents from',
+        label: 'Metron (metron.cloud)',
+        licence: 'CC BY-SA 4.0',
+        after: ', reformatted into issue ranges.',
+      },
       previous: 'Previous',
       next: 'Next',
       first: 'This is the first book.',

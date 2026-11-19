@@ -83,6 +83,7 @@ only those rows.
 | ComicVine | `comic` | `api_key` query param | ~1 req/s | Working |
 | BGG | `boardgame` | Registered app + token | — | **Blocked** |
 | Open Library | none (ISBN lookup) | none | 1 req/s | Working, see below |
+| Metron | none (a trade's contents) | `METRON_TOKEN` Bearer | 1 req/s + its headers | Working, see below |
 
 ### TMDB — `TMDB_API_TOKEN`
 
@@ -237,6 +238,56 @@ Fixtures: `tests/fixtures/openlibrary_saga.json` (9781607066019) and
 `openlibrary_miss.json` (`{}`, recorded for 9789999999995) are real; the 429,
 timeout and 5xx cases in `tests/test_sources_openlibrary.py` are hand-written
 fakes of the HTTP client and say so.
+
+### Metron — `METRON_TOKEN`, a trade's contents (#337)
+
+`sources/metron.py` (client, reprint reader) and `comic_metron.py` (the search
+and ranking). **Not a `SourceAdapter`**: it answers "which issues does this
+trade collect" for the volume page's Find contents button, not "find a title".
+Design: `docs/planning/2026-11-18-metron-contents-design.md`. Auth is
+`Authorization: Bearer <token>` (an account's API Tokens page, free). **The
+token is optional config, read lazily** (`config.metron_token`, never in
+`_REQUIRED`; without it the route answers `status: not_configured`). It is sent
+in one header and never logged: the log lines name the path only, errors carry
+the exception class not the request, and the HTTP loggers stay at WARNING.
+
+Confirmed live (2026-11-18, real fixtures `tests/fixtures/metron_*.json`):
+
+- `GET /api/issue/?series_name=Saga&number=1` matches the name as a
+  **substring**: 34 rows, alphabetical, "Clone Saga" first and the Saga trade
+  24th. So `comic_metron.pick_rows` keeps only rows whose series name equals the
+  title (`comic_contents.normalize_name`), trade-labelled rows first, at most 5
+  detail calls. There is **no ISBN filter**, so the ISBN is a match check only.
+- `GET /api/issue/{id}/` has `isbn`, `title`, `page`, `resource_url`,
+  `series.series_type.name` and `reprints`. **On a trade `reprints` is its
+  contents** (`Saga TPB (2012) #1`: Saga (2012) #1 to #6); **on a single issue
+  it is the trades that reprint it**. Only a collected series type (Trade
+  Paperback, Hardcover, Omnibus, Graphic Novel, ...) with reprints is proposed.
+- `parse_reprint` reads `"Name (2012) #1"`; `entries_from_reprints` groups by
+  series and year, merges consecutive numbers (`#1-6`, `#1-2, #4`), keeps a
+  non-whole number (`#1AU`) in the text and an unreadable line whole as the
+  series name with no issues, never dropped. Metron rows are text only, never
+  linked.
+- Limits come as `X-RateLimit-Burst-*` and `X-RateLimit-Sustained-*` headers
+  (seen: burst 20, sustained 5000; not hard-coded) and a 429. After a response
+  with `Burst-Remaining` of 1 or less, the next call waits for `Burst-Reset`
+  (epoch seconds, at most 10 s, else `MetronRateLimited`). A 429 is
+  `MetronRateLimited` (carries `retry_after`); 401 and 403 are
+  `MetronUnauthorized`; a timeout or 5xx is `SourceUnavailable`. The route turns
+  every one into a `status` and a sentence, never a 500. `User-Agent` names
+  joey-haas.dev, `TIMEOUT` 15 s, throttle 1 call a second.
+- Not done: `If-Modified-Since` re-checks (nothing is stored per candidate to
+  re-check) and the per-issue `resource_url` on the public credit (no column;
+  the credit links metron.cloud).
+- **Licence: CC BY-SA 4.0.** The public volume page credits "Contents from
+  Metron (metron.cloud), CC BY-SA 4.0, reformatted into issue ranges" with both
+  links wherever a collects row has source `metron` (`metron_credit` is in the
+  body only then). Those entries are the only part of the site under that
+  licence.
+
+Fixtures are real except where a test says FAKE (401, 429, 5xx, timeout, the
+rate-limit headers). Re-record with `zsh -ic 'curl -H "Authorization: Bearer
+$METRON_TOKEN" ...'` straight into a file, then check it holds no token.
 
 ### BGG — blocked
 

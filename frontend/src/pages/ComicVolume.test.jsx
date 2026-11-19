@@ -266,6 +266,30 @@ describe('ComicVolume', () => {
       expect(link).toHaveAttribute('href', 'https://comicvine.gamespot.com/')
   })
 
+  it('credits Metron with both links only when the page says so', async () => {
+    stubApi({ page: { metron_credit: true } })
+    renderVolume()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.getByRole('link', { name: /Metron/ })).toHaveAttribute(
+      'href',
+      'https://metron.cloud/',
+    )
+    expect(screen.getByRole('link', { name: 'CC BY-SA 4.0' })).toHaveAttribute(
+      'href',
+      'https://creativecommons.org/licenses/by-sa/4.0/',
+    )
+    expect(
+      screen.getByText(/reformatted into issue ranges/),
+    ).toBeInTheDocument()
+  })
+
+  it('has no Metron credit on a volume without Metron contents', async () => {
+    stubApi()
+    renderVolume()
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByText(/Metron/)).not.toBeInTheDocument()
+  })
+
   it('renders NotFound on a 404 and an error line on a failure', async () => {
     stubApi({ status: 404 })
     const { unmount } = renderVolume()

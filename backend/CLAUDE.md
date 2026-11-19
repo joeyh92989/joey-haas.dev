@@ -689,7 +689,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `vol-<n>` for new ones), `kind` (check: trade, hardcover, omnibus,
   compendium, ogn) beside `kind_raw` (the original free text), `line_number`,
   `isbn`, `pages`, `owned`, `read`. `comic_volume_collects` lists its
-  contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo,
+  contents (`series_name`, `issue_text`, `source` migrated/typed/parsed/photo/metron,
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
   migration copied every `editions` entry into a volume plus one collects row.
   `items.editions` is unmapped (no model attribute; nothing reads or writes the
@@ -853,6 +853,22 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   description that the rules cannot read costs one model call on every click
   (no memo of `no_match`); the 12-call reserve protects intake, and two tabs
   clicking at once can overspend the budget by one.
+  **Find contents from Metron (#337, migration `0027`):** `POST
+  /api/comics/volumes/{id}/contents/metron` (admin) PROPOSES and writes nothing:
+  `{status, message, candidates: [{metron_id, title, isbn, pages, resource_url,
+  strong, entries, skipped}], replaces}`, status `strong` (ISBN equal),
+  `possible`, `not_found`, `not_configured`, `unauthorized`, `rate_limited` or
+  `unavailable`; a Metron failure is never a 500. The owner's Accept is the
+  ordinary `PUT /volumes/{id}`, which now lets a NEW entry (no id) carry source
+  `metron` (a changed entry is still `typed`); the page sends every non-metron
+  entry back by id and replaces only the `metron` ones, so typed, photo,
+  migrated and parsed rows are never touched, and an entry equal to one of
+  those is dropped from the proposal (`skipped`). Metron rows are text only.
+  `create_comics_router(..., metron=)` takes the `MetronClient`; `METRON_TOKEN`
+  is optional config. The public volume body gains `metron_credit: true` ONLY
+  when a collects row is `metron` (`response_model_exclude_unset`, so every
+  other body is byte-identical); `source` stays unpublished. Read
+  `sources/README.md` ("Metron") first: the search matches by substring.
   **Public read (#335 book-page slice, #329):** `GET
   /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)
   serves one OWNED volume of a PUBLIC comic title, `ed-*` slugs included (old

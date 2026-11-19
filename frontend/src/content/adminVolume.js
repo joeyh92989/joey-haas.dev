@@ -102,6 +102,7 @@ export const volume = {
     source: {
       typed: 'Typed',
       parsed: 'Read from text',
+      metron: 'From Metron',
       photo: 'From a photo',
       migrated: 'Carried over',
     },
@@ -130,6 +131,28 @@ export const volume = {
         no_text:
           'There is no description to read. Paste the reprint note, or add the contents by hand.',
       },
+    },
+    metron: {
+      button: 'Find contents',
+      finding: 'Looking on Metron…',
+      hint: 'Asks Metron (metron.cloud) what this book collects. It only proposes: nothing is saved until you accept.',
+      failed: 'Couldn’t reach Metron.',
+      strong: 'The ISBN matches this book.',
+      possible: 'The ISBN does not match this book. Check it before accepting.',
+      noIsbn: 'This book has no ISBN to check against.',
+      isbn: (isbn) => `Metron ISBN: ${isbn ?? 'none listed'}`,
+      pages: (n) => `${n} pages`,
+      open: 'Open on Metron',
+      collects: 'It lists',
+      alreadyHeld: (n) =>
+        `${n} ${n === 1 ? 'entry is' : 'entries are'} left out: you already have ${n === 1 ? 'it' : 'them'}.`,
+      nothingNew: 'Nothing new: everything it lists is already on this book.',
+      replaces: (n) =>
+        `Accepting replaces the ${n} ${n === 1 ? 'entry' : 'entries'} you took from Metron before. Typed, photo and read-from-text entries stay.`,
+      accept: 'Accept these',
+      dismiss: 'Dismiss',
+      accepted: (n) =>
+        `Added ${n} ${n === 1 ? 'entry' : 'entries'} from Metron.`,
     },
     moved: (name) => `Moved “${name}”.`,
     added: (name) => `Added “${name}”.`,

@@ -122,6 +122,19 @@ export const parseContents = (volumeId, note) =>
     COPY_PARSE_FAILED,
   )
 
+/**
+ * Asks Metron what the book collects. Writes nothing: answers `{status,
+ * message, candidates: [{metron_id, title, isbn, pages, resource_url, strong,
+ * entries: [{series_name, issue_text}], skipped}], replaces}`. A Metron failure
+ * is a `status` with a `message`, not an error.
+ */
+export const findMetronContents = (volumeId) =>
+  call(
+    `/volumes/${enc(volumeId)}/contents/metron`,
+    send('POST', {}),
+    'Couldn’t reach Metron.',
+  )
+
 /** Owned and/or read, one write. */
 export const markVolume = (volumeId, marks) =>
   call(
