@@ -8,7 +8,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeFeed } from './markdown-lib.mjs'
+import { BLOG_GUIDS, writeFeed } from './markdown-lib.mjs'
 import { parseChangelog } from '../src/lib/changelog.js'
 import { SITE_URL, changelogFeed } from './prerender-lib.mjs'
 
@@ -25,6 +25,7 @@ const FEEDS = [
       link: SITE_URL,
       itemPrefix: '/blog',
       selfPath: '/feed.xml',
+      guids: BLOG_GUIDS,
     },
   },
   {

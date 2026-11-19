@@ -18,7 +18,7 @@ import { LOAD_ERROR, WAKING } from './status.js'
 /** The tour, and the post it shortens: the post is the long version. */
 const links = {
   post: { to: '/shelf/how', label: 'Tour' },
-  longVersion: { to: '/blog/how-spine-works', label: 'The long version' },
+  longVersion: { to: '/blog/how-my-shelf-works', label: 'The long version' },
   source: { href: profile.repo, label: 'Source' },
 }
 

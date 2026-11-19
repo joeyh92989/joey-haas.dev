@@ -28,7 +28,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const SHELL = fs.readFileSync(path.join(here, '..', 'index.html'), 'utf8')
 
 const POST = {
-  slug: 'how-spine-works',
+  slug: 'how-my-shelf-works',
   title: 'How Spine works',
   date: '2026-10-02',
   body: '## Heading\n\nSpine is the tracker behind the [shelf](/spine). It uses `code` and *emphasis*.\n\nSecond paragraph.',
@@ -91,7 +91,7 @@ describe('publicRoutes', () => {
       '/denver',
       '/daily',
       '/blog',
-      '/blog/how-spine-works',
+      '/blog/how-my-shelf-works',
       `/shelf/${ITEM.id}`,
     ])
   })
@@ -117,7 +117,7 @@ describe('publicRoutes', () => {
     expect(routeAt(routes, '/shelf/intake').title).toBe(
       'Try the intake · My Shelf',
     )
-    expect(routeAt(routes, '/blog/how-spine-works').title).toBe(
+    expect(routeAt(routes, '/blog/how-my-shelf-works').title).toBe(
       'How Spine works · Joey Haas',
     )
     expect(routeAt(routes, `/shelf/${ITEM.id}`).title).toBe(
@@ -224,7 +224,7 @@ describe('publicRoutes', () => {
 
 describe('renderHead', () => {
   const [post] = publicRoutes({ posts: [POST], items: [] }).filter(
-    (route) => route.path === '/blog/how-spine-works',
+    (route) => route.path === '/blog/how-my-shelf-works',
   )
   const html = renderHead(SHELL, post)
 
@@ -234,7 +234,7 @@ describe('renderHead', () => {
     expect(html.match(/property="og:title"/g)).toHaveLength(1)
     expect(html).toContain('content="How Spine works · Joey Haas"')
     expect(html).toContain(
-      '<link rel="canonical" href="https://joey-haas.dev/blog/how-spine-works" />',
+      '<link rel="canonical" href="https://joey-haas.dev/blog/how-my-shelf-works" />',
     )
     expect(html).toContain('<meta property="og:type" content="article" />')
     expect(html.match(/name="description"/g)).toHaveLength(1)
@@ -299,8 +299,8 @@ describe('renderHead', () => {
     expect(urls['/']).toBe('https://joey-haas.dev/')
     expect(urls['/shelf']).toBe('https://joey-haas.dev/shelf')
     expect(urls['/shelf/next']).toBe('https://joey-haas.dev/shelf/next')
-    expect(urls['/blog/how-spine-works']).toBe(
-      'https://joey-haas.dev/blog/how-spine-works',
+    expect(urls['/blog/how-my-shelf-works']).toBe(
+      'https://joey-haas.dev/blog/how-my-shelf-works',
     )
     const head = renderHead(SHELL, routeAt(routes, `/shelf/${ITEM.id}`))
     const url = `https://joey-haas.dev/shelf/${ITEM.id}/`
@@ -618,7 +618,7 @@ describe('noindex, sitemap and robots', () => {
     const xml = sitemap(publicRoutes({ posts: [POST], items: [ITEM] }))
     expect(xml.match(/<url>/g)).toHaveLength(16)
     expect(xml).toContain(
-      '<loc>https://joey-haas.dev/blog/how-spine-works</loc><lastmod>2026-10-02</lastmod>',
+      '<loc>https://joey-haas.dev/blog/how-my-shelf-works</loc><lastmod>2026-10-02</lastmod>',
     )
   })
 })
@@ -820,6 +820,16 @@ describe('render.yaml rewrites', () => {
     )
   })
 
+  it('redirects the pre-rename blog slug to the new one (#483)', () => {
+    expect(yaml).toMatch(
+      /- type: redirect\s+source: \/blog\/how-spine-works\s+destination: \/blog\/how-my-shelf-works\s/,
+    )
+    // The old slug is not a page this build writes, so no rewrite names it.
+    expect(rules.map((rule) => rule.source)).not.toContain(
+      '/blog/how-spine-works',
+    )
+  })
+
   it('keeps the SPA catch-all last', () => {
     expect(rules.at(-1)).toEqual({ source: '/*', destination: '/index.html' })
   })
@@ -917,7 +927,7 @@ describe('the audit fixes (#266 #267 #268 #269 #290)', () => {
 
   it('marks a post up as a BlogPosting', () => {
     const routes = publicRoutes({ posts: [POST], items: [] })
-    const head = renderHead(SHELL, routeAt(routes, '/blog/how-spine-works'))
+    const head = renderHead(SHELL, routeAt(routes, '/blog/how-my-shelf-works'))
     const ld = JSON.parse(head.match(/ld\+json">([^<]*)</)[1])
     expect(ld['@type']).toBe('BlogPosting')
     expect(ld.datePublished).toBe('2026-10-02')
@@ -1052,10 +1062,10 @@ describe('generated link-preview cards', () => {
   })
 
   it('gives each post and note its own image and an alt that names it', () => {
-    const post = routeAt(routes, '/blog/how-spine-works')
+    const post = routeAt(routes, '/blog/how-my-shelf-works')
     const note = routeAt(routes, '/til/a-note')
     expect(post.image).toEqual({
-      url: 'https://joey-haas.dev/og/blog/how-spine-works.png',
+      url: 'https://joey-haas.dev/og/blog/how-my-shelf-works.png',
       width: 1200,
       height: 630,
       alt: 'How Spine works, a post on joey-haas.dev',
@@ -1064,7 +1074,7 @@ describe('generated link-preview cards', () => {
     expect(note.image.alt).toBe('A note, a TIL note on joey-haas.dev')
     expect(post.ogCard).toEqual({
       kind: 'blog',
-      slug: 'how-spine-works',
+      slug: 'how-my-shelf-works',
       title: 'How Spine works',
       date: '2026-10-02',
     })

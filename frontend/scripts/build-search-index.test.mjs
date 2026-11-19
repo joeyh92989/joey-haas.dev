@@ -11,7 +11,7 @@ import {
 } from './build-search-index.mjs'
 
 const post = {
-  slug: 'how-spine-works',
+  slug: 'how-my-shelf-works',
   title: 'How My Shelf works',
   date: '2026-10-02',
   summary: 'The engineering behind My Shelf.',
@@ -51,7 +51,7 @@ describe('buildIndex', () => {
     const entries = buildIndex({ posts: [post], items: null, comics: null })
     expect(entries.map((e) => [e.g, e.href])).toEqual([
       ['pages', '/blog'],
-      ['posts', '/blog/how-spine-works'],
+      ['posts', '/blog/how-my-shelf-works'],
     ])
   })
 

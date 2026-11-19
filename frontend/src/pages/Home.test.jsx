@@ -17,7 +17,7 @@ vi.mock('../lib/snapshot.js', () => ({
 }))
 
 const POST = {
-  slug: 'how-spine-works',
+  slug: 'how-my-shelf-works',
   frontmatter: {
     title: 'How Spine works',
     date: '2026-10-02',
@@ -119,7 +119,7 @@ describe('Home', () => {
       '/projects',
       '/shelf',
       '/colophon',
-      '/blog/how-spine-works',
+      '/blog/how-my-shelf-works',
     ])
     for (const card of document.querySelectorAll('.card')) {
       expect(card.querySelector('[class*="accent"]')).toBeNull()

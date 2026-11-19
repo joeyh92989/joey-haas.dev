@@ -179,6 +179,10 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `dist/shelf/feed.xml` and `dist/spine/feed.xml`. Feed GUIDs stay on the
   `/spine` item URL (`LEGACY_PREFIX`): changing them reposts every entry.
   Code names (`spine.js`, `SpineHeader`, `spinePaths.js`) keep `spine`.
+  The post "How My Shelf works" moved from `/blog/how-spine-works` to
+  `/blog/how-my-shelf-works` (#483): `render.yaml` redirects the old slug,
+  `App.jsx` redirects it client-side, and `BLOG_GUIDS` in `markdown-lib.mjs`
+  keeps its feed guid on the old URL.
 - Site search (README → Site search): `STATIC_PAGES` in
   `src/content/pages.js` is the one list of static pages, read by both the
   search dialog and `prerender-lib.mjs`; add a page there, never to a second

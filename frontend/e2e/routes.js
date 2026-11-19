@@ -25,7 +25,7 @@ export function routePaths(remote = !!process.env.E2E_BASE_URL) {
   const optional = [BLOG_PAGE, TIL_PAGE].filter((page) => remote || built(page))
   const paths = [...STATIC_PAGES, ...optional].map((page) => page.path)
   // One post with real content: link and code-block checks (#273, #275).
-  const post = '/blog/how-spine-works'
+  const post = '/blog/how-my-shelf-works'
   const postBuilt = existsSync(
     resolve(import.meta.dirname, '../dist', post.slice(1), 'index.html'),
   )

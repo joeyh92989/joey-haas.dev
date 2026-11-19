@@ -11,7 +11,7 @@ const PAGES = {
   home: '/',
   about: '/about',
   projects: '/projects',
-  post: '/blog/how-spine-works',
+  post: '/blog/how-my-shelf-works',
   'shelf-games': '/shelf/games',
   'shelf-item': '/shelf/11111111-aaaa-4aaa-8aaa-000000000001/',
   'shelf-comic': SERIES,
