@@ -78,6 +78,10 @@ test('signing out returns to the signed-out admin page', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Admin' }),
   ).toBeVisible()
+  await expect(page.getByText('You are signed out.')).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Back to the public site' }),
+  ).toHaveAttribute('href', '/')
   await expect(page.getByText('Sign in with Google')).toBeVisible()
 })
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverKey from '../components/CoverKey.jsx'
@@ -208,7 +208,7 @@ export default function AdminCollection() {
     if (!landedPrefilled.current || !details) return
     landedPrefilled.current = false
     details.scrollIntoView?.({ block: 'start' })
-    details.querySelector('input[aria-label="Title"]')?.focus()
+    details.querySelector('.item-form input[required]')?.focus()
   }, [status, focusTick])
   const [error, setError] = useState(null)
   // After a delete, focus moves to the list rather than falling to the body.
@@ -226,6 +226,9 @@ export default function AdminCollection() {
   // Title of a comic just saved from this page's form: the games list below
   // won't show it, so a link says where it went.
   const [savedComic, setSavedComic] = useState(null)
+  // A game just saved from the form: its title and id, for the link.
+  const [savedItem, setSavedItem] = useState(null)
+  const { refreshItems } = useOutletContext() ?? {}
   const [bulkBusy, setBulkBusy] = useState(false)
   const [view, setView] = useState(() => {
     const stored = readShelfPref('shelf.admin.view', 'shelf')
@@ -328,6 +331,7 @@ export default function AdminCollection() {
     event.preventDefault()
     setError(null)
     setSavedComic(null)
+    setSavedItem(null)
     setSaving(true)
     const comic = form.type === 'comic' ? comicPayload(form) : null
     if (comic?.error) {
@@ -347,6 +351,7 @@ export default function AdminCollection() {
       year: form.year === '' ? null : Number(form.year),
       owned_format: form.owned_format === '' ? null : form.owned_format,
     }
+    let created
     try {
       const response = await apiFetch('/api/items', {
         method: 'POST',
@@ -366,8 +371,8 @@ export default function AdminCollection() {
       // creator are fetched server-side from the linked source rather than
       // trusted from the browser. A failure here leaves a perfectly good
       // item that is simply not enriched yet, so it is not an error.
-      if (body.external_source && body.external_id) {
-        const created = await response.json()
+      created = await response.json().catch(() => null)
+      if (body.external_source && body.external_id && created) {
         // A Comic Vine series reads its issues too, through the comics
         // route; refresh-metadata reads only the volume.
         const refresh =
@@ -384,7 +389,9 @@ export default function AdminCollection() {
     }
     setForm(EMPTY_FORM)
     if (body.type === 'comic') setSavedComic(body.title)
+    else setSavedItem({ title: body.title, id: created?.id ?? null })
     await load()
+    refreshItems?.()
   }
 
   /**
@@ -1050,6 +1057,20 @@ export default function AdminCollection() {
       )}
 
       {notice && <p role="status">{notice}</p>}
+
+      {savedItem && (
+        <p role="status">
+          {adminCopy.collection.savedItem(savedItem.title)}
+          {savedItem.id && (
+            <>
+              {' '}
+              <Link to={`/admin/collection/${savedItem.id}`}>
+                {adminCopy.collection.openItem}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
 
       {savedComic && (
         <p role="status">

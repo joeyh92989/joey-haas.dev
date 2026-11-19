@@ -6,6 +6,9 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- The admin form for adding a game by hand now labels every field and marks Title and Owned format as required. A missing one is named next to the field instead of in a browser tooltip. After an add it says what it saved, links to the new item, and the Shelf count in the sidebar updates without a reload.
+- The place forms on the admin side now say Coordinates are required, show the paste tip at normal size, and use “Show on the public map” for the public switch when adding as well as editing.
+- The admin page you land on after signing out now says you are signed out and links back to the public site.
 - The post “How My Shelf works” now lives at [/blog/how-my-shelf-works](/blog/how-my-shelf-works). The old address redirects, and feed readers will not see it as a new entry.
 - The links in the footer and the feed link under Changes on [stats](/stats) are now at least 24px tall, so they are easier to hit on a phone without landing on their neighbor.
 - The theme button in the header now says what it will do (“Switch to light” or “Switch to dark”) instead of naming the mode you would get, which read as the current one.

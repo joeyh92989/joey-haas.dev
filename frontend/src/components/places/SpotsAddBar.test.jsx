@@ -283,7 +283,7 @@ describe('SpotsAddBar', () => {
     ])
     expect(within(form).getByLabelText('Blurb')).toBeInTheDocument()
     expect(
-      within(form).getByLabelText(/Show on the public Denver page/),
+      within(form).getByLabelText(/Show on the public map/),
     ).not.toBeChecked()
     await waitFor(() =>
       expect(
@@ -351,7 +351,7 @@ describe('SpotsAddBar', () => {
     const { onShowInTable } = setup()
     await submitSearch(user, 'Red Rocks')
     await screen.findByRole('group', { name: /Details for/ })
-    await user.click(screen.getByLabelText(/Show on the public Denver page/))
+    await user.click(screen.getByLabelText(/Show on the public map/))
     await user.click(screen.getByRole('button', { name: 'Save place' }))
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
@@ -695,7 +695,7 @@ describe('SpotsAddBar', () => {
     setup()
     await submitSearch(user, 'Red Rocks')
     const form = await screen.findByRole('group', { name: /Details for/ })
-    const toggle = within(form).getByLabelText(/Show on the public Denver page/)
+    const toggle = within(form).getByLabelText(/Show on the public map/)
     await user.click(toggle)
     expect(toggle).toBeChecked()
     await user.selectOptions(within(form).getByLabelText('City'), 'boulder')
@@ -718,7 +718,7 @@ describe('SpotsAddBar', () => {
     setup()
     await submitSearch(user, 'Red Rocks')
     const form = await screen.findByRole('group', { name: /Details for/ })
-    const toggle = within(form).getByLabelText(/Show on the public Denver page/)
+    const toggle = within(form).getByLabelText(/Show on the public map/)
     await user.click(toggle)
     await user.selectOptions(within(form).getByLabelText('City'), 'other')
     await user.type(within(form).getByLabelText('City name'), 'Aspen')

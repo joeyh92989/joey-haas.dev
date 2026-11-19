@@ -78,6 +78,48 @@ describe('AdminLayout session states', () => {
     expect(document.title).toBe('Admin · Joey Haas')
   })
 
+  it('says it is signed out and links home to the public site (#503)', async () => {
+    stubApi({ me: null })
+    renderAt()
+    expect(await screen.findByText('You are signed out.')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Back to the public site' }),
+    ).toHaveAttribute('href', '/')
+    expect(screen.getByText(/sign in with google/i)).toBeInTheDocument()
+  })
+
+  it('says it after signing out here too', async () => {
+    stubApi()
+    renderAt()
+    ;(await screen.findByRole('button', { name: /sign out/i })).click()
+    expect(await screen.findByText('You are signed out.')).toBeInTheDocument()
+  })
+
+  it('reloads the rows behind the sidebar count when a page asks (#489)', async () => {
+    const fetch = stubApi({
+      items: [{ id: 'a', type: 'game', owned_format: 'physical' }],
+    })
+    function Asker() {
+      const { refreshItems } = useOutletContext()
+      return <button onClick={refreshItems}>again</button>
+    }
+    render(
+      <MemoryRouter initialEntries={['/admin/shelf/games']}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="shelf/games" element={<Asker />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const itemCalls = () =>
+      fetch.mock.calls.filter(([url]) => String(url).endsWith('/api/items'))
+    await screen.findByRole('button', { name: 'again' })
+    await waitFor(() => expect(itemCalls()).toHaveLength(1))
+    screen.getByRole('button', { name: 'again' }).click()
+    await waitFor(() => expect(itemCalls()).toHaveLength(2))
+  })
+
   it('renders the page inside the shell once signed in', async () => {
     stubApi()
     renderAt()

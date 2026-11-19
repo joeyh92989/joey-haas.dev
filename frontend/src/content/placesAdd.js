@@ -30,7 +30,8 @@ export const placesAdd = {
   noneOfThese: 'None of these?',
   noneOfTheseLabel: 'None of these',
   typeHeading: 'Type a place by hand',
-  coordsHint: 'Paste “latitude, longitude” or a maps link, e.g. 39.75, -104.99',
+  coordsHint:
+    'Required. Paste “latitude, longitude” or a maps link, e.g. 39.75, -104.99',
   osmCredit: 'Search by OpenStreetMap contributors',
   osmCopyright: 'https://www.openstreetmap.org/copyright',
   viewOnMap: 'View on OpenStreetMap',
@@ -46,7 +47,7 @@ export const placesAdd = {
   tags: 'Tags',
   blurb: 'Blurb',
   blurbHint: 'One line, optional.',
-  isPublic: 'Show on the public Denver page',
+  isPublic: 'Show on the public map',
   publicOff: 'Off, so only you can see this place.',
   // Not drawn in the mockup: decision 15 (public only for a Denver place).
   publicOnlyDenver: 'Only a Denver place can be shown on the public page.',

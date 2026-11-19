@@ -165,7 +165,7 @@ export const denver = {
     addTitle: 'Add a spot',
     editTitle: 'Edit spot',
     coordsHint:
-      'Paste “latitude, longitude” or a maps link, e.g. 39.75, -104.99',
+      'Required. Paste “latitude, longitude” or a maps link, e.g. 39.75, -104.99',
     anchorHint: 'Measure candidates’ distance from here',
     publicHint: 'Show on the public map',
     city: 'City',

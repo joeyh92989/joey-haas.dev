@@ -1,7 +1,14 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useLocation, useNavigate } from 'react-router'
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { adminCopy } from '../content/adminCopy.js'
 import { localToday } from '../lib/statusMoves.js'
@@ -1622,5 +1629,111 @@ describe('AdminCollection tags', () => {
     expect(gridTitles()).toEqual(['Game 8'])
     await userEvent.click(screen.getByRole('button', { name: /Clear filters/ }))
     expect(gridTitles()).toHaveLength(10)
+  })
+})
+
+describe('AdminCollection add form feedback (#489)', () => {
+  const created = (id) => (url, options) =>
+    String(url).endsWith('/api/items') && options.method === 'POST'
+      ? { ok: true, status: 201, json: async () => ({ id }) }
+      : null
+
+  async function openForm() {
+    await userEvent.click(
+      await screen.findByText(adminCopy.collection.addWithFullForm),
+    )
+  }
+
+  it('draws a visible label for every field, not only placeholders', async () => {
+    stubApi()
+    renderPage()
+    await openForm()
+    for (const text of [
+      'Type',
+      'Title',
+      'Year',
+      'Status',
+      'Owned format',
+      'Platform',
+      'Copy format',
+      'Rating',
+    ]) {
+      const label = within(document.querySelector('.item-form')).getByLabelText(
+        text,
+      ).labels[0]
+      expect(label.tagName).toBe('LABEL')
+      expect(label).toBeVisible()
+      expect(label).toHaveTextContent(text)
+    }
+  })
+
+  it('marks Title and Owned format as required in words', async () => {
+    stubApi()
+    renderPage()
+    await openForm()
+    const required = screen.getAllByText(adminCopy.collection.required)
+    expect(required).toHaveLength(2)
+    expect(screen.getByLabelText('Owned format')).toBeRequired()
+  })
+
+  it('says what is missing inline instead of a browser tooltip, and sends nothing', async () => {
+    const mock = stubApi()
+    renderPage()
+    await openForm()
+    await userEvent.type(screen.getByLabelText('Title'), 'Metroid')
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(adminCopy.collection.chooseFormat)
+    const format = screen.getByLabelText('Owned format')
+    expect(format).toHaveAttribute('aria-invalid', 'true')
+    expect(format).toHaveFocus()
+    expect(writeCalls(mock)).toHaveLength(0)
+
+    await userEvent.selectOptions(format, 'physical')
+    expect(screen.queryByText(adminCopy.collection.chooseFormat)).toBeNull()
+  })
+
+  it('asks for a title inline too', async () => {
+    const mock = stubApi()
+    renderPage()
+    await openForm()
+    await userEvent.selectOptions(screen.getByLabelText('Owned format'), 'none')
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      adminCopy.collection.titleRequired,
+    )
+    expect(screen.getByLabelText('Title')).toHaveFocus()
+    expect(writeCalls(mock)).toHaveLength(0)
+  })
+
+  it('confirms an add with a link to the new item, clears the form, and refreshes the sidebar count', async () => {
+    stubApi({ onWrite: created('new-1') })
+    const refreshItems = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/admin/shelf/games']}>
+        <Routes>
+          <Route element={<Outlet context={{ refreshItems }} />}>
+            <Route path="/admin/shelf/games" element={<AdminCollection />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    await openForm()
+    await userEvent.type(screen.getByLabelText('Title'), 'Metroid')
+    await userEvent.selectOptions(
+      screen.getByLabelText('Owned format'),
+      'physical',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
+
+    const line = await screen.findByText(/Saved “Metroid”/)
+    expect(line).toHaveAttribute('role', 'status')
+    expect(
+      within(line).getByRole('link', { name: adminCopy.collection.openItem }),
+    ).toHaveAttribute('href', '/admin/collection/new-1')
+    expect(screen.getByLabelText('Title')).toHaveValue('')
+    expect(screen.getByLabelText('Owned format')).toHaveValue('')
+    await waitFor(() => expect(refreshItems).toHaveBeenCalled())
   })
 })

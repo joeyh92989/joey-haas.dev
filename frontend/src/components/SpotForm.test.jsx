@@ -412,4 +412,31 @@ describe('SpotForm city (story #343)', () => {
     })
     expect(onSaved).toHaveBeenCalled()
   })
+
+  it('says Coordinates are required, in a tip that is not the small grey hint (#491)', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    render(<SpotForm spot={null} onSaved={() => {}} onCancel={() => {}} />)
+    const coords = screen.getByLabelText('Coordinates')
+    expect(coords).toBeRequired()
+    expect(coords).toHaveAccessibleDescription(
+      /^Required\. Paste “latitude, longitude” or a maps link/,
+    )
+    const tip = document.getElementById(coords.getAttribute('aria-describedby'))
+    expect(tip).toHaveClass('coords-tip')
+  })
+
+  it('words the public switch the same on add and edit', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const { unmount } = render(
+      <SpotForm spot={null} onSaved={() => {}} onCancel={() => {}} />,
+    )
+    expect(screen.getByLabelText('Public')).toHaveAccessibleDescription(
+      'Show on the public map',
+    )
+    unmount()
+    render(<SpotForm spot={SPOT} onSaved={() => {}} onCancel={() => {}} />)
+    expect(screen.getByLabelText('Public')).toHaveAccessibleDescription(
+      'Show on the public map',
+    )
+  })
 })

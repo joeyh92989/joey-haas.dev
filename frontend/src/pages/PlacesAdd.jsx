@@ -582,7 +582,7 @@ export default function PlacesAdd() {
                       setTyped({ ...typed, coords: event.target.value })
                     }
                   />
-                  <p className="place-hint" id="place-type-coords-h">
+                  <p className="place-hint coords-tip" id="place-type-coords-h">
                     {words.coordsHint}
                   </p>
                   {typedError?.field === 'coords' && (
