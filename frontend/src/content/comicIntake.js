@@ -56,6 +56,11 @@ export const comicIntake = {
   badRange: 'Give the first and the last issue, first to last.',
   duplicate: 'Already in this sitting',
   addsHead: 'What this adds',
+  /** Check's list of the collected books typed in Details (`books_preview`). */
+  typedBooksHead: (n) => `Collected books it adds · ${n}`,
+  typedBook: (label, kind, from, to) =>
+    `${label} · ${kind} · #${from}${from === to ? '' : `–${to}`}`,
+  typedBookIsbn: (isbn) => `ISBN ${isbn}`,
   adds: (ranges) => `adds ${ranges}`,
   addsEdition: (edition) =>
     `adds ${edition.label} (${edition.kind}, #${edition.from}${
