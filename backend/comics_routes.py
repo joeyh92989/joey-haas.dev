@@ -28,6 +28,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import comic_contents
+import comic_metron
 import tags as tag_words
 from comic_issues import sync_series
 from comics import (
@@ -63,6 +64,7 @@ from comics_schemas import (
     IssueHitOut,
     IssuesSyncOut,
     MarkOut,
+    MetronProposalOut,
     PullListOut,
     RefreshAllOut,
     TagsGenerateOut,
@@ -304,10 +306,12 @@ def create_comics_router(
     registry: dict,
     lock: asyncio.Lock | None = None,
     provider_factory=None,
+    metron=None,
 ) -> APIRouter:
     """Builds `/api/comics`. `lock` serialises the ComicVine refreshes, which
     write every followed row; a second refresh meanwhile is a 409.
-    `provider_factory` builds the model the tag job asks (None: no model)."""
+    `provider_factory` builds the model the tag job asks (None: no model).
+    `metron` is the `MetronClient` for "Find contents" (None: not set up)."""
     lock = lock or asyncio.Lock()
     router = APIRouter(
         prefix="/api/comics",
@@ -1651,6 +1655,84 @@ def create_comics_router(
             "collects": view["collects"],
         }
 
+    @router.post(
+        "/volumes/{volume_id}/contents/metron", response_model=MetronProposalOut
+    )
+    async def find_volume_contents(
+        volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> dict:
+        """Proposes this volume's contents from Metron and writes NOTHING: the
+        owner Accepts through `PUT /volumes/{id}`, which stores the new entries
+        with source `metron`. Only `metron` rows are ever replaced by an Accept
+        (the page sends every other row back unchanged); an entry equal to a
+        typed, photo, migrated or parsed one is dropped from the proposal
+        (`skipped`), as `_apply_parsed` does. A Metron failure is a `status`
+        and a sentence, never a 500."""
+        volume = await session.get(ComicVolume, volume_id)
+        if volume is None:
+            raise HTTPException(status_code=404, detail="No such volume")
+        title = await session.get(Item, volume.item_id)
+        existing = list(
+            await session.scalars(
+                select(ComicVolumeCollect).where(
+                    ComicVolumeCollect.volume_id == volume.id
+                )
+            )
+        )
+        title_text, line, isbn = title.title, volume.line_number, volume.isbn
+        replaces = sum(1 for row in existing if row.source == "metron")
+        taken = {
+            (
+                comic_contents.normalize_name(r.series_name),
+                " ".join(r.issue_text.lower().split()),
+            )
+            for r in existing
+            if r.source != "metron"
+        }
+        await session.rollback()  # no transaction open across the network calls
+        if metron is None:
+            found = comic_metron.Found(
+                "not_configured", comic_metron.MESSAGES["not_configured"]
+            )
+        else:
+            found = await comic_metron.find_contents(
+                metron, title=title_text, line_number=line, isbn=isbn
+            )
+        candidates = []
+        for candidate in found.candidates:
+            kept = [
+                e
+                for e in candidate.entries
+                if (
+                    comic_contents.normalize_name(e.series_name),
+                    " ".join(e.issue_text.lower().split()),
+                )
+                not in taken
+            ]
+            candidates.append(
+                {
+                    "metron_id": candidate.metron_id,
+                    "title": candidate.title,
+                    "series_name": candidate.series_name,
+                    "series_type": candidate.series_type,
+                    "isbn": candidate.isbn,
+                    "pages": candidate.pages,
+                    "resource_url": candidate.resource_url,
+                    "strong": candidate.strong,
+                    "entries": [
+                        {"series_name": e.series_name, "issue_text": e.issue_text}
+                        for e in kept
+                    ],
+                    "skipped": len(candidate.entries) - len(kept),
+                }
+            )
+        return {
+            "status": found.status,
+            "message": found.message,
+            "candidates": candidates,
+            "replaces": replaces,
+        }
+
     @router.get("/volumes/{volume_id}", response_model=VolumeAdminOut)
     async def get_volume(
         volume_id: uuid.UUID, session: AsyncSession = Depends(get_session)
@@ -1785,11 +1867,21 @@ def create_comics_router(
                 if row is None:
                     raise _refuse(index, ["id"], "No such entry on this volume")
             unchanged = row is not None and same(row, entry)
-            if not unchanged and entry.source not in (None, "typed"):
+            fresh_metron = row is None and entry.source == "metron"
+            if (
+                not unchanged
+                and not fresh_metron
+                and entry.source not in (None, "typed")
+            ):
                 raise _refuse(
                     index, ["source"], "An entry you add or change is 'typed'"
                 )
-            plan.append((row, row.source if unchanged else "typed"))
+            plan.append(
+                (
+                    row,
+                    row.source if unchanged else "metron" if fresh_metron else "typed",
+                )
+            )
         if body.kind != volume.kind:
             volume.kind_raw = None  # the original text no longer describes it
         for field, value in body.model_dump(exclude={"collects"}).items():

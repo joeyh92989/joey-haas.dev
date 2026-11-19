@@ -229,7 +229,7 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "slug", "label", "kind", "line_number", "cover_url",
     }  # fmt: skip
     assert set(PublicVolumePage.model_fields) == {
-        "title", "volume", "collects", "prev", "next", "source_url",
+        "title", "volume", "collects", "prev", "next", "source_url", "metron_credit",
     }  # fmt: skip
     assert set(PublicVolumeTitle.model_fields) == {
         "id", "title", "cover_url", "publisher", "year",
