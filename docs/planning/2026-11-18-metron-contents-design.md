@@ -74,6 +74,12 @@ anything but contents; covers; the nightly jobs; a Render env var (the owner set
   (additive: widen the constraint; downgrade narrows it after mapping `metron` rows to
   `parsed`). Reconcile rule like `_apply_parsed`: a Metron re-run only replaces rows whose
   source is `metron`; typed, photo, migrated and parsed rows are never touched.
+- **Licence confirmed by Joey 2026-11-18:** Metron states its licence as
+  https://creativecommons.org/licenses/by-sa/4.0/ (CC BY-SA 4.0). Obligations we meet:
+  credit Metron, link the licence, say we changed it, and share adaptations under the same
+  licence. The credit line reads "Contents from Metron (metron.cloud), CC BY-SA 4.0,
+  reformatted into issue ranges", with both links, on every page that shows `metron` rows.
+  Those collects are the only part of the site under that licence; the rest is unchanged.
 - **Credit:** CC BY-SA needs attribution. A volume page whose collects include a `metron`
   row shows "Contents from Metron" linking `resource_url`, with the licence named. The
   public `source` stays unpublished; the page gets a boolean plus the link.
@@ -127,5 +133,5 @@ is inert in production. Smoke: public comics md5 unchanged; after the token is s
 
 ## Open questions
 
-- Metron's Terms of Service page was unreadable (bot block). Joey should read
-  https://metron.cloud's terms once before the token goes on Render.
+- Metron's separate Terms of Service page was unreadable (bot block); the licence itself is
+  settled (CC BY-SA 4.0). Joey may still skim the terms before the token goes on Render.
