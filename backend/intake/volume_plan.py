@@ -245,6 +245,18 @@ def typed_key(entry_id: uuid.UUID, index: int) -> uuid.UUID:
     return uuid.uuid5(entry_id, f"book-{index}")
 
 
+ADD_NAMESPACE = uuid.UUID("5d0b7a52-3c1e-4f0a-9a57-1b6f0c2f8e11")
+
+
+def add_entry_id(request_id: uuid.UUID | None) -> uuid.UUID | None:
+    """The transient entry id of an add-bar request: derived from the client's
+    `request_id`, so a retry of the same add has the same id and `typed_key`
+    makes its volumes idempotent. None (no id sent) is a fresh random id."""
+    if request_id is None:
+        return None
+    return uuid.uuid5(ADD_NAMESPACE, str(request_id))
+
+
 def title_key(name: str | None) -> str:
     """A title for comparing: case, a leading "The", `&` and punctuation do
     not tell two names apart."""

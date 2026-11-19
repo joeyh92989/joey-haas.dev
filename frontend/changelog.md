@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-18
 
+- Adding a book from the add bar and tapping again after a slow answer no longer makes a second copy of it.
 - Collected books can now be added by ISBN: type it or scan the barcode with the camera, and Open Library fills in the label and tells me if I already own that book. The ISBN is kept on the book, and if the lookup finds nothing I just type it in.
 - Adding comics by photo or by hand, the Details step now asks for the collected books I own (kind, label and the issues each collects), and each one becomes a book on the comic’s page, the same as a photographed one.
 - The add-a-comic form no longer has rows for collected editions: books are added from the comic’s own page, as volumes.

@@ -1089,3 +1089,55 @@ async def test_the_add_bar_places_an_unshared_book_on_its_own_title(
     assert new["title"] == "Waterworld: Year One" and new["title_created"] is True
     own = (await _titles(sessionmaker_for_test))["Waterworld: Year One"]
     assert (own.external_source, own.external_id) == (None, None)
+
+
+BLANKETS = {
+    "kind": "comic",
+    "payload": {"title": "Blankets", "format": "collected", "edition_kind": "ogn"},
+}
+
+
+@pytest.mark.asyncio
+async def test_an_add_bar_retry_with_the_same_request_id_writes_one_volume(
+    sessionmaker_for_test,
+):
+    body = {**BLANKETS, "request_id": str(uuid.uuid4())}
+    async with client_for(sessionmaker_for_test) as client:
+        first = await client.post("/api/intake/add", json=body)
+        second = await client.post("/api/intake/add", json=body)
+    assert first.status_code == 201, first.text
+    assert second.status_code == 200, second.text
+    assert second.json()["already_owned"] == 1
+    assert second.json()["volumes_new"] == []
+    assert await _count(sessionmaker_for_test, ComicVolume) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_new_request_id_is_a_new_add_and_none_behaves_as_before(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        for extra in (
+            {"request_id": str(uuid.uuid4())},
+            {"request_id": str(uuid.uuid4())},
+            {},
+            {},
+        ):
+            response = await client.post("/api/intake/add", json={**BLANKETS, **extra})
+            assert response.status_code in (200, 201), response.text
+            assert response.json()["volumes_new"], response.text
+    assert await _count(sessionmaker_for_test, ComicVolume) == 4
+
+
+@pytest.mark.asyncio
+async def test_typed_books_of_a_retried_add_are_written_once(sessionmaker_for_test):
+    trade = {"kind": "Trade", "label": "A", "from": 1, "to": 3}
+    body = {
+        "kind": "comic",
+        "request_id": str(uuid.uuid4()),
+        "payload": {"title": "Maus", "shelf_format": "trades", "books": [trade, trade]},
+    }
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post("/api/intake/add", json=body)
+        await client.post("/api/intake/add", json=body)
+    assert await _count(sessionmaker_for_test, ComicVolume) == 2

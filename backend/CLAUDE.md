@@ -558,9 +558,13 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   label}` of an owned volume of the same title and kind that already links
   the same range: a warning only, the commit still writes the second book);
   `title_will_be_created` is false when a same-named title will be reused;
-  no model call, no network. **Known limit:** an add-bar retry has no
-  idempotence key (`/add` sends none), so a repeated request makes a second
-  volume. **Typed books (3b/5):** the collected books Details types on a comic entry
+  no model call, no network. **Add-bar retries:** `POST /api/intake/add` takes an optional
+  `request_id` (uuid, one per add action in the page, reused by its retries);
+  the route derives the transient entry id from it
+  (`volume_plan.add_entry_id`, a uuid5), so the volumes' `intake_entry_id`s
+  repeat and a second request writes nothing (200, `already_owned` 1, not the
+  first answer again: no result is stored). No id behaves as before. Only
+  books are idempotent this way; a closet garment add is not. **Typed books (3b/5):** the collected books Details types on a comic entry
   (`payload.books`, rows of kind, label, from, to; trades or omnibus rows of
   an entry that is not a photographed book) are volumes through the same
   `_write_volumes`: slug `vol-<n>`, `edited`, one `typed` collects row linked
