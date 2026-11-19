@@ -313,6 +313,33 @@ describe('DidYouGo', () => {
     ).toBeVisible()
   })
 
+  it('drops only the answered row’s hide when its re-read lands', async () => {
+    const user = userEvent.setup()
+    stub()
+    const releases = []
+    const onChanged = vi.fn(
+      () => new Promise((resolve) => releases.push(() => resolve(true))),
+    )
+    setup([BALL, GARDENS], onChanged)
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Ball Arena' }),
+    )
+    await waitFor(() => expect(releases).toHaveLength(1))
+    await user.click(
+      screen.getByRole('button', { name: 'Didn’t go: Denver Botanic Gardens' }),
+    )
+    await waitFor(() => expect(releases).toHaveLength(2))
+    // A's read lands first (the server still lists both here): A shows
+    // again, B stays hidden until its own read lands.
+    await act(async () => releases[0]())
+    expect(
+      await screen.findByRole('button', { name: 'Been: Ball Arena' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: /Been: Denver Botanic/ }),
+    ).toBeNull()
+  })
+
   it('keeps the local hide when the re-read fails', async () => {
     const user = userEvent.setup()
     stub()

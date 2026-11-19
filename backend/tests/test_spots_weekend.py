@@ -765,6 +765,20 @@ async def test_saving_into_an_answered_slot_clears_the_answer(sessionmaker_for_t
     assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == []
 
 
+async def test_saving_the_same_spot_again_keeps_the_answer(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids, day="2026-11-14")
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        # The same spot into the same slot, on another day.
+        await _save_park(client, ids, day="2026-11-15")
+    stored = await _setting(sessionmaker_for_test, WEEK)
+    assert stored["didnt"] == ["best"]
+    assert stored["days"] == {"best": "2026-11-15"}
+
+
 async def test_a_skip_that_releases_a_slot_clears_its_answer(sessionmaker_for_test):
     ids = await _spots(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:

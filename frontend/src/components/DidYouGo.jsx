@@ -139,7 +139,7 @@ export default function DidYouGo({ asks, onChanged }) {
       setNote('')
       setKid(null)
       focusNext.current = '[data-been]'
-      reread()
+      reread(key)
       return
     }
     focusNext.current = verdict
@@ -153,17 +153,23 @@ export default function DidYouGo({ asks, onChanged }) {
           ? copy.maybeLogged(ask.spot_name)
           : copy.maybeDidnt(ask.spot_name),
       })
-      reread()
+      reread(key)
       return
     }
     setFailure({ key, text: failureWords(result) })
   }
 
-  /** Read the plan again; once it lands the server decides what shows, so the
-   * local hide is dropped. A failed read keeps it. */
-  async function reread() {
+  /** Read the plan again; once it lands the server decides about the row that
+   * asked, so its local hide is dropped (and only its: another row answered
+   * meanwhile stays hidden until its own read lands). A failed read keeps it. */
+  async function reread(key) {
     const landed = await onChanged()
-    if (landed && live.current) setAnswered(new Set())
+    if (!landed || !live.current) return
+    setAnswered((current) => {
+      const next = new Set(current)
+      next.delete(key)
+      return next
+    })
   }
 
   function notNow() {

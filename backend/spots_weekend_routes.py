@@ -281,6 +281,8 @@ def create_weekend_router(
         for key in keys:
             week = _clean_week(stored.get(key))
             weeks.append({"week_key": key.removeprefix("plan:"), **week})
+        # A pure optimisation: a slot older than the look-back is never read, so
+        # an older visit could not change an ask. Not observable in a test.
         oldest = at.date() - timedelta(
             days=at.weekday(), weeks=planner.LOOK_BACK_WEEKS - 1
         )
@@ -406,7 +408,10 @@ def create_weekend_router(
             same_day = day is not None and week["days"].get(slot) == day
             if same_day or week["saved"][slot] == target:
                 _release(week, slot)
-        week["didnt"] = [s for s in week["didnt"] if s != payload.slot_key]
+        # A new occupant is a new question; the same spot kept (say, with a
+        # new day) keeps its answer.
+        if week["saved"].get(payload.slot_key) != target:
+            week["didnt"] = [s for s in week["didnt"] if s != payload.slot_key]
         week["saved"][payload.slot_key] = target
         if day is None:
             week["days"].pop(payload.slot_key, None)

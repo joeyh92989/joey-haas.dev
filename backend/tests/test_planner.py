@@ -475,7 +475,9 @@ def test_the_iso_year_end_week_is_read():
 
 
 def test_the_evening_boundary_holds_on_the_fall_back_sunday():
-    # 1 November 2026: clocks go back at 2 am, the wall clock still reads 18:00.
+    # Pins the wall-clock behaviour only (the rule reads `now.hour` as the
+    # Denver wall clock): 1 November 2026 is the fall-back Sunday and 18:00
+    # on it is still the evening hour.
     day = date(2026, 11, 1)
     week = _week(key="2026-W44", days={"best": day.isoformat()})
     assert _asks([week], _at(day, 17, 59)) == []

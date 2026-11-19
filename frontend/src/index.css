@@ -15251,8 +15251,14 @@ fieldset.lo-field {
 
 /* Did you go? (story #349): the rows under the weekend header. Mockup:
    docs/planning/2026-11-19-did-you-go/a-cards.html. */
+/* The page header leaves --space-5 above the next row; the mockup has --space-4
+   (header margin plus the grid gap), so the block pulls up by one gap. */
+.dyg-wrap {
+  margin-top: calc(-1 * var(--space-4));
+}
+
 .dyg-wrap .panel + .wk-toast:not(:empty) {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .dyg-count {
@@ -15312,10 +15318,17 @@ fieldset.lo-field {
 }
 
 .dyg-extras {
+  font-size: var(--fs-14);
   justify-self: start;
   margin-left: 0;
   min-height: 44px;
+  padding: 0;
   text-align: left;
+  text-decoration: none;
+}
+
+.dyg-extras:hover {
+  text-decoration: underline;
 }
 
 .dyg-ask-kicker {
