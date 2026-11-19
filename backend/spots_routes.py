@@ -197,6 +197,7 @@ class HistoryOutingOut(BaseModel):
     verdict: OutingVerdict | None
     kid_along: bool | None
     note: str | None
+    tags: list[str]
 
 
 class YearCountsOut(BaseModel):
@@ -661,6 +662,7 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 verdict=visit.verdict,
                 kid_along=visit.kid_along,
                 note=visit.note,
+                tags=spots.canonical_tags(spot.tags or []),
             )
             for visit, spot in rows
         ]
