@@ -128,7 +128,7 @@ services:
       # cross-origin connection (admin pages and /shelf, plus the beacon).
       - path: /*
         name: Content-Security-Policy-Report-Only
-        value: "default-src 'self'; script-src 'self' 'sha256-a/lqY4++pB/+B6a90vrqI9gmwIq3xLUa6SLE9og55G0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.igdb.com https://comicvine.gamespot.com; font-src 'self'; connect-src 'self' https://api.joey-haas.dev; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        value: "default-src 'self'; script-src 'self' 'sha256-a/lqY4++pB/+B6a90vrqI9gmwIq3xLUa6SLE9og55G0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.igdb.com https://comicvine.gamespot.com https://covers.openlibrary.org https://archive.org https://*.archive.org; font-src 'self'; connect-src 'self' https://api.joey-haas.dev; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       # Hashed build output: the file name changes with its content, so a
       # copy can be kept for a year. HTML is deliberately not matched. Trip
       # photos (/travel/<slug>/*.webp) are not covered: their names are not
