@@ -222,7 +222,8 @@ def shelf():
         if owned_books:
             # What `owned_volume_shelf` returns, so the stats come from the
             # real `comic_stats` over the same books as the rows.
-            books[s.id] = (len(owned_books), numbers)
+            unnumbered = sum(v.line_number is None for v in owned_books)
+            books[s.id] = (len(owned_books), numbers, unnumbered)
         rows.append(
             _row(
                 items[kind],
@@ -231,6 +232,7 @@ def shelf():
                 marks[items[kind].id],
                 len(owned_books),
                 numbers,
+                sum(v.line_number is None for v in owned_books),
             )
         )
         assert rows[-1].kind == kind, (rows[-1].kind, kind)

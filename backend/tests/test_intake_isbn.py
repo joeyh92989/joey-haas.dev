@@ -215,3 +215,26 @@ async def test_writing_the_same_book_twice_makes_one_volume(sessionmaker_for_tes
         rows = list(await session.scalars(select(ComicVolume)))
     assert (first[1], second[1]) == (True, False)
     assert [v.isbn for v in rows] == [SAGA]
+
+
+@pytest.mark.asyncio
+async def test_check_previews_a_typed_book_with_its_isbn_and_leaves_adds_alone(
+    sessionmaker_for_test,
+):
+    """Typed books are not in `adds` (the pinned shape); they have their own
+    `books_preview`, which is what the commit writes, ISBN included."""
+    book = {**TRADE, "isbn": SAGA}
+    entries = [("comic", S.READY, _typed(book, TRADE), _series())]
+    sitting_id = await _seed(sessionmaker_for_test, entries=entries)
+    async with client_for(sessionmaker_for_test) as client:
+        [entry] = (await client.get(f"/api/intake/sittings/{sitting_id}")).json()[
+            "entries"
+        ]
+        assert (await _commit(client, sitting_id)).status_code == 200
+    assert "isbn" not in entry["adds"]
+    previewed = [
+        (b["label"], b["edition_kind"], b["isbn"]) for b in entry["books_preview"]
+    ]
+    written = [(v.label, v.kind, v.isbn) for v in await _volumes(sessionmaker_for_test)]
+    assert sorted(previewed, key=str) == sorted(written, key=str)
+    assert {b["isbn"] for b in entry["books_preview"]} == {SAGA, None}

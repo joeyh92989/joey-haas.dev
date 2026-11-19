@@ -362,7 +362,7 @@ All under `/api/intake`, admin only (`items.require_admin`).
 | `POST /sittings/{id}/read-next` | Read one waiting photo (the page drives it) |
 | `POST /sittings/{id}/entries`, `PATCH /entries/{id}` | Typed and chosen entries |
 | `GET /search?area=&query=` | The add bar's search across the area's sources (`search.py`) |
-| `POST /add` | One thing from the add bar, through the commit service |
+| `POST /add` | One thing from the add bar, through the commit service; an optional `request_id` makes a retried book add write once |
 | `POST /sittings/{id}/file` | The closet's From a file: a seed CSV (multipart `file`, at most 1 MB) into the sitting's draft entries; answers this file's counts and `problems`; moves the sitting to Check. 409 for a shelf sitting, 413 over the limit, 422 for a file that is not a seed file |
 | `POST /sittings/{id}/seed-images` | Fetch the next few file pieces' photos (once each); answers the entries it changed and `pending` |
 | `POST /entries/{id}/not-owned` | Check's Don't own this (file pieces only; 409 otherwise) |
@@ -454,7 +454,8 @@ spaces dropped, an ISBN-10 converted, the check digit verified) and a bad one
 is a `BookEditError` on field `books`, so `PATCH /entries/{id}` answers 422
 and the commit never meets it. `volume_plan.typed_plans` puts it on the
 `VolumePlan` and `write_volume` writes `comic_volumes.isbn`; idempotence is
-unchanged (`typed_key` per book). No migration: the column exists. A
+unchanged (`typed_key` per book). Check shows the typed books, ISBN included,
+under the entry's `books_preview` (beside `adds`, not in it). No migration: the column exists. A
 photographed book carries no ISBN.
 
 **Why a route and not a source in the registry:** the lookup answers "what is

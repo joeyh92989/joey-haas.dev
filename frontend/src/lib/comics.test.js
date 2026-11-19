@@ -157,41 +157,47 @@ describe('the Books and Single issues chips', () => {
 
 describe('volumesOwnedText', () => {
   it.each([
-    [[1], 1, undefined, 'Vol. 1'],
-    [[2], 1, undefined, 'Vol. 2'],
-    [[1, 2], 2, undefined, 'Vol. 1 and 2'],
-    [[1, 2, 4], 3, undefined, 'Vol. 1, 2 and 4'],
-    [[1, 2, 3], 3, undefined, 'Vol. 1, 2 and 3'],
+    [[1], 0, undefined, 'Vol. 1'],
+    [[2], 0, undefined, 'Vol. 2'],
+    [[1, 2], 0, undefined, 'Vol. 1 and 2'],
+    [[1, 2, 4], 0, undefined, 'Vol. 1, 2 and 4'],
+    [[1, 2, 3], 0, undefined, 'Vol. 1, 2 and 3'],
     // Out of order and repeated numbers are read as a set.
-    [[4, 1, 2, 2], 3, undefined, 'Vol. 1, 2 and 4'],
+    [[4, 1, 2, 2], 0, undefined, 'Vol. 1, 2 and 4'],
     // Eight numbers or fewer stay plain, even a run of three or more.
-    [[1, 2, 3, 4, 5, 6, 7, 8], 8, undefined, 'Vol. 1, 2, 3, 4, 5, 6, 7 and 8'],
+    [[1, 2, 3, 4, 5, 6, 7, 8], 0, undefined, 'Vol. 1, 2, 3, 4, 5, 6, 7 and 8'],
     // More than eight: a consecutive run of three or more is "a to b".
     [
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15],
-      14,
+      0,
       undefined,
       'Vol. 1 to 12, 14 and 15',
     ],
     // A run of two stays two numbers.
     [
       [1, 2, 4, 5, 6, 7, 9, 10, 12],
-      9,
+      0,
       undefined,
       'Vol. 1, 2, 4 to 7, 9, 10 and 12',
     ],
-    [[1, 2, 3, 4, 5, 6, 7, 8, 9], 9, undefined, 'Vol. 1 to 9'],
-  ])('numbers %j of %i books -> %s', (numbers, owned, size, text) => {
-    expect(volumesOwnedText(numbers, owned, size)).toBe(text)
+    [[1, 2, 3, 4, 5, 6, 7, 8, 9], 0, undefined, 'Vol. 1 to 9'],
+  ])('numbers %j, %i unnumbered -> %s', (numbers, unnumbered, size, text) => {
+    expect(volumesOwnedText(numbers, unnumbered, size)).toBe(text)
   })
 
-  it('adds the books with no number, from the owned count minus the numbered', () => {
-    expect(volumesOwnedText([1, 2, 4], 4)).toBe(
+  it('adds the books with no number, as the API counts them', () => {
+    expect(volumesOwnedText([1, 2, 4], 1)).toBe(
       'Vol. 1, 2 and 4, and 1 book with no number',
     )
-    expect(volumesOwnedText([1], 3)).toBe('Vol. 1, and 2 books with no number')
+    expect(volumesOwnedText([1], 2)).toBe('Vol. 1, and 2 books with no number')
     expect(volumesOwnedText([], 2)).toBe('2 books with no number')
     expect(volumesOwnedText([], 1)).toBe('1 book with no number')
+  })
+
+  it('says nothing is unnumbered for two books that share a number', () => {
+    // Two owned books both numbered 3: the API sends [3] and 0 unnumbered.
+    expect(volumesOwnedText([3], 0)).toBe('Vol. 3')
+    expect(volumesOwnedText([3, 3], 0)).toBe('Vol. 3')
   })
 
   it('says nothing for no books at all', () => {
@@ -200,9 +206,9 @@ describe('volumesOwnedText', () => {
   })
 
   it('prints "of N" only when a line size is given, which nothing passes yet', () => {
-    expect(volumesOwnedText([1, 2, 4], 3)).not.toMatch(/ of /)
-    expect(volumesOwnedText([1, 2, 4], 3, 6)).toBe('Vol. 1, 2 and 4 of 6')
-    expect(volumesOwnedText([1], 1, 6)).toBe('Vol. 1 of 6')
+    expect(volumesOwnedText([1, 2, 4], 0)).not.toMatch(/ of /)
+    expect(volumesOwnedText([1, 2, 4], 0, 6)).toBe('Vol. 1, 2 and 4 of 6')
+    expect(volumesOwnedText([1], 0, 6)).toBe('Vol. 1 of 6')
     // No number to be "of" a size: the size is left out.
     expect(volumesOwnedText([], 2, 6)).toBe('2 books with no number')
     expect(volumesOwnedText([1], 2, 0)).not.toMatch(/ of /)
@@ -245,6 +251,30 @@ describe('kindSummary', () => {
         row({ kind: 'both', volumes_owned: 2, volume_numbers: [1, 3] }),
       ),
     ).toMatchObject({ word: 'Books and issues', volumes: 'Vol. 1 and 3' })
+  })
+
+  it('counts "no number" only for books with no line number', () => {
+    // Two owned books share line number 3: both are numbered.
+    expect(
+      kindSummary(
+        row({
+          kind: 'book_line',
+          volumes_owned: 2,
+          volume_numbers: [3],
+          volumes_unnumbered: 0,
+        }),
+      ).volumes,
+    ).toBe('Vol. 3')
+    expect(
+      kindSummary(
+        row({
+          kind: 'book_line',
+          volumes_owned: 2,
+          volume_numbers: [3],
+          volumes_unnumbered: 1,
+        }),
+      ).volumes,
+    ).toBe('Vol. 3, and 1 book with no number')
   })
 
   it('reads an older row or an unknown kind as a run', () => {

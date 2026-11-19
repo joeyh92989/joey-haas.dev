@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import bookLine from '../../e2e/fixtures/api/public-comic-book_line.json'
 import both from '../../e2e/fixtures/api/public-comic-both.json'
-import BookWall from './BookWall.jsx'
+import BookWall, { haveLine } from './BookWall.jsx'
 
 // Bodies come from the backend's own PublicItemDetailOut
 // (backend/scripts/export_public_comic_fixtures.py).
@@ -65,6 +65,17 @@ describe('BookWall', () => {
       screen.getByText('I have Vol. 1, 2 and 4, and 1 book with no number.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/ of \d/)).toBeNull()
+  })
+
+  it('does not call a book with a shared number unnumbered', () => {
+    expect(
+      haveLine({
+        volumes: [
+          { slug: 'a', line_number: 3 },
+          { slug: 'b', line_number: 3 },
+        ],
+      }),
+    ).toBe('I have Vol. 3.')
   })
 
   it('lists plain book tiles in order when no book has a number', () => {

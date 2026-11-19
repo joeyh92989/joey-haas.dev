@@ -336,3 +336,32 @@ async def test_the_comic_issues_index_carries_the_kind_for_the_prerender(
         "Line": "book_line",
         "Saga": "run",
     }
+
+
+async def test_unnumbered_counts_only_books_with_no_line_number(
+    sessionmaker_for_test,
+):
+    """Two owned books sharing line number 3 are both numbered; only a book
+    with no line_number is unnumbered."""
+    shared = await _seed(
+        sessionmaker_for_test,
+        _title("Shared"),
+        lambda i: _volume(i, "vol-3", 0, line_number=3),
+        lambda i: _volume(i, "vol-3b", 1, line_number=3),
+    )
+    loose = await _seed(
+        sessionmaker_for_test,
+        _title("Loose"),
+        lambda i: _volume(i, "vol-1", 0, line_number=1),
+        lambda i: _volume(i, "vol-x", 1),
+        lambda i: _volume(i, "vol-y", 2, owned=False),
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        rows = (await client.get("/api/public/comics")).json()["series"]
+    by_id = {r["item_id"]: r for r in rows}
+    assert (
+        by_id[str(shared)]["volumes_owned"],
+        by_id[str(shared)]["volume_numbers"],
+    ) == (2, [3])
+    assert by_id[str(shared)]["volumes_unnumbered"] == 0
+    assert by_id[str(loose)]["volumes_unnumbered"] == 1

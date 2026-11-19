@@ -20,6 +20,7 @@ import GarmentCheck from './GarmentCheck.jsx'
 import LinkCheck from './LinkCheck.jsx'
 import SeedCheck from './SeedCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
+import TypedBooksPreview from './TypedBooksPreview.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
 
 /**
@@ -371,6 +372,12 @@ export default function CheckStep({
           onSave={saveBook}
           busy={busy}
           errors={bookErrors}
+        />
+      )}
+
+      {!closet && (
+        <TypedBooksPreview
+          entries={live(sitting.entries).filter((e) => e.state !== 'ignored')}
         />
       )}
 

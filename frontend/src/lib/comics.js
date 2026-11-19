@@ -137,22 +137,21 @@ function numberTokens(numbers) {
 
 /**
  * Which books of a line are owned, as words: "Vol. 1, 2 and 4". Books with no
- * number are added after ("and 1 book with no number"): the owned count minus
- * the numbered. The line's size is not stored anywhere, so it is printed
+ * number are added after ("and 1 book with no number"): the count the API
+ * gives of owned books with no line number (two books sharing a number are
+ * both numbered). The line's size is not stored anywhere, so it is printed
  * ("of 6") only when a caller passes one, which nothing does yet.
  *
  * @param {number[]|undefined} numbers - The owned books' line numbers.
- * @param {number} volumesOwned - How many books are owned in all.
+ * @param {number} unnumbered - How many owned books have no line number.
  * @param {number} [lineSize] - How many books the line has, when known.
  * @returns {string} Empty when no book is owned.
  */
-export function volumesOwnedText(numbers, volumesOwned, lineSize) {
+export function volumesOwnedText(numbers, unnumbered, lineSize) {
   const sorted = [...new Set(numbers ?? [])].sort((a, b) => a - b)
-  const unnumbered = Math.max(0, (volumesOwned ?? 0) - sorted.length)
+  const loose = Math.max(0, unnumbered ?? 0)
   const extra =
-    unnumbered > 0
-      ? `${unnumbered} ${unnumbered === 1 ? 'book' : 'books'} with no number`
-      : ''
+    loose > 0 ? `${loose} ${loose === 1 ? 'book' : 'books'} with no number` : ''
   if (sorted.length === 0) return extra
   const tokens = numberTokens(sorted)
   const list =
@@ -177,7 +176,7 @@ export function kindSummary(row) {
   const text =
     kind === 'run' || (kind === 'single_book' && numbers.length === 0)
       ? ''
-      : volumesOwnedText(numbers, row.volumes_owned ?? numbers.length)
+      : volumesOwnedText(numbers, row.volumes_unnumbered ?? 0)
   return { kind, word: spine.comics.kinds[kind], volumes: text || null }
 }
 

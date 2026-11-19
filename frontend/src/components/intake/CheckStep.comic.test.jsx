@@ -233,3 +233,47 @@ describe('CheckStep line number', () => {
     })
   })
 })
+
+describe('typed collected books in Check', () => {
+  const typed = (state = 'ready') => ({
+    id: 't1',
+    photo_id: 'p9',
+    kind: 'comic',
+    state,
+    chosen,
+    candidates: [],
+    payload: { shelf_format: 'trades' },
+    on_shelf: null,
+    adds: { kind: 'issue', issue_number: null },
+    books_preview: [
+      {
+        label: 'Vol. 1',
+        edition_kind: 'trade',
+        from: 1,
+        to: 6,
+        isbn: '9781607066019',
+      },
+      {
+        label: 'Deluxe',
+        edition_kind: 'hardcover',
+        from: 7,
+        to: 7,
+        isbn: null,
+      },
+    ],
+  })
+
+  it('lists each typed book with its kind, range and ISBN', () => {
+    step([typed()])
+    expect(screen.getByText('Collected books it adds · 2')).toBeInTheDocument()
+    const first = screen.getByText(/Vol\. 1 · Trade paperback · #1–6/)
+    expect(first).toHaveTextContent('ISBN 9781607066019')
+    const second = screen.getByText(/Deluxe · Hardcover · #7/)
+    expect(second).not.toHaveTextContent('ISBN')
+  })
+
+  it('draws nothing for an unticked entry or one with no typed books', () => {
+    step([typed('ignored'), { ...book(2, 3) }])
+    expect(screen.queryByText(/Collected books it adds/)).toBeNull()
+  })
+})
