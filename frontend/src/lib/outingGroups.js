@@ -1,4 +1,5 @@
 import { history } from '../content/outings.js'
+import { cityLabel, spotCity } from './cities.js'
 import { MONTH_YEAR_LONG, WEEKDAY_DAY } from './formatDate.js'
 
 /** A stored 'YYYY-MM-DD' as a UTC noon instant, so no zone shifts the day. */
@@ -72,7 +73,12 @@ export function headingOf(outing) {
 
 /** The place line: neighbourhood and city, led by the name when a title heads the row. */
 export function placeLine(outing) {
-  const where = [outing.neighbourhood, outing.city].filter(Boolean).join(', ')
+  const where = [
+    outing.neighbourhood,
+    outing.city && cityLabel(spotCity(outing)),
+  ]
+    .filter(Boolean)
+    .join(', ')
   return outing.title
     ? [outing.spot_name, where].filter(Boolean).join(', ')
     : where

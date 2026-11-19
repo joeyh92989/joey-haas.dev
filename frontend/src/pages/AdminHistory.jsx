@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -89,7 +88,6 @@ function Row({ outing }) {
  * only. A free filter slot sits under the header for story #348.
  */
 export default function AdminHistory() {
-  useOutletContext()
   const [data, setData] = useState(null)
   const [failed, setFailed] = useState(null)
   const [ended, setEnded] = useState(false)
@@ -174,7 +172,8 @@ export default function AdminHistory() {
         />
       ) : (
         <>
-          {failed && (
+          {ended && <LoadState ended />}
+          {failed && !ended && (
             <LoadState failed stale staleMessage={failed} onRetry={retry} />
           )}
           {groupOutings(rows).map((group) => (

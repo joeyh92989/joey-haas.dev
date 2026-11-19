@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import process from 'node:process'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   groupOutings,
@@ -11,7 +12,7 @@ const o = (visited_on, precision = 'day', more = {}) => ({
   id: visited_on + precision,
   spot_name: 'Place',
   neighbourhood: 'Highland',
-  city: 'Denver',
+  city: 'denver',
   title: null,
   visited_on,
   precision,
@@ -19,12 +20,6 @@ const o = (visited_on, precision = 'day', more = {}) => ({
 })
 
 describe('groupOutings', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-01-01T07:00:00Z'))
-  })
-  afterEach(() => vi.useRealTimers())
-
   it('groups by month, keeping the order given', () => {
     const groups = groupOutings([
       o('2026-11-14'),
@@ -66,6 +61,26 @@ describe('groupOutings', () => {
 })
 
 describe('whenWords', () => {
+  const zone = process.env.TZ
+  afterEach(() => {
+    if (zone === undefined) delete process.env.TZ
+    else process.env.TZ = zone
+  })
+
+  // Catches a formatter that reads the stored day in the local zone. It
+  // does not prove the zone in a real browser, only that this code does not
+  // depend on the machine's zone.
+  it('keeps the stored day in a zone far west of Greenwich', () => {
+    process.env.TZ = 'Pacific/Honolulu'
+    // The trap is real here: a bare local-time read shifts the day back.
+    expect(new Date('2026-11-14').getDate()).toBe(13)
+    expect(whenWords(o('2026-11-14')).text).toBe('Sat, Nov 14')
+    expect(whenWords(o('2026-12-01', 'month')).text).toBe(
+      'Some time in December 2026',
+    )
+    expect(groupOutings([o('2026-01-01')])[0].label).toBe('January 2026')
+  })
+
   it('names a day with its weekday', () => {
     expect(whenWords(o('2026-11-14'))).toEqual({
       text: 'Sat, Nov 14',
@@ -85,6 +100,11 @@ describe('heading and place line', () => {
     const t = o('2026-11-14', 'day', { title: 'Game' })
     expect(headingOf(t)).toBe('Game')
     expect(placeLine(t)).toBe('Place, Highland, Denver')
+  })
+  it('writes a multi-word city key as a label', () => {
+    expect(placeLine(o('2026-11-14', 'day', { city: 'fort collins' }))).toBe(
+      'Highland, Fort Collins',
+    )
   })
   it('heads with the name when there is no title', () => {
     expect(headingOf(o('2026-11-14'))).toBe('Place')

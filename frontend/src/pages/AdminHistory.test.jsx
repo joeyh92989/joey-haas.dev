@@ -10,7 +10,7 @@ const outing = (id, visited_on, more = {}) => ({
   spot_id: id,
   spot_name: `Place ${id}`,
   neighbourhood: 'Highland',
-  city: 'Denver',
+  city: 'denver',
   visited_on,
   precision: 'day',
   title: null,

@@ -14878,14 +14878,11 @@ fieldset.lo-field {
 .history-saved {
   color: var(--text-2);
   font-size: var(--fs-14);
+  margin-bottom: var(--space-3);
 }
 
 .history-saved:empty {
   display: none;
-}
-
-.history-saved {
-  margin-bottom: var(--space-3);
 }
 
 .history-group {
