@@ -26,7 +26,19 @@ field; #337 was closed on that basis, then reopened here).
 - Issue list filters (from the published OpenAPI spec): `series_name`, `number`,
   `series_volume`, `series_year_began`, `publisher_name`, `upc`, `sku`, `cv_id`,
   `gcd_id`. **There is no `isbn` filter**, so the ISBN is a match check, not a key.
-- Reported limits (secondary sources, unverified): 20 requests per minute, 5,000 per day.
+- Rate limits: the docs say limits are per user/IP, sent as `X-RateLimit-Burst-*` and
+  `X-RateLimit-Sustained-*` headers, with a 429 on excess. The numbers are not on the page
+  (they point to a RATELIMIT.md). The adapter reads the headers and backs off; it does not
+  hard-code a figure. A few calls per click is far inside any sane limit.
+- **Confirmed from the API docs Joey pasted (2026-11-18):** Bearer token auth from the
+  account's API Tokens section, any authenticated user may read everything; `isbn` is on the
+  issue detail and there is **no** ISBN list filter (`upc`, `sku`, `series_name`,
+  `series_volume`, `series_year_began`, `cv_id`, `gcd_id` exist); `reprints` is documented
+  as "Reprinted issues"; `series.series_type` names the collected types (Trade Paperback,
+  Hardcover); detail responses carry a read-only `attribution` list of sources; detail
+  endpoints support `If-Modified-Since` (304); the docs ask clients to cache responses,
+  include a User-Agent and handle 429. The site footer says the content is licensed CC BY-SA
+  4.0 "except where noted otherwise". The Terms of Service were still not read.
 - Licence: the API spec declares **CC BY-SA 4.0** (credit, link back, share-alike).
   The Metron site's Terms page could not be read (bot block): not verified.
   Server code is GPL-3.0; we copy none.
@@ -68,6 +80,8 @@ anything but contents; covers; the nightly jobs; a Render env var (the owner set
 - **Token:** `METRON_TOKEN` optional in `config.py` (never `_REQUIRED`, per the lazy
   config rule in `sources/README.md`). Absent: the button explains it is not configured
   and nothing else changes. Never logged; the HTTP loggers stay at WARNING.
+- **Etiquette (from their docs):** a User-Agent naming joey-haas.dev, back off on 429 using
+  the reset headers, and send `If-Modified-Since` on re-checks of a stored candidate.
 - **Budget:** no LLM. Throttle 1 call/s, TIMEOUT 15, typed errors from `sources/base.py`.
   A 429/401/timeout is a plain message, never a 500.
 - **Rejected:** GCD (no collects), Wikidata (empty for Saga), Open Library (no contents),
