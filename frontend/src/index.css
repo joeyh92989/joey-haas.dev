@@ -8234,7 +8234,7 @@ main h1[tabindex='-1']:focus,
 
 @media (max-width: 34rem) {
   .tour-toc a {
-    grid-template-columns: 2rem 1fr;
+    grid-template-columns: 2rem minmax(0, 1fr);
   }
 
   .tour-toc-where {
@@ -8246,7 +8246,7 @@ main h1[tabindex='-1']:focus,
   }
 
   .tour-stop-cols {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .tour-capture-table {
