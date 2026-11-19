@@ -100,7 +100,8 @@ function parsed(iso) {
  * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null|undefined} run
  * @param {{key: string, label: string, runNow: string, runWords?: string, firstRun?: string, hours: number, ok: string, quiet: Record<string, string>, failed?: string[]}} job
  *   `quiet` words the run states that succeeded without finding anything;
- *   `runWords` replaces "Run now" when the page it links to runs nothing;
+ *   `runWords` words the link to the page that shows the job: none of these
+ *   links starts a job, so none says "Run now";
  *   `firstRun` says when a weekly job that has never run will first run.
  * @param {(at: number|null, hours: number) => string} age
  */
@@ -191,6 +192,7 @@ export function nightlyJobs(
       summary: catalogue,
       state: summary.failed.length ? 'failed' : summary.stale ? 'stale' : 'ok',
       runNow: '/admin/catalogue',
+      runWords: 'Open Sources',
       stopped: summary.stale,
     },
     {
@@ -200,6 +202,7 @@ export function nightlyJobs(
       summary: radarAt === null ? 'Not generated yet' : 'Upcoming releases',
       state: age(radarAt, STALE_HOURS),
       runNow: '/admin/radar',
+      runWords: 'Open Radar',
     },
     {
       key: 'discover',
@@ -209,6 +212,7 @@ export function nightlyJobs(
         discoverAt === null ? 'Not generated yet' : 'Sunday evenings only',
       state: age(discoverAt, DISCOVER_STALE_HOURS),
       runNow: '/admin/discover',
+      runWords: 'Open Discover',
     },
     runRow(
       spots?.weather,
@@ -216,6 +220,7 @@ export function nightlyJobs(
         key: 'weather',
         label: 'Weekend forecast',
         runNow: '/admin/weekend',
+        runWords: 'Open Weekend',
         hours: STALE_HOURS,
         ok: 'NWS hourly forecast',
         quiet: { empty: 'NWS sent no hours' },
@@ -228,6 +233,7 @@ export function nightlyJobs(
         key: 'spots',
         label: 'Spot finder',
         runNow: '/admin/spots',
+        runWords: 'Open Spots',
         hours: DISCOVER_STALE_HOURS,
         ok: 'Sunday evenings only',
         // Only a status that loaded can say the job has not run yet.
@@ -242,6 +248,7 @@ export function nightlyJobs(
         key: 'closet-tags',
         label: 'Closet tags',
         runNow: '/admin/closet',
+        runWords: 'Open Closet',
         hours: STALE_HOURS,
         ok: 'New photos tagged',
         quiet: { off: 'Tagging is off', empty: 'Nothing to tag' },
@@ -255,6 +262,7 @@ export function nightlyJobs(
         key: 'closet-plans',
         label: 'Outfit plans',
         runNow: '/admin/closet/today',
+        runWords: 'Open Today',
         hours: STALE_HOURS,
         ok: 'Tomorrow planned',
         quiet: {
@@ -289,6 +297,7 @@ export function nightlyJobs(
         label: 'Intake',
         // A sitting's Shoot step reads waiting photos while it is open.
         runNow: '/admin/collection/add',
+        runWords: 'Open Intake',
         hours: STALE_HOURS,
         ok: 'Waiting photos read',
         quiet: {
@@ -305,6 +314,7 @@ export function nightlyJobs(
         key: 'comic-refresh',
         label: 'Comic refresh',
         runNow: '/admin/pull-list',
+        runWords: 'Open Pull list',
         hours: STALE_HOURS,
         ok: 'Followed series refreshed',
         quiet: {},
@@ -317,6 +327,7 @@ export function nightlyJobs(
         key: 'comic-issues',
         label: 'Comic issues',
         runNow: '/admin/pull-list',
+        runWords: 'Open Pull list',
         hours: STALE_HOURS,
         ok: 'Every series synced',
         quiet: { partial: 'Budget spent; the rest sync tomorrow' },

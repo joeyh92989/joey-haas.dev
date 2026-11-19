@@ -21,14 +21,15 @@ export function StatusText({ state, children }) {
 
 /**
  * One nightly job in the Dashboard's panel: when it last ran, what it is,
- * its state, and a link to where it can be run by hand ("Run now"), or
- * to where its output is read when nothing there runs it (`runWords`).
+ * its state, and a link to the page that shows it ("Open Radar"). The link
+ * only navigates; "Run now" is for a button that starts a job.
  *
  * @param {object} props
  * @param {ReturnType<typeof import('../lib/nightly.js').nightlyJobs>[number]} props.job
  * @param {import('react').ReactNode} [props.extra] After the summary.
  */
 export default function JobStatusRow({ job, extra }) {
+  const words = job.runWords ?? `Open ${job.label}`
   return (
     <li className="job-row">
       <span className="job-when">
@@ -44,8 +45,10 @@ export default function JobStatusRow({ job, extra }) {
       <StatusText state={job.state}>{job.stateWords}</StatusText>
       {job.runNow ? (
         <Link to={job.runNow} className="job-run">
-          {job.runWords ?? 'Run now'}
-          <span className="visually-hidden">{`: ${job.label}`}</span>
+          {words}
+          {!words.includes(job.label) && (
+            <span className="visually-hidden">{`: ${job.label}`}</span>
+          )}
         </Link>
       ) : (
         <span />

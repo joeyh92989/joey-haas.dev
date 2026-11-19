@@ -261,7 +261,7 @@ export const adminCopy = {
   },
   closetProfile: {
     buildFit: 'Build and fit',
-    colouring: 'Colouring',
+    coloring: 'Coloring',
     commaSeparated: 'Comma-separated, up to twelve.',
     dislikes: 'Dislikes',
     dislikesPlaceholder: 'logos, skinny fits',

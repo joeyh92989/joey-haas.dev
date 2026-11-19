@@ -47,7 +47,7 @@ describe('GarmentForm state', () => {
     expect(bodyFrom({ ...packed, status: 'active' }).back_on).toBeNull()
   })
 
-  it('carries brand, store colour and size, blanks as null', () => {
+  it('carries brand, store color and size, blanks as null', () => {
     const form = formFrom({ ...garment, color_name: 'Grey Twill', size: 'M' })
     expect(bodyFrom(form)).toMatchObject({
       brand: 'Uniqlo',

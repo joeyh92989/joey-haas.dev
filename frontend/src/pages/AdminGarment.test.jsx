@@ -213,7 +213,7 @@ describe('AdminGarment', () => {
     ],
   }
 
-  it('attaches a product after the owner picks a colour and a size', async () => {
+  it('attaches a product after the owner picks a color and a size', async () => {
     const calls = stubApi({
       'GET /api/closet/garments/g1': () => json({ ...GARMENT, brand: 'Old' }),
       'POST /api/closet/garments/g1/product': () => json(PREVIEW),
@@ -238,7 +238,7 @@ describe('AdminGarment', () => {
     expect(attach).toBeDisabled()
     await userEvent.click(screen.getByLabelText(/^Red/))
     await userEvent.selectOptions(
-      screen.getByLabelText('Size in this colour'),
+      screen.getByLabelText('Size in this color'),
       'M',
     )
     await userEvent.click(
@@ -257,7 +257,7 @@ describe('AdminGarment', () => {
       replace_product: false,
     })
     // The form starts again from what the API now holds.
-    expect(screen.getByLabelText('Store colour')).toHaveValue('Red')
+    expect(screen.getByLabelText('Store color')).toHaveValue('Red')
     expect(screen.getByLabelText('Size')).toHaveValue('M')
   })
 
@@ -312,7 +312,7 @@ describe('AdminGarment', () => {
     expect(screen.queryByRole('button', { name: 'Attach product' })).toBeNull()
   })
 
-  it('keeps a hand-entered colour and size unless the owner ticks to replace', async () => {
+  it('keeps a hand-entered color and size unless the owner ticks to replace', async () => {
     const calls = stubApi({
       'GET /api/closet/garments/g1': () =>
         json({
@@ -339,11 +339,11 @@ describe('AdminGarment', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Look it up' }))
     await userEvent.click(await screen.findByLabelText(/^Red/))
     await userEvent.selectOptions(
-      screen.getByLabelText('Size in this colour'),
+      screen.getByLabelText('Size in this color'),
       'M',
     )
     await userEvent.click(
-      screen.getByLabelText('Replace the colour “Slate” with “Red”'),
+      screen.getByLabelText('Replace the color “Slate” with “Red”'),
     )
     await userEvent.click(
       screen.getByLabelText('Replace the size “L” with “M”'),

@@ -299,6 +299,22 @@ describe('nightlyJobs', () => {
       'snapshot',
     ])
     expect(jobs.every((job) => job.state === 'ok')).toBe(true)
+    // A link that only navigates says where it goes, never "Run now".
+    expect(jobs.map((job) => job.runWords)).toEqual([
+      'Open Sources',
+      'Open Radar',
+      'Open Discover',
+      'Open Weekend',
+      'Open Spots',
+      'Open Closet',
+      'Open Today',
+      'Open Review',
+      'Open Intake',
+      'Open Pull list',
+      'Open Pull list',
+      'Open Comics',
+      undefined,
+    ])
     expect(jobs.map((job) => job.runNow)).toEqual([
       '/admin/catalogue',
       '/admin/radar',

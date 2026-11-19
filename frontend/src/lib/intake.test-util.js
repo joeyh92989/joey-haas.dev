@@ -90,12 +90,12 @@ export const KINDS = [
     fields: [
       field('name', 'Name', 'text'),
       field('brand', 'Brand', 'text'),
-      field('color_name', 'Store colour', 'text'),
+      field('color_name', 'Store color', 'text'),
       field('size', 'Size', 'text'),
       field('category', 'Category', 'select', {
         options: ['top', 'bottom', 'outer'],
       }),
-      field('primary_color', 'Colour', 'text'),
+      field('primary_color', 'Color', 'text'),
     ],
   },
 ]

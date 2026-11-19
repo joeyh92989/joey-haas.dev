@@ -6,6 +6,9 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- On the admin Home and Jobs lists, the links that only open a page (Sources, Radar, Weekend, Intake and the rest) now say “Open Radar” and so on instead of “Run now”, which they never did.
+- Admin spelling is American throughout (“Color”, “Store color”, “Coloring”), and the Run now, Delete, header and footer links in the admin are at least 24px tall.
+- The count on a filter chip on a phone, such as Active 1 on the Closet, keeps its space instead of reading “Active1”.
 - The admin form for adding a game by hand now labels every field and marks Title and Owned format as required. A missing one is named next to the field instead of in a browser tooltip. After an add it says what it saved, links to the new item, and the Shelf count in the sidebar updates without a reload.
 - The place forms on the admin side now say Coordinates are required, show the paste tip at normal size, and use “Show on the public map” for the public switch when adding as well as editing.
 - The admin page you land on after signing out now says you are signed out and links back to the public site.

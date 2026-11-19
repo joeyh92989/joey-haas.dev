@@ -19,7 +19,7 @@ function intakeBlock() {
 }
 
 describe('intake styles', () => {
-  it('colours with tokens only (AC 13)', () => {
+  it('colors with tokens only (AC 13)', () => {
     const block = intakeBlock()
     expect(block.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(
       /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i,

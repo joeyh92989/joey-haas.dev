@@ -208,9 +208,9 @@ describe('the closet seed file helpers', () => {
   it('names what a piece still needs, in the kind’s own labels', () => {
     const fields = [
       { key: 'category', label: 'Category' },
-      { key: 'primary_color', label: 'Colour' },
+      { key: 'primary_color', label: 'Color' },
     ]
-    expect(seedNeeds(fields, {})).toEqual(['Category', 'Colour'])
+    expect(seedNeeds(fields, {})).toEqual(['Category', 'Color'])
     expect(
       seedNeeds(fields, { category: 'top', primary_color: 'red' }),
     ).toEqual([])

@@ -1888,6 +1888,18 @@ footer {
   overflow-wrap: anywhere;
 }
 
+/* Header and footer links reach the 24px floor (WCAG 2.5.8, #505): inline-block
+   keeps the space before an arrow, which inline-flex would drop. */
+.admin-side-foot a,
+.admin-side-foot .link-button,
+.admin-phone-foot a,
+.admin-phone-foot .link-button,
+.admin-head-end a:not(.btn) {
+  display: inline-block;
+  min-height: 1.5rem;
+  padding-block: var(--space-1);
+}
+
 .admin-rail a:focus-visible,
 .admin-subnav a:focus-visible,
 .admin-subnav button:focus-visible,
@@ -2210,7 +2222,10 @@ footer {
 }
 
 .job-run {
+  align-items: center;
+  display: inline-flex;
   font-size: var(--fs-13);
+  min-height: 1.5rem; /* WCAG 2.5.8 floor (#505) */
   white-space: nowrap;
 }
 
@@ -5223,6 +5238,7 @@ a.month-bar::before {
   font-size: var(--fs-12);
   line-height: 1.2;
   padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
+  min-height: 1.5rem; /* WCAG 2.5.8 floor (#505) */
 }
 
 .shelf-pin[aria-pressed='true'] {
@@ -11830,14 +11846,14 @@ a.cover-tile-cap:focus-visible span {
   outline-offset: 2px;
 }
 
-.garment-colour {
+.garment-color {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: flex-end;
 }
 
-.garment-colour input[type='color'] {
+.garment-color input[type='color'] {
   width: 2.5rem;
   height: 2.25rem;
   padding: 0.15rem; /* space-exception: hairline, optical offset */
@@ -11847,7 +11863,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 /* An unset swatch shows the picker's grey but says it is unset. */
-.garment-colour input[type='color'][data-unset='true'] {
+.garment-color input[type='color'][data-unset='true'] {
   border-style: dashed;
 }
 
@@ -13207,6 +13223,11 @@ a.btn.sm {
     display: inline-flex;
     min-height: 2.75rem;
   }
+
+  /* inline-flex drops the space between a label and its count (#505). */
+  .chip > .chip-count {
+    margin-inline-start: var(--space-1);
+  }
 }
 
 /* ===== Projects visuals (#289): hero images and the architecture figure =====
@@ -13548,7 +13569,7 @@ a.btn.sm {
   width: 100%;
 }
 
-.intake-link-colours {
+.intake-link-colors {
   border: 0;
   display: flex;
   flex-wrap: wrap;
@@ -13557,7 +13578,7 @@ a.btn.sm {
   padding: 0;
 }
 
-.intake-link-colours legend {
+.intake-link-colors legend {
   font-size: var(--fs-13);
   padding: 0;
 }

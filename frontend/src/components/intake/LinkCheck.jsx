@@ -28,9 +28,9 @@ function noPhotoWords(payload) {
 }
 
 /**
- * One pasted product link: the store's photo, the colours it offers as a
+ * One pasted product link: the store's photo, the colors it offers as a
  * radio group (the server holds them as the entry's candidates), the size
- * chosen from the colour's sizes, and the fields to correct. A link the
+ * chosen from the color's sizes, and the fields to correct. A link the
  * store would not give up is kept as typed, and says why.
  */
 function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
@@ -60,7 +60,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
   }
   const title = entryTitle(entry)
   const needs = seedNeeds(fields, editedPayload(payload, edits))
-  if (candidates.length > 1 && !chosen) needs.unshift(words.needsColour)
+  if (candidates.length > 1 && !chosen) needs.unshift(words.needsColor)
 
   async function save(extra = {}) {
     const sent = { ...edits, ...extra }
@@ -167,13 +167,13 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           </p>
         )}
         {candidates.length > 1 && (
-          <fieldset className="intake-link-colours">
-            <legend>{words.colour}</legend>
+          <fieldset className="intake-link-colors">
+            <legend>{words.color}</legend>
             {candidates.map((candidate) => (
-              <label key={candidate.external_id} className="intake-link-colour">
+              <label key={candidate.external_id} className="intake-link-color">
                 <input
                   type="radio"
-                  name={`${id}-colour`}
+                  name={`${id}-color`}
                   value={candidate.external_id}
                   checked={candidate.external_id === chosenId}
                   disabled={busy}
@@ -191,7 +191,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             save()
           }}
         >
-          {/* Disabled while a colour is being chosen, so no edit can race it. */}
+          {/* Disabled while a color is being chosen, so no edit can race it. */}
           <fieldset className="intake-link-fields" disabled={busy}>
             <KindFields
               kindKey="garment"
@@ -274,7 +274,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
 
 /**
  * Clothes · Check for pieces made from pasted product links: one card each
- * with the store's photo, a colour choice, a size choice and the fields to
+ * with the store's photo, a color choice, a size choice and the fields to
  * correct. Also drives the photos' fetching while the cards show. Nothing
  * here reaches the closet; the commit does.
  *

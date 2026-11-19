@@ -168,22 +168,24 @@ describe('Admin Jobs', () => {
     expect(rows[11]).toHaveTextContent('Series tagged')
     expect(rows[12]).toHaveTextContent('Public snapshot')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Radar' }),
+      within(panel).getByRole('link', { name: 'Open Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Weekend forecast' }),
+      within(panel).getByRole('link', {
+        name: 'Open Weekend: Weekend forecast',
+      }),
     ).toHaveAttribute('href', '/admin/weekend')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Spot finder' }),
+      within(panel).getByRole('link', { name: 'Open Spots: Spot finder' }),
     ).toHaveAttribute('href', '/admin/spots')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Outfit plans' }),
+      within(panel).getByRole('link', { name: 'Open Today: Outfit plans' }),
     ).toHaveAttribute('href', '/admin/closet/today')
     expect(
       within(panel).getByRole('link', { name: 'Open Review: Closet opinions' }),
     ).toHaveAttribute('href', '/admin/closet/review')
     expect(
-      within(panel).getByRole('link', { name: 'Run now: Intake' }),
+      within(panel).getByRole('link', { name: 'Open Intake' }),
     ).toHaveAttribute('href', '/admin/collection/add')
     expect(
       within(rows[12]).queryByRole('link', { name: /Run now/ }),
