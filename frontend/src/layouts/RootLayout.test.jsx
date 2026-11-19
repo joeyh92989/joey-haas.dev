@@ -70,14 +70,14 @@ describe('RootLayout theme toggle', () => {
   it('defaults to dark when nothing is stored', () => {
     renderAt()
     expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(toggle('light')).toHaveTextContent('Light')
+    expect(toggle('light')).toHaveTextContent('Switch to light')
   })
 
   it('restores a stored preference', () => {
     localStorage.setItem('theme', 'light')
     renderAt()
     expect(document.documentElement.dataset.theme).toBe('light')
-    expect(toggle('dark')).toHaveTextContent('Dark')
+    expect(toggle('dark')).toHaveTextContent('Switch to dark')
   })
 
   // A stray value must not leave the page on a theme with no token block.

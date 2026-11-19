@@ -61,7 +61,7 @@ export default function SiteMast({
             aria-label={`Switch to ${target} theme`}
             onClick={onToggleTheme}
           >
-            {target === 'light' ? 'Light' : 'Dark'}
+            Switch to {target}
           </button>
           <button
             type="button"

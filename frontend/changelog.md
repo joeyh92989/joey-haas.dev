@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- The theme button in the header now says what it will do (“Switch to light” or “Switch to dark”) instead of naming the mode you would get, which read as the current one.
 - The [tour](/shelf/how) no longer scrolls sideways on a phone: its stops now shrink to the screen instead of stretching past it.
 - The [daily game](/daily) now shows its color key above the board, before the first guess, and says what the arrows mean: ↑ later or longer, ↓ earlier or shorter.
 - A guessed /shelf/daily now goes to the [daily game](/daily), and a shelf address that matches no title shows the not-found page instead of “That didn’t load”.
