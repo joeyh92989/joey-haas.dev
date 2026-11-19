@@ -10,7 +10,12 @@ export const KIND_ORDER = ['trade', 'hardcover', 'omnibus', 'compendium', 'ogn']
 
 export const books = {
   title: 'Books',
-  empty: 'No books on this title yet. Add the first one below.',
+  empty:
+    'No books on this title yet. Add the first one below. A single issue has no book, so there are no contents to find.',
+  noContents: 'No contents yet',
+  findContents: 'Find contents',
+  /** Hidden suffix that names the book, so each link reads differently. */
+  findContentsFor: (label) => `for ${label}`,
   loadFailed: 'Couldn’t load the books.',
   retry: 'Try again',
   entries: (n) => `${n} ${n === 1 ? 'entry' : 'entries'}`,

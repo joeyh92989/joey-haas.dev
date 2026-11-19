@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-19
+
+- A book on a title’s admin page with no contents yet now says so and has a Find contents link to its page, where the Metron lookup lives. A title with no books explains that a single issue has no contents to find.
+
 ## 2026-11-18
 
 - A comic book’s admin page now has Find contents: it asks Metron what a trade collects, shows the list with a link to Metron and whether the ISBN matches, and saves nothing until I accept. Books with contents from Metron credit it on their page (CC BY-SA 4.0).
