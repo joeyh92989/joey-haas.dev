@@ -122,6 +122,18 @@ describe('Daily', () => {
     ).toBeTruthy()
   })
 
+  it('puts the legend above the board and explains the arrows', async () => {
+    renderPage()
+    await screen.findByText('Day 3 · Nov 12')
+    const legend = document.getElementById('daily-legend')
+    const board = screen.getByRole('table')
+    expect(
+      legend.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(legend).toHaveTextContent('↑ later or longer')
+    expect(legend).toHaveTextContent('↓ earlier or shorter')
+  })
+
   it('grades a miss, announces it and keeps it for a reload', async () => {
     const user = userEvent.setup()
     const [miss] = wrong(1)

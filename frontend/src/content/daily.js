@@ -30,6 +30,8 @@ export const daily = {
     close: 'close (the arrow says which way)',
     no: 'no',
   },
+  /** What the arrows on a year or size cell mean: the answer lies that way. */
+  arrows: '↑ later or longer, ↓ earlier or shorter',
   board: {
     caption: (made, max) => `${made} of ${max} guesses`,
     emptyRow: 'Empty',

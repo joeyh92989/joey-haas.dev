@@ -557,7 +557,11 @@ function ItemPage({ id }) {
         `/api/public/items/${encodeURIComponent(id)}`,
         { signal },
       )
-      if (response.status === 404) return { missing: true }
+      // 404: unknown or private. 422: the id is not even shaped like one
+      // (/shelf/daily), so it can never name an item either.
+      if (response.status === 404 || response.status === 422) {
+        return { missing: true }
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.json()
     },

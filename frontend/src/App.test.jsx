@@ -78,6 +78,13 @@ describe('App redirects', () => {
     )
   })
 
+  it('sends /shelf/daily to the daily game', async () => {
+    renderAt('/shelf/daily')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(/^\/daily$/),
+    )
+  })
+
   it('keeps the query on the way from /shelf to Games', async () => {
     render(
       <MemoryRouter initialEntries={['/shelf?q=zelda']}>

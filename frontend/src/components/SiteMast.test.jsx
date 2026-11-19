@@ -88,7 +88,7 @@ describe('SiteMast', () => {
     const toggle = screen.getByRole('button', {
       name: 'Switch to light theme',
     })
-    expect(toggle).toHaveTextContent('Light')
+    expect(toggle).toHaveTextContent('Switch to light')
     fireEvent.click(toggle)
     expect(onToggleTheme).toHaveBeenCalledOnce()
   })

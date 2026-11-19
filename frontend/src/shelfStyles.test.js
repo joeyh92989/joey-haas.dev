@@ -80,6 +80,22 @@ describe('single-series charts (#197)', () => {
   })
 })
 
+describe('tour on a phone (#475)', () => {
+  // A bare 1fr track is minmax(auto, 1fr): a wide table or URL inside it
+  // stretches the track past the viewport. minmax(0, 1fr) lets it shrink.
+  it('lets the one-column stop shrink below its content', () => {
+    expect(mediaRule('.tour-stop-cols')).toContain(
+      'grid-template-columns: minmax(0, 1fr);',
+    )
+  })
+
+  it('lets the contents row shrink below its content', () => {
+    expect(mediaRule('.tour-toc a')).toContain(
+      'grid-template-columns: 2rem minmax(0, 1fr);',
+    )
+  })
+})
+
 describe('two widths (#188)', () => {
   const COLUMN = 'max-width: 45rem;'
   const TEXT = 'max-width: min(45rem, 68ch);'

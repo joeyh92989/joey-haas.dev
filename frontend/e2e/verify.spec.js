@@ -95,6 +95,54 @@ test.describe('tap targets at 400px (#276)', () => {
   }
 })
 
+test.describe('no sideways scroll at 390px (#475, #482)', () => {
+  for (const path of ['/shelf/how', '/']) {
+    test(`${path} fits the viewport`, async ({ page, openRoute }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await openRoute(path, 'dark')
+      await expect(page.locator('main, .page').first()).toBeVisible()
+      const widths = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        client: document.documentElement.clientWidth,
+      }))
+      expect(widths.scroll).toBe(widths.client)
+    })
+  }
+})
+
+test.describe('standalone link targets at 390px (#477)', () => {
+  // WCAG 2.2 AA 2.5.8: 24px, or 24px of spacing. Links inside a sentence are
+  // exempt; the footer rows and the lone Changes feed link are not sentences.
+  const FLOOR = 24
+  const PHONE_390 = { width: 390, height: 844 }
+  const cases = [
+    ['/', '.site-footer a'],
+    ['/colophon', '.site-footer a'],
+    ['/stats', '.site-footer a, #changes > p a'],
+  ]
+
+  for (const [path, selector] of cases) {
+    test(`${path}: ${selector} are at least ${FLOOR}px high`, async ({
+      page,
+      openRoute,
+    }) => {
+      await page.setViewportSize(PHONE_390)
+      await openRoute(path, 'dark')
+      await expect(page.locator('.site-footer a').first()).toBeVisible()
+      const small = await page.$$eval(
+        selector,
+        (links, floor) =>
+          links
+            .map((a) => [a.textContent.trim(), a.getBoundingClientRect()])
+            .filter(([, r]) => r.height > 0 && r.height < floor)
+            .map(([text, r]) => `${text} ${Math.round(r.height)}px`),
+        FLOOR,
+      )
+      expect(small).toEqual([])
+    })
+  }
+})
+
 test.describe('hero actions in the first viewport (#287)', () => {
   for (const [name, size] of [
     ['400px', PHONE],

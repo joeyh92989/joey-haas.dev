@@ -193,7 +193,6 @@ export default function Daily() {
                 }
               />
             )}
-            <ShelfleBoard rows={rows} />
             <p id="daily-legend" className="daily-legend">
               {LEGEND_STATES.map((state) => (
                 <span key={state}>
@@ -201,7 +200,9 @@ export default function Daily() {
                   {copy.legend[state]}
                 </span>
               ))}
+              <span>{copy.arrows}</span>
             </p>
+            <ShelfleBoard rows={rows} />
             <p className="daily-status muted" role="status" aria-live="polite">
               {status}
             </p>

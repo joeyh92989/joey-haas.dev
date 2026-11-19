@@ -1555,6 +1555,10 @@ footer {
 
 .site-footer a {
   color: var(--text-2);
+  /* The links sit in a row, not a sentence, so WCAG 2.5.8 applies: 24px high
+     (#477). The line box carries it, so the separators stay where they are. */
+  display: inline-block;
+  line-height: 1.5rem;
 }
 
 .site-footer p {
@@ -4397,6 +4401,13 @@ footer {
    glance, not to be looked at. The table still has to work at 375px. */
 .item-cover-cell .cover {
   width: 2.25rem;
+}
+
+/* The lone feed link under Changes is not inside a sentence: 24px high, per
+   WCAG 2.5.8 (#477). */
+.prose.changes-feed a {
+  display: inline-block;
+  line-height: 1.5rem;
 }
 
 /* Understated on purpose: a door for one person, not a call to action. */
@@ -8234,7 +8245,7 @@ main h1[tabindex='-1']:focus,
 
 @media (max-width: 34rem) {
   .tour-toc a {
-    grid-template-columns: 2rem 1fr;
+    grid-template-columns: 2rem minmax(0, 1fr);
   }
 
   .tour-toc-where {
@@ -8246,7 +8257,7 @@ main h1[tabindex='-1']:focus,
   }
 
   .tour-stop-cols {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .tour-capture-table {

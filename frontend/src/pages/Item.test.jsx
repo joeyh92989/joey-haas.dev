@@ -386,6 +386,22 @@ describe('Item', () => {
     ).toBeInTheDocument()
   })
 
+  it.each([404, 422])(
+    'renders NotFound, not the retry state, on a %i for an unknown id',
+    async (status) => {
+      stubApi({
+        ok: false,
+        status,
+        json: async () => ({ detail: 'Unknown item' }),
+      })
+      renderPage()
+      expect(
+        await screen.findByRole('heading', { name: 'Not found' }),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/didn’t load/i)).not.toBeInTheDocument()
+    },
+  )
+
   it('reports any other failure, with a heading', async () => {
     stubApi({ ok: false, status: 500, json: async () => ({}) })
     renderPage()

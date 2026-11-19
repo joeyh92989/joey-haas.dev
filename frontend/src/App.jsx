@@ -163,6 +163,7 @@ export default function App() {
         <Route path="denver" element={<Denver />} />
         <Route path="daily" element={<Daily />} />
         <Route path="shelf" element={<ShelfRedirect />} />
+        <Route path="shelf/daily" element={<Navigate to="/daily" replace />} />
         <Route path="shelf/games" element={<Games />} />
         <Route path="shelf/comics" element={<Comics />} />
         <Route path="shelf/intake" element={<IntakeDemo />} />
