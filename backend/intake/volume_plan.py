@@ -357,6 +357,23 @@ def preview(
     return shown
 
 
+def books_preview(books: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """What Check shows for the collected books Details typed on an entry
+    (`comic_books.typed_books`): one row per volume the commit writes, with its
+    ISBN (None when none was typed). A separate key from `adds`, which stays
+    the one photographed book's shape."""
+    return [
+        {
+            "label": book["label"][:LABEL_MAX],
+            "edition_kind": volume_kind_from_edition(book["kind"]),
+            "from": book["from"],
+            "to": book["to"],
+            "isbn": book.get("isbn"),
+        }
+        for book in books
+    ]
+
+
 async def existing_volumes(
     session: AsyncSession, entry_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, ComicVolume]:

@@ -84,6 +84,7 @@ from intake.volume_plan import (
     VolumePlan,
     already_held,
     book_plan,
+    books_preview,
     existing_volumes,
     find_manual_titles,
     is_book,
@@ -864,6 +865,7 @@ async def comic_adds_for(
     same row and title, so the preview is what the commit writes. Reads only
     the shelf: no model, no network."""
     rows: dict[uuid.UUID, tuple[IntakeEntry, dict[str, Any]]] = {}
+    typed: dict[uuid.UUID, list[dict]] = {}
     for entry in entries:
         kind = REGISTRY.get(entry.kind)
         if not _is_comic(kind):
@@ -874,6 +876,11 @@ async def comic_adds_for(
             entry,
             shelf_row(kind, entry) if isinstance(made, Refusal) else made.model_dump(),
         )
+        if not isinstance(made, Refusal):
+            # Details' typed books: a bad one is a refusal the commit reports.
+            books = _typed_books(entry, made)
+            if books and not isinstance(books, Refusal):
+                typed[entry.id] = books
     if not rows:
         return {}
     keys = {k for _, row in rows.values() if (k := _key(row)) is not None}
@@ -904,6 +911,8 @@ async def comic_adds_for(
         plan = book_plan(payload, row, item, entry.chosen) if book else None
         held = await already_held(session, item, plan, payload) if plan else None
         shown[entry_id] = preview(payload, plan, item, held)
+        if entry_id in typed:
+            shown[entry_id]["books_preview"] = books_preview(typed[entry_id])
     return shown
 
 

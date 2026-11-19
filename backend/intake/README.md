@@ -454,7 +454,8 @@ spaces dropped, an ISBN-10 converted, the check digit verified) and a bad one
 is a `BookEditError` on field `books`, so `PATCH /entries/{id}` answers 422
 and the commit never meets it. `volume_plan.typed_plans` puts it on the
 `VolumePlan` and `write_volume` writes `comic_volumes.isbn`; idempotence is
-unchanged (`typed_key` per book). No migration: the column exists. A
+unchanged (`typed_key` per book). Check shows the typed books, ISBN included,
+under the entry's `books_preview` (beside `adds`, not in it). No migration: the column exists. A
 photographed book carries no ISBN.
 
 **Why a route and not a source in the registry:** the lookup answers "what is

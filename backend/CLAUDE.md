@@ -557,6 +557,11 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   entries the commit writes) and `already_held` (null, or `{volume_id, slug,
   label}` of an owned volume of the same title and kind that already links
   the same range: a warning only, the commit still writes the second book);
+  an entry with Details' typed books also carries `books_preview` (`[{label,
+  edition_kind, from, to, isbn}]`, one per volume the commit writes, `isbn` null
+  when none; `volume_plan.books_preview`), a sibling of `adds`, never inside it,
+  so `adds` keeps its pinned shape (a new key must also join `EntryOut` in
+  `intake/schemas.py`, or the response model drops it);
   `title_will_be_created` is false when a same-named title will be reused;
   no model call, no network. **Add-bar retries:** `POST /api/intake/add` takes an optional
   `request_id` (uuid, one per add action in the page, reused by its retries);
