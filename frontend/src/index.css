@@ -14931,7 +14931,7 @@ fieldset.lo-field {
   grid-area: when;
   line-height: 1.5;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 2px; /* space-exception: hairline, optical offset */
 }
 
 .history-when-day {
@@ -14987,7 +14987,7 @@ fieldset.lo-field {
   grid-area: marks;
   justify-content: flex-end;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 2px; /* space-exception: hairline, optical offset */
 }
 
 .history-verdict {
