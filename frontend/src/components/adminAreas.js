@@ -102,6 +102,7 @@ export const ADMIN_AREAS = [
     pages: [
       { to: '/admin/weekend', label: 'Weekend' },
       { to: '/admin/spots', label: 'Spots' },
+      { to: '/admin/history', label: 'History' },
       { to: '/admin/places/add', label: 'Add a place' },
     ],
   },

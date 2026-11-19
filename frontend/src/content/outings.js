@@ -58,3 +58,24 @@ export const outings = {
       ? `Logged an outing at ${name} and added it to Spots as a private spot.`
       : `Logged an outing at ${name}.`,
 }
+
+/**
+ * The words of the History page (story #347), from the mockup
+ * docs/planning/mockups/2026-11-18-history/a-dated-list.html.
+ */
+export const history = {
+  title: 'History',
+  description: 'Outings, newest first.',
+  counts: (year, outings, places, loved) =>
+    `${year} so far: ${outings} ${outings === 1 ? 'outing' : 'outings'}, ${places} ${places === 1 ? 'place' : 'places'}, ${loved} loved.`,
+  groupCount: (n) => `${n} ${n === 1 ? 'outing' : 'outings'}`,
+  someTimeInMonth: (month) => `Some time in ${month}`,
+  someTimeInYear: (year) => `Some time in ${year}`,
+  noVerdict: 'No verdict',
+  kid: 'Kid came along',
+  privateNote: 'Private note: ',
+  emptyTitle: 'No outings logged yet.',
+  emptyLine: 'Log one and it shows here, newest first.',
+  readError: 'The history could not be read. Try again in a minute.',
+  filtersLabel: 'Filters',
+}

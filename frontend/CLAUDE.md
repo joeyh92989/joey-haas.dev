@@ -293,6 +293,14 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   leave the name to decide. The frontend never decides it: Check's preview
   reads `adds` and `title_will_be_created` from the server. Rule and
   thresholds: `backend/comics.py` and `backend/CLAUDE.md` (Comics).
+- **History (`/admin/history`, story #347).** `pages/AdminHistory.jsx` reads
+  `GET /api/spots/outings` (newest first, with the year's counts) and groups
+  it with `lib/outingGroups.js` (consecutive months; a year outing is its own
+  group after that year's months; `whenWords` words each outing by precision,
+  never a made-up day). Words in `content/outings.js` (`history`). The header
+  count line is hidden while loading, failed or empty; `.history-filters` is
+  the free slot for #348. The note renders as text, and the sheet's save or
+  maybe-saved rereads the list.
 - **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,
   with `components/places/` (`PlaceResultRow.jsx`, `PlaceFields.jsx`) and its
   words in `content/placesAdd.js`. It sits in the Denver area beside Weekend

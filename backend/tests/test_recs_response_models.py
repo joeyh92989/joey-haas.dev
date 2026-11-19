@@ -54,7 +54,7 @@ async def test_every_route_is_pinned_in_openapi_or_a_listed_204():
             schema = ok.get("content", {}).get("application/json", {}).get("schema")
             if schema in (None, {}) or schema == {"type": "object"}:
                 unpinned.append(f"{method.upper()} {path}")
-    assert seen == 33
+    assert seen == 34
     assert unpinned == []
     assert bodyless == BODYLESS
 
