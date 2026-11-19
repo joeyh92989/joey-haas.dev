@@ -617,3 +617,29 @@ async def test_a_failure_after_a_partial_write_rolls_back_and_keeps_the_link(
     assert rows(await collects_of(factory, volume_id)) == [
         ("Old Series", "#9", "parsed")
     ]
+
+
+async def test_a_model_reparse_never_drops_a_link_the_rules_set(
+    sessionmaker_for_test,
+):
+    """The rules linked Saga #1-3; the description then changed to prose only
+    the model can read, and its answer (text only, never linked) names the
+    same entry. The link stays: a re-parse may add or change, not clear."""
+    factory = sessionmaker_for_test
+    item_id, volume_id = await volume_with(factory, "Collects Saga #1-3.")
+    first = await parse(factory, volume_id)
+    (linked,) = first["collects"]
+    assert linked["link"]["item_id"] == str(item_id)
+    async with factory() as session:
+        row = await session.get(ComicVolume, volume_id)
+        row.description = "A trade of Saga issues 1 to 3, the first arc. Collect them."
+        await session.commit()
+    provider = StubProvider(
+        {"entries": [{"series_name": "Saga", "issue_text": "#1-3"}]}
+    )
+    second = await parse(factory, volume_id, provider)
+    assert second["used_model"] is True, second
+    (kept,) = second["collects"]
+    assert kept["id"] == linked["id"]
+    assert kept["link"] == linked["link"]
+    assert set(await marks(factory, item_id)) == {1, 2, 3}

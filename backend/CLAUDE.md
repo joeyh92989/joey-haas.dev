@@ -827,7 +827,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   items, then the volume (`_lock_volume`). `_apply_parsed` reconciles only
   this volume's `parsed` entries: typed, migrated and photo are never touched,
   a new entry equal to one of them is skipped, a parsed entry found again keeps
-  its row and position, one no longer found is deleted (`entries_removed` is
+  its row and position (and its link: a model answer, which never links, cannot clear a link an earlier parse set; a rules answer that no longer qualifies still can), one no longer found is deleted (`entries_removed` is
   those with nothing replacing them), the rest are appended, and a parse that
   finds nothing deletes nothing. An empty series takes the title's name. A
   RULES entry is linked to the title only when its normalised series equals

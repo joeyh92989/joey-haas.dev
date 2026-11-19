@@ -1472,8 +1472,10 @@ def create_comics_router(
         text is one plain range or number within the title's known issue
         count and whose bracketed year, if any, is the title's, is linked to
         the title: the only auto-link. A model entry, and everything else, is
-        text. Nothing found changes nothing, so an earlier parse is never lost
-        to a worse one."""
+        text, but a model answer never clears a link an earlier parse set on
+        an entry it finds again (it may add or change one, not drop it).
+        Nothing found changes nothing, so an earlier parse is never lost to a
+        worse one."""
         if not found:
             return 0, 0
         existing = list(
@@ -1529,6 +1531,10 @@ def create_comics_router(
             row = old_by_key.get(wanted)
             if row is not None:
                 reused.add(row.id)
+                if item_id is None and row.item_id is not None and not may_link:
+                    # A model answer cannot link, and saying nothing is not
+                    # a contradiction: the link an earlier parse set stays.
+                    continue
                 for field, value in (
                     ("item_id", item_id),
                     ("from_number", low),
