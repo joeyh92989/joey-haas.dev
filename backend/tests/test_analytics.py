@@ -366,6 +366,8 @@ SAMPLE_PARAMS = {
 # Not counted on purpose: the admin is the owner's own traffic, and the
 # pre-rename paths only redirect to /shelf*, which the beacon then reports.
 NOT_COUNTED = ("admin", "spine", "collection")
+# Whole paths that only redirect, so the beacon reports their target instead.
+REDIRECT_ONLY = ("shelf/daily",)
 
 
 def _public_routes(source: str) -> list[str]:
@@ -376,7 +378,11 @@ def _public_routes(source: str) -> list[str]:
     paths = ["/"]  # the index route
     for match in re.finditer(r'path="([^"]+)"', source):
         route = match.group(1)
-        if route == "*" or route.split("/")[0] in NOT_COUNTED:
+        if (
+            route == "*"
+            or route in REDIRECT_ONLY
+            or route.split("/")[0] in NOT_COUNTED
+        ):
             continue
         filled = "/".join(
             SAMPLE_PARAMS[part[1:]] if part.startswith(":") else part
