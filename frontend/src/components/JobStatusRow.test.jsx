@@ -45,9 +45,10 @@ describe('JobStatusRow', () => {
     expect(row).toHaveTextContent('Upcoming releases')
     expect(row).toHaveTextContent('stale')
     expect(row).toHaveTextContent(/\d{1,2}:\d{2}/)
-    expect(
-      screen.getByRole('link', { name: 'Open Radar' }),
-    ).toHaveAttribute('href', '/admin/radar')
+    expect(screen.getByRole('link', { name: 'Open Radar' })).toHaveAttribute(
+      'href',
+      '/admin/radar',
+    )
   })
 
   it('shows a dash with no time and no link without a trigger', () => {

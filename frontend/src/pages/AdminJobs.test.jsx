@@ -171,7 +171,9 @@ describe('Admin Jobs', () => {
       within(panel).getByRole('link', { name: 'Open Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
     expect(
-      within(panel).getByRole('link', { name: 'Open Weekend: Weekend forecast' }),
+      within(panel).getByRole('link', {
+        name: 'Open Weekend: Weekend forecast',
+      }),
     ).toHaveAttribute('href', '/admin/weekend')
     expect(
       within(panel).getByRole('link', { name: 'Open Spots: Spot finder' }),
