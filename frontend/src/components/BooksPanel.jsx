@@ -34,6 +34,18 @@ function BookRow({ itemId, book }) {
             .filter(Boolean)
             .join(' · ')}
         </span>
+        {book.collects_count === 0 && (
+          <span className="muted admin-book-facts">
+            {COPY.noContents}
+            {' · '}
+            <Link to={adminVolumePath(itemId, book.slug)}>
+              {COPY.findContents}{' '}
+              <span className="visually-hidden">
+                {COPY.findContentsFor(book.label)}
+              </span>
+            </Link>
+          </span>
+        )}
       </span>
       <span className="admin-book-marks">
         {book.owned ? (

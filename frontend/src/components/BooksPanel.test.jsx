@@ -85,12 +85,31 @@ describe('BooksPanel', () => {
     )
   })
 
+  it('points an empty book to Find contents, and only that one', async () => {
+    stubApi()
+    renderPanel()
+    await screen.findByRole('heading', { name: 'Books' })
+    const [one, two, three] = within(
+      screen.getByRole('list', { name: 'Books on this title' }),
+    ).getAllByRole('listitem')
+    expect(three).toHaveTextContent('No contents yet')
+    expect(
+      within(three).getByRole('link', {
+        name: 'Find contents for Saga, Book Three',
+      }),
+    ).toHaveAttribute('href', `/admin/shelf/comics/${ID}/vol-3`)
+    for (const row of [one, two]) {
+      expect(row).not.toHaveTextContent('No contents yet')
+      expect(within(row).queryByText(/Find contents/)).toBeNull()
+    }
+  })
+
   it('says so when the title has no books', async () => {
     stubApi({ list: [] })
     renderPanel()
     expect(
       await screen.findByText(
-        'No books on this title yet. Add the first one below.',
+        'No books on this title yet. Add the first one below. A single issue has no book, so there are no contents to find.',
       ),
     ).toBeVisible()
     expect(
