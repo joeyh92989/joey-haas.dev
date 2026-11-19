@@ -1783,3 +1783,40 @@ async def test_a_denver_spot_with_stray_whitespace_is_still_public(
     body = await _spots(sessionmaker_for_test)
 
     assert sorted(row["name"] for row in body) == ["Leading cafe", "Trailing cafe"]
+
+
+async def test_the_outings_read_is_admin_only_and_not_a_public_route(
+    sessionmaker_for_test,
+):
+    from spots_routes import create_spots_router
+
+    shown = _spot("Coors Field Cafe")
+    await _add(sessionmaker_for_test, shown)
+    await _add(
+        sessionmaker_for_test,
+        Visit(
+            spot_id=shown.id,
+            visited_on=date(2026, 9, 1),
+            title="Rockies game with Dad",
+            verdict=OutingVerdict.LOVED,
+            note="Secret outing note",
+        ),
+    )
+    app = FastAPI()
+    app.include_router(create_spots_router(sessionmaker_for_test))
+    app.include_router(create_public_router(sessionmaker_for_test))
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        anonymous = await client.get("/api/spots/outings")
+        public = await client.get("/api/public/spots")
+    assert anonymous.status_code == 401
+    assert "Secret outing note" not in anonymous.text
+    assert not any(
+        "outing" in path
+        for path in app.openapi()["paths"]
+        if path.startswith("/api/public")
+    )
+    assert "outings" not in set(_keys(public.json()))
+    assert "Secret outing note" not in public.text

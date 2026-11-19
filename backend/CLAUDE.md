@@ -71,6 +71,13 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `commit_spot`, so any failure leaves no spot. Keep it one transaction:
   never commit the spot before the visit. `intake` is imported inside the
   handler because `intake.commit` imports `spots_routes`. No outbound call.
+- **History read (story #347, epic #339).** `GET /api/spots/outings`
+  (`spots_routes.list_outings`, admin, `OutingsOut`) answers `{year, outings}`:
+  every outing with its spot's name, neighbourhood and city, ordered
+  `visited_on` desc, then day before month before year, then `created_at`
+  desc, then id desc; `year` is the owner's Denver year with `outings`
+  (every precision, by stored period start), distinct `places` and `loved`.
+  No pagination. Keep it above any `/{spot_id}` GET; `note` stays admin-only.
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
