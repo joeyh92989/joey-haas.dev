@@ -13,17 +13,19 @@ body. Every issue also gets `backlog` and `walkthrough-2026-11`. Raw logs are in
 633px viewport, `05` admin at 1440px then 390px, `06` the 390px sweep). "Seen by" names the
 walkers who hit it independently; one walker is a weaker signal than two.
 
-Method limits, so nobody over-reads this: the walkers are a model reading screenshots, not people;
+Method limits, so nobody over-reads this: the Chrome-driven walkers (`02`, `03`, and the first admin walk `04`) used Joey's own browser profile, which is signed in as the owner, so anything only the owner sees is a false positive (that is how #469 was retracted); the recruiter walker (`01`) may have been signed in too; the walkers are a model reading screenshots, not people;
 `01`-`03` ran against production and `04`-`05` against a local build on an empty or seeded
 database; Chrome would not narrow below 633px (`03`) or widen past it (`04`), so `04` is partly a
 phone layout and its "no desktop layout" finding was discarded; delete and Discard flows were not
 tried. Prior work was checked first: #288 (a work case study) was closed won't-do at Joey's call,
 so no issue here asks for one. Duplicates of closed issues are written as follow-ups and cite them.
 
-## Visitors see owner-only controls
+## Visitors see owner-only controls (retracted)
 
 Labels: bug, design
-Issue: #469
+Issue: #469 (closed, not planned)
+
+Retracted after a repro. In a fresh signed-out browser on production none of these controls render. The friend and phone walkers drove Joey's own Chrome profile, which is signed in as the owner, so they saw the owner's controls. What follows is the original finding, kept as a record.
 
 Seen by: friend, phone. A signed-out visitor sees "Edit" under every game and comic title, the
 "Admin" link in the footer, the "Wrap up / Log tonight / Not tonight" buttons on What's next, and
