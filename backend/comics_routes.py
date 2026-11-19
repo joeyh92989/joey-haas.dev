@@ -1684,7 +1684,7 @@ def create_comics_router(
         taken = {
             (
                 comic_contents.normalize_name(r.series_name),
-                " ".join(r.issue_text.lower().split()),
+                comic_metron.issue_key(r.issue_text),
             )
             for r in existing
             if r.source != "metron"
@@ -1700,12 +1700,13 @@ def create_comics_router(
             )
         candidates = []
         for candidate in found.candidates:
+            labelled = comic_metron.label_years(candidate.entries)
             kept = [
-                e
-                for e in candidate.entries
+                (e, name)
+                for e, name in labelled
                 if (
                     comic_contents.normalize_name(e.series_name),
-                    " ".join(e.issue_text.lower().split()),
+                    comic_metron.issue_key(e.issue_text),
                 )
                 not in taken
             ]
@@ -1720,8 +1721,12 @@ def create_comics_router(
                     "resource_url": candidate.resource_url,
                     "strong": candidate.strong,
                     "entries": [
-                        {"series_name": e.series_name, "issue_text": e.issue_text}
-                        for e in kept
+                        {
+                            "series_name": name,
+                            "issue_text": e.issue_text,
+                            "year": e.year,
+                        }
+                        for e, name in kept
                     ],
                     "skipped": len(candidate.entries) - len(kept),
                 }

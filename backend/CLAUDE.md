@@ -867,7 +867,12 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `create_comics_router(..., metron=)` takes the `MetronClient`; `METRON_TOKEN`
   is optional config. The public volume body gains `metron_credit: true` ONLY
   when a collects row is `metron` (`response_model_exclude_unset`, so every
-  other body is byte-identical); `source` stays unpublished. Read
+  other body is byte-identical); `source` stays unpublished. Accept sends the whole list, so the metron rows move to the end, after the
+  rows that stay (their position relative to other rows is not kept).
+  Entries already held are compared on issue text with a leading `#`, spaces
+  and dash style ignored (`comic_metron.issue_key`); a series listed in two
+  years is saved as `Saga (2012)` / `Saga (2018)`; `resource_url` is kept only
+  on https://metron.cloud/. Read
   `sources/README.md` ("Metron") first: the search matches by substring.
   **Public read (#335 book-page slice, #329):** `GET
   /api/public/items/{id}/volumes/{slug}` (`public_issues.build_volume_page`)

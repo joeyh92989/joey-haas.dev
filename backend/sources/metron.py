@@ -117,6 +117,14 @@ class MetronIssue:
     reprints: list[dict] = field(default_factory=list)
 
 
+def safe_resource_url(value: object) -> str | None:
+    """Metron's page link, only when it is on metron.cloud over https: the
+    value reaches an href, so a `javascript:` or foreign-host one is dropped."""
+    if isinstance(value, str) and value.startswith("https://metron.cloud/"):
+        return value
+    return None
+
+
 def is_collected_type(series_type: str | None) -> bool:
     name = (series_type or "").lower()
     return any(word in name for word in _COLLECTED_TYPES)
@@ -235,6 +243,9 @@ def entries_from_reprints(reprints: object) -> list[Entry]:
     seen: set = set()
     for item in order:
         if isinstance(item, str):
+            if item in seen:
+                continue
+            seen.add(item)
             entries.append(Entry(series_name=item[:MAX_SERIES], issue_text=""))
             continue
         if item in seen:
@@ -386,7 +397,7 @@ class MetronClient:
             pages=pages
             if isinstance(pages, int) and not isinstance(pages, bool)
             else None,
-            resource_url=payload.get("resource_url") or None,
+            resource_url=safe_resource_url(payload.get("resource_url")),
             reprints=[r for r in reprints if isinstance(r, dict)]
             if isinstance(reprints, list)
             else [],

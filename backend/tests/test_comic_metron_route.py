@@ -148,7 +148,9 @@ async def test_an_isbn_match_is_a_strong_proposal_and_writes_nothing(
     assert candidate["strong"] is True
     assert candidate["isbn"] == SAGA_ISBN and candidate["pages"] == 160
     assert candidate["resource_url"] == "https://metron.cloud/issue/saga-2012-1/"
-    assert candidate["entries"] == [{"series_name": "Saga", "issue_text": "#1-6"}]
+    assert candidate["entries"] == [
+        {"series_name": "Saga", "issue_text": "#1-6", "year": 2012}
+    ]
     # The search used the title and the line number; nothing else was asked.
     assert stub.calls[0] == ("search", "Saga", 1)
     assert await collects_of(factory, volume_id) == []  # a proposal, no write
@@ -248,6 +250,40 @@ async def test_the_proposal_drops_entries_other_sources_already_hold(
     assert body["replaces"] == 1  # the old metron row would be swapped out
 
 
+async def test_a_typed_range_in_another_dash_style_still_counts_as_held(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    _, volume_id = await saga_volume(factory)
+    await add_collect(factory, volume_id, 0, "typed", "Saga", "1\u20136")  # en dash
+    body = (await propose(factory, volume_id, StubMetron())).json()
+    assert body["candidates"][0]["entries"] == []
+    assert body["candidates"][0]["skipped"] == 1
+
+
+async def test_one_series_in_two_years_is_written_with_its_year(
+    sessionmaker_for_test,
+):
+    factory = sessionmaker_for_test
+    _, volume_id = await saga_volume(factory)
+    trade = _issue(_fx("metron_saga_tpb_issue.json"))
+    trade = MetronIssue(
+        **{
+            **trade.__dict__,
+            "reprints": [
+                {"id": 1, "issue": "Saga (2012) #1"},
+                {"id": 2, "issue": "Saga (2012) #2"},
+                {"id": 3, "issue": "Saga (2018) #1"},
+            ],
+        }
+    )
+    body = (await propose(factory, volume_id, StubMetron(trade=trade))).json()
+    assert [
+        (e["series_name"], e["issue_text"], e["year"])
+        for e in body["candidates"][0]["entries"]
+    ] == [("Saga (2012)", "#1-2", 2012), ("Saga (2018)", "#1", 2018)]
+
+
 async def test_accept_stores_metron_rows_and_keeps_every_other_source(
     sessionmaker_for_test,
 ):
@@ -273,7 +309,16 @@ async def test_accept_stores_metron_rows_and_keeps_every_other_source(
         proposal = (await client.post(path(volume_id), json={})).json()
         entries = proposal["candidates"][0]["entries"]
         body = put_body(
-            collects=keep + [{**e, "link": None, "source": "metron"} for e in entries],
+            collects=keep
+            + [  # as the page builds them: name and issues only, no year
+                {
+                    "series_name": e["series_name"],
+                    "issue_text": e["issue_text"],
+                    "link": None,
+                    "source": "metron",
+                }
+                for e in entries
+            ],
             label=view["label"],
             kind=view["kind"],
         )

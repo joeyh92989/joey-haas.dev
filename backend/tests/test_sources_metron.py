@@ -305,3 +305,28 @@ async def test_a_far_reset_stops_instead_of_sleeping(monkeypatch):
     with pytest.raises(MetronRateLimited):
         await client.fetch_issue(2)
     assert slept == []
+
+
+def test_a_repeated_unparseable_line_is_kept_once():
+    assert entries_from_reprints(_reprints("Foo Special", "Foo Special")) == [
+        Entry("Foo Special", "")
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url, kept",
+    [
+        ("https://metron.cloud/issue/saga-2012-1/", True),
+        ("javascript:alert(1)", False),
+        ("https://evil.example/https://metron.cloud/", False),
+        ("http://metron.cloud/issue/x/", False),
+        ("https://metron.cloud.evil.example/x", False),
+    ],
+)
+async def test_resource_url_is_kept_only_on_metron_cloud(monkeypatch, url, kept):
+    # FAKE value spliced into a real record.
+    payload = {**_fixture("metron_saga_tpb_issue.json"), "resource_url": url}
+    _patch_http(monkeypatch, [_Response(200, payload)])
+    issue = await _client().fetch_issue(52773)
+    assert issue.resource_url == (url if kept else None)

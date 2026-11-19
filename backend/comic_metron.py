@@ -126,3 +126,28 @@ async def find_contents(
         return Found("not_found", MESSAGES["not_found"])
     found.sort(key=lambda c: not c.strong)  # stable: strong first
     return Found("strong" if found[0].strong else "possible", None, found)
+
+
+def issue_key(text: str) -> str:
+    """Issue text for comparing: lower case, a leading `#` and all spaces gone,
+    en and em dashes as `-`, so `#1-6`, `1-6` and `#1 – 6` are one."""
+    folded = text.lower().translate(dict.fromkeys(map(ord, "‐‑‒–—―−"), "-"))
+    return "".join(folded.split()).removeprefix("#")
+
+
+def label_years(entries: list[Entry]) -> list[tuple[Entry, str]]:
+    """Each entry with the series name to save. A name that appears with more
+    than one year in this list becomes `Saga (2012)` / `Saga (2018)`, so the
+    saved rows tell the volumes apart; otherwise the plain name stays."""
+    years: dict[str, set] = {}
+    for entry in entries:
+        years.setdefault(entry.series_name, set()).add(entry.year)
+    return [
+        (
+            e,
+            f"{e.series_name} ({e.year})"
+            if len(years[e.series_name]) > 1 and e.year is not None
+            else e.series_name,
+        )
+        for e in entries
+    ]

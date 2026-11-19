@@ -393,6 +393,7 @@ class ContentsParseIn(BaseModel):
 class MetronEntryOut(BaseModel):
     series_name: str
     issue_text: str
+    year: int | None = None
 
 
 class MetronCandidateOut(BaseModel):
