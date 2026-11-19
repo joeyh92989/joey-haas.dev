@@ -4,7 +4,7 @@ import { test, expect } from './fixtures.js'
 
 const PHONE = { width: 400, height: 800 }
 const DESKTOP = { width: 1280, height: 800 }
-const POST = '/blog/how-spine-works'
+const POST = '/blog/how-my-shelf-works'
 
 /** The Report-Only CSP exactly as render.yaml ships it. */
 function reportOnlyCsp() {

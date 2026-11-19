@@ -85,6 +85,15 @@ export async function readPublished(dir) {
 }
 
 /**
+ * Blog posts whose slug changed, to the URL their feed guid keeps. "How My
+ * Shelf works" moved from /blog/how-spine-works (#483); a new guid would
+ * repost it in every feed reader, so the old one stays.
+ */
+export const BLOG_GUIDS = {
+  'how-my-shelf-works': `${SITE_URL}/blog/how-spine-works`,
+}
+
+/**
  * An RSS 2.0 channel for published entries.
  *
  * @param {object} feed
@@ -96,6 +105,8 @@ export async function readPublished(dir) {
  * @param {string} feed.itemPrefix The path an entry's slug is appended to,
  *   such as '/blog'.
  * @param {string} feed.selfPath The feed's own path, such as '/feed.xml'.
+ * @param {Record<string, string>} [feed.guids] A renamed entry's slug to the
+ *   absolute URL its guid keeps, so readers do not see it as a new entry.
  * @returns {string} The feed document.
  */
 export function rssFeed({
@@ -105,6 +116,7 @@ export function rssFeed({
   link,
   itemPrefix,
   selfPath,
+  guids = {},
 }) {
   const items = entries
     .map((entry) => {
@@ -115,7 +127,7 @@ export function rssFeed({
       <title>${escapeXml(entry.title)}</title>
       <description>${escapeXml(excerpt(entry.body))}</description>
       <link>${url}</link>
-      <guid isPermaLink="true">${url}</guid>
+      <guid isPermaLink="true">${guids[entry.slug] ?? url}</guid>
       <pubDate>${new Date(entry.date).toUTCString()}</pubDate>
     </item>`
     })

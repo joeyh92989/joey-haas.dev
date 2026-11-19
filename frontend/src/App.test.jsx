@@ -85,6 +85,15 @@ describe('App redirects', () => {
     )
   })
 
+  it('sends the pre-rename post slug to /blog/how-my-shelf-works', async () => {
+    renderAt('/blog/how-spine-works')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        /^\/blog\/how-my-shelf-works$/,
+      ),
+    )
+  })
+
   it('keeps the query on the way from /shelf to Games', async () => {
     render(
       <MemoryRouter initialEntries={['/shelf?q=zelda']}>
@@ -228,11 +237,11 @@ describe('App page titles', () => {
 
   it('titles a post by its own title', async () => {
     content.posts.push({
-      slug: 'how-spine-works',
+      slug: 'how-my-shelf-works',
       html: '<p>Body</p>',
       frontmatter: { title: 'How Spine works', date: '2026-10-02', tags: [] },
     })
-    renderAt('/blog/how-spine-works')
+    renderAt('/blog/how-my-shelf-works')
     await waitFor(() =>
       expect(document.title).toBe('How Spine works · Joey Haas'),
     )

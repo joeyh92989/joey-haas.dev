@@ -65,9 +65,13 @@ services:
       - type: rewrite
         source: /blog
         destination: /blog/index.html
-      - type: rewrite
+      # Pre-rename slug (#483): a visitor or shared link lands on the new post.
+      - type: redirect
         source: /blog/how-spine-works
-        destination: /blog/how-spine-works/index.html
+        destination: /blog/how-my-shelf-works
+      - type: rewrite
+        source: /blog/how-my-shelf-works
+        destination: /blog/how-my-shelf-works/index.html
       - type: rewrite
         source: /til
         destination: /til/index.html

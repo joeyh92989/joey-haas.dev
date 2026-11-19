@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- The post “How My Shelf works” now lives at [/blog/how-my-shelf-works](/blog/how-my-shelf-works). The old address redirects, and feed readers will not see it as a new entry.
 - The links in the footer and the feed link under Changes on [stats](/stats) are now at least 24px tall, so they are easier to hit on a phone without landing on their neighbor.
 - The theme button in the header now says what it will do (“Switch to light” or “Switch to dark”) instead of naming the mode you would get, which read as the current one.
 - The [tour](/shelf/how) no longer scrolls sideways on a phone: its stops now shrink to the screen instead of stretching past it.

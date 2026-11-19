@@ -2,7 +2,12 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readPublished, rssFeed, writeFeed } from './markdown-lib.mjs'
+import {
+  BLOG_GUIDS,
+  readPublished,
+  rssFeed,
+  writeFeed,
+} from './markdown-lib.mjs'
 
 let root
 
@@ -74,6 +79,45 @@ describe('rssFeed', () => {
       '<atom:link href="https://joey-haas.dev/til/feed.xml" rel="self"',
     )
     expect(xml).toContain('<pubDate>Fri, 06 Nov 2026 00:00:00 GMT</pubDate>')
+  })
+
+  it('keeps a pinned guid for a renamed entry, link on the new slug', () => {
+    const xml = rssFeed({
+      ...FEED,
+      guids: { renamed: 'https://joey-haas.dev/til/old-name' },
+      entries: [
+        { slug: 'renamed', title: 'R', date: '2026-11-06', body: 'x' },
+        { slug: 'plain', title: 'P', date: '2026-11-05', body: 'y' },
+      ],
+    })
+    expect(xml).toContain(
+      '<link>https://joey-haas.dev/til/renamed</link>\n      <guid isPermaLink="true">https://joey-haas.dev/til/old-name</guid>',
+    )
+    expect(xml).toContain(
+      '<guid isPermaLink="true">https://joey-haas.dev/til/plain</guid>',
+    )
+  })
+
+  it('keeps the renamed blog post on its pre-rename guid (#483)', () => {
+    const xml = rssFeed({
+      ...FEED,
+      itemPrefix: '/blog',
+      guids: BLOG_GUIDS,
+      entries: [
+        {
+          slug: 'how-my-shelf-works',
+          title: 'H',
+          date: '2026-10-02',
+          body: 'x',
+        },
+      ],
+    })
+    expect(xml).toContain(
+      '<link>https://joey-haas.dev/blog/how-my-shelf-works</link>',
+    )
+    expect(xml).toContain(
+      '<guid isPermaLink="true">https://joey-haas.dev/blog/how-spine-works</guid>',
+    )
   })
 
   it('writes a valid empty channel when there is nothing published', () => {

@@ -31,7 +31,7 @@ The About summary, areas of expertise, toolbox and Experience timeline are Joey'
 **Changelog** (`frontend/changelog.md`)
 > Spine is now [My Shelf](/shelf); every old /spine link redirects.
 
-**Blog** (`frontend/posts/how-spine-works.md`)
+**Blog** (`frontend/posts/how-my-shelf-works.md`)
 > Typing a few hundred titles into a form is the kind of job that gets abandoned at item forty, so the import path had to be a camera.
 
 **TIL** (`frontend/notes/render-rewrites-need-the-slash.md`)

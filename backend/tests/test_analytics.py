@@ -114,7 +114,7 @@ def test_true_client_ip_then_the_socket():
         (f"{ITEM}/vol-12", f"{ITEM}/vol-12"),
         ("/shelf/year/2026/", "/shelf/year/2026"),
         ("/shelf/journal/2026-10/", "/shelf/journal/2026-10"),
-        ("/blog/how-spine-works#top", "/blog/how-spine-works"),
+        ("/blog/how-my-shelf-works#top", "/blog/how-my-shelf-works"),
         ("/stats", "/stats"),
         ("/til/", "/til"),
         ("/til/render-rewrites-need-the-slash", "/til/render-rewrites-need-the-slash"),
