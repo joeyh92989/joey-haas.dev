@@ -50,7 +50,7 @@ export default function SiteMast({
         {/* Outside <nav>: the toggle is a control, not a destination. */}
         <div className="mast-end">
           <a href="/resume.pdf" className="btn ghost mast-resume">
-            Resume ↓
+            Resume (PDF)
           </a>
           {onOpenSearch && (
             <SearchButton onOpen={onOpenSearch} open={searchOpen} />

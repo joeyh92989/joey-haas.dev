@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- The résumé PDF now opens with the title “Joseph Haas - Resume” instead of the draft name, and the nav link reads “Resume (PDF)”, since it opens in the browser.
 - On the admin Home and Jobs lists, the links that only open a page (Sources, Radar, Weekend, Intake and the rest) now say “Open Radar” and so on instead of “Run now”, which they never did.
 - Admin spelling is American throughout (“Color”, “Store color”, “Coloring”), and the Run now, Delete, header and footer links in the admin are at least 24px tall.
 - The count on a filter chip on a phone, such as Active 1 on the Closet, keeps its space instead of reading “Active1”.

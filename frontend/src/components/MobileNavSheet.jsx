@@ -39,7 +39,7 @@ export default function MobileNavSheet({
         <MastNavLink key={item.to} item={item} onClick={onClose} />
       ))}
       <a href="/resume.pdf" onClick={onClose}>
-        Resume ↓
+        Resume (PDF)
       </a>
     </NavSheet>
   )

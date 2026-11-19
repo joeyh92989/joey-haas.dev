@@ -76,7 +76,7 @@ describe('SiteMast', () => {
 
   it('links the résumé PDF', () => {
     renderAt()
-    expect(screen.getByRole('link', { name: 'Resume ↓' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Resume (PDF)' })).toHaveAttribute(
       'href',
       '/resume.pdf',
     )
