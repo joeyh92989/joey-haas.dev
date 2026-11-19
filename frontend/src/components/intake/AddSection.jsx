@@ -476,6 +476,7 @@ export default function AddSection({ area, onAdded, children }) {
             : `${name} is already on the shelf`,
       )
       onAdded?.()
+      if (body.added) context.refreshItems?.()
       // The Closet types one piece after another, so a finished add leaves
       // its bar empty and focused, but only when it added: a duplicate keeps
       // the text so it can be corrected. The Collection keeps the results for

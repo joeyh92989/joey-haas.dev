@@ -144,8 +144,17 @@ export const adminCopy = {
     details: 'Details',
     loading: 'Loading…',
   },
+  gate: {
+    home: 'Back to the public site',
+    signedOut: 'You are signed out.',
+  },
   collection: {
     addGames: 'Add games',
+    chooseFormat: 'Choose a format.',
+    openItem: 'Open it',
+    required: 'Required',
+    titleRequired: 'Enter a title.',
+    savedItem: (title) => `Saved “${title}”.`,
     addWithFullForm: 'Add with the full form',
     apply: 'Apply',
     comicsPage: 'the Comics page',

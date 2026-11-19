@@ -216,7 +216,7 @@ export default function SpotForm({
           inputMode="text"
           autoComplete="off"
         />
-        <p className="spot-form-hint" id={`${id}-coords-hint`}>
+        <p className="spot-form-hint coords-tip" id={`${id}-coords-hint`}>
           {denver.form.coordsHint}
         </p>
       </div>

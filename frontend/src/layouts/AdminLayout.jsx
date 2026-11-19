@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import {
+  Link,
   Outlet,
   useLocation,
   useOutletContext,
@@ -7,6 +8,7 @@ import {
 } from 'react-router'
 import AdminShell from '../components/AdminShell.jsx'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 import { WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
@@ -107,7 +109,8 @@ const RELOAD_PATHS = ['/admin', '/admin/jobs']
  * `closetReview` / `setClosetReview`, the flagged count Review calls with
  * after every read, so the area's badge follows each decision, and
  * `refreshIntakeCounts`, which a sitting calls after it changes what is
- * left to check, so the Add pages' badges follow it.
+ * left to check, so the Add pages' badges follow it, and `refreshItems`,
+ * which an add calls so the Shelf count follows it.
  */
 export default function AdminLayout() {
   const context = useOutletContext()
@@ -232,6 +235,13 @@ export default function AdminLayout() {
     }
   }, [signedIn, inAdd])
 
+  /** Reloads the rows behind the sidebar's owned-games count. */
+  function refreshItems() {
+    loadItems().then((rows) => {
+      if (rows) setItems(rows)
+    })
+  }
+
   function refreshIntakeCounts() {
     loadIntakeCounts().then((counts) => {
       if (counts) setIntakeCounts(counts)
@@ -314,6 +324,7 @@ export default function AdminLayout() {
                 closetReview,
                 setClosetReview,
                 refreshIntakeCounts,
+                refreshItems,
               }}
             />
           </Suspense>
@@ -342,11 +353,17 @@ export default function AdminLayout() {
         {status === 'error' && <LoadState failed onRetry={retry} />}
 
         {status === 'signed-out' && (
-          <p>
-            <a className="admin-signin" href={loginUrl}>
-              Sign in with Google
-            </a>
-          </p>
+          <>
+            <p>{adminCopy.gate.signedOut}</p>
+            <p>
+              <a className="admin-signin" href={loginUrl}>
+                Sign in with Google
+              </a>
+            </p>
+            <p>
+              <Link to="/">{adminCopy.gate.home}</Link>
+            </p>
+          </>
         )}
       </section>
     </main>

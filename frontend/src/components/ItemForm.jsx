@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useId, useRef, useState } from 'react'
 import IsbnField from './intake/IsbnField.jsx'
+import { adminCopy } from '../content/adminCopy.js'
 import { spine } from '../content/spine.js'
 import { EMPTY_BOOK, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
@@ -277,6 +278,10 @@ export default function ItemForm({
   linkedSource = null,
   onClearLink,
 }) {
+  const id = useId()
+  const titleRef = useRef(null)
+  const formatRef = useRef(null)
+  const [errors, setErrors] = useState({})
   const set = (field) => (event) =>
     onChange({ ...value, [field]: event.target.value })
   // The API takes a number or null, never an empty string, so the create call
@@ -290,55 +295,128 @@ export default function ItemForm({
   const setCopyFormat = (event) =>
     onChange({ ...value, physical_format: event.target.value || null })
 
-  return (
-    <form className="item-form" onSubmit={onSubmit}>
-      <select aria-label="Type" value={value.type} onChange={set('type')}>
-        {TYPES.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
+  const first = (field) => (event) => {
+    if (errors[field]) setErrors((old) => ({ ...old, [field]: null }))
+    set(field)(event)
+  }
 
-      <input
-        aria-label="Title"
-        placeholder="Title"
-        required
-        value={value.title}
-        onChange={set('title')}
-      />
+  // The browser's own tooltip ("Please select an item in the list") names
+  // nothing, so the form checks its two required fields and says which.
+  function submit(event) {
+    const next = {}
+    if (!value.title.trim()) next.title = adminCopy.collection.titleRequired
+    if (!value.owned_format)
+      next.owned_format = adminCopy.collection.chooseFormat
+    setErrors(next)
+    if (next.title) {
+      event.preventDefault()
+      titleRef.current?.focus()
+    } else if (next.owned_format) {
+      event.preventDefault()
+      formatRef.current?.focus()
+    } else {
+      onSubmit(event)
+    }
+  }
 
-      <input
-        aria-label="Year"
-        type="number"
-        min="1880"
-        max="2100"
-        placeholder="Year"
-        value={value.year}
-        onChange={set('year')}
-      />
-
-      <select aria-label="Status" value={value.status} onChange={set('status')}>
-        {STATUS_ORDER.map((status) => (
-          <option key={status} value={status}>
-            {statusLabel(status, value.type)}
-          </option>
-        ))}
-      </select>
-
-      <select
-        aria-label="Owned format"
-        required
-        value={value.owned_format}
-        onChange={set('owned_format')}
+  const describe = (field) =>
+    errors[field] ? `${id}-${field}-error` : undefined
+  const error = (field) =>
+    errors[field] && (
+      <p
+        id={`${id}-${field}-error`}
+        className="admin-error item-form-error"
+        role="alert"
       >
-        <option value="">Format…</option>
-        {OWNED_FORMATS.map((format) => (
-          <option key={format} value={format}>
-            {format === 'none' ? 'want (not owned)' : format}
-          </option>
-        ))}
-      </select>
+        {errors[field]}
+      </p>
+    )
+  const requiredMark = (
+    <span className="item-form-required">{adminCopy.collection.required}</span>
+  )
+
+  return (
+    <form className="item-form" onSubmit={submit} noValidate>
+      <div className="item-form-field">
+        <label htmlFor={`${id}-type`}>Type</label>
+        <select id={`${id}-type`} value={value.type} onChange={set('type')}>
+          {TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="item-form-field">
+        <div className="item-form-label-row">
+          <label htmlFor={`${id}-title`}>Title</label>
+          {requiredMark}
+        </div>
+        <input
+          id={`${id}-title`}
+          ref={titleRef}
+          placeholder="Title"
+          required
+          aria-invalid={errors.title ? 'true' : undefined}
+          aria-describedby={describe('title')}
+          value={value.title}
+          onChange={first('title')}
+        />
+        {error('title')}
+      </div>
+
+      <div className="item-form-field">
+        <label htmlFor={`${id}-year`}>Year</label>
+        <input
+          id={`${id}-year`}
+          type="number"
+          min="1880"
+          max="2100"
+          placeholder="Year"
+          value={value.year}
+          onChange={set('year')}
+        />
+      </div>
+
+      <div className="item-form-field">
+        <label htmlFor={`${id}-status`}>Status</label>
+        <select
+          id={`${id}-status`}
+          value={value.status}
+          onChange={set('status')}
+        >
+          {STATUS_ORDER.map((status) => (
+            <option key={status} value={status}>
+              {statusLabel(status, value.type)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="item-form-field">
+        <div className="item-form-label-row">
+          <label htmlFor={`${id}-owned`}>Owned format</label>
+          {requiredMark}
+        </div>
+        <select
+          id={`${id}-owned`}
+          ref={formatRef}
+          required
+          aria-invalid={errors.owned_format ? 'true' : undefined}
+          aria-describedby={describe('owned_format')}
+          value={value.owned_format}
+          onChange={first('owned_format')}
+        >
+          <option value="">Format…</option>
+          {OWNED_FORMATS.map((format) => (
+            <option key={format} value={format}>
+              {format === 'none' ? 'want (not owned)' : format}
+            </option>
+          ))}
+        </select>
+        {error('owned_format')}
+      </div>
 
       {value.type === 'comic' ? (
         <div className="comic-fields">
@@ -346,43 +424,52 @@ export default function ItemForm({
         </div>
       ) : (
         <>
-          <select
-            aria-label="Platform"
-            value={value.platform_id ?? ''}
-            onChange={setPlatform}
-          >
-            <option value="">Platform…</option>
-            {PLATFORM_OPTIONS.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <div className="item-form-field">
+            <label htmlFor={`${id}-platform`}>Platform</label>
+            <select
+              id={`${id}-platform`}
+              value={value.platform_id ?? ''}
+              onChange={setPlatform}
+            >
+              <option value="">Platform…</option>
+              {PLATFORM_OPTIONS.map(([platformId, name]) => (
+                <option key={platformId} value={platformId}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            aria-label="Copy format"
-            value={value.physical_format ?? ''}
-            onChange={setCopyFormat}
-          >
-            <option value="">Copy format…</option>
-            {FORMAT_OPTIONS.map(([format, label]) => (
-              <option key={format} value={format}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <div className="item-form-field">
+            <label htmlFor={`${id}-copy`}>Copy format</label>
+            <select
+              id={`${id}-copy`}
+              value={value.physical_format ?? ''}
+              onChange={setCopyFormat}
+            >
+              <option value="">Copy format…</option>
+              {FORMAT_OPTIONS.map(([format, label]) => (
+                <option key={format} value={format}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
         </>
       )}
 
-      <input
-        aria-label="Rating"
-        type="number"
-        min="1"
-        max="10"
-        placeholder="Rating"
-        value={value.rating}
-        onChange={set('rating')}
-      />
+      <div className="item-form-field">
+        <label htmlFor={`${id}-rating`}>Rating</label>
+        <input
+          id={`${id}-rating`}
+          type="number"
+          min="1"
+          max="10"
+          placeholder="Rating"
+          value={value.rating}
+          onChange={set('rating')}
+        />
+      </div>
 
       <button type="submit" disabled={busy}>
         {busy ? 'Saving…' : 'Add'}

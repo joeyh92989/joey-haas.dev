@@ -284,7 +284,7 @@ describe('PlacesAdd', () => {
     ])
     expect(within(form).getByLabelText('Blurb')).toBeInTheDocument()
     expect(
-      within(form).getByLabelText(/Show on the public Denver page/),
+      within(form).getByLabelText(/Show on the public map/),
     ).not.toBeChecked()
     await waitFor(() =>
       expect(
@@ -343,6 +343,22 @@ describe('PlacesAdd', () => {
     await waitFor(() => expect(title).toHaveFocus())
     await user.click(screen.getByRole('button', { name: 'Change the words' }))
     expect(screen.getByLabelText('Place name')).toHaveFocus()
+  })
+
+  it('says Coordinates are required in a prominent tip, and words the public toggle as the map (#491)', async () => {
+    const user = userEvent.setup()
+    fakeApi()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'Type it by hand' }))
+    const coords = screen.getByLabelText('Coordinates')
+    expect(coords).toBeRequired()
+    expect(coords).toHaveAccessibleDescription(
+      /^Required\. Paste “latitude, longitude” or a maps link/,
+    )
+    expect(
+      document.getElementById(coords.getAttribute('aria-describedby')),
+    ).toHaveClass('coords-tip')
+    expect(screen.getByLabelText('Show on the public map')).toBeInTheDocument()
   })
 
   it('marks a saved place, links to Spots and offers no Add for it', async () => {
@@ -432,9 +448,7 @@ describe('PlacesAdd', () => {
 
     await user.click(within(form).getByRole('button', { name: 'Coffee' }))
     await user.type(within(form).getByLabelText('Blurb'), 'Good hall')
-    await user.click(
-      within(form).getByLabelText(/Show on the public Denver page/),
-    )
+    await user.click(within(form).getByLabelText(/Show on the public map/))
     await user.click(within(form).getByRole('button', { name: 'Save place' }))
 
     const heading = await screen.findByRole('heading', {
@@ -609,7 +623,7 @@ describe('PlacesAdd', () => {
     renderPage()
     await submitSearch(user, 'Red Rocks')
     const form = await screen.findByRole('group', { name: /Details for/ })
-    const box = within(form).getByLabelText(/Show on the public Denver page/)
+    const box = within(form).getByLabelText(/Show on the public map/)
     await user.click(box)
     expect(box).toBeChecked()
     // The cities of the saved spots come from /api/spots.
@@ -861,9 +875,7 @@ describe('PlacesAdd', () => {
     renderPage()
     await submitSearch(user, 'Red Rocks')
     const form = await screen.findByRole('group', { name: /Details for/ })
-    await user.click(
-      within(form).getByLabelText(/Show on the public Denver page/),
-    )
+    await user.click(within(form).getByLabelText(/Show on the public map/))
     await user.click(screen.getByRole('button', { name: 'Save place' }))
     await screen.findByRole('heading', { name: 'Saved Red Rocks Amphitheatre' })
     expect(
@@ -1060,7 +1072,7 @@ describe('PlacesAdd', () => {
     fakeApi({ search: found(ROCKS) })
     renderPage()
     await submitSearch(user, 'Red Rocks')
-    const box = await screen.findByLabelText(/Show on the public Denver page/)
+    const box = await screen.findByLabelText(/Show on the public map/)
     expect(box).toHaveAttribute('aria-describedby')
     await user.click(box)
     expect(box).not.toHaveAttribute('aria-describedby')

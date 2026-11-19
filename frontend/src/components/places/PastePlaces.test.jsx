@@ -670,7 +670,7 @@ describe('PastePlaces: ready rows', () => {
       name: 'Details for Confluence Park',
     })
     const toggle = within(form).getByRole('checkbox', {
-      name: 'Show on the public Denver page',
+      name: 'Show on the public map',
     })
     expect(toggle).toBeEnabled()
     await user.click(toggle)
@@ -786,7 +786,7 @@ describe('PastePlaces: save', () => {
     await user.click(screen.getByRole('button', { name: /^Edit/ }))
     await user.click(screen.getByRole('button', { name: 'Park' }))
     await user.click(
-      screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
+      screen.getByRole('checkbox', { name: 'Show on the public map' }),
     )
     await user.click(screen.getByRole('button', { name: 'Save 1 place' }))
     await screen.findByRole('heading', { name: 'Saved 1 place' })
@@ -1277,7 +1277,7 @@ describe('PastePlaces: fix round 1', () => {
     const [first, second] = within(list('Ready')).getAllByRole('listitem')
     await user.click(within(second).getByRole('button', { name: /^Edit/ }))
     await user.click(
-      screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
+      screen.getByRole('checkbox', { name: 'Show on the public map' }),
     )
     expect(first).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
@@ -1647,7 +1647,7 @@ describe('PastePlaces: final fix wave', () => {
       within(row('Confluence Park')).getByRole('button', { name: /^Edit/ }),
     )
     await user.click(
-      screen.getByRole('checkbox', { name: 'Show on the public Denver page' }),
+      screen.getByRole('checkbox', { name: 'Show on the public map' }),
     )
     await user.click(screen.getByRole('button', { name: 'Save 2 places' }))
     await screen.findByRole('heading', { name: 'Saved 2 places' })
