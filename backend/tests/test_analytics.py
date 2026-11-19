@@ -378,11 +378,7 @@ def _public_routes(source: str) -> list[str]:
     paths = ["/"]  # the index route
     for match in re.finditer(r'path="([^"]+)"', source):
         route = match.group(1)
-        if (
-            route == "*"
-            or route in REDIRECT_ONLY
-            or route.split("/")[0] in NOT_COUNTED
-        ):
+        if route == "*" or route in REDIRECT_ONLY or route.split("/")[0] in NOT_COUNTED:
             continue
         filled = "/".join(
             SAMPLE_PARAMS[part[1:]] if part.startswith(":") else part
