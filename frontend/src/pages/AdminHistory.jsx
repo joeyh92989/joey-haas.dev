@@ -149,7 +149,10 @@ export default function AdminHistory() {
           setNotice(sheetCopy.saved(spot.name, created))
           again()
         }}
-        onMaybeSaved={again}
+        onMaybeSaved={() => {
+          setNotice('')
+          again()
+        }}
       />
       {/* Story #348's filters go here, between the header and the list. */}
       <div className="history-filters" data-slot="filters" />
@@ -164,17 +167,18 @@ export default function AdminHistory() {
           message={failed ?? undefined}
           onRetry={retry}
         />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          title={history.emptyTitle}
-          line={history.emptyLine}
-          action={{ label: sheetCopy.open, onClick: openSheet }}
-        />
       ) : (
         <>
           {ended && <LoadState ended />}
           {failed && !ended && (
             <LoadState failed stale staleMessage={failed} onRetry={retry} />
+          )}
+          {rows.length === 0 && (
+            <EmptyState
+              title={history.emptyTitle}
+              line={history.emptyLine}
+              action={{ label: sheetCopy.open, onClick: openSheet }}
+            />
           )}
           {groupOutings(rows).map((group) => (
             <section

@@ -5,6 +5,23 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminHistory from './AdminHistory.jsx'
 
+// The real sheet is its own suite's job; here it only reports its outcomes.
+vi.mock('../components/LogOutingSheet.jsx', () => ({
+  default: ({ onSaved, onMaybeSaved }) => (
+    <>
+      <button
+        type="button"
+        onClick={() => onSaved({ spot: { name: 'Sweet Cow' }, created: false })}
+      >
+        fake saved
+      </button>
+      <button type="button" onClick={() => onMaybeSaved()}>
+        fake maybe
+      </button>
+    </>
+  ),
+}))
+
 const outing = (id, visited_on, more = {}) => ({
   id,
   spot_id: id,
@@ -132,5 +149,59 @@ describe('AdminHistory', () => {
     renderPage()
     const alert = await screen.findByRole('alert')
     expect(within(alert).queryByRole('button')).toBeNull()
+  })
+
+  const EMPTY = {
+    year: { year: 2026, outings: 0, places: 0, loved: 0 },
+    outings: [],
+  }
+
+  it('an empty page, saved, then a failed reread shows the failure and Try again', async () => {
+    fetchMock.mockImplementation(() => reply(200, EMPTY))
+    renderPage()
+    await screen.findByText('No outings logged yet.')
+    fetchMock.mockImplementation(() => reply(500, {}))
+    await userEvent.click(screen.getByRole('button', { name: 'fake saved' }))
+    expect(await screen.findByText(/could not be read/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument()
+    fetchMock.mockImplementation(() => reply(200, DATA))
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Sat, Nov 14')).toBeInTheDocument()
+    expect(screen.queryByText(/could not be read/)).toBeNull()
+  })
+
+  it('an empty page, then a reread that ends the session, says so', async () => {
+    fetchMock.mockImplementation(() => reply(200, EMPTY))
+    renderPage()
+    await screen.findByText('No outings logged yet.')
+    fetchMock.mockImplementation(() => reply(401, {}))
+    await userEvent.click(screen.getByRole('button', { name: 'fake saved' }))
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).queryByRole('button')).toBeNull()
+  })
+
+  it('data on screen, then a reread that ends the session, says so', async () => {
+    fetchMock.mockImplementation(() => reply(200, DATA))
+    renderPage()
+    await screen.findByText('Sat, Nov 14')
+    fetchMock.mockImplementation(() => reply(403, {}))
+    await userEvent.click(screen.getByRole('button', { name: 'fake maybe' }))
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).queryByRole('button')).toBeNull()
+    expect(screen.getByText('Sat, Nov 14')).toBeInTheDocument()
+  })
+
+  it('a maybe-saved reread clears the earlier saved notice', async () => {
+    fetchMock.mockImplementation(() => reply(200, DATA))
+    renderPage()
+    await screen.findByText('Sat, Nov 14')
+    await userEvent.click(screen.getByRole('button', { name: 'fake saved' }))
+    expect(
+      await screen.findByText(/Logged an outing at Sweet Cow/),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'fake maybe' }))
+    expect(screen.queryByText(/Logged an outing at/)).toBeNull()
   })
 })
