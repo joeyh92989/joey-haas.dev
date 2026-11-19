@@ -1,0 +1,61 @@
+### 1. Persona and goal
+- Persona: brand-new site administrator, desktop browser, never used this admin, signed in.
+- Goal: learn what the admin is for; add a game/comic, a place, a garment; find analytics and nightly jobs; find sign out.
+
+Environment note: I asked for a 1440x900 window, but the page viewport stayed at 633x848 and the whole admin rendered in a phone-style layout (bottom tab bar, stacked cards). I tested that layout. The database was NOT empty (seeded: games, 3 comics, jobs), so I mostly saw populated pages, except closet, places, analytics.
+
+### 2. Journey log
+1. /admin - expected a dashboard explaining itself - saw "Home" with Shelf, Site, Nightly jobs cards, status dots "API awake / nightly stale"; first paint showed Closet/Denver cards with "Loading..." and "Checking the API", then those cards vanished and Shelf came first - no welcome or "start here"; "Shelf", "Closet", "Denver", "Site" unexplained - confused/ok.
+2. Home: "Owned 7" - Games page then said Owned 4 (games only?), comics 22 issues. Unclear what 7 counts - confused.
+3. /admin/shelf/games - saw stats, "Add games", "Publish all 4", "Hide all", "Refresh game metadata", search box "Search to add one, or Photos for a sitting", and a collapsed "Add with the full form". "Publish all" / "Hide all" are scary with no explanation - confused.
+4. Opened full form, submitted empty: browser tooltip "Please fill out this field". Filled title only: then "Please select an item in the list" on Format (Format is required, only the browser says so, and the label is just a placeholder). Format "want (not owned)" has value none - odd. Filled title+PC+digital, clicked Add: form cleared, Owned 4 to 5, no visible success message or link to the new item - ok but silent.
+5. /admin/collection/add ("Add" tab) - "a sitting: one kind, many at once", "START A SITTING", Game/Movie/Comic/Board game/Mixed shelf cards with "photo - search - type". "Sitting" is jargon; Mixed shelf says "the reader sorts each title" - confused.
+6. Clicked Comic card: instantly created a record "Comic - Nov 19, 12:28 AM" (an "unfinished sitting") - just by clicking; no confirm. Step 1 Shoot: Take photos / Choose files / Search instead; "108 left today" (model-call budget, unexplained). Search instead, typed ZZ Test Comic: results were real catalogue comics ("Test", "Test Dirt") with Add buttons; no obvious "type it by hand / create my own". I did not add a real catalogue comic, so no comic added - stuck for fake data.
+7. /admin/shelf/comics - good stats (series, issues owned/missing, share read), filters, per-series Edit/Redo/Delete buttons right next to each other. "Redo" unclear. ok.
+8. "More" menu (Play next, Discover, Radar, Pull list, Sources, Store list) - full-screen overlay, clear Close button, but pretty hidden for important stuff - ok.
+9. /admin/weekend (Denver tab) - "This weekend", "No forecast yet", Constraints "Kid along / Bike if dry" and suggestions "Nothing to suggest. Add spots". Nav label "Denver" never explained; sub-tabs Weekend/Spots/History/Add a place. Empty state helpful.
+10. Add a place - search by name, or "Paste a list" / "Type it by hand". Typed by hand: Name, Coordinates (needs "latitude, longitude" - hard for a newcomer), City, Tags, Blurb, "Show on the public Denver page" (unchecked by default, clear). Saved: green confirmation "Saved ZZ Test Place. It is a private spot. Only you can see it." with Add another / View on Spots. Pleased.
+11. /admin/spots - shows my place with Public checkbox, Edit, Log visit; "Spot finder: Not run yet. It runs Sunday evenings" - clear.
+12. /admin/closet/today - weather card, occasion chips, "Nothing in the closet fits today yet". Footer text read "0 active . 0 fit today" and later "6 active . 3 fit today" while still saying nothing fits - inconsistent/flickering.
+13. Closet > Add: only a "Garment" card; clicking it immediately created "Garment sitting" record; step 1 needs photos (Take photos / Choose files), "Start checking" disabled. Card text said "photo - type - file - link" but no typing on this page - confused.
+14. /admin/closet (list): "Type a piece to add it by hand" field (placeholder truncated), Photos, From a file, From links. Typed ZZ Test Shirt + Enter: a bottom sheet "Garment - kept as typed" with Name, Brand, Size, Category, Colour, Material, Warmth, Formality. Clicked "Add to closet": message "ZZ Test Shirt added to the closet", grid shows it with blank "?" tile, "Worn 0x". Pleased, but the first click in the field did nothing until the page had finished loading. Also an "unfinished Garment sitting" from step 13 now nags on this page with Resume/Discard.
+15. Closet > Review (0 flagged, "Next season turn: late April") and Profile (long form of sizes/colouring, "what the tagger and the planner know about me") - purpose OK for owner, unclear for a new admin who is not the owner.
+16. /admin/analytics - clear: cookie-free, 7d/30d/90d/All, zero stats with "No views yet. The beacon is running. Check back tomorrow." Nice honest empty state. Jobs is a second sub-tab here and also on Home.
+17. /admin/jobs - 13 nightly jobs with status dots and "Run now". "Run now" on Sources refresh is a link to /admin/catalogue (Sources page) and on Radar to /admin/radar, i.e. it does NOT run anything, it navigates. Misleading label. "how to re-enable it" links to github.com (leaves the site; I did not follow it).
+18. /admin/catalogue (Sources) and /admin/radar: very specific jargon ("r/NSCollectors registry", "Game-Key Cards", "IGDB"); empty states point to Generate. Fine for owner, opaque to newcomer.
+19. Sign out: seen in a small footer line ("admin@example.com - View site - Sign out") at the bottom of every page, below content. I did not click it (would end my session).
+
+### 3. Findings
+- **F1** Severity: major. Where: whole admin. Happened: at a wide desktop window request, the layout stayed phone-style (viewport 633px). Expected desktop navigation. Fix kind: layout. Suggestion: add a left sidebar and multi-column layout at wide widths; or confirm this is intentionally mobile-first. Evidence: all screenshots show a bottom tab bar and single column. (Possibly my browser's viewport, flagging for check.)
+- **F2** major. Where: Add flows (Games/Comics Add, Closet Add). Clicking Comic/Garment instantly creates a persistent "sitting" record (shows later as Unfinished with Resume/Discard) with no confirmation. Expected: a form or a clear start step. Fix kind: interaction. Suggestion: create the record on first photo/add, not on card click; or explain "sitting" ("batch") in plain words. Evidence: titles "Comic - Nov 19, 12:28 AM" and the closet page nagging banner.
+- **F3** major. Where: Add Comic, Add Garment. No visible way to type an item by hand for comics (search only returns real catalogue items) and the Garment Add page requires photos, though the card says "type". Expected: manual entry next to search. Fix kind: interaction/copy. Suggestion: add "Can't find it? Enter by hand" in comic search; link to the closet's typed-in field from Garment Add. Evidence: comic search results listing real "Test" comics; disabled "Start checking".
+- **F4** major. Where: Jobs "Run now". Label links to another page rather than running a job (Sources refresh, Radar, Discover) and mixes with real run actions (Spot finder). Fix kind: copy/interaction. Suggestion: label "Open Sources" vs "Run now"; make the verb honest. Evidence: hover href /admin/catalogue.
+- **F5** major. Where: Home and nav. No first-day guidance: no "start here", no explanation of the sections; nav labels "Shelf", "Denver", "Site" ambiguous (Denver = places/weekend, Site = analytics+jobs). Fix kind: copy/navigation. Suggestion: rename "Denver" to "Places" (or "Weekend"), "Site" to "Analytics & jobs"; add a short intro line or checklist on Home.
+- **F6** minor. Where: Home. Cards load in stages (Closet/Denver cards appear with "Loading..." then disappear; "Checking the API" status), layout shifts. Also "Owned 7" on Home vs 4 on Games. Fix kind: interaction/copy. Suggestion: skeleton placeholders with fixed heights; label counts ("7 items incl. comics/movies").
+- **F7** minor. Where: Games full form. Required Format field only flagged by native browser tooltip, one field at a time; labels are placeholders only (no persistent labels); "want (not owned)" option stored as none. Fix kind: interaction/copy. Suggestion: persistent labels, inline validation, mark required fields.
+- **F8** minor. Where: Games form submit. No success message or link to the new item after Add (count increases only). Fix kind: interaction. Suggestion: toast "ZZ Test Game added - view" like the Places flow does.
+- **F9** minor. Where: Games/Comics headers. "Publish all N" and "Hide all" sit beside "Add games" without explanation; new items seemed to be public by default ("Publish all 5" included mine) while Places default to private. Inconsistent defaults and risky bulk buttons with no confirmation. Fix kind: interaction/copy. Suggestion: consistent default (private), confirm bulk actions, clarify with tooltips.
+- **F10** minor. Where: Closet Today. Footer counts flicker between "0 active/0 fit" and "6 active/3 fit today" while the card says "Nothing in the closet fits today yet". Fix kind: interaction. Suggestion: single source of truth, render after load.
+- **F11** minor. Where: Add a place by hand. Coordinates required as "latitude, longitude" (hint helps with maps link). A new admin does not know these. Fix kind: copy. Suggestion: say where to find them, or geocode the Name/address.
+- **F12** minor. Where: Per-row Delete next to Edit and Redo on Comics, adjacent to each other with no obvious distinction; "Redo" unclear. Fix kind: visual design/copy. Suggestion: move Delete into an overflow menu, rename Redo.
+- **F13** minor. Where: all pages. Sign out is only a small text link in the footer below content, easy to miss on long pages (Closet Profile). Fix kind: navigation. Suggestion: put account menu (email, View site, Sign out) in a fixed header.
+- **F14** nit. Where: Closet list. Search/add field placeholder truncated ("Type a piece to add it by hand, or Photos, one p..."), and the "?" tile for an item with no photo. Fix kind: copy/visual design.
+- **F15** nit. Where: Jobs. "how to re-enable it" goes to external GitHub readme (leaves the admin, to a repo). Fix kind: copy. Suggestion: mark it as external and explain in place.
+- **F16** nit. Where: Admin vs public. Header "Admin" in tab title and the "View site" link are the only cues I am in admin; the pages have no persistent "Admin" banner and "View /shelf/games" links sit among buttons. Not confusing in my use because the dark admin tab bar is distinct, but there is no explicit marker. Fix kind: visual design.
+
+### 4. Could not do
+- Add a comic (no manual entry; I did not want to add real catalogue items) and add a garment via the photo flow (needs a camera or file). I did add a ZZ game, ZZ place, ZZ garment (via typed entry) instead.
+- Sign out: located but not clicked, to keep the session.
+- Empty-state evaluation of Shelf/Home was limited because the database was seeded.
+- Records I created: ZZ Test Game (Games), ZZ Test Place (Spots), ZZ Test Shirt (Closet), plus unfinished "Comic" and "Garment" sittings. Not deleted.
+
+### 5. Worked well
+- Place save confirmation: "private spot. Only you can see it." with next steps.
+- Analytics empty state and privacy explanation are honest and clear.
+- Weekend / Spot finder empty states say what to do or when it runs.
+- Closet typed entry with bottom-sheet form is quick; "Add and type another".
+- Comics dashboard stats are rich and readable; More overlay is tidy.
+- Jobs page statuses with dots and plain-language notes ("First run Sunday evening").
+
+### 6. Overall
+As a first-day admin I could find the main areas in a few minutes and add a game, a place and a garment, so the product is more usable than most personal admins. But it assumes the owner: jargon ("sitting", "Radar", "Denver", "Sources", "Redo"), no start-here guidance, mislabeled "Run now" links, silent form success on games, and record creation on a mere card click. I would come back and could recommend it to its owner, but would not hand it to another person without a short orientation and the F2-F5 fixes.
