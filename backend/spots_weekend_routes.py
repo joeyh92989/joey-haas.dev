@@ -15,6 +15,10 @@ spots skipped this weekend. A new week starts empty, which is how a skip
 lasts one weekend. Reroll is the `seed` query parameter: the page steps it
 and the unsaved slots move. Been is the visits route in `spots_routes.py`.
 
+`didnt` lists the slots answered "Didn't" (`POST /plan/didnt`). `GET /plan`
+also returns `asks`: `planner.did_you_go` over the last four plan rows and
+the day visits, with `now` (injectable beside `today`) in Denver.
+
 Admin only, at the router. Its own lock, for the job alone; the answers are
 single-row upserts. Spec and plan:
 docs/planning/2026-11-08-denver-spots-design.md.
@@ -40,9 +44,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import planner
 import weather
 from items import require_admin
-from models import Spot, SpotSetting, Visit, WeatherHour
+from models import OutingPrecision, Spot, SpotSetting, Visit, WeatherHour
 from public import OWNER_TZ
-from spots_schemas import ConstraintsOut, PlanOut, WeatherRunOut, WeekOut
+from spots_schemas import ConstraintsOut, DidntOut, PlanOut, WeatherRunOut, WeekOut
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +56,7 @@ CONSTRAINTS_KEY = "constraints"
 KEEP_PAST = timedelta(days=2)
 RECENT_VISITS = 5
 SlotKey = Literal["best", "new", "while"]
+WEEK_PATTERN = r"^\d{4}-W\d{2}$"
 
 
 class ConstraintsIn(BaseModel):
@@ -78,6 +83,13 @@ class SkipIn(BaseModel):
     spot_id: uuid.UUID
 
 
+class DidntIn(BaseModel):
+    """Answers a slot "Didn't": `week` is the ISO week the slot was saved in."""
+
+    week: str = Field(pattern=WEEK_PATTERN)
+    slot: SlotKey
+
+
 def week_key(today: date) -> str:
     """`plan:2026-W46` for the weekend ahead of `today`."""
     year, week, _ = planner.weekend_of(today)[0].isocalendar()
@@ -85,11 +97,23 @@ def week_key(today: date) -> str:
 
 
 def _empty_week() -> dict[str, Any]:
-    return {"saved": {}, "days": {}, "skips": []}
+    return {"saved": {}, "days": {}, "skips": [], "didnt": []}
 
 
 def _owner_today() -> date:
     return datetime.now(OWNER_TZ).date()
+
+
+def _owner_now() -> datetime:
+    return datetime.now(OWNER_TZ)
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return True
 
 
 def create_weekend_router(
@@ -97,10 +121,12 @@ def create_weekend_router(
     http_client: Callable[[], httpx2.AsyncClient] | None = None,
     lock: asyncio.Lock | None = None,
     today: Callable[[], date] = _owner_today,
+    now: Callable[[], datetime] = _owner_now,
 ) -> APIRouter:
     """`http_client` builds the client NWS is read with (main.py passes the
     catalogue's: NWS asks every caller for an identifying User-Agent);
-    `today` is the owner's Denver day, injectable for tests."""
+    `today` is the owner's Denver day and `now` the Denver moment (the
+    Sunday-evening rule reads it), both injectable for tests."""
     router = APIRouter(
         prefix="/api/spots",
         tags=["spots"],
@@ -131,7 +157,12 @@ def create_weekend_router(
         stored = await _get(session, key)
         week = _empty_week()
         if isinstance(stored, dict):
-            for field, kind in (("saved", dict), ("days", dict), ("skips", list)):
+            for field, kind in (
+                ("saved", dict),
+                ("days", dict),
+                ("skips", list),
+                ("didnt", list),
+            ):
                 value = stored.get(field)
                 if isinstance(value, kind):
                     week[field] = kind(value)
@@ -219,6 +250,50 @@ def create_weekend_router(
             for i, s, n, d in rows
         ]
 
+    async def _asks(session: AsyncSession) -> list[dict[str, Any]]:
+        """The open "Did you go?" prompts, oldest first."""
+        moment = now()
+        weeks = []
+        for back in range(planner.LOOK_BACK_WEEKS):
+            key = week_key(moment.date() - timedelta(weeks=back))
+            week = await _week(session, key)
+            weeks.append({"week_key": key.removeprefix("plan:"), **week})
+        visits = (
+            await session.execute(
+                select(Visit.spot_id, Visit.visited_on).where(
+                    Visit.precision == OutingPrecision.DAY
+                )
+            )
+        ).all()
+        found = planner.did_you_go(
+            weeks, {(str(spot_id), on) for spot_id, on in visits}, moment
+        )
+        spots = {
+            str(s.id): s
+            for s in (
+                await session.scalars(
+                    select(Spot).where(
+                        Spot.id.in_(
+                            [uuid.UUID(a.spot_id) for a in found if _is_uuid(a.spot_id)]
+                        )
+                    )
+                )
+            ).all()
+        }
+        return [
+            {
+                "week": a.week,
+                "slot": a.slot,
+                "spot_id": a.spot_id,
+                "spot_name": spots[a.spot_id].name,
+                "neighbourhood": spots[a.spot_id].neighbourhood,
+                "day": a.day.isoformat(),
+                "slot_label": planner.SLOT_LABELS[a.slot],
+            }
+            for a in found
+            if a.spot_id in spots and a.slot in planner.SLOT_LABELS
+        ]
+
     @router.get("/plan", response_model=PlanOut)
     async def get_plan(
         seed: int = Query(default=0, ge=0, le=10_000),
@@ -265,6 +340,7 @@ def create_weekend_router(
             ],
             "weather": await _get(session, STATUS_KEY),
             "recent_visits": await _recent(session),
+            "asks": await _asks(session),
             "seed": seed,
         }
 
@@ -353,5 +429,24 @@ def create_weekend_router(
     ) -> dict[str, Any]:
         """Undo for Skip."""
         return await _set_skip(session, payload.spot_id, False)
+
+    @router.post("/plan/didnt", response_model=DidntOut)
+    async def didnt(
+        payload: DidntIn, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """Answers "Didn't" for a saved slot: it is not asked again. Safe to
+        repeat. The slot has to be saved in that week's row (a week older
+        than the look-back is written but never asked)."""
+        key = f"plan:{payload.week}"
+        if planner.parse_week(key) is None:
+            raise HTTPException(status_code=422, detail="Not a week")
+        week = await _week(session, key)
+        if payload.slot not in week["saved"]:
+            raise HTTPException(status_code=404, detail="Nothing saved there")
+        if payload.slot not in week["didnt"]:
+            week["didnt"].append(payload.slot)
+            await _put(session, key, week)
+            await session.commit()
+        return {"asks": await _asks(session)}
 
     return router

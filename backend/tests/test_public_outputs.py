@@ -1820,3 +1820,36 @@ async def test_the_outings_read_is_admin_only_and_not_a_public_route(
     )
     assert "outings" not in set(_keys(public.json()))
     assert "Secret outing note" not in public.text
+
+
+async def test_no_public_path_carries_a_did_you_go_ask(sessionmaker_for_test):
+    """Story #349: the asks ride on the admin plan read, and `didnt` lives in
+    the plan row; neither reaches `/api/public` (a public path or a body)."""
+    from models import SpotSetting
+
+    shown = _spot("Coors Field Cafe")
+    await _add(sessionmaker_for_test, shown)
+    await _add(
+        sessionmaker_for_test,
+        SpotSetting(
+            key="plan:2026-W46",
+            value={
+                "saved": {"best": str(shown.id)},
+                "days": {"best": "2026-11-14"},
+                "didnt": ["best"],
+            },
+        ),
+    )
+    app = FastAPI()
+    app.include_router(create_public_router(sessionmaker_for_test))
+    app.add_middleware(SessionMiddleware, secret_key="test-secret", https_only=False)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        body = (await client.get("/api/public/spots")).json()
+    assert not {"asks", "didnt"} & set(_keys(body))
+    assert not any(
+        "plan" in path or "didnt" in path
+        for path in app.openapi()["paths"]
+        if path.startswith("/api/public")
+    )
