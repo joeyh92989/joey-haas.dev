@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import LoadState from '../components/LoadState.jsx'
 import LogOutingSheet from '../components/LogOutingSheet.jsx'
@@ -21,7 +22,7 @@ import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { adminCopy } from '../content/adminCopy.js'
-import { outings } from '../content/outings.js'
+import { history, outings } from '../content/outings.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
@@ -665,6 +666,14 @@ export default function AdminSpots() {
                               >
                                 {adminCopy.spots.logVisit}
                               </button>
+                              <Link
+                                to={`/admin/history?spot=${encodeURIComponent(spot.id)}`}
+                                aria-label={history.placeHistoryLabel(
+                                  spot.name,
+                                )}
+                              >
+                                {history.placeHistory}
+                              </Link>
                             </td>
                           </tr>
                         )
