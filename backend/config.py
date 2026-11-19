@@ -55,6 +55,9 @@ class Config:
     igdb_client_id: str | None = None
     igdb_client_secret: str | None = None
     comicvine_api_key: str | None = None
+    # Metron (metron.cloud), the "Find contents" source. A Bearer token; never
+    # logged, never required. See sources/metron.py.
+    metron_token: str | None = None
     # BGG stopped serving the XML API anonymously in late 2025; it now needs a
     # registered application and a token. See sources/bgg.py.
     bgg_token: str | None = None
@@ -184,6 +187,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
         igdb_client_id=_optional(source, "IGDB_CLIENT_ID"),
         igdb_client_secret=_optional(source, "IGDB_CLIENT_SECRET"),
         comicvine_api_key=_optional(source, "COMICVINE_API_KEY"),
+        metron_token=_optional(source, "METRON_TOKEN"),
         bgg_token=_optional(source, "BGG_TOKEN"),
         google_sheets_api_key=_optional(source, "GOOGLE_SHEETS_API_KEY"),
         llm_provider=_optional(source, "LLM_PROVIDER") or "gemini",

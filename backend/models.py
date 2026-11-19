@@ -1689,7 +1689,7 @@ class ComicVolumeCollect(Base):
     __tablename__ = "comic_volume_collects"
     __table_args__ = (
         CheckConstraint(
-            "source IN ('migrated', 'typed', 'parsed', 'photo')",
+            "source IN ('migrated', 'typed', 'parsed', 'photo', 'metron')",
             name="comic_volume_collects_source",
         ),
         Index("ix_comic_volume_collects_volume_position", "volume_id", "position"),

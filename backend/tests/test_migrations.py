@@ -24,6 +24,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from conftest import TEST_DATABASE_URL, mark_schema_dirty
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from db import connect_args_for, normalize_async_url
@@ -2124,3 +2125,82 @@ async def test_0026_downgrade_readds_the_column_rebuilt_from_owned_volumes(
     ]
     assert plain is None
     assert _alembic("upgrade", "0026").returncode == 0
+
+
+# --- Revision 0027: 'metron' as a contents source. ---------------------------
+
+
+async def _seed_collects_at_0026(connection, sources: tuple[str, ...]) -> None:
+    await connection.execute(
+        text(
+            "INSERT INTO items (id, type, title, status) VALUES "
+            "(gen_random_uuid(), 'comic', 'Saga', 'backlog')"
+        )
+    )
+    volume = await connection.scalar(
+        text(
+            "INSERT INTO comic_volumes (id, item_id, position, slug, label, kind) "
+            "SELECT gen_random_uuid(), id, 0, 'vol-1', 'Book One', 'trade' "
+            "FROM items RETURNING id"
+        )
+    )
+    for position, source in enumerate(sources):
+        await connection.execute(
+            text(
+                "INSERT INTO comic_volume_collects (id, volume_id, position, "
+                "series_name, issue_text, source) VALUES "
+                "(gen_random_uuid(), :v, :p, 'Saga', '#1', :s)"
+            ),
+            {"v": volume, "p": position, "s": source},
+        )
+
+
+@pytest.mark.asyncio
+async def test_0027_widens_the_source_check_and_the_cycle_maps_metron_to_parsed(
+    clean_database,
+):
+    assert _alembic("upgrade", "0026").returncode == 0
+    async with clean_database.begin() as connection:
+        await _seed_collects_at_0026(connection, ("typed", "photo"))
+    # Before 0027 'metron' is refused.
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await _seed_collects_at_0026(connection, ("metron",))
+    assert _alembic("upgrade", "0027").returncode == 0
+    async with clean_database.begin() as connection:
+        volume = await connection.scalar(text("SELECT id FROM comic_volumes"))
+        await connection.execute(
+            text(
+                "INSERT INTO comic_volume_collects (id, volume_id, position, "
+                "series_name, issue_text, source) VALUES "
+                "(gen_random_uuid(), :v, 9, 'Saga', '#1-6', 'metron')"
+            ),
+            {"v": volume},
+        )
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await connection.execute(
+                text(
+                    "INSERT INTO comic_volume_collects (id, volume_id, position, "
+                    "series_name, issue_text, source) VALUES "
+                    "(gen_random_uuid(), :v, 10, 'Saga', '#1', 'other')"
+                ),
+                {"v": volume},
+            )
+    result = _alembic("downgrade", "0026")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        rows = (
+            await connection.execute(
+                text(
+                    "SELECT position, source FROM comic_volume_collects "
+                    "ORDER BY position"
+                )
+            )
+        ).all()
+    # No row is lost; the metron one became parsed.
+    assert [tuple(r) for r in rows] == [(0, "typed"), (1, "photo"), (9, "parsed")]
+    assert _alembic("upgrade", "head").returncode == 0
+    async with clean_database.connect() as connection:
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
