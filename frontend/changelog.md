@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- A guessed /shelf/daily now goes to the [daily game](/daily), and a shelf address that matches no title shows the not-found page instead of “That didn’t load”.
 - A book on a title’s admin page with no contents yet now says so and has a Find contents link to its page, where the Metron lookup lives. A title with no books explains that a single issue has no contents to find.
 
 ## 2026-11-18
