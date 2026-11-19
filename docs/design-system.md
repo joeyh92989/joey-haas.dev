@@ -24,7 +24,7 @@ and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
 | **List** | Many things of one type: Games, Comics, a Year in review | Area band (`SpineHeader`) · page header (`PageHeader`, no trail) · figures (`StatTile` row) · search and links · labelled filters (`FilterChips labelled`) and sort · result bar (`ResultBar`) · the grid (`PosterGrid`) · overview · empty or error state | Full |
 | **Detail** | One thing: a game, a comic series | Breadcrumb · detail head (cover beside `PageHeader`'s title and facts) · sections as `item-card` panels · source attribution | Full, sections at reading width |
 | **Sub-detail** | One part of a detail: a comic issue or edition | Breadcrumb · detail head · description with its source · neighbours (`NeighbourStrip`) | Full, text at reading width |
-| **Tool** | Something you use: Daily game, Pick for me, the admin pages | Not yet ruled | — |
+| **Tool** | Something you use: Daily game, Pick for me, the admin pages | `AdminPageHeader` (title, one-line description, the page's main action at the right) · a free slot for filters · the list or form, grouped under `h2`s with the group's count · `LoadState` while reading or failed · `EmptyState` with the next step when there is nothing (see History, `/admin/history`) | Full, rows at 60rem |
 | **Prose** | Something you read: posts, TIL, About, Colophon | The page's own `h1` (title, optional lede), then the text. See [Prose pages](#prose-pages) | Reading |
 
 A list page has no breadcrumb: the area band's tabs are its way around. A

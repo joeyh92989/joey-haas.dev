@@ -43,6 +43,7 @@ const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
 const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
+const AdminHistory = lazy(() => import('./pages/AdminHistory.jsx'))
 const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
@@ -228,6 +229,7 @@ export default function App() {
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="spots" element={<AdminSpots />} />
+          <Route path="history" element={<AdminHistory />} />
           <Route path="weekend" element={<AdminWeekend />} />
           <Route path="closet" element={<AdminCloset />} />
           <Route path="closet/profile" element={<AdminClosetProfile />} />
