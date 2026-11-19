@@ -14,6 +14,7 @@ import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { WEEKDAY_DAY } from '../lib/formatDate.js'
+import DidYouGo from '../components/DidYouGo.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 
@@ -208,25 +209,43 @@ export default function AdminWeekend() {
   const undoButton = useRef(null)
   const editButton = useRef(null)
   const wasEditing = useRef(false)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  /** Applies a `fetchPlan` result to the page; true when the plan landed. */
+  function take(result) {
+    if (result.plan) {
+      setPlan(result.plan)
+      setReadError(null)
+      setReadEnded(false)
+      return true
+    }
+    if (result.ended) setReadEnded(true)
+    else setReadError(result.error)
+    return false
+  }
 
   useEffect(() => {
     let live = true
     fetchPlan(seed).then((result) => {
-      if (!live) return
-      if (result.plan) {
-        setPlan(result.plan)
-        setReadError(null)
-        setReadEnded(false)
-      } else if (result.ended) {
-        setReadEnded(true)
-      } else {
-        setReadError(result.error)
-      }
+      if (live) take(result)
     })
     return () => {
       live = false
     }
   }, [seed, reload])
+
+  /** Read the plan again for the Did you go? block; true when it landed. */
+  async function rereadPlan() {
+    const result = await fetchPlan(seed)
+    return mounted.current ? take(result) : false
+  }
 
   // A skipped card leaves the list; its Undo is where focus goes next.
   useEffect(() => {
@@ -387,6 +406,8 @@ export default function AdminWeekend() {
           {error}
         </p>
       )}
+
+      <DidYouGo asks={plan.asks ?? []} onChanged={rereadPlan} />
 
       <div className="wk-pills">
         <span className="visually-hidden">{copy.constraintsTitle}: </span>

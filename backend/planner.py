@@ -17,14 +17,18 @@ Slots, in order:
 A day with no ride window turns the slots that would be outdoors on it
 into **Snow day** (and **Snow day, quieter**) over the rainy-day pool.
 
-Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
+`did_you_go` is the follow-up rule: which saved slots are past and neither
+logged nor answered "Didn't" (story #349).
+
+Spec and plan: docs/planning/2026-11-08-denver-spots-design.md and
+docs/planning/2026-11-19-did-you-go-design.md.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import spots
 import weather
@@ -430,3 +434,106 @@ def plan(
             )
 
     return Plan(days=views, suggestions=out)
+
+
+# --- Did you go? --------------------------------------------------------------
+
+# Sunday's slots are asked from this local hour; any earlier day, all day.
+SUNDAY_EVENING_HOUR = 18
+# The plan rows read: the coming weekend and the three before it.
+LOOK_BACK_WEEKS = 4
+SLOT_ORDER = ("best", "new", "while")
+
+
+@dataclass(frozen=True)
+class Ask:
+    """One saved slot to follow up. `week` is the ISO week (`2026-W46`)."""
+
+    week: str
+    slot: str
+    spot_id: str
+    day: date
+
+
+def parse_week(key: object) -> tuple[date, date] | None:
+    """The weekend's Saturday and Sunday for `2026-W46` (or `plan:2026-W46`)."""
+    if not isinstance(key, str):
+        return None
+    year, _, week = key.removeprefix("plan:").partition("-W")
+    try:
+        return (
+            date.fromisocalendar(int(year), int(week), 6),
+            date.fromisocalendar(int(year), int(week), 7),
+        )
+    except (ValueError, OverflowError):
+        return None
+
+
+def did_you_go(
+    weeks: Iterable[Mapping],
+    visited: Iterable[tuple[str, date]],
+    now: datetime,
+) -> list[Ask]:
+    """Saved slots whose day has passed, oldest first.
+
+    `weeks` are the stored plan rows (`week_key`, `saved`, `days`, `didnt`),
+    `visited` the `(spot_id, visited_on)` day-precision outings, `now` a
+    Denver-aware moment. A slot is due when its day is before today, or is
+    today, a Sunday, at or after `SUNDAY_EVENING_HOUR`. A slot with no day
+    takes that weekend's Sunday and counts as logged for a visit on either
+    day of that weekend. Logged or answered slots are not asked, and
+    rows older than `LOOK_BACK_WEEKS` weeks are not read."""
+    today = now.date()
+    this_monday = today - timedelta(days=today.weekday())
+    logged = set(visited)
+    asks: list[Ask] = []
+    for row in weeks:
+        parsed = parse_week(row.get("week_key"))
+        if parsed is None:
+            continue
+        saturday, sunday = parsed
+        monday = saturday - timedelta(days=5)
+        if monday <= this_monday - timedelta(weeks=LOOK_BACK_WEEKS):
+            continue
+        key = str(row["week_key"]).removeprefix("plan:")
+        saved, days = row.get("saved"), row.get("days")
+        answered = row.get("didnt")
+        if not isinstance(saved, dict):
+            continue
+        days = days if isinstance(days, dict) else {}
+        answered = answered if isinstance(answered, list) else []
+        for slot, spot_id in saved.items():
+            # A stored row is JSON: skip what is not a slot name and a spot id.
+            if not isinstance(slot, str) or not isinstance(spot_id, str):
+                continue
+            if slot in answered:
+                continue
+            day = None
+            if isinstance(days.get(slot), str):
+                try:
+                    day = date.fromisoformat(days[slot])
+                except ValueError:
+                    day = None
+            # No (usable) day: Sunday, and a visit on either weekend day
+            # counts, since the card's Been may have logged Saturday.
+            dayless = day is None
+            if dayless:
+                day = sunday
+            due = day < today or (
+                day == today
+                and today.weekday() == 6
+                and now.hour >= SUNDAY_EVENING_HOUR
+            )
+            if not due:
+                continue
+            seen = [saturday, sunday] if dayless else [day]
+            if any((spot_id, d) in logged for d in seen):
+                continue
+            asks.append(Ask(key, slot, spot_id, day))
+    asks.sort(
+        key=lambda a: (
+            a.day,
+            SLOT_ORDER.index(a.slot) if a.slot in SLOT_ORDER else len(SLOT_ORDER),
+        )
+    )
+    return asks

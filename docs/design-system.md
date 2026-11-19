@@ -117,6 +117,13 @@ line each time, not a toast), with Undo beside it, which posts the previous
 state back. A refusal replaces the line with the server's own words and
 leaves the control as it was. Nothing asks first: Undo is the safety.
 
+**Exception: Did you go? (`/admin/weekend`, story #349).** Its answers carry
+no Undo. Been is already a deliberate two-step (the verdict is the second
+tap, and a note is offered before it), and Didn't only stops the asking and
+changes no history; an Undo would need a route that deletes an outing. The
+status line still confirms each answer ("Logged: Loved at Ball Arena",
+"Marked as not gone: ..."), outside the block so it outlives the last row.
+
 ## Experience timeline
 
 About's Experience is the page's one rail (`.timeline`). A dot on the rail is a role and a ring is an employer holding several roles.

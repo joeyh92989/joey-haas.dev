@@ -15248,3 +15248,244 @@ fieldset.lo-field {
     padding-top: var(--space-1);
   }
 }
+
+/* Did you go? (story #349): the rows under the weekend header. Mockup:
+   docs/planning/2026-11-19-did-you-go/a-cards.html. */
+/* The page header leaves --space-5 above the next row; the mockup has --space-4
+   (header margin plus the grid gap), so the block pulls up by one gap. */
+.dyg-wrap {
+  margin-top: calc(-1 * var(--space-4));
+}
+
+.dyg-wrap .panel + .wk-toast:not(:empty) {
+  margin-top: var(--space-4);
+}
+
+.dyg-count {
+  color: var(--text-3);
+  font-weight: 400;
+  margin-left: var(--space-2);
+}
+
+.dyg .panel-head .btn {
+  min-height: 44px;
+}
+
+.dyg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dyg-row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.dyg-row + .dyg-row {
+  border-top: 1px solid var(--line);
+}
+
+.dyg-acts {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dyg-acts .btn {
+  justify-content: center;
+  min-height: 44px;
+}
+
+.dyg-acts .btn[aria-expanded='true'] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.dyg-open {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dyg-open-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.dyg-extras {
+  font-size: var(--fs-14);
+  justify-self: start;
+  margin-left: 0;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+  text-decoration: none;
+}
+
+.dyg-extras:hover {
+  text-decoration: underline;
+}
+
+.dyg-ask-kicker {
+  color: var(--text-3);
+  display: flex;
+  flex-wrap: wrap;
+  font: var(--fs-12) var(--font-mono);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.dyg-ask-kicker b {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dyg-ask-name {
+  color: var(--text);
+  font-size: var(--fs-16);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dyg-ask-hood {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+  margin: 0;
+}
+
+.dyg-ask-label {
+  color: var(--text);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.dyg-ask-hint {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+}
+
+.dyg-verdicts {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dyg-vbtn {
+  align-items: center;
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: 500 var(--fs-14) var(--font-sans);
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--space-2);
+}
+
+.dyg-vbtn:hover {
+  border-color: var(--text-3);
+}
+
+.dyg-vbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dyg-vbtn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.dyg-fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dyg-fields label {
+  color: var(--text-2);
+  display: grid;
+  font-size: var(--fs-13);
+  gap: var(--space-1);
+}
+
+.dyg-kid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dyg-kid > span {
+  color: var(--text-2);
+  font-size: var(--fs-13);
+  margin-right: var(--space-1);
+}
+
+.dyg-kid .chip {
+  min-height: 44px;
+  padding-inline: var(--space-4);
+}
+
+.dyg-said {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.dyg-said::before {
+  border-bottom: 2px solid var(--ok);
+  border-right: 2px solid var(--ok);
+  content: '';
+  flex: none;
+  height: 9px;
+  margin: 0 var(--space-1) 3px; /* space-exception: nudges the tick onto the text baseline */
+  transform: rotate(45deg);
+  width: 5px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dyg-open {
+    animation: dyg-reveal 0.16s ease-out;
+  }
+
+  @keyframes dyg-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}
+
+@media (min-width: 40rem) {
+  .dyg-row {
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dyg-acts {
+    grid-template-columns: repeat(2, 7rem);
+  }
+
+  .dyg-open,
+  .dyg-row > .lo-alert {
+    grid-column: 1 / -1;
+  }
+
+  .dyg-open .dyg-verdicts,
+  .dyg-open .dyg-fields {
+    max-width: 30rem;
+  }
+}

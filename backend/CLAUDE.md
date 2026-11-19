@@ -78,6 +78,26 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   desc, then id desc; `year` is the owner's Denver year with `outings`
   (every precision, by stored period start), distinct `places` and `loved`.
   No pagination. Keep it above any `/{spot_id}` GET; `note` stays admin-only.
+- **Did you go? (story #349, epic #339).** `planner.did_you_go(weeks, visited,
+  now)` is the pure rule: a saved slot is asked when its day is before today
+  (Denver), or is today, a Sunday, at or after `SUNDAY_EVENING_HOUR` (18); a
+  no-day slot takes that weekend's Sunday and is answered by a day visit on
+  either weekend day; a dated slot only by a day visit on its own day; the
+  slot in the row's `didnt` list also answers it; rows older than
+  `LOOK_BACK_WEEKS` (4) are not read. `GET /api/spots/plan` returns `asks`
+  (read through `_asks`, which loads the last four `plan:<week>` rows) and
+  `POST /api/spots/plan/didnt` `{week, slot}` adds the slot to `didnt`
+  (422 malformed week or slot, 404 slot not saved in that row, idempotent;
+  returns the remaining asks). `_week`/`_empty_week` carry `didnt`, so a
+  save, unsave or skip keeps it, except that `_release` and `save` drop the
+  slot they touch from `didnt` (re-saving a slot whose day has passed
+  replaces its open ask, and a new spot in an answered slot is asked): add a new row field in both or `_put`
+  drops it. The router takes an injectable `now` beside `today` and reads the clock once
+  per request (only `today` given means noon on that day). The asks read is
+  bounded: one `SpotSetting.key.in_` select and day visits from the oldest
+  look-back Monday. Admin only;
+  nothing public carries an ask (`test_public_outputs.py` pins it). No
+  migration (JSON in `spot_settings`).
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and

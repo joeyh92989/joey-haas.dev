@@ -8,7 +8,7 @@ and Sunday 15, ISO week 46.
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
 import httpx2
@@ -20,6 +20,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 import spots_weekend_routes
 from models import Spot, SpotSetting, Visit, WeatherHour
+from spots_routes import create_spots_router
 from spots_weekend_routes import STATUS_KEY, create_weekend_router, week_key
 from weather import DENVER_TZ
 
@@ -53,7 +54,11 @@ def nws(status=200, calls=None):
 
 
 @asynccontextmanager
-async def client_for(factory, *, http=None, lock=None, signed_in=True, today=None):
+async def client_for(
+    factory, *, http=None, lock=None, signed_in=True, today=None, now=None
+):
+    """`now` defaults to noon on `today`, so a test that sets only the day
+    never depends on the clock."""
     app = FastAPI()
     app.include_router(
         create_weekend_router(
@@ -61,8 +66,12 @@ async def client_for(factory, *, http=None, lock=None, signed_in=True, today=Non
             http_client=http or nws(),
             lock=lock,
             today=lambda: today or WEDNESDAY,
+            now=lambda: (
+                now or datetime.combine(today or WEDNESDAY, time(12), DENVER_TZ)
+            ),
         )
     )
+    app.include_router(create_spots_router(factory))
     if signed_in:
 
         @app.middleware("http")
@@ -501,3 +510,345 @@ async def test_out_of_range_constraints_are_refused(sessionmaker_for_test, pills
     async with client_for(sessionmaker_for_test) as client:
         response = await client.put("/api/spots/constraints", json=pills)
     assert response.status_code == 422
+
+
+# --- Did you go? (story #349) ------------------------------------------------
+
+SUNDAY_EVENING = datetime(2026, 11, 15, 18, 0, tzinfo=DENVER_TZ)
+MONDAY = date(2026, 11, 16)
+
+
+async def _save_park(client, ids, slot="best", day="2026-11-14"):
+    response = await client.post(
+        "/api/spots/plan/save",
+        json={"slot_key": slot, "spot_id": ids[slot_spot(slot)], "day": day},
+    )
+    assert response.status_code == 200
+
+
+def slot_spot(slot):
+    return {"best": "park", "new": "library", "while": "cafe"}[slot]
+
+
+async def test_the_plan_asks_about_last_weekend_after_sunday_evening(
+    sessionmaker_for_test,
+):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+    async with client_for(sessionmaker_for_test, today=SUNDAY, now=SUNDAY_EVENING) as c:
+        body = (await c.get("/api/spots/plan")).json()
+    assert body["asks"] == [
+        {
+            "week": "2026-W46",
+            "slot": "best",
+            "spot_id": ids["park"],
+            "spot_name": "City Park",
+            "neighbourhood": None,
+            "day": "2026-11-14",
+            "slot_label": "Best fit",
+        }
+    ]
+
+
+async def test_the_plan_asks_from_the_week_after_too(sessionmaker_for_test):
+    # On Monday the plan key is next weekend's; last weekend's row is read.
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        body = (await client.get("/api/spots/plan")).json()
+    assert [a["spot_name"] for a in body["asks"]] == ["City Park"]
+    assert body["week"] == "2026-W47"
+
+
+async def test_no_ask_before_the_day_has_passed(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids, day="2026-11-15")
+    morning = datetime(2026, 11, 15, 17, 59, tzinfo=DENVER_TZ)
+    async with client_for(sessionmaker_for_test, today=SUNDAY, now=morning) as client:
+        assert (await client.get("/api/spots/plan")).json()["asks"] == []
+
+
+async def test_didnt_records_the_slot_and_is_idempotent(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        first = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        again = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        body = (await client.get("/api/spots/plan")).json()
+    assert first.status_code == again.status_code == 200
+    assert first.json() == again.json() == {"asks": []}
+    assert body["asks"] == []
+    stored = await _setting(sessionmaker_for_test, WEEK)
+    assert stored["didnt"] == ["best"]
+    assert stored["saved"] == {"best": ids["park"]}  # the plan is untouched
+
+
+async def test_didnt_returns_the_remaining_asks(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids, "best", "2026-11-14")
+        await _save_park(client, ids, "new", "2026-11-15")
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        response = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+    assert [a["slot"] for a in response.json()["asks"]] == ["new"]
+
+
+async def test_didnt_refuses_a_malformed_week_or_slot(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        for week in ("plan:2026-W46", "2026-46", "2026-W99", "", "2026-W46 "):
+            response = await client.post(
+                "/api/spots/plan/didnt", json={"week": week, "slot": "best"}
+            )
+            assert response.status_code == 422, week
+        bad_slot = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "nope"}
+        )
+    assert bad_slot.status_code == 422
+    assert (await _setting(sessionmaker_for_test, WEEK)).get("didnt") == []
+
+
+async def test_didnt_refuses_a_slot_not_saved_in_that_row(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        empty_slot = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "new"}
+        )
+        no_row = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W40", "slot": "best"}
+        )
+    assert empty_slot.status_code == 404
+    assert no_row.status_code == 404
+    assert await _setting(sessionmaker_for_test, "plan:2026-W40") is None
+    assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == []
+
+
+async def test_didnt_needs_the_admin_session(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test, signed_in=False) as client:
+        response = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+    assert response.status_code == 401
+
+
+async def test_the_plan_with_asks_needs_the_admin_session(sessionmaker_for_test):
+    async with client_for(sessionmaker_for_test, signed_in=False) as client:
+        assert (await client.get("/api/spots/plan")).status_code == 401
+
+
+async def test_didnt_survives_save_unsave_and_skip(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        await _save_park(client, ids, "new", "2026-11-15")
+        assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == ["best"]
+        await client.post("/api/spots/plan/unsave", json={"slot_key": "new"})
+        assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == ["best"]
+        await client.post("/api/spots/plan/skip", json={"spot_id": ids["cafe"]})
+        assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == ["best"]
+        await client.post("/api/spots/plan/unskip", json={"spot_id": ids["cafe"]})
+        assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == ["best"]
+
+
+async def test_a_row_stored_before_didnt_existed_still_reads(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            SpotSetting(
+                key=WEEK,
+                value={"saved": {"best": ids["park"]}, "days": {"best": "2026-11-14"}},
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        body = (await client.get("/api/spots/plan")).json()
+        answered = await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+    assert len(body["asks"]) == 1
+    assert answered.json() == {"asks": []}
+
+
+async def test_a_logged_outing_removes_the_ask(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        before = (await client.get("/api/spots/plan")).json()["asks"]
+        logged = await client.post(
+            "/api/spots/outings",
+            json={
+                "spot_id": ids["park"],
+                "visited_on": "2026-11-14",
+                "precision": "day",
+                "verdict": "loved",
+            },
+        )
+        after = (await client.get("/api/spots/plan")).json()["asks"]
+    assert logged.status_code == 201
+    assert len(before) == 1
+    assert after == []
+
+
+async def test_a_month_outing_does_not_answer_the_ask(sessionmaker_for_test):
+    # The slot's day is the 1st, which is where a month outing is stored, so
+    # only the day-precision filter keeps it from answering.
+    ids = await _spots(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            SpotSetting(
+                key="plan:2026-W44",
+                value={"saved": {"best": ids["park"]}, "days": {"best": "2026-11-01"}},
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        logged = await client.post(
+            "/api/spots/outings",
+            json={
+                "spot_id": ids["park"],
+                "visited_on": "2026-11-20",
+                "precision": "month",
+            },
+        )
+        asks = (await client.get("/api/spots/plan")).json()["asks"]
+    assert logged.status_code == 201
+    assert logged.json()["visit"]["visited_on"] == "2026-11-01"
+    assert [a["day"] for a in asks] == ["2026-11-01"]
+
+
+async def test_a_slot_saved_again_after_didnt_is_asked(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        # Unsave, then a new spot into the same slot.
+        await client.post("/api/spots/plan/unsave", json={"slot_key": "best"})
+        assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == []
+        await client.post(
+            "/api/spots/plan/save",
+            json={"slot_key": "best", "spot_id": ids["cafe"], "day": "2026-11-14"},
+        )
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        asks = (await client.get("/api/spots/plan")).json()["asks"]
+    assert [a["spot_name"] for a in asks] == ["Corner Cafe"]
+
+
+async def test_saving_into_an_answered_slot_clears_the_answer(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        await client.post(
+            "/api/spots/plan/save",
+            json={"slot_key": "best", "spot_id": ids["cafe"], "day": "2026-11-15"},
+        )
+    assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == []
+
+
+async def test_saving_the_same_spot_again_keeps_the_answer(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids, day="2026-11-14")
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        # The same spot into the same slot, on another day.
+        await _save_park(client, ids, day="2026-11-15")
+    stored = await _setting(sessionmaker_for_test, WEEK)
+    assert stored["didnt"] == ["best"]
+    assert stored["days"] == {"best": "2026-11-15"}
+
+
+async def test_a_skip_that_releases_a_slot_clears_its_answer(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await _save_park(client, ids)
+        await client.post(
+            "/api/spots/plan/didnt", json={"week": "2026-W46", "slot": "best"}
+        )
+        await client.post("/api/spots/plan/skip", json={"spot_id": ids["park"]})
+    assert (await _setting(sessionmaker_for_test, WEEK))["didnt"] == []
+
+
+async def test_a_malformed_stored_row_cannot_break_the_plan_read(
+    sessionmaker_for_test,
+):
+    await _spots(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            SpotSetting(
+                key=WEEK,
+                value={
+                    "saved": {"best": 7, "new": ["x"], "while": "not-a-uuid"},
+                    "days": {"best": 5, "while": []},
+                    "didnt": "best",
+                },
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        response = await client.get("/api/spots/plan")
+    assert response.status_code == 200
+    assert response.json()["asks"] == []
+
+
+async def test_a_visit_on_either_weekend_day_answers_a_no_day_slot(
+    sessionmaker_for_test,
+):
+    ids = await _spots(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        await client.post(
+            "/api/spots/plan/save", json={"slot_key": "best", "spot_id": ids["park"]}
+        )
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        before = (await client.get("/api/spots/plan")).json()["asks"]
+        await client.post(
+            "/api/spots/outings",
+            json={
+                "spot_id": ids["park"],
+                "visited_on": "2026-11-14",
+                "precision": "day",
+            },
+        )
+        after = (await client.get("/api/spots/plan")).json()["asks"]
+    assert [a["day"] for a in before] == ["2026-11-15"]
+    assert after == []
+
+
+async def test_a_slot_four_weeks_back_is_not_asked(sessionmaker_for_test):
+    ids = await _spots(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        for key, day in (
+            ("plan:2026-W43", "2026-10-24"),
+            ("plan:2026-W44", "2026-10-31"),
+        ):
+            session.add(
+                SpotSetting(
+                    key=key,
+                    value={"saved": {"best": ids["park"]}, "days": {"best": day}},
+                )
+            )
+        await session.commit()
+    async with client_for(sessionmaker_for_test, today=MONDAY) as client:
+        asks = (await client.get("/api/spots/plan")).json()["asks"]
+    assert [a["week"] for a in asks] == ["2026-W44"]
