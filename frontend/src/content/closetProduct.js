@@ -18,21 +18,21 @@ export const productCopy = {
   lookingUp: 'Reading the link…',
   lookFailed: 'The link could not be read. Check your connection.',
   refusedTail: 'You can still add a photo.',
-  colourLegend: 'Colour',
-  sizeLabel: 'Size in this colour',
+  colorLegend: 'Color',
+  sizeLabel: 'Size in this color',
   sizeNone: 'Choose a size',
-  noColour: 'No colour listed',
+  noColor: 'No color listed',
   replaceBrand: (current, found) =>
     `Replace the brand “${current}” with “${found}”`,
   replaceProduct: (title) =>
     `This garment already has a product (${title || 'untitled'}). Replace it.`,
-  replaceColour: (current, found) =>
-    `Replace the colour “${current}” with “${found}”`,
+  replaceColor: (current, found) =>
+    `Replace the color “${current}” with “${found}”`,
   replaceSize: (current, found) =>
     `Replace the size “${current}” with “${found}”`,
   kept: (fields) => ` Kept your ${fields.join(' and ')}.`,
   keepsPhoto: 'Its photo stays as it is.',
-  addsPhoto: 'This colour’s photo is added.',
+  addsPhoto: 'This color’s photo is added.',
   unsavedNote: 'Attaching replaces any unsaved edits in the form below.',
   attach: 'Attach product',
   attaching: 'Attaching…',
@@ -41,7 +41,7 @@ export const productCopy = {
   photoOutcome: {
     added: 'Its photo was added.',
     kept: 'Its photo was kept.',
-    none: 'This colour has no photo to add.',
+    none: 'This color has no photo to add.',
     failed: (why) => `The photo could not be added (${why}). Add one yourself.`,
   },
 }

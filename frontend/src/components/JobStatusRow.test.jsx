@@ -38,7 +38,7 @@ describe('StatusText', () => {
 })
 
 describe('JobStatusRow', () => {
-  it('shows the time, label, summary, state and a named Run now', () => {
+  it('shows the time, label, summary, state and a named Open link, never Run now', () => {
     renderRow({ job: job({ state: 'stale' }) })
     const row = screen.getByRole('listitem')
     expect(row).toHaveTextContent('Radar')
@@ -46,7 +46,7 @@ describe('JobStatusRow', () => {
     expect(row).toHaveTextContent('stale')
     expect(row).toHaveTextContent(/\d{1,2}:\d{2}/)
     expect(
-      screen.getByRole('link', { name: 'Run now: Radar' }),
+      screen.getByRole('link', { name: 'Open Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
   })
 

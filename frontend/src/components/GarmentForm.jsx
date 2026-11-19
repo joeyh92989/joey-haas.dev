@@ -9,7 +9,7 @@ import {
 const TEXT = [
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
   ['brand', 'Brand'],
-  ['color_name', 'Store colour', 'the store’s name for it'],
+  ['color_name', 'Store color', 'the store’s name for it'],
   ['size', 'Size', 'M, 32 / 30'],
   ['pattern', 'Pattern', 'solid, stripe, check'],
   ['material', 'Material', 'cotton, merino, denim'],
@@ -101,11 +101,11 @@ function Stepper({ label, value, onChange }) {
   )
 }
 
-/** A named colour with its swatch: the hex stays null until it is changed. */
-function Colour({ label, name, hex, onName, onHex }) {
+/** A named color with its swatch: the hex stays null until it is changed. */
+function Color({ label, name, hex, onName, onHex }) {
   const slug = label.toLowerCase()
   return (
-    <div className="garment-colour">
+    <div className="garment-color">
       <label>
         <span className="garment-field-label">{label} color</span>
         <input
@@ -220,14 +220,14 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         </label>
       ))}
 
-      <Colour
+      <Color
         label="Primary"
         name={form.primary_color}
         hex={form.primary_hex}
         onName={set('primary_color')}
         onHex={set('primary_hex')}
       />
-      <Colour
+      <Color
         label="Secondary"
         name={form.secondary_color}
         hex={form.secondary_hex}

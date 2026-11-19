@@ -14,7 +14,7 @@ export const seedIntake = {
   uploading: 'Reading the file…',
   uploadFailed: 'The file could not be read.',
   head: (n) => `From the file · ${n}`,
-  lede: 'Each piece is a draft until you press Add. Correct what the store called it, give the pieces a category and colour where one is missing, and mark anything you do not own.',
+  lede: 'Each piece is a draft until you press Add. Correct what the store called it, give the pieces a category and color where one is missing, and mark anything you do not own.',
   photosLeft: (n) => `Fetching photos · ${n} left`,
   photosDone: 'Photos fetched.',
   photosFailed:
@@ -43,5 +43,5 @@ export const seedIntake = {
     unreadable: 'lines not understood',
     withoutPhoto: 'added without a photo',
   },
-  hint: 'Pieces from a file wait in the tag queue for warmth, formality and seasons; their store colour, brand and size stay as the store said.',
+  hint: 'Pieces from a file wait in the tag queue for warmth, formality and seasons; their store color, brand and size stay as the store said.',
 }

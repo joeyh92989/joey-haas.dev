@@ -59,7 +59,7 @@ describe('SeedCheck', () => {
     const { container } = show([seedEntry('e1')])
     const photo = await screen.findByRole('img', { name: 'Tee e1' })
     expect(photo).toHaveAttribute('src', '/api/intake/photos/p-e1/image')
-    expect(screen.getByLabelText('Store colour')).toHaveValue('Burgundy')
+    expect(screen.getByLabelText('Store color')).toHaveValue('Burgundy')
     expect(screen.getByLabelText('Size')).toHaveValue('M')
     expect(screen.getByText('stitchfix · order ORD-1')).toBeInTheDocument()
     expect(screen.queryByText(/^Needs/)).not.toBeInTheDocument()
@@ -82,7 +82,7 @@ describe('SeedCheck', () => {
     expect(
       await screen.findByText('No photo: the store answered 404'),
     ).toBeInTheDocument()
-    expect(screen.getByText('Needs Category and Colour')).toBeInTheDocument()
+    expect(screen.getByText('Needs Category and Color')).toBeInTheDocument()
   })
 
   it('saves an edit when its field is left, keeping the rest of the payload', async () => {

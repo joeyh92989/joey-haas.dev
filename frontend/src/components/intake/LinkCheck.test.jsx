@@ -71,7 +71,7 @@ function show(initial, options = {}) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('LinkCheck', () => {
-  it('shows the store, the colours as a radio group and the sizes', async () => {
+  it('shows the store, the colors as a radio group and the sizes', async () => {
     const { container } = show([linkEntry('e1')])
     expect(
       await screen.findByText('shop.test · read from the store’s product data'),
@@ -80,7 +80,7 @@ describe('LinkCheck', () => {
       'src',
       '/api/intake/photos/p-e1/image',
     )
-    const group = screen.getByRole('group', { name: 'Colour' })
+    const group = screen.getByRole('group', { name: 'Color' })
     expect(group).toBeVisible()
     expect(screen.getByRole('radio', { name: 'Red' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'Blue' })).not.toBeChecked()
@@ -92,7 +92,7 @@ describe('LinkCheck', () => {
     expect(await axeViolations(container)).toEqual([])
   })
 
-  it('asks for a colour while none is chosen', async () => {
+  it('asks for a color while none is chosen', async () => {
     show([
       linkEntry('e1', {
         color_name: undefined,
@@ -100,11 +100,11 @@ describe('LinkCheck', () => {
         seed: { source: 'link', row: {} },
       }),
     ])
-    expect(await screen.findByText(/^Needs a colour choice/)).toBeVisible()
+    expect(await screen.findByText(/^Needs a color choice/)).toBeVisible()
     expect(screen.getByRole('radio', { name: 'Red' })).not.toBeChecked()
   })
 
-  it('chooses a colour through the server and shows what it answers', async () => {
+  it('chooses a color through the server and shows what it answers', async () => {
     const user = userEvent.setup()
     const { api } = show([linkEntry('e1')], {
       choose: (found, body) => ({
@@ -129,7 +129,7 @@ describe('LinkCheck', () => {
     expect(api.calls('POST', /entries\/e1\/choose$/)[0].body).toEqual({
       external_id: '13',
     })
-    expect(screen.getByLabelText('Store colour')).toHaveValue('Blue')
+    expect(screen.getByLabelText('Store color')).toHaveValue('Blue')
   })
 
   it('saves the size when one is chosen', async () => {
@@ -168,7 +168,7 @@ describe('LinkCheck', () => {
       await screen.findByText(/refuses.test asks programs not to read/),
     ).toBeVisible()
     expect(screen.getByText('Kept as typed.')).toBeVisible()
-    expect(screen.queryByRole('group', { name: 'Colour' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Color' })).toBeNull()
     expect(screen.getByRole('textbox', { name: 'Size' })).toBeVisible()
     expect(screen.getByText('The store gave no photo.')).toBeVisible()
   })
@@ -217,7 +217,7 @@ describe('LinkCheck', () => {
     })
   })
 
-  it('saves a pending edit before the colour is chosen, in that order', async () => {
+  it('saves a pending edit before the color is chosen, in that order', async () => {
     const user = userEvent.setup()
     const { api } = show([linkEntry('e1')])
     const name = await screen.findByLabelText('Name')
@@ -234,7 +234,7 @@ describe('LinkCheck', () => {
     ])
   })
 
-  it('keeps the fields still while a colour is being chosen', async () => {
+  it('keeps the fields still while a color is being chosen', async () => {
     const user = userEvent.setup()
     let release
     const gate = new Promise((resolve) => (release = resolve))

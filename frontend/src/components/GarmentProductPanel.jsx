@@ -10,7 +10,7 @@ function priceText(price) {
 /**
  * The garment page's photo and product tools. Adding or replacing a photo
  * changes the photo and nothing else. Attaching a product is two calls: a
- * read-only look at the link, then, once the owner has chosen a colour and a
+ * read-only look at the link, then, once the owner has chosen a color and a
  * size, the write. The server re-reads the link and checks the choice, so
  * this panel only sends ids.
  *
@@ -30,7 +30,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
   const [pick, setPick] = useState(null)
   const [size, setSize] = useState('')
   const [replaceBrand, setReplaceBrand] = useState(false)
-  const [replaceColour, setReplaceColour] = useState(false)
+  const [replaceColor, setReplaceColor] = useState(false)
   const [replaceSize, setReplaceSize] = useState(false)
   const [replaceProduct, setReplaceProduct] = useState(false)
 
@@ -92,7 +92,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       setPick(body.candidates.length === 1 ? body.candidates[0] : null)
       setSize('')
       setReplaceBrand(false)
-      setReplaceColour(false)
+      setReplaceColor(false)
       setReplaceSize(false)
       setReplaceProduct(false)
     } catch {
@@ -116,7 +116,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             external_id: pick.external_id,
             size: size || null,
             replace_brand: replaceBrand,
-            replace_color: replaceColour,
+            replace_color: replaceColor,
             replace_size: replaceSize,
             replace_product: replaceProduct,
           }),
@@ -146,8 +146,8 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
   const sizes = pick?.sizes.filter((s) => s.size) ?? []
   const brandClash =
     read?.brand && garment.brand && read.brand !== garment.brand
-  // The owner's own colour and size are only replaced when they say so.
-  const colourClash =
+  // The owner's own color and size are only replaced when they say so.
+  const colorClash =
     garment.color_name &&
     pick?.color_name &&
     garment.color_source === 'manual' &&
@@ -220,20 +220,20 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             <strong>{read.title}</strong>
             {read.brand ? ` · ${read.brand}` : ''}
           </p>
-          <fieldset className="garment-attach-colours">
-            <legend className="garment-field-label">{copy.colourLegend}</legend>
+          <fieldset className="garment-attach-colors">
+            <legend className="garment-field-label">{copy.colorLegend}</legend>
             {read.candidates.map((c) => (
               <label key={c.external_id} className="garment-attach-choice">
                 <input
                   type="radio"
-                  name={`${id}-colour`}
+                  name={`${id}-color`}
                   checked={pick?.external_id === c.external_id}
                   onChange={() => {
                     setPick(c)
                     setSize('')
                   }}
                 />
-                {c.color_name || copy.noColour}
+                {c.color_name || copy.noColor}
                 {c.price ? ` · ${priceText(c.price)}` : ''}
               </label>
             ))}
@@ -261,14 +261,14 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
               {copy.replaceBrand(garment.brand, read.brand)}
             </label>
           )}
-          {colourClash && (
+          {colorClash && (
             <label className="garment-attach-choice">
               <input
                 type="checkbox"
-                checked={replaceColour}
-                onChange={(e) => setReplaceColour(e.target.checked)}
+                checked={replaceColor}
+                onChange={(e) => setReplaceColor(e.target.checked)}
               />
-              {copy.replaceColour(garment.color_name, pick.color_name)}
+              {copy.replaceColor(garment.color_name, pick.color_name)}
             </label>
           )}
           {sizeClash && (
