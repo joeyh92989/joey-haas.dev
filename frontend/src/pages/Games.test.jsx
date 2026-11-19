@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -826,13 +827,14 @@ describe('Games', () => {
       'fetch',
       vi.fn(() => new Promise(() => {})),
     )
+    // Fake timers: the notice is a three-second timer, and a real-time wait
+    // flaked when a loaded CI runner started it late. afterEach restores them.
+    vi.useFakeTimers()
     renderPage()
 
     expect(screen.getByText('Loading…')).toBeInTheDocument()
-    await waitFor(
-      () => expect(screen.getByText(/waking the server/i)).toBeInTheDocument(),
-      { timeout: 4000 },
-    )
+    act(() => vi.advanceTimersByTime(3000))
+    expect(screen.getByText(/waking the server/i)).toBeInTheDocument()
   })
 
   it('reports a failed load instead of an empty collection', async () => {
