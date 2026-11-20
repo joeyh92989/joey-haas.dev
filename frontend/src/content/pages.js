@@ -24,11 +24,15 @@ const SITE_DESCRIPTION =
 const ABOUT_DESCRIPTION =
   'Senior software engineer with 5 years building payments and ledger platforms, and 8 years as a product manager shipping enterprise software.'
 
-const row = (path, title, headTitle, description) => ({
+// `keywords` are extra words search matches (pageEntry folds them into the
+// matchable text). They never show as a subtitle and the prerender and
+// sitemap do not read them.
+const row = (path, title, headTitle, description, keywords) => ({
   path,
   title,
   headTitle,
   description,
+  ...(keywords ? { keywords } : {}),
 })
 
 export const STATIC_PAGES = [
@@ -76,12 +80,14 @@ export const STATIC_PAGES = [
     'Now',
     `Now · ${profile.name}`,
     `What ${profile.name} is playing, what is next and what was just finished, from ${spine.name}.`,
+    ['playing'],
   ),
   row(
     '/colophon',
     'Colophon',
     `Colophon · ${profile.name}`,
     `How joey-haas.dev is built: React and Vite, FastAPI and Postgres, on Render’s free tier.`,
+    ['stack', 'built with'],
   ),
   row(
     '/stats',
@@ -94,8 +100,12 @@ export const STATIC_PAGES = [
     'Denver',
     `${denver.page.title} · ${profile.name}`,
     denver.page.description,
+    ['places', 'outings', 'coffee', 'parks'],
   ),
-  row(daily.path, daily.title, daily.headTitle, daily.description),
+  row(daily.path, daily.title, daily.headTitle, daily.description, [
+    'puzzle',
+    'guess',
+  ]),
 ]
 
 /** The blog index's row, listed only when there are published posts. */

@@ -30,13 +30,15 @@ export const INDEX_URL = '/search-index.json'
  * A page row from content/pages.js's shape, the same entry the index
  * script writes for it.
  *
- * @param {{path: string, title: string, description: string}} page
+ * @param {{path: string, title: string, description: string,
+ *   keywords?: string[]}} page
  */
 export function pageEntry(page) {
   return {
     g: 'pages',
     t: normalize(page.title),
-    s: normalize(page.description),
+    // Keywords match but never show: `sub` stays the description.
+    s: normalize([page.description, ...(page.keywords ?? [])].join(' ')),
     title: page.title,
     sub: page.description,
     href: page.path,
