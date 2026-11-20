@@ -2,7 +2,7 @@ import { cn } from '../lib/utils.js'
 import { Card } from './ui/card.jsx'
 
 /** A tile is a flat card: 1px outline, the card colour, 16px inside. */
-const TILE = 'gap-0 px-4 text-base text-muted-foreground'
+const TILE = 'gap-0 px-4 text-[1rem] text-muted-foreground'
 
 /**
  * One headline figure: a mono label, the number, and an optional line of

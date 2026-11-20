@@ -75,7 +75,7 @@ describe('EmptyState', () => {
   it('keeps the old 16px size and the --text-2 colour', () => {
     const { container } = show({ title: 'Nothing here.' })
     const box = container.querySelector('.empty-state')
-    expect(box.className).toContain('text-base')
+    expect(box.className).toContain('text-[1rem]')
     expect(box.className).toContain('text-muted-foreground')
   })
 })

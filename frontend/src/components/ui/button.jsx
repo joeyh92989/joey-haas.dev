@@ -34,7 +34,7 @@ const buttonVariants = cva(
         lg: 'h-11 px-5',
         // 4px between label and count on desktop; on a phone the legacy
         // `.chip > .chip-count` margin supplies it (adminPolish.test.js).
-        chip: 'gap-1 px-3 py-1 text-[0.8125rem] leading-snug max-[700px]:gap-0',
+        chip: 'gap-1 px-3 py-1 text-[0.8125rem] leading-[1.4] max-[700px]:gap-0',
         icon: 'size-9',
         'icon-xs': 'size-6',
         'icon-sm': 'size-8',

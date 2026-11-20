@@ -22,7 +22,7 @@ function Chip({ pressed, count, label, onClick, className, disabled }) {
       {counted && (
         <>
           {' '}
-          <span className="chip-count font-mono text-xs">{count}</span>
+          <span className="chip-count">{count}</span>
         </>
       )}
     </Button>

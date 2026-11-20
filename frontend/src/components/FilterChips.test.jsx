@@ -351,13 +351,6 @@ describe('FilterChips group limit', () => {
       expect(pressed.className).toContain('aria-pressed:font-medium')
       expect(pressed.className).toContain('aria-pressed:after:block')
     })
-
-    it('sets the count in mono', () => {
-      chips()
-      expect(document.querySelector('.chip-count').className).toContain(
-        'font-mono',
-      )
-    })
   })
 
   describe('size and weight match the old chip (#528 review)', () => {

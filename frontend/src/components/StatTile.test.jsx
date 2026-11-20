@@ -70,7 +70,7 @@ describe('StatTile', () => {
       </StatTiles>,
     )
     for (const tile of container.querySelectorAll('.stat-tile')) {
-      expect(tile.className).toContain('text-base')
+      expect(tile.className).toContain('text-[1rem]')
       expect(tile.className).toContain('text-muted-foreground')
     }
     expect(container.querySelector('.stat-tile-figures').className).toContain(
