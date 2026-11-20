@@ -342,11 +342,13 @@ the CLI's tree stays out of the production audit gate.
 **Four findings from the spike (#520)**
 
 1. Layer the old stylesheet (above).
-2. Strip and scope the generated base. The preset writes `@layer base { * {
+2. Strip the generated base. The preset writes `@layer base { * {
    border-color } body { background } html { font } }`, which restyles every
-   old page; it is not in `tailwind.css`. Its tokens (`--accent`, `--radius`)
-   collide with the site's, so they arrive on a scope class in #527, not on
-   `:root`. Re-check this after every `shadcn add` or `init`.
+   old page; it is not in `tailwind.css`. Its tokens are not copied in
+   either: the shadcn semantic tokens are declared once on `:root` in
+   `tailwind.css` as aliases of the site's (see "Tokens and theme"), and
+   shadcn's `--accent` is held in `--sh-accent`. There is no scope class.
+   Re-check `git diff src/tailwind.css` after every `shadcn add` or `init`.
 3. Links as buttons. A Base UI `Button` rendered as a link
    (`render={<Link />}`) needs `nativeButton={false}`, or it logs a warning.
    Old `a { color }` needs a one-line `inherit` in the base layer while legacy
@@ -366,3 +368,45 @@ in `vite.config.js` and `jsconfig.json`.
 pinned in `package.json`). shadcn 4.x generates `import { cn } from "cn"`, so
 the repo depends on it directly; `src/lib/utils.js` re-exports it for
 hand-written code. One source of `cn`: do not add `clsx` or `tailwind-merge`.
+
+## Tokens and theme (#527)
+
+The look is "Archive catalogue" (`docs/planning/2026-11-20-design-system-spike-design.md`):
+warm paper in light, graphite in dark, one accent, serif headings. The legacy
+tokens in `index.css` were repointed, not renamed, so every old page changed at
+once (`--bg` is the page, `--surface` the card, `--text` ink).
+
+| Token | Light | Dark |
+|---|---|---|
+| `--bg` page / `--surface` card | `#f1ede6` / `#fcfbf9` | `#4e4e4d` / `#5a5a59` |
+| `--text` ink / `--text-2`, `--text-3` muted | `#231f1a` / `#57534d` | `#f5f4f1` / `#dad9d5` |
+| `--line`, `--line-strong` (outlines, page rules) | `#8c8579` | `#a6a5a2` |
+| `--line-card` (rules inside cards) | `#8c8579` | `#b0afac` |
+| `--accent` / `--accent-ink` | `#a8321f` / `#ffffff` | `#f7a391` / `#2b2b2a` |
+| `--highlight` / `--highlight-ink` | `#f3dc6b` / `#231f1a` | `#ffd84a` / `#2b2b2a` |
+
+- **Accent as text.** `--accent` is a fill, edge or underline colour (a 3:1
+  mark). Anything set as text uses `--accent-text`; coloured text for status
+  uses `--ok-text` and `--warn-text` (the badge colour). Dark `--accent` is
+  3.49 on the card, so the text tokens are lighter there. Fills, borders and
+  outlines keep the plain tokens. A new `color: var(--accent)` is wrong.
+- **`--line` vs `--line-card`.** `--line` outlines and page rules; `--line-card`
+  is for rules inside cards. `--line-card` is defined but unused until the card
+  components land (#528). `--line` is a mid grey now: never put text on it, and
+  meter tracks are `--sunken`.
+- **Three places.** The palette is written in `:root` (dark), `[data-theme='light']`
+  and the `@media print` copy near the end of `index.css` (print is light). Change
+  all three; `src/contrast.test.js` asserts that print equals light for every
+  token both declare, and checks every text, mark and line pair in both themes
+  at WCAG 4.5 (text) and 3 (marks). Data colours were moved in lightness only.
+  `--hatch-stripe` is the comic "upcoming" stripe, separate from `--run-missing`.
+- **Headings** (h1 to h3, `--font-display`) are Source Serif 4 at 500, the only
+  weight installed; a serif at 600 or 700 would be synthesised.
+  `typeScale.test.js` fails any weight above 500 on a heading selector or beside
+  `--font-display`. Body is Inter, labels JetBrains Mono.
+- **No opacity on text.** Fading text with `opacity` blends it under 4.5:1
+  (`.chip-count`, `.pick-hint`, `.shelfle-hint` did). Disabled controls are exempt.
+- **shadcn.** `tailwind.css` aliases `--background`, `--primary` and the rest to
+  these tokens, and `@theme inline` exposes them (`--color-accent-text` gives
+  `text-accent-text`). shadcn's `--accent` is `--sh-accent` (`--color-accent`);
+  its `--chart-1..5` are not declared because `--chart-2` is a legacy token.
