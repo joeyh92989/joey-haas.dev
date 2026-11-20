@@ -71,10 +71,11 @@ test('signing out returns to the signed-out admin page', async ({ page }) => {
   await page.goto('/admin')
   await expect(page.locator('main h1').first()).toBeVisible()
   await page
-    .getByRole('button', { name: 'Sign out' })
+    .getByRole('button', { name: /^Account, / })
     .and(page.locator(':visible'))
     .first()
     .click()
+  await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(
     page.getByRole('heading', { level: 1, name: 'Admin' }),
   ).toBeVisible()

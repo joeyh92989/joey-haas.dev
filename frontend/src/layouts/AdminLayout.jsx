@@ -95,8 +95,8 @@ const RELOAD_PATHS = ['/admin', '/admin/jobs']
  * Every /admin route. It checks the session once, then renders the routed
  * page inside the admin shell; until then, and for every way that check can
  * go wrong, it renders a plain centred panel with no shell. A failed
- * sign-out stays in the shell, so the page and anything unsaved on it
- * survive.
+ * sign-out stays in the shell (its line is in the account menu), so the
+ * page and anything unsaved on it survive.
  *
  * The admin area is deliberately absent from the site navigation. That is
  * not a security control; the server-side session check is. It keeps a
@@ -122,6 +122,8 @@ export default function AdminLayout() {
   const [closetReview, setClosetReview] = useState(null)
   const [intakeCounts, setIntakeCounts] = useState(null)
   const [signOutFailed, setSignOutFailed] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const signOutBusy = useRef(false)
   const [attempt, setAttempt] = useState(0)
   const itemsLoaded = useRef(false)
   const reviewLoaded = useRef(false)
@@ -253,7 +255,10 @@ export default function AdminLayout() {
     // Flipping the UI on a failed request would leave a valid 30-day cookie
     // behind while the page says otherwise — worst on a shared machine, where
     // the next visitor would still be authenticated.
+    if (signOutBusy.current) return
+    signOutBusy.current = true
     setSignOutFailed(false)
+    setSigningOut(true)
     try {
       const response = await apiFetch('/api/auth/logout', { method: 'POST' })
       if (!response.ok) {
@@ -263,6 +268,9 @@ export default function AdminLayout() {
     } catch {
       setSignOutFailed(true)
       return
+    } finally {
+      signOutBusy.current = false
+      setSigningOut(false)
     }
 
     setEmail(null)
@@ -293,6 +301,8 @@ export default function AdminLayout() {
         email={email}
         ownedCount={owned}
         onSignOut={signOut}
+        signOutPending={signingOut}
+        signOutFailed={signOutFailed}
         pageBadges={intakeBadges(intakeCounts)}
         badges={
           closetReview
@@ -300,11 +310,6 @@ export default function AdminLayout() {
             : {}
         }
       >
-        {signOutFailed && (
-          <p className="admin-error" role="alert">
-            Sign out failed — you are still signed in. Try again.
-          </p>
-        )}
         {/* Keyed on the path, so an error on one page is not carried to the
             next; the shell stays up either way. */}
         <RouteErrorBoundary key={pathname}>

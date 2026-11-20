@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
+import AccountMenu from './AccountMenu.jsx'
 import NavSheet from './NavSheet.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
@@ -91,13 +92,11 @@ function AreaLinks({ current, badges, iconClass }) {
   })
 }
 
-/** The desktop's first column: the areas, and a way back to the site. */
-function AreaRail({ current, badges }) {
+/** The desktop's first column: the account menu and the areas. */
+function AreaRail({ current, badges, account }) {
   return (
     <div className="admin-rail">
-      <span className="admin-rail-mark" aria-hidden="true">
-        {adminCopy.shell.mark}
-      </span>
+      <AccountMenu variant="rail" {...account} />
       <nav aria-label={adminCopy.shell.areas} className="admin-rail-nav">
         <AreaLinks
           current={current}
@@ -105,10 +104,6 @@ function AreaRail({ current, badges }) {
           iconClass="admin-rail-icon"
         />
       </nav>
-      <Link to="/" className="admin-rail-site" title={adminCopy.shell.viewSite}>
-        <span aria-hidden="true">↗</span>
-        <span className="visually-hidden">{adminCopy.shell.viewSite}</span>
-      </Link>
     </div>
   )
 }
@@ -124,15 +119,8 @@ function runs(pages) {
   return out
 }
 
-/** The desktop's second column: the current area's pages and the account. */
-function AreaPages({
-  area,
-  pathname,
-  ownedCount,
-  pageBadges,
-  email,
-  onSignOut,
-}) {
+/** The desktop's second column: the current area's pages. */
+function AreaPages({ area, pathname, ownedCount, pageBadges }) {
   const here = currentPage(area.pages, pathname)
   return (
     <aside className="admin-side">
@@ -166,18 +154,6 @@ function AreaPages({
           </div>
         ))}
       </nav>
-      <div className="admin-side-foot">
-        {email && <p className="admin-side-email">{email}</p>}
-        <p>
-          <Link to="/">
-            {adminCopy.shell.viewSite} <span aria-hidden="true">↗</span>
-          </Link>
-          {' · '}
-          <button type="button" className="link-button" onClick={onSignOut}>
-            {adminCopy.shell.signOut}
-          </button>
-        </p>
-      </div>
     </aside>
   )
 }
@@ -212,7 +188,15 @@ function TabSheet({ label, pages, open, onClose, returnFocusRef }) {
  * a few pages and sheets of the rest. A sheet segment is current when the
  * page is one of its own.
  */
-function AreaSubnav({ area, pathname, pageBadges, sheet, onOpen, onClose }) {
+function AreaSubnav({
+  area,
+  pathname,
+  pageBadges,
+  sheet,
+  onOpen,
+  onClose,
+  account,
+}) {
   const segments = segmentsFor(area)
   const here = currentPage(
     segments.flatMap((segment) => segment.sheet ?? [segment]),
@@ -223,37 +207,40 @@ function AreaSubnav({ area, pathname, pageBadges, sheet, onOpen, onClose }) {
   const refFor = (label) => (refs.current[label] ??= { current: null })
   return (
     <>
-      <nav aria-label={`${area.label} pages`} className="admin-subnav">
-        {segments.map((segment) => {
-          if (!segment.sheet) {
+      <div className="admin-phone-top">
+        <AccountMenu variant="pill" {...account} />
+        <nav aria-label={`${area.label} pages`} className="admin-subnav">
+          {segments.map((segment) => {
+            if (!segment.sheet) {
+              return (
+                <PageLink
+                  key={segment.to}
+                  page={segment}
+                  current={here?.to === segment.to}
+                >
+                  {segment.label}
+                  <PageBadge page={segment} badges={pageBadges} />
+                </PageLink>
+              )
+            }
+            const current = segment.sheet.some((page) => page.to === here?.to)
             return (
-              <PageLink
-                key={segment.to}
-                page={segment}
-                current={here?.to === segment.to}
+              <button
+                key={segment.label}
+                type="button"
+                ref={refFor(segment.label)}
+                className={current ? 'active' : undefined}
+                aria-current={current ? 'true' : undefined}
+                aria-haspopup="dialog"
+                aria-expanded={sheet === segment.label}
+                onClick={() => onOpen(segment.label)}
               >
                 {segment.label}
-                <PageBadge page={segment} badges={pageBadges} />
-              </PageLink>
+              </button>
             )
-          }
-          const current = segment.sheet.some((page) => page.to === here?.to)
-          return (
-            <button
-              key={segment.label}
-              type="button"
-              ref={refFor(segment.label)}
-              className={current ? 'active' : undefined}
-              aria-current={current ? 'true' : undefined}
-              aria-haspopup="dialog"
-              aria-expanded={sheet === segment.label}
-              onClick={() => onOpen(segment.label)}
-            >
-              {segment.label}
-            </button>
-          )
-        })}
-      </nav>
+          })}
+        </nav>
+      </div>
       {segments
         .filter((segment) => segment.sheet)
         .map((segment) => (
@@ -286,6 +273,8 @@ function AreaSubnav({ area, pathname, pageBadges, sheet, onOpen, onClose }) {
  *   Pending counts per page `badge` key, e.g.
  *   `{ 'intake.shelf': { value: 7, words: 'to check' } }`.
  * @param {() => void} props.onSignOut Signs out; the layout owns the result.
+ * @param {boolean} [props.signOutPending] A sign-out is in flight.
+ * @param {boolean} [props.signOutFailed] The last sign-out failed.
  * @param {import('react').ReactNode} props.children The routed page.
  */
 export default function AdminShell({
@@ -294,12 +283,20 @@ export default function AdminShell({
   badges = {},
   pageBadges = {},
   onSignOut,
+  signOutPending = false,
+  signOutFailed = false,
   children,
 }) {
   const phone = useMediaQuery(PHONE_QUERY)
   const mainRef = useRouteFocus()
   const { pathname } = useLocation()
   const area = areaFor(pathname)
+  const account = {
+    email,
+    onSignOut,
+    pending: signOutPending,
+    failed: signOutFailed,
+  }
   const [sheet, setSheet] = useState(null)
   // A sheet belongs to the phone layout and to one area: crossing the
   // breakpoint or changing area closes it, or it would open again by itself
@@ -313,15 +310,13 @@ export default function AdminShell({
 
   return (
     <div className={phone ? 'admin-app admin-app-phone' : 'admin-app'}>
-      {!phone && <AreaRail current={area} badges={badges} />}
+      {!phone && <AreaRail current={area} badges={badges} account={account} />}
       {!phone && (
         <AreaPages
           area={area}
           pathname={pathname}
           ownedCount={ownedCount}
           pageBadges={pageBadges}
-          email={email}
-          onSignOut={onSignOut}
         />
       )}
 
@@ -334,20 +329,10 @@ export default function AdminShell({
             sheet={sheet}
             onOpen={setSheet}
             onClose={() => setSheet(null)}
+            account={account}
           />
         )}
         {children}
-        {phone && (
-          <p className="admin-phone-foot">
-            {email && <span className="admin-side-email">{email}</span>}
-            <Link to="/">
-              {adminCopy.shell.viewSite} <span aria-hidden="true">↗</span>
-            </Link>
-            <button type="button" className="link-button" onClick={onSignOut}>
-              {adminCopy.shell.signOut}
-            </button>
-          </p>
-        )}
       </main>
 
       {phone && (
