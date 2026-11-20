@@ -80,9 +80,20 @@ const PAIRS = [
   ...TEXT.flatMap((t) =>
     ['--bg', '--surface', '--sunken', '--accent-soft'].map((b) => [t, b, 4.5]),
   ),
-  ['--accent', '--bg', 4.5],
-  ['--accent', '--surface', 4.5],
-  ['--accent', '--accent-soft', 4.5],
+  // The accent as text takes its own token; --accent itself is the fill,
+  // edge and underline colour, a mark.
+  ...['--bg', '--surface', '--sunken', '--accent-soft'].map((b) => [
+    '--accent-text',
+    b,
+    4.5,
+  ]),
+  ['--accent', '--bg', 3],
+  ['--accent', '--surface', 3],
+  ['--accent', '--accent-soft', 3],
+  // --ok and --warn as text (their marks are tested below at 3:1).
+  ...['--ok-text', '--warn-text'].flatMap((t) =>
+    ['--bg', '--surface', '--sunken'].map((b) => [t, b, 4.5]),
+  ),
   ['--accent-ink', '--accent', 4.5],
   ['--highlight-ink', '--highlight', 4.5],
   ['--badge-ink', '--badge', 4.5],
@@ -102,22 +113,9 @@ const PAIRS = [
   ].map((m) => [m, '--surface', 3]),
 ]
 
-/**
- * Pairs the chosen palette cannot satisfy. The thresholds stay as written; a
- * pair listed here must still fail (`it.fails`), so fixing it makes the test
- * red until the entry is deleted. Each entry says why.
- */
-const KNOWN = {
-  'dark --accent on --bg':
-    'the design table fixes accent #f7a391 on page #4e4e4d at 4.21 (non-text 3:1 only)',
-  'dark --accent on --surface':
-    'accent #f7a391 on card #5a5a59 is 3.49: no lightness of the accent reaches 4.5 on the table values without leaving the table',
-}
-
 describe.each(Object.keys(THEMES))('contrast, %s theme', (theme) => {
   for (const [fg, bg, min] of PAIRS) {
-    const test = KNOWN[`${theme} ${fg} on ${bg}`] ? it.fails : it
-    test(`${fg} on ${bg} is at least ${min}:1`, () => {
+    it(`${fg} on ${bg} is at least ${min}:1`, () => {
       expect(measure(theme, fg, bg)).toBeGreaterThanOrEqual(min)
     })
   }

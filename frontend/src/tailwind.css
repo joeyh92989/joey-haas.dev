@@ -84,6 +84,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--sh-accent);
   --color-accent-foreground: var(--sh-accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);

@@ -81,3 +81,8 @@ No migration, secrets or `render.yaml` change. Changelog: yes, one bullet, becau
 - WCAG 2.2 contrast minimum and non-text contrast: https://www.w3.org/TR/WCAG22/#contrast-minimum , https://www.w3.org/TR/WCAG22/#non-text-contrast
 - Repo: `frontend/src/index.css`, `frontend/index.html` (pre-paint script), `frontend/src/typeScale.test.js`, `frontend/src/spaceScale.test.js`, `docs/learnings.md`
 - Mockups (out of git, on disk only in the 520 spike worktree): `docs/planning/mockups/2026-11-20-identity/3b1-archive-home.html`, `3b1-archive-shelf.html`
+
+## Found in review
+
+- Dark --accent (#f7a391, the design table) is 3.49 on the card and 4.21 on the page, so it is a mark colour only. Accent text uses `--accent-text` (dark #fac5b9, light the same as --accent); `--ok-text` and `--warn-text` do the same for --ok and --warn. Decided in auto mode after the dark a11y run flagged accent links.
+- Follow-up, not fixed here: text over the comic "upcoming" hatch is 2.08 in dark (light 4.66), and dark `--ok` as text on the hatch has the same problem. In dark the stripe has to be light to reach 3:1 on the mid-grey card, so no single text colour clears 4.5 over stripe and gap. Needs a different upcoming mark (an outline, or a solid fill under the numeral) in the run-lanes story.
