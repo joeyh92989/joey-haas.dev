@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { SESSION_ENDED } from '../content/status.js'
 import { apiFetch } from './api.js'
 import { lastNightly, nightlyHeadline, nightlyJobs } from './nightly.js'
@@ -169,21 +169,31 @@ export async function loadNightly() {
  *
  * @returns {{loaded: boolean, now: number, jobs: ReturnType<typeof nightlyJobs>|null,
  *   headline: ReturnType<typeof nightlyHeadline>|null,
- *   api: {state: string, words: string}}}
+ *   api: {state: string, words: string}, reload: () => Promise<void>}}
  */
 export function useNightly() {
   const [nightly, setNightly] = useState(null)
   const [now] = useState(() => Date.now())
+  const live = useRef(true)
 
   useEffect(() => {
-    let live = true
+    live.current = true
     loadNightly().then((loaded) => {
-      if (live) setNightly(loaded)
+      if (live.current) setNightly(loaded)
     })
     return () => {
-      live = false
+      live.current = false
     }
   }, [])
+
+  /** Reads the status again, keeping the rows on screen meanwhile. */
+  const reload = useCallback(
+    () =>
+      loadNightly().then((loaded) => {
+        if (live.current) setNightly(loaded)
+      }),
+    [],
+  )
 
   const jobs = nightly?.status
     ? nightlyJobs(
@@ -202,6 +212,7 @@ export function useNightly() {
     jobs,
     headline: jobs ? nightlyHeadline(jobs) : null,
     api: API_WORDS[nightly?.api ?? 'checking'],
+    reload,
   }
 }
 

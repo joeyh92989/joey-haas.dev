@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- [Jobs](/admin/jobs) now has a working Run now button on Weekend forecast, Radar, Comic refresh and Comic issues. It shows Running, then Done or the error, and reads “Already running” if the job is already going; the Open link stays beside it.
 - The admin now has an account menu: the `jh` mark at the top of the sidebar (a button beside the page tabs on a phone) opens the signed-in email, View site and Sign out, replacing the small links at the foot of the page.
 - Home’s headline now reads “Building software since 2012, as a product manager first and an engineer since 2021”, so it matches the five years of engineering and eight of product on the About page.
 - Home’s work history now carries the $1B in annual benefit spend and the 55–74% latency cut from [About](/about), with a “Full history” link there; LinkedIn is a button beside GitHub, and the Work link reads “Project details”.
