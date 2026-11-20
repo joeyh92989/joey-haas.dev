@@ -71,4 +71,11 @@ describe('EmptyState', () => {
     expect(link.className).toContain('text-accent-text')
     expect(link).not.toHaveAttribute('role')
   })
+
+  it('keeps the old 16px size and the --text-2 colour', () => {
+    const { container } = show({ title: 'Nothing here.' })
+    const box = container.querySelector('.empty-state')
+    expect(box.className).toContain('text-base')
+    expect(box.className).toContain('text-muted-foreground')
+  })
 })

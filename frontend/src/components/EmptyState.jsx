@@ -18,7 +18,7 @@ import { cn } from '../lib/utils.js'
  */
 export default function EmptyState({ title, line, action, titleRef }) {
   return (
-    <Card className="empty-state items-start gap-2 px-4">
+    <Card className="empty-state items-start gap-2 px-4 text-base text-muted-foreground">
       <p
         className="empty-state-title"
         ref={titleRef}

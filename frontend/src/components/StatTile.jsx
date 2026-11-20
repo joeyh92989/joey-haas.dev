@@ -2,7 +2,7 @@ import { cn } from '../lib/utils.js'
 import { Card } from './ui/card.jsx'
 
 /** A tile is a flat card: 1px outline, the card colour, 16px inside. */
-const TILE = 'gap-0 px-4'
+const TILE = 'gap-0 px-4 text-base text-muted-foreground'
 
 /**
  * One headline figure: a mono label, the number, and an optional line of
@@ -22,21 +22,19 @@ const TILE = 'gap-0 px-4'
 export default function StatTile({ label, value, detail, children }) {
   if (children != null) {
     return (
-      <Card className={cn('stat-tile stat-tile-figures', TILE)}>
-        <dt className="font-mono text-xs text-muted-foreground">{label}</dt>
+      <Card className={cn('stat-tile stat-tile-figures', TILE, 'py-3')}>
+        <dt>{label}</dt>
         <dd>{children}</dd>
       </Card>
     )
   }
   return (
     <Card className={cn('stat-tile', TILE)}>
-      <dt className="kicker font-mono text-muted-foreground">{label}</dt>
+      <dt className="kicker">{label}</dt>
       <dd className="stat-value font-heading font-medium text-foreground">
         {value}
       </dd>
-      {detail && (
-        <dd className="stat-detail text-muted-foreground">{detail}</dd>
-      )}
+      {detail && <dd className="stat-detail">{detail}</dd>}
     </Card>
   )
 }
