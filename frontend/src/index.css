@@ -452,6 +452,7 @@ p.muted a,
   border-top: 2px solid transparent;
   color: var(--text-2);
   display: flex;
+  white-space: nowrap;
 }
 
 .site-nav a:hover {
@@ -671,6 +672,20 @@ p.muted a,
   outline-offset: 2px;
 }
 
+/* The nav, More and Resume need about 930px of bar with Travel and Blog
+   both showing (measured at 761 to 1040px, #471); below 960px the bar hands
+   over to Menu, whose sheet carries the same links. */
+@media (max-width: 960px) {
+  .site-nav,
+  .mast-resume {
+    display: none;
+  }
+
+  .mast-menu {
+    display: inline-flex;
+  }
+}
+
 @media (max-width: 700px) {
   .wrap,
   .page {
@@ -680,15 +695,6 @@ p.muted a,
   .mast-row {
     gap: var(--space-3);
     height: 54px;
-  }
-
-  .site-nav,
-  .mast-resume {
-    display: none;
-  }
-
-  .mast-menu {
-    display: inline-flex;
   }
 
   /* 44px tap targets for the bar's controls (#276); the bar is 54px. */
