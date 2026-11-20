@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { TAGS, TAG_LABELS } from '../../content/denver.js'
 import {
   act,
   fireEvent,
@@ -257,7 +258,7 @@ describe('SpotsAddBar', () => {
     await screen.findByRole('button', { name: 'Search' })
   })
 
-  it('opens the one result at once: Denver, six tags, a blurb, public off; focus on its name', async () => {
+  it('opens the one result at once: Denver, every tag, a blurb, public off; focus on its name', async () => {
     const user = userEvent.setup()
     fakeApi({ search: found(ROCKS) })
     setup()
@@ -273,14 +274,7 @@ describe('SpotsAddBar', () => {
       within(form)
         .getAllByRole('button', { pressed: false })
         .map((b) => b.textContent),
-    ).toEqual([
-      'Coffee',
-      'Park',
-      'Food',
-      'Kid-OK',
-      'Rainy day',
-      'Bike-friendly',
-    ])
+    ).toEqual(TAGS.map((tag) => TAG_LABELS[tag]))
     expect(within(form).getByLabelText('Blurb')).toBeInTheDocument()
     expect(
       within(form).getByLabelText(/Show on the public map/),

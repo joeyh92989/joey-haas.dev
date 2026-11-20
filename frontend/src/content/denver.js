@@ -18,6 +18,20 @@ export const TAG_LABELS = {
   'kid-ok': 'Kid-OK',
   'rainy-day': 'Rainy day',
   'bike-friendly': 'Bike-friendly',
+  cinema: 'Cinema',
+  theatre: 'Theatre',
+  'ice-cream': 'Ice cream',
+  brewery: 'Brewery',
+  zoo: 'Zoo',
+  aquarium: 'Aquarium',
+  'mini-golf': 'Mini golf',
+  bowling: 'Bowling',
+  arcade: 'Arcade',
+  climbing: 'Climbing',
+  'ice-rink': 'Ice rink',
+  pool: 'Pool',
+  'nature-reserve': 'Nature reserve',
+  trailhead: 'Trailhead',
 }
 
 /** The tag keys, in order. */

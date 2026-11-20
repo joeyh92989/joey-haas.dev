@@ -15855,3 +15855,18 @@ fieldset.lo-field {
   display: flex;
   gap: var(--space-2);
 }
+
+/* The 20-tag vocabulary (#351): the chip rows that hold every tag wrap on a
+   phone instead of joining the sideways-scrolling strip above, which would
+   hide most of them. Placed after that strip so these win by order. */
+.chip-row.denver-chips,
+.spot-form .chip-row {
+  -webkit-mask-image: none;
+  flex-wrap: wrap;
+  margin-top: 0;
+  mask-image: none;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+  padding: 0;
+}
