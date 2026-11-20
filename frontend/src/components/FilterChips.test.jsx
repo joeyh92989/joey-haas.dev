@@ -323,4 +323,40 @@ describe('FilterChips group limit', () => {
     )
     expect(screen.queryByRole('button', { name: 'More…' })).toBeNull()
   })
+
+  describe('look (#528)', () => {
+    function chips() {
+      render(
+        <FilterChips
+          groups={GROUPS}
+          value={{ ...NO_FILTER, type: 'game' }}
+          onChange={() => {}}
+        />,
+      )
+      return screen.getAllByRole('button')
+    }
+
+    it('draws each chip as the shared Button, keeping the legacy chip class', () => {
+      for (const chip of chips()) {
+        expect(chip).toHaveClass('chip')
+        expect(chip.className).toContain('rounded-md')
+        expect(chip.className).not.toMatch(/rounded-full|shadow/)
+      }
+    })
+
+    it('marks the pressed chip with the accent bar and a heavier word, not colour alone', () => {
+      const pressed = chips().find(
+        (chip) => chip.getAttribute('aria-pressed') === 'true',
+      )
+      expect(pressed.className).toContain('aria-pressed:font-medium')
+      expect(pressed.className).toContain('aria-pressed:after:block')
+    })
+
+    it('sets the count in mono', () => {
+      chips()
+      expect(document.querySelector('.chip-count').className).toContain(
+        'font-mono',
+      )
+    })
+  })
 })

@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { Button } from './ui/button.jsx'
+import { cn } from '../lib/utils.js'
 
 /**
  * One chip; hidden at zero unless pressed, so a filter can be undone. A null
@@ -8,9 +10,10 @@ function Chip({ pressed, count, label, onClick, className, disabled }) {
   const counted = count !== null
   if (counted && !pressed && !count) return null
   return (
-    <button
-      type="button"
-      className={className ? `chip ${className}` : 'chip'}
+    <Button
+      variant="chip"
+      size="chip"
+      className={cn('chip', className)}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
@@ -19,10 +22,10 @@ function Chip({ pressed, count, label, onClick, className, disabled }) {
       {counted && (
         <>
           {' '}
-          <span className="chip-count">{count}</span>
+          <span className="chip-count font-mono text-xs">{count}</span>
         </>
       )}
-    </button>
+    </Button>
   )
 }
 
@@ -120,9 +123,10 @@ export default function FilterChips({
     if (!group.limit || (hidden === 0 && !expanded.has(group.key))) return chips
     return [
       ...chips,
-      <button
+      <Button
         key="more"
-        type="button"
+        variant="chip"
+        size="chip"
         className="chip"
         aria-expanded={expanded.has(group.key)}
         disabled={disabled}
@@ -135,7 +139,7 @@ export default function FilterChips({
         }
       >
         {group.moreLabel ?? 'More…'}
-      </button>,
+      </Button>,
     ]
   }
 

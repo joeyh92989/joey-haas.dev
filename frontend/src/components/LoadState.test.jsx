@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -82,5 +83,12 @@ describe('LoadState', () => {
     render(<LoadState ended failed onRetry={vi.fn()} />)
     expect(screen.getByRole('alert').textContent).toBe(SESSION_ENDED)
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('draws Try again as the shared outline Button, keeping btn sm', () => {
+    render(<LoadState failed onRetry={vi.fn()} />)
+    const button = screen.getByRole('button', { name: TRY_AGAIN })
+    expect(button).toHaveClass('btn', 'sm')
+    expect(button.className).toContain('border-foreground')
   })
 })

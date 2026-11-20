@@ -6,6 +6,7 @@ import {
   TRY_AGAIN,
   WAKING,
 } from '../content/status.js'
+import { Button } from './ui/button.jsx'
 import { useElapsed } from '../lib/useElapsed.js'
 import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
 
@@ -69,9 +70,14 @@ export default function LoadState({
       >
         <p className="muted">{stale ? staleLine : message}</p>
         {onRetry && (
-          <button type="button" className="btn sm" onClick={onRetry}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="btn sm"
+            onClick={onRetry}
+          >
             {TRY_AGAIN}
-          </button>
+          </Button>
         )}
       </div>
     )
