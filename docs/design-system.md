@@ -17,6 +17,9 @@ list can use them; their rules are added when one of them is next designed.
 Tokens (colour, type, spacing, status marks) are in `frontend/src/index.css`
 and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
 
+The Tailwind v4 and shadcn/ui build setup (layers, adding a component) is in
+`frontend/CLAUDE.md` → "Design system setup".
+
 ## Page types
 
 | Type | What it is | Parts, top to bottom | Width |

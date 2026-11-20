@@ -297,3 +297,51 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   leave the name to decide. The frontend never decides it: Check's preview
   reads `adds` and `title_will_be_created` from the server. Rule and
   thresholds: `backend/comics.py` and `backend/CLAUDE.md` (Comics).
+
+## Design system setup (#526)
+
+Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
+hand-written `src/index.css`. `main.jsx` imports `src/tailwind.css`, which pulls
+everything in. Nothing visible changes until a page is migrated (epic #519).
+`src/tailwindSetup.test.js` guards the points below.
+
+**Layers.** `@layer legacy, theme, base, components, utilities;` and
+`@import './index.css' layer(legacy);`. Unlayered CSS always beats layered CSS,
+and `index.css` has an unlayered `* { padding: 0 }`; unlayered it would beat
+every Tailwind utility (cards and buttons lost their padding in the spike).
+Layered into `legacy`, the lowest layer, every utility wins and old pages still
+render from their own rules. Delete the layer when the last page moves.
+
+**Preflight is off.** Only `tailwindcss/theme.css` and `utilities.css` are
+imported. Preflight is a reset; it would shift every unmigrated page. A
+comment in `tailwind.css` carries the plain `@import "tailwindcss";` text only
+because the shadcn CLI refuses to run without it.
+
+**Four findings from the spike (#520)**
+
+1. Layer the old stylesheet (above).
+2. Strip and scope the generated base. The preset writes `@layer base { * {
+   border-color } body { background } html { font } }`, which restyles every
+   old page; it is not in `tailwind.css`. Its tokens (`--accent`, `--radius`)
+   collide with the site's, so they arrive on a scope class in #527, not on
+   `:root`. Re-check this after every `shadcn add` or `init`.
+3. Links as buttons. A Base UI `Button` rendered as a link
+   (`render={<Link />}`) needs `nativeButton={false}`, or it logs a warning.
+   Old `a { color }` needs a one-line `inherit` in the base layer while legacy
+   styles exist. Applies when #528 builds the button.
+4. Lint. Generated files import an unused `React`. `eslint.config.js` has an
+   override for `src/components/ui/**` that ignores `React` in `no-unused-vars`
+   only; the rest of the folder is still linted. Run `npm run format` on a
+   generated file (it is not written in the repo's Prettier style).
+
+**Add a component.** `cd frontend && npx shadcn add <name>`, then `npm run
+format`, `npm run lint`, and check `git diff src/tailwind.css` is empty. Aliases
+are in `components.json` (`@/components/ui`, `@/lib/utils`). `@` maps to `src/`
+in `vite.config.js` and `jsconfig.json`.
+
+**`cn`.** `src/lib/utils.js` exports `cn` (`clsx` + `tailwind-merge`), as
+shadcn's own docs do. Note: shadcn 4.x generates `import { cn } from "cn"`, an
+npm package from the shadcn-ui org, and `shadcn add button` adds `cn` to
+`package.json` and ignores `@/lib/utils`. Decide in #527 or #528 which to
+keep (one source of `cn`); until then a generated component brings the package
+with it.
