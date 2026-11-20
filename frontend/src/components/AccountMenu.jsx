@@ -64,13 +64,6 @@ export default function AccountMenu({
     onSignOut()
   }
 
-  const name = (
-    <span className="visually-hidden">
-      {rail ? ', ' : `${adminCopy.shell.account}, `}
-      {email}
-    </span>
-  )
-
   return (
     <div className="acct" ref={rootRef} onBlur={onBlur}>
       <button
@@ -79,6 +72,7 @@ export default function AccountMenu({
         className={rail ? 'acct-mark-btn' : 'acct-btn'}
         aria-expanded={open}
         aria-controls={panelId}
+        aria-label={`${adminCopy.shell.account}, ${email}`}
         onClick={() => setOpen((value) => !value)}
       >
         <span className="admin-rail-mark" aria-hidden="true">
@@ -104,7 +98,6 @@ export default function AccountMenu({
             />
           </svg>
         )}
-        {name}
       </button>
       <div className="acct-panel" id={panelId} hidden={!open}>
         <p className="acct-who">

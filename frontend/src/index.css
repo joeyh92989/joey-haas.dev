@@ -1718,6 +1718,8 @@ footer {
   padding: var(--space-4) 0;
   position: sticky;
   top: 0;
+  /* Over the page list beside it, so the account panel opens above it. */
+  z-index: 5;
 }
 
 /* --bg on --text measures 16.27 dark, 17.49 light (the token block). */
@@ -1955,14 +1957,15 @@ footer {
   flex: 1 0 auto;
   font: var(--fs-13) var(--font-sans);
   min-height: 2.25rem;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1);
   text-align: center;
   white-space: nowrap;
 }
 
 .admin-subnav a {
-  align-content: center;
-  display: grid;
+  align-items: center;
+  display: flex;
+  justify-content: center;
 }
 
 .admin-subnav a:hover {
