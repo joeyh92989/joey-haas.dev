@@ -33,7 +33,8 @@
   --surface: #5a5a59;
   --sunken: #464645;
   --line: #a6a5a2;
-  /* Rules and outlines inside cards. */
+  /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+     wired by the card components (#528). */
   --line-card: #b0afac;
   /* Decorative only (button borders, the timeline rail), so not held to
      3:1: every control it outlines carries its own label. */
@@ -82,16 +83,17 @@
      pill borders use ok 3.21, warn 3.30, accent 3.49 above; the New badge,
      --accent-text on --bg, is 5.46. */
   --redact: repeating-linear-gradient(135deg, #a5acb5 0 6px, #464645 6px 12px);
-  /* Comic runs. Missing issues and the not-out-yet hatch are non-text marks
-     on --surface, built on the redaction stripe's mark colour: 3.01. The
-     lanes' hollow missing outline also sits on --bg on a shelf card: 3.64.
-     Text over the hatch is --text, which is only 2.08 on the stripe in
-     this theme (light 4.66): no single text colour clears 4.5 over a
-     light stripe and the card between stripes. */
+  /* Comic runs. Missing issues are non-text marks on --surface, built on the
+     redaction stripe's mark colour: 3.01. The lanes' hollow missing outline
+     also sits on --bg on a shelf card: 3.64. The not-out-yet hatch has its
+     own stripe, below. */
   --run-missing: #a5acb5;
+  /* The hatch's own stripe, so numerals over it can be read: black is 3.04 on
+     --surface as a mark and --text on it is 19.09. */
+  --hatch-stripe: #000000;
   --hatch: repeating-linear-gradient(
     135deg,
-    #a5acb5 0 2px,
+    var(--hatch-stripe) 0 2px,
     transparent 2px 6px
   );
   /* Code blocks get their own token because the syntax colors do not clear AA
@@ -177,7 +179,8 @@
   --surface: #fcfbf9;
   --sunken: #e8e3da;
   --line: #8c8579;
-  /* Rules and outlines inside cards. */
+  /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+     wired by the card components (#528). */
   --line-card: #8c8579;
   --line-strong: #8c8579;
   /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
@@ -196,6 +199,8 @@
   --ok-text: #1d7449;
   --warn-text: var(--badge);
   --accent-soft: #f5ebe8;
+  --highlight: #f3dc6b;
+  --highlight-ink: #231f1a;
   /* The highlighter: a status mark's fill, with its own text colour. Its
      text is 11.90 on it; the fill is only 1.33 on --surface, so it always
      sits in an outline beside a word. Marks on --surface: ok 5.14, warn
@@ -215,9 +220,11 @@
   /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
      --text over the hatch 4.66. */
   --run-missing: #848993;
+  /* The hatch's own stripe: 3.40 on --surface, --text over it 4.66. */
+  --hatch-stripe: #848993;
   --hatch: repeating-linear-gradient(
     135deg,
-    #848993 0 2px,
+    var(--hatch-stripe) 0 2px,
     transparent 2px 6px
   );
   /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
@@ -5973,8 +5980,6 @@ dialog.shelf-sheet {
 
 .chip-count {
   font-variant-numeric: tabular-nums;
-  /* 0.75 dropped text-2 below 4.5:1 on a white chip in the light theme. */
-  opacity: 0.85;
 }
 
 .sort-control {
@@ -7604,7 +7609,7 @@ section > .cover-key {
   gap: var(--space-1);
 }
 .progress i {
-  background: var(--line-strong);
+  background: var(--sunken);
   border-radius: 2px;
   display: inline-block;
   height: 4px;
@@ -9114,8 +9119,8 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-k='upcoming'],
 .run-key[data-variant='box'] i[data-k='upcoming'] {
   background: var(--hatch);
-  /* --text, not --text-2: over the hatch's darker stripe --text-2 is 1.62
-     dark / 2.18 light; --text is 2.08 / 4.66 (dark stays under 4.5). */
+  /* --text, not --text-2: over --hatch-stripe --text-2 is 14.87 dark / 2.18
+     light; --text is 19.09 / 4.66. */
   color: var(--text);
 }
 
@@ -10029,7 +10034,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .pick-term-bar {
-  background: var(--line);
+  background: var(--sunken);
   border-radius: 2px;
   display: inline-block;
   height: 4px;
@@ -10774,7 +10779,7 @@ a.cover-tile-cap:focus-visible span {
 .cand-src {
   border: 1px solid var(--chart-2);
   border-radius: 4px;
-  color: var(--chart);
+  color: var(--text-2);
   flex: none;
   font-family: var(--font-mono);
   font-size: var(--fs-12);
@@ -11240,7 +11245,6 @@ a.cover-tile-cap:focus-visible span {
   display: block;
   font-family: var(--font-mono);
   font-size: var(--fs-12);
-  opacity: 0.85;
 }
 /* Match: filled. --accent-ink on --status-active measured 6.58 dark
    (#2b2b2a on --ok) and 4.58 light (white on #2a8556); both clear 4.5:1 for
@@ -12524,7 +12528,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* Swap and Build around: real buttons under each piece, always shown, so
    a keyboard or a touch reaches them without a hover. The locked piece
-   gets an --accent outline (4.77 dark, 5.71 light at worst) next to the
+   gets an --accent outline (3.49 dark on --surface, 5.71 light at worst) next to the
    "Built around" pill, so the outline is never alone. */
 .outfit-piece-btn {
   background: var(--surface);
@@ -12793,7 +12797,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* The bar's track and fill; the line above it says the same in words. */
 .review-bar {
-  background: var(--line);
+  background: var(--sunken);
   border-radius: 2px;
   height: 3px;
   margin-bottom: var(--space-4);
@@ -13731,7 +13735,8 @@ a.btn.sm {
     --surface: #fcfbf9;
     --sunken: #e8e3da;
     --line: #8c8579;
-    /* Rules and outlines inside cards. */
+    /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+       wired by the card components (#528). */
     --line-card: #8c8579;
     --line-strong: #8c8579;
     /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
@@ -13750,6 +13755,8 @@ a.btn.sm {
     --ok-text: #1d7449;
     --warn-text: var(--badge);
     --accent-soft: #f5ebe8;
+    --highlight: #f3dc6b;
+    --highlight-ink: #231f1a;
     /* The highlighter: a status mark's fill, with its own text colour. Its
        text is 11.90 on it; the fill is only 1.33 on --surface, so it always
        sits in an outline beside a word. Marks on --surface: ok 5.14, warn
@@ -13773,9 +13780,11 @@ a.btn.sm {
     /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
        --text over the hatch 4.66. */
     --run-missing: #848993;
+    /* The hatch's own stripe: 3.40 on --surface, --text over it 4.66. */
+    --hatch-stripe: #848993;
     --hatch: repeating-linear-gradient(
       135deg,
-      #848993 0 2px,
+      var(--hatch-stripe) 0 2px,
       transparent 2px 6px
     );
     /* Every light-plus color reaches 4.53:1 on white (worst: the red used for

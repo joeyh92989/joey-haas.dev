@@ -90,6 +90,14 @@ const PAIRS = [
   ['--accent', '--bg', 3],
   ['--accent', '--surface', 3],
   ['--accent', '--accent-soft', 3],
+  // Meter fills on their --sunken tracks (.pick-term-bar, .review-bar,
+  // .progress i).
+  ['--accent', '--sunken', 3],
+  ['--status-active', '--sunken', 3],
+  // Comic "upcoming" cells: numerals over the hatch's stripe, and the stripe
+  // as a mark on the card.
+  ['--text', '--hatch-stripe', 4.5],
+  ['--hatch-stripe', '--surface', 3],
   // --ok and --warn as text (their marks are tested below at 3:1).
   ...['--ok-text', '--warn-text'].flatMap((t) =>
     ['--bg', '--surface', '--sunken'].map((b) => [t, b, 4.5]),
@@ -119,4 +127,45 @@ describe.each(Object.keys(THEMES))('contrast, %s theme', (theme) => {
       expect(measure(theme, fg, bg)).toBeGreaterThanOrEqual(min)
     })
   }
+})
+
+const LIGHT_OWN = block("[data-theme='light']")
+
+describe('theme blocks', () => {
+  it('the light block declares its own highlighter, not dark’s', () => {
+    expect(LIGHT_OWN['--highlight']).toBe('#f3dc6b')
+    expect(LIGHT_OWN['--highlight-ink']).toBe('#231f1a')
+  })
+
+  it('draws meter tracks on --sunken, so the fill is a 3:1 mark on it', () => {
+    for (const sel of ['.pick-term-bar', '.review-bar', '.progress i']) {
+      const at = css.indexOf(`\n${sel} {`)
+      expect(at, sel).toBeGreaterThan(-1)
+      const body = css.slice(at, css.indexOf('}', at))
+      expect(body, sel).toMatch(/background:\s*var\(--sunken\)/)
+    }
+  })
+
+  // The paper is light whatever theme is browsed (index.css, Print): the
+  // print copy must not drift from the light block.
+  it('the @media print tokens equal the light block for every shared token', () => {
+    const at = css.indexOf('@media print {')
+    const open = css.indexOf('[data-theme] {', at)
+    const close = css.indexOf('\n  }', open)
+    const body = css.slice(open + '[data-theme] {'.length, close)
+    const print = {}
+    for (const m of body
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+      print[m[1]] = m[2].replace(/\s+/g, '')
+    }
+    const norm = (v) => v.replace(/\s+/g, '')
+    const drift = Object.keys(print).filter(
+      (k) => k in LIGHT_OWN && norm(LIGHT_OWN[k]) !== print[k],
+    )
+    expect(drift).toEqual([])
+    // and nothing the light block overrides is missing from print
+    const missing = Object.keys(LIGHT_OWN).filter((k) => !(k in print))
+    expect(missing).toEqual([])
+  })
 })

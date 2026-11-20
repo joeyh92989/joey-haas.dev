@@ -68,6 +68,14 @@
   --destructive: #9b1c1c;
 }
 
+/* Paper is light whatever theme is browsed: print takes the light value. */
+@media print {
+  :root,
+  [data-theme] {
+    --destructive: #9b1c1c;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-display);
   --color-background: var(--background);
