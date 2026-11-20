@@ -386,7 +386,12 @@ describe('RootLayout masthead', () => {
   it('keeps the toggle outside the nav landmark', () => {
     renderAt('/shelf')
     const nav = screen.getByRole('navigation', { name: /site/i })
-    expect(within(nav).queryByRole('button')).toBeNull()
+    // More is a disclosure of destinations, so it may live in the nav.
+    expect(
+      within(nav)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['More'])
   })
 })
 

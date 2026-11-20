@@ -8,6 +8,7 @@ import { notes } from '../content/notes.js'
 import { posts } from '../content/posts.js'
 import { trips } from '../content/trips.js'
 import { spine } from '../content/spine.js'
+import { moreItems } from '../lib/navMore.js'
 import { apiFetch } from '../lib/api.js'
 import { isSearchShortcut } from '../lib/searchKeys.js'
 import { hasSpots } from '../lib/snapshotPresence.js'
@@ -232,6 +233,7 @@ export default function RootLayout() {
         theme={theme}
         onToggleTheme={toggleTheme}
         items={navItems(posts.length > 0, trips.length > 0)}
+        more={moreItems({ hasNotes: notes.length > 0, hasSpots })}
         onOpenSearch={() => setSearchOpen(true)}
         searchOpen={searchOpen}
       />

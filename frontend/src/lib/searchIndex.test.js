@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { STATIC_PAGES } from '../content/pages.js'
 import { normalize } from './normalize.js'
 import {
   GROUP_LIMIT,
@@ -30,6 +31,30 @@ describe('score', () => {
     ['', 0],
   ])('%s scores %s', (q, expected) => {
     expect(score(e, q)).toBe(expected)
+  })
+})
+
+describe('pageEntry keywords', () => {
+  const denver = pageEntry({
+    path: '/denver',
+    title: 'Denver',
+    description: 'A short list',
+    keywords: ['places', 'outings'],
+  })
+
+  it('matches on keywords without showing them', () => {
+    expect(denver.sub).toBe('A short list')
+    expect(denver.s).toContain('outings')
+    expect(score(denver, 'places')).toBe(0.5)
+    expect(search([denver], 'outings').count).toBe(1)
+  })
+
+  it('finds the real Denver page by places and outings', () => {
+    const entries = STATIC_PAGES.map(pageEntry)
+    for (const q of ['places', 'outings']) {
+      const rows = search(entries, q).groups[0].rows
+      expect(rows.map((r) => r.href)).toContain('/denver')
+    }
   })
 })
 

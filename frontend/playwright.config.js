@@ -17,6 +17,7 @@ export default defineConfig({
     'dynamic.spec.js',
     'comics-shelf.spec.js',
     'verify.spec.js',
+    'more-menu.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-20
+
+- The masthead now has a More menu with [Now](/now), [Stats](/stats), Daily game, [Denver](/denver) and [Colophon](/colophon) (and TIL when there are notes), and the phone Menu lists the same pages under More. Search finds Denver by “places” and “outings”. Below 960px wide the bar now shows Menu.
+
 ## 2026-11-19
 
 - [Jobs](/admin/jobs) now has a working Run now button on Weekend forecast, Radar, Comic refresh and Comic issues. It shows Running, then Done or the error, and reads “Already running” if the job is already going; the Open link stays beside it.

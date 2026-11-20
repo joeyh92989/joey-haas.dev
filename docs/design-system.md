@@ -176,6 +176,20 @@ Two widths on shelf pages, set by `RootLayout`, never by a page's own CSS:
 Home, About and Projects keep the 1040px `page-content` measure until a
 landing-page rule is written; no new page uses it.
 
+## Masthead
+
+One masthead on every public route: Home, About, Projects, My Shelf, then
+Travel and Blog while they exist, then **More**, a disclosure button that
+opens a panel of Now, Stats, TIL, Daily game, Denver and Colophon. TIL and
+Denver show only while a note or a spot exists. The list lives in one place,
+`lib/navMore.js` (`moreItems`), and feeds both the desktop panel and the
+phone sheet's More group, so a new public page is added there. More is
+underlined when the route is one of its pages, except Daily game, a My Shelf
+tab: on `/daily` My Shelf keeps the underline and the Daily row is marked
+current. Below 960px the bar hands over to Menu (the bar needs about 930px
+with Travel and Blog both showing). The panel is a disclosure, not a dialog:
+no focus trap, Escape returns focus to the button.
+
 ## Names
 
 One name per thing, on the public site and in the admin. Routes and code

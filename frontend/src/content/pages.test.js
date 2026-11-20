@@ -14,6 +14,16 @@ describe('STATIC_PAGES', () => {
     expect(page.description).toBeTruthy()
   })
 
+  it('keeps search keywords out of the prerendered fields', () => {
+    const denver = STATIC_PAGES.find((page) => page.path === '/denver')
+    expect(denver.keywords).toContain('outings')
+    for (const page of STATIC_PAGES) {
+      for (const word of page.keywords ?? []) {
+        expect(page.description.toLowerCase()).not.toBe(word)
+      }
+    }
+  })
+
   it('adds the blog only when there are posts', () => {
     expect(staticPages(false)).not.toContain(BLOG_PAGE)
     expect(staticPages(true).at(-1)).toBe(BLOG_PAGE)
