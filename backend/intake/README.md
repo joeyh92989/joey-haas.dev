@@ -517,7 +517,7 @@ that names this route. Two shapes:
   parse are a 422 at creation).
 
 Both take `city` (default `denver`), `neighbourhood`, `blurb`, `tags` (the
-canonical six, `spots.TAGS`) and `is_public`. The sitting row is locked
+vocabulary, `spots.TAGS`) and `is_public`. The sitting row is locked
 (`FOR UPDATE`) first, so two presses of Add queue and the second sees the
 first's entry. A 409 means the place is already a spot (`PLACE_OWNED`) or
 already in this sitting (`PLACE_IN_SITTING`).

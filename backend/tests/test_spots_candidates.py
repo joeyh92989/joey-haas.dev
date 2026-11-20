@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 import candidates
+import spots
 from llm import LLMError
 from models import Candidate, CandidateSource, Dismissal, Spot, SpotSetting, Visit
 from spots_candidates_routes import STATUS_KEY, create_candidates_router
@@ -485,3 +486,23 @@ async def test_anonymous_calls_are_401(sessionmaker_for_test):
     assert [r.status_code for r in responses] == [401, 401, 401]
     async with sessionmaker_for_test() as session:
         assert await session.scalar(select(func.count(SpotSetting.key))) == 0
+
+
+async def test_accept_takes_every_tag_but_not_more_than_the_vocabulary(
+    sessionmaker_for_test,
+):
+    assert len(spots.TAGS) == 20  # the accept cap is exactly the vocabulary
+    _, row = await _queued_one(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test) as client:
+        over = await client.post(
+            f"/api/spots/candidates/{row.id}/accept",
+            json={"tags": [*spots.TAGS, "coffee"]},
+        )
+        every = await client.post(
+            f"/api/spots/candidates/{row.id}/accept", json={"tags": list(spots.TAGS)}
+        )
+    assert over.status_code == 422
+    assert every.status_code == 200
+    async with sessionmaker_for_test() as session:
+        spot = await session.get(Spot, every.json()["spot_id"])
+    assert spot.tags == list(spots.TAGS)

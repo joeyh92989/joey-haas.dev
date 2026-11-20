@@ -1541,6 +1541,18 @@ async def test_public_spots_are_published_rows_only_never_an_anchor(
     assert "With the kids" not in json.dumps(body)
 
 
+async def test_a_public_spot_wearing_new_tags_publishes_them_and_no_new_field(
+    sessionmaker_for_test,
+):
+    spot = _spot("Alamo Drafthouse", tags=["coffee", "cinema", "ice-cream"])
+    await _add(sessionmaker_for_test, spot)
+
+    body = await _spots(sessionmaker_for_test)
+
+    assert body[0]["tags"] == ["coffee", "cinema", "ice-cream"]
+    assert set(body[0]) == SPOT_FIELDS
+
+
 async def test_an_outing_s_fields_never_reach_a_public_spot(sessionmaker_for_test):
     shown = _spot("Coors Field Cafe")
     await _add(sessionmaker_for_test, shown)
