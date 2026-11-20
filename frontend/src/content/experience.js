@@ -42,14 +42,14 @@ export const experience = [
     company: 'Guild',
     meta: '2020 – present · Denver, CO',
     blurb:
-      'Education and career-mobility benefits platform serving Fortune 1000 employers. The payments engineering team owns the systems that fund, track, and reconcile roughly $1B annually in benefits for 3.37M learners. Owned the team’s core funding service continuously since 2021.',
+      'Education and career-mobility benefits platform serving Fortune 1000 employers. The payments engineering team owns the systems that fund, track, and reconcile $1B annually in benefits for 3.37M learners. Owned the team’s core funding service continuously since 2021.',
     roles: [
       {
         title: 'Senior Software Engineer',
         dates: 'Oct 2024 – present',
         current: true,
         bullets: [
-          'Led the migration of the legacy ledger service to a new eligibility platform. Defined the API contract, implemented the solution, and logged traffic, catching defects before cutover.',
+          'Led the migration of the legacy ledger service to a new eligibility platform. Defined the API contract, implemented the solution, and logged traffic.',
           'Designed a replayable spend ledger to replace the legacy ledger service, merging pending and posted transactions into one record per member. Built the backfill engine that loaded 3.84M historical rows in production.',
           'Created the funding-position service, a system that computes user benefit utilization from various events through Guild’s systems, supporting both frontend and backend systems.',
           'Built a bulk balance endpoint handling up to 500 accounts per call, replacing thousands of individual requests. Cut mean latency 55–74% and raised throughput 2–4× in production, backed by automated load tests.',
@@ -70,7 +70,7 @@ export const experience = [
         title: 'Software Engineer I',
         dates: '2021 – 2022',
         bullets: [
-          'Delivered cross-year refund logic by ingesting transaction events from Salesforce, to prevent employer over- and underpayments.',
+          'Delivered cross-year refund logic by ingesting transaction events from Salesforce CRM to prevent employer over- and underpayments.',
           'Extended the transaction database GraphQL API with filtering, pagination, bulk updates, audit fields, and tax-period endpoints, and integrated it into the company’s federated gateway.',
         ],
       },
@@ -106,7 +106,7 @@ export const experience = [
     company: 'MJ Freeway',
     meta: '2018 – 2019 · Denver, CO',
     bullets: [
-      'Served as product owner for the Core Services suite (Cultivation, Processing, and Point of Sale). Defined the end-to-end enterprise development strategy using the SAFe framework and maintained a release cadence of two weeks.',
+      'Served as product owner for the Core Services suite (Cultivation, Processing, and Point of Sale). Defined the end-to-end enterprise development strategy using the SAFe framework and maintained a two-week release cadence.',
       'Created requirements, user stories, wireframes, and UI mockups; collaborated with enterprise clients to validate roadmap milestones and reduce refactoring.',
       'Trained the product organization on SDLC practices, from writing bug reports and user stories to identifying core customer needs.',
     ],
