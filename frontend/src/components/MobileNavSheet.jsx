@@ -18,6 +18,8 @@ import NavSheet from './NavSheet.jsx'
  * @param {boolean} props.open Whether the sheet is showing.
  * @param {() => void} props.onClose Called for every way of closing it.
  * @param {{to: string, label: string, end?: boolean}[]} props.items The nav.
+ * @param {{to: string, label: string, sheetLabel?: string}[]} [props.more]
+ *   The More group, under the nav: the same list as the desktop panel.
  * @param {import('react').RefObject<HTMLElement>} props.returnFocusRef
  *   Where focus goes when the sheet closes: the button that opened it.
  */
@@ -25,6 +27,7 @@ export default function MobileNavSheet({
   open,
   onClose,
   items,
+  more = [],
   returnFocusRef,
 }) {
   return (
@@ -38,9 +41,27 @@ export default function MobileNavSheet({
       {items.map((item) => (
         <MastNavLink key={item.to} item={item} onClick={onClose} />
       ))}
-      <a href="/resume.pdf" onClick={onClose}>
-        Resume (PDF)
-      </a>
+      {more.length > 0 && (
+        <>
+          <p className="kicker sheet-group" id="sheet-more">
+            More
+          </p>
+          <div className="sheet-two" role="group" aria-labelledby="sheet-more">
+            {more.map((item) => (
+              <MastNavLink
+                key={item.to}
+                item={{ ...item, label: item.sheetLabel ?? item.label }}
+                onClick={onClose}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      <div className="sheet-foot">
+        <a href="/resume.pdf" onClick={onClose}>
+          Resume (PDF)
+        </a>
+      </div>
     </NavSheet>
   )
 }

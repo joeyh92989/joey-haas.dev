@@ -10,6 +10,11 @@ const ITEMS = [
   { to: '/shelf', label: 'My Shelf', also: ['/daily'] },
 ]
 
+const MORE = [
+  { to: '/now', label: 'Now', desc: 'Playing' },
+  { to: '/colophon', label: 'Colophon', desc: 'Built' },
+]
+
 function renderAt(path = '/', props = {}) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -17,6 +22,7 @@ function renderAt(path = '/', props = {}) {
         theme="dark"
         onToggleTheme={() => {}}
         items={ITEMS}
+        more={MORE}
         {...props}
       />
     </MemoryRouter>,
@@ -149,6 +155,32 @@ describe('SiteMast', () => {
   it('renders no sheet links while closed', () => {
     const { container } = renderAt()
     expect(sheet(container).querySelector('a')).toBeNull()
+  })
+})
+
+describe('SiteMast More', () => {
+  it('puts More last in the Site nav, always rendered', () => {
+    renderAt('/')
+    const nav = screen.getByRole('navigation', { name: 'Site' })
+    const more = within(nav).getByRole('button', { name: 'More' })
+    expect(nav.lastElementChild.contains(more)).toBe(true)
+  })
+
+  it('underlines More on one of its pages', () => {
+    renderAt('/colophon')
+    expect(screen.getByRole('button', { name: 'More' })).toHaveClass('active')
+  })
+
+  it('shows the same pages in the sheet under a More group', () => {
+    const { container } = renderAt('/')
+    fireEvent.click(menuButton())
+    const group = within(sheet(container)).getByRole('group', { name: 'More' })
+    expect(within(group).getByRole('link', { name: 'Now' })).toBeInTheDocument()
+  })
+
+  it('shows no More without pages', () => {
+    renderAt('/', { more: [] })
+    expect(screen.queryByRole('button', { name: 'More' })).toBeNull()
   })
 })
 

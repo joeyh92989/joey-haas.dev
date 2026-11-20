@@ -400,6 +400,8 @@ p.muted a,
 .mast {
   background: var(--bg);
   border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 2;
 }
 
 .mast-row {
@@ -462,6 +464,110 @@ p.muted a,
   color: var(--text);
 }
 
+/* More: a disclosure button that sits in the nav row and reads like its
+   links; its panel opens below the bar. */
+.more {
+  align-self: stretch;
+  display: flex;
+  position: relative;
+}
+
+.more-btn {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-top: 2px solid transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.more-btn:hover,
+.more-btn[aria-expanded='true'] {
+  color: var(--text);
+}
+
+.more-btn.active {
+  border-bottom-color: var(--text);
+  color: var(--text);
+}
+
+.more-btn svg {
+  transition: transform 0.12s;
+}
+
+.more-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.more-btn:focus-visible,
+.more-panel a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.more-panel {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px
+    color-mix(in srgb, var(--mask-opaque) 28%, transparent);
+  left: calc(-1 * var(--space-3));
+  padding: var(--space-2);
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  width: 18rem;
+  z-index: 2;
+}
+
+.more-panel ul {
+  display: grid;
+  list-style: none;
+}
+
+.site-nav .more-panel a {
+  border: 0;
+  border-radius: 4px;
+  display: grid;
+  padding: var(--space-2) var(--space-3);
+}
+
+.more-panel a:hover {
+  background: var(--sunken);
+}
+
+.more-panel .t {
+  color: var(--text);
+  font-size: var(--fs-14);
+  font-weight: 500;
+}
+
+.more-panel .d {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  line-height: 1.4;
+}
+
+.site-nav .more-panel a.active {
+  background: var(--sunken);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.more-panel a.active .t {
+  font-weight: 600;
+}
+
+.more-panel a.active .t::after {
+  color: var(--text-3);
+  content: 'This page';
+  font: 400 var(--fs-12) var(--font-mono);
+  margin-left: var(--space-2);
+}
+
 .mast-end {
   align-items: center;
   display: flex;
@@ -474,6 +580,12 @@ p.muted a,
   display: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .more-btn svg {
+    transition: none;
+  }
+}
+
 /* The phone nav: a sheet from the top, over a dimmed page. */
 .nav-sheet {
   background: var(--surface);
@@ -483,6 +595,7 @@ p.muted a,
   margin: 0;
   max-height: 100dvh;
   max-width: none;
+  overflow-y: auto;
   padding: 0;
   width: 100%;
 }
@@ -507,7 +620,9 @@ p.muted a,
 }
 
 .nav-sheet nav a {
+  align-items: center;
   border-bottom: 1px solid var(--line);
+  display: flex;
   color: var(--text-2);
   font-size: var(--fs-16);
   /* A 44px tap target. */
@@ -518,6 +633,22 @@ p.muted a,
 .nav-sheet nav a.active {
   color: var(--text);
   font-weight: 600;
+}
+
+/* The sheet's second group: two columns, so six more rows cost three. */
+.sheet-group {
+  margin-top: var(--space-4);
+}
+
+.sheet-two {
+  column-gap: var(--space-4);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.sheet-foot {
+  display: grid;
+  margin-top: var(--space-4);
 }
 
 .site-nav a:focus-visible,

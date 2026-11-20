@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
 import MastNavLink from './MastNavLink.jsx'
+import MoreMenu from './MoreMenu.jsx'
 import MobileNavSheet from './MobileNavSheet.jsx'
 import SearchButton from './SearchButton.jsx'
 
@@ -19,6 +20,8 @@ import SearchButton from './SearchButton.jsx'
  * @param {'dark' | 'light'} props.theme The current theme.
  * @param {() => void} props.onToggleTheme Flips the theme.
  * @param {{to: string, label: string, end?: boolean}[]} props.items The nav.
+ * @param {object[]} [props.more] The pages under More (`moreItems()`);
+ *   shown in the desktop panel and the phone sheet's More group.
  * @param {() => void} [props.onOpenSearch] Opens the site search.
  * @param {boolean} [props.searchOpen] Whether the site search is open.
  */
@@ -26,6 +29,7 @@ export default function SiteMast({
   theme,
   onToggleTheme,
   items,
+  more = [],
   onOpenSearch,
   searchOpen = false,
 }) {
@@ -46,6 +50,7 @@ export default function SiteMast({
           {items.map((item) => (
             <MastNavLink key={item.to} item={item} />
           ))}
+          {more.length > 0 && <MoreMenu items={more} />}
         </nav>
         {/* Outside <nav>: the toggle is a control, not a destination. */}
         <div className="mast-end">
@@ -79,6 +84,7 @@ export default function SiteMast({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         items={items}
+        more={more}
         returnFocusRef={menuRef}
       />
     </header>
