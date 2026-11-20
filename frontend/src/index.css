@@ -10565,37 +10565,6 @@ a.cover-tile-cap:focus-visible span {
   outline-offset: 2px;
 }
 
-.spots-city-filter {
-  align-items: center;
-  color: var(--text-2);
-  display: flex;
-  font-size: var(--fs-14);
-  gap: var(--space-2);
-  max-width: 100%;
-  min-width: 0;
-}
-
-.spots-city-filter select {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-14);
-  min-height: 44px;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  padding: var(--space-2);
-  text-overflow: ellipsis;
-}
-
-.spots-city-filter select:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .spots-counts {
   display: flex;
   gap: var(--space-2);
@@ -10629,15 +10598,6 @@ a.cover-tile-cap:focus-visible span {
   display: block;
   font-size: var(--fs-13);
   font-weight: 400;
-}
-
-.spots-city {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-13);
-  font-weight: 400;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 /* The row the add bar just saved (#341). The pill's word carries the

@@ -16,13 +16,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   (`plan:<iso-week>`) are rows in `spot_settings` (one JSONB value per
   key), never new columns. The public field for a spot's line is `blurb`,
   because `test_public_outputs.py` forbids `note` at any depth, and
-  `PublicSpot` carries `spot_id` and no anchor, visit or distance. City:
-  `spots.normalize_city` is the one rule for a stored city (trim, collapse,
-  lower case, 1 to 40 characters, no control characters), `DENVER` the one
-  constant, and `load_public_spots` returns only Denver spots (the filter is
-  case-insensitive and trimmed: `lower(trim(city))`). A public spot has to be in Denver on every write path
-  (`check_public_city`: by-hand create and PATCH, the place commit). The
-  planner and the finder are admin-only and not city-aware yet. The
+  `PublicSpot` carries `spot_id` and no anchor, visit or distance. The
   Dashboard's Weekend forecast and Spot finder rows read
   `GET /api/spots/status`.
 - **Places through intake (story #340, epic #339).** `IntakeArea` now has
@@ -38,8 +32,8 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `clean_position`) and let the commit never trust an entry, so it re-checks
   everything and re-runs the owned check under `lock_place_commits`; the
   server rebuilds `map_url` and ignores a client's `owned_spot_id`; and a
-  place is public only when its city is Denver, enforced at commit as a
-  422 (`spots.check_public_city`; the same rule holds on the by-hand routes). The Nominatim client sends
+  place is public only when its city is Denver (the public page is Denver
+  only until #343), enforced at commit as a 422. The Nominatim client sends
   `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`

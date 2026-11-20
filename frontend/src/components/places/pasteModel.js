@@ -1,5 +1,4 @@
-import { HOME_CITY, cityLabel } from '../../lib/cities.js'
-import { emptyFields } from './PlaceFields.jsx'
+import { HOME_CITY, cityLabel, emptyFields } from './PlaceFields.jsx'
 
 /** The server's note for a search that found nothing (place_paste.py). Any
  *  other note on a searched entry says the place found could not be used. */

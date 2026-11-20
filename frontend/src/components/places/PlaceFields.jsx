@@ -1,7 +1,12 @@
 import { useId } from 'react'
 import { TAG_LABELS, TAGS } from '../../content/denver.js'
 import { placesAdd as words } from '../../content/placesAdd.js'
-import { HOME_CITY, cityKey, cityLabel } from '../../lib/cities.js'
+
+/** The city every place defaults to, and the only one that can be public. */
+export const HOME_CITY = 'denver'
+
+/** Cities offered when the saved spots have none besides Denver. */
+export const FALLBACK_CITIES = ['boulder', 'golden', 'fort collins']
 
 /** The fields a found place starts with. */
 export function emptyFields() {
@@ -17,7 +22,7 @@ export function emptyFields() {
 /** The city these values stand for, as the server keeps it (lower case). */
 export function effectiveCity(values) {
   const city = values.city === 'other' ? values.otherCity : values.city
-  return cityKey(city) || HOME_CITY
+  return city.trim().toLowerCase() || HOME_CITY
 }
 
 /** The owner fields as the API takes them. */
@@ -29,6 +34,11 @@ export function fieldsPayload(values) {
     blurb: values.blurb.trim() || null,
     is_public: values.isPublic && city === HOME_CITY,
   }
+}
+
+/** A city key as a label: "fort collins" as "Fort Collins". */
+export function cityLabel(city) {
+  return city.replace(/\b\p{L}/gu, (letter) => letter.toUpperCase())
 }
 
 /**

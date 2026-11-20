@@ -31,9 +31,6 @@ MAX_NAME = 200
 MAX_NEIGHBOURHOOD = 100
 MAX_BLURB = 500
 MAX_VISIT_NOTE = 2000
-# A cap on the raw body only, so a huge string is not read; the 40-character
-# rule itself is spots.normalize_city's, after trimming and collapsing.
-CITY_BODY_MAX = 1000
 
 # The run summaries the jobs write into spot_settings (PR 3 and PR 4); the
 # admin page reads them through GET /api/spots/status. Unwritten is null.
@@ -50,9 +47,6 @@ class SpotIn(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=len(spots.TAGS) * 2)
     anchor: bool = False
     is_public: bool = False
-    # Omitted means Denver; a city that is sent blank, or as an explicit null,
-    # is a 422 (not Denver).
-    city: str | None = Field(default=None, max_length=CITY_BODY_MAX)
 
 
 class SpotPatch(BaseModel):
@@ -65,7 +59,6 @@ class SpotPatch(BaseModel):
     tags: list[str] | None = Field(default=None, max_length=len(spots.TAGS) * 2)
     anchor: bool | None = None
     is_public: bool | None = None
-    city: str | None = Field(default=None, max_length=CITY_BODY_MAX)
 
 
 class SpotOut(BaseModel):
@@ -116,20 +109,6 @@ def _parse_coords(text: str) -> tuple[float, float]:
 def _tags(values: list[str]) -> list[str]:
     try:
         return spots.canonical_tags(values)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-def _city(raw: str | None) -> str:
-    try:
-        return spots.normalize_city(raw or "")
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-def _check_public(city: str, is_public: bool) -> None:
-    try:
-        spots.check_public_city(city, is_public)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -214,8 +193,7 @@ async def build_spot(
         source_id=source_id,
     )
     if city is not None:
-        row.city = spots.normalize_city(city)
-    spots.check_public_city(row.city or spots.DENVER, is_public)
+        row.city = city
     return row
 
 
@@ -280,7 +258,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         if not name:
             raise HTTPException(status_code=422, detail="A spot needs a name")
         lat, lng = _parse_coords(payload.coords)
-        city = None if "city" not in payload.model_fields_set else _city(payload.city)
         try:
             row = await build_spot(
                 session,
@@ -292,7 +269,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                 tags=payload.tags,
                 anchor=payload.anchor,
                 is_public=payload.is_public,
-                city=city,
             )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -339,10 +315,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
                         status_code=422, detail=f"{flag} must be true or false"
                     )
                 setattr(row, flag, value)
-        if "city" in fields:
-            row.city = _city(payload.city)
-        if "city" in fields or "is_public" in fields:
-            _check_public(row.city, row.is_public)
         await commit_spot(session)
         await session.refresh(row)
         return await _read(session, row)

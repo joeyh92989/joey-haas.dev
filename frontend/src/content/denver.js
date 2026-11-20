@@ -63,9 +63,6 @@ export const denver = {
     newMark: 'New',
     savedNotRefreshed: 'Saved, but the table couldn’t be refreshed.',
     refreshRetry: 'Try again',
-    cityFilter: 'City',
-    allCities: 'All cities',
-    cityOption: (label, count) => `${label} (${count})`,
   },
   finder: {
     title: 'Spot finder',
@@ -128,8 +125,5 @@ export const denver = {
       'Required. Paste “latitude, longitude” or a maps link, e.g. 39.75, -104.99',
     anchorHint: 'Measure candidates’ distance from here',
     publicHint: 'Show on the public map',
-    city: 'City',
-    cityHint: 'Pick one you have used or type a new one.',
-    cityRequired: 'A city is required.',
   },
 }
