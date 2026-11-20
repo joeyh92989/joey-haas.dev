@@ -127,7 +127,7 @@ describe('AdminShell on a desktop', () => {
       within(nav)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/admin/weekend', '/admin/spots', '/admin/places/add'])
+    ).toEqual(['/admin/weekend', '/admin/spots'])
   })
 
   it('lists Jobs under Site too, without leaving Home', () => {
@@ -264,7 +264,7 @@ describe('AdminShell on a phone', () => {
       within(sub)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Weekend', 'Spots', 'Add a place'])
+    ).toEqual(['Weekend', 'Spots'])
   })
 
   it('marks only Profile among the segments on the profile page', () => {

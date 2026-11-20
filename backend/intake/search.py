@@ -21,7 +21,6 @@ from sqlalchemy import select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake.kinds import Kind, describe, kinds_for
-from intake.place_kind import flag_owned
 from models import IntakeArea, Item
 from sources.base import SourceError, SourceRateLimited, SourceUnavailable
 
@@ -75,48 +74,18 @@ async def _search_kind(kind: Kind, registry: dict, query: str) -> tuple[dict, li
     return {"kind": kind.key, "state": "ok", "reason": None}, rows
 
 
-async def _search_with_hook(kind: Kind, query: str) -> tuple[dict, list]:
-    """A kind with its own `search` (no metadata source): same states, same
-    timeout. A failure the hook reports carries its own wording."""
-    try:
-        found = await asyncio.wait_for(kind.search(query), SEARCH_TIMEOUT)
-    except TimeoutError:
-        reason = f"{kind.label} search is busy; try again in a moment"
-        return {"kind": kind.key, "state": "busy", "reason": reason}, []
-    except Exception:
-        logger.exception("intake search: %s raised", kind.key)
-        reason = f"{kind.label} could not be searched just now"
-        return {"kind": kind.key, "state": "failed", "reason": reason}, []
-    if found.failure is not None:
-        return {"kind": kind.key, "state": "failed", "reason": found.failure}, []
-    return {"kind": kind.key, "state": "ok", "reason": None}, found.rows
-
-
 async def search_area(
     session: AsyncSession, registry: dict, area: IntakeArea, query: str
 ) -> dict[str, Any]:
     """`{results, sources}` for `query` across the area's kinds that have a
-    source or a `search` hook; an area with none (the Closet) answers both
-    empty. A hook's rows (places) are owned by spot, not item."""
-    kinds = [
-        kind
-        for kind in kinds_for(area)
-        if kind.source is not None or kind.search is not None
-    ]
+    source; an area with none (the Closet) answers both empty."""
+    kinds = [kind for kind in kinds_for(area) if kind.source is not None]
     answers = await asyncio.gather(
-        *(
-            _search_kind(kind, registry, query)
-            if kind.source is not None
-            else _search_with_hook(kind, query)
-            for kind in kinds
-        )
+        *(_search_kind(kind, registry, query) for kind in kinds)
     )
     sources = [state for state, _ in answers]
     results = [row for _, rows in answers for row in rows]
-    places = [row for row in results if "source_id" in row]
-    results_shelf = [row for row in results if "source_id" not in row]
-    await flag_owned(session, places)
-    keys = {(row["external_source"], row["external_id"]) for row in results_shelf}
+    keys = {(row["external_source"], row["external_id"]) for row in results}
     owned: dict[tuple[str, str], str] = {}
     if keys:
         found = await session.execute(
@@ -125,6 +94,6 @@ async def search_area(
             )
         )
         owned = {(source, eid): str(item_id) for item_id, source, eid in found.all()}
-    for row in results_shelf:
+    for row in results:
         row["owned_item_id"] = owned.get((row["external_source"], row["external_id"]))
     return {"results": results, "sources": sources}

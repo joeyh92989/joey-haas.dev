@@ -1388,7 +1388,6 @@ class ClosetSetting(Base):
 class IntakeArea(str, enum.Enum):
     SHELF = "shelf"
     CLOSET = "closet"
-    PLACES = "places"
 
 
 class IntakePhotoState(str, enum.Enum):

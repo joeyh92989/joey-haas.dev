@@ -11,7 +11,6 @@ never learn which source they are talking to.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -142,29 +141,19 @@ class Throttle:
     velocity detection actually penalises.
     """
 
-    def __init__(
-        self,
-        min_interval: float,
-        *,
-        clock: Callable[[], float] | None = None,
-        sleep: Callable[[float], Awaitable[None]] | None = None,
-    ) -> None:
-        # `clock` and `sleep` are for tests; by default the running loop's
-        # clock and asyncio.sleep, looked up at call time.
+    def __init__(self, min_interval: float) -> None:
         self._min_interval = min_interval
-        self._clock = clock
-        self._sleep = sleep
         self._lock = asyncio.Lock()
         self._next_allowed = 0.0
 
     async def wait(self) -> None:
         """Blocks until this source may be called again."""
         async with self._lock:
-            now = self._clock or asyncio.get_running_loop().time
-            delay = self._next_allowed - now()
+            loop = asyncio.get_running_loop()
+            delay = self._next_allowed - loop.time()
             if delay > 0:
-                await (self._sleep or asyncio.sleep)(delay)
-            self._next_allowed = now() + self._min_interval
+                await asyncio.sleep(delay)
+            self._next_allowed = loop.time() + self._min_interval
 
 
 def year_from_date(value: str | int | None) -> int | None:

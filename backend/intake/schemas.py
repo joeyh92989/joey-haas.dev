@@ -159,13 +159,6 @@ class TitleCreatedOut(BaseModel):
     title: str
 
 
-class SpotRefOut(BaseModel):
-    """A spot a place commit made, or found already owned."""
-
-    id: str
-    name: str
-
-
 class AddOut(BaseModel):
     """`POST /add`, 200 or 201."""
 
@@ -177,8 +170,6 @@ class AddOut(BaseModel):
     garment_id: str | None
     volumes_new: list[VolumeNewOut] = []
     titles_created: list[TitleCreatedOut] = []
-    spots_new: list[SpotRefOut] = []
-    spots_owned: list[SpotRefOut] = []
 
 
 class RefusedOut(BaseModel):
@@ -244,8 +235,6 @@ class CommitOut(BaseModel):
     created: list[str]
     volumes_new: list[VolumeNewOut] = []
     titles_created: list[TitleCreatedOut] = []
-    spots_new: list[SpotRefOut] = []
-    spots_owned: list[SpotRefOut] = []
 
 
 class CommitRefusedOut(CommitOut):

@@ -18,7 +18,6 @@ from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-import spots_weekend_routes
 from models import Spot, SpotSetting, Visit, WeatherHour
 from spots_weekend_routes import STATUS_KEY, create_weekend_router, week_key
 from weather import DENVER_TZ
@@ -29,9 +28,6 @@ FIXTURES = Path(__file__).parent / "fixtures"
 POINTS = json.loads((FIXTURES / "nws_points.json").read_text())
 HOURLY = json.loads((FIXTURES / "nws_hourly.json").read_text())
 WEDNESDAY = date(2026, 11, 11)
-# An instant inside the recorded forecast (9 to 15 November 2026), so the job's
-# two-day drop keeps every recorded hour.
-RECORDED_WEEK = datetime(2026, 11, 11, 12, 0, tzinfo=UTC)
 SATURDAY = date(2026, 11, 14)
 SUNDAY = date(2026, 11, 15)
 WEEK = "plan:2026-W46"
@@ -146,21 +142,7 @@ async def test_the_week_key_is_the_weekend_s_iso_week():
 # --- the weather job ----------------------------------------------------------
 
 
-class _FrozenDatetime(datetime):
-    """`datetime` whose `now()` is a fixed instant inside the recording's week."""
-
-    @classmethod
-    def now(cls, tz=None):
-        return RECORDED_WEEK if tz is None else RECORDED_WEEK.astimezone(tz)
-
-
-async def test_refresh_upserts_the_hours_and_records_the_run(
-    sessionmaker_for_test, monkeypatch
-):
-    # The job drops hours more than two days before now, and the recording ends
-    # on 15 November 2026, so on the real clock this test fails for good two
-    # days after that. Freeze the job's clock inside the recorded week.
-    monkeypatch.setattr(spots_weekend_routes, "datetime", _FrozenDatetime)
+async def test_refresh_upserts_the_hours_and_records_the_run(sessionmaker_for_test):
     calls = []
     async with client_for(sessionmaker_for_test, http=nws(calls=calls)) as client:
         first = await client.post("/api/spots/weather/refresh")

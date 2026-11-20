@@ -197,7 +197,6 @@ const TITLES = [
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/spots', 'Spots · Admin · Joey Haas'],
   ['/admin/weekend', 'This weekend · Admin · Joey Haas'],
-  ['/admin/places/add', 'Add a place · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/shelf/comics/42', 'Comic · Admin · Joey Haas'],
   // The book's page, under its title's: not an issue and not a game.

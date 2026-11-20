@@ -43,21 +43,6 @@ describe('EmptyState', () => {
     expect(calls).toEqual([1])
   })
 
-  it('offers several steps as buttons under the text', () => {
-    const calls = []
-    show({
-      title: 'Nothing here.',
-      line: 'Try again.',
-      actions: [
-        { label: 'One', onClick: () => calls.push('one') },
-        { label: 'Two', onClick: () => calls.push('two') },
-      ],
-    })
-    screen.getByRole('button', { name: 'Two' }).click()
-    screen.getByRole('button', { name: 'One' }).click()
-    expect(calls).toEqual(['two', 'one'])
-  })
-
   it('draws no action when none is given', () => {
     show({ title: 'Nothing here.' })
     expect(screen.queryByRole('link')).toBeNull()

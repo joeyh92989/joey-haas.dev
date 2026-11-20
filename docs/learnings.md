@@ -1,5 +1,13 @@
 # Learnings
 
+### 2026-11-18 · lesson · A cap or filter tuned on typical input breaks the real long tail
+#342 capped a pasted line at 300 characters, but real Google Maps place URLs run 200 to 900 characters, so the main use case was unreadable until the final review; and a sanitiser that dropped every control character glued the words around a newline. Test limits and cleaners with real-shaped long-tail input (a 700-character map URL, a blurb with a newline), and map whitespace to a space before dropping the rest.
+Story #342 · docs/planning/2026-11-18-places-paste-way-design.md
+
+### 2026-11-18 · lesson · A guard test must be shown failing with the guard removed
+The add bar's double-Save test clicked twice with `fireEvent`, but the Save button is disabled by state and React flushes inside `fireEvent`, so the second click never reached the handler and the test passed with the in-flight ref deleted. Remove the guard and watch the test fail before trusting it; reach the handler twice in one `act`.
+Story #341 · docs/planning/2026-11-17-spots-add-bar-design.md
+
 ### 2026-11-18 · lesson · A recorded fixture run against the real clock is a time bomb
 `test_refresh_upserts_the_hours_and_records_the_run` read a forecast recorded 9 to 15 November while the job drops hours older than two days, so at 06:00 UTC on 18 November it went red on every PR at once (#443 had passed twenty minutes earlier on the same code). A test that feeds recorded dated data to code that reads `datetime.now` freezes that clock inside the recording; check the date arithmetic of any new fixture-based test, and read a red check's own assertion before blaming the branch.
 PR #443
@@ -54,7 +62,7 @@ Several agents' first push was refused; they recovered with `git push origin HEA
 PR #405
 
 ### 2026-11-16 · lesson · A proof run on a stale install proves nothing
-The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code.
+The 10-run acceptance for #244 first failed 10 of 10 with the same "1 file failed, 2787 tests passed": `og-card.test.mjs` could not resolve `opentype.js`, which the main checkout's `node_modules` predated. CI runs `npm ci`, so it never saw it. Before any N-run acceptance, `npm ci`, and read the failing file's name, not only the exit code. The same holds for a stale `dist`: #342's phone-overflow browser case passed locally against an old build and failed on CI; rebuild (`npm run build`) before every `e2e` run, and measure with real-shaped long data.
 PR #378
 
 ### 2026-11-16 · lesson · Briefs for implementer agents list every CI gate
@@ -176,3 +184,7 @@ PR #330
 ### 2026-11-18 · lesson · A column drop is two releases: unmap, then drop
 Deploy API runs the migration before the new code is live, so dropping a column the running code still maps makes every query on that table 500 until the new build is up (a cold review caught it on #453). Merge the PR that unmaps it first (it also needs `_diff_against_models` to ignore the column, or every earlier-revision test sees a `remove_column`), then the drop.
 PR #453 · docs/planning/2026-11-18-retire-items-editions-design.md
+
+### 2026-11-18 · lesson · A new route or CSS trips two whole-repo checks
+Story #346's PR went red on `test_recs_response_models.py` (it pins the count of `/api/spots*` routes) and on `prettier --check` for `index.css`; implementers had run only targeted tests. Before the first push, run `npm run format:check` and grep the tests for a pinned route count.
+PR #460 · docs/planning/2026-11-18-log-outing-design.md

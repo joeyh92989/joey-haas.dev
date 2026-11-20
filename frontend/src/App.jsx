@@ -47,7 +47,6 @@ const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
 const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
-const PlacesAdd = lazy(() => import('./pages/PlacesAdd.jsx'))
 const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const AdminComic = lazy(() => import('./pages/AdminComic.jsx'))
@@ -242,7 +241,6 @@ export default function App() {
           <Route path="collection/add" element={<AdminAdd />} />
           <Route path="collection/add/:sittingId" element={<AdminSitting />} />
           <Route path="closet/add" element={<AdminAdd />} />
-          <Route path="places/add" element={<PlacesAdd />} />
           <Route path="closet/add/:sittingId" element={<AdminSitting />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           <Route path="closet/:id" element={<KeyedAdminGarment />} />

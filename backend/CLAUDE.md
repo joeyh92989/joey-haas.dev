@@ -19,22 +19,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   `PublicSpot` carries `spot_id` and no anchor, visit or distance. The
   Dashboard's Weekend forecast and Spot finder rows read
   `GET /api/spots/status`.
-- **Places through intake (story #340, epic #339).** `IntakeArea` now has
-  `places` (a Postgres enum value added by migration `0024`; copy its
-  `autocommit_block` plus `ADD VALUE IF NOT EXISTS` pattern for the next one,
-  and note a downgrade cannot drop the value; it deletes the `places` sittings and their entries instead). The `place` kind
-  (`intake/place_kind.py`) searches Nominatim (`spot_sources/nominatim.py`)
-  through the optional `Kind.search` hook and is added from
-  `/admin/places/add`; the commit writes a private spot through
-  `spots_routes.build_spot`, the one function the by-hand route shares.
-  Read `intake/README.md` ("Places") and `spot_sources/README.md` first. When
-  editing: validate what is stored (`clean_chosen`, `clean_fields`,
-  `clean_position`) and let the commit never trust an entry, so it re-checks
-  everything and re-runs the owned check under `lock_place_commits`; the
-  server rebuilds `map_url` and ignores a client's `owned_spot_id`; and a
-  place is public only when its city is Denver (the public page is Denver
-  only until #343), enforced at commit as a 422. The Nominatim client sends
-  `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
@@ -89,12 +73,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   garment (source, url, order reference, item number, title, price, a JSONB
   snapshot of the parsed product, `fetched_at`); `size` is per garment and
   wins over the profile size on the Sell checklist.
-- **Intake areas.** `IntakeArea` is `shelf`, `closet` or `places`. The commit
-  (`commit_sitting`, `commit_one`) and the photo route branch on the kind's or
-  sitting's area: a `places` sitting commits to private spots and its photo
-  route answers 409 ("A places sitting takes no photos."); the closet never
-  reads photos and shelf entries become items. `GET /api/intake/counts`
-  includes `places`.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay
