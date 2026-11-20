@@ -123,9 +123,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   behind More…). A card's admin controls are a sibling of its link, never
   nested inside it, and a private admin row always carries a Private tag.
 - `FilterChips` hides a group with at most one chip to show and none
-  pressed, on both shelves; a pressed chip always keeps its group. A group
-  given `total` (the list's size) also keeps a lone chip whose count is below
-  it, since that chip narrows the list (History's Tag and Verdict).
+  pressed, on both shelves; a pressed chip always keeps its group.
 - Nothing on the shelf is hover-only: anything revealed on hover is also
   revealed by `:focus-within`, with `opacity` or `clip-path` rather than
   `display: none` or `visibility: hidden`, which would make it unfocusable.
@@ -299,25 +297,6 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   leave the name to decide. The frontend never decides it: Check's preview
   reads `adds` and `title_will_be_created` from the server. Rule and
   thresholds: `backend/comics.py` and `backend/CLAUDE.md` (Comics).
-- **History (`/admin/history`, story #347).** `pages/AdminHistory.jsx` reads
-  `GET /api/spots/outings` (newest first, with the year's counts) and groups
-  it with `lib/outingGroups.js` (consecutive months; a year outing is its own
-  group after that year's months; `whenWords` words each outing by precision,
-  never a made-up day). Words in `content/outings.js` (`history`). The header
-  count line is hidden while loading, failed or empty. The note renders as text, and the sheet's save or
-  maybe-saved rereads the list.
-  Filters (story #348) are client-side over the loaded rows, in
-  `lib/historyFilters.js` (pure: parse, write, apply, options with counts,
-  year counts). URL keys: `city` (a city key), `tag`, `verdict`
-  (`loved|fine|not_again`), `kid=1`, `spot=<uuid>`, written with
-  `replace`. A value that is not an existing choice is ignored and dropped on
-  the next write; `spot` is kept as given (lower-cased), so a place with no
-  outings shows "Place: this place" and an empty state. While any filter is on
-  the header is recounted on the client from the year prefix of `visited_on`
-  ("2026, filtered: ..."), and the result line counts every year. Tags come
-  from `HistoryOutingOut.tags` (the spot's tags, vocabulary order, unknown ones
-  left out). `/admin/spots` rows link to `?spot=` through `historyHrefForSpot`.
-  Pattern: `docs/design-system.md` (Filters sheet).
 - **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,
   with `components/places/` (`PlaceResultRow.jsx`, `PlaceFields.jsx`) and its
   words in `content/placesAdd.js`. It sits in the Denver area beside Weekend

@@ -18,7 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator, model_validator
-from sqlalchemy import case, func, select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -180,36 +180,6 @@ class OutingOut(BaseModel):
     visit: VisitOut
     spot: SpotOut
     created: bool
-
-
-class HistoryOutingOut(BaseModel):
-    """One outing as the history page lists it: the visit with its spot's
-    name and place line. `note` is admin-only like everywhere else."""
-
-    id: uuid.UUID
-    spot_id: uuid.UUID
-    spot_name: str
-    neighbourhood: str | None
-    city: str
-    visited_on: date
-    precision: OutingPrecision
-    title: str | None
-    verdict: OutingVerdict | None
-    kid_along: bool | None
-    note: str | None
-    tags: list[str]
-
-
-class YearCountsOut(BaseModel):
-    year: int
-    outings: int
-    places: int
-    loved: int
-
-
-class OutingsOut(BaseModel):
-    year: YearCountsOut
-    outings: list[HistoryOutingOut]
 
 
 def _clean(text: str | None) -> str | None:
@@ -623,61 +593,6 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         await session.refresh(visit)
         return OutingOut(
             visit=_visit_out(visit), spot=await _read(session, spot), created=created
-        )
-
-    # Registered with the other fixed paths; there is no GET /{spot_id}.
-    @router.get("/outings", response_model=OutingsOut)
-    async def list_outings(session: AsyncSession = Depends(get_session)) -> OutingsOut:
-        """Every outing, newest first, with this Denver year's counts.
-
-        Order: visited_on desc, then day before month before year (all are
-        stored as the period's start), then created_at desc, then id desc.
-        The counts are the owner's Denver year and include month and year
-        outings; places are distinct spots."""
-        rank = case(
-            (Visit.precision == OutingPrecision.DAY, 0),
-            (Visit.precision == OutingPrecision.MONTH, 1),
-            else_=2,
-        )
-        rows = await session.execute(
-            select(Visit, Spot)
-            .join(Spot, Spot.id == Visit.spot_id)
-            .order_by(
-                Visit.visited_on.desc(),
-                rank,
-                Visit.created_at.desc(),
-                Visit.id.desc(),
-            )
-        )
-        outings = [
-            HistoryOutingOut(
-                id=visit.id,
-                spot_id=visit.spot_id,
-                spot_name=spot.name,
-                neighbourhood=spot.neighbourhood,
-                city=spot.city,
-                visited_on=visit.visited_on,
-                precision=visit.precision,
-                title=visit.title,
-                verdict=visit.verdict,
-                kid_along=visit.kid_along,
-                note=visit.note,
-                # In vocabulary order; a tag since retired from it is left out, not an
-                # error, so one old row cannot fail the whole page.
-                tags=[t for t in spots.TAGS if t in (spot.tags or [])],
-            )
-            for visit, spot in rows
-        ]
-        year = datetime.now(OWNER_TZ).date().year
-        this_year = [o for o in outings if o.visited_on.year == year]
-        return OutingsOut(
-            year=YearCountsOut(
-                year=year,
-                outings=len(this_year),
-                places=len({o.spot_id for o in this_year}),
-                loved=sum(o.verdict == OutingVerdict.LOVED for o in this_year),
-            ),
-            outings=outings,
         )
 
     @router.get("/status", response_model=SpotsStatusOut)

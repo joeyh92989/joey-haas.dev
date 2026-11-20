@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminSpots from './AdminSpots.jsx'
 
@@ -42,14 +41,6 @@ const SPOTS = [
   spot('b', 'Home', { anchor: true }),
   spot('c', "Sloan's Lake", { tags: ['park', 'kid-ok'] }),
 ]
-
-function renderSpots() {
-  return render(
-    <MemoryRouter>
-      <AdminSpots />
-    </MemoryRouter>,
-  )
-}
 
 function json(body, status = 200) {
   return { ok: status < 300, status, json: async () => body }
@@ -139,7 +130,7 @@ describe('AdminSpots', () => {
         },
       })
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('table')
       await user.click(screen.getByRole('button', { name: 'Log an outing' }))
       await user.type(await screen.findByLabelText('Place'), 'sloan')
@@ -166,7 +157,7 @@ describe('AdminSpots', () => {
 
   it('lists every spot with tags, last visit and the public counts', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
     expect(
@@ -184,25 +175,10 @@ describe('AdminSpots', () => {
     expect(screen.getByText('Private 2')).toBeInTheDocument()
   })
 
-  it('links each row to its history, named for the spot', async () => {
-    stubApi()
-    renderSpots()
-    await screen.findByRole('table')
-    const corvus = screen.getByRole('row', { name: /Corvus Coffee/ })
-    const link = within(corvus).getByRole('link', {
-      name: 'History for Corvus Coffee',
-    })
-    expect(link).toHaveTextContent('History')
-    expect(link).toHaveAttribute('href', '/admin/history?spot=a')
-    expect(screen.getAllByRole('link', { name: /^History for / })).toHaveLength(
-      SPOTS.length,
-    )
-  })
-
   it('drops the Last visit column on a phone', async () => {
     media.phone = true
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(
       screen.getAllByRole('columnheader').map((cell) => cell.textContent),
@@ -211,7 +187,7 @@ describe('AdminSpots', () => {
 
   it('filters by name, neighbourhood and tag label', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const search = screen.getByRole('searchbox', { name: 'Search spots' })
@@ -234,7 +210,7 @@ describe('AdminSpots', () => {
     const calls = stubApi({
       'PATCH /api/spots/c': () => json({ ...SPOTS[2], is_public: true }),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
 
@@ -255,7 +231,7 @@ describe('AdminSpots', () => {
           201,
         ),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent
       .setup()
@@ -280,7 +256,7 @@ describe('AdminSpots', () => {
     stubApi({
       'POST /api/spots': () => json(spot('d', 'Denver Central Market'), 201),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Add by hand' }))
@@ -307,7 +283,7 @@ describe('AdminSpots', () => {
 
   it('opens Edit prefilled with the spot', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent
       .setup()
@@ -318,7 +294,7 @@ describe('AdminSpots', () => {
 
   it('gives focus to the form, and back to its opener when it closes', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const edit = screen.getByRole('button', { name: 'Edit Corvus Coffee' })
@@ -335,7 +311,7 @@ describe('AdminSpots', () => {
 
   it('lists the spots in a panel titled All spots', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const panel = screen.getByRole('region', { name: 'All spots' })
     expect(within(panel).getByRole('table')).toBeInTheDocument()
@@ -344,7 +320,7 @@ describe('AdminSpots', () => {
 
   it('says the session ended when a write is refused with a 401', async () => {
     stubApi({ 'PATCH /api/spots/c': () => json({ detail: 'x' }, 401) })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -355,7 +331,7 @@ describe('AdminSpots', () => {
 
   it('says the session ended on a 401, with no Try again', async () => {
     stubApi({ 'GET /api/spots': () => json({ detail: 'x' }, 401) })
-    renderSpots()
+    render(<AdminSpots />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your session ended. Sign in again.',
     )
@@ -367,7 +343,7 @@ describe('AdminSpots', () => {
     stubApi({
       'GET /api/spots': () => (up ? json(SPOTS) : json({}, 500)),
     })
-    renderSpots()
+    render(<AdminSpots />)
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('The spots couldn’t be read.')
     expect(screen.queryByText('Loading spots…')).not.toBeInTheDocument()
@@ -437,7 +413,7 @@ describe('AdminSpots', () => {
 
     it('shows the last run and the queue in order', async () => {
       finderApi()
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Kaffe Landscap' })
       expect(cardNames()).toEqual(['Kaffe Landscap', 'Bruto'])
       expect(within(finder()).getByText(/136 found, 12 new\./)).toBeVisible()
@@ -454,7 +430,7 @@ describe('AdminSpots', () => {
 
     it('says so when the queue is empty and the finder never ran', async () => {
       stubApi()
-      renderSpots()
+      render(<AdminSpots />)
       expect(
         await within(finder()).findByText(
           'Nothing new this week. Next run Sunday.',
@@ -479,7 +455,7 @@ describe('AdminSpots', () => {
         },
         'POST /api/spots/candidates/restore': () => json(QUEUE[0]),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Kaffe Landscap' })
       const user = userEvent.setup()
       const card = screen
@@ -523,7 +499,7 @@ describe('AdminSpots', () => {
         'POST /api/spots/candidates/k2/dismiss': () =>
           json({ candidate: QUEUE[1], spot_id: null }),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Bruto' })
       await userEvent
         .setup()
@@ -539,7 +515,7 @@ describe('AdminSpots', () => {
         'POST /api/spots/candidates/k2/dismiss': () =>
           json({ detail: 'That place has already been answered' }, 409),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Bruto' })
       await userEvent
         .setup()
@@ -568,7 +544,7 @@ describe('AdminSpots', () => {
           return json(LAST_RUN['candidates.last_run'])
         },
       })
-      renderSpots()
+      render(<AdminSpots />)
       const user = userEvent.setup()
       await within(finder()).findByText(
         'Nothing new this week. Next run Sunday.',
@@ -592,7 +568,7 @@ describe('AdminSpots', () => {
             },
           }),
       })
-      renderSpots()
+      render(<AdminSpots />)
       expect(
         await within(finder()).findByText(/failed: Overpass refused twice\./),
       ).toBeInTheDocument()
@@ -731,7 +707,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('draws the bar between the header and the finder, and Add by hand opens the form', async () => {
     barApi()
-    const { container } = renderSpots()
+    const { container } = render(<AdminSpots />)
     await screen.findByRole('table')
     const page = container.firstChild
     const kids = [...page.children]
@@ -749,7 +725,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('adds a place by name and marks its new row', async () => {
     const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -774,7 +750,7 @@ describe('AdminSpots add bar (story #341)', () => {
     }
     try {
       barApi({ 'red rocks': [ROCKS] })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('table')
       const user = userEvent.setup()
       await addRocks(user)
@@ -806,7 +782,7 @@ describe('AdminSpots add bar (story #341)', () => {
     barApi({ 'red rocks': [ROCKS] })
     const scroll = vi.fn()
     Element.prototype.scrollIntoView = scroll
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -838,7 +814,7 @@ describe('AdminSpots add bar (story #341)', () => {
     const calls = barApi({ 'red rocks': [ROCKS] })
     const scroll = vi.fn()
     Element.prototype.scrollIntoView = scroll
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     // The re-read after the save fails, so the page does not have the row.
@@ -867,7 +843,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('survives a failed re-read after a save: Saved shows, Show in table retries once', async () => {
     const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     calls.control.failReads = true
@@ -890,7 +866,7 @@ describe('AdminSpots add bar (story #341)', () => {
   it('has no New mark in the page while a filter hides the row, until Show in table', async () => {
     barApi({ 'red rocks': [ROCKS] })
     Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -918,7 +894,7 @@ describe('AdminSpots add bar (story #341)', () => {
   it('keeps the name, the Anchor tag and the New pill apart on a marked anchor row', async () => {
     const homeAgain = { ...ROCKS, title: 'Home Base' }
     const calls = barApi({ 'home base': [homeAgain] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     // The page's rows come back with the new spot as an anchor.
     calls.control.anchorNew = true
@@ -940,7 +916,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('never replaces an open new form from the bar: it focuses it instead', async () => {
     barApi({ nowhere: [], elsewhere: [] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await search(user, 'nowhere')
@@ -963,7 +939,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('never replaces an open edit form from the bar: it focuses it instead', async () => {
     barApi({ nowhere: [] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Edit Home' }))
@@ -983,7 +959,7 @@ describe('AdminSpots add bar (story #341)', () => {
       corvus: [{ ...ROCKS, title: 'Corvus Coffee', owned_spot_id: 'a' }],
     })
     Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await search(user, 'corvus')
@@ -1000,7 +976,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('shows a refresh failure after a save with a Try again that re-reads', async () => {
     const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     calls.control.failReads = true
@@ -1022,7 +998,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('does not let a re-read in flight undo a Public toggle that landed first', async () => {
     const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     calls.control.hold = true
@@ -1042,7 +1018,7 @@ describe('AdminSpots add bar (story #341)', () => {
   it('does not steal focus from the filter box after Show in table', async () => {
     barApi({ 'red rocks': [ROCKS] })
     Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -1059,7 +1035,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('clears the New mark and tint when a spot is saved by hand', async () => {
     barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -1077,7 +1053,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('returns focus to the bar box when a bar-opened form is cancelled or saved', async () => {
     barApi({ nowhere: [], 'also nowhere': [] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const box = () => within(bar()).getByLabelText('Add a place by name')
@@ -1102,7 +1078,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('clears the page notice and error when the bar saves', async () => {
     barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.click(
@@ -1131,7 +1107,7 @@ describe('AdminSpots add bar (story #341)', () => {
         return base(url, options)
       }),
     )
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await search(userEvent.setup(), 'red rocks')
     const city = await within(bar()).findByLabelText('City')
@@ -1144,7 +1120,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('carries the typed name into Add by hand after an empty search', async () => {
     barApi({ nowhere: [] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await search(user, 'nowhere')
@@ -1159,7 +1135,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('moves the New mark to the latest save and clears it on the next search', async () => {
     barApi({ 'red rocks': [ROCKS], arvada: [ARVADA] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await addRocks(user)
@@ -1180,7 +1156,7 @@ describe('AdminSpots add bar (story #341)', () => {
 
   it('clears a Show filter that would hide the place the bar saved', async () => {
     barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const show = screen.getByRole('combobox', { name: 'Show' })
@@ -1216,7 +1192,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('has no filter and no city line for a Denver-only catalogue', async () => {
     api(SPOTS)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(screen.queryByRole('combobox', { name: 'City' })).toBeNull()
     expect(document.querySelector('.spots-city')).toBeNull()
@@ -1224,7 +1200,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('shows the filter with counts, Denver first, once there is a second city', async () => {
     api(TWO)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(
       within(filterBox())
@@ -1235,7 +1211,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('filters by city and combines with the text filter', async () => {
     api(TWO)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(filterBox(), 'boulder')
@@ -1252,7 +1228,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('draws the city line: every non-Denver row, Denver only under All cities', async () => {
     api(TWO)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(cityLine('c')).toHaveTextContent('Boulder')
     expect(cityLine('d')).toHaveTextContent('Fort Collins')
@@ -1266,7 +1242,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('draws the line for a lone non-Denver spot, with no filter', async () => {
     api([spot('c', 'Pearl Street Walk', { city: 'boulder' })])
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(screen.queryByRole('combobox', { name: 'City' })).toBeNull()
     expect(cityLine('c')).toHaveTextContent('Boulder')
@@ -1277,7 +1253,7 @@ describe('AdminSpots city filter (story #343)', () => {
       'GET /api/spots': () => json(TWO),
       'PATCH /api/spots/b': () => json(spot('b', 'Home', { city: 'golden' })),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(filterBox(), 'denver')
@@ -1298,7 +1274,7 @@ describe('AdminSpots city filter (story #343)', () => {
       spot('c', 'Pearl Street Walk', { city: 'boulder' }),
       spot('d', 'Old Town Brewery', { city: 'fort collins', is_public: true }),
     ])
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(screen.getByLabelText('Public: Pearl Street Walk')).toBeDisabled()
     expect(screen.getByLabelText('Public: Corvus Coffee')).toBeEnabled()
@@ -1336,7 +1312,7 @@ describe('AdminSpots city filter (story #343)', () => {
       }),
     )
     Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(filterBox(), 'denver')
@@ -1352,7 +1328,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('hides rows of other cities and brings them back under All cities', async () => {
     api(TWO)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(filterBox(), 'denver')
@@ -1363,7 +1339,7 @@ describe('AdminSpots city filter (story #343)', () => {
 
   it('offers the loaded cities to the by-hand form', async () => {
     api(TWO)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent
       .setup()
@@ -1411,7 +1387,7 @@ describe('AdminSpots want and been states (story #345)', () => {
 
   it('has a Show select with the counts, beside the City filter', async () => {
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(options()).toEqual(['All places', 'Want (3)', 'Been (2)'])
     const toolbar = document.querySelector('.spots-toolbar')
@@ -1421,14 +1397,14 @@ describe('AdminSpots want and been states (story #345)', () => {
 
   it('has no Show select when every spot is an anchor', async () => {
     api([spot('b', 'Home', { anchor: true })])
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(screen.queryByRole('combobox', { name: 'Show' })).toBeNull()
   })
 
   it('marks Want, Been with the date, and no marker on an anchor', async () => {
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     // On desktop the Last visit column holds the date, so it is said once.
     expect(marker('a')).toHaveTextContent(/^Been$/)
@@ -1442,7 +1418,7 @@ describe('AdminSpots want and been states (story #345)', () => {
   it('says just Been when the last visit is missing, even on a phone', async () => {
     media.phone = true
     api([spot('a', 'No Date', { visit_count: 2, last_visit: null })])
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(marker('a')).toHaveTextContent(/^Been$/)
   })
@@ -1450,7 +1426,7 @@ describe('AdminSpots want and been states (story #345)', () => {
   it('shows the marker on a phone, where Last visit is dropped', async () => {
     media.phone = true
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
     expect(screen.queryByText('Last visit')).toBeNull()
@@ -1458,7 +1434,7 @@ describe('AdminSpots want and been states (story #345)', () => {
 
   it('hides anchors under Want and Been and shows them under All places', async () => {
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(showBox(), 'want')
@@ -1476,7 +1452,7 @@ describe('AdminSpots want and been states (story #345)', () => {
 
   it('takes the counts after the text and City filters, and they equal the rows', async () => {
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const search = screen.getByRole('searchbox', { name: 'Search spots' })
@@ -1506,7 +1482,7 @@ describe('AdminSpots want and been states (story #345)', () => {
 
   it('keeps a pick whose state is empty and says no spot matches', async () => {
     api(MIX)
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(showBox(), 'been')
@@ -1524,7 +1500,7 @@ describe('AdminSpots want and been states (story #345)', () => {
       'GET /api/spots': () => json(MIX),
       'POST /api/spots/c/visits': () => json({}, 201),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(showBox(), 'want')
@@ -1551,7 +1527,7 @@ describe('AdminSpots want and been states (story #345)', () => {
       'GET /api/spots/candidates': () =>
         json([{ id: 'x', name: 'Candidate Cafe', slug: 'candidate-cafe' }]),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(rowNames()).toEqual([
       'Corvus Coffee',
@@ -1605,7 +1581,7 @@ describe('AdminSpots want and been states (story #345)', () => {
         return fetchBefore(url, options)
       }),
     )
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.selectOptions(showBox(), 'want')
@@ -1627,7 +1603,7 @@ describe('AdminSpots want and been states (story #345)', () => {
       'GET /api/spots': () => json(MIX),
       'PATCH /api/spots/d': () => json(spot('d', 'Walk', { city: 'boulder' })),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const search = screen.getByRole('searchbox', { name: 'Search spots' })
@@ -1676,7 +1652,7 @@ describe('AdminSpots want and been states (story #345)', () => {
         }),
       )
       Element.prototype.scrollIntoView = vi.fn()
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('table')
       const user = userEvent.setup()
       await setup(user)

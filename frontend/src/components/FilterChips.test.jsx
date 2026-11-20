@@ -323,42 +323,4 @@ describe('FilterChips group limit', () => {
     )
     expect(screen.queryByRole('button', { name: 'More…' })).toBeNull()
   })
-
-  it('keeps a lone chip that narrows the list when the group has a total', () => {
-    const group = (total) => ({
-      key: 'tag',
-      label: 'Tag',
-      total,
-      options: [{ value: 'coffee', label: 'Coffee', count: 3 }],
-    })
-    const { rerender } = render(
-      <FilterChips
-        labelled
-        groups={[group(10)]}
-        value={NO_FILTER}
-        onChange={vi.fn()}
-      />,
-    )
-    expect(screen.getByRole('button', { name: /Coffee/ })).toBeInTheDocument()
-    // Every item has it: the chip would filter nothing, so it is not drawn.
-    rerender(
-      <FilterChips
-        labelled
-        groups={[group(3)]}
-        value={NO_FILTER}
-        onChange={vi.fn()}
-      />,
-    )
-    expect(screen.queryByRole('button', { name: /Coffee/ })).toBeNull()
-    // No total: the old rule, a group of one is left out.
-    rerender(
-      <FilterChips
-        labelled
-        groups={[group(undefined)]}
-        value={NO_FILTER}
-        onChange={vi.fn()}
-      />,
-    )
-    expect(screen.queryByRole('button', { name: /Coffee/ })).toBeNull()
-  })
 })

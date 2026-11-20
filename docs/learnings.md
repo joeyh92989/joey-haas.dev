@@ -184,7 +184,3 @@ PR #330
 ### 2026-11-18 · lesson · A column drop is two releases: unmap, then drop
 Deploy API runs the migration before the new code is live, so dropping a column the running code still maps makes every query on that table 500 until the new build is up (a cold review caught it on #453). Merge the PR that unmaps it first (it also needs `_diff_against_models` to ignore the column, or every earlier-revision test sees a `remove_column`), then the drop.
 PR #453 · docs/planning/2026-11-18-retire-items-editions-design.md
-
-### 2026-11-18 · lesson · A new route or CSS trips two whole-repo checks
-Story #346's PR went red on `test_recs_response_models.py` (it pins the count of `/api/spots*` routes) and on `prettier --check` for `index.css`; implementers had run only targeted tests. Before the first push, run `npm run format:check` and grep the tests for a pinned route count.
-PR #460 · docs/planning/2026-11-18-log-outing-design.md

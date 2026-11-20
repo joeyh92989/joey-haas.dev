@@ -196,7 +196,6 @@ const TITLES = [
   ['/admin/discover', 'Discover · Admin · Joey Haas'],
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
   ['/admin/spots', 'Spots · Admin · Joey Haas'],
-  ['/admin/history', 'History · Admin · Joey Haas'],
   ['/admin/weekend', 'This weekend · Admin · Joey Haas'],
   ['/admin/places/add', 'Add a place · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
