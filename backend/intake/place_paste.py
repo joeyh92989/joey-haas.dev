@@ -34,7 +34,7 @@ import logging
 import uuid
 import weakref
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -44,6 +44,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake import place_kind
+from intake.outing_dates import DateRead, read_date, split_outing_line
 from intake.place_kind import (
     DEFAULT_CITY,
     clean_chosen,
@@ -54,7 +55,7 @@ from intake.place_kind import (
     row_for,
 )
 from intake.schemas import EntryOut, PasteOut, ResolveOut
-from models import IntakeArea, IntakeEntry, IntakeEntryState, IntakeSitting
+from models import IntakeArea, IntakeEntry, IntakeEntryState, IntakeSitting, Visit
 from spot_sources import nominatim
 from spot_sources.map_links import MAX_LINE_CHARS as MAX_SOURCE_LINE
 from spot_sources.map_links import (
@@ -94,6 +95,8 @@ NOT_A_PLACES_SITTING = "Paste works on a places sitting"
 NOT_RESOLVABLE = "Only a place that is waiting or to check can be looked up"
 NOT_PICKABLE = "Only a place to check with candidates can be picked"
 NO_NAME = "This place has no name to look up yet"
+NO_OUTING = "This entry is not a past outing"
+MAX_DATE_TEXT = 60  # stored date words are cut here; a date is far shorter
 
 
 # Lookups run at most this many at a time. The search shares one 1 s throttle
@@ -118,6 +121,10 @@ class PasteIn(BaseModel):
     """The pasted blob; one entry per line."""
 
     text: str = Field(max_length=MAX_PASTE_CHARS)
+    # Past outings (story #350): each line is a place and a date. `city` is the
+    # city of the new private places; it is read in outings mode only.
+    outings: bool = False
+    city: str | None = Field(default=None, max_length=100)
 
 
 class PickIn(BaseModel):
@@ -135,12 +142,10 @@ def _line_key(line: str) -> str:
     return "sha1:" + hashlib.sha1(key.encode()).hexdigest()
 
 
-def _base_payload(line: str) -> dict[str, Any]:
+def _base_payload(line: str, city: str = DEFAULT_CITY) -> dict[str, Any]:
     """The owner's fields of a typed place (empty tags and blurb, private)."""
     payload = {
-        **clean_fields(
-            {"city": DEFAULT_CITY, "tags": [], "blurb": None, "is_public": False}
-        ),
+        **clean_fields({"city": city, "tags": [], "blurb": None, "is_public": False}),
         "source_line": line[:MAX_SOURCE_LINE],
     }
     if len(line) > MAX_SOURCE_LINE:
@@ -149,11 +154,11 @@ def _base_payload(line: str) -> dict[str, Any]:
 
 
 def entry_for_line(
-    line: str, read: LineRead
+    line: str, read: LineRead, city: str = DEFAULT_CITY
 ) -> tuple[IntakeEntryState, dict[str, Any]]:
     """The state and payload of the entry one pasted line makes. Pure."""
     line = clean_line(line)
-    payload = _base_payload(line)
+    payload = _base_payload(line, city)
     if read.kind == "coords" and read.lat is not None and read.lng is not None:
         payload.update(lat=read.lat, lng=read.lng)
         if read.name:
@@ -184,11 +189,21 @@ def entry_for_line(
 _WRITTEN_STATES = (IntakeEntryState.READY, IntakeEntryState.OWNED)
 
 
-def _held_keys(held: list[IntakeEntry]) -> set[str]:
+def _held_keys(held: list[IntakeEntry], *, names: bool = True) -> set[str]:
+    """The keys of the lines already in the sitting. In outings mode `names` is
+    False: a place's name is not a line there (the line is place plus date),
+    so the same place on a second date is not a repeat."""
     keys: set[str] = set()
     for entry in held:
         payload = entry.payload or {}
-        for field in ("source_line", "name", "source_key"):
+        for field in (
+            ("source_line", "name", "source_key")
+            if names
+            else (
+                "source_line",
+                "source_key",
+            )
+        ):
             value = payload.get(field)
             if isinstance(value, str) and value.strip():
                 keys.add(compare_key(value))
@@ -268,6 +283,100 @@ async def _places_sitting(session: AsyncSession, entry: IntakeEntry) -> IntakeSi
     return sitting
 
 
+def outing_payload(date_text: str | None, read: DateRead | None) -> dict[str, Any]:
+    """What a pasted outing stores on its entry. The server re-reads
+    `date_text` whenever it matters (a date fix, the commit): `visited_on` and
+    `precision` here are what it read last, never what a client said."""
+    return {
+        "date_text": date_text[:MAX_DATE_TEXT] if date_text else None,
+        "visited_on": read.visited_on.isoformat() if read else None,
+        "precision": read.precision if read else None,
+        "skip": False,
+    }
+
+
+def _mark_duplicate(outing: dict[str, Any], found: str | None) -> dict[str, Any]:
+    """`outing` with the duplicate flag brought up to date. A newly found
+    duplicate is skipped; one found again keeps the owner's choice (a re-save
+    or a second look must not undo "Add anyway"); one that is gone takes the
+    skip the flag had set."""
+    marked = dict(outing)
+    before = marked.get("duplicate_of")
+    if found:
+        marked["duplicate_of"] = found
+        if before != found:
+            marked["skip"] = True
+    elif before:
+        marked.pop("duplicate_of", None)
+        marked["skip"] = False
+    return marked
+
+
+async def flag_duplicates(
+    session: AsyncSession, payloads: list[dict[str, Any]]
+) -> None:
+    """Sets or clears `outing.duplicate_of` on each payload that has an outing:
+    the id of a stored outing of the SAME spot with the same period start and
+    precision. One query for all of them. A day inside a logged month is not a
+    duplicate. Mutates the payloads (their `outing` is replaced by a copy)."""
+    spot_ids: set[uuid.UUID] = set()
+    for payload in payloads:
+        outing, spot = payload.get("outing"), payload.get("owned_spot_id")
+        if isinstance(outing, dict) and spot and outing.get("visited_on"):
+            try:
+                spot_ids.add(uuid.UUID(str(spot)))
+            except ValueError:
+                continue
+    stored: dict[tuple[str, str, str], str] = {}
+    if spot_ids:
+        rows = await session.execute(
+            select(Visit.id, Visit.spot_id, Visit.visited_on, Visit.precision)
+            .where(Visit.spot_id.in_(spot_ids))
+            .order_by(Visit.created_at.desc(), Visit.id.desc())
+        )
+        for visit_id, spot_id, visited_on, precision in rows:
+            stored[(str(spot_id), visited_on.isoformat(), precision.value)] = str(
+                visit_id
+            )
+    for payload in payloads:
+        outing = payload.get("outing")
+        if not isinstance(outing, dict):
+            continue
+        key = (
+            str(payload.get("owned_spot_id")),
+            str(outing.get("visited_on")),
+            str(outing.get("precision")),
+        )
+        payload["outing"] = _mark_duplicate(outing, stored.get(key))
+
+
+async def edit_outing(
+    session: AsyncSession,
+    entry: IntakeEntry,
+    *,
+    date_text: str | None,
+    set_date: bool,
+    skip: bool | None,
+) -> None:
+    """The owner's two outing edits on a place entry: the date WORDS (re-read
+    here, so `visited_on` and `precision` are the server's) and skip. A change
+    to neither leaves the stored outing exactly as it was."""
+    payload = dict(entry.payload or {})
+    outing = payload.get("outing")
+    if not isinstance(outing, dict):
+        raise HTTPException(422, NO_OUTING)
+    outing = dict(outing)
+    if set_date:
+        words = clean_line(date_text or "")[:MAX_DATE_TEXT] or None
+        read = read_date(words, place_kind.owner_today())
+        outing.update(outing_payload(words, read), skip=bool(outing.get("skip")))
+    if skip is not None:
+        outing["skip"] = skip
+    payload["outing"] = outing
+    await flag_duplicates(session, [payload])
+    entry.payload = payload
+
+
 async def _apply_choice(
     session: AsyncSession,
     entry: IntakeEntry,
@@ -303,17 +412,42 @@ async def _apply_choice(
     if owned:
         entry.state = IntakeEntryState.OWNED
         payload.update(owned_spot_id=owned, note=OWNED_NOTE)
-    elif source_id and any(
-        other.state in _WRITTEN_STATES
-        and (other.chosen or {}).get("source_id") == source_id
-        for other in others
+    elif (
+        source_id
+        and "outing" not in payload
+        and any(
+            other.state in _WRITTEN_STATES
+            and (other.chosen or {}).get("source_id") == source_id
+            for other in others
+        )
     ):
         entry.state = IntakeEntryState.IGNORED
         payload["note"] = SAME_PLACE_NOTE
     else:
         entry.state = IntakeEntryState.READY
+    await flag_duplicates(session, [payload])
     entry.chosen = chosen
     entry.payload = payload
+
+
+def _outing_entry(
+    line: str, city: str, today: date
+) -> tuple[str, IntakeEntryState, dict[str, Any]]:
+    """The entry one pasted past outing makes: the place text goes through the
+    same reading as a place line, the date words are read, and the stored
+    `source_line` stays the WHOLE line, so the same place on two dates is two
+    entries while a repeated line is still a repeat."""
+    place_text, date_text, read = split_outing_line(clean_line(line), today)
+    place_text = place_text or clean_line(line)
+    state, payload = entry_for_line(place_text, read_line(place_text), city)
+    whole = clean_line(line)
+    payload["source_line"] = whole[:MAX_SOURCE_LINE]
+    if len(whole) > MAX_SOURCE_LINE:
+        payload["source_key"] = _line_key(whole)
+    else:
+        payload.pop("source_key", None)
+    payload["outing"] = outing_payload(date_text, read)
+    return line, state, payload
 
 
 def register_paste_routes(
@@ -343,6 +477,13 @@ def register_paste_routes(
             raise HTTPException(404, "No such sitting")
         if sitting.area is not IntakeArea.PLACES or sitting.kind not in (None, "place"):
             raise HTTPException(409, NOT_A_PLACES_SITTING)
+        city = DEFAULT_CITY
+        if body.outings and body.city is not None:
+            try:
+                city = clean_fields({"city": body.city})["city"]
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from error
+        today = place_kind.owner_today()
         split = split_lines(body.text)
         held = list(
             (
@@ -351,7 +492,7 @@ def register_paste_routes(
                 )
             ).all()
         )
-        known = _held_keys(held)
+        known = _held_keys(held, names=not body.outings)
         duplicates = split.duplicates
         fresh: list[str] = []
         for line in split.lines:
@@ -363,7 +504,10 @@ def register_paste_routes(
         over_limit = split.over_limit + max(0, len(fresh) - room)
         fresh = fresh[:room]
 
-        made = [(line, *entry_for_line(line, read_line(line))) for line in fresh]
+        if body.outings:
+            made = [_outing_entry(line, city, today) for line in fresh]
+        else:
+            made = [(line, *entry_for_line(line, read_line(line))) for line in fresh]
         # Saved already? The database only; one pass over the spots.
         probes = [
             {
@@ -405,6 +549,8 @@ def register_paste_routes(
                     created_at=start + timedelta(microseconds=index),
                 )
             )
+        if body.outings:
+            await flag_duplicates(session, [entry.payload for entry in entries])
         session.add_all(entries)
         sitting.updated_at = func.now()
         await session.commit()

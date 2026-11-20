@@ -12,6 +12,9 @@ and the entries read from them or typed in.
   on a per-day 429. `remaining()` is the calls left across models that are
   not exhausted, minus a reserve of `RESERVE` (12) kept for the rest of the
   site; `budget_state()` is what the intake page shows.
+- `outing_dates.py` — reads the date of a pasted past outing (story #350):
+  `read_date(text, today)` and `split_outing_line(line, today)`. Pure: no I/O
+  and no clock (`today` is an argument). See "Past outings by paste" below.
 - `kinds.py` — the kind registry (spec D11). A `Kind` is data: its area,
   ways in (photo, search, type), metadata source, `FieldSpec`s and a
   `to_row` that turns an entry into the row to write. `register()` adds or
@@ -708,6 +711,66 @@ stores entries in an ordinary `places` sitting.
 - Blurb newlines become spaces (the shared field cleaning); the blurb is one line.
 - The sittings list cannot tell a pasted sitting from a search-flow one; the
   page decides by `payload.source_line` on the entries.
+
+## Past outings by paste (places, story #350)
+
+The same paste, read a second way: each line is `place, date` and becomes one
+outing (a `visits` row) on that place, in one all-or-nothing commit. It plugs
+into the place entry (no new kind, no new route, no migration, no model call,
+no new outbound call): the paste route takes two more optional body fields,
+and entry PATCH takes two more outing fields.
+
+- **Paste.** `POST /sittings/{id}/paste` with `outings: true` and optional
+  `city` (the city of new private places; default Denver, read in outings
+  mode only, cleaned by `clean_fields`, never public). Each line goes through
+  `outing_dates.split_outing_line`: the date is what follows the LEFTMOST comma
+  whose remainder reads as a date ("Smith, Jones Park, 2023" splits before
+  2023); with no such comma the place is the text before the last comma and
+  the date is unread. The place text is read like any place line; the entry's
+  payload gains `outing = {date_text, visited_on, precision, skip}` and
+  `source_line` stays the WHOLE line, so the same place on two dates is two
+  entries and a repeated line is still a repeat (outings mode does not key on
+  the place's name).
+- **Dates** (`read_date`): ISO `YYYY-MM-DD`, `YYYY-MM`, `YYYY`, and English
+  month names ("June 14, 2024", "14 June 2024", "Jun 14 2024", "June 2024").
+  A month reads as its first day and a year as Jan 1 (the period start
+  `spots_routes._period_start` stores). Unread on purpose: `6/7/24` (US or
+  EU), "last summer", a month 13, 31 April, a leap day on a common year, a
+  year before 1950, and a period starting more than one day after today (the
+  bound `build_visit` applies).
+- **Resolve, pick.** Unchanged. The one difference: an entry with an outing is
+  never IGNORED as "same place as another line", since two dates of one place
+  are two outings. Geocoding stays at resolve; the place is created on commit.
+- **Already logged.** When an entry becomes owned (paste, resolve, pick, date
+  fix) one query on `visits` looks for an outing of the same spot with the
+  same period start and the same precision. A match sets
+  `outing.duplicate_of = <visit id>` and `outing.skip = true`. A day inside a
+  logged month is not a match. A flag found again keeps the owner's skip (a
+  re-save must not undo "Add anyway"); a flag that is gone takes back the
+  skip it set.
+- **PATCH** `outing_date_text` (at most 100 characters) is re-read on the
+  server and stores `visited_on` and `precision` or nulls; `outing_skip`
+  toggles. A client cannot set `visited_on` or `precision` (an `outing` key
+  inside `payload` is ignored by `edit_place`). 422 when the entry has no
+  outing.
+- **Answers.** An entry carries `outing` = `{date_text, label, visited_on,
+  precision, skip, duplicate_of}` (`label` is by precision: "June 2024"; null
+  when unread). The commit answer carries `outings_new` (only when above zero).
+- **Commit** (`commit.write_outings`). An OWNED or READY outing entry with
+  `skip` false: the server reads `outing.date_text` again (the owner's Denver
+  day, `place_kind.owner_today`), refuses the entry as `Refusal(id, "date")` when
+  it does not read, writes the place through `write_places` (new private spot
+  in the chosen city, or the owned one, which also covers a second date of a
+  place made earlier in the same loop) and then one `Visit` through
+  `build_visit` (no title, verdict, kid_along or note). Any refusal (date, a bad
+  city, any `write_places` refusal) is a 422 in the existing `refused` shape and
+  the route rolls the whole transaction back. A skipped entry writes nothing,
+  not even its place. `check`, `probable` and `reading` entries are kept as
+  before.
+
+Known limits: two lines for the same NEW place on the same day (spelled
+differently) write two visits (only stored outings are checked for repeats);
+a `/` in a date is never guessed.
 
 ## Adding a kind
 

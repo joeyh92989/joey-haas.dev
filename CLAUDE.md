@@ -210,7 +210,7 @@ before pushing.
       Stories #340–#363. Story #340 (search by name through intake: Nominatim,
       the `places` area, the place kind, `/admin/places/add`) and story #341
       (the add bar on `/admin/spots`) and story #342 (the paste way: a list of names
-      and map links, `/admin/places/add`) are built, #343, #344 and #345 (want and been states on the spots list), #346 (the Log an outing sheet), #347 (the History page) and #348 (History filters and the spots-table place link) and #349 (Did you go?) are built; the rest remain (...). Brief:
+      and map links, `/admin/places/add`) are built, #343, #344 and #345 (want and been states on the spots list), #346 (the Log an outing sheet), #347 (the History page) and #348 (History filters and the spots-table place link) and #349 (Did you go?) and #350 (backfill past outings by paste) are built; the rest remain (...). Brief:
       `docs/planning/2026-11-15-places-outings-brief.md`
 - History of shipped work lives in `git log` and `docs/planning/` (specs and plans); the
   migration list is `backend/migrations/versions/`.

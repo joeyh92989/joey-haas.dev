@@ -1853,3 +1853,61 @@ async def test_no_public_path_carries_a_did_you_go_ask(sessionmaker_for_test):
         for path in app.openapi()["paths"]
         if path.startswith("/api/public")
     )
+
+
+async def test_a_backfill_commit_leaves_the_public_spots_without_an_outing_or_new_place(
+    sessionmaker_for_test, monkeypatch
+):
+    """Past outings pasted and committed (story #350): the new place is private
+    and unpublished, the public spot list is unchanged, and no outing word or
+    key (date text, precision, title) reaches a public body."""
+    from datetime import date as _date
+
+    from intake import place_kind
+    from spot_sources import nominatim
+    from spot_sources.nominatim import SearchOk
+    from tests.test_intake_kinds import client_for as intake_client
+    from tests.test_place_paste import _NoClient, hit
+
+    async def search(client, query):
+        return SearchOk([hit(1, "Backfilled Cafe")])
+
+    monkeypatch.setattr(place_kind, "http_client", lambda: _NoClient())
+    monkeypatch.setattr(nominatim, "search", search)
+    monkeypatch.setattr(place_kind, "owner_today", lambda: _date(2026, 11, 19))
+    shown = _spot("Huckleberry")
+    await _add(sessionmaker_for_test, shown)
+    before = await _spots(sessionmaker_for_test)
+
+    async with intake_client(sessionmaker_for_test) as client:
+        sitting = (
+            await client.post(
+                "/api/intake/sittings", json={"area": "places", "kind": "place"}
+            )
+        ).json()
+        base = f"/api/intake/sittings/{sitting['id']}"
+        [entry] = (
+            await client.post(
+                f"{base}/paste",
+                json={"text": "Backfilled Cafe, June 14, 2019", "outings": True},
+            )
+        ).json()["entries"]
+        await client.post(f"/api/intake/entries/{entry['id']}/resolve")
+        committed = await client.post(f"{base}/commit")
+    assert committed.status_code == 200
+    assert committed.json()["outings_new"] == 1
+
+    body = await _spots(sessionmaker_for_test)
+    assert body == before  # the new place is not published
+    async with sessionmaker_for_test() as session:
+        assert [s.name for s in await load_public_spots(session)] == ["Huckleberry"]
+        made = (
+            await session.scalars(select(Spot).where(Spot.name == "Backfilled Cafe"))
+        ).one()
+    assert made.is_public is False
+    dumped = json.dumps(body)
+    for word in ("Backfilled Cafe", "June 14, 2019", "2019-06-14", "outing"):
+        assert word not in dumped
+    assert not {"outing", "precision", "visited_on", "date_text", "skip"} & set(
+        _keys(body)
+    )

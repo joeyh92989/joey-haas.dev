@@ -124,6 +124,22 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   takes an index into the stored list, never a place from the client; lock
   the entry first and the sitting second in a lookup (both `NOWAIT`), since a
   commit takes the sitting and then the entries.
+- **Past outings by paste (story #350, epic #339).** The places paste read a
+  second way: `POST /sittings/{id}/paste` takes `outings: true` and `city`,
+  `intake/outing_dates.py` (pure: `read_date`, `split_outing_line`, `today`
+  passed in) reads each line's date, and the entry carries `payload.outing`.
+  Read `intake/README.md` ("Past outings by paste") first. Rules when editing:
+  never trust a client's `visited_on` or `precision` (entry PATCH takes
+  `outing_date_text` and `outing_skip` only, and the commit reads the stored
+  date words again, so a stored period is never written); the commit refuses an
+  unreadable date as `Refusal(entry, "date")` and the route rolls everything
+  back (the guard test needs a refusal AFTER `write_places`, see
+  `test_a_refusal_after_the_places_are_written_rolls_everything_back`); an
+  already-logged match (same spot, same period start and precision) sets
+  `duplicate_of` and `skip` once and keeps the owner's answer on a re-save;
+  an outing entry is never IGNORED as the same place; no new route (the
+  `/api/spots` count stays 35), no migration, no outbound call beyond the
+  resolve. The clock is `place_kind.owner_today` (patch it in tests).
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers
