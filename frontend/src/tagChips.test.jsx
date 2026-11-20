@@ -7,7 +7,8 @@ import { describe, expect, it, vi } from 'vitest'
 import CandidateCard from './components/CandidateCard.jsx'
 import SpotForm from './components/SpotForm.jsx'
 import PlaceFields from './components/places/PlaceFields.jsx'
-import { TAG_LABELS, TAGS } from './content/denver.js'
+import { EXPECTED_TAG_LABELS } from './tagLabels.fixture.js'
+import { TAGS } from './content/denver.js'
 
 // The 20-tag vocabulary (#351) on a 400px phone: every tag has a chip, and
 // every chip row wraps instead of running sideways off the page.
@@ -19,32 +20,46 @@ const css = readFileSync(join(here, 'index.css'), 'utf8').replace(
   '',
 )
 
-/** Every top-level or @media rule body for a selector, in source order. */
-function declared(selector, property) {
-  const found = []
-  const re = /([^{}]+)\{([^{}]*)\}/g
-  let match
-  while ((match = re.exec(css))) {
-    const selectors = match[1].split(',').map((s) => s.trim())
-    if (!selectors.includes(selector)) continue
-    const value = match[2].match(
-      new RegExp(`(?:^|[;\\s])${property}:\\s*([^;]+)`),
-    )
-    if (value) found.push({ at: match.index, value: value[1].trim() })
+/** Every `selector { body }` pair with the @media prelude it sits in, or null. */
+const rules = []
+{
+  const stack = []
+  let start = 0
+  for (let i = 0; i < css.length; i++) {
+    if (css[i] === '{') {
+      const prelude = css.slice(start, i).trim()
+      stack.push({ prelude, atRule: prelude.startsWith('@'), from: i + 1 })
+      start = i + 1
+    } else if (css[i] === '}') {
+      const open = stack.pop()
+      if (open && !open.atRule) {
+        const media = stack.find((entry) => entry.atRule)?.prelude ?? null
+        for (const selector of open.prelude.split(',')) {
+          rules.push({
+            selector: selector.trim().replace(/\s+/g, ' '),
+            body: css.slice(open.from, i),
+            media,
+          })
+        }
+      }
+      start = i + 1
+    }
   }
-  return found
 }
 
-function lastValue(selector, property) {
-  return declared(selector, property).at(-1)?.value
+/** The declarations of a selector's rules outside every @media query. */
+function always(selector) {
+  const bodies = rules
+    .filter((rule) => rule.selector === selector && rule.media === null)
+    .map((rule) => rule.body)
+  expect(bodies.length, `a top-level rule for ${selector}`).toBeGreaterThan(0)
+  return bodies.join('\n')
 }
 
 function everyTagIsAButton(root) {
   expect(TAGS).toHaveLength(20)
-  for (const tag of TAGS) {
-    expect(
-      within(root).getByRole('button', { name: TAG_LABELS[tag] }),
-    ).toBeVisible()
+  for (const label of EXPECTED_TAG_LABELS) {
+    expect(within(root).getByRole('button', { name: label })).toBeVisible()
   }
 }
 
@@ -98,27 +113,37 @@ describe('all 20 tags, as controls', () => {
 })
 
 describe('chip rows wrap at 400px', () => {
-  // `.chip-row` is a sideways-scrolling strip under 34rem; these rows must
-  // opt out, and the opt-out must come later in the file than the strip.
-  const stripAt = Math.max(
-    ...declared('.chip-row', 'flex-wrap')
-      .filter((rule) => rule.value === 'nowrap')
-      .map((rule) => rule.at),
-  )
+  // `.chip-row` is a sideways-scrolling strip under 34rem; every row that
+  // holds the 20 tags must opt out at all widths, not inside a media query.
+  it('has the strip these rows opt out of', () => {
+    const strip = rules.find(
+      (rule) =>
+        rule.selector === '.chip-row' &&
+        rule.media === '@media (max-width: 34rem)' &&
+        /flex-wrap:\s*nowrap/.test(rule.body),
+    )
+    expect(strip).toBeTruthy()
+  })
 
-  it.each(['.chip-row.denver-chips', '.spot-form .chip-row'])(
-    '%s wraps, after the phone strip rule',
-    (selector) => {
-      const wraps = declared(selector, 'flex-wrap')
-      expect(wraps.at(-1)?.value).toBe('wrap')
-      expect(wraps.at(-1).at).toBeGreaterThan(stripAt)
-      expect(lastValue(selector, 'overflow-x')).toBe('visible')
-      expect(lastValue(selector, 'max-width')).toBe('100%')
-      expect(lastValue(selector, 'min-width')).toBe('0')
-    },
-  )
+  it.each([
+    '.chip-row.denver-chips',
+    '.spot-form .chip-row',
+    '.place-col .chip-row',
+    '.spots-addbar .chip-row',
+  ])('%s wraps and does not scroll', (selector) => {
+    const body = always(selector)
+    expect(body).toMatch(/flex-wrap:\s*wrap;/)
+    expect(body).toMatch(/overflow-x:\s*visible;/)
+  })
 
-  it.each(['.place-col .chip-row', '.cand-tags'])('%s wraps', (selector) => {
-    expect(lastValue(selector, 'flex-wrap')).toBe('wrap')
+  it('lets the two shared rows shrink inside their parent', () => {
+    for (const selector of ['.chip-row.denver-chips', '.spot-form .chip-row']) {
+      expect(always(selector)).toMatch(/max-width:\s*100%;/)
+      expect(always(selector)).toMatch(/min-width:\s*0;/)
+    }
+  })
+
+  it('wraps the finder tag list', () => {
+    expect(always('.cand-tags')).toMatch(/flex-wrap:\s*wrap;/)
   })
 })

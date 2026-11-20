@@ -102,6 +102,27 @@ async def test_a_spot_takes_any_of_the_twenty_tags_and_a_list_past_the_cap_is_42
     assert too_many.status_code == 422
 
 
+async def test_raw_tags_up_to_forty_are_allowed_deduplicated_and_forty_one_is_422(
+    sessionmaker_for_test,
+):
+    forty = [*spots.TAGS, *spots.TAGS]
+    assert len(forty) == 40
+    async with client_for(sessionmaker_for_test) as client:
+        made = await client.post("/api/spots", json={**SLOANS, "tags": forty})
+        over = await client.post(
+            "/api/spots", json={**SLOANS, "tags": [*forty, "coffee"]}
+        )
+        url = f"/api/spots/{made.json()['id']}"
+        patched = await client.patch(url, json={"tags": forty[::-1]})
+        patch_over = await client.patch(url, json={"tags": [*forty, "coffee"]})
+    assert made.status_code == 201
+    assert made.json()["tags"] == list(spots.TAGS)
+    assert over.status_code == 422
+    assert patched.status_code == 200
+    assert patched.json()["tags"] == list(spots.TAGS)
+    assert patch_over.status_code == 422
+
+
 async def test_a_spot_with_the_old_six_tags_round_trips_unchanged(
     sessionmaker_for_test,
 ):

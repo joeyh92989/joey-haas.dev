@@ -13,7 +13,8 @@ import { axeViolations } from '../lib/axe.test-util.js'
 import { flaky } from '../lib/flaky.test-util.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { LOAD_ERROR } from '../content/status.js'
-import { TAGS, TAG_LABELS, denver } from '../content/denver.js'
+import { TAGS, denver } from '../content/denver.js'
+import { EXPECTED_TAG_LABELS } from '../tagLabels.fixture.js'
 import Denver, { filterSpots, parseTags, tagCounts } from './Denver.jsx'
 
 const media = { phone: false }
@@ -165,11 +166,11 @@ describe('Denver', () => {
 
   it('shows a labelled chip for every one of the 20 tags once a spot wears it', () => {
     renderPage('/denver', [spot('Everything', { tags: [...TAGS] })])
-    expect(TAGS).toHaveLength(20)
+    expect(EXPECTED_TAG_LABELS).toHaveLength(20)
     const row = chips()
-    for (const tag of TAGS) {
+    for (const label of EXPECTED_TAG_LABELS) {
       expect(
-        within(row).getByRole('button', { name: `${TAG_LABELS[tag]} 1` }),
+        within(row).getByRole('button', { name: `${label} 1` }),
       ).toBeVisible()
     }
   })

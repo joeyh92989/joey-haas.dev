@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { EXPECTED_TAG_LABELS } from '../tagLabels.fixture.js'
 import { TAGS, tagLabel } from './denver.js'
 
 /** The `TAGS` tuple from backend/spots.py, the vocabulary's authority. */
@@ -17,6 +18,10 @@ function backendTags() {
 describe('Denver tag labels', () => {
   it('label exactly the backend vocabulary, in its order', () => {
     expect(TAGS).toEqual(backendTags())
+  })
+
+  it('are the twenty labels written out in the fixture', () => {
+    expect(TAGS.map(tagLabel)).toEqual(EXPECTED_TAG_LABELS)
   })
 
   it('fall back to the key for an unknown tag', () => {

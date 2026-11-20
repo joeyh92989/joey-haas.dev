@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { TAGS, TAG_LABELS } from '../content/denver.js'
+import { EXPECTED_TAG_LABELS } from '../tagLabels.fixture.js'
 import {
   fireEvent,
   render,
@@ -275,7 +275,7 @@ describe('PlacesAdd', () => {
       within(form)
         .getAllByRole('button', { pressed: false })
         .map((b) => b.textContent),
-    ).toEqual(TAGS.map((tag) => TAG_LABELS[tag]))
+    ).toEqual(EXPECTED_TAG_LABELS)
     expect(within(form).getByLabelText('Blurb')).toBeInTheDocument()
     expect(
       within(form).getByLabelText(/Show on the public map/),

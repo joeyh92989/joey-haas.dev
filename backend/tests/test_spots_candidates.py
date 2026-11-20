@@ -491,6 +491,7 @@ async def test_anonymous_calls_are_401(sessionmaker_for_test):
 async def test_accept_takes_every_tag_but_not_more_than_the_vocabulary(
     sessionmaker_for_test,
 ):
+    assert len(spots.TAGS) == 20  # the accept cap is exactly the vocabulary
     _, row = await _queued_one(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:
         over = await client.post(
