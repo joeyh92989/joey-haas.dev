@@ -29,6 +29,13 @@ the same transaction. A downgrade cannot remove the value (there is no DROP
 VALUE), so it moves any rows using it back to a value the old code knows, and
 IF NOT EXISTS keeps the next upgrade from failing on the leftover label.
 
+Removing a value from an enum is a rebuild, because Postgres has no DROP
+VALUE (0028 is the model): delete the rows that use the value, rename the type
+to `<name>_old`, create it again with the labels to keep, convert every column
+that uses it with `USING col::text::<name>`, then drop the old type. All of it
+fits in the migration's transaction. Check each column, default and index that
+names the type first.
+
 A new table that points at an item uses `postgresql.UUID(as_uuid=True)` for
 the key: `items.id` is a UUID, and a plain `Integer` foreign key fails at
 create time (0016's `comic_issues` is the model to copy: composite primary
