@@ -326,6 +326,10 @@ it up).
 | — | Board games (BGG source) | — | parked: BGG needs a registered app (#14) |
 | — | Film & TV source in production | — | parked: TMDB not configured (#162) |
 
+## Palette and headings
+
+Paper and graphite, one accent. Headings (h1 to h3) are Source Serif 4 at weight 500; body is Inter; labels and numbers are JetBrains Mono. Coloured text uses `--accent-text`, `--ok-text` or `--warn-text`; `--accent` itself is for fills, edges and underlines. Text never sits on `--line`, and text is never faded with `opacity`. The token table and the reasons are in `frontend/CLAUDE.md`, "Tokens and theme".
+
 ## Not yet migrated
 
 Gaps between the rules and the code on 13 Nov 2026, each closed by the

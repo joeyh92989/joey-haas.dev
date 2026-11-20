@@ -29,8 +29,8 @@ export default function Colophon() {
           tokens; no CSS framework.
         </li>
         <li>
-          Set in Inter, JetBrains Mono, and Source Serif 4, self-hosted rather
-          than loaded from a font service.
+          Set in Inter for text, JetBrains Mono for labels, and Source Serif 4
+          for headings, self-hosted rather than loaded from a font service.
         </li>
         <li>
           Dark by default, with a light theme one click away. Shiki renders code

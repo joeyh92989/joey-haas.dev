@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-20
 
+- The site has a new look: warm paper in the light theme, graphite in the dark one, a rust accent in light and a red-pencil accent in dark, and serif headings. Text and marks were measured for contrast in both themes.
 - The [tour](/shelf/how) no longer scrolls sideways on narrow phones: the masthead fits at 320px, and the drawn tables wrap their columns instead of cutting them off.
 - The masthead now has a More menu with [Now](/now), [Stats](/stats), Daily game, [Denver](/denver) and [Colophon](/colophon) (and TIL when there are notes), and the phone Menu lists the same pages under More. Search finds Denver by “places” and “outings”. Below 960px wide the bar now shows Menu.
 

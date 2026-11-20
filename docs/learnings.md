@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-20 · lesson · A layered legacy sheet loses to Tailwind's theme layer, and a design colour is not a text colour
+Putting `index.css` in `@layer legacy` still let Tailwind's `theme` layer replace the site's `--font-sans`, `--font-mono` and `--radius` the moment any CSS used them, so every page lost Inter until a cold review diffed computed styles against a build of `main` (#541); `tailwindSetup.test.js` now fails on a new collision. In #527 the owner's dark accent `#f7a391` is 3.49:1 as text on a card: keep it for fills and edges, and add `--accent-text`, `--ok-text` and `--warn-text` for text. Check a "no visible change" PR by comparing computed styles, not only tests, and measure a colour in the role it will play.
+PRs #541, #542 · docs/planning/2026-11-20-design-system-foundation-design.md · docs/planning/2026-11-20-design-system-tokens-design.md
+
 ### 2026-11-20 · decision · Places and outings: built, parked, then removed
 Epic #339 shipped stories #340 to #351 (12 PRs) with 0 spots and 0 visits in production, and was parked when the plan moved to international trips; the code was removed from main (restore tag `places-outings-2026-11-20`). Two lessons stayed with the code: Nominatim got its own client name with no email address (a new external service gets its own, not the shared one), and the issue's claim that the new kind needed no migration or page was wrong, because sittings store an area and the Add page drew only shelf and closet (before a story says that, check where `area` and `kinds_for` are used). The rest is in the retrospective.
 Epic #339 · PR #443 · docs/planning/2026-11-20-places-outings-retrospective.md · docs/planning/2026-11-17-place-kind-intake-design.md

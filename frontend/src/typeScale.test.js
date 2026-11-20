@@ -90,4 +90,42 @@ describe('type scale', () => {
       expect(px, `${selector}: ${text}`).toBeGreaterThanOrEqual(12)
     }
   })
+
+  // Only the 500 cuts of Source Serif 4 are installed (main.jsx): a heavier
+  // weight set beside the serif is synthesised by the browser.
+  it('sets h1, h2 and h3 in --font-display', () => {
+    const base = css.match(/(?:^|\n)h1,\s*h2,\s*h3 \{([^{}]*)\}/)
+    expect(base, 'the h1, h2, h3 base rule').not.toBeNull()
+    expect(base[1]).toMatch(/font-family:\s*var\(--font-display\)/)
+  })
+
+  it('never sets a weight above 500 beside --font-display', () => {
+    const heavy = []
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/var\(--font-display\)/.test(body)) continue
+      const weights = [
+        ...body.matchAll(/font-weight:\s*(\d+)/g),
+        ...body.matchAll(/font:[^;]*?\b([1-9]00)\b/g),
+      ].map((m) => +m[1])
+      if (weights.some((w) => w > 500)) heavy.push(selector.trim())
+    }
+    expect(heavy).toEqual([])
+  })
+
+  it('never sets a weight above 500 on a heading selector', () => {
+    const heavy = []
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const onHeading = selector
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split(',')
+        .some((part) => /(^|[\s>+~])h[1-3]$/.test(part.trim()))
+      if (!onHeading) continue
+      const weights = [
+        ...body.matchAll(/font-weight:\s*(\d+)/g),
+        ...body.matchAll(/font:[^;]*?\b([1-9]00)\b/g),
+      ].map((m) => +m[1])
+      if (weights.some((w) => w > 500)) heavy.push(selector.trim())
+    }
+    expect(heavy).toEqual([])
+  })
 })
