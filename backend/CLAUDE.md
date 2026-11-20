@@ -619,7 +619,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
   migration copied every `editions` entry into a volume plus one collects row.
   `items.editions` is unmapped (no model attribute; nothing reads or writes the
-  column) and is dropped by migration `0025` in the release after this one (the
+  column) and is dropped by migration `0026` in the release after this one (the
   retire plan's PR 5b, so the old code never maps a missing column): the compat shim that mirrored it into `ed-*` volumes is gone,
   and an `ed-*` volume is an ordinary volume.
   **Volumes are the source of the marks (#326):** `comics.sync_marks` counts a

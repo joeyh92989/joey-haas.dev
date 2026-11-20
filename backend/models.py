@@ -1581,7 +1581,7 @@ class ComicVolume(Base):
     title (`ed-<from>-<to>` for rows copied from the legacy `items.editions`
     column, so old edition URLs keep working; `vol-<n>` for new ones). `kind` is
     the mapped format and `kind_raw` the original free text, never lost. The legacy
-    `items.editions` column is unmapped and is dropped by a later migration (0025).
+    `items.editions` column is unmapped and is dropped by a later migration (0026).
     """
 
     __tablename__ = "comic_volumes"
