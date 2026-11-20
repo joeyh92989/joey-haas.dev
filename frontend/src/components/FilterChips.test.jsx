@@ -359,4 +359,31 @@ describe('FilterChips group limit', () => {
       )
     })
   })
+
+  describe('size and weight match the old chip (#528 review)', () => {
+    it('unpressed is weight 400 in --text-2, pressed is the heavier word', () => {
+      render(
+        <FilterChips
+          groups={GROUPS}
+          value={{ ...NO_FILTER, type: 'game' }}
+          onChange={() => {}}
+        />,
+      )
+      const [pressed] = screen
+        .getAllByRole('button')
+        .filter((c) => c.getAttribute('aria-pressed') === 'true')
+      expect(pressed.className).toContain('font-normal')
+      expect(pressed.className).toContain('text-muted-foreground')
+      expect(pressed.className).toContain('aria-pressed:font-medium')
+    })
+
+    it('keeps the label-to-count gap at 4px on desktop and none on a phone, where the legacy margin supplies it', () => {
+      render(
+        <FilterChips groups={GROUPS} value={NO_FILTER} onChange={() => {}} />,
+      )
+      const cls = screen.getAllByRole('button')[0].className
+      expect(cls).toContain('gap-1')
+      expect(cls).toContain('max-[700px]:gap-0')
+    })
+  })
 })

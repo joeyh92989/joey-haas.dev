@@ -7,7 +7,7 @@ import { cn } from 'cn'
 // background (--sunken) and is not used for fills. A link-button passes
 // `render={<Link />}` with `nativeButton={false}`.
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -21,9 +21,10 @@ const buttonVariants = cva(
           'bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
         destructive:
           'border-destructive bg-transparent text-destructive hover:bg-accent',
-        // A filter chip: pressed shows a heavier word, a darker outline and
-        // the 3px accent bar, so colour never carries it alone.
-        chip: 'relative overflow-hidden border-line-card bg-transparent text-foreground after:absolute after:inset-x-0 after:bottom-0 after:hidden after:h-[3px] after:bg-primary hover:border-foreground aria-pressed:border-foreground aria-pressed:bg-card aria-pressed:font-medium aria-pressed:after:block',
+        // A filter chip: weight 400 in --text-2 until pressed; pressed shows a
+        // heavier word (500), a darker outline and the 3px accent bar, so
+        // colour never carries it alone.
+        chip: 'relative overflow-hidden border-line-card bg-transparent font-normal text-muted-foreground after:absolute after:inset-x-0 after:bottom-0 after:hidden after:h-[3px] after:bg-primary hover:border-foreground aria-pressed:border-foreground aria-pressed:bg-card aria-pressed:font-medium aria-pressed:text-foreground aria-pressed:after:block',
         link: 'h-auto px-0 text-accent-text underline underline-offset-4 hover:underline',
       },
       size: {
@@ -31,7 +32,9 @@ const buttonVariants = cva(
         xs: 'h-6 px-2 text-xs',
         sm: 'h-8 px-3 text-[0.8125rem]',
         lg: 'h-11 px-5',
-        chip: 'px-3 py-1 text-[0.8125rem] leading-snug',
+        // 4px between label and count on desktop; on a phone the legacy
+        // `.chip > .chip-count` margin supplies it (adminPolish.test.js).
+        chip: 'gap-1 px-3 py-1 text-[0.8125rem] leading-snug max-[700px]:gap-0',
         icon: 'size-9',
         'icon-xs': 'size-6',
         'icon-sm': 'size-8',

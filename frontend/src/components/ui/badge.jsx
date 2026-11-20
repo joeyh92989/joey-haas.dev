@@ -6,7 +6,7 @@ import { cn } from 'cn'
 // A small mono label with a 1px outline (#528). `default` sits on the card
 // tone, `outline` on nothing, `accent` is the one filled variant.
 const badgeVariants = cva(
-  'inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-sm border px-2 font-mono text-xs font-normal whitespace-nowrap outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&>svg]:pointer-events-none [&>svg]:size-3',
+  'inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-sm border px-2 font-mono text-xs font-normal whitespace-nowrap outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring [&>svg]:pointer-events-none [&>svg]:size-3',
   {
     variants: {
       variant: {
