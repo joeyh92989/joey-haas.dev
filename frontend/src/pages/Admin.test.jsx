@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownerYear } from '../lib/formatDate.js'
@@ -469,6 +470,55 @@ describe('Admin Home', () => {
     expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'href',
       '/admin/jobs',
+    )
+  })
+
+  it('gives four rows a Run now button and the rest only their link', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await within(panel).findAllByRole('listitem')
+    const withButton = rows
+      .filter((row) => within(row).queryByRole('button', { name: /Run now/ }))
+      .map(
+        (row) =>
+          within(row).getByText(/./, { selector: '.job-label' }).textContent,
+      )
+    expect(withButton).toEqual([
+      'Radar',
+      'Weekend forecast',
+      'Comic refresh',
+      'Comic issues',
+    ])
+    expect(within(panel).getAllByRole('button')).toHaveLength(4)
+    // The Open link stays beside the button.
+    expect(
+      within(panel).getByRole('link', { name: 'Open Radar' }),
+    ).toBeInTheDocument()
+  })
+
+  it('starts a run from its row, then reads the status again', async () => {
+    const fetch = stubApi({
+      '/api/comics/refresh': () => json({ refreshed: 3, errors: [] }),
+    })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const row = (await within(panel).findAllByRole('listitem'))[9]
+    const before = fetch.mock.calls.filter(([url]) =>
+      String(url).endsWith('/api/comics/status'),
+    ).length
+    await userEvent.click(within(row).getByRole('button', { name: /Run now/ }))
+    await waitFor(() => expect(row).toHaveTextContent(/Done, /))
+    const post = fetch.mock.calls.find(([url]) =>
+      String(url).endsWith('/api/comics/refresh'),
+    )
+    expect(post[1].method).toBe('POST')
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.filter(([url]) =>
+          String(url).endsWith('/api/comics/status'),
+        ).length,
+      ).toBeGreaterThan(before),
     )
   })
 

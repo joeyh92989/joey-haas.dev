@@ -1,4 +1,5 @@
 import { REENABLE_URL } from '../lib/adminJobs.js'
+import { JOB_RUNS } from '../lib/nightly.js'
 import JobStatusRow, { StatusText } from './JobStatusRow.jsx'
 import Panel from './Panel.jsx'
 
@@ -30,7 +31,7 @@ export function NightlyStatus({ nightly }) {
  * @param {import('react').ReactNode} [props.action] A link in the header bar.
  */
 export default function JobsList({ nightly, action }) {
-  const { jobs, loaded } = nightly
+  const { jobs, loaded, reload } = nightly
   return (
     <Panel title="Nightly jobs" action={action}>
       {jobs ? (
@@ -39,6 +40,8 @@ export default function JobsList({ nightly, action }) {
             <JobStatusRow
               key={job.key}
               job={job}
+              run={JOB_RUNS[job.key]}
+              onRan={reload}
               extra={
                 job.stopped && (
                   <>

@@ -79,6 +79,19 @@ export function lastNightly(status, generated, now = Date.now()) {
   }
 }
 
+/**
+ * The jobs that start from their row, by row key: the POST path (query
+ * string included) and its JSON body. The quick, safe ones only; the rest
+ * keep their "Open ..." link (docs/planning/2026-11-19-jobs-run-now-design.md).
+ * The paths and bodies match the buttons on each job's own page.
+ */
+export const JOB_RUNS = {
+  weather: { path: '/api/spots/weather/refresh' },
+  radar: { path: '/api/recommendations/generate', body: { kind: 'radar' } },
+  'comic-refresh': { path: '/api/comics/refresh' },
+  'comic-issues': { path: '/api/comics/issues/sync?budget=10' },
+}
+
 /** A run time as the Dashboard shows it: "Sun, Oct 18, 10:41 PM". */
 export function whenWords(ms) {
   return WHEN.format(ms)

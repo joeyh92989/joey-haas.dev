@@ -92,6 +92,13 @@ export const adminCopy = {
     title: 'Jobs',
     when: 'When',
   },
+  jobRun: {
+    conflict: 'Already running',
+    done: 'Done',
+    failed: 'Failed',
+    run: 'Run now',
+    running: 'Running…',
+  },
   spots: {
     actions: 'Actions',
     anchor: 'Anchor',

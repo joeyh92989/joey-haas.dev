@@ -2424,6 +2424,43 @@ footer {
   white-space: nowrap;
 }
 
+.job-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  justify-content: flex-end;
+}
+
+/* The button looks like its neighbour link, so a row reads as two actions. */
+.job-run-button {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.job-run-button:disabled {
+  color: var(--text-3);
+  cursor: progress;
+}
+
+.job-result {
+  color: var(--text-3);
+  font-size: var(--fs-13);
+}
+
+.job-result:empty {
+  display: none;
+}
+
+.job-result.failed {
+  color: var(--text);
+}
+
 /* Three short columns: they wrap on a phone rather than scroll, so When
    stays in view. */
 .item-table.recent-table {
