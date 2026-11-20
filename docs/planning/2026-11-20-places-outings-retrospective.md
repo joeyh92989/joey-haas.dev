@@ -134,19 +134,19 @@ The issues stay open with their acceptance criteria. Checked 2026-11-20: they ca
 
 Roots with every dependency built at the tag: #352, #353, #355, #358, #359, #360. The brief's order was phase 3 (finder), then phase 4 (trips). Several of these assume the Denver city model and the `spots` table, so a trip-centred rebuild should re-read each before reuse.
 
-**Finder-sources research.** No planning doc or file in the repo holds this research, so only the lines with a repo source are confirmed.
-- Overpass stays the finder's source (it is the existing one, `backend/candidates.py`). OSM data is under the ODbL (`backend/spot_sources/README.md`).
-- Keyless Wikidata and Wikipedia as a source for notable places: unverified, no source in the repo.
-- Denver and Colorado open data as a source: unverified, no source in the repo.
-- Ticketmaster Discovery API behind an optional env key: the brief says a free key allows 5,000 calls a day and covers ticketed shows and sports, not markets, festivals or library events; its caching and display terms have not been read.
-- Geoapify behind an optional env key: unverified, no source in the repo; licence terms not found.
-- Eventbrite removed public event search in 2019 (the brief); iOS Safari has no Web Share Target (the brief), so the add bar is the phone path.
+**Finder-sources research** (done 2026-11-18, from the sources' own pages, some via summaries; items marked unverified were not confirmed on the official page). Joey's rule: free-with-a-key sources are fine, but setting a key on Render is a production-settings change that only Joey makes, and the code must skip a source cleanly when its key is absent.
+- Overpass stays the finder's source (`backend/candidates.py`); OSM data is under the ODbL (`backend/spot_sources/README.md`).
+- Free and keyless: Wikidata and Wikipedia enrichment (CC0 and CC BY-SA); Denver open data for parks, recreation centres and libraries (CC BY 3.0 per a summary, unverified on the page; no public-art dataset found); Colorado state, CPW and COTREX trails (public domain per a summary, unverified).
+- Ticketmaster Discovery: free key, 5,000 calls a day, 5 requests a second; its terms allow caching only "for reasonable periods", so keep events a few days and refresh. It covers ticketed shows and sports, not markets, festivals or library events.
+- Geoapify: free key, no card, 3,000 credits a day; Places on the free plan unverified; OSM and Geoapify attribution required.
+- NPS: free key by email, 1,000 requests an hour, endpoints unverified. RIDB: nothing verified.
+- Google Places: no storing names or addresses (place IDs yes, coordinates for 30 days) and a billing account is needed, so live lookup only, never a candidate store.
+- Dead: Eventbrite public event search (removed in 2019) and Songkick (no hobby use). Unverified: Foursquare, Yelp, HERE, TomTom, Bandsintown. iOS Safari has no Web Share Target, so the add bar is the phone path (the brief).
 
 ## 7. Open follow-ups
 
 **Die with the code** (the PR that removes the code closes them):
 - Planner tag sets: `planner.py`'s outdoor, indoor and rainy sets and `candidates.py`'s `CATEGORY_TAGS` do not know the 14 new tags (#522). The tags go with the revert.
-- History empty states: named in the request for this retrospective; the plans only specify an empty state and a no-match state, and no open item was found: unverified.
 - Retry after a timeout can create a duplicate outing; the "Didn't" route accepts a slot that is not yet due (#507).
 - The Fix date form shows what the server read after Save, not a live preview (#513); a misspelled month reads as a year (#513).
 - `call()` and `keyOf` duplicated between #340's page and `SpotsAddBar.jsx` (#445); full-table spot scans per resolve (#449).
