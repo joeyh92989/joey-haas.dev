@@ -75,8 +75,6 @@ class EntryOut(TypedDict):
     garment_id: str | None
     on_shelf: dict[str, Any] | None
     number_check: NotRequired[NumberCheckOut]
-    # A past outing's alone (story #350): date words, label, flags.
-    outing: NotRequired[dict[str, Any]]
     # A comic's alone (`intake.commit.comic_adds_for`): what the entry adds
     # (a volume or an issue), and for a collected book its contents.
     adds: NotRequired[dict[str, Any]]
@@ -265,8 +263,6 @@ class CommitOut(BaseModel):
     titles_created: list[TitleCreatedOut] = []
     spots_new: list[SpotRefOut] = []
     spots_owned: list[SpotRefOut] = []
-    outings_new: int = 0
-    outings_skipped: int = 0
 
 
 class CommitRefusedOut(CommitOut):

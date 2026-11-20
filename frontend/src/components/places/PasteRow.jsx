@@ -1,13 +1,9 @@
 import { placesAdd } from '../../content/placesAdd.js'
-import { cityLabel } from '../../lib/cities.js'
-import OutingDateForm from './OutingDateForm.jsx'
 import PasteFixForm from './PasteFixForm.jsx'
 import PlaceFields from './PlaceFields.jsx'
 import {
   addressOf,
-  chipOf,
   fromOf,
-  isOuting,
   lineOf,
   nameOf,
   savedAddressOf,
@@ -15,7 +11,6 @@ import {
 } from './pasteModel.js'
 
 const words = placesAdd.paste
-const outingWords = words.outings
 
 /** The id a row's own button has, so focus can come back to it. */
 export const rowButtonId = (entry) => `paste-btn-${entry.id}`
@@ -227,226 +222,6 @@ function Body({
   )
 }
 
-/** The date chip of a past-outing row: the label and how exact it is, or a
- *  dashed "Date not read". Words carry the state; the dashes are a second cue. */
-function DateChip({ entry }) {
-  const chip = chipOf(entry)
-  if (!chip) {
-    return (
-      <span className="outing-date unread">
-        <span>{outingWords.unread}</span>
-      </span>
-    )
-  }
-  return (
-    <span className="outing-date">
-      <span>
-        <span className="visually-hidden">{outingWords.readAs}</span>
-        {chip.label}
-      </span>
-      <small>
-        {outingWords.precisionWord[chip.precision] ?? chip.precision}
-      </small>
-    </span>
-  )
-}
-
-/**
- * One row of a Past outings list (story #350, mockup a-mode-switch.html): the
- * place, a date chip, and the row's buttons. The place's own fixes (pick,
- * rename, name it) are the place paste's; the date has its own form.
- */
-function OutingRow({
-  entry,
-  kind,
-  open,
-  busy,
-  values,
-  cities,
-  refusal,
-  canRetry,
-  onToggle,
-  onValues,
-  onPick,
-  onSearch,
-  onNameIt,
-  onRetry,
-  onFixDate,
-  onSkip,
-}) {
-  const title = nameOf(entry)
-  const hidden = <span className="visually-hidden"> {title}</span>
-  const fieldId = rowFieldId(entry)
-  const outing = entry.outing
-  const placeCheck = ![
-    'date',
-    'refused',
-    'ready',
-    'wait',
-    'logged',
-    'out',
-  ].includes(kind)
-
-  let sub
-  if (kind === 'date') sub = outingWords.whyDate(outing.date_text)
-  else if (kind === 'refused') sub = refusal || outingWords.refusedRow
-  else if (placeCheck) sub = busy ? words.searchingOsm : whyOf(kind, entry)
-  else if (kind === 'wait') sub = busy ? words.searchingOsm : words.waiting
-  else if (kind === 'out') sub = outingWords.leftOut
-  else sub = entry.state === 'owned' ? savedAddressOf(entry) : addressOf(entry)
-
-  const extra = []
-  if (kind === 'ready' && entry.state === 'ready') {
-    extra.push(outingWords.newPlace(cityLabel(entry.payload?.city ?? 'denver')))
-  } else if (kind === 'ready' && entry.state === 'owned') {
-    extra.push(outingWords.onList)
-  }
-  if (outing.repeat_of && kind !== 'out') extra.push(outingWords.repeatLine)
-  if (outing.duplicate_of && outing.label && kind !== 'out') {
-    extra.push(
-      kind === 'ready'
-        ? outingWords.alsoInHistory(outing.label)
-        : outingWords.inHistory(outing.label),
-    )
-  }
-
-  const button = (label, onClick, props = {}) => (
-    <button
-      type="button"
-      className={props.primary ? 'btn primary' : 'btn'}
-      id={props.id}
-      aria-expanded={props.expanded}
-      disabled={props.disabled}
-      onClick={onClick}
-    >
-      {label}
-      {hidden}
-    </button>
-  )
-  let acts = null
-  if (busy && (placeCheck || kind === 'wait')) {
-    acts = <span className="place-paste-mark wait">{words.looking1}</span>
-  } else if (kind === 'date') {
-    acts = button(outingWords.rowButton.date, onToggle, {
-      primary: true,
-      id: rowButtonId(entry),
-      expanded: open,
-    })
-  } else if (kind === 'ready') {
-    acts = (
-      <>
-        {outing.duplicate_of &&
-          button(outingWords.rowButton.skip, () => onSkip(true))}
-        {button(outingWords.rowButton.ready, onToggle, {
-          id: rowButtonId(entry),
-          expanded: open,
-        })}
-      </>
-    )
-  } else if (kind === 'logged') {
-    acts = button(outingWords.rowButton.logged, () => onSkip(false), {
-      id: rowButtonId(entry),
-    })
-  } else if (kind === 'out') {
-    acts = button(outingWords.rowButton.out, () => onSkip(false), {
-      id: rowButtonId(entry),
-    })
-  } else if (kind === 'refused') {
-    acts = button(outingWords.rowButton.refused, onToggle, {
-      id: rowButtonId(entry),
-      expanded: open,
-    })
-  } else if ((kind === 'failed' && !open) || (kind === 'wait' && canRetry)) {
-    acts = button(
-      kind === 'wait' && !entry.payload?.attempts
-        ? words.rowButton.wait
-        : words.rowButton.failed,
-      onRetry,
-      { id: rowButtonId(entry) },
-    )
-  } else if (placeCheck && kind !== 'failed') {
-    acts = button(words.rowButton[kind], onToggle, {
-      id: rowButtonId(entry),
-      expanded: open,
-    })
-  }
-
-  // While the date form is open it is the row: no chip, no button above it.
-  const dateFormOpen =
-    open && !busy && ['date', 'ready', 'refused'].includes(kind)
-  let form = null
-  if (open && !busy) {
-    if (kind === 'date' || kind === 'ready' || kind === 'refused') {
-      form = (
-        <OutingDateForm
-          entry={entry}
-          inputId={fieldId}
-          disabled={busy}
-          onSubmit={onFixDate}
-          onLeaveOut={() => onSkip(true)}
-          onCancel={onToggle}
-        />
-      )
-    } else if (placeCheck) {
-      form = (
-        <Body
-          entry={entry}
-          kind={kind}
-          busy={busy}
-          values={values}
-          cities={cities}
-          onValues={onValues}
-          onToggle={onToggle}
-          onPick={onPick}
-          onSearch={onSearch}
-          onNameIt={onNameIt}
-          onLeaveOut={() => onSkip(true)}
-        />
-      )
-    }
-  }
-
-  return (
-    <li className={`place-result outing-row${open ? ' open' : ''}`}>
-      <span className="place-result-text">
-        <span className="place-result-title">{title}</span>
-        {sub && (
-          <span
-            className={
-              kind === 'date' || kind === 'refused' || placeCheck
-                ? 'place-paste-why'
-                : 'muted'
-            }
-          >
-            {sub}
-          </span>
-        )}
-        {extra.map((line) => (
-          <span className="place-paste-set" key={line}>
-            {line}
-          </span>
-        ))}
-      </span>
-      {!dateFormOpen && (
-        <span className="outing-chip">
-          <DateChip entry={entry} />
-        </span>
-      )}
-      {!dateFormOpen && <span className="place-result-act">{acts}</span>}
-      {form && (
-        <div
-          className="place-form"
-          id={`paste-form-${entry.id}`}
-          role="group"
-          aria-label={words.fixFor(title)}
-        >
-          {form}
-        </div>
-      )}
-    </li>
-  )
-}
-
 /**
  * One row of the review list (the mockup's `rowA`): the place's name and
  * what is known of it, a mark or a one-line summary, the row's button, and,
@@ -469,9 +244,6 @@ function OutingRow({
  * @param {() => void} props.onPutBack
  * @param {boolean} [props.canRetry] No walk is running, so a line still waiting
  *   offers Try again.
- * @param {string} [props.refusal] What the last commit said of this outing.
- * @param {(text: string) => void} [props.onFixDate] A past outing's date words.
- * @param {(skip: boolean) => void} [props.onSkip] Leave a past outing out, or put it back.
  */
 export default function PasteRow({
   entry,
@@ -489,32 +261,7 @@ export default function PasteRow({
   onLeaveOut,
   onPutBack,
   canRetry = false,
-  refusal = '',
-  onFixDate,
-  onSkip,
 }) {
-  if (isOuting(entry)) {
-    return (
-      <OutingRow
-        entry={entry}
-        kind={kind}
-        open={open}
-        busy={busy}
-        values={values}
-        cities={cities}
-        refusal={refusal}
-        canRetry={canRetry}
-        onToggle={onToggle}
-        onValues={onValues}
-        onPick={onPick}
-        onSearch={onSearch}
-        onNameIt={onNameIt}
-        onRetry={onRetry}
-        onFixDate={onFixDate}
-        onSkip={onSkip}
-      />
-    )
-  }
   const title = nameOf(entry)
   const toCheck = !['ready', 'saved', 'same', 'wait'].includes(kind)
   let sub = ''

@@ -81,24 +81,6 @@ class RecentVisitOut(BaseModel):
     visited_on: str
 
 
-class AskOut(BaseModel):
-    """One "Did you go?" prompt: a saved slot whose day has passed."""
-
-    week: str
-    slot: str
-    spot_id: str
-    spot_name: str
-    neighbourhood: str | None
-    day: str
-    slot_label: str
-
-
-class DidntOut(BaseModel):
-    """`POST /plan/didnt`: the asks still open."""
-
-    asks: list[AskOut]
-
-
 class PlanOut(BaseModel):
     """`GET /plan`. `days` is the planner's own structure; `weather` is the
     stored last-run summary."""
@@ -111,16 +93,14 @@ class PlanOut(BaseModel):
     skips: list[SkippedSpotOut]
     weather: dict[str, Any] | None
     recent_visits: list[RecentVisitOut]
-    asks: list[AskOut]
     seed: int
 
 
 class WeekOut(BaseModel):
     """The week's answers (`plan:<iso-week>`): slot to spot id, slot to day,
-    the skipped spot ids and the slots answered "Didn't". Values come from a
-    stored row, so they stay open."""
+    and the skipped spot ids. Values come from a stored row, so they stay
+    open."""
 
     saved: dict[str, Any]
     days: dict[str, Any]
     skips: list[Any]
-    didnt: list[Any]

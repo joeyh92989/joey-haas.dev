@@ -66,12 +66,10 @@ from comics import (
 )
 from comics_routes import got_issues
 from formats import CopyFieldError
-from intake import place_kind
 from intake.comic_books import BookEditError, typed_books
 from intake.kinds import REGISTRY, Kind
 from intake.link_import import entry_key as link_key
 from intake.link_import import is_link
-from intake.outing_dates import DateRead, read_date
 from intake.place_kind import (
     DEFAULT_CITY,
     EDITABLE,
@@ -79,7 +77,7 @@ from intake.place_kind import (
     clean_fields,
     clean_name,
     clean_position,
-    match_owned,
+    owned_spot_id,
 )
 from intake.seed_import import imported_keys, take_summary
 from intake.volume_plan import (
@@ -119,11 +117,9 @@ from models import (
     Item,
     ItemStatus,
     ItemType,
-    OutingPrecision,
     Spot,
-    Visit,
 )
-from spots_routes import VisitIn, build_spot, build_visit
+from spots_routes import build_spot
 
 S = IntakeEntryState
 WRITTEN = frozenset({S.EXACT, S.READY, S.TYPED})
@@ -270,17 +266,6 @@ class PlaceWrite:
     new: list[dict[str, str]] = field(default_factory=list)
     owned: list[dict[str, str]] = field(default_factory=list)
     refused: list["Refusal"] = field(default_factory=list)
-    # Entry id -> the spot it landed on (new or already owned), for outings.
-    spot_ids: dict[uuid.UUID, uuid.UUID] = field(default_factory=dict)
-
-
-OUTING_DATE_UNREAD = "Read this outing's date before it is added"
-
-
-def outing_of(entry: IntakeEntry) -> dict[str, Any] | None:
-    """The past outing a place entry carries (story #350), else None."""
-    outing = (entry.payload or {}).get("outing")
-    return outing if entry.kind == "place" and isinstance(outing, dict) else None
 
 
 def _place_fields(entry: IntakeEntry) -> dict[str, Any] | "Refusal":
@@ -347,32 +332,17 @@ async def write_places(session: AsyncSession, entries: list[IntakeEntry]) -> Pla
     if result.refused or not made:
         return result
     await lock_place_commits(session)
-    # The spots are read once, under the lock, and the ones this loop writes
-    # are added to the list, so a place two entries share is made once.
-    known = list((await session.scalars(select(Spot))).all())
-    made_here: set[uuid.UUID] = set()
     for entry, fields in made:
-        stored = (entry.payload or {}).get("owned_spot_id")
-        spot = None
-        if entry.state is IntakeEntryState.OWNED and stored:
-            # An owned entry names its spot; a rename or a move since the
-            # paste must not make the commit write a second place.
-            spot = next((s for s in known if str(s.id) == str(stored)), None)
-        if spot is None:
-            spot = match_owned(
-                known,
-                source_id=fields["source_id"],
-                name=fields["name"],
-                lat=fields["lat"],
-                lng=fields["lng"],
-            )
-        if spot is not None:
-            # Two outings of one new place: it is new once and the second entry
-            # reuses it. A plain place paste keeps its older count (the second
-            # identical line is "already owned").
-            if spot.id not in made_here or outing_of(entry) is None:
-                result.owned.append({"id": str(spot.id), "name": spot.name})
-            result.spot_ids[entry.id] = spot.id
+        owned = await owned_spot_id(
+            session,
+            source_id=fields["source_id"],
+            name=fields["name"],
+            lat=fields["lat"],
+            lng=fields["lng"],
+        )
+        if owned:
+            spot = await session.get(Spot, uuid.UUID(owned))
+            result.owned.append({"id": owned, "name": spot.name if spot else ""})
             continue
         try:
             spot = await build_spot(session, **fields)
@@ -388,90 +358,7 @@ async def write_places(session: AsyncSession, entries: list[IntakeEntry]) -> Pla
             )
             return result
         result.new.append({"id": str(spot.id), "name": spot.name})
-        result.spot_ids[entry.id] = spot.id
-        made_here.add(spot.id)
-        known.append(spot)
     return result
-
-
-async def write_outings(
-    session: AsyncSession,
-    entries: list[IntakeEntry],
-    reads: dict[uuid.UUID, DateRead],
-    spot_ids: dict[uuid.UUID, uuid.UUID],
-) -> tuple[int, int, list["Refusal"]]:
-    """One Visit per outing entry, on the spot its place landed on, through
-    `build_visit` (the one check the outing routes share). The period comes
-    from `reads` (the server's own reading of the stored date words), never
-    from a stored `visited_on`. No title, verdict, kid_along or note at paste
-    time.
-
-    Runs under the place-commit lock, so the repeat check here is final: one
-    query reads the stored outings of the spots involved, and an outing whose
-    spot, period start and precision match a stored visit (logged since the
-    paste, or by another sitting) or an earlier outing of this commit is
-    skipped and counted, unless the owner chose "Add anyway" for it
-    (`duplicate_of` is that visit, or `repeat_of` is set). Adds to the session
-    only; a refusal means the caller rolls back.
-
-    Returns `(written, skipped, refusals)`."""
-    wanted = {spot_ids[e.id] for e in entries if e.id in reads and e.id in spot_ids}
-    stored: dict[tuple[str, str, str], str] = {}
-    if wanted:
-        rows = await session.execute(
-            select(Visit.id, Visit.spot_id, Visit.visited_on, Visit.precision)
-            .where(Visit.spot_id.in_(wanted))
-            .order_by(Visit.created_at, Visit.id)
-        )
-        for visit_id, spot_id, visited_on, precision in rows:
-            stored.setdefault(
-                (str(spot_id), visited_on.isoformat(), precision.value), str(visit_id)
-            )
-    written, skipped, refused = 0, 0, []
-    seen: set[tuple[str, str, str]] = set()
-    keys = {
-        e.id: (
-            str(spot_ids[e.id]),
-            reads[e.id].visited_on.isoformat(),
-            reads[e.id].precision,
-        )
-        for e in entries
-        if e.id in reads and e.id in spot_ids
-    }
-    for entry in entries:
-        read = reads.get(entry.id)
-        spot_id = spot_ids.get(entry.id)
-        if read is None or spot_id is None:
-            continue
-        outing = outing_of(entry) or {}
-        key = (str(spot_id), read.visited_on.isoformat(), read.precision)
-        if key in stored:
-            chosen = outing.get("duplicate_of") == stored[key]
-        else:
-            # Add anyway on a repeat names an entry of this commit that has
-            # the same period; a stale `repeat_of` (the date changed) is not it.
-            named = str(outing.get("repeat_of") or "")
-            chosen = key not in seen or any(
-                str(other) == named and keys[other] == key for other in keys
-            )
-        if not chosen:
-            skipped += 1
-            continue
-        try:
-            visit = build_visit(
-                VisitIn(
-                    visited_on=read.visited_on,
-                    precision=OutingPrecision(read.precision),
-                )
-            )
-        except HTTPException as error:
-            refused.append(Refusal(entry.id, "date", str(error.detail)))
-            continue
-        visit.spot_id = spot_id
-        session.add(visit)
-        seen.add(key)
-        written += 1
-    return written, skipped, refused
 
 
 @dataclass
@@ -501,11 +388,6 @@ class SittingCommit:
     # Places: the private spots made, and the ones already owned ({id, name}).
     spots_new: list[dict[str, str]] = field(default_factory=list)
     spots_owned: list[dict[str, str]] = field(default_factory=list)
-    # Past outings written (story #350); in the answer only when above zero.
-    outings_new: int = 0
-    # Outings left unwritten at the commit because the period was already
-    # logged (since the paste, or earlier in this commit); only above zero.
-    outings_skipped: int = 0
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer. `spots_new` and `spots_owned` appear only when
@@ -513,12 +395,6 @@ class SittingCommit:
         answer is exactly what it was."""
         return {
             **spot_answer(self.spots_new, self.spots_owned),
-            **({"outings_new": self.outings_new} if self.outings_new else {}),
-            **(
-                {"outings_skipped": self.outings_skipped}
-                if self.outings_skipped
-                else {}
-            ),
             "series_new": self.series_new,
             "volumes_new": self.volumes_new,
             "titles_created": self.titles_created,
@@ -1305,8 +1181,8 @@ async def commit_sitting(
     # A comic series is settled with the sitting's other issues of it below.
     owned_keys: set[tuple[str, str]] = set()
     for entry in entries:
-        if entry.state is not S.OWNED or outing_of(entry) is not None:
-            continue  # an owned outing is written (or skipped) below, not counted here
+        if entry.state is not S.OWNED:
+            continue
         kind = REGISTRY.get(entry.kind)
         key = _key(shelf_row(kind, _placed(kind, entry))) if kind else None
         if key is not None and _is_comic(kind):
@@ -1354,8 +1230,6 @@ async def commit_sitting(
     imported = await imported_keys(session, seed_sources)
     seed_seen: set[str] = set()
     place_entries: list[IntakeEntry] = []
-    outing_reads: dict[uuid.UUID, DateRead] = {}
-    owner_day = place_kind.owner_today()
     now = datetime.now(UTC)
     seen: set[tuple[str, str]] = set()
     series: dict[tuple[str, str], _Series] = {}
@@ -1363,8 +1237,7 @@ async def commit_sitting(
     for entry in entries:
         kind = REGISTRY.get(entry.kind)
         owned_comic = entry.state is S.OWNED and _is_comic(kind)
-        owned_outing = entry.state is S.OWNED and outing_of(entry) is not None
-        if entry.state not in WRITTEN and not owned_comic and not owned_outing:
+        if entry.state not in WRITTEN and not owned_comic:
             continue
         if kind is None:
             outcome.refused.append(
@@ -1372,19 +1245,6 @@ async def commit_sitting(
             )
             continue
         if kind.area is IntakeArea.PLACES:
-            outing = outing_of(entry)
-            if outing is not None:
-                if outing.get("skip"):
-                    continue  # left out or already logged: nothing is written
-                # The server reads the stored words again; a stored
-                # `visited_on` is never trusted.
-                read = read_date(outing.get("date_text"), owner_day)
-                if read is None:
-                    outcome.refused.append(
-                        Refusal(entry.id, "date", OUTING_DATE_UNREAD)
-                    )
-                    continue
-                outing_reads[entry.id] = read
             place_entries.append(entry)
             continue
         if kind.area is IntakeArea.CLOSET:
@@ -1575,12 +1435,6 @@ async def commit_sitting(
             return outcome
         outcome.spots_new, outcome.spots_owned = placed.new, placed.owned
         outcome.already_owned += len(placed.owned)
-        outcome.outings_new, outcome.outings_skipped, bad = await write_outings(
-            session, place_entries, outing_reads, placed.spot_ids
-        )
-        outcome.refused.extend(bad)
-        if outcome.refused:
-            return outcome
     # A title for each group of books with no title to reuse, made one by
     # one so each is known by the id it was given, never by its name.
     loose_made: list[uuid.UUID] = []

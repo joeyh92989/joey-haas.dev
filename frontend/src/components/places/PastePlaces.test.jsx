@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../../lib/axe.test-util.js'
-import { callsTo, entryId, fakePaste, hit } from './pasteFake.test-util.js'
+import { callsTo, fakePaste, hit } from './pasteFake.test-util.js'
 import PastePlaces from './PastePlaces.jsx'
 
 const GOOGLE =
@@ -451,7 +451,7 @@ describe('PastePlaces: the lookup queue', () => {
     await addLines(NAMES.slice(0, 3).join('\n'))
     await lookedUp()
     expect(
-      resolves(calls).filter((c) => c.url.includes(entryId(2))),
+      resolves(calls).filter((c) => c.url.includes('entry-2')),
     ).toHaveLength(2)
     expect(
       within(list('To check')).getByText('Search did not answer.'),

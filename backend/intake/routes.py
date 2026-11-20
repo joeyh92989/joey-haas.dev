@@ -66,7 +66,6 @@ from intake.link_import import (
     merge_edit,
 )
 from intake.nightly import LAST_RUN_KEY, run_nightly
-from intake.outing_dates import label_for
 from intake.place_kind import (
     DEFAULT_CITY,
     clean_chosen,
@@ -77,7 +76,7 @@ from intake.place_kind import (
     not_ready_reason,
     owned_spot_id,
 )
-from intake.place_paste import BUSY, claim_entry, edit_outing, register_paste_routes
+from intake.place_paste import BUSY, claim_entry, register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -232,10 +231,6 @@ class EntryPatch(BaseModel):
     payload: dict[str, Any] | None = None
     state: IntakeEntryState | None = None
     chosen: dict[str, Any] | None = None
-    # A past outing's two owner edits (story #350). The words are re-read on
-    # the server; `visited_on` and `precision` are never taken from the client.
-    outing_date_text: str | None = Field(default=None, max_length=100)
-    outing_skip: bool | None = None
 
     @field_validator("payload")
     @classmethod
@@ -252,24 +247,6 @@ def photo_json(photo: IntakePhoto) -> dict[str, Any]:
         "state": photo.state.value,
         "filename": photo.filename,
         "error": photo.error,
-    }
-
-
-def outing_json(outing: dict[str, Any]) -> dict[str, Any]:
-    """A past outing as the page shows it: the date words, `label` (by
-    precision; null when the date was not read), what was read, and the flags."""
-    visited_on, precision = outing.get("visited_on"), outing.get("precision")
-    label = None
-    if visited_on and precision:
-        label = label_for(date.fromisoformat(visited_on), precision)
-    return {
-        "date_text": outing.get("date_text"),
-        "label": label,
-        "visited_on": visited_on,
-        "precision": precision,
-        "skip": bool(outing.get("skip")),
-        "duplicate_of": outing.get("duplicate_of"),
-        "repeat_of": outing.get("repeat_of"),
     }
 
 
@@ -296,9 +273,6 @@ def entry_json(
         "garment_id": str(entry.garment_id) if entry.garment_id else None,
         "on_shelf": on_shelf,
     }
-    outing = (entry.payload or {}).get("outing")
-    if entry.kind == "place" and isinstance(outing, dict):
-        shown["outing"] = outing_json(outing)
     if entry.kind == "comic":
         shown["number_check"] = number_check(entry.payload, entry.chosen, on_shelf)
         shown.update(adds or {})
@@ -951,7 +925,6 @@ def create_intake_router(
         if outcome.refused:
             await session.rollback()
             outcome.spots_new, outcome.spots_owned = [], []  # nothing was written
-            outcome.outings_new = outcome.outings_skipped = 0
             count = len(outcome.refused)
             return JSONResponse(
                 status_code=422,
@@ -989,15 +962,7 @@ def create_intake_router(
             # them (409), so a stale copy never overwrites its answer.
             entry = await claim_entry(session, entry_id, BUSY)
         want_state: IntakeEntryState | None = None
-        if "outing_skip" in body.model_fields_set and body.outing_skip is None:
-            raise HTTPException(422, "outing_skip must be true or false")
-        if entry.kind != "place" and (
-            body.model_fields_set & {"outing_date_text", "outing_skip"}
-        ):
-            raise HTTPException(422, "Only a place entry has an outing")
         for field in body.model_fields_set:
-            if field in ("outing_date_text", "outing_skip"):
-                continue  # applied below, once the payload edit is in
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
@@ -1034,14 +999,6 @@ def create_intake_router(
                         422, {"message": str(error), "field": error.field}
                     ) from error
             setattr(entry, field, value)
-        if body.model_fields_set & {"outing_date_text", "outing_skip"}:
-            await edit_outing(
-                session,
-                entry,
-                date_text=body.outing_date_text,
-                set_date="outing_date_text" in body.model_fields_set,
-                skip=body.outing_skip,
-            )
         if want_state is not None:
             # The owner pressing Save is the confirmation; READY still needs
             # a name and a position, read from the stored payload.

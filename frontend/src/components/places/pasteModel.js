@@ -15,13 +15,8 @@ export const MAX_LINES = 200
 /** Groups in the order the page draws them. */
 export const GROUPS = ['check', 'ready', 'wait', 'saved', 'same']
 
-/** Groups of a Past outings list, in the order the page draws them. */
-export const OUTING_GROUPS = ['check', 'ready', 'wait', 'logged', 'out']
-
 /** The kinds of row a to-check entry can be, by what it carries. */
 const CHECK_KINDS = new Set([
-  'date',
-  'refused',
   'several',
   'unusable',
   'coords',
@@ -96,8 +91,6 @@ export function kindOf(entry, failedIds, leftOut) {
 /** The group a kind is listed under. */
 export function groupOf(kind) {
   if (kind === 'ready') return 'ready'
-  if (kind === 'logged') return 'logged'
-  if (kind === 'out') return 'out'
   if (kind === 'saved') return 'saved'
   if (kind === 'same') return 'same'
   if (kind === 'wait') return 'wait'
@@ -177,54 +170,8 @@ export function nextWaiting(entries, skip) {
   let best = null
   for (const entry of entries) {
     if (entry.state !== 'reading' || skip.has(entry.id)) continue
-    // A line left out or already logged is not worth a search.
-    if (entry.outing?.skip) continue
     const tries = entry.payload?.attempts ?? 0
     if (!best || tries < (best.payload?.attempts ?? 0)) best = entry
   }
   return best
 }
-
-/** Whether an entry is a pasted past outing (the server sends `outing`). */
-export const isOuting = (entry) =>
-  entry.outing != null && typeof entry.outing === 'object'
-
-/**
- * What an outing entry is on the page. Left out wins (an outing skipped
- * because it is already logged is `logged`, any other `out`); then a date the
- * server could not read is `date`, then a row the last commit refused
- * (`refusedIds`); a saved or found place is `ready`; the rest is the place's
- * own kind (waiting, several, none...), told as for a place paste.
- *
- * @param {object} entry The server's entry, with its `outing`.
- * @param {Set<string>} failedIds
- * @param {Set<string>} refusedIds
- * @returns {string}
- */
-export function outingKindOf(entry, failedIds, refusedIds) {
-  const { skip, duplicate_of, repeat_of, visited_on: day } = entry.outing
-  if (skip) return duplicate_of || repeat_of ? 'logged' : 'out'
-  if (!day) return 'date'
-  if (refusedIds.has(entry.id)) return 'refused'
-  if (entry.state === 'ready' || entry.state === 'owned') return 'ready'
-  // A place the sitting already has (ignored) is never an outing's state;
-  // treat it as left out rather than let it name a group the list lacks.
-  if (entry.state === 'ignored') return 'out'
-  return kindOf(entry, failedIds, new Set())
-}
-
-/** The group of an outing row: one of OUTING_GROUPS, whatever the kind (an
- *  unknown one is listed under Left out, never dropped or thrown on). */
-export function outingGroupOf(kind) {
-  const group = groupOf(kind)
-  return OUTING_GROUPS.includes(group) ? group : 'out'
-}
-
-/** The date chip's words: the label, and how exact it is (day, month, year). */
-export function chipOf(entry) {
-  const { label, precision } = entry.outing
-  return label ? { label, precision } : null
-}
-
-/** The cities a Past outings paste offers: Denver, then the others. */
-export const cityOptions = (cities) => [HOME_CITY, ...cities]

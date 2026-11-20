@@ -27,20 +27,6 @@ TAGS: tuple[str, ...] = (
     "kid-ok",
     "rainy-day",
     "bike-friendly",
-    "cinema",
-    "theatre",
-    "ice-cream",
-    "brewery",
-    "zoo",
-    "aquarium",
-    "mini-golf",
-    "bowling",
-    "arcade",
-    "climbing",
-    "ice-rink",
-    "pool",
-    "nature-reserve",
-    "trailhead",
 )
 
 # Straight-line miles from the nearest anchor, never a routed time. Each band

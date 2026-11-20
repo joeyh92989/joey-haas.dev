@@ -14,7 +14,6 @@ import logging
 import math
 import re
 from collections.abc import Callable
-from datetime import date, datetime
 from typing import Any
 
 import httpx2
@@ -25,7 +24,6 @@ import spots
 from intake.kinds import FieldSpec, Kind, KindSearch, register
 from intake.kinds import select as options
 from models import CandidateSource, IntakeArea, IntakeEntryState, Spot
-from public import OWNER_TZ
 from spot_sources import nominatim
 from spot_sources.dedupe import same_place
 from spot_sources.map_links import clean_line
@@ -37,13 +35,6 @@ ATTRIBUTION = "Search by OpenStreetMap contributors"
 DEFAULT_CITY = spots.DENVER
 # Builds the client a search uses; tests swap it.
 http_client: Callable[[], httpx2.AsyncClient] = httpx2.AsyncClient
-
-
-def owner_today() -> date:
-    """The owner's Denver day: the one clock read of the outing paste and its
-    commit (the date rules themselves take `today` as an argument). A test
-    freezes it by patching this function."""
-    return datetime.now(OWNER_TZ).date()
 
 
 def mark_for_count(count: int) -> IntakeEntryState:
@@ -282,20 +273,6 @@ class _Point:
 
     def __init__(self, name: str, lat: float, lng: float) -> None:
         self.name, self.lat, self.lng = name, lat, lng
-
-
-def match_owned(
-    spots: list[Spot], *, source_id: str | None, name: str, lat: float, lng: float
-) -> Spot | None:
-    """The spot of `spots` this place already is (same OSM `source_id`, else
-    the same name within `SAME_PLACE_METRES`): the rule of `owned_spot_id`
-    over spots already loaded, so a loop loads them once."""
-    if source_id:
-        for spot in spots:
-            if spot.source == CandidateSource.OSM and spot.source_id == source_id:
-                return spot
-    here = _Point(name, lat, lng)
-    return next((spot for spot in spots if same_place(here, spot)), None)
 
 
 async def owned_spot_id(

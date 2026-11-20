@@ -13,120 +13,7 @@ import { vi } from 'vitest'
  * candidate, ready needing a position and a name, commit writing only the
  * ready entries and keeping check and reading ones, deleting the sitting
  * when none is kept.
- *
- * Past outings (story #350): a paste with `outings: true` splits each line
- * into a place and a date as `outing_dates.py` does (the leftmost comma whose
- * rest reads as a date), stores `payload.outing` and serves `outing` on every
- * entry; a place already saved with an outing of the same period start and
- * precision is flagged `duplicate_of` and skipped; PATCH takes
- * `outing_date_text` (re-read here) and `outing_skip`, and ignores any
- * `visited_on` or `precision` sent; the commit refuses an unread date (422,
- * `refused` with the entry id, nothing written), skips what is skipped, and
- * answers `outings_new`.
  */
-
-/** The id the server gives an entry (a UUID). */
-export const entryId = (n) =>
-  `0e000000-0000-4000-8000-${String(n).padStart(12, '0')}`
-
-/** The id the server gives a spot (a UUID). */
-export const spotId = (n) =>
-  `5b000000-0000-4000-8000-${String(n).padStart(12, '0')}`
-
-const MONTHS = [
-  'january',
-  'february',
-  'march',
-  'april',
-  'may',
-  'june',
-  'july',
-  'august',
-  'september',
-  'october',
-  'november',
-  'december',
-]
-const MONTH_NAMES = Object.fromEntries(
-  MONTHS.flatMap((name, at) => [
-    [name, at + 1],
-    [name.slice(0, 3), at + 1],
-  ]),
-)
-const monthWord = (word) => MONTH_NAMES[word.replace(/\.$/, '')]
-const pad = (n) => String(n).padStart(2, '0')
-const LABEL_MONTHS = MONTHS.map((m) => m[0].toUpperCase() + m.slice(1))
-
-/** `outing_dates.read_date`, for the forms the tests use: ISO, a year, and
- *  English month names. `today` is the frozen owner's day (ISO text). */
-export function readDate(text, today = '2026-11-19') {
-  const words = String(text ?? '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-  if (!words || words.length > 40) return null
-  let year
-  let month
-  let day = null
-  let precision
-  let m
-  if ((m = words.match(/^(\d{4})-(\d{2})-(\d{2})$/))) {
-    ;[year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])]
-    precision = 'day'
-  } else if ((m = words.match(/^(\d{4})-(\d{2})$/))) {
-    ;[year, month, precision] = [Number(m[1]), Number(m[2]), 'month']
-  } else if (/^\d{4}$/.test(words)) {
-    ;[year, month, precision] = [Number(words), 1, 'year']
-  } else if (
-    (m = words.match(/^([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/))
-  ) {
-    ;[year, month, day] = [Number(m[3]), monthWord(m[1]), Number(m[2])]
-    precision = 'day'
-  } else if (
-    (m = words.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\.?,?\s+(\d{4})$/))
-  ) {
-    ;[year, month, day] = [Number(m[3]), monthWord(m[2]), Number(m[1])]
-    precision = 'day'
-  } else if ((m = words.match(/^([a-z]+)\.?,?\s+(\d{4})$/))) {
-    ;[year, month, precision] = [Number(m[2]), monthWord(m[1]), 'month']
-  } else return null
-  if (!month || year < 1950) return null
-  const probe = new Date(Date.UTC(year, month - 1, day ?? 1))
-  if (probe.getUTCMonth() !== month - 1) return null
-  const start =
-    precision === 'year'
-      ? `${year}-01-01`
-      : `${year}-${pad(month)}-${pad(day ?? 1)}`
-  const limit = new Date(`${today}T00:00:00Z`)
-  limit.setUTCDate(limit.getUTCDate() + 1)
-  if (new Date(`${start}T00:00:00Z`) > limit) return null
-  return { visited_on: start, precision }
-}
-
-/** `outing_dates.split_outing_line`. */
-export function splitOutingLine(line, today) {
-  const text = line.trim()
-  const commas = [...text].flatMap((c, at) => (c === ',' ? [at] : []))
-  for (const at of commas) {
-    const place = text.slice(0, at).trim()
-    const rest = text.slice(at + 1).trim()
-    if (place && readDate(rest, today)) return [place, rest]
-  }
-  if (commas.length) {
-    const at = commas[commas.length - 1]
-    const place = text.slice(0, at).trim()
-    if (place) return [place, text.slice(at + 1).trim() || null]
-  }
-  return [text, null]
-}
-
-/** The words of a stored period (`outing_dates.label_for`). */
-const labelOf = (visitedOn, precision) => {
-  const [y, mo, d] = visitedOn.split('-').map(Number)
-  if (precision === 'year') return String(y)
-  if (precision === 'month') return `${LABEL_MONTHS[mo - 1]} ${y}`
-  return `${LABEL_MONTHS[mo - 1]} ${d}, ${y}`
-}
 
 const json = (body, status = 200) =>
   Promise.resolve({
@@ -278,15 +165,12 @@ export function fakePaste(options = {}) {
     spots = [],
     refuse = null,
     nothing = false,
-    today = '2026-11-19',
-    refuseOutings = [],
   } = options
   const calls = []
   const sittings = new Map()
   let sittingN = 0
   let entryN = 0
   let spotN = spots.length
-  let visitN = 0
   let inflight = 0
   const stats = { maxInflight: 0, resolves: [] }
   const failsLeft = { ...fails }
@@ -303,60 +187,17 @@ export function fakePaste(options = {}) {
     })
   }
 
-  const entryJson = (e) => {
-    const outing = e.payload.outing
-    return {
-      id: e.id,
-      photo_id: null,
-      kind: 'place',
-      state: e.state,
-      payload: e.payload,
-      candidates: [],
-      chosen: e.chosen ?? null,
-      garment_id: null,
-      on_shelf: null,
-      ...(outing && {
-        outing: {
-          date_text: outing.date_text,
-          label: outing.visited_on
-            ? labelOf(outing.visited_on, outing.precision)
-            : null,
-          visited_on: outing.visited_on,
-          precision: outing.precision,
-          skip: outing.skip,
-          duplicate_of: outing.duplicate_of ?? null,
-          repeat_of: outing.repeat_of ?? null,
-        },
-      }),
-    }
-  }
-
-  /** `place_paste.flag_duplicates` for one entry: a stored outing of the
-   *  entry's spot with the same period start and precision. A newly found
-   *  repeat is skipped; one found again keeps the owner's answer. */
-  function flagDuplicate(entry) {
-    const outing = entry.payload.outing
-    if (!outing) return
-    const spot = spots.find((s) => s.id === entry.payload.owned_spot_id)
-    const found =
-      spot && outing.visited_on
-        ? (spot.outings ?? []).find(
-            (o) =>
-              o.visited_on === outing.visited_on &&
-              o.precision === outing.precision,
-          )
-        : null
-    const before = outing.duplicate_of
-    const next = { ...outing }
-    if (found) {
-      next.duplicate_of = found.id
-      if (before !== found.id) next.skip = true
-    } else if (before) {
-      delete next.duplicate_of
-      next.skip = false
-    }
-    entry.payload = { ...entry.payload, outing: next }
-  }
+  const entryJson = (e) => ({
+    id: e.id,
+    photo_id: null,
+    kind: 'place',
+    state: e.state,
+    payload: e.payload,
+    candidates: [],
+    chosen: e.chosen ?? null,
+    garment_id: null,
+    on_shelf: null,
+  })
 
   const findEntry = (id) => {
     for (const s of sittings.values()) {
@@ -364,29 +205,6 @@ export function fakePaste(options = {}) {
       if (entry) return { entry, sitting: s }
     }
     return null
-  }
-
-  /** `place_paste.flag_repeats`: a line that repeats an earlier, not skipped
-   *  line of the sitting (same place, period start and precision) is skipped. */
-  function flagRepeat(entry, sitting) {
-    const outing = entry.payload.outing
-    if (!outing?.visited_on) return
-    const who = (e) =>
-      e.payload.owned_spot_id ?? e.chosen?.source_id ?? key(e.payload.name)
-    const earlier = sitting.entries.find(
-      (other) =>
-        other !== entry &&
-        other.payload.outing?.visited_on === outing.visited_on &&
-        other.payload.outing?.precision === outing.precision &&
-        !other.payload.outing?.skip &&
-        who(other) === who(entry),
-    )
-    if (earlier) {
-      entry.payload = {
-        ...entry.payload,
-        outing: { ...outing, repeat_of: earlier.id, skip: true },
-      }
-    }
   }
 
   /** The entry a hit makes (`place_paste._apply_choice`). */
@@ -407,13 +225,13 @@ export function fakePaste(options = {}) {
       lat: row.lat,
       lng: row.lng,
     }
-    const saved = spots.find((spot) => spot.source_id === row.source_id)
-    if (row.owned_spot_id || saved) {
+    if (
+      row.owned_spot_id ||
+      spots.some((spot) => spot.source_id === row.source_id)
+    ) {
       entry.state = 'owned'
       payload.note = 'Already on your list'
-      payload.owned_spot_id = row.owned_spot_id ?? saved.id
     } else if (
-      !payload.outing &&
       // Only entries that will be written count: a place left out (check,
       // with `chosen` kept) does not block its twin.
       sitting.entries.some(
@@ -427,7 +245,6 @@ export function fakePaste(options = {}) {
       payload.note = 'same place as another line'
     } else entry.state = 'ready'
     entry.payload = payload
-    flagDuplicate(entry)
   }
 
   async function resolve(id) {
@@ -514,17 +331,16 @@ export function fakePaste(options = {}) {
     }
   }
 
-  function paste(sitting, text, mode = {}) {
+  function paste(sitting, text) {
     let raw = text.split('\n')
     if (raw.length && raw[raw.length - 1].trim() === '') raw.pop()
     const overLimit = Math.max(0, raw.length - 200)
     raw = raw.slice(0, 200)
     const held = new Set(
-      sitting.entries.flatMap((e) =>
-        mode.outings
-          ? [key(e.payload.source_line ?? '')]
-          : [key(e.payload.source_line ?? ''), key(e.payload.name ?? '')],
-      ),
+      sitting.entries.flatMap((e) => [
+        key(e.payload.source_line ?? ''),
+        key(e.payload.name ?? ''),
+      ]),
     )
     let blank = 0
     let duplicates = 0
@@ -540,24 +356,7 @@ export function fakePaste(options = {}) {
         continue
       }
       held.add(key(line))
-      let { state, payload } = entryFor(
-        mode.outings ? splitOutingLine(line, today)[0] : line,
-      )
-      if (mode.outings) {
-        const [, dateText] = splitOutingLine(line, today)
-        const read = readDate(dateText, today)
-        payload = {
-          ...payload,
-          source_line: line.slice(0, 300),
-          city: (mode.city ?? 'denver').toLowerCase(),
-          outing: {
-            date_text: dateText,
-            visited_on: read?.visited_on ?? null,
-            precision: read?.precision ?? null,
-            skip: false,
-          },
-        }
-      }
+      let { state, payload } = entryFor(line)
       // Saved already, by name within 75 m (`flag_owned` at paste).
       const owned =
         ['ready', 'check'].includes(state) && payload.lat != null
@@ -576,9 +375,7 @@ export function fakePaste(options = {}) {
           note: 'Already on your list',
         }
       }
-      const entry = { id: entryId(++entryN), state, payload, chosen: null }
-      flagDuplicate(entry)
-      if (mode.outings) flagRepeat(entry, sitting)
+      const entry = { id: `entry-${++entryN}`, state, payload, chosen: null }
       sitting.entries.push(entry)
       made.push(entry)
     }
@@ -592,87 +389,8 @@ export function fakePaste(options = {}) {
     }
   }
 
-  /** The commit of a sitting of past outings (`commit.py`): one outing per
-   *  ready or owned entry that is not skipped, all or nothing. */
-  function commitOutings(sitting) {
-    const kept = sitting.entries.filter((e) =>
-      ['check', 'reading'].includes(e.state),
-    )
-    if (kept.length === sitting.entries.length && kept.length) {
-      return json({ detail: 'Nothing to add' }, 409)
-    }
-    const writing = sitting.entries.filter(
-      (e) => ['ready', 'owned'].includes(e.state) && !e.payload.outing?.skip,
-    )
-    const refused = writing.flatMap((e) => {
-      const read = readDate(e.payload.outing?.date_text, today)
-      if (!read) {
-        return [
-          {
-            entry_id: e.id,
-            field: 'date',
-            message: "Read this outing's date before it is added",
-          },
-        ]
-      }
-      return refuseOutings.includes(e.payload.name)
-        ? [
-            {
-              entry_id: e.id,
-              field: null,
-              message: 'Another spot took that name',
-            },
-          ]
-        : []
-    })
-    if (refused.length) {
-      return json(
-        {
-          detail: `${refused.length} to fix before anything is added`,
-          refused,
-          added: 0,
-          already_owned: 0,
-          skipped_kept: kept.length,
-        },
-        422,
-      )
-    }
-    const fresh = []
-    let outings = 0
-    for (const e of writing) {
-      const read = readDate(e.payload.outing.date_text, today)
-      let spot = spots.find(
-        (s) => s.id === e.payload.owned_spot_id || s.name === e.payload.name,
-      )
-      if (!spot) {
-        spotN += 1
-        spot = { id: spotId(spotN), name: e.payload.name, outings: [] }
-        spots.push(spot)
-        fresh.push({ id: spot.id, name: spot.name })
-      }
-      spot.outings = [
-        ...(spot.outings ?? []),
-        { id: `visit-${++visitN}`, ...read },
-      ]
-      outings += 1
-    }
-    sitting.entries = kept
-    if (!kept.length) sittings.delete(sitting.id)
-    return json({
-      added: fresh.length,
-      spots_new: fresh,
-      spots_owned: [],
-      skipped_kept: kept.length,
-      refused: [],
-      ...(outings && { outings_new: outings }),
-    })
-  }
-
   function commit(sitting) {
     if (nothing) return json({ detail: 'Nothing to add' }, 409)
-    if (sitting.entries.some((e) => e.payload.outing)) {
-      return commitOutings(sitting)
-    }
     const ready = sitting.entries.filter((e) => e.state === 'ready')
     const kept = sitting.entries.filter((e) =>
       ['check', 'reading'].includes(e.state),
@@ -703,8 +421,8 @@ export function fakePaste(options = {}) {
     }
     const fresh = ready.map((e) => {
       spotN += 1
-      spots.push({ id: spotId(spotN), name: e.payload.name, ...e.payload })
-      return { id: spotId(spotN), name: e.payload.name }
+      spots.push({ id: `spot-${spotN}`, name: e.payload.name, ...e.payload })
+      return { id: `spot-${spotN}`, name: e.payload.name }
     })
     sitting.entries = kept
     if (!kept.length) sittings.delete(sitting.id)
@@ -718,24 +436,6 @@ export function fakePaste(options = {}) {
   }
 
   function patch(entry, body) {
-    if ('outing_date_text' in body || 'outing_skip' in body) {
-      if (!entry.payload.outing) {
-        return json({ detail: 'This entry is not a past outing' }, 422)
-      }
-      let outing = { ...entry.payload.outing }
-      if ('outing_date_text' in body) {
-        const read = readDate(body.outing_date_text, today)
-        outing = {
-          ...outing,
-          date_text: body.outing_date_text.trim(),
-          visited_on: read?.visited_on ?? null,
-          precision: read?.precision ?? null,
-        }
-      }
-      if ('outing_skip' in body) outing.skip = body.outing_skip
-      entry.payload = { ...entry.payload, outing }
-      flagDuplicate(entry)
-    }
     if (body.payload) {
       const owner = {}
       for (const k of ['name', 'city', 'tags', 'blurb', 'is_public']) {
@@ -804,11 +504,7 @@ export function fakePaste(options = {}) {
     if (sit) {
       const sitting = sittings.get(sit[1])
       if (!sitting) return json({ detail: 'No such sitting' }, 404)
-      if (sit[2] === '/paste') {
-        return json(
-          paste(sitting, body.text, { outings: body.outings, city: body.city }),
-        )
-      }
+      if (sit[2] === '/paste') return json(paste(sitting, body.text))
       if (sit[2] === '/commit') return commit(sitting)
       if (method === 'DELETE') {
         sittings.delete(sit[1])

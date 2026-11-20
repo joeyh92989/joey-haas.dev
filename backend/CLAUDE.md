@@ -78,26 +78,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   desc, then id desc; `year` is the owner's Denver year with `outings`
   (every precision, by stored period start), distinct `places` and `loved`.
   No pagination. Keep it above any `/{spot_id}` GET; `note` stays admin-only.
-- **Did you go? (story #349, epic #339).** `planner.did_you_go(weeks, visited,
-  now)` is the pure rule: a saved slot is asked when its day is before today
-  (Denver), or is today, a Sunday, at or after `SUNDAY_EVENING_HOUR` (18); a
-  no-day slot takes that weekend's Sunday and is answered by a day visit on
-  either weekend day; a dated slot only by a day visit on its own day; the
-  slot in the row's `didnt` list also answers it; rows older than
-  `LOOK_BACK_WEEKS` (4) are not read. `GET /api/spots/plan` returns `asks`
-  (read through `_asks`, which loads the last four `plan:<week>` rows) and
-  `POST /api/spots/plan/didnt` `{week, slot}` adds the slot to `didnt`
-  (422 malformed week or slot, 404 slot not saved in that row, idempotent;
-  returns the remaining asks). `_week`/`_empty_week` carry `didnt`, so a
-  save, unsave or skip keeps it, except that `_release` and `save` drop the
-  slot they touch from `didnt` (re-saving a slot whose day has passed
-  replaces its open ask, and a new spot in an answered slot is asked): add a new row field in both or `_put`
-  drops it. The router takes an injectable `now` beside `today` and reads the clock once
-  per request (only `today` given means noon on that day). The asks read is
-  bounded: one `SpotSetting.key.in_` select and day visits from the oldest
-  look-back Monday. Admin only;
-  nothing public carries an ask (`test_public_outputs.py` pins it). No
-  migration (JSON in `spot_settings`).
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
@@ -124,26 +104,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   takes an index into the stored list, never a place from the client; lock
   the entry first and the sitting second in a lookup (both `NOWAIT`), since a
   commit takes the sitting and then the entries.
-- **Past outings by paste (story #350, epic #339).** The places paste read a
-  second way: `POST /sittings/{id}/paste` takes `outings: true` and `city`,
-  `intake/outing_dates.py` (pure: `read_date`, `split_outing_line`, `today`
-  passed in) reads each line's date, and the entry carries `payload.outing`.
-  Read `intake/README.md` ("Past outings by paste") first. Rules when editing:
-  never trust a client's `visited_on` or `precision` (entry PATCH takes
-  `outing_date_text` and `outing_skip` only, and the commit reads the stored
-  date words again, so a stored period is never written); the commit refuses an
-  unreadable date as `Refusal(entry, "date")` and the route rolls everything
-  back (the guard test needs a refusal AFTER `write_places`, see
-  `test_a_refusal_after_the_places_are_written_rolls_everything_back`); an
-  already-logged match (same spot, same period start and precision) sets
-  `duplicate_of` and `skip` once and keeps the owner's answer on a re-save;
-  an outing entry is never IGNORED as the same place; no new route (the
-  `/api/spots` count stays 35), no migration, no outbound call beyond the
-  resolve. The clock is `place_kind.owner_today` (patch it in tests).
-  The commit's repeat check is final (`write_outings`, one `visits` query under
-  the place-commit lock, answer `outings_skipped`); paste-time flags
-  (`duplicate_of`, `repeat_of`) are only the page's hint. `write_places` loads
-  the spots once and uses an OWNED entry's stored `owned_spot_id`.
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers

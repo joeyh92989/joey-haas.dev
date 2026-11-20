@@ -54,7 +54,7 @@ async def test_every_route_is_pinned_in_openapi_or_a_listed_204():
             schema = ok.get("content", {}).get("application/json", {}).get("schema")
             if schema in (None, {}) or schema == {"type": "object"}:
                 unpinned.append(f"{method.upper()} {path}")
-    assert seen == 35
+    assert seen == 34
     assert unpinned == []
     assert bodyless == BODYLESS
 
@@ -90,7 +90,7 @@ async def test_the_plan_and_its_answers_keep_their_exact_keys(sessionmaker_for_t
         plan = (await client.get("/api/spots/plan")).json()
         assert set(plan) == {
             "today", "week", "days", "suggestions", "constraints", "skips",
-            "weather", "recent_visits", "asks", "seed",
+            "weather", "recent_visits", "seed",
         }  # fmt: skip
         assert set(plan["constraints"]) == {
             "kid_along", "bike_if_dry", "max_miles", "home_by",
@@ -100,7 +100,7 @@ async def test_the_plan_and_its_answers_keep_their_exact_keys(sessionmaker_for_t
         unsaved = (
             await client.post("/api/spots/plan/unsave", json={"slot_key": "best"})
         ).json()
-        assert unsaved == {"saved": {}, "days": {}, "skips": [], "didnt": []}
+        assert unsaved == {"saved": {}, "days": {}, "skips": []}
 
 
 async def test_a_finder_run_with_no_anchor_leaves_the_rest_out(

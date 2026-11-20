@@ -29,37 +29,6 @@ def test_an_unknown_tag_is_refused_by_name():
         spots.canonical_tags(["coffee", "brunch"])
 
 
-OLD_SIX = ["coffee", "park", "food", "kid-ok", "rainy-day", "bike-friendly"]
-NEW_FOURTEEN = [
-    "cinema", "theatre", "ice-cream", "brewery", "zoo", "aquarium", "mini-golf",
-    "bowling", "arcade", "climbing", "ice-rink", "pool", "nature-reserve",
-    "trailhead",
-]  # fmt: skip
-
-
-def test_the_vocabulary_is_the_old_six_then_the_new_fourteen_in_order():
-    assert list(spots.TAGS) == OLD_SIX + NEW_FOURTEEN
-    assert len(spots.TAGS) == 20
-
-
-@pytest.mark.parametrize("tag", NEW_FOURTEEN)
-def test_every_new_tag_is_accepted(tag):
-    assert spots.canonical_tags([tag.upper()]) == [tag]
-
-
-def test_new_tags_sort_after_the_old_six_whatever_the_input_order():
-    assert spots.canonical_tags(["trailhead", "cinema", "coffee"]) == [
-        "coffee",
-        "cinema",
-        "trailhead",
-    ]
-
-
-def test_an_unknown_tag_is_still_refused_among_new_ones():
-    with pytest.raises(ValueError, match="'brunch'.*cinema"):
-        spots.canonical_tags(["zoo", "brunch"])
-
-
 def test_no_tags_is_allowed():
     assert spots.canonical_tags([]) == []
 

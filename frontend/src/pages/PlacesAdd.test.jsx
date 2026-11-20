@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom'
-import { EXPECTED_TAG_LABELS } from '../tagLabels.fixture.js'
 import {
   fireEvent,
   render,
@@ -275,7 +274,14 @@ describe('PlacesAdd', () => {
       within(form)
         .getAllByRole('button', { pressed: false })
         .map((b) => b.textContent),
-    ).toEqual(EXPECTED_TAG_LABELS)
+    ).toEqual([
+      'Coffee',
+      'Park',
+      'Food',
+      'Kid-OK',
+      'Rainy day',
+      'Bike-friendly',
+    ])
     expect(within(form).getByLabelText('Blurb')).toBeInTheDocument()
     expect(
       within(form).getByLabelText(/Show on the public map/),

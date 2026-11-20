@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { placesAdd } from '../../content/placesAdd.js'
-import { HOME_CITY, cityLabel } from '../../lib/cities.js'
 import { localToday, sittingLabel } from '../../lib/intake.js'
 import { useMediaQuery } from '../../lib/useMediaQuery.js'
 import { PHONE_QUERY } from '../AdminShell.jsx'
@@ -12,26 +11,20 @@ import PasteRow, { rowButtonId, rowFieldId } from './PasteRow.jsx'
 import {
   GROUPS,
   MAX_LINES,
-  OUTING_GROUPS,
   MAX_PASTE_CHARS as MAX_CHARS,
   addressOf,
-  cityOptions,
   countLines,
   fieldsOf,
   groupOf,
-  isOuting,
   isPasted,
   kindOf,
   lineOf,
   nameOf,
   nextWaiting,
-  outingGroupOf,
-  outingKindOf,
 } from './pasteModel.js'
 import { call } from './placeApi.js'
 
 const words = placesAdd.paste
-const ow = words.outings
 
 /** How long a "being looked up" or "being saved" answer waits before its one retry. */
 const RETRY_WAIT_MS = 1000
@@ -43,8 +36,7 @@ const RESUME_LOOK = 5
 
 /** A 409 that clears by itself: another call holds the entry, or a save the list. */
 const isBusyAnswer = (answer) =>
-  answer.status === 409 &&
-  /being looked up|being saved|busy/i.test(answer.message)
+  answer.status === 409 && /being looked up|being saved/i.test(answer.message)
 
 /** The server did not answer, or failed: worth one more go. */
 const isTransient = (answer) => answer.status === 0 || answer.status >= 500
@@ -89,16 +81,8 @@ export default function PastePlaces({ cities }) {
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(null)
   const [written, setWritten] = useState([])
-  // Past outings (story #350): what the lines are, the city of new places
-  // (both travel with the paste), and what the last commit refused.
-  const [mode, setMode] = useState('places') // places | outings
-  const [city, setCity] = useState(HOME_CITY)
-  const [refusedIds, setRefusedIds] = useState(() => new Map())
   const phone = useMediaQuery(PHONE_QUERY)
   const cap = phone ? PHONE_CAP : CAP
-  // Entries on the page decide what the list is (a resumed list has no mode
-  // state); the switch only chooses for the next paste, and is locked then.
-  const outings = entries.length ? entries.some(isOuting) : mode === 'outings'
 
   const alive = useRef(false)
   const sitting = useRef(null) // the sitting's pending request, then {ok, id}
@@ -391,11 +375,7 @@ export default function PastePlaces({ cities }) {
       setZero('')
       const made = await ensureSitting()
       const answer = made.ok
-        ? await call(
-            `/api/intake/sittings/${made.id}/paste`,
-            'POST',
-            outings ? { text, outings: true, city } : { text },
-          )
+        ? await call(`/api/intake/sittings/${made.id}/paste`, 'POST', { text })
         : made
       if (!alive.current) return
       setAdding(false)
@@ -597,96 +577,12 @@ export default function PastePlaces({ cities }) {
     })
   }
 
-  /** An entry PATCH that waits out a lookup holding the row, once. */
-  async function patchEntry(entry, body) {
-    const path = `/api/intake/entries/${entry.id}`
-    let answer = await call(path, 'PATCH', body)
-    if (!answer.ok && isBusyAnswer(answer)) {
-      await sleep(RETRY_WAIT_MS)
-      if (!alive.current) return answer
-      answer = await call(path, 'PATCH', body)
-    }
-    return answer
-  }
-
-  /** A past outing's date words: the server reads them and answers the entry. */
-  function fixDate(entry, text) {
-    return exclusive(async () => {
-      setError('')
-      setBusy(entry.id, true)
-      const answer = await patchEntry(entry, { outing_date_text: text })
-      if (!alive.current) return
-      setBusy(entry.id, false)
-      if (!answer.ok) return setError(answer.message)
-      putEntry(answer.data)
-      forgetRefusal(entry.id)
-      const title = nameOf(answer.data)
-      if (answer.data.outing?.visited_on) {
-        setOpenId(null)
-        setNotice(ow.dateSaved(title, answer.data.outing.label))
-        focusNext.current = { id: rowButtonId(answer.data) }
-      } else {
-        setNotice(ow.dateStill(title))
-        focusNext.current = { id: rowFieldId(answer.data) }
-      }
-    })
-  }
-
-  /** Leave a past outing out, skip it, or put it back (`outing_skip`). */
-  function skipOuting(entry, skip) {
-    return exclusive(async () => {
-      setError('')
-      const answer = await patchEntry(entry, { outing_skip: skip })
-      if (!alive.current) return
-      if (!answer.ok) return setError(answer.message)
-      putEntry(answer.data)
-      forgetRefusal(entry.id)
-      setOpenId(null)
-      const title = nameOf(answer.data)
-      const logged = Boolean(
-        answer.data.outing?.duplicate_of || answer.data.outing?.repeat_of,
-      )
-      if (skip)
-        setNotice(logged ? ow.skippedNotice(title) : ow.leftOutNotice(title))
-      else
-        setNotice(logged ? ow.addAnywayNotice(title) : ow.putBackNotice(title))
-      focusNext.current = { id: rowButtonId(answer.data) }
-    })
-  }
-
-  function forgetRefusal(id) {
-    setRefusedIds((old) => {
-      if (!old.has(id)) return old
-      const next = new Map(old)
-      next.delete(id)
-      return next
-    })
-  }
-
   // ---- save ----
 
   function save() {
     return exclusive(async () => {
-      const outingList = entriesRef.current.some(isOuting)
-      // A past outing is written when its place is ready or saved and it is
-      // neither skipped nor missing a date; the server reads the date again.
-      const ready = entriesRef.current.filter((e) =>
-        outingList
-          ? ['ready', 'owned'].includes(e.state) &&
-            !e.outing?.skip &&
-            e.outing?.visited_on
-          : e.state === 'ready',
-      )
-      // A list whose every remaining line is left out or already logged can
-      // still be closed: the commit writes nothing and clears the list.
-      const closing =
-        outingList &&
-        entriesRef.current.some(
-          (e) => e.outing?.skip && !keepStates.has(e.state),
-        )
-      if (!ready.length && !closing) return
-      // The next Add is a fresh try: what the last one refused is read again.
-      if (outingList) setRefusedIds(new Map())
+      const ready = entriesRef.current.filter((e) => e.state === 'ready')
+      if (!ready.length) return
       setSaving(true)
       setError('')
       const sent = { ...editsRef.current }
@@ -726,26 +622,7 @@ export default function PastePlaces({ cities }) {
         focusNext.current = { id: 'paste-gone-h' }
         return
       }
-      if (!outcome.ok && outingList && outcome.status === 422) {
-        const refused = outcome.data?.refused ?? []
-        setRefusedIds(
-          new Map(
-            refused
-              .filter((r) => typeof r?.entry_id === 'string')
-              .map((r) => [r.entry_id, r.message]),
-          ),
-        )
-        return setError(
-          refused.length ? ow.refused(refused.length) : ow.refusedFallback,
-        )
-      }
-      if (!outcome.ok) {
-        return setError(
-          outcome.message ||
-            (outingList ? ow.commitFailed : words.commitFailed),
-        )
-      }
-      setRefusedIds(new Map())
+      if (!outcome.ok) return setError(outcome.message || words.commitFailed)
       const data = outcome.data
       const fresh = data.spots_new ?? []
       // The commit writes the ready entries in the order sent and leaves out
@@ -767,20 +644,6 @@ export default function PastePlaces({ cities }) {
         }
       })
       const owned = entriesRef.current.filter((e) => e.state === 'owned').length
-      // Only what the commit settled: the lines it cleared, not the ones kept
-      // for later, and the repeats it found itself (`outings_skipped`).
-      const settled = entriesRef.current.filter(
-        (e) => e.outing?.skip && !keepStates.has(e.state),
-      )
-      const logged =
-        settled.filter((e) => e.outing.duplicate_of || e.outing.repeat_of)
-          .length + (data.outings_skipped ?? 0)
-      const left = settled.filter(
-        (e) => !e.outing.duplicate_of && !e.outing.repeat_of,
-      ).length
-      const cityKeys = [
-        ...new Set(ready.map((e) => e.payload?.city ?? HOME_CITY)),
-      ]
       // The commit deletes everything but the lines still to check or look up.
       const kept = entriesRef.current.filter((e) => keepStates.has(e.state))
       if (!(data.skipped_kept > 0)) sitting.current = null
@@ -794,13 +657,6 @@ export default function PastePlaces({ cities }) {
         saved: fresh.length,
         pub: savedNow.filter((s) => s.isPublic).length,
         owned,
-        ...(outingList && {
-          outings: data.outings_new ?? 0,
-          names: fresh.map((spot) => spot.name),
-          city: cityKeys.map(cityLabel).join(', ') || cityLabel(HOME_CITY),
-          logged,
-          left,
-        }),
       })
       setOpenId(null)
       setNotice('')
@@ -821,47 +677,23 @@ export default function PastePlaces({ cities }) {
   // ---- what the page shows ----
 
   const kinds = new Map(
-    entries.map((e) => [
-      e.id,
-      isOuting(e)
-        ? outingKindOf(e, failedIds, refusedIds)
-        : kindOf(e, failedIds, leftOut),
-    ]),
+    entries.map((e) => [e.id, kindOf(e, failedIds, leftOut)]),
   )
-  const groupList = outings ? OUTING_GROUPS : GROUPS
-  const grouped = Object.fromEntries(groupList.map((g) => [g, []]))
+  const grouped = Object.fromEntries(GROUPS.map((g) => [g, []]))
   for (const entry of entries) {
-    const kind = kinds.get(entry.id)
-    const group = outings ? outingGroupOf(kind) : groupOf(kind)
+    const group = groupOf(kinds.get(entry.id))
     if (group) grouped[group].push(entry)
   }
   const ready = grouped.ready.length
   const check = grouped.check.length
-  // A refused row is shown in To check with its reason but does not hold the
-  // Add button: pressing it again is the retry.
-  const refusedRows = outings
-    ? grouped.check.filter((e) => kinds.get(e.id) === 'refused').length
-    : 0
-  const addable = ready + refusedRows
-  const waiting = outings
-    ? grouped.wait.length
-    : entries.filter((e) => e.state === 'reading' && !failedIds.has(e.id))
-        .length
-  const newPlaces = new Set(
-    grouped.ready
-      .filter((e) => e.state === 'ready')
-      .map((e) => e.chosen?.source_id ?? nameOf(e)),
-  ).size
+  const waiting = entries.filter(
+    (e) => e.state === 'reading' && !failedIds.has(e.id),
+  ).length
   const lookups = [...lookupIds]
   const total = lookups.length
   const doneCount = lookups.filter((id) => {
     const entry = entries.find((e) => e.id === id)
-    return (
-      !entry ||
-      entry.state !== 'reading' ||
-      failedIds.has(id) ||
-      entry.outing?.skip
-    )
+    return !entry || entry.state !== 'reading' || failedIds.has(id)
   }).length
   const looking = entries.find(
     (e) => busyIds.has(e.id) && e.state === 'reading',
@@ -877,10 +709,12 @@ export default function PastePlaces({ cities }) {
     const failedRows = grouped.check.filter(
       (e) => kinds.get(e.id) === 'failed',
     ).length
-    const tally = outings
-      ? ow.tally(ready, check, grouped.logged.length, grouped.out.length)
-      : words.tally(ready, check, grouped.saved.length, grouped.same.length)
-    status = `${tally}${failedRows ? ` ${words.failedNotice(failedRows)}` : ''}`
+    status = `${words.tally(
+      ready,
+      check,
+      grouped.saved.length,
+      grouped.same.length,
+    )}${failedRows ? ` ${words.failedNotice(failedRows)}` : ''}`
   }
   // The live region speaks every tenth lookup, a row's result, and the end.
   let spoken = notice
@@ -891,40 +725,16 @@ export default function PastePlaces({ cities }) {
     }
   }
 
-  const held = outings && (check - refusedRows > 0 || waiting > 0)
-  // Closing clears only lines the commit settles: a left-out line still to
-  // check or look up is kept by the server, so it is no reason to close.
-  const closable =
-    outings &&
-    !held &&
-    [...grouped.logged, ...grouped.out].some((e) => !keepStates.has(e.state))
-
   let saveNote = words.saveNotes.allDone
   if (check) saveNote = words.saveNotes.stays(check)
-  if (outings) {
-    // Nothing is added while a line is to check or a place is not looked up.
-    if (running) saveNote = ow.running
-    else if (check - refusedRows || waiting) {
-      saveNote = ow.held(check - refusedRows, waiting)
-    } else if (addable) {
-      // Only rows that will be written are counted; a refused row is named
-      // apart, since it needs an edit or another try.
-      const will = ready
-        ? ow.willAdd(ready, newPlaces, grouped.logged.length)
-        : ''
-      saveNote = [will, refusedRows && ow.refusedNote(refusedRows)]
-        .filter(Boolean)
-        .join(' ')
-    } else if (closable) {
-      saveNote = ow.nothingToAdd
-    } else saveNote = ow.nothingReady
-  } else if (running) saveNote = words.saveNotes.running
+  if (running) saveNote = words.saveNotes.running
   else if (waiting) saveNote = words.saveNotes.notLooked(waiting)
   else if (!ready) {
     saveNote = check
       ? words.saveNotes.nothingReady
       : words.saveNotes.nothingToSave
   }
+
   const citiesFor = (entry) => {
     const own = entry.payload?.city
     return own && own !== 'denver' && !cities.includes(own)
@@ -951,9 +761,6 @@ export default function PastePlaces({ cities }) {
         onRetry={() => askLookup(entry)}
         onLeaveOut={() => leaveOut(entry)}
         onPutBack={() => putBack(entry)}
-        onFixDate={(text) => fixDate(entry, text)}
-        onSkip={(skip) => skipOuting(entry, skip)}
-        refusal={refusedIds.get(entry.id) ?? ''}
         canRetry={!running}
       />
     )
@@ -964,23 +771,9 @@ export default function PastePlaces({ cities }) {
     (group === 'ready'
       ? grouped.ready.length <= CAP
       : group === 'wait'
-        ? // a line that already got no answer once, or that is being looked
-          // up now, is shown, not folded away
-          grouped.wait.some(
-            (e) =>
-              (e.payload?.attempts ?? 0) > 0 || (outings && busyIds.has(e.id)),
-          )
+        ? // a line that already got no answer once is shown, not folded away
+          grouped.wait.some((e) => (e.payload?.attempts ?? 0) > 0)
         : group !== 'same')
-
-  // The city of the new places is fixed per paste (each entry stores it).
-  const listCities =
-    [
-      ...new Set(
-        entries.filter(isOuting).map((e) => e.payload?.city ?? HOME_CITY),
-      ),
-    ]
-      .map(cityLabel)
-      .join(', ') || cityLabel(city)
 
   const summary =
     counts &&
@@ -1051,51 +844,29 @@ export default function PastePlaces({ cities }) {
         <section className="panel place-done">
           <div className="panel-body place-stack-sm">
             <h2 className="place-done-made" tabIndex={-1} id="paste-done-h">
-              {done?.outings != null
-                ? ow.doneHeading(done.outings, done.saved)
-                : words.savedHeading(done?.saved ?? 0)}
+              {words.savedHeading(done?.saved ?? 0)}
             </h2>
-            {done?.outings != null ? (
-              <ul className="place-paste-done-list">
-                {done.saved > 0 && (
-                  <li>{ow.doneNewPlaces(done.city, done.names)}</li>
-                )}
-                {done.logged > 0 && <li>{ow.doneSkipped(done.logged)}</li>}
-                {done.left > 0 && <li>{ow.doneLeftOut(done.left)}</li>}
-                {check + waiting > 0 && (
-                  <li>{words.stillToCheck(check + waiting)}</li>
-                )}
-                <li>{ow.doneEmpty}</li>
-              </ul>
-            ) : (
-              <ul className="place-paste-done-list">
-                <li>
-                  {done?.pub
-                    ? words.savedMixed(done.saved - done.pub, done.pub)
-                    : words.savedPrivate(done?.saved ?? 0)}
-                </li>
-                {check + waiting > 0 && (
-                  <li>{words.stillToCheck(check + waiting)}</li>
-                )}
-                {done?.owned > 0 && (
-                  <li>{words.alreadySavedCount(done.owned)}</li>
-                )}
-              </ul>
-            )}
+            <ul className="place-paste-done-list">
+              <li>
+                {done?.pub
+                  ? words.savedMixed(done.saved - done.pub, done.pub)
+                  : words.savedPrivate(done?.saved ?? 0)}
+              </li>
+              {check + waiting > 0 && (
+                <li>{words.stillToCheck(check + waiting)}</li>
+              )}
+              {done?.owned > 0 && (
+                <li>{words.alreadySavedCount(done.owned)}</li>
+              )}
+            </ul>
             {progress}
             <div className="intake-actions">
               <button type="button" className="btn primary" onClick={again}>
-                {done?.outings != null ? ow.addMore : words.addAnother}
+                {words.addAnother}
               </button>
-              {done?.outings != null ? (
-                <Link className="btn" to="/admin/history">
-                  {ow.openHistory}
-                </Link>
-              ) : (
-                <Link className="btn" to="/admin/spots">
-                  {words.viewOnSpots}
-                </Link>
-              )}
+              <Link className="btn" to="/admin/spots">
+                {words.viewOnSpots}
+              </Link>
             </div>
           </div>
         </section>
@@ -1143,42 +914,10 @@ export default function PastePlaces({ cities }) {
                 </div>
               </div>
             )}
-            {(phase === 'paste' || phase === 'review') && (
-              <div
-                className="outing-mode"
-                role="group"
-                aria-labelledby="paste-mode-l"
-              >
-                <span id="paste-mode-l">{ow.modeLabel}</span>
-                {[
-                  ['places', ow.modePlaces],
-                  ['outings', ow.modeOutings],
-                ].map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className="chip"
-                    aria-pressed={(outings ? 'outings' : 'places') === key}
-                    disabled={hasEntries}
-                    onClick={() => {
-                      setMode(key)
-                      setZero('')
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-                {hasEntries && (
-                  <span className="place-hint">{ow.modeLocked}</span>
-                )}
-              </div>
-            )}
             {showPasteBox && (
               <form className="place-paste-box" onSubmit={addLines}>
                 <div className="intake-field">
-                  <label htmlFor="paste-text">
-                    {outings ? ow.boxLabel : words.boxLabel}
-                  </label>
+                  <label htmlFor="paste-text">{words.boxLabel}</label>
                   <textarea
                     id="paste-text"
                     rows={hasEntries ? 4 : 8}
@@ -1199,7 +938,7 @@ export default function PastePlaces({ cities }) {
                     }}
                   />
                   <p className="place-hint" id="paste-hint">
-                    {outings ? ow.boxHint : words.boxHint}
+                    {words.boxHint}
                   </p>
                   {zero && (
                     <p
@@ -1211,23 +950,6 @@ export default function PastePlaces({ cities }) {
                     </p>
                   )}
                 </div>
-                {outings && (
-                  <div className="intake-field outing-city">
-                    <label htmlFor="paste-city">{ow.cityLabel}</label>
-                    <select
-                      id="paste-city"
-                      value={city}
-                      onChange={(event) => setCity(event.target.value)}
-                    >
-                      {cityOptions(cities).map((key) => (
-                        <option key={key} value={key}>
-                          {cityLabel(key)}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="place-hint">{ow.cityHint}</p>
-                  </div>
-                )}
                 <div className="place-paste-box-foot">
                   <button
                     type="submit"
@@ -1252,11 +974,6 @@ export default function PastePlaces({ cities }) {
             {phase === 'review' && (
               <div className="place-paste-summary">
                 <p>{summary ?? words.inList(entries.length)}</p>
-                {outings && (
-                  <p className="place-hint" id="paste-city-fixed">
-                    {ow.cityFixed(listCities)}
-                  </p>
-                )}
                 {pasted && (
                   <button
                     type="button"
@@ -1288,7 +1005,7 @@ export default function PastePlaces({ cities }) {
       <p className="visually-hidden" role="status" aria-live="polite">
         {spoken}
       </p>
-      {groupList.map((group) => (
+      {GROUPS.map((group) => (
         <PasteGroup
           key={group}
           group={group}
@@ -1317,26 +1034,10 @@ export default function PastePlaces({ cities }) {
             type="button"
             className="btn primary"
             id="paste-save"
-            disabled={
-              (!(outings ? addable : ready) && !closable) ||
-              running ||
-              saving ||
-              busyIds.size > 0 ||
-              held
-            }
+            disabled={!ready || running || saving || busyIds.size > 0}
             onClick={save}
           >
-            {saving
-              ? words.saving
-              : outings
-                ? addable
-                  ? ow.addN(addable)
-                  : closable
-                    ? ow.close
-                    : ow.add
-                : ready
-                  ? words.saveN(ready)
-                  : words.save}
+            {saving ? words.saving : ready ? words.saveN(ready) : words.save}
           </button>
           <p>{saveNote}</p>
         </div>

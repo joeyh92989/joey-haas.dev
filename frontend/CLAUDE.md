@@ -318,18 +318,6 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   from `HistoryOutingOut.tags` (the spot's tags, vocabulary order, unknown ones
   left out). `/admin/spots` rows link to `?spot=` through `historyHrefForSpot`.
   Pattern: `docs/design-system.md` (Filters sheet).
-- **Did you go? (`/admin/weekend`, story #349).** `components/DidYouGo.jsx`
-  renders the `asks` that `GET /api/spots/plan` returns (a plan with no
-  `asks` field reads as none), words in `denver.didYouGo`, styles `.dyg-*`
-  (all prefixed `dyg-`). Been opens a
-  verdict row and the verdict posts `POST /api/spots/outings` (slot day,
-  precision `day`); Didn't posts `POST /api/spots/plan/didnt`; both go
-  through `withDeadline` with an in-flight ref (a timeout says it "may or may
-  not have been saved") and then call `onChanged`, which reads the plan again and resolves true when it
-  landed. Answered rows are hidden locally at once and the local hide is
-  dropped once the re-read lands, so the server decides what shows. "Not now" is component state
-  only. The status line (`.wk-toast`) lives in the component so it outlives
-  the last row. No Undo: the exception is recorded in `docs/design-system.md`.
 - **Add a place (`/admin/places/add`, story #340).** `pages/PlacesAdd.jsx`,
   with `components/places/` (`PlaceResultRow.jsx`, `PlaceFields.jsx`) and its
   words in `content/placesAdd.js`. It sits in the Denver area beside Weekend
@@ -475,25 +463,3 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
     list, and both projects share one database; no file lock), and case 1
     resizes the viewport to 400 px inside the test to check there is no sideways
     scroll.
-- **Past outings on the same page (story #350).** A "The lines are: Places /
-  Past outings" switch inside Paste a list. In outings mode the paste sends
-  `outings: true` and the chosen `city` (a select of Denver plus `cities`),
-  entries carry `entry.outing` (`label`, `precision`, `skip`, `duplicate_of`,
-  `date_text`, `visited_on`) and the list is told by `outingKindOf` in
-  `pasteModel.js`: left out wins (`logged` when a repeat, else `out`), then an
-  unread date (`date`), then a row the last commit refused (`refused`), then
-  the place's own kind. Groups: To check, Ready, Not looked up yet, Already
-  logged, Left out (`OUTING_GROUPS`). `PasteRow` hands an entry with an
-  `outing` to `OutingRow` (date chip, Fix date, Skip, Add anyway, Put back);
-  `OutingDateForm.jsx` is the Fix date form. Rules when editing: the
-  page never sends `visited_on` or `precision` (entry PATCH takes
-  `outing_date_text` and `outing_skip` only), and never reads a date itself:
-  the "Read as" line is the server's last reading, the plan's open question
-  (a client mirror is the follow-up if the live line is wanted); the mode is
-  derived from the entries on the page (a resumed list is an outings list) and
-  the switch is locked while any are there; the Add button is held while any
-  line is To check or not looked up, with the words beside it; a commit 422 is
-  read from `placeApi.call`'s `data.refused` (entry ids and messages), not
-  guessed. Done says "Added N outings, M new places." The test fake
-  (`pasteFake.test-util.js`) mirrors the server's date reading, repeat flag,
-  PATCH and all-or-nothing commit and gives entries UUID ids (`entryId`).
