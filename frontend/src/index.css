@@ -711,6 +711,21 @@ p.muted a,
   }
 }
 
+/* At 320 to 384px the brand, Search, the theme toggle and Menu need about
+   30px more than the bar has, and the unbreakable words pushed the whole page
+   sideways (#475). Tighter gaps and button padding close it. */
+@media (max-width: 24rem) {
+  .mast-row,
+  .mast-end,
+  .brand {
+    gap: var(--space-2);
+  }
+
+  .mast .btn.sm {
+    padding-inline: var(--space-1);
+  }
+}
+
 /* ---------- Site search ---------- */
 
 /* The Search button's shortcut hint; nothing to press it on a phone. */
@@ -8260,9 +8275,7 @@ main h1[tabindex='-1']:focus,
   color: var(--text-2);
   margin-left: var(--space-2);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .tour-capture-tag {
@@ -8645,8 +8658,24 @@ main h1[tabindex='-1']:focus,
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* The table fits its frame at any width: cells and pills wrap, breaking
+     inside a word only when a column is narrower than the word (#475). */
   .tour-capture-table {
     font-size: var(--fs-12);
+  }
+
+  .tour-capture-table th,
+  .tour-capture-table td {
+    overflow-wrap: anywhere;
+    padding-inline: var(--space-1);
+  }
+
+  .tour-capture-table th {
+    white-space: normal;
+  }
+
+  .tour-capture-table .tour-pill {
+    white-space: normal;
   }
 
   .tour-bar-row {

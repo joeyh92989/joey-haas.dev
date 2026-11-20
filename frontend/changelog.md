@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-20
 
+- The [tour](/shelf/how) no longer scrolls sideways on narrow phones: the masthead fits at 320px, and the drawn tables wrap their columns instead of cutting them off.
 - The masthead now has a More menu with [Now](/now), [Stats](/stats), Daily game, [Denver](/denver) and [Colophon](/colophon) (and TIL when there are notes), and the phone Menu lists the same pages under More. Search finds Denver by “places” and “outings”. Below 960px wide the bar now shows Menu.
 
 ## 2026-11-19
