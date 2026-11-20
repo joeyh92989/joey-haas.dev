@@ -76,7 +76,6 @@ from intake.place_kind import (
     not_ready_reason,
     owned_spot_id,
 )
-from intake.place_paste import BUSY, claim_entry, register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -957,10 +956,6 @@ def create_intake_router(
         entry = await session.get(IntakeEntry, entry_id)
         if entry is None:
             raise HTTPException(404, "No such entry")
-        if entry.kind == "place":
-            # A resolve or pick holds the row while it works: wait for none of
-            # them (409), so a stale copy never overwrites its answer.
-            entry = await claim_entry(session, entry_id, BUSY)
         want_state: IntakeEntryState | None = None
         for field in body.model_fields_set:
             value = getattr(body, field)
@@ -1128,6 +1123,5 @@ def create_intake_router(
         row = await session.get(IntakeSetting, LAST_RUN_KEY)
         return {LAST_RUN_KEY: row.value if row is not None else None}
 
-    register_paste_routes(router, get_session, entries_json)
     register_isbn_route(router, get_session)
     return router

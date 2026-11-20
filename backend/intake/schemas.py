@@ -84,23 +84,6 @@ class EntryOut(TypedDict):
     books_preview: NotRequired[list[dict[str, Any]]]
 
 
-class ResolveOut(EntryOut):
-    """`POST /entries/{id}/resolve`: the entry and how many places in its
-    sitting are still waiting to be looked up."""
-
-    remaining: int
-
-
-class PasteOut(BaseModel):
-    """`POST /sittings/{id}/paste`: the entries made and what was left out."""
-
-    entries: list[EntryOut]
-    added: int
-    blank: int
-    duplicates: int
-    over_limit: int
-
-
 class SittingOut(BaseModel):
     """A sitting with its photos and entries."""
 
