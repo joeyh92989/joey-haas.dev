@@ -13994,8 +13994,7 @@ a.btn.sm {
 
 /* The paste tip under Coordinates: the field is required and the tip is how
    to fill it, so it reads as body text, not as a small grey hint. */
-.spot-form-hint.coords-tip,
-.place-hint.coords-tip {
+.spot-form-hint.coords-tip {
   color: var(--text);
   font-size: var(--fs-14);
 }
