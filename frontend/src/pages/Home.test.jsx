@@ -82,6 +82,37 @@ describe('Home', () => {
     )
   })
 
+  it('puts LinkedIn beside GitHub as an equal button', () => {
+    renderHome()
+    const actions = document.querySelector('.hero-actions')
+    const github = within(actions).getByRole('link', { name: /GitHub/ })
+    const linkedin = within(actions).getByRole('link', { name: /LinkedIn/ })
+    expect(linkedin).toHaveAttribute('href', profile.linkedin)
+    expect(linkedin.className).toBe(github.className)
+    expect(linkedin.getAttribute('rel')).toBe(github.getAttribute('rel'))
+    expect(linkedin.getAttribute('target')).toBe(github.getAttribute('target'))
+    expect(github.nextElementSibling).toBe(linkedin)
+  })
+
+  it('words the Work link for the projects page, not a long list', () => {
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    expect(
+      within(work).getByRole('link', { name: 'Project details' }),
+    ).toHaveAttribute('href', '/projects')
+    expect(within(work).queryByText(/All projects/)).toBeNull()
+  })
+
+  it('shows the public figures in the Guild row and links About', () => {
+    renderHome()
+    const experience = screen.getByRole('region', { name: 'Experience' })
+    expect(experience).toHaveTextContent('$1B')
+    expect(experience).toHaveTextContent('55–74%')
+    expect(
+      within(experience).getByRole('link', { name: /Full history/ }),
+    ).toHaveAttribute('href', '/about')
+  })
+
   it('lists the profile facts, without Last shipped or Playing when there are none', async () => {
     snapshots.items = [game('1', { status: 'backlog' })]
     renderHome()
@@ -171,10 +202,10 @@ describe('Home', () => {
       'href',
       `mailto:${profile.email}`,
     )
-    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
-      'href',
-      profile.linkedin,
-    )
+    const contact = screen.getByRole('region', { name: 'Contact' })
+    expect(
+      within(contact).getByRole('link', { name: 'LinkedIn' }),
+    ).toHaveAttribute('href', profile.linkedin)
     expect(screen.getByRole('link', { name: 'PDF' })).toHaveAttribute(
       'href',
       '/resume.pdf',

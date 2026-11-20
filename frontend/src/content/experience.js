@@ -91,7 +91,7 @@ export const experience = [
         role: 'Software Engineer I → II → Senior',
         dates: '2021 – present',
         short:
-          'Owned the APIs that record benefit spending and led the ledger’s move to a new eligibility platform.',
+          'Owned the APIs behind about $1B in annual benefit spend and cut a bulk endpoint’s latency 55–74%. Led the ledger’s move to a new eligibility platform.',
       },
       {
         role: 'Product Manager, Payment Products',

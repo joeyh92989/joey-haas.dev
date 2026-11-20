@@ -112,6 +112,9 @@ export default function Home() {
             <a href={profile.github} className="btn ghost">
               GitHub <span aria-hidden="true">↗</span>
             </a>
+            <a href={profile.linkedin} className="btn ghost">
+              LinkedIn <span aria-hidden="true">↗</span>
+            </a>
           </div>
         </div>
         <FactsTable rows={facts} />
@@ -121,7 +124,7 @@ export default function Home() {
         <div className="section-head">
           <h2 id="home-work">Work</h2>
           <Link to="/projects">
-            All projects <span aria-hidden="true">→</span>
+            Project details <span aria-hidden="true">→</span>
           </Link>
         </div>
         <div className="card-grid">
@@ -160,9 +163,14 @@ export default function Home() {
       <section className="home-section" aria-labelledby="home-experience">
         <div className="section-head">
           <h2 id="home-experience">Experience</h2>
-          <a href="/resume.pdf">
-            Full resume (PDF) <span aria-hidden="true">→</span>
-          </a>
+          <span className="head-links">
+            <Link to="/about">
+              Full history <span aria-hidden="true">→</span>
+            </Link>
+            <a href="/resume.pdf">
+              Full resume (PDF) <span aria-hidden="true">→</span>
+            </a>
+          </span>
         </div>
         <ul className="row-list" role="list">
           {homeExperience().map((row) => (

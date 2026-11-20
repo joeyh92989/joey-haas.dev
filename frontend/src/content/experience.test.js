@@ -111,7 +111,7 @@ describe('the experience content', () => {
         dates: '2021 – present',
         title: 'Guild — Software Engineer I → II → Senior',
         summary:
-          'Owned the APIs that record benefit spending and led the ledger’s move to a new eligibility platform.',
+          'Owned the APIs behind about $1B in annual benefit spend and cut a bulk endpoint’s latency 55–74%. Led the ledger’s move to a new eligibility platform.',
       },
       {
         key: 'Guild-Product Manager, Payment Products',
@@ -128,5 +128,20 @@ describe('the experience content', () => {
           'Core-suite product owner; set-top video guides; in-room hospitality video.',
       },
     ])
+  })
+})
+
+describe('Home’s Guild row', () => {
+  const guild = experience.find((entry) => entry.company === 'Guild')
+  const [engineer] = guild.homeRows
+
+  it('carries only the two figures already public on About', () => {
+    expect(engineer.short).toContain('$1B')
+    expect(engineer.short).toContain('55–74%')
+    expect(engineer.short).not.toMatch(/\d[\d,.]*\s*(M|K)\b|rows?\b/)
+  })
+
+  it('keeps the two-row Guild structure', () => {
+    expect(guild.homeRows).toHaveLength(2)
   })
 })
