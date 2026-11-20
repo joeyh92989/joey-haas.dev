@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-19
 
+- Home’s headline now reads “Building software since 2012, as a product manager first and an engineer since 2021”, so it matches the five years of engineering and eight of product on the About page.
 - Home’s work history now carries the $1B in annual benefit spend and the 55–74% latency cut from [About](/about), with a “Full history” link there; LinkedIn is a button beside GitHub, and the Work link reads “Project details”.
 - The résumé PDF and the About and Home work history now match the latest edit: a tighter line on the ledger migration, “Salesforce CRM”, a “two-week release cadence”, and “$1B” without “roughly”.
 - The résumé PDF now opens with the title “Joseph Haas - Resume” instead of the draft name, and the nav link reads “Resume (PDF)”, since it opens in the browser.

@@ -61,7 +61,7 @@ describe('Home', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Shipping software since 2012, from roadmap to production.',
+        name: 'Building software since 2012, as a product manager first and an engineer since 2021.',
       }),
     ).toBeInTheDocument()
   })
