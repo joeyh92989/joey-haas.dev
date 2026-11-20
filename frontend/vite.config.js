@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv } from 'vite'
 import { fileURLToPath } from 'node:url'
 import { snapshotPresence } from './scripts/snapshot-presence.mjs'
@@ -22,7 +23,10 @@ export default defineConfig(({ command, mode }) => {
     }
   }
   return {
-    plugins: [markdown(), react(), fontPreload()],
+    plugins: [markdown(), react(), tailwindcss(), fontPreload()],
+    resolve: {
+      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    },
     // Whether Comics and Denver have anything to show (#125), read once from
     // the snapshot fetch-snapshot.mjs has just written. src/lib/snapshotPresence.js.
     define: {

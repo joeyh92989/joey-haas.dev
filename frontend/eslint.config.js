@@ -62,6 +62,15 @@ export default [
     },
   },
 
+  // shadcn-generated components import an unused `React` (finding 4, #520).
+  // Narrower than ignoring the folder: everything else is still linted.
+  {
+    files: ['src/components/ui/**/*.{js,jsx}'],
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^React$' }],
+    },
+  },
+
   // Build tooling and scripts: run in Node.
   {
     files: ['*.config.js', 'vite-plugin-markdown.js', 'scripts/**/*.mjs'],
