@@ -270,3 +270,64 @@ test.describe('SpotMap action is a button, not on the image (#275)', () => {
     await expect(clear).toBeHidden()
   })
 })
+
+test.describe('keyboard focus ring (#528)', () => {
+  // The shared components once shipped `outline-none` beside `outline-2`, and
+  // Tailwind v4 then draws no ring at all. Tab onto the real control and read
+  // what the browser computed.
+  const targets = [
+    ['a filter chip on /shelf/games', '/shelf/games', '.chip'],
+    ['Try again on /shelf/games', '/shelf/games', '.load-state .btn'],
+  ]
+  for (const theme of ['light', 'dark']) {
+    for (const [name, path, selector] of targets) {
+      test(`${name} shows a 2px ring in ${theme}, 3:1 on the page and the card`, async ({
+        page,
+        openRoute,
+      }) => {
+        await openRoute(path, theme)
+        const target = page.locator(selector).first()
+        await expect(target).toBeVisible()
+        let found = false
+        for (let i = 0; i < 80 && !found; i += 1) {
+          await page.keyboard.press('Tab')
+          found = await target.evaluate((el) => el === document.activeElement)
+        }
+        expect(found, `Tab never reached ${selector}`).toBe(true)
+        const ring = await target.evaluate((el) => {
+          const cs = getComputedStyle(el)
+          const root = getComputedStyle(document.documentElement)
+          return {
+            style: cs.outlineStyle,
+            width: parseFloat(cs.outlineWidth),
+            color: cs.outlineColor,
+            page: root.getPropertyValue('--bg').trim(),
+            card: root.getPropertyValue('--surface').trim(),
+          }
+        })
+        expect(ring.style).not.toBe('none')
+        expect(ring.width).toBeGreaterThanOrEqual(2)
+        const channels = (css) =>
+          css
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map(Number)
+        const lum = ([r, g, b]) =>
+          [r, g, b]
+            .map((v) => v / 255)
+            .map((v) =>
+              v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
+            )
+            .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0)
+        const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+        const ratio = (a, b) => {
+          const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+          return (hi + 0.05) / (lo + 0.05)
+        }
+        const color = channels(ring.color)
+        expect(ratio(color, hex(ring.page))).toBeGreaterThanOrEqual(3)
+        expect(ratio(color, hex(ring.card))).toBeGreaterThanOrEqual(3)
+      })
+    }
+  }
+})

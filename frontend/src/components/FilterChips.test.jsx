@@ -323,4 +323,60 @@ describe('FilterChips group limit', () => {
     )
     expect(screen.queryByRole('button', { name: 'More…' })).toBeNull()
   })
+
+  describe('look (#528)', () => {
+    function chips() {
+      render(
+        <FilterChips
+          groups={GROUPS}
+          value={{ ...NO_FILTER, type: 'game' }}
+          onChange={() => {}}
+        />,
+      )
+      return screen.getAllByRole('button')
+    }
+
+    it('draws each chip as the shared Button, keeping the legacy chip class', () => {
+      for (const chip of chips()) {
+        expect(chip).toHaveClass('chip')
+        expect(chip.className).toContain('rounded-md')
+        expect(chip.className).not.toMatch(/rounded-full|shadow/)
+      }
+    })
+
+    it('marks the pressed chip with the accent bar and a heavier word, not colour alone', () => {
+      const pressed = chips().find(
+        (chip) => chip.getAttribute('aria-pressed') === 'true',
+      )
+      expect(pressed.className).toContain('aria-pressed:font-medium')
+      expect(pressed.className).toContain('aria-pressed:after:block')
+    })
+  })
+
+  describe('size and weight match the old chip (#528 review)', () => {
+    it('unpressed is weight 400 in --text-2, pressed is the heavier word', () => {
+      render(
+        <FilterChips
+          groups={GROUPS}
+          value={{ ...NO_FILTER, type: 'game' }}
+          onChange={() => {}}
+        />,
+      )
+      const [pressed] = screen
+        .getAllByRole('button')
+        .filter((c) => c.getAttribute('aria-pressed') === 'true')
+      expect(pressed.className).toContain('font-normal')
+      expect(pressed.className).toContain('text-muted-foreground')
+      expect(pressed.className).toContain('aria-pressed:font-medium')
+    })
+
+    it('keeps the label-to-count gap at 4px on desktop and none on a phone, where the legacy margin supplies it', () => {
+      render(
+        <FilterChips groups={GROUPS} value={NO_FILTER} onChange={() => {}} />,
+      )
+      const cls = screen.getAllByRole('button')[0].className
+      expect(cls).toContain('gap-1')
+      expect(cls).toContain('max-[700px]:gap-0')
+    })
+  })
 })

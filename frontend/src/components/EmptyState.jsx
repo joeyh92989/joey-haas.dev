@@ -1,4 +1,7 @@
 import { Link } from 'react-router'
+import { Button, buttonVariants } from './ui/button.jsx'
+import { Card } from './ui/card.jsx'
+import { cn } from '../lib/utils.js'
 
 /**
  * The one empty state (docs/design-system.md → One of each): a sentence
@@ -15,7 +18,7 @@ import { Link } from 'react-router'
  */
 export default function EmptyState({ title, line, action, titleRef }) {
   return (
-    <div className="empty-state">
+    <Card className="empty-state items-start gap-2 px-4 text-[1rem] text-muted-foreground">
       <p
         className="empty-state-title"
         ref={titleRef}
@@ -26,18 +29,25 @@ export default function EmptyState({ title, line, action, titleRef }) {
       {line && <p className="empty-state-line muted">{line}</p>}
       {action &&
         (action.to ? (
-          <Link className="empty-state-action" to={action.to}>
+          <Link
+            className={cn(
+              'empty-state-action',
+              buttonVariants({ variant: 'link', size: 'default' }),
+            )}
+            to={action.to}
+          >
             {action.label}
           </Link>
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             className="btn sm empty-state-action"
             onClick={action.onClick}
           >
             {action.label}
-          </button>
+          </Button>
         ))}
-    </div>
+    </Card>
   )
 }

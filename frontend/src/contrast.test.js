@@ -110,6 +110,13 @@ const PAIRS = [
   ['--line', '--bg', 3],
   ['--line-strong', '--bg', 3],
   ['--line-card', '--surface', 3],
+  // Core components (#528). Status mark: its --text outline is a 3:1 mark on
+  // the card and the page (covered by the --text text pairs above, 4.5 or
+  // more). The highlighter fill alone is pale in light (1.3 on the card), so
+  // the word and the outline carry the meaning, never the fill. The word and
+  // mono labels are --text-2; the secondary button is --text on --sunken.
+  // Badge outline (--line-card) on the page; on the card it is asserted above.
+  ['--line-card', '--bg', 3],
   ...[
     '--ok',
     '--warn',

@@ -11,13 +11,13 @@ import NotFound from './pages/NotFound.jsx'
 import Projects from './pages/Projects.jsx'
 import Til from './pages/Til.jsx'
 import TilNote from './pages/TilNote.jsx'
-import Travel from './pages/Travel.jsx'
 import Trip from './pages/Trip.jsx'
 import { gamesPath, itemPath, monthPath, yearPath } from './lib/spinePaths.js'
 
 // The admin pages serve one person, so they load on demand instead of
 // shipping to every visitor in the main chunk. RootLayout's Suspense
 // boundary covers the layout's wait, and AdminLayout's each page's.
+const Travel = lazy(() => import('./pages/Travel.jsx'))
 const Comics = lazy(() => import('./pages/Comics.jsx'))
 const ComicVolume = lazy(() => import('./pages/ComicVolume.jsx'))
 const ComicIssue = lazy(() => import('./pages/ComicIssue.jsx'))

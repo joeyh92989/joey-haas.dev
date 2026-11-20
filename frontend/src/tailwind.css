@@ -93,6 +93,11 @@
   --color-accent: var(--sh-accent);
   --color-accent-foreground: var(--sh-accent-foreground);
   --color-accent-text: var(--accent-text);
+  --color-ok-text: var(--ok-text);
+  --color-warn-text: var(--warn-text);
+  --color-highlight: var(--highlight);
+  --color-highlight-ink: var(--highlight-ink);
+  --color-line-card: var(--line-card);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);

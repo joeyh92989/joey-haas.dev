@@ -48,4 +48,34 @@ describe('EmptyState', () => {
     expect(screen.queryByRole('link')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
   })
+
+  it('is a flat outlined card on the card colour, still the empty-state box', () => {
+    const { container } = show({ title: 'Nothing here.' })
+    const box = container.querySelector('.empty-state')
+    expect(box.className).toContain('border-border')
+    expect(box.className).toContain('bg-card')
+    expect(box.className).not.toMatch(/shadow|rounded-4xl/)
+  })
+
+  it('draws the button action as the shared Button, keeping btn sm', () => {
+    show({ title: 'Nothing here.', action: { onClick: () => {}, label: 'Go' } })
+    const button = screen.getByRole('button', { name: 'Go' })
+    expect(button).toHaveClass('btn', 'sm', 'empty-state-action')
+    expect(button.className).toContain('border-foreground')
+  })
+
+  it('draws the link action in the link-button look, with no role added', () => {
+    show({ title: 'Nothing here.', action: { to: '/x', label: 'Go' } })
+    const link = screen.getByRole('link', { name: 'Go' })
+    expect(link).toHaveClass('empty-state-action')
+    expect(link.className).toContain('text-accent-text')
+    expect(link).not.toHaveAttribute('role')
+  })
+
+  it('keeps the old 16px size and the --text-2 colour', () => {
+    const { container } = show({ title: 'Nothing here.' })
+    const box = container.querySelector('.empty-state')
+    expect(box.className).toContain('text-[1rem]')
+    expect(box.className).toContain('text-muted-foreground')
+  })
 })

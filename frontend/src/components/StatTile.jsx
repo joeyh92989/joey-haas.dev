@@ -1,3 +1,9 @@
+import { cn } from '../lib/utils.js'
+import { Card } from './ui/card.jsx'
+
+/** A tile is a flat card: 1px outline, the card colour, 16px inside. */
+const TILE = 'gap-0 px-4 text-[1rem] text-muted-foreground'
+
 /**
  * One headline figure: a mono label, the number, and an optional line of
  * detail under it. Tiles go inside `StatTiles`, which is the description
@@ -16,18 +22,20 @@
 export default function StatTile({ label, value, detail, children }) {
   if (children != null) {
     return (
-      <div className="stat-tile stat-tile-figures">
+      <Card className={cn('stat-tile stat-tile-figures', TILE, 'py-3')}>
         <dt>{label}</dt>
         <dd>{children}</dd>
-      </div>
+      </Card>
     )
   }
   return (
-    <div className="stat-tile">
+    <Card className={cn('stat-tile', TILE)}>
       <dt className="kicker">{label}</dt>
-      <dd className="stat-value">{value}</dd>
+      <dd className="stat-value font-heading font-medium text-foreground">
+        {value}
+      </dd>
       {detail && <dd className="stat-detail">{detail}</dd>}
-    </div>
+    </Card>
   )
 }
 

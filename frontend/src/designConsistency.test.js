@@ -23,6 +23,22 @@ const files = walk(SRC).map((path) => ({
   text: readFileSync(path, 'utf8'),
 }))
 
+/** Every non-test source file, .js as well as .jsx (for import rules). */
+function walkSources(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return walkSources(path)
+    return /\.jsx?$/.test(entry.name) && !/\.test\./.test(entry.name)
+      ? [path]
+      : []
+  })
+}
+
+const sources = walkSources(SRC).map((path) => ({
+  name: relative(SRC, path),
+  text: readFileSync(path, 'utf8'),
+}))
+
 function offenders(test) {
   return files.filter((file) => test(file)).map((file) => file.name)
 }
@@ -99,5 +115,58 @@ describe('shared component rules', () => {
       ),
     )
     expect(own).toEqual([])
+  })
+
+  // docs/design-system.md → One of each: the catalogue number is for
+  // collections only, so only the record card draws one until a collection
+  // page is added to this list on purpose.
+  it('draws a catalogue number only inside RecordCard', () => {
+    const CATALOGUE_ALLOWED = new Set([
+      'components/CatalogueNumber.jsx',
+      'components/RecordCard.jsx',
+    ])
+    expect(
+      offenders(
+        (f) =>
+          (/CatalogueNumber(\.jsx)?['"]/.test(f.text) ||
+            /<CatalogueNumber[\s>]/.test(f.text)) &&
+          !CATALOGUE_ALLOWED.has(f.name),
+      ),
+    ).toEqual([])
+  })
+
+  it('draws no status square of its own: the mark comes from StatusMark, with its word', () => {
+    expect(
+      offenders(
+        (f) =>
+          (f.text.includes('status-mark-square') ||
+            f.text.includes('bg-highlight') ||
+            (f.text.includes('size-2.5') &&
+              f.text.includes('border-[1.5px]'))) &&
+          f.name !== 'components/StatusMark.jsx',
+      ),
+    ).toEqual([])
+  })
+
+  it('writes no catalogue number string by hand: "No. 007" comes from CatalogueNumber', () => {
+    expect(
+      offenders(
+        (f) =>
+          /No\.\s*\d/.test(f.text) &&
+          f.name !== 'components/CatalogueNumber.jsx',
+      ),
+    ).toEqual([])
+  })
+
+  it('imports Base UI only inside components/ui, in .js files too', () => {
+    expect(
+      sources
+        .filter(
+          (f) =>
+            f.text.includes('@base-ui/react') &&
+            !f.name.startsWith('components/ui/'),
+        )
+        .map((f) => f.name),
+    ).toEqual([])
   })
 })
