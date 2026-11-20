@@ -11,57 +11,77 @@
  * 16px browser default (identical rendering, but text still scales for readers
  * who raise their browser font size).
  *
- * Every text token clears 4.5:1 on every background it is set on (--bg,
- * --surface, --sunken and --accent-soft, the active sidebar row), and every
- * non-text mark clears 3:1 against --surface (WCAG 1.4.11). The mockup's
- * --text-3 and --chart-2 failed and were moved in lightness only; the
- * ratios are recorded beside each.
+ * Palette (#527): warm paper in light, graphite in dark, one accent. The
+ * values come from the design table in
+ * docs/planning/2026-11-20-design-system-spike-design.md; the tokens the table
+ * leaves out (--sunken, --accent-soft, the data colours) keep their hue and
+ * move in lightness only as far as src/contrast.test.js needs. Text tokens
+ * clear 4.5:1 on --bg, --surface, --sunken and --accent-soft and non-text
+ * marks 3:1 against --surface (WCAG 1.4.11), with two exceptions the test
+ * names: dark --accent is 4.21 on --bg and 3.49 on --surface, because the
+ * table fixes it there. The ratios are recorded beside each token. The
+ * palette is written three times (:root, [data-theme='light'] and the print
+ * block near the end): change all three together.
  */
 :root {
   /* The opaque stop of a mask-image gradient: only its alpha is read, so it
      is the same in both themes and is the one raw hex outside a palette. */
   --mask-opaque: #000;
-  --bg: #0f1114;
-  --surface: #15181c;
-  --sunken: #1b1f24;
-  --line: #262b32;
+  --bg: #4e4e4d;
+  --surface: #5a5a59;
+  --sunken: #464645;
+  --line: #a6a5a2;
+  /* Rules and outlines inside cards. */
+  --line-card: #b0afac;
   /* Decorative only (button borders, the timeline rail), so not held to
      3:1: every control it outlines carries its own label. */
-  --line-strong: #3a414a;
+  --line-strong: #a6a5a2;
   /* Measured, dark, lowest of --bg / --surface / --sunken / --accent-soft:
-     text 13.11, text-2 7.30, text-3 4.79 (the mockup's #7d848e reached
-     only 4.04 on --accent-soft and 4.39 on --sunken), accent 5.76. */
-  --text: #eceef1;
-  --text-2: #aeb4bd;
-  --text-3: #8a919b;
-  --accent: #6ea0ef;
-  /* --accent-ink on --accent 7.15; --bg on --text (pressed chips, the
-     monogram) 16.27. */
-  --accent-ink: #0f1114;
-  --accent-soft: #1a2638;
-  /* Marks on --surface: ok 8.27, warn 8.51, chart 6.73, chart-2 3.15 (the
-     mockup's #2e4467 reached 1.81). */
+     text 6.28, text-2 4.89, text-3 4.89 (the designer's muted colour for
+     both), accent 3.49 on --surface (4.21 on --bg, 4.77 on --sunken and
+     --accent-soft): the table's #f7a391 cannot reach 4.5 on its own
+     card. */
+  --text: #f5f4f1;
+  --text-2: #dad9d5;
+  --text-3: #dad9d5;
+  --accent: #f7a391;
+  /* --accent-ink on --accent 7.16; --bg on --text (pressed chips, the
+     monogram) 7.57. */
+  --accent-ink: #2b2b2a;
+  /* The highlighter: a status mark's fill, with its own text colour. */
+  --highlight: #ffd84a;
+  --highlight-ink: #2b2b2a;
+  --accent-soft: #4a4543;
+  /* The highlighter's text on its fill, 10.24; the fill on --surface 4.99.
+     Marks on --surface: ok 3.21, warn 3.30, chart 4.04, chart-2 3.02. The
+     old chart #6ea0ef and chart-2 #4a6896 reached 2.61 and 1.22 on the
+     lighter card, so both moved up in lightness; chart went further than
+     3:1 to stay a step brighter than chart-2. */
   --ok: #5ec48d;
   --warn: #e3a94a;
-  /* The admin area badge (9px numerals): --badge-ink on --badge 9.04. */
-  --badge: var(--warn);
-  --badge-ink: var(--bg);
-  --chart: #6ea0ef;
-  --chart-2: #4a6896;
-  /* The tour's redaction stripe. Its darker stripe is the mark: 3.30 on
-     --surface (the mockup's #262b32 reached 1.25). Tour pill borders use
-     ok 8.27, warn 8.51, accent 6.73 above; the New badge, accent text on
-     --bg, is 7.15. */
-  --redact: repeating-linear-gradient(135deg, #626b77 0 6px, #1b1f24 6px 12px);
+  /* The admin area badge (9px numerals): --badge-ink on --badge 9.24. The
+     colour is also text on the page, the card and the rail: --badge on --bg
+     5.43, --surface 4.50, --sunken 6.16. --warn (3.30 on --surface) is a
+     mark only, so the badge is its own lighter value. */
+  --badge: #eecc93;
+  --badge-ink: #2b2b2a;
+  --chart: #a9c8f7;
+  --chart-2: #98adcc;
+  /* The tour's redaction stripe. On the mid-grey card the lighter stripe is
+     the mark (a darker one cannot reach 3:1 there): 3.01 on --surface. Tour
+     pill borders use ok 3.21, warn 3.30, accent 3.49 above; the New badge,
+     accent text on --bg, is 4.21. */
+  --redact: repeating-linear-gradient(135deg, #a5acb5 0 6px, #464645 6px 12px);
   /* Comic runs. Missing issues and the not-out-yet hatch are non-text marks
-     on --surface, built on the redaction stripe's mark colour: 3.30 (the
-     spec's --line-strong reached only 1.73). The lanes' hollow missing
-     outline also sits on --bg on a shelf card: 3.50. Text over the hatch
-     is --text: 4.65 on the stripe (comic series display spec). */
-  --run-missing: #626b77;
+     on --surface, built on the redaction stripe's mark colour: 3.01. The
+     lanes' hollow missing outline also sits on --bg on a shelf card: 3.64.
+     Text over the hatch is --text, which is only 2.08 on the stripe in
+     this theme (light 4.66): no single text colour clears 4.5 over a
+     light stripe and the card between stripes. */
+  --run-missing: #a5acb5;
   --hatch: repeating-linear-gradient(
     135deg,
-    #626b77 0 2px,
+    #a5acb5 0 2px,
     transparent 2px 6px
   );
   /* Code blocks get their own token because the syntax colors do not clear AA
@@ -71,16 +91,16 @@
   --code-bg: #0c0e11;
   /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
      (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
-     stacked-bar segments; backlog also clears 3:1 against --line. The
-     four step in lightness as well as hue (lightest first: finished,
-     active, backlog, abandoned), so no two sit closer than 1.48:1 to each
-     other. Measured, dark: finished 14.22, active 8.27, backlog 5.60,
-     abandoned 3.71; backlog on --line 4.48; rating 8.51. */
+     stacked-bar segments. On the mid-grey card the three greys cannot sit
+     as far apart as before (finished to backlog 1.34, backlog to abandoned
+     1.36) and active is the only green. Measured, dark: finished 5.51,
+     backlog 4.11, abandoned 3.02, active 3.21; rating 3.30. --line is no
+     longer a target: it is now a mid grey. */
   --rating: var(--warn);
   --status-active: var(--ok);
   --status-finished: #e3e6ea;
-  --status-backlog: #8a919b;
-  --status-abandoned: #6b737e;
+  --status-backlog: #c4c8cd;
+  --status-abandoned: #a6acb3;
   /* Garment colour families (closet_colors.FAMILIES): the swatch a piece
      without a photo or hex is drawn in. Data colours, one set for both
      themes (a navy shirt is navy in either); the swatch's --line border
@@ -102,8 +122,8 @@
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
   --skeleton: var(--sunken);
   /* The search dialog's highlighted row, under an --accent inset bar.
-     Measured in the browser, dark: row title 14.25, sub line 5.21, accent
-     bar 6.26 on it; group label 5.60 on --surface. */
+     Computed from the tokens, dark: row title 8.59, sub line 6.69, accent
+     bar 4.77 on it; group label 4.89 on --surface. */
   --search-active: var(--sunken);
   --grid-gap: 1rem;
   --radius: 6px;
@@ -143,59 +163,63 @@
 }
 
 [data-theme='light'] {
-  --bg: #fcfcfb;
-  --surface: #ffffff;
-  --sunken: #f3f3f0;
-  --line: #e4e4df;
-  --line-strong: #c9c9c2;
+  --bg: #f1ede6;
+  --surface: #fcfbf9;
+  --sunken: #e8e3da;
+  --line: #8c8579;
+  /* Rules and outlines inside cards. */
+  --line-card: #8c8579;
+  --line-strong: #8c8579;
   /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
-     text 15.65, text-2 7.18, text-3 4.61 (the mockup's #7a808a reached
-     only 3.46 to 3.98), accent 5.31. */
-  --text: #15171a;
-  --text-2: #4a4f57;
-  --text-3: #666c75;
-  --accent: #1f5fbf;
-  /* --accent-ink on --accent 6.09; --bg on --text 17.49. */
+     text 12.81, text-2 5.98, text-3 5.98, accent 5.23. */
+  --text: #231f1a;
+  --text-2: #57534d;
+  --text-3: #57534d;
+  --accent: #a8321f;
+  /* --accent-ink on --accent 6.69; --bg on --text 14.03. */
   --accent-ink: #ffffff;
-  --accent-soft: #e8f0fc;
-  /* Marks on --surface: ok 5.32, warn 4.24, chart 6.09, chart-2 3.10 (the
-     mockup's #9fbce8 reached 1.94). */
+  --accent-soft: #f5ebe8;
+  /* The highlighter: a status mark's fill, with its own text colour. Its
+     text is 11.90 on it; the fill is only 1.33 on --surface, so it always
+     sits in an outline beside a word. Marks on --surface: ok 5.14, warn
+     4.10, chart 5.89, chart-2 3.73 (3.02 on --sunken). */
   --ok: #1f7a4d;
   --warn: #b26a00;
-  /* --bg on --warn reached only 4.13, short of 4.5 for 9px numerals, so the
-     badge darkens: white on --badge 5.38; the fill on --sunken 4.84. */
-  --badge: #9a5c00;
+  /* --bg on --warn reaches only 3.63, short of 4.5 for 9px numerals, so the
+     badge darkens: white on --badge 6.11; the colour as text on --bg 5.24,
+     --surface 5.91, --sunken 4.78. */
+  --badge: #8f5400;
   --badge-ink: #ffffff;
   --chart: #1f5fbf;
-  --chart-2: #7393cb;
-  /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
-     borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
-  --redact: repeating-linear-gradient(135deg, #8a8f98 0 6px, #f3f3f0 6px 12px);
-  /* Comic runs on --surface: 3.25 (--line-strong reached 1.66); the
-     lanes' missing outline on --bg 3.17; --text over the hatch 5.53. */
-  --run-missing: #8a8f98;
+  --chart-2: #5d82c3;
+  /* Redaction stripe 3.40 on --surface. Pill borders ok 5.14, warn 4.10,
+     accent 6.46; the New badge on --bg 5.73. */
+  --redact: repeating-linear-gradient(135deg, #848993 0 6px, #e8e3da 6px 12px);
+  /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
+     --text over the hatch 4.66. */
+  --run-missing: #848993;
   --hatch: repeating-linear-gradient(
     135deg,
-    #8a8f98 0 2px,
+    #848993 0 2px,
     transparent 2px 6px
   );
   /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
      string escapes); on --bg it drops to 4.41. */
   --code-bg: #ffffff;
-  /* Measured, light, on --surface: finished 13.46, backlog 6.24, active
-     4.58, abandoned 3.22; backlog on --line 4.90; rating 4.24. Darkest
-     first: finished, backlog, active, abandoned; no two closer than
-     1.36:1, and active is the only green. */
+  /* Measured, light, on --surface: finished 13.01, backlog 6.04, active
+     4.43, abandoned 3.11; rating 4.10. Darkest first: finished, backlog,
+     active, abandoned; no two closer than 1.36:1, and active is the only
+     green. */
   --rating: var(--warn);
   --status-active: #2a8556;
   --status-finished: #2b2f35;
   --status-backlog: #5b616a;
   --status-abandoned: #8a9099;
   --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
-  /* Measured in the browser, light: row title 16.15, sub line 4.76, accent
-     bar 5.48 on --search-active; group label 5.29 on --surface. */
+  /* Computed from the tokens, light: row title 12.81, sub line 5.98, accent
+     bar 5.23 on --search-active; group label 7.38 on --surface. */
   --search-active: var(--sunken);
-  --skeleton: #ecece8;
+  --skeleton: #e0dbd1;
   --grid-gap: 1rem;
   color-scheme: light;
 }
@@ -1858,7 +1882,7 @@ footer {
   outline-offset: 2px;
 }
 
-/* The rail: --text-3 labels on --sunken measure 5.21 dark, 4.76 light. */
+/* The rail: --text-3 labels on --sunken measure 6.69 dark, 5.98 light. */
 .admin-rail {
   align-items: center;
   background: var(--sunken);
@@ -1874,7 +1898,7 @@ footer {
   z-index: 5;
 }
 
-/* --bg on --text measures 16.27 dark, 17.49 light (the token block). */
+/* --bg on --text measures 7.57 dark, 14.03 light (the token block). */
 .admin-rail-mark {
   background: var(--text);
   border-radius: 8px;
@@ -2087,8 +2111,8 @@ footer {
 }
 
 /* The phone's segmented control: the area's pages. The current segment
-   is --text on --surface (15.32 dark, 17.96 light); the rest --text-2 on
-   --sunken (7.94 dark, 7.42 light). */
+   is --text on --surface (6.28 dark, 15.83 light); the rest --text-2 on
+   --sunken (6.69 dark, 5.98 light). */
 .admin-subnav {
   background: var(--sunken);
   border: 1px solid var(--line);
@@ -2432,7 +2456,7 @@ footer {
 
 /* Status in a header or a job row: a dot and the word, never the dot alone.
    Dots on --surface: ok and warn as measured in the token block; --text-3
-   (unknown) at least 4.79 dark and 4.61 light. Failed is also squared, so
+   (unknown) at least 4.89 dark and 6.54 light. Failed is also squared, so
    stale and failed differ in shape as well as in the word. */
 .status-text {
   align-items: center;
@@ -2645,7 +2669,7 @@ footer {
 
 /* Analytics (/admin/analytics). The day bars and the list fills use
    --chart, measured on --surface above; the list fills sit on a --sunken track, where --chart measures
-   6.26 dark and 5.48 light. */
+   5.53 dark and 4.77 light. */
 .range-control {
   border: 1px solid var(--line-strong);
   border-radius: 6px;
@@ -2808,14 +2832,18 @@ footer {
 
    Measured (WCAG 2.x, 2026-11-10). Confidence words are text, >= 4.5:1 on
    the surfaces they sit on (--surface in panels, --bg in the skim grid):
-     --ok      dark 8.27 surface / 8.78 bg    light 5.32 / 5.18
-     --accent  dark 6.73 / 7.15               light 6.09 / 5.93
-     --badge   dark 8.51 / 9.04               light 5.38 / 5.24
-     --text-3  dark 5.60 / 5.95               light 5.29 / 5.16
+     --ok      dark 3.21 surface / 3.87 bg    light 5.14 / 4.56
+     --accent  dark 3.49 / 4.21               light 6.46 / 5.73
+     --badge   dark 4.50 / 5.43               light 5.91 / 5.24
+     --text-3  dark 4.89 / 5.90               light 7.38 / 6.54
+   Dark --ok (3.21) and --accent (3.49) on --surface are under 4.5 as
+   words: the table's card leaves no room (contrast.test.js names the
+   --accent pairs; --ok is tested as a 3:1 mark).
    The meter's segments are non-text marks, >= 3:1 on its --sunken track:
-     --ok 7.69 dark, 4.78 light; --badge 7.92, 4.84; --status-backlog
-     5.21, 5.62. --line-strong measured 1.60 and 1.50 there and was refused
-     for "still reading" (the spec's fallback, --status-backlog, is used). */
+     --ok 4.39 dark, 4.16 light; --badge 6.16, 4.78; --status-backlog
+     5.62, 4.89. --line-strong is a mid grey now (3.38 on --bg, 3.84 on
+     --sunken in dark) and is still not used for "still reading"; the
+     fallback --status-backlog is. */
 .admin-side-nav .admin-badge,
 .admin-subnav .admin-badge {
   display: inline-grid;
@@ -3289,9 +3317,9 @@ footer {
 
 /* "Already on the shelf · adds issues" (Check) and "Series that grew"
    (Done): one row per series, its sentence and the cells around the
-   change. An added cell is --ok, its "+n" numeral --bg: measured (WCAG
-   2.x, from the token values) --ok on --surface 8.27 dark / 5.32 light,
-   --bg on --ok 8.78 / 5.18. The other cells are the run box's own. At a
+   change. An added cell is --ok, its "+n" numeral --accent-ink: measured (WCAG
+   2.x, from the token values) --ok on --surface 3.21 dark / 5.14 light,
+   --accent-ink on --ok 6.58 / 5.32. The other cells are the run box's own. At a
    phone's width Edit issues drops under the row. */
 .intake-grow-list {
   background: var(--surface);
@@ -3373,7 +3401,7 @@ footer {
 .run-cell[data-k='new'] {
   background: var(--ok);
   border-color: var(--ok);
-  color: var(--bg);
+  color: var(--accent-ink);
 }
 
 .run-cell[data-gap] {
@@ -3419,7 +3447,7 @@ footer {
 /* A comic sitting's Check: one row per book with its issue number to read,
    correct or type, and what the sitting adds under it. The mark under a
    number is words first (Read, Typed, Couldn't read); its colour only
-   repeats them: --ok on --surface 8.27 dark / 5.32 light, --text-3 as the
+   repeats them: --ok on --surface 3.21 dark / 5.14 light, --text-3 as the
    muted text everywhere, --badge (the darker warning) for what needs a
    hand. It is not match confidence: the server decides it from the series'
    run (design-system.md, "A mark that is not match confidence"). */
@@ -3704,8 +3732,8 @@ footer {
    disabled barcode; the results under it; the unfinished line; the
    drawer beside the grid. Text on --surface and --bg is measured above.
    The waiting line sits on --accent-soft (measured 2026-11-10):
-     --text on --accent-soft 13.11 dark, 15.65 light
-     --text-2 7.30 / 7.18   --text-3 4.79 / 4.61   --accent 5.76 / 5.31 */
+     --text on --accent-soft 8.59 dark, 13.98 light
+     --text-2 6.69 / 6.52   --text-3 6.69 / 6.52   --accent 4.77 / 5.71 */
 .intake-add {
   display: grid;
   gap: var(--space-3);
@@ -4077,8 +4105,8 @@ footer {
 
 /* Public intake demo (/shelf/intake). A drawn shelf, the four stages and
    the Check rows, from the recording only. Spines alternate --sunken and
-   --accent-soft under --text: --text on --sunken 14.25 dark, 16.15 light;
-   --text on --accent-soft 13.11 dark, 15.65 light (measured above). The
+   --accent-soft under --text: --text on --sunken 8.59 dark, 12.81 light;
+   --text on --accent-soft 8.59 dark, 13.98 light (measured above). The
    confidence words reuse .conf on --surface (measured above). */
 .intake-demo h1 {
   margin: 0 0 var(--space-2);
@@ -4444,8 +4472,8 @@ footer {
 }
 
 /* An issue with no cover: a labelled placeholder, not an empty block. The
-   dashed --run-missing outline is 3.30 / 3.25 on --surface and 3.50 / 3.17
-   on --bg (dark / light) but 3.07 / 2.92 on --sunken, so it takes the
+   dashed --run-missing outline is 3.01 / 3.40 on --surface and 3.64 / 3.01
+   on --bg (dark / light) but 4.13 / 2.75 on --sunken, so it takes the
    page's ground instead of the cover's. */
 .cover[data-nocover] {
   background: transparent;
@@ -6253,7 +6281,7 @@ dialog.shelf-sheet {
 .needs-attention {
   background: var(--accent);
   border-radius: 999px;
-  color: var(--bg);
+  color: var(--accent-ink);
   display: inline-block;
   font-size: var(--fs-12);
   font-weight: 700;
@@ -6779,16 +6807,16 @@ section > .cover-key {
 }
 
 /* Stripes on --bg: in the dark theme --surface is the panel's own color.
-   The row being rated lights up on --line; its secondary text stays on
-   --text-2, which clears 4.5:1 there in both themes (6.83 dark, 6.46
-   light; --text-3 does not, at 4.48 and 4.15). */
+   The row being rated lights up on --sunken; its secondary text stays on
+   --text-2 on --sunken, which clears 4.5:1 in both themes (6.69 dark, 5.98
+   light; --text-3 is the same colour). */
 .rate-a-few-table tbody tr:nth-child(even) {
   background: var(--bg);
 }
 
 .rate-a-few-table tbody tr:hover,
 .rate-a-few-table tbody tr:focus-within {
-  background: var(--line);
+  background: var(--sunken);
 }
 
 .rate-a-few-platform,
@@ -8544,7 +8572,7 @@ main h1[tabindex='-1']:focus,
   text-transform: uppercase;
 }
 
-/* Measured with the status dot: --ok on --surface, 8.27 / 5.32. */
+/* Measured with the status dot: --ok on --surface, 3.21 / 5.14. */
 .tour-live-dot {
   background: var(--ok);
   border-radius: 50%;
@@ -8769,9 +8797,9 @@ main h1[tabindex='-1']:focus,
 /* Comic run lanes (comic series display spec): Run, Read and, in admin,
    Skipped, on one axis. Every span is a non-text mark on the ground it
    sits on (--lane-ground: --surface in a run card, --bg on a shelf card):
-   owned --chart 6.73 / 7.15 dark, 6.09 / 5.93 light; missing is hollow,
-   a 1.5px --run-missing outline, 3.30 / 3.50 dark, 3.25 / 3.17 light; the
-   read lane --text-2 8.53 / 9.06 dark, 8.24 / 8.03 light. Missing differs
+   owned --chart 4.04 / 4.88 dark, 5.89 / 5.22 light; missing is hollow,
+   a 1.5px --run-missing outline, 3.01 / 3.64 dark, 3.40 / 3.01 light; the
+   read lane --text-2 4.89 / 5.90 dark, 7.38 / 6.54 light. Missing differs
    from owned by shape (hollow), not only by colour. The 1px ring in the
    ground colour separates neighbouring spans. */
 .lanes {
@@ -8939,11 +8967,11 @@ main h1[tabindex='-1']:focus,
 }
 
 /* The run box: books, cells and bundles in issue order, on --surface.
-   Owned cells keep the issue grid's style: the --chart-2 border is 3.15
-   dark / 3.10 light on --surface, the edge that matters (2.69 / 2.71
+   Owned cells keep the issue grid's style: the --chart-2 border is 3.02
+   dark / 3.73 light on --surface, the edge that matters (4.13 / 3.29
    against its own --accent-soft fill). Read cells' numerals are
-   --accent-ink on --chart, 7.15 / 6.09. Missing is a hollow --run-missing
-   border, 3.30 / 3.25; skipped is dashed, with a ×. A book's spine is
+   --accent-ink on --chart, 8.30 / 6.09. Missing is a hollow --run-missing
+   border, 3.01 / 3.40; skipped is dashed, with a ×. A book's spine is
    decoration (it fails 3:1 against a read book's fill): its label and
    range are what make it a book. Nothing fades with opacity. */
 .run-box-frame {
@@ -9070,8 +9098,8 @@ button.run-cell[aria-disabled='true'] {
 .run-cell[data-k='upcoming'],
 .run-key[data-variant='box'] i[data-k='upcoming'] {
   background: var(--hatch);
-  /* --text, not --text-2: over the hatch's darker stripe --text-2 is 2.59
-     dark / 2.54 light; --text is 4.65 / 5.53. */
+  /* --text, not --text-2: over the hatch's darker stripe --text-2 is 1.62
+     dark / 2.18 light; --text is 2.08 / 4.66 (dark stays under 4.5). */
   color: var(--text);
 }
 
@@ -10812,7 +10840,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* The weekend planner (/admin/weekend). Read on a phone first: everything
    stacks, and the two days sit side by side from 700px. The bars are
-   --chart on --surface (6.73 dark, 6.09 light, in the token block); a wet
+   --chart on --surface (4.04 dark, 5.89 light, in the token block); a wet
    hour is hatched with --hatch over a --chart-2 bar, so wet differs in
    texture, not colour alone, and the panel names the wet hours in words.
    The verdict's colour is the status dot's, beside its text. */
@@ -11196,10 +11224,10 @@ a.cover-tile-cap:focus-visible span {
   font-size: var(--fs-12);
   opacity: 0.85;
 }
-/* Match: filled. --accent-ink on --status-active measured 8.78 dark (the
-   --bg ink on --ok) and 4.58 light (white on #2a8556); both clear 4.5:1 for
-   text. Close: a 2px --warn ring on the surface, a non-text mark (8.51 dark,
-   4.24 light on --surface). No: the plain cell. The hidden state word in
+/* Match: filled. --accent-ink on --status-active measured 6.58 dark
+   (#2b2b2a on --ok) and 4.58 light (white on #2a8556); both clear 4.5:1 for
+   text. Close: a 2px --warn ring on the surface, a non-text mark (3.30 dark,
+   4.10 light on --surface). No: the plain cell. The hidden state word in
    each cell carries the same information for a screen reader. */
 .shelfle-cell[data-state='match'] {
   background: var(--status-active);
@@ -11987,7 +12015,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* Untagged: a dashed --warn outline inside the photo's edge. A non-text
    mark, measured against the photo's fallback ground and the page:
-   --warn on --sunken 7.92:1 dark, 3.81:1 light; on --bg 9.04 and 4.13.
+   --warn on --sunken 4.52:1 dark, 3.32:1 light; on --bg 3.98 and 3.63.
    The stat line says "In the tag queue" too, so the mark is never alone. */
 .garment-tile[data-status='untagged'] .garment-photo {
   outline: 2px dashed var(--warn);
@@ -12077,7 +12105,7 @@ a.cover-tile-cap:focus-visible span {
   align-items: center;
 }
 
-/* The wear meter: --accent on a --sunken track, 6.26:1 dark and 5.48:1
+/* The wear meter: --accent on a --sunken track, 4.77:1 dark and 5.23:1
    light (a non-text mark; the number beside it carries the value). */
 .garment-meter {
   display: block;
@@ -12249,7 +12277,7 @@ a.cover-tile-cap:focus-visible span {
 /* Today (/admin/closet/today). Tokens only; a garment's own colour
    (primary_hex) is data, set inline on its swatch. Every text pair below
    is one the token blocks record: --text-2 and --text-3 on --surface,
-   --accent on --accent-soft (5.76 dark, 5.31 light, the lowest of the
+   --accent on --accent-soft (4.77 dark, 5.71 light, the lowest of the
    four grounds). */
 .today {
   display: grid;
@@ -12478,7 +12506,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* Swap and Build around: real buttons under each piece, always shown, so
    a keyboard or a touch reaches them without a hover. The locked piece
-   gets an --accent outline (5.76 dark, 5.31 light at worst) next to the
+   gets an --accent outline (4.77 dark, 5.71 light at worst) next to the
    "Built around" pill, so the outline is never alone. */
 .outfit-piece-btn {
   background: var(--surface);
@@ -13557,15 +13585,15 @@ a.btn.sm {
 /* ===== Projects visuals (#289): hero images and the architecture figure =====
    Measured contrast (WCAG 2.x), dark / light. Figure ground is --surface; a
    node is filled --bg.
-   Text: --text on --bg 16.27 / 17.49; --text on --surface 15.32 / 17.96;
-   --text-2 on --bg 9.06 / 8.03; --text-2 on --surface 8.53 / 8.24;
-   --text on --accent-soft (snapshot) 13.11 / 15.65; --text-2 on
-   --accent-soft 7.30 / 7.18; --accent-ink on --accent (badge numerals)
-   7.15 / 6.09.
-   Lines and marks (3:1 needed): --text-3 on --surface 5.60 / 5.29 (node
-   outlines, edges, arrowheads); --text-3 on --bg 5.95 / 5.16; --accent on
-   --surface 6.73 / 6.09 (snapshot outline and badges); --accent on
-   --accent-soft 5.76 / 5.31. */
+   Text: --text on --bg 7.57 / 14.03; --text on --surface 6.28 / 15.83;
+   --text-2 on --bg 5.90 / 6.54; --text-2 on --surface 4.89 / 7.38;
+   --text on --accent-soft (snapshot) 8.59 / 13.98; --text-2 on
+   --accent-soft 6.69 / 6.52; --accent-ink on --accent (badge numerals)
+   7.16 / 6.69.
+   Lines and marks (3:1 needed): --text-3 on --surface 4.89 / 7.38 (node
+   outlines, edges, arrowheads); --text-3 on --bg 5.90 / 6.54; --accent on
+   --surface 3.49 / 6.46 (snapshot outline and badges); --accent on
+   --accent-soft 4.77 / 5.71. */
 
 .project-hero {
   margin: var(--space-4) 0 var(--space-3);
@@ -13681,63 +13709,67 @@ a.btn.sm {
 @media print {
   :root,
   [data-theme] {
-    --bg: #fcfcfb;
-    --surface: #ffffff;
-    --sunken: #f3f3f0;
-    --line: #e4e4df;
-    --line-strong: #c9c9c2;
+    --bg: #f1ede6;
+    --surface: #fcfbf9;
+    --sunken: #e8e3da;
+    --line: #8c8579;
+    /* Rules and outlines inside cards. */
+    --line-card: #8c8579;
+    --line-strong: #8c8579;
     /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
-       text 15.65, text-2 7.18, text-3 4.61 (the mockup's #7a808a reached
-       only 3.46 to 3.98), accent 5.31. */
-    --text: #15171a;
-    --text-2: #4a4f57;
-    --text-3: #666c75;
-    --accent: #1f5fbf;
-    /* --accent-ink on --accent 6.09; --bg on --text 17.49. */
+       text 12.81, text-2 5.98, text-3 5.98, accent 5.23. */
+    --text: #231f1a;
+    --text-2: #57534d;
+    --text-3: #57534d;
+    --accent: #a8321f;
+    /* --accent-ink on --accent 6.69; --bg on --text 14.03. */
     --accent-ink: #ffffff;
-    --accent-soft: #e8f0fc;
-    /* Marks on --surface: ok 5.32, warn 4.24, chart 6.09, chart-2 3.10 (the
-       mockup's #9fbce8 reached 1.94). */
+    --accent-soft: #f5ebe8;
+    /* The highlighter: a status mark's fill, with its own text colour. Its
+       text is 11.90 on it; the fill is only 1.33 on --surface, so it always
+       sits in an outline beside a word. Marks on --surface: ok 5.14, warn
+       4.10, chart 5.89, chart-2 3.73 (3.02 on --sunken). */
     --ok: #1f7a4d;
     --warn: #b26a00;
-    /* --bg on --warn reached only 4.13, short of 4.5 for 9px numerals, so the
-       badge darkens: white on --badge 5.38; the fill on --sunken 4.84. */
-    --badge: #9a5c00;
+    /* --bg on --warn reaches only 3.63, short of 4.5 for 9px numerals, so the
+       badge darkens: white on --badge 6.11; the colour as text on --bg 5.24,
+       --surface 5.91, --sunken 4.78. */
+    --badge: #8f5400;
     --badge-ink: #ffffff;
     --chart: #1f5fbf;
-    --chart-2: #7393cb;
-    /* Redaction stripe 3.25 on --surface (mockup #e4e4df: 1.28). Pill
-       borders ok 5.32, warn 4.24, accent 6.09; the New badge on --bg 5.93. */
+    --chart-2: #5d82c3;
+    /* Redaction stripe 3.40 on --surface. Pill borders ok 5.14, warn 4.10,
+       accent 6.46; the New badge on --bg 5.73. */
     --redact: repeating-linear-gradient(
       135deg,
-      #8a8f98 0 6px,
-      #f3f3f0 6px 12px
+      #848993 0 6px,
+      #e8e3da 6px 12px
     );
-    /* Comic runs on --surface: 3.25 (--line-strong reached 1.66); the
-       lanes' missing outline on --bg 3.17; --text over the hatch 5.53. */
-    --run-missing: #8a8f98;
+    /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
+       --text over the hatch 4.66. */
+    --run-missing: #848993;
     --hatch: repeating-linear-gradient(
       135deg,
-      #8a8f98 0 2px,
+      #848993 0 2px,
       transparent 2px 6px
     );
     /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
        string escapes); on --bg it drops to 4.41. */
     --code-bg: #ffffff;
-    /* Measured, light, on --surface: finished 13.46, backlog 6.24, active
-       4.58, abandoned 3.22; backlog on --line 4.90; rating 4.24. Darkest
-       first: finished, backlog, active, abandoned; no two closer than
-       1.36:1, and active is the only green. */
+    /* Measured, light, on --surface: finished 13.01, backlog 6.04, active
+       4.43, abandoned 3.11; rating 4.10. Darkest first: finished, backlog,
+       active, abandoned; no two closer than 1.36:1, and active is the only
+       green. */
     --rating: var(--warn);
     --status-active: #2a8556;
     --status-finished: #2b2f35;
     --status-backlog: #5b616a;
     --status-abandoned: #8a9099;
     --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
-    /* Measured in the browser, light: row title 16.15, sub line 4.76, accent
-       bar 5.48 on --search-active; group label 5.29 on --surface. */
+    /* Computed from the tokens, light: row title 12.81, sub line 5.98, accent
+       bar 5.23 on --search-active; group label 7.38 on --surface. */
     --search-active: var(--sunken);
-    --skeleton: #ecece8;
+    --skeleton: #e0dbd1;
     --grid-gap: 1rem;
     color-scheme: light;
   }

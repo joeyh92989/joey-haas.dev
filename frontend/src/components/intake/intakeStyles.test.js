@@ -32,7 +32,7 @@ describe('intake styles', () => {
       /\.intake-meter-reading \{\s*background: var\(--status-backlog\);/,
     )
     // The ratios are recorded beside the rules.
-    expect(block).toContain('--line-strong measured 1.60 and 1.50')
+    expect(block).toContain('--line-strong is a mid grey now')
   })
 
   it('puts the drawer beside the grid, and a fixed sheet below 900px', () => {
@@ -48,7 +48,7 @@ describe('intake styles', () => {
     expect(block).toMatch(
       /\.intake-waiting \{[^}]*background: var\(--accent-soft\);/,
     )
-    expect(block).toContain('--text on --accent-soft 13.11 dark, 15.65 light')
+    expect(block).toContain('--text on --accent-soft 8.59 dark, 13.98 light')
   })
 
   it('gives the add bar, drawer and Clothes Check 44px targets on a phone', () => {
@@ -77,6 +77,6 @@ describe('intake styles', () => {
     expect(block).toMatch(
       /\.intake-demo-spine \{[^}]*background: var\(--sunken\);[^}]*color: var\(--text\);/,
     )
-    expect(block).toContain('--text on --sunken 14.25 dark, 16.15 light')
+    expect(block).toContain('--text on --sunken 8.59 dark, 12.81 light')
   })
 })
