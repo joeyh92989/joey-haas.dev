@@ -100,4 +100,42 @@ describe('shared component rules', () => {
     )
     expect(own).toEqual([])
   })
+
+  // docs/design-system.md → One of each: the catalogue number is for
+  // collections only, so only the record card draws one until a collection
+  // page is added to this list on purpose.
+  it('draws a catalogue number only inside RecordCard', () => {
+    const CATALOGUE_ALLOWED = new Set([
+      'components/CatalogueNumber.jsx',
+      'components/RecordCard.jsx',
+    ])
+    expect(
+      offenders(
+        (f) =>
+          (/CatalogueNumber(\.jsx)?['"]/.test(f.text) ||
+            /<CatalogueNumber[\s>]/.test(f.text)) &&
+          !CATALOGUE_ALLOWED.has(f.name),
+      ),
+    ).toEqual([])
+  })
+
+  it('draws no status square of its own: the mark comes from StatusMark, with its word', () => {
+    expect(
+      offenders(
+        (f) =>
+          f.text.includes('status-mark-square') &&
+          f.name !== 'components/StatusMark.jsx',
+      ),
+    ).toEqual([])
+  })
+
+  it('imports Base UI only inside components/ui', () => {
+    expect(
+      offenders(
+        (f) =>
+          f.text.includes('@base-ui/react') &&
+          !f.name.startsWith('components/ui/'),
+      ),
+    ).toEqual([])
+  })
 })

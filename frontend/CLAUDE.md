@@ -363,6 +363,17 @@ format`, `npm run lint`, and check `git diff src/tailwind.css` is empty. Aliases
 are in `components.json` (`@/components/ui`, `@/lib/utils`). `@` maps to `src/`
 in `vite.config.js` and `jsconfig.json`.
 
+**The components are ours (#528).** `src/components/ui/` (Button, Badge, Input,
+Tabs, Separator, Card) was generated, then restyled in place for the Archive
+look: flat, 1px outlines, radius 4 to 6px, no shadow, no opacity on text, a
+`chip` button variant for `FilterChips`. Running `shadcn add` again on one of
+them overwrites the look. `RecordCard`, `CatalogueNumber` and `StatusMark` sit
+on top in `src/components/`; the rules for using them are in
+`docs/design-system.md` → One of each. Tailwind utilities beat the legacy
+layer, so a rebuilt component keeps its legacy class names (tests and other
+CSS read them) and sets only the properties it means to change: leave
+`min-height` and `display` to the legacy phone rules.
+
 **`cn`.** The class-name helper is shadcn's own `cn` package
 (github.com/shadcn-ui/cn, maintainer shadcn, a clsx + tailwind-merge drop-in,
 pinned in `package.json`). shadcn 4.x generates `import { cn } from "cn"`, so
