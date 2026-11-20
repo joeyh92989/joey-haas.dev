@@ -418,6 +418,10 @@ async def edit_outing(
         words = clean_line(date_text or "")[:MAX_DATE_TEXT] or None
         read = read_date(words, place_kind.owner_today())
         outing.update(outing_payload(words, read), skip=bool(outing.get("skip")))
+        # A new date is a new period: "same as an earlier line" was about the
+        # old one (the duplicate flag is read again below).
+        if outing.pop("repeat_of", None) and not outing.get("duplicate_of"):
+            outing["skip"] = False
     if skip is not None:
         outing["skip"] = skip
     payload["outing"] = outing

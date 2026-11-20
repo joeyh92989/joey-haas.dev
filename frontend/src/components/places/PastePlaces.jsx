@@ -891,6 +891,14 @@ export default function PastePlaces({ cities }) {
     }
   }
 
+  const held = outings && (check - refusedRows > 0 || waiting > 0)
+  // Closing clears only lines the commit settles: a left-out line still to
+  // check or look up is kept by the server, so it is no reason to close.
+  const closable =
+    outings &&
+    !held &&
+    [...grouped.logged, ...grouped.out].some((e) => !keepStates.has(e.state))
+
   let saveNote = words.saveNotes.allDone
   if (check) saveNote = words.saveNotes.stays(check)
   if (outings) {
@@ -899,8 +907,15 @@ export default function PastePlaces({ cities }) {
     else if (check - refusedRows || waiting) {
       saveNote = ow.held(check - refusedRows, waiting)
     } else if (addable) {
-      saveNote = ow.willAdd(addable, newPlaces, grouped.logged.length)
-    } else if (grouped.logged.length + grouped.out.length) {
+      // Only rows that will be written are counted; a refused row is named
+      // apart, since it needs an edit or another try.
+      const will = ready
+        ? ow.willAdd(ready, newPlaces, grouped.logged.length)
+        : ''
+      saveNote = [will, refusedRows && ow.refusedNote(refusedRows)]
+        .filter(Boolean)
+        .join(' ')
+    } else if (closable) {
       saveNote = ow.nothingToAdd
     } else saveNote = ow.nothingReady
   } else if (running) saveNote = words.saveNotes.running
@@ -910,10 +925,6 @@ export default function PastePlaces({ cities }) {
       ? words.saveNotes.nothingReady
       : words.saveNotes.nothingToSave
   }
-  const held = outings && (check - refusedRows > 0 || waiting > 0)
-  const closable =
-    outings && !held && grouped.logged.length + grouped.out.length > 0
-
   const citiesFor = (entry) => {
     const own = entry.payload?.city
     return own && own !== 'denver' && !cities.includes(own)
@@ -953,9 +964,23 @@ export default function PastePlaces({ cities }) {
     (group === 'ready'
       ? grouped.ready.length <= CAP
       : group === 'wait'
-        ? // a line that already got no answer once is shown, not folded away
-          grouped.wait.some((e) => (e.payload?.attempts ?? 0) > 0)
+        ? // a line that already got no answer once, or that is being looked
+          // up now, is shown, not folded away
+          grouped.wait.some(
+            (e) =>
+              (e.payload?.attempts ?? 0) > 0 || (outings && busyIds.has(e.id)),
+          )
         : group !== 'same')
+
+  // The city of the new places is fixed per paste (each entry stores it).
+  const listCities =
+    [
+      ...new Set(
+        entries.filter(isOuting).map((e) => e.payload?.city ?? HOME_CITY),
+      ),
+    ]
+      .map(cityLabel)
+      .join(', ') || cityLabel(city)
 
   const summary =
     counts &&
@@ -1227,6 +1252,11 @@ export default function PastePlaces({ cities }) {
             {phase === 'review' && (
               <div className="place-paste-summary">
                 <p>{summary ?? words.inList(entries.length)}</p>
+                {outings && (
+                  <p className="place-hint" id="paste-city-fixed">
+                    {ow.cityFixed(listCities)}
+                  </p>
+                )}
                 {pasted && (
                   <button
                     type="button"

@@ -371,6 +371,9 @@ function OutingRow({
     })
   }
 
+  // While the date form is open it is the row: no chip, no button above it.
+  const dateFormOpen =
+    open && !busy && ['date', 'ready', 'refused'].includes(kind)
   let form = null
   if (open && !busy) {
     if (kind === 'date' || kind === 'ready' || kind === 'refused') {
@@ -424,10 +427,12 @@ function OutingRow({
           </span>
         ))}
       </span>
-      <span className="outing-chip">
-        <DateChip entry={entry} />
-      </span>
-      <span className="place-result-act">{acts}</span>
+      {!dateFormOpen && (
+        <span className="outing-chip">
+          <DateChip entry={entry} />
+        </span>
+      )}
+      {!dateFormOpen && <span className="place-result-act">{acts}</span>}
       {form && (
         <div
           className="place-form"

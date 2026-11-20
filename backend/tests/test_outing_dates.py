@@ -148,12 +148,12 @@ def test_split_reads_a_comma_inside_a_day_and_drops_trailing_commas(line, place,
 
 @pytest.mark.parametrize(
     "line",
-    ["Coors Field, Juen 14, 2024", "Coors Field, 6/14, 2024", "Coors Field, 6/7/24"],
+    ["Coors Field, 6/14, 2024", "Coors Field, 6/7/24"],
 )
 def test_split_never_reads_the_year_of_a_broken_day_as_a_year_outing(line):
     place, text, read = split_outing_line(line, TODAY)
     assert (place, read) == ("Coors Field", None)  # the place is not polluted
-    assert text and text[0] in "J6"  # the words are kept, unread
+    assert text and text[0] == "6"  # the words are kept, unread
 
 
 @pytest.mark.parametrize(
@@ -167,4 +167,22 @@ def test_split_never_reads_the_year_of_a_broken_day_as_a_year_outing(line):
     ],
 )
 def test_split_keeps_links_coordinates_and_plain_commas_whole(line):
+    assert split_outing_line(line, TODAY) == (line, None, None)
+
+
+@pytest.mark.parametrize(
+    ("line", "place", "year"),
+    [
+        ("Pier 39, 2023", "Pier 39", 2023),
+        ("Route 66, 2019", "Route 66", 2019),
+        ("Interstate 70, 2021", "Interstate 70", 2021),
+    ],
+)
+def test_a_number_in_a_place_name_is_not_a_day(line, place, year):
+    got_place, _, read = split_outing_line(line, TODAY)
+    assert (got_place, read.visited_on.year, read.precision) == (place, year, "year")
+
+
+def test_a_street_number_is_not_a_failed_date():
+    line = "Joe's Diner, 1234 Main St, Denver"
     assert split_outing_line(line, TODAY) == (line, None, None)

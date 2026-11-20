@@ -41,13 +41,23 @@ _MONTH_YEAR = re.compile(r"([a-z]+)\.?,?\s+(\d{4})")
 
 # A place text that ends in the start of a day ("Sept 14", "6/14"): a lone
 # year after it is the tail of a day with a comma in it, not a year outing.
-_DAY_FRAGMENT = re.compile(
-    r"(?:[a-z]+\.?\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}/\d{1,2})$", re.IGNORECASE
-)
+_MONTH_DAY_END = re.compile(r"([a-z]+)\.?\s+\d{1,2}(?:st|nd|rd|th)?$", re.IGNORECASE)
+_SLASH_DAY_END = re.compile(r"\d{1,2}/\d{1,2}$")
+
+
+def _ends_in_day_fragment(place: str) -> bool:
+    """Whether `place` ends like the start of a day: a MONTH word and a
+    number ("Sept 14"), or d/m. "Pier 39" and "Route 66" do not."""
+    found = _MONTH_DAY_END.search(place)
+    if found and found.group(1).lower() in _MONTHS:
+        return True
+    return bool(_SLASH_DAY_END.search(place))
+
+
 # What a failed date attempt looks like (a tail that is plainly meant as a date
 # but does not read): a 4-digit year that is not part of a number, a d/m, a
 # season or a relative word, or a month word beside a digit.
-_YEAR_TOKEN = re.compile(r"(?<![\d.\-])\d{4}(?![\d.])")
+_YEAR_TOKEN = re.compile(r"(?<![\d.\-])(?:19|20)\d{2}(?![\d.])")
 _SLASH_DATE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 _RELATIVE = re.compile(
     r"\b(?:last|next|this|ago|yesterday|summer|winter|spring|fall|autumn)\b",
@@ -162,7 +172,7 @@ def split_outing_line(
         read = read_date(rest, today)
         if not place or read is None:
             continue
-        if read.precision == "year" and _DAY_FRAGMENT.search(place):
+        if read.precision == "year" and _ends_in_day_fragment(place):
             continue
         return place, rest, read
     if not re.match(r"https?://", line, re.IGNORECASE):

@@ -579,4 +579,90 @@ describe('PastePlaces: past outings', () => {
     expect(await inList('Left out', 'Place ignored')).toBeInTheDocument()
     expect(inList('Ready', 'Place ready')).toBeInTheDocument()
   })
+
+  it('a left-out line still to check does not enable Close the list', async () => {
+    setup({
+      world: { 'unsure place': [hit('Unsure One'), hit('Unsure Two')] },
+    })
+    renderPaste()
+    await addOutings('Unsure Place, someday')
+    await screen.findByText('Date not read: “someday”.')
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Stop' })).toBeNull(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^Fix date/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Leave out' }))
+    await waitFor(() =>
+      expect(inList('Left out', 'Unsure Place')).toBeInTheDocument(),
+    )
+    // The server keeps a line still to check, so closing would do nothing.
+    expect(screen.getByRole('button', { name: 'Add outings' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Close the list' })).toBeNull()
+  })
+
+  it('keeps the chosen city on the page as read-only text after the paste', async () => {
+    setup()
+    renderPaste()
+    await switchToOutings()
+    fireEvent.change(screen.getByLabelText('City for new places'), {
+      target: { value: 'boulder' },
+    })
+    fireEvent.change(screen.getByLabelText('Outings, one per line'), {
+      target: { value: 'Union Station, 2023' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add lines' }))
+    await lookedUp()
+    expect(screen.getByText('City for new places: Boulder')).toBeInTheDocument()
+    expect(screen.queryByLabelText('City for new places')).toBeNull()
+  })
+
+  it('shows only the form while the date form is open', async () => {
+    setup()
+    renderPaste()
+    await addOutings('Meow Wolf, last summer')
+    await lookedUp()
+    const fix = screen.getByRole('button', { name: /^Fix date/ })
+    const item = fix.closest('li')
+    expect(within(item).getByText('Date not read')).toBeInTheDocument()
+    fireEvent.click(fix)
+    expect(within(item).queryByText('Date not read')).toBeNull()
+    expect(within(item).queryByRole('button', { name: /^Fix date/ })).toBeNull()
+    expect(within(item).getByLabelText('Date')).toBeInTheDocument()
+    fireEvent.click(within(item).getByRole('button', { name: 'Cancel' }))
+    expect(within(item).getByText('Date not read')).toBeInTheDocument()
+    expect(
+      within(item).getByRole('button', { name: /^Fix date/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('counts only rows that will be written, and names the refused one apart', async () => {
+    setup({ refuseOutings: ['Union Station'] })
+    renderPaste()
+    await addOutings('Union Station, 2023\nRed Rocks, 2021')
+    await lookedUp()
+    expect(
+      screen.getByText(/^2 outings and 2 new places will be added\./),
+    ).toBeInTheDocument()
+    fireEvent.click(addButton())
+    await screen.findByRole('alert')
+    expect(
+      screen.getByText(
+        '1 outing and 1 new place will be added. 1 refused line needs an edit, or add again to retry it.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('opens Not looked up yet while a lookup is in flight', async () => {
+    let release
+    const gate = new Promise((resolve) => {
+      release = resolve
+    })
+    setup({ hold: () => gate })
+    renderPaste()
+    await addOutings('Slow Place, 2023')
+    expect(await screen.findByText('Looking up…')).toBeInTheDocument()
+    expect(list('Not looked up yet')).toBeInTheDocument()
+    release()
+    await lookedUp()
+  })
 })

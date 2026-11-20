@@ -319,6 +319,11 @@ export const placesAdd = {
       boxHint:
         'A place name, a comma, then a date: a day (2024-06-14 or June 14, 2024), a month (June 2024) or a year (2023). Up to 200 lines. Nothing is sent until you press Add lines.',
       cityLabel: 'City for new places',
+      cityFixed: (label) => `City for new places: ${label}`,
+      refusedNote: (n) =>
+        n === 1
+          ? '1 refused line needs an edit, or add again to retry it.'
+          : `${n} refused lines need an edit, or add again to retry them.`,
       cityHint:
         'A place not on your list is looked up by name and saved private in this city when you add the outings.',
       // The row.

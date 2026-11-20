@@ -429,6 +429,15 @@ async def write_outings(
             )
     written, skipped, refused = 0, 0, []
     seen: set[tuple[str, str, str]] = set()
+    keys = {
+        e.id: (
+            str(spot_ids[e.id]),
+            reads[e.id].visited_on.isoformat(),
+            reads[e.id].precision,
+        )
+        for e in entries
+        if e.id in reads and e.id in spot_ids
+    }
     for entry in entries:
         read = reads.get(entry.id)
         spot_id = spot_ids.get(entry.id)
@@ -439,7 +448,12 @@ async def write_outings(
         if key in stored:
             chosen = outing.get("duplicate_of") == stored[key]
         else:
-            chosen = key not in seen or bool(outing.get("repeat_of"))
+            # Add anyway on a repeat names an entry of this commit that has
+            # the same period; a stale `repeat_of` (the date changed) is not it.
+            named = str(outing.get("repeat_of") or "")
+            chosen = key not in seen or any(
+                str(other) == named and keys[other] == key for other in keys
+            )
         if not chosen:
             skipped += 1
             continue

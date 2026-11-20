@@ -1000,3 +1000,50 @@ async def test_a_coordinate_line_is_not_cut_at_its_comma(
     assert link["payload"]["source_line"].endswith("39.7392,-104.9903")
     assert dated["payload"]["lat"] == pytest.approx(39.7392)
     assert dated["outing"]["label"] == "June 2024"
+
+
+@pytest.mark.asyncio
+async def test_a_date_edit_drops_the_repeat_flag_of_the_old_period(
+    frozen_day, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        first, second = (
+            await paste_outings(
+                client, sitting, "Coors Field, June 14, 2024\nCoors Field, 2024-06-14"
+            )
+        ).json()["entries"]
+        assert second["outing"]["repeat_of"] == first["id"]
+        edited = await client.patch(
+            f"/api/intake/entries/{second['id']}", json={"outing_date_text": "2019"}
+        )
+    outing = edited.json()["outing"]
+    assert (outing["repeat_of"], outing["skip"], outing["label"]) == (
+        None,
+        False,
+        "2019",
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_stale_repeat_of_is_not_add_anyway(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    """`repeat_of` names an entry of another period (the date was changed
+    since): the commit does not take it as the owner's Add anyway."""
+    fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entries = await resolved_outings(
+            client,
+            "Union Station, 2024-06-14\nUnion Station, 2020\nUnion Station, 2018",
+        )
+        async with sessionmaker_for_test() as session:
+            row = await session.get(IntakeEntry, entries[2]["id"])
+            outing = {**row.payload["outing"], "date_text": "June 14, 2024"}
+            outing["repeat_of"] = entries[1]["id"]  # a 2020 line, not this period
+            outing["skip"] = False
+            row.payload = {**row.payload, "outing": outing}
+            await session.commit()
+        response = await client.post(sitting_url(sitting, "/commit"))
+    body = response.json()
+    assert (body["outings_new"], body["outings_skipped"]) == (2, 1)
