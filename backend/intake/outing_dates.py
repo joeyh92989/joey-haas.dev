@@ -29,6 +29,7 @@ for _number in range(1, 13):
     _full = calendar.month_name[_number].lower()
     _MONTHS[_full] = _number
     _MONTHS[_full[:3]] = _number
+_MONTHS["sept"] = 9
 
 _ISO_DAY = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
 _ISO_MONTH = re.compile(r"(\d{4})-(\d{2})")
@@ -36,6 +37,36 @@ _YEAR = re.compile(r"\d{4}")
 _MONTH_DAY_YEAR = re.compile(r"([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})")
 _DAY_MONTH_YEAR = re.compile(r"(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\.?,?\s+(\d{4})")
 _MONTH_YEAR = re.compile(r"([a-z]+)\.?,?\s+(\d{4})")
+
+
+# A place text that ends in the start of a day ("Sept 14", "6/14"): a lone
+# year after it is the tail of a day with a comma in it, not a year outing.
+_DAY_FRAGMENT = re.compile(
+    r"(?:[a-z]+\.?\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}/\d{1,2})$", re.IGNORECASE
+)
+# What a failed date attempt looks like (a tail that is plainly meant as a date
+# but does not read): a 4-digit year that is not part of a number, a d/m, a
+# season or a relative word, or a month word beside a digit.
+_YEAR_TOKEN = re.compile(r"(?<![\d.\-])\d{4}(?![\d.])")
+_SLASH_DATE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
+_RELATIVE = re.compile(
+    r"\b(?:last|next|this|ago|yesterday|summer|winter|spring|fall|autumn)\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_date_try(rest: str) -> bool:
+    if len(rest) > MAX_DATE_CHARS or "://" in rest:
+        return False
+    words = re.findall(r"[a-z]+", rest.lower())
+    has_month = any(word in _MONTHS for word in words)
+    has_digit = any(char.isdigit() for char in rest)
+    return bool(
+        _YEAR_TOKEN.search(rest)
+        or _SLASH_DATE.search(rest)
+        or _RELATIVE.search(rest)
+        or (has_month and has_digit)
+    )
 
 
 @dataclass(frozen=True)
@@ -113,23 +144,31 @@ def split_outing_line(
 
     The date is what follows the LEFTMOST comma whose remainder reads as a
     date, so "Coors Field, June 14, 2024" and "Smith, Jones Park, 2023" both
-    split where a person would. With no such comma the place is the text
-    before the last comma (or the whole line) and the date is unread: the
-    words after that comma are kept as the date text so Check can show them,
-    and None when there are none (or no comma at all).
+    split where a person would. A year alone does not split after a day
+    fragment ("Coors Field, Sept 14, 2024" is a day, never "Coors Field, Sept
+    14" and the year 2024). A trailing comma is dropped first.
+
+    With no date that reads, the line splits only at the leftmost comma whose
+    remainder is plainly a failed date attempt ("Red Rocks, last summer",
+    "Coors Field, 6/14, 2024"): the words are kept as the date text, unread.
+    Otherwise the WHOLE line is the place, so a map link, a coordinate pair or
+    "Denver Botanic Gardens, Denver" is never cut.
     """
-    line = line.strip()
+    line = re.sub(r"[,\s]+$", "", line.strip())
     commas = [at for at, char in enumerate(line) if char == ","]
     for at in commas:
         place = line[:at].strip()
         rest = line[at + 1 :].strip()
         read = read_date(rest, today)
-        if place and read is not None:
-            return place, rest, read
-    if commas:
-        at = commas[-1]
-        place = line[:at].strip()
-        rest = line[at + 1 :].strip()
-        if place:
-            return place, rest or None, None
+        if not place or read is None:
+            continue
+        if read.precision == "year" and _DAY_FRAGMENT.search(place):
+            continue
+        return place, rest, read
+    if not re.match(r"https?://", line, re.IGNORECASE):
+        for at in commas:
+            place = line[:at].strip()
+            rest = line[at + 1 :].strip()
+            if place and _looks_like_date_try(rest):
+                return place, rest, None
     return line, None, None

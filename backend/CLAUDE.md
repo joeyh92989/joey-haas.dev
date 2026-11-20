@@ -140,6 +140,10 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   an outing entry is never IGNORED as the same place; no new route (the
   `/api/spots` count stays 35), no migration, no outbound call beyond the
   resolve. The clock is `place_kind.owner_today` (patch it in tests).
+  The commit's repeat check is final (`write_outings`, one `visits` query under
+  the place-commit lock, answer `outings_skipped`); paste-time flags
+  (`duplicate_of`, `repeat_of`) are only the page's hint. `write_places` loads
+  the spots once and uses an OWNED entry's stored `owned_spot_id`.
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers

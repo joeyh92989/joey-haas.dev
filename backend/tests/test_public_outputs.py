@@ -1870,12 +1870,25 @@ async def test_a_backfill_commit_leaves_the_public_spots_without_an_outing_or_ne
     from tests.test_place_paste import _NoClient, hit
 
     async def search(client, query):
+        if query == "Huckleberry":
+            return SearchOk([hit(2, "Huckleberry")])
         return SearchOk([hit(1, "Backfilled Cafe")])
 
     monkeypatch.setattr(place_kind, "http_client", lambda: _NoClient())
     monkeypatch.setattr(nominatim, "search", search)
     monkeypatch.setattr(place_kind, "owner_today", lambda: _date(2026, 11, 19))
-    shown = _spot("Huckleberry")
+    from models import CandidateSource
+
+    # A PUBLIC Denver spot that the backfill also logs an outing on: the case
+    # where a leak would show.
+    shown = _spot(
+        "Huckleberry",
+        lat=hit(2).lat,
+        lng=hit(2).lng,
+        source=CandidateSource.OSM,
+        source_id=hit(2).source_id,
+        city="denver",
+    )
     await _add(sessionmaker_for_test, shown)
     before = await _spots(sessionmaker_for_test)
 
@@ -1886,16 +1899,22 @@ async def test_a_backfill_commit_leaves_the_public_spots_without_an_outing_or_ne
             )
         ).json()
         base = f"/api/intake/sittings/{sitting['id']}"
-        [entry] = (
+        entries = (
             await client.post(
                 f"{base}/paste",
-                json={"text": "Backfilled Cafe, June 14, 2019", "outings": True},
+                json={
+                    "text": "Backfilled Cafe, June 14, 2019\nHuckleberry, 2018",
+                    "outings": True,
+                },
             )
         ).json()["entries"]
-        await client.post(f"/api/intake/entries/{entry['id']}/resolve")
+        for entry in entries:
+            await client.post(f"/api/intake/entries/{entry['id']}/resolve")
         committed = await client.post(f"{base}/commit")
     assert committed.status_code == 200
-    assert committed.json()["outings_new"] == 1
+    assert committed.json()["outings_new"] == 2
+    async with sessionmaker_for_test() as session:
+        assert len((await session.scalars(select(Visit))).all()) == 2
 
     body = await _spots(sessionmaker_for_test)
     assert body == before  # the new place is not published
@@ -1906,7 +1925,7 @@ async def test_a_backfill_commit_leaves_the_public_spots_without_an_outing_or_ne
         ).one()
     assert made.is_public is False
     dumped = json.dumps(body)
-    for word in ("Backfilled Cafe", "June 14, 2019", "2019-06-14", "outing"):
+    for word in ("Backfilled Cafe", "June 14, 2019", "2019-06-14", "2018", "outing"):
         assert word not in dumped
     assert not {"outing", "precision", "visited_on", "date_text", "skip"} & set(
         _keys(body)

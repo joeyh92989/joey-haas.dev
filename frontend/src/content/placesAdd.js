@@ -329,6 +329,7 @@ export const placesAdd = {
         text ? `Date not read: “${text}”.` : 'No date on this line.',
       newPlace: (city) => `New place, private, ${city}`,
       onList: 'Place on your list',
+      repeatLine: 'Same outing as an earlier line',
       inHistory: (label) => `In History: ${label}`,
       alsoInHistory: (label) => `Also in History: ${label}`,
       leftOut: 'Left out. Not added.',
@@ -338,7 +339,7 @@ export const placesAdd = {
         logged: 'Add anyway',
         out: 'Put back',
         skip: 'Skip',
-        refused: 'Leave out',
+        refused: 'Edit',
       },
       // The date form.
       dateLabel: 'Date',
@@ -395,7 +396,10 @@ export const placesAdd = {
         return `${o}${p} will be added.${l}`
       },
       nothingReady: 'Nothing is ready to add.',
-      running: 'Press Stop to add what is ready so far.',
+      nothingToAdd:
+        'Every line is skipped or left out. Closing the list adds nothing.',
+      close: 'Close the list',
+      running: 'Adding waits until every place is looked up.',
       // After adding.
       doneHeading: (outings, places) =>
         `Added ${outings === 1 ? '1 outing' : `${outings} outings`}, ${places === 1 ? '1 new place' : `${places} new places`}.`,
@@ -409,10 +413,11 @@ export const placesAdd = {
       openHistory: 'Open History',
       // A refused commit.
       refused: (n) =>
-        `Nothing was added. ${n === 1 ? '1 line needs' : `${n} lines need`} fixing. Fix or leave out each one, then add the outings again.`,
+        `Nothing was added. ${n === 1 ? '1 line needs' : `${n} lines need`} fixing. Edit or leave out each one, or press Add outings to try again.`,
       refusedFallback:
         'Nothing was added. Fix or leave out the lines marked, then add the outings again.',
-      refusedRow: 'This line was refused. Fix it or leave it out.',
+      refusedRow:
+        'This line was refused. Edit it, leave it out, or press Add outings to try again.',
       commitFailed: 'The outings were not added. Nothing was written.',
     },
   },

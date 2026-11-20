@@ -128,3 +128,43 @@ def test_split_does_not_take_an_empty_place():
 def test_split_a_future_date_is_unread_not_split_off_as_a_date():
     place, text, read = split_outing_line("Coors Field, 2027", TODAY)
     assert (place, text, read) == ("Coors Field", "2027", None)
+
+
+@pytest.mark.parametrize(
+    ("line", "place", "text"),
+    [
+        ("Coors Field, Sept 14, 2024", "Coors Field", "Sept 14, 2024"),
+        ("Coors Field, Sept. 14, 2024", "Coors Field", "Sept. 14, 2024"),
+        ("Coors Field, June 14, 2024,", "Coors Field", "June 14, 2024"),
+        ("Coors Field, 2023,", "Coors Field", "2023"),
+        ("Coors Field, 2023, ,", "Coors Field", "2023"),
+    ],
+)
+def test_split_reads_a_comma_inside_a_day_and_drops_trailing_commas(line, place, text):
+    got_place, got_text, read = split_outing_line(line, TODAY)
+    assert (got_place, got_text) == (place, text)
+    assert read is not None
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["Coors Field, Juen 14, 2024", "Coors Field, 6/14, 2024", "Coors Field, 6/7/24"],
+)
+def test_split_never_reads_the_year_of_a_broken_day_as_a_year_outing(line):
+    place, text, read = split_outing_line(line, TODAY)
+    assert (place, read) == ("Coors Field", None)  # the place is not polluted
+    assert text and text[0] in "J6"  # the words are kept, unread
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "https://maps.google.com/?q=39.7392,-104.9903",
+        "https://www.google.com/maps/place/Red+Rocks/@39.756,-104.994,15z",
+        "https://www.openstreetmap.org/?mlat=39.7392&mlon=-104.9849#map=17/39.7392/-104.9849",
+        "Denver Botanic Gardens, Denver",
+        "39.7392, -104.9903",
+    ],
+)
+def test_split_keeps_links_coordinates_and_plain_commas_whole(line):
+    assert split_outing_line(line, TODAY) == (line, None, None)

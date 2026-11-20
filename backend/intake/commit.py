@@ -79,7 +79,7 @@ from intake.place_kind import (
     clean_fields,
     clean_name,
     clean_position,
-    owned_spot_id,
+    match_owned,
 )
 from intake.seed_import import imported_keys, take_summary
 from intake.volume_plan import (
@@ -121,6 +121,7 @@ from models import (
     ItemType,
     OutingPrecision,
     Spot,
+    Visit,
 )
 from spots_routes import VisitIn, build_spot, build_visit
 
@@ -346,18 +347,32 @@ async def write_places(session: AsyncSession, entries: list[IntakeEntry]) -> Pla
     if result.refused or not made:
         return result
     await lock_place_commits(session)
+    # The spots are read once, under the lock, and the ones this loop writes
+    # are added to the list, so a place two entries share is made once.
+    known = list((await session.scalars(select(Spot))).all())
+    made_here: set[uuid.UUID] = set()
     for entry, fields in made:
-        owned = await owned_spot_id(
-            session,
-            source_id=fields["source_id"],
-            name=fields["name"],
-            lat=fields["lat"],
-            lng=fields["lng"],
-        )
-        if owned:
-            spot = await session.get(Spot, uuid.UUID(owned))
-            result.owned.append({"id": owned, "name": spot.name if spot else ""})
-            result.spot_ids[entry.id] = uuid.UUID(owned)
+        stored = (entry.payload or {}).get("owned_spot_id")
+        spot = None
+        if entry.state is IntakeEntryState.OWNED and stored:
+            # An owned entry names its spot; a rename or a move since the
+            # paste must not make the commit write a second place.
+            spot = next((s for s in known if str(s.id) == str(stored)), None)
+        if spot is None:
+            spot = match_owned(
+                known,
+                source_id=fields["source_id"],
+                name=fields["name"],
+                lat=fields["lat"],
+                lng=fields["lng"],
+            )
+        if spot is not None:
+            # Two outings of one new place: it is new once and the second entry
+            # reuses it. A plain place paste keeps its older count (the second
+            # identical line is "already owned").
+            if spot.id not in made_here or outing_of(entry) is None:
+                result.owned.append({"id": str(spot.id), "name": spot.name})
+            result.spot_ids[entry.id] = spot.id
             continue
         try:
             spot = await build_spot(session, **fields)
@@ -374,25 +389,59 @@ async def write_places(session: AsyncSession, entries: list[IntakeEntry]) -> Pla
             return result
         result.new.append({"id": str(spot.id), "name": spot.name})
         result.spot_ids[entry.id] = spot.id
+        made_here.add(spot.id)
+        known.append(spot)
     return result
 
 
-def write_outings(
+async def write_outings(
     session: AsyncSession,
     entries: list[IntakeEntry],
     reads: dict[uuid.UUID, DateRead],
     spot_ids: dict[uuid.UUID, uuid.UUID],
-) -> tuple[int, list["Refusal"]]:
+) -> tuple[int, int, list["Refusal"]]:
     """One Visit per outing entry, on the spot its place landed on, through
     `build_visit` (the one check the outing routes share). The period comes
     from `reads` (the server's own reading of the stored date words), never
     from a stored `visited_on`. No title, verdict, kid_along or note at paste
-    time. Adds to the session only; a refusal means the caller rolls back."""
-    written, refused = 0, []
+    time.
+
+    Runs under the place-commit lock, so the repeat check here is final: one
+    query reads the stored outings of the spots involved, and an outing whose
+    spot, period start and precision match a stored visit (logged since the
+    paste, or by another sitting) or an earlier outing of this commit is
+    skipped and counted, unless the owner chose "Add anyway" for it
+    (`duplicate_of` is that visit, or `repeat_of` is set). Adds to the session
+    only; a refusal means the caller rolls back.
+
+    Returns `(written, skipped, refusals)`."""
+    wanted = {spot_ids[e.id] for e in entries if e.id in reads and e.id in spot_ids}
+    stored: dict[tuple[str, str, str], str] = {}
+    if wanted:
+        rows = await session.execute(
+            select(Visit.id, Visit.spot_id, Visit.visited_on, Visit.precision)
+            .where(Visit.spot_id.in_(wanted))
+            .order_by(Visit.created_at, Visit.id)
+        )
+        for visit_id, spot_id, visited_on, precision in rows:
+            stored.setdefault(
+                (str(spot_id), visited_on.isoformat(), precision.value), str(visit_id)
+            )
+    written, skipped, refused = 0, 0, []
+    seen: set[tuple[str, str, str]] = set()
     for entry in entries:
         read = reads.get(entry.id)
         spot_id = spot_ids.get(entry.id)
         if read is None or spot_id is None:
+            continue
+        outing = outing_of(entry) or {}
+        key = (str(spot_id), read.visited_on.isoformat(), read.precision)
+        if key in stored:
+            chosen = outing.get("duplicate_of") == stored[key]
+        else:
+            chosen = key not in seen or bool(outing.get("repeat_of"))
+        if not chosen:
+            skipped += 1
             continue
         try:
             visit = build_visit(
@@ -406,8 +455,9 @@ def write_outings(
             continue
         visit.spot_id = spot_id
         session.add(visit)
+        seen.add(key)
         written += 1
-    return written, refused
+    return written, skipped, refused
 
 
 @dataclass
@@ -439,6 +489,9 @@ class SittingCommit:
     spots_owned: list[dict[str, str]] = field(default_factory=list)
     # Past outings written (story #350); in the answer only when above zero.
     outings_new: int = 0
+    # Outings left unwritten at the commit because the period was already
+    # logged (since the paste, or earlier in this commit); only above zero.
+    outings_skipped: int = 0
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer. `spots_new` and `spots_owned` appear only when
@@ -447,6 +500,11 @@ class SittingCommit:
         return {
             **spot_answer(self.spots_new, self.spots_owned),
             **({"outings_new": self.outings_new} if self.outings_new else {}),
+            **(
+                {"outings_skipped": self.outings_skipped}
+                if self.outings_skipped
+                else {}
+            ),
             "series_new": self.series_new,
             "volumes_new": self.volumes_new,
             "titles_created": self.titles_created,
@@ -1503,7 +1561,7 @@ async def commit_sitting(
             return outcome
         outcome.spots_new, outcome.spots_owned = placed.new, placed.owned
         outcome.already_owned += len(placed.owned)
-        outcome.outings_new, bad = write_outings(
+        outcome.outings_new, outcome.outings_skipped, bad = await write_outings(
             session, place_entries, outing_reads, placed.spot_ids
         )
         outcome.refused.extend(bad)

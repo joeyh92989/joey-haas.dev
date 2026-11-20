@@ -748,6 +748,20 @@ and entry PATCH takes two more outing fields.
   logged month is not a match. A flag found again keeps the owner's skip (a
   re-save must not undo "Add anyway"); a flag that is gone takes back the
   skip it set.
+- **Repeats within the sitting.** Paste also flags a line that repeats an
+  earlier line of the sitting (same place, same period start and precision,
+  however the date was spelled; a place is told by its saved spot, else its
+  chosen OSM id, else its name) as `outing.repeat_of = <that entry id>` and
+  skips it. The commit makes the final check under the place-commit lock
+  (`write_outings`): one query on `visits` for the spots involved; an outing
+  matching a stored visit (logged since the paste) or an earlier outing of the
+  commit is not written and is counted as `outings_skipped`, unless the owner
+  chose Add anyway (`duplicate_of` is that visit, or `repeat_of` is set).
+- **Splitting a line.** A comma inside a day ("Sept 14, 2024") never leaves a
+  lone year; a trailing comma is dropped; a line with no date that reads is
+  cut only at a comma whose tail is plainly a failed date attempt ("last
+  summer", "6/14, 2024"), else it stays WHOLE (map links, "39.7, -104.9",
+  "Denver Botanic Gardens, Denver").
 - **PATCH** `outing_date_text` (at most 100 characters) is re-read on the
   server and stores `visited_on` and `precision` or nulls; `outing_skip`
   toggles. A client cannot set `visited_on` or `precision` (an `outing` key

@@ -25,6 +25,7 @@ import {
   lineOf,
   nameOf,
   nextWaiting,
+  outingGroupOf,
   outingKindOf,
 } from './pasteModel.js'
 import { call } from './placeApi.js'
@@ -42,7 +43,8 @@ const RESUME_LOOK = 5
 
 /** A 409 that clears by itself: another call holds the entry, or a save the list. */
 const isBusyAnswer = (answer) =>
-  answer.status === 409 && /being looked up|being saved/i.test(answer.message)
+  answer.status === 409 &&
+  /being looked up|being saved|busy/i.test(answer.message)
 
 /** The server did not answer, or failed: worth one more go. */
 const isTransient = (answer) => answer.status === 0 || answer.status >= 500
@@ -595,14 +597,24 @@ export default function PastePlaces({ cities }) {
     })
   }
 
+  /** An entry PATCH that waits out a lookup holding the row, once. */
+  async function patchEntry(entry, body) {
+    const path = `/api/intake/entries/${entry.id}`
+    let answer = await call(path, 'PATCH', body)
+    if (!answer.ok && isBusyAnswer(answer)) {
+      await sleep(RETRY_WAIT_MS)
+      if (!alive.current) return answer
+      answer = await call(path, 'PATCH', body)
+    }
+    return answer
+  }
+
   /** A past outing's date words: the server reads them and answers the entry. */
   function fixDate(entry, text) {
     return exclusive(async () => {
       setError('')
       setBusy(entry.id, true)
-      const answer = await call(`/api/intake/entries/${entry.id}`, 'PATCH', {
-        outing_date_text: text,
-      })
+      const answer = await patchEntry(entry, { outing_date_text: text })
       if (!alive.current) return
       setBusy(entry.id, false)
       if (!answer.ok) return setError(answer.message)
@@ -624,16 +636,16 @@ export default function PastePlaces({ cities }) {
   function skipOuting(entry, skip) {
     return exclusive(async () => {
       setError('')
-      const answer = await call(`/api/intake/entries/${entry.id}`, 'PATCH', {
-        outing_skip: skip,
-      })
+      const answer = await patchEntry(entry, { outing_skip: skip })
       if (!alive.current) return
       if (!answer.ok) return setError(answer.message)
       putEntry(answer.data)
       forgetRefusal(entry.id)
       setOpenId(null)
       const title = nameOf(answer.data)
-      const logged = Boolean(answer.data.outing?.duplicate_of)
+      const logged = Boolean(
+        answer.data.outing?.duplicate_of || answer.data.outing?.repeat_of,
+      )
       if (skip)
         setNotice(logged ? ow.skippedNotice(title) : ow.leftOutNotice(title))
       else
@@ -665,7 +677,16 @@ export default function PastePlaces({ cities }) {
             e.outing?.visited_on
           : e.state === 'ready',
       )
-      if (!ready.length) return
+      // A list whose every remaining line is left out or already logged can
+      // still be closed: the commit writes nothing and clears the list.
+      const closing =
+        outingList &&
+        entriesRef.current.some(
+          (e) => e.outing?.skip && !keepStates.has(e.state),
+        )
+      if (!ready.length && !closing) return
+      // The next Add is a fresh try: what the last one refused is read again.
+      if (outingList) setRefusedIds(new Map())
       setSaving(true)
       setError('')
       const sent = { ...editsRef.current }
@@ -746,12 +767,20 @@ export default function PastePlaces({ cities }) {
         }
       })
       const owned = entriesRef.current.filter((e) => e.state === 'owned').length
-      const logged = entriesRef.current.filter(
-        (e) => e.outing?.skip && e.outing.duplicate_of,
+      // Only what the commit settled: the lines it cleared, not the ones kept
+      // for later, and the repeats it found itself (`outings_skipped`).
+      const settled = entriesRef.current.filter(
+        (e) => e.outing?.skip && !keepStates.has(e.state),
+      )
+      const logged =
+        settled.filter((e) => e.outing.duplicate_of || e.outing.repeat_of)
+          .length + (data.outings_skipped ?? 0)
+      const left = settled.filter(
+        (e) => !e.outing.duplicate_of && !e.outing.repeat_of,
       ).length
-      const left = entriesRef.current.filter(
-        (e) => e.outing?.skip && !e.outing.duplicate_of,
-      ).length
+      const cityKeys = [
+        ...new Set(ready.map((e) => e.payload?.city ?? HOME_CITY)),
+      ]
       // The commit deletes everything but the lines still to check or look up.
       const kept = entriesRef.current.filter((e) => keepStates.has(e.state))
       if (!(data.skipped_kept > 0)) sitting.current = null
@@ -768,7 +797,7 @@ export default function PastePlaces({ cities }) {
         ...(outingList && {
           outings: data.outings_new ?? 0,
           names: fresh.map((spot) => spot.name),
-          city: cityLabel(ready[0]?.payload?.city ?? HOME_CITY),
+          city: cityKeys.map(cityLabel).join(', ') || cityLabel(HOME_CITY),
           logged,
           left,
         }),
@@ -802,11 +831,18 @@ export default function PastePlaces({ cities }) {
   const groupList = outings ? OUTING_GROUPS : GROUPS
   const grouped = Object.fromEntries(groupList.map((g) => [g, []]))
   for (const entry of entries) {
-    const group = groupOf(kinds.get(entry.id))
+    const kind = kinds.get(entry.id)
+    const group = outings ? outingGroupOf(kind) : groupOf(kind)
     if (group) grouped[group].push(entry)
   }
   const ready = grouped.ready.length
   const check = grouped.check.length
+  // A refused row is shown in To check with its reason but does not hold the
+  // Add button: pressing it again is the retry.
+  const refusedRows = outings
+    ? grouped.check.filter((e) => kinds.get(e.id) === 'refused').length
+    : 0
+  const addable = ready + refusedRows
   const waiting = outings
     ? grouped.wait.length
     : entries.filter((e) => e.state === 'reading' && !failedIds.has(e.id))
@@ -820,7 +856,12 @@ export default function PastePlaces({ cities }) {
   const total = lookups.length
   const doneCount = lookups.filter((id) => {
     const entry = entries.find((e) => e.id === id)
-    return !entry || entry.state !== 'reading' || failedIds.has(id)
+    return (
+      !entry ||
+      entry.state !== 'reading' ||
+      failedIds.has(id) ||
+      entry.outing?.skip
+    )
   }).length
   const looking = entries.find(
     (e) => busyIds.has(e.id) && e.state === 'reading',
@@ -855,9 +896,12 @@ export default function PastePlaces({ cities }) {
   if (outings) {
     // Nothing is added while a line is to check or a place is not looked up.
     if (running) saveNote = ow.running
-    else if (check || waiting) saveNote = ow.held(check, waiting)
-    else if (ready) {
-      saveNote = ow.willAdd(ready, newPlaces, grouped.logged.length)
+    else if (check - refusedRows || waiting) {
+      saveNote = ow.held(check - refusedRows, waiting)
+    } else if (addable) {
+      saveNote = ow.willAdd(addable, newPlaces, grouped.logged.length)
+    } else if (grouped.logged.length + grouped.out.length) {
+      saveNote = ow.nothingToAdd
     } else saveNote = ow.nothingReady
   } else if (running) saveNote = words.saveNotes.running
   else if (waiting) saveNote = words.saveNotes.notLooked(waiting)
@@ -866,7 +910,9 @@ export default function PastePlaces({ cities }) {
       ? words.saveNotes.nothingReady
       : words.saveNotes.nothingToSave
   }
-  const held = outings && (check > 0 || waiting > 0)
+  const held = outings && (check - refusedRows > 0 || waiting > 0)
+  const closable =
+    outings && !held && grouped.logged.length + grouped.out.length > 0
 
   const citiesFor = (entry) => {
     const own = entry.payload?.city
@@ -1241,15 +1287,23 @@ export default function PastePlaces({ cities }) {
             type="button"
             className="btn primary"
             id="paste-save"
-            disabled={!ready || running || saving || busyIds.size > 0 || held}
+            disabled={
+              (!(outings ? addable : ready) && !closable) ||
+              running ||
+              saving ||
+              busyIds.size > 0 ||
+              held
+            }
             onClick={save}
           >
             {saving
               ? words.saving
               : outings
-                ? ready
-                  ? ow.addN(ready)
-                  : ow.add
+                ? addable
+                  ? ow.addN(addable)
+                  : closable
+                    ? ow.close
+                    : ow.add
                 : ready
                   ? words.saveN(ready)
                   : words.save}

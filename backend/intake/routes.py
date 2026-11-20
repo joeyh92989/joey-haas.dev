@@ -269,6 +269,7 @@ def outing_json(outing: dict[str, Any]) -> dict[str, Any]:
         "precision": precision,
         "skip": bool(outing.get("skip")),
         "duplicate_of": outing.get("duplicate_of"),
+        "repeat_of": outing.get("repeat_of"),
     }
 
 
@@ -950,7 +951,7 @@ def create_intake_router(
         if outcome.refused:
             await session.rollback()
             outcome.spots_new, outcome.spots_owned = [], []  # nothing was written
-            outcome.outings_new = 0
+            outcome.outings_new = outcome.outings_skipped = 0
             count = len(outcome.refused)
             return JSONResponse(
                 status_code=422,

@@ -295,20 +295,25 @@ def outing_payload(date_text: str | None, read: DateRead | None) -> dict[str, An
     }
 
 
-def _mark_duplicate(outing: dict[str, Any], found: str | None) -> dict[str, Any]:
-    """`outing` with the duplicate flag brought up to date. A newly found
-    duplicate is skipped; one found again keeps the owner's choice (a re-save
-    or a second look must not undo "Add anyway"); one that is gone takes the
-    skip the flag had set."""
+def _mark_duplicate(
+    outing: dict[str, Any], found: str | None, flag: str = "duplicate_of"
+) -> dict[str, Any]:
+    """`outing` with the repeat flag `flag` (`duplicate_of`: a stored visit,
+    `repeat_of`: an earlier line of the sitting) brought up to date. A newly
+    found repeat is skipped; one found again keeps the owner's choice (a
+    re-save or a second look must not undo "Add anyway"); one that is gone
+    takes back the skip it set."""
     marked = dict(outing)
-    before = marked.get("duplicate_of")
+    before = marked.get(flag)
     if found:
-        marked["duplicate_of"] = found
+        marked[flag] = found
         if before != found:
             marked["skip"] = True
     elif before:
-        marked.pop("duplicate_of", None)
-        marked["skip"] = False
+        marked.pop(flag, None)
+        other = "repeat_of" if flag == "duplicate_of" else "duplicate_of"
+        if not marked.get(other):  # still a repeat of the other kind: stay skipped
+            marked["skip"] = False
     return marked
 
 
@@ -332,11 +337,13 @@ async def flag_duplicates(
         rows = await session.execute(
             select(Visit.id, Visit.spot_id, Visit.visited_on, Visit.precision)
             .where(Visit.spot_id.in_(spot_ids))
-            .order_by(Visit.created_at.desc(), Visit.id.desc())
+            .order_by(Visit.created_at, Visit.id)
         )
         for visit_id, spot_id, visited_on, precision in rows:
-            stored[(str(spot_id), visited_on.isoformat(), precision.value)] = str(
-                visit_id
+            # The oldest matching visit is the one named.
+            stored.setdefault(
+                (str(spot_id), visited_on.isoformat(), precision.value),
+                str(visit_id),
             )
     for payload in payloads:
         outing = payload.get("outing")
@@ -348,6 +355,47 @@ async def flag_duplicates(
             str(outing.get("precision")),
         )
         payload["outing"] = _mark_duplicate(outing, stored.get(key))
+
+
+def _identity(entry: IntakeEntry) -> str:
+    """Which place an entry is, for repeats within the sitting: its saved spot,
+    else its chosen OSM id, else its name (a line not looked up yet)."""
+    payload = entry.payload or {}
+    return str(
+        payload.get("owned_spot_id")
+        or (entry.chosen or {}).get("source_id")
+        or compare_key(payload.get("name") or "")
+    )
+
+
+def flag_repeats(entries: list[IntakeEntry], held: list[IntakeEntry]) -> None:
+    """Flags a line that repeats an earlier line of the sitting (same place,
+    same period start and precision, however the date was spelled) as
+    `outing.repeat_of = <that entry's id>` and skips it. `held` are the lines
+    already in the sitting, `entries` the new ones in paste order; a skipped
+    line is not an earlier line. Paste only: a place's identity can change at
+    resolve, so the commit makes the final check (`commit.write_outings`)."""
+    first: dict[tuple[str, str, str], str] = {}
+
+    def key_of(entry: IntakeEntry, outing: dict[str, Any]):
+        return (_identity(entry), str(outing["visited_on"]), str(outing["precision"]))
+
+    for entry in sorted(held, key=lambda e: (e.created_at, str(e.id))):
+        outing = (entry.payload or {}).get("outing")
+        if isinstance(outing, dict) and outing.get("visited_on"):
+            if not outing.get("skip"):
+                first.setdefault(key_of(entry, outing), str(entry.id))
+    for entry in entries:
+        payload = dict(entry.payload or {})
+        outing = payload.get("outing")
+        if not isinstance(outing, dict) or not outing.get("visited_on"):
+            continue
+        found = first.get(key_of(entry, outing))
+        outing = _mark_duplicate(outing, found, "repeat_of")
+        payload["outing"] = outing
+        entry.payload = payload
+        if not outing.get("skip"):
+            first.setdefault(key_of(entry, outing), str(entry.id))
 
 
 async def edit_outing(
@@ -541,6 +589,7 @@ def register_paste_routes(
                     payload = {**payload, "owned_spot_id": found, "note": OWNED_NOTE}
             entries.append(
                 IntakeEntry(
+                    id=uuid.uuid4(),
                     sitting_id=sitting.id,
                     kind="place",
                     state=state,
@@ -551,6 +600,7 @@ def register_paste_routes(
             )
         if body.outings:
             await flag_duplicates(session, [entry.payload for entry in entries])
+            flag_repeats(entries, held)
         session.add_all(entries)
         sitting.updated_at = func.now()
         await session.commit()
@@ -656,6 +706,12 @@ def register_paste_routes(
             else:
                 entry.state = IntakeEntryState.CHECK
                 entry.payload = {**payload, "note": NO_PLACE_NOTE}
+        # Whatever the search found, the old "already logged" flag belonged to
+        # the old place: read it again (a place no longer owned drops it).
+        again = dict(entry.payload or {})
+        if isinstance(again.get("outing"), dict):
+            await flag_duplicates(session, [again])
+            entry.payload = again
         sitting.updated_at = func.now()
         await session.commit()
         [shown] = await entries_json(session, [entry])

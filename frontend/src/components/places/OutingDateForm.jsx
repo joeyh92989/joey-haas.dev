@@ -86,10 +86,20 @@ export default function OutingDateForm({
         <button type="submit" className="btn primary" disabled={disabled}>
           {words.useDate}
         </button>
-        <button type="button" className="btn" onClick={onLeaveOut}>
+        <button
+          type="button"
+          className="btn"
+          disabled={disabled}
+          onClick={onLeaveOut}
+        >
           {placesAdd.paste.leaveOut}
         </button>
-        <button type="button" className="btn ghost" onClick={onCancel}>
+        <button
+          type="button"
+          className="btn ghost"
+          disabled={disabled}
+          onClick={onCancel}
+        >
           {placesAdd.paste.cancel}
         </button>
       </div>

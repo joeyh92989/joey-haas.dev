@@ -301,6 +301,7 @@ function OutingRow({
   } else if (kind === 'ready' && entry.state === 'owned') {
     extra.push(outingWords.onList)
   }
+  if (outing.repeat_of && kind !== 'out') extra.push(outingWords.repeatLine)
   if (outing.duplicate_of && outing.label && kind !== 'out') {
     extra.push(
       kind === 'ready'
@@ -351,8 +352,9 @@ function OutingRow({
       id: rowButtonId(entry),
     })
   } else if (kind === 'refused') {
-    acts = button(outingWords.rowButton.refused, () => onSkip(true), {
+    acts = button(outingWords.rowButton.refused, onToggle, {
       id: rowButtonId(entry),
+      expanded: open,
     })
   } else if ((kind === 'failed' && !open) || (kind === 'wait' && canRetry)) {
     acts = button(
@@ -371,7 +373,7 @@ function OutingRow({
 
   let form = null
   if (open && !busy) {
-    if (kind === 'date' || kind === 'ready') {
+    if (kind === 'date' || kind === 'ready' || kind === 'refused') {
       form = (
         <OutingDateForm
           entry={entry}

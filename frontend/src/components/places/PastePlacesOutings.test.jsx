@@ -53,7 +53,9 @@ async function addOutings(text) {
 
 /** Every lookup is done: the Stop button is gone. */
 const lookedUp = async () => {
-  await screen.findByRole('button', { name: /^Add (\d+ )?outings?$/ })
+  await screen.findByRole('button', {
+    name: /^(Add (\d+ )?outings?|Close the list)$/,
+  })
   await waitFor(() =>
     expect(
       screen.queryByRole('button', { name: 'Stop' }),
@@ -180,7 +182,7 @@ describe('PastePlaces: past outings', () => {
     await screen.findByRole('button', { name: 'Stop' })
     expect(addButton()).toBeDisabled()
     expect(
-      screen.getByText('Press Stop to add what is ready so far.'),
+      screen.getByText('Adding waits until every place is looked up.'),
     ).toBeInTheDocument()
     release()
     await lookedUp()
@@ -236,8 +238,11 @@ describe('PastePlaces: past outings', () => {
     renderPaste()
     await addOutings('Saved Place, May 2022')
     await lookedUp()
-    expect(addButton()).toBeDisabled() // nothing ready: the one line is logged
-    expect(screen.getByText('Nothing is ready to add.')).toBeInTheDocument()
+    // Nothing is ready: the one line is logged, so the list can only be closed.
+    expect(screen.queryByRole('button', { name: /^Add \d+ outing/ })).toBeNull()
+    expect(
+      screen.getByText(/Every line is skipped or left out\./),
+    ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Add anyway/ }))
     await waitFor(() =>
       expect(inList('Ready', 'Saved Place')).toBeInTheDocument(),
@@ -313,7 +318,7 @@ describe('PastePlaces: past outings', () => {
     fireEvent.click(addButton())
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(
-      'Nothing was added. 1 line needs fixing. Fix or leave out each one, then add the outings again.',
+      'Nothing was added. 1 line needs fixing. Edit or leave out each one, or press Add outings to try again.',
     )
     expect(spots).toHaveLength(before)
     expect(callsTo(calls, 'POST', '/commit')).toHaveLength(1)
@@ -324,7 +329,8 @@ describe('PastePlaces: past outings', () => {
       screen.queryByRole('heading', { name: /^Added/ }),
     ).not.toBeInTheDocument()
     // Leaving the refused line out lets the rest go through.
-    fireEvent.click(within(refused).getByRole('button', { name: /^Leave out/ }))
+    fireEvent.click(within(refused).getByRole('button', { name: /^Edit/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Leave out' }))
     await waitFor(() => expect(addButton()).toBeEnabled())
     fireEvent.click(addButton())
     expect(
@@ -405,5 +411,172 @@ describe('PastePlaces: past outings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Leave out' }))
     await screen.findByRole('list', { name: 'Left out' })
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('a refused row can be edited, and does not hold the Add button', async () => {
+    const { calls } = setup({ refuseOutings: ['Union Station'] })
+    renderPaste()
+    await addOutings('Union Station, 2023\nRed Rocks, 2021')
+    await lookedUp()
+    fireEvent.click(addButton())
+    await screen.findByRole('alert')
+    const refused = inList('To check', 'Union Station')
+    expect(refused).toHaveTextContent('Another spot took that name')
+    // Not held: pressing Add again is the retry (and clears the refusal).
+    expect(addButton()).toBeEnabled()
+    expect(addButton()).toHaveTextContent('Add 2 outings')
+    fireEvent.click(within(refused).getByRole('button', { name: /^Edit/ }))
+    fireEvent.change(screen.getByLabelText('Date'), {
+      target: { value: 'June 2023' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Use this date' }))
+    await waitFor(() =>
+      expect(inList('Ready', 'Union Station')).toBeInTheDocument(),
+    )
+    expect(patches(calls).map((c) => c.body)).toEqual([
+      { outing_date_text: 'June 2023' },
+    ])
+    fireEvent.click(addButton())
+    await screen.findByRole('alert')
+    expect(callsTo(calls, 'POST', '/commit')).toHaveLength(2)
+  })
+
+  it('a list of only skipped lines can be closed', async () => {
+    const { calls } = setup()
+    renderPaste()
+    await addOutings('Saved Place, May 2022')
+    await lookedUp()
+    expect(addButton).toThrow() // no "Add outings" while nothing is added
+    const close = screen.getByRole('button', { name: 'Close the list' })
+    expect(close).toBeEnabled()
+    fireEvent.click(close)
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Added 0 outings, 0 new places.',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('1 line skipped, already logged.'),
+    ).toBeInTheDocument()
+    expect(callsTo(calls, 'POST', '/commit')).toHaveLength(1)
+  })
+
+  it('does not search a line that is left out', async () => {
+    const { stats } = setup()
+    renderPaste()
+    await addOutings('Saved Place, May 2022\nUnion Station, 2023')
+    await lookedUp()
+    // The repeat of a logged outing is skipped from the paste: no search for it
+    // beyond the one that told it was logged.
+    expect(stats.resolves).toEqual(['Saved Place', 'Union Station'])
+  })
+
+  it('flags a repeat of an earlier line and says so', async () => {
+    setup()
+    renderPaste()
+    await addOutings('Union Station, June 14, 2024\nUnion Station, 2024-06-14')
+    await lookedUp()
+    const repeat = inList('Already logged', 'Union Station')
+    expect(repeat).toHaveTextContent('Same outing as an earlier line')
+    expect(
+      within(repeat).getByRole('button', { name: /^Add anyway/ }),
+    ).toBeInTheDocument()
+    expect(addButton()).toHaveTextContent('Add 1 outing')
+  })
+
+  it('the done summary counts only what the commit settled', async () => {
+    setup({
+      world: { 'unsure place': [hit('Unsure One'), hit('Unsure Two')] },
+    })
+    renderPaste()
+    await addOutings('Union Station, 2023\nUnsure Place, someday')
+    await lookedUp()
+    // Date not read, and several places found: leaving it out keeps the line
+    // for later (the server keeps a line still to check), so it is not "left
+    // out" in the summary of what was written.
+    fireEvent.click(
+      within(inList('To check', 'Unsure Place')).getByRole('button', {
+        name: /^Fix date/,
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Leave out' }))
+    await waitFor(() =>
+      expect(inList('Left out', 'Unsure Place')).toBeInTheDocument(),
+    )
+    fireEvent.click(addButton())
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Added 1 outing, 1 new place.',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/left out\./)).not.toBeInTheDocument()
+  })
+
+  it('waits out a lookup that holds the row, once', async () => {
+    const api = setup()
+    let busy = 1
+    const real = api.fetch
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url, init = {}) => {
+        if (init.method === 'PATCH' && busy-- > 0) {
+          return Promise.resolve({
+            ok: false,
+            status: 409,
+            json: () =>
+              Promise.resolve({
+                detail: 'This place is busy. Try again in a moment.',
+              }),
+          })
+        }
+        return real(url, init)
+      }),
+    )
+    renderPaste()
+    await addOutings('Union Station, 2023')
+    await lookedUp()
+    fireEvent.click(
+      within(row('Union Station')).getByRole('button', { name: /^Edit/ }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Leave out' }))
+    await waitFor(
+      () => expect(inList('Left out', 'Union Station')).toBeInTheDocument(),
+      { timeout: 3000 },
+    )
+  })
+
+  it('lists an entry of a state outings never make under Left out, without throwing', async () => {
+    const api = fakePaste({
+      sittings: [
+        {
+          id: 'sit-old',
+          entries: ['ignored', 'ready'].map((state, at) => ({
+            id: `0e000000-0000-4000-8000-0000000000b${at}`,
+            state,
+            chosen: null,
+            payload: {
+              name: `Place ${state}`,
+              source_line: `Place ${state}, 2023`,
+              city: 'denver',
+              lat: 39.7,
+              lng: -104.9,
+              outing: {
+                date_text: '2023',
+                visited_on: '2023-01-01',
+                precision: 'year',
+                skip: false,
+              },
+            },
+          })),
+        },
+      ],
+    })
+    vi.stubGlobal('fetch', api.fetch)
+    renderPaste()
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Continue your list/ }),
+    )
+    expect(await inList('Left out', 'Place ignored')).toBeInTheDocument()
+    expect(inList('Ready', 'Place ready')).toBeInTheDocument()
   })
 })

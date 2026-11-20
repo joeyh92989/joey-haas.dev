@@ -266,6 +266,7 @@ class CommitOut(BaseModel):
     spots_new: list[SpotRefOut] = []
     spots_owned: list[SpotRefOut] = []
     outings_new: int = 0
+    outings_skipped: int = 0
 
 
 class CommitRefusedOut(CommitOut):

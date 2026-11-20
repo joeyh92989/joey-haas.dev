@@ -29,6 +29,10 @@ import { vi } from 'vitest'
 export const entryId = (n) =>
   `0e000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
+/** The id the server gives a spot (a UUID). */
+export const spotId = (n) =>
+  `5b000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+
 const MONTHS = [
   'january',
   'february',
@@ -321,6 +325,7 @@ export function fakePaste(options = {}) {
           precision: outing.precision,
           skip: outing.skip,
           duplicate_of: outing.duplicate_of ?? null,
+          repeat_of: outing.repeat_of ?? null,
         },
       }),
     }
@@ -359,6 +364,29 @@ export function fakePaste(options = {}) {
       if (entry) return { entry, sitting: s }
     }
     return null
+  }
+
+  /** `place_paste.flag_repeats`: a line that repeats an earlier, not skipped
+   *  line of the sitting (same place, period start and precision) is skipped. */
+  function flagRepeat(entry, sitting) {
+    const outing = entry.payload.outing
+    if (!outing?.visited_on) return
+    const who = (e) =>
+      e.payload.owned_spot_id ?? e.chosen?.source_id ?? key(e.payload.name)
+    const earlier = sitting.entries.find(
+      (other) =>
+        other !== entry &&
+        other.payload.outing?.visited_on === outing.visited_on &&
+        other.payload.outing?.precision === outing.precision &&
+        !other.payload.outing?.skip &&
+        who(other) === who(entry),
+    )
+    if (earlier) {
+      entry.payload = {
+        ...entry.payload,
+        outing: { ...outing, repeat_of: earlier.id, skip: true },
+      }
+    }
   }
 
   /** The entry a hit makes (`place_paste._apply_choice`). */
@@ -550,6 +578,7 @@ export function fakePaste(options = {}) {
       }
       const entry = { id: entryId(++entryN), state, payload, chosen: null }
       flagDuplicate(entry)
+      if (mode.outings) flagRepeat(entry, sitting)
       sitting.entries.push(entry)
       made.push(entry)
     }
@@ -617,7 +646,7 @@ export function fakePaste(options = {}) {
       )
       if (!spot) {
         spotN += 1
-        spot = { id: `spot-${spotN}`, name: e.payload.name, outings: [] }
+        spot = { id: spotId(spotN), name: e.payload.name, outings: [] }
         spots.push(spot)
         fresh.push({ id: spot.id, name: spot.name })
       }
@@ -674,8 +703,8 @@ export function fakePaste(options = {}) {
     }
     const fresh = ready.map((e) => {
       spotN += 1
-      spots.push({ id: `spot-${spotN}`, name: e.payload.name, ...e.payload })
-      return { id: `spot-${spotN}`, name: e.payload.name }
+      spots.push({ id: spotId(spotN), name: e.payload.name, ...e.payload })
+      return { id: spotId(spotN), name: e.payload.name }
     })
     sitting.entries = kept
     if (!kept.length) sittings.delete(sitting.id)

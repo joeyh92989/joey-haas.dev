@@ -284,6 +284,20 @@ class _Point:
         self.name, self.lat, self.lng = name, lat, lng
 
 
+def match_owned(
+    spots: list[Spot], *, source_id: str | None, name: str, lat: float, lng: float
+) -> Spot | None:
+    """The spot of `spots` this place already is (same OSM `source_id`, else
+    the same name within `SAME_PLACE_METRES`): the rule of `owned_spot_id`
+    over spots already loaded, so a loop loads them once."""
+    if source_id:
+        for spot in spots:
+            if spot.source == CandidateSource.OSM and spot.source_id == source_id:
+                return spot
+    here = _Point(name, lat, lng)
+    return next((spot for spot in spots if same_place(here, spot)), None)
+
+
 async def owned_spot_id(
     session: AsyncSession, *, source_id: str | None, name: str, lat: float, lng: float
 ) -> str | None:

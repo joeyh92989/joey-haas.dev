@@ -13,7 +13,14 @@ import pytest
 from sqlalchemy import event, select
 
 from intake import place_kind
-from models import CandidateSource, IntakeEntry, IntakeSitting, Spot, Visit
+from models import (
+    CandidateSource,
+    IntakeEntry,
+    IntakeEntryState,
+    IntakeSitting,
+    Spot,
+    Visit,
+)
 from spot_sources import nominatim
 from spot_sources.nominatim import SearchOk
 from tests.test_intake_kinds import client_for
@@ -619,10 +626,9 @@ async def test_a_backfill_commit_writes_the_places_and_one_outing_each(
     assert response.status_code == 200, body
     assert body["outings_new"] == 3
     assert [s["name"] for s in body["spots_new"]] == ["Union Station"]
-    assert sorted(s["name"] for s in body["spots_owned"]) == [
-        "Saved Place",
-        "Union Station",
-    ]
+    # A place two entries share is new once; the second entry reuses it.
+    assert [s["name"] for s in body["spots_owned"]] == ["Saved Place"]
+    assert body["already_owned"] == 1
     assert body["skipped_kept"] == 1
     assert [e["payload"]["source_line"] for e in kept] == ["Not found yet, 2021"]
     assert await visits_of(sessionmaker_for_test) == [
@@ -698,17 +704,19 @@ async def test_an_unread_date_refuses_the_whole_commit_and_writes_nothing(
 async def test_a_refusal_after_the_places_are_written_rolls_everything_back(
     frozen_day, fake_search, monkeypatch, sessionmaker_for_test
 ):
-    """The date is read by the owner's day, then built through `build_visit`,
-    which reads the real clock. With the owner's day moved to 2100, "2099"
-    reads, the spot is written, and `build_visit` refuses it: the spot written
-    before the refusal has to go."""
+    """`build_visit` refuses after `write_places` has flushed the new spot (as
+    it does for a date it finds in the future): the spot must go with it."""
+    from fastapi import HTTPException
+
+    from intake import commit as commit_module
+
+    def refuse(payload):
+        raise HTTPException(status_code=422, detail="A visit cannot be in the future")
+
     fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
     async with client_for(sessionmaker_for_test) as client:
-        sitting, [entry] = await resolved_outings(client, "Union Station, 2023")
-        monkeypatch.setattr(place_kind, "owner_today", lambda: date(2100, 1, 1))
-        await client.patch(
-            f"/api/intake/entries/{entry['id']}", json={"outing_date_text": "2099"}
-        )
+        sitting, _ = await resolved_outings(client, "Union Station, 2023")
+        monkeypatch.setattr(commit_module, "build_visit", refuse)
         before = await counts(sessionmaker_for_test)
         response = await client.post(sitting_url(sitting, "/commit"))
         after = await counts(sessionmaker_for_test)
@@ -721,7 +729,7 @@ async def test_a_refusal_after_the_places_are_written_rolls_everything_back(
 
 
 @pytest.mark.asyncio
-async def test_a_bad_stored_city_refuses_the_commit_and_writes_nothing(
+async def test_a_bad_stored_city_refuses_the_commit_before_anything_is_written(
     frozen_day, fake_search, sessionmaker_for_test
 ):
     fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
@@ -762,3 +770,233 @@ async def test_an_already_logged_outing_writes_nothing(
     assert shown["outing"]["skip"] is True and shown["outing"]["duplicate_of"]
     assert first.status_code == 200 and first.json().get("outings_new", 0) == 0
     assert await counts(sessionmaker_for_test) == (1, 1)
+
+
+async def logged_visit(factory, spot_id, day, precision="day"):
+    async with factory() as session:
+        session.add(Visit(spot_id=spot_id, visited_on=day, precision=precision))
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_a_line_that_repeats_an_earlier_line_is_flagged_and_skipped(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        text = "\n".join(
+            [
+                "Coors Field, June 14, 2024",
+                "Coors Field, 2024-06-14",  # the same day, spelled again
+                "Coors Field, June 2024",  # a month: another period
+                "Coors Field, 2019",
+            ]
+        )
+        first = (await paste_outings(client, sitting, text)).json()["entries"]
+        # A later paste of the same outing repeats the held line too.
+        later = (
+            await paste_outings(client, sitting, "Coors Field, 14 June 2024")
+        ).json()
+    flags = [
+        (e["outing"]["skip"], e["payload"]["outing"].get("repeat_of")) for e in first
+    ]
+    assert flags == [
+        (False, None),
+        (True, first[0]["id"]),
+        (False, None),
+        (False, None),
+    ]
+    [again] = later["entries"]
+    assert (again["outing"]["skip"], again["payload"]["outing"]["repeat_of"]) == (
+        True,
+        first[0]["id"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_the_same_owned_place_on_one_day_spelled_two_ways_is_one_outing(
+    frozen_day, sessionmaker_for_test
+):
+    await add_spot(
+        sessionmaker_for_test, name="Red Rocks Amphitheatre", lat=39.665, lng=-105.2058
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        entries = (
+            await paste_outings(
+                client, sitting, f"{LONG_PLACE}, June 2024\n{LONG_PLACE}, 2024-06"
+            )
+        ).json()["entries"]
+        response = await client.post(sitting_url(sitting, "/commit"))
+    assert [e["outing"]["skip"] for e in entries] == [False, True]
+    assert response.json()["outings_new"] == 1
+    assert len(await visits_of(sessionmaker_for_test)) == 1
+
+
+@pytest.mark.asyncio
+async def test_the_commit_checks_for_a_repeat_again_under_the_lock(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    """Logged after the paste (Log an outing, another sitting), or repeated in
+    the commit itself with the paste-time flag gone: not written twice."""
+    fake_search.answers["Saved Place"] = SearchOk([hit(7, "Saved Place")])
+    spot_id = await add_spot(
+        sessionmaker_for_test,
+        name="Saved Place",
+        lat=hit(7).lat,
+        lng=hit(7).lng,
+        source=CandidateSource.OSM,
+        source_id="node/1007",
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entries = await resolved_outings(
+            client, "Saved Place, June 2024\nSaved Place, 2020"
+        )
+        shown = (await client.get(sitting_url(sitting))).json()["entries"]
+        assert [e["outing"]["skip"] for e in shown] == [False, False]
+        await logged_visit(sessionmaker_for_test, spot_id, date(2024, 6, 1), "month")
+        response = await client.post(sitting_url(sitting, "/commit"))
+    body = response.json()
+    assert response.status_code == 200, body
+    assert (body["outings_new"], body["outings_skipped"]) == (1, 1)
+    assert [v[:2] for v in await visits_of(sessionmaker_for_test)] == [
+        (date(2020, 1, 1), "year"),
+        (date(2024, 6, 1), "month"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_the_commit_does_not_write_one_period_twice_in_a_sitting(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entries = await resolved_outings(
+            client, "Union Station, 2024-06-14\nUnion Station, June 14, 2024"
+        )
+        # The paste flagged the second line; lose the flag as a race would.
+        async with sessionmaker_for_test() as session:
+            row = await session.get(IntakeEntry, entries[1]["id"])
+            outing = {
+                k: v for k, v in row.payload["outing"].items() if k != "repeat_of"
+            }
+            row.payload = {**row.payload, "outing": {**outing, "skip": False}}
+            await session.commit()
+        response = await client.post(sitting_url(sitting, "/commit"))
+    body = response.json()
+    assert (body["outings_new"], body["outings_skipped"]) == (1, 1)
+    assert len(await visits_of(sessionmaker_for_test)) == 1
+
+
+@pytest.mark.asyncio
+async def test_add_anyway_on_a_repeat_writes_it(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, entries = await resolved_outings(
+            client, "Union Station, 2024-06-14\nUnion Station, June 14, 2024"
+        )
+        await client.patch(
+            f"/api/intake/entries/{entries[1]['id']}", json={"outing_skip": False}
+        )
+        response = await client.post(sitting_url(sitting, "/commit"))
+    assert response.json()["outings_new"] == 2
+    assert len(await visits_of(sessionmaker_for_test)) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_shared_new_place_is_counted_once_as_new(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    fake_search.answers["Union Station"] = SearchOk([hit(1, "Union Station")])
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, _ = await resolved_outings(
+            client, "Union Station, 2023\nUnion Station, 2021"
+        )
+        response = await client.post(sitting_url(sitting, "/commit"))
+    body = response.json()
+    assert [s["name"] for s in body["spots_new"]] == ["Union Station"]
+    assert body.get("spots_owned", []) == []
+    assert body["already_owned"] == 0
+    assert body["outings_new"] == 2
+    assert (await counts(sessionmaker_for_test)) == (1, 2)
+
+
+@pytest.mark.asyncio
+async def test_an_owned_entry_keeps_its_spot_when_the_spot_moves_after_the_paste(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    fake_search.answers["Saved Place"] = SearchOk([hit(7, "Saved Place")])
+    spot_id = await add_spot(
+        sessionmaker_for_test,
+        name="Saved Place",
+        lat=hit(7).lat,
+        lng=hit(7).lng,
+        source=CandidateSource.OSM,
+        source_id="node/1007",
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        sitting, _ = await resolved_outings(client, "Saved Place, 2021")
+        async with sessionmaker_for_test() as session:
+            spot = await session.get(Spot, spot_id)
+            spot.name, spot.lat, spot.source, spot.source_id = (
+                "Renamed Place",
+                hit(7).lat + 1,
+                None,
+                None,
+            )
+            await session.commit()
+        response = await client.post(sitting_url(sitting, "/commit"))
+    assert response.status_code == 200, response.json()
+    assert await counts(sessionmaker_for_test) == (1, 1)  # no second spot
+
+
+@pytest.mark.asyncio
+async def test_a_new_search_drops_the_old_already_logged_flag(
+    frozen_day, fake_search, sessionmaker_for_test
+):
+    fake_search.answers["Saved Place"] = SearchOk([hit(7, "Saved Place")])
+    spot_id = await add_spot(
+        sessionmaker_for_test,
+        name="Saved Place",
+        lat=hit(7).lat,
+        lng=hit(7).lng,
+        source=CandidateSource.OSM,
+        source_id="node/1007",
+    )
+    await logged_visit(sessionmaker_for_test, spot_id, date(2022, 5, 1), "month")
+    async with client_for(sessionmaker_for_test) as client:
+        _, [entry] = await resolved_outings(client, "Saved Place, May 2022")
+        async with sessionmaker_for_test() as session:
+            row = await session.get(IntakeEntry, entry["id"])
+            assert row.payload["outing"]["skip"] is True
+            row.state = IntakeEntryState.CHECK
+            await session.commit()
+        fake_search.answers["Saved Place"] = SearchOk([hit(3), hit(4)])
+        again = (await client.post(resolve_url(entry))).json()
+    assert again["state"] == "check"
+    assert again["outing"]["duplicate_of"] is None
+    assert again["outing"]["skip"] is False
+
+
+@pytest.mark.asyncio
+async def test_a_coordinate_line_is_not_cut_at_its_comma(
+    frozen_day, sessionmaker_for_test
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting = await sitting_of(client)
+        entries = (
+            await paste_outings(
+                client,
+                sitting,
+                "39.7392, -104.9903\nhttps://maps.google.com/?q=39.7392,-104.9903\n"
+                "39.7392, -104.9903, June 2024",
+            )
+        ).json()["entries"]
+    bare, link, dated = entries
+    assert bare["payload"]["lat"] == pytest.approx(39.7392)
+    assert bare["outing"]["date_text"] is None
+    assert link["payload"]["source_line"].endswith("39.7392,-104.9903")
+    assert dated["payload"]["lat"] == pytest.approx(39.7392)
+    assert dated["outing"]["label"] == "June 2024"

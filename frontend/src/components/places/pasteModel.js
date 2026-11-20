@@ -177,6 +177,8 @@ export function nextWaiting(entries, skip) {
   let best = null
   for (const entry of entries) {
     if (entry.state !== 'reading' || skip.has(entry.id)) continue
+    // A line left out or already logged is not worth a search.
+    if (entry.outing?.skip) continue
     const tries = entry.payload?.attempts ?? 0
     if (!best || tries < (best.payload?.attempts ?? 0)) best = entry
   }
@@ -200,12 +202,22 @@ export const isOuting = (entry) =>
  * @returns {string}
  */
 export function outingKindOf(entry, failedIds, refusedIds) {
-  const { skip, duplicate_of: logged, visited_on: day } = entry.outing
-  if (skip) return logged ? 'logged' : 'out'
+  const { skip, duplicate_of, repeat_of, visited_on: day } = entry.outing
+  if (skip) return duplicate_of || repeat_of ? 'logged' : 'out'
   if (!day) return 'date'
   if (refusedIds.has(entry.id)) return 'refused'
   if (entry.state === 'ready' || entry.state === 'owned') return 'ready'
+  // A place the sitting already has (ignored) is never an outing's state;
+  // treat it as left out rather than let it name a group the list lacks.
+  if (entry.state === 'ignored') return 'out'
   return kindOf(entry, failedIds, new Set())
+}
+
+/** The group of an outing row: one of OUTING_GROUPS, whatever the kind (an
+ *  unknown one is listed under Left out, never dropped or thrown on). */
+export function outingGroupOf(kind) {
+  const group = groupOf(kind)
+  return OUTING_GROUPS.includes(group) ? group : 'out'
 }
 
 /** The date chip's words: the label, and how exact it is (day, month, year). */
