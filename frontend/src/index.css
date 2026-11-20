@@ -9982,8 +9982,10 @@ a.cover-tile-cap:focus-visible span {
   outline-offset: 2px;
 }
 
+/* No opacity: it blended --text-2 under 4.5:1 on --surface in dark (4.89
+   solid). */
 .pick-hint {
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .pick-note {
