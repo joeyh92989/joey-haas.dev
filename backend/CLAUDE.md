@@ -16,24 +16,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   (`plan:<iso-week>`) are rows in `spot_settings` (one JSONB value per
   key), never new columns. The public field for a spot's line is `blurb`,
   because `test_public_outputs.py` forbids `note` at any depth, and
-  `PublicSpot` carries `spot_id` and no anchor, visit or distance.
-  Outings (story #344, migration `0025`): a `visits` row is an outing, with
-  optional `title` (cleaned first: control characters dropped except ZWJ/ZWNJ, whitespace collapsed; then at most 80 characters, a plain 422 sentence), `verdict`
-  (`loved`, `fine`, `not_again`) and `kid_along` (null is unknown, false is
-  an answer) and a `precision` (`day`, `month`, `year`, default `day`).
-  `visited_on` is always the START of the period: `log_visit` moves a month to
-  the 1st and a year to Jan 1, and the future check (more than a day past the
-  owner's Denver day) applies to that start, so the current month and year
-  pass and the next are refused. `VisitOut` carries all four; `SpotOut` gains
-  `last_verdict` (greatest `visited_on`, ties by newest `created_at`, then id; null with
-  no outings or none set) beside the unchanged `last_visit` and `visit_count`.
-  `note` stays admin-only, and no public body carries any outing field
-  (`test_public_outputs.py` pins it).
-  The one-day grace means on a period's last day (month end, Dec 31) the next
-  period is accepted, since its start is tomorrow. Month and year outings are
-  stored as the period's start, so views must format by `precision` (history
-  stories #345 to #347 own that; the planner's `recent_visits` still shows
-  the start day). City:
+  `PublicSpot` carries `spot_id` and no anchor, visit or distance. City:
   `spots.normalize_city` is the one rule for a stored city (trim, collapse,
   lower case, 1 to 40 characters, no control characters), `DENVER` the one
   constant, and `load_public_spots` returns only Denver spots (the filter is

@@ -10,28 +10,20 @@ Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
 
 from __future__ import annotations
 
-import unicodedata
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import spots
 from items import require_admin
-from models import (
-    CandidateSource,
-    OutingPrecision,
-    OutingVerdict,
-    Spot,
-    SpotSetting,
-    Visit,
-)
+from models import CandidateSource, Spot, SpotSetting, Visit
 from public import OWNER_TZ
 from spots_schemas import SpotsStatusOut
 
@@ -39,10 +31,6 @@ MAX_NAME = 200
 MAX_NEIGHBOURHOOD = 100
 MAX_BLURB = 500
 MAX_VISIT_NOTE = 2000
-MAX_OUTING_TITLE = 80
-# What a request may carry before trimming; the 80-character rule applies to
-# the trimmed title, so padding around a short title is not an error.
-MAX_OUTING_TITLE_RAW = 500
 # A cap on the raw body only, so a huge string is not read; the 40-character
 # rule itself is spots.normalize_city's, after trimming and collapsing.
 CITY_BODY_MAX = 1000
@@ -98,44 +86,12 @@ class SpotOut(BaseModel):
     source_id: str | None
     last_visit: date | None
     visit_count: int
-    # The verdict of the latest outing (greatest visited_on, then newest
-    # created_at); null with no outings or when that one has none.
-    last_verdict: OutingVerdict | None = None
 
 
 class VisitIn(BaseModel):
-    """A visit (an outing) to log. The date defaults to the owner's Denver
-    day; with `precision` month or year it is moved to the period's start."""
+    """A visit to log. The date defaults to the owner's Denver day."""
 
     visited_on: date | None = None
-    precision: OutingPrecision = OutingPrecision.DAY
-    title: str | None = Field(default=None, max_length=MAX_OUTING_TITLE_RAW)
-    verdict: OutingVerdict | None = None
-    kid_along: bool | None = None
-
-    @field_validator("precision", mode="before")
-    @classmethod
-    def _null_precision_is_day(cls, value):
-        return OutingPrecision.DAY if value is None else value
-
-    @field_validator("title")
-    @classmethod
-    def _clean_title(cls, value: str | None) -> str | None:
-        """Whitespace of any kind (newline, tab) becomes one space, control
-        and format characters (a NUL included) are dropped, the ends are
-        trimmed. Blank means no title. ZWJ and ZWNJ stay (emoji sequences).
-        The length is checked by `log_visit` on this cleaned value, so the
-        form gets a plain sentence rather than a validation list."""
-        if value is None:
-            return None
-        spaced = "".join(" " if ch.isspace() else ch for ch in value)
-        kept = "".join(
-            ch
-            for ch in spaced
-            if ch in "\u200c\u200d" or unicodedata.category(ch) not in ("Cc", "Cf")
-        )
-        return " ".join(kept.split()) or None
-
     note: str | None = Field(default=None, max_length=MAX_VISIT_NOTE)
 
 
@@ -144,22 +100,10 @@ class VisitOut(BaseModel):
     spot_id: uuid.UUID
     visited_on: date
     note: str | None
-    title: str | None
-    verdict: OutingVerdict | None
-    kid_along: bool | None
-    precision: OutingPrecision
 
 
 def _clean(text: str | None) -> str | None:
     return (text or "").strip() or None
-
-
-def _period_start(day: date, precision: OutingPrecision) -> date:
-    if precision is OutingPrecision.MONTH:
-        return day.replace(day=1)
-    if precision is OutingPrecision.YEAR:
-        return day.replace(month=1, day=1)
-    return day
 
 
 def _parse_coords(text: str) -> tuple[float, float]:
@@ -190,12 +134,7 @@ def _check_public(city: str, is_public: bool) -> None:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-def _out(
-    row: Spot,
-    last_visit: date | None,
-    visit_count: int,
-    last_verdict: OutingVerdict | None = None,
-) -> SpotOut:
+def _out(row: Spot, last_visit: date | None, visit_count: int) -> SpotOut:
     return SpotOut(
         id=row.id,
         name=row.name,
@@ -212,7 +151,6 @@ def _out(
         source_id=row.source_id,
         last_visit=last_visit,
         visit_count=visit_count,
-        last_verdict=last_verdict,
     )
 
 
@@ -313,46 +251,25 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
 
     async def _visit_summary(
         session: AsyncSession, spot_ids: list[uuid.UUID] | None = None
-    ) -> dict[uuid.UUID, tuple[date, int, OutingVerdict | None]]:
-        """Per spot: the latest visit's date, the count and the latest
-        outing's verdict. Two queries however many spots, never one per spot."""
+    ) -> dict[uuid.UUID, tuple[date, int]]:
         query = select(
             Visit.spot_id, func.max(Visit.visited_on), func.count(Visit.id)
         ).group_by(Visit.spot_id)
-        latest = (
-            select(Visit.spot_id, Visit.verdict)
-            .distinct(Visit.spot_id)
-            .order_by(
-                Visit.spot_id,
-                Visit.visited_on.desc(),
-                Visit.created_at.desc(),
-                Visit.id.desc(),
-            )
-        )
         if spot_ids is not None:
             query = query.where(Visit.spot_id.in_(spot_ids))
-            latest = latest.where(Visit.spot_id.in_(spot_ids))
-        verdicts = {
-            spot_id: verdict for spot_id, verdict in await session.execute(latest)
-        }
         rows = await session.execute(query)
-        return {
-            spot_id: (last, count, verdicts.get(spot_id))
-            for spot_id, last, count in rows
-        }
+        return {spot_id: (last, count) for spot_id, last, count in rows}
 
     async def _read(session: AsyncSession, row: Spot) -> SpotOut:
-        last, count, verdict = (await _visit_summary(session, [row.id])).get(
-            row.id, (None, 0, None)
-        )
-        return _out(row, last, count, verdict)
+        last, count = (await _visit_summary(session, [row.id])).get(row.id, (None, 0))
+        return _out(row, last, count)
 
     @router.get("", response_model=list[SpotOut])
     async def list_spots(session: AsyncSession = Depends(get_session)) -> list[SpotOut]:
         """Every spot, anchors and private ones included, by name."""
         rows = (await session.scalars(select(Spot).order_by(Spot.name))).all()
         visits = await _visit_summary(session)
-        return [_out(row, *visits.get(row.id, (None, 0, None))) for row in rows]
+        return [_out(row, *visits.get(row.id, (None, 0))) for row in rows]
 
     @router.post("", response_model=SpotOut, status_code=201)
     async def create_spot(
@@ -447,45 +364,22 @@ def create_spots_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter:
         payload: VisitIn,
         session: AsyncSession = Depends(get_session),
     ) -> VisitOut:
-        """Logs an outing at a spot, on the owner's Denver day when no date is
-        sent. The date is moved to the start of its period (precision month:
-        the 1st; year: Jan 1) and that start must not be more than a day past
-        the owner's Denver day, so the current month and year pass and the
-        next are refused. The day's grace is for the owner logging from a time
-        zone east of Denver."""
+        """Logs a day at a spot, on the owner's Denver day when no date is
+        sent. A date more than a day past it is refused; the day's grace is
+        for the owner logging from a time zone east of Denver."""
         await _spot(session, spot_id)
-        if payload.title is not None and len(payload.title) > MAX_OUTING_TITLE:
-            raise HTTPException(
-                status_code=422,
-                detail=f"A title is at most {MAX_OUTING_TITLE} characters",
-            )
         today = datetime.now(OWNER_TZ).date()
-        visited_on = _period_start(payload.visited_on or today, payload.precision)
+        visited_on = payload.visited_on or today
         if visited_on > today + timedelta(days=1):
             raise HTTPException(
                 status_code=422, detail="A visit cannot be in the future"
             )
-        row = Visit(
-            spot_id=spot_id,
-            visited_on=visited_on,
-            precision=payload.precision,
-            title=payload.title,
-            verdict=payload.verdict,
-            kid_along=payload.kid_along,
-            note=_clean(payload.note),
-        )
+        row = Visit(spot_id=spot_id, visited_on=visited_on, note=_clean(payload.note))
         session.add(row)
         await session.commit()
         await session.refresh(row)
         return VisitOut(
-            id=row.id,
-            spot_id=row.spot_id,
-            visited_on=row.visited_on,
-            note=row.note,
-            title=row.title,
-            verdict=row.verdict,
-            kid_along=row.kid_along,
-            precision=row.precision,
+            id=row.id, spot_id=row.spot_id, visited_on=row.visited_on, note=row.note
         )
 
     @router.get("/status", response_model=SpotsStatusOut)

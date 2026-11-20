@@ -66,12 +66,6 @@ export const denver = {
     cityFilter: 'City',
     allCities: 'All cities',
     cityOption: (label, count) => `${label} (${count})`,
-    stateFilter: 'Show',
-    allPlaces: 'All places',
-    stateOption: (label, count) => `${label} (${count})`,
-    want: 'Want',
-    been: 'Been',
-    beenOn: (date) => `Been, ${date}`,
   },
   finder: {
     title: 'Spot finder',
