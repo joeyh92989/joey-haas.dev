@@ -1,9 +1,4 @@
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-// The class-name helper shadcn components import (components.json aliases
-// "utils" to @/lib/utils). clsx joins conditionals; twMerge drops the losing
-// one of two conflicting Tailwind classes.
-export function cn(...inputs) {
-  return twMerge(clsx(inputs))
-}
+// The class-name helper. shadcn's own `cn` package (github.com/shadcn-ui/cn,
+// a clsx + tailwind-merge drop-in): generated components import it straight
+// from the package, so this re-export keeps one source for hand-written code.
+export { cn } from 'cn'

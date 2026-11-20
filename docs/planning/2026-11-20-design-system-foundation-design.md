@@ -36,7 +36,7 @@ Source of truth for every step: `docs/planning/2026-11-20-design-system-spike-de
 
 | Decision | Choice | Why |
 |---|---|---|
-| Class-name helper | `clsx` + `tailwind-merge` in `src/lib/utils.js` (`export function cn`) | The spike used an npm package named `cn`. I could not confirm what that package is, and it is a runtime dependency that every component imports. `clsx` and `tailwind-merge` are what shadcn's own docs use. **My call; changes the spike doc's dependency list.** |
+| Class-name helper | shadcn's own `cn` package, pinned, re-exported from `src/lib/utils.js` | First planned `clsx` + `tailwind-merge`. Execution found the CLI generates `import { cn } from "cn"` and the registry shows `cn` is shadcn's (maintainer shadcn, repo shadcn-ui/cn), so one source is simpler than two. **My call; matches the spike doc.** |
 | Generated base layer | Not added | Finding 2. The preset's `@layer base { * {border-color}, body, html }` would restyle every old page. `tailwind.css` has no `base` layer content. |
 | shadcn tokens | Not added here | They collide with the site's `--accent` and `--radius`. They arrive in #527 on a scope class. |
 | Unused `React` import in generated files | `eslint.config.js` override for `src/components/ui/**`: `no-unused-vars` with `varsIgnorePattern: '^React$'` | Finding 4. Narrower than ignoring the folder: everything else in it is still linted. Prettier still formats it. |
@@ -48,7 +48,7 @@ Source of truth for every step: `docs/planning/2026-11-20-design-system-spike-de
 Model: Sonnet for all tasks (default). Each task is one commit. Work in `/Users/joey-haas/Developer/joey-haas.dev-worktrees/526-design-system-foundation`; push with `git push origin HEAD:526-design-system-foundation`. Run `npm ci` in `frontend/` first.
 
 1. **Guard test (written first, shown failing).** `frontend/src/tailwindSetup.test.js` reads `src/tailwind.css` and asserts: the layer order line is exactly `@layer legacy, theme, base, components, utilities;`; `index.css` is imported with `layer(legacy)`; Preflight (`tailwindcss/preflight.css`) is not imported; there is no unlayered `@import 'tailwindcss'` outside a comment; no `@layer base` block exists. *Done when:* it fails on `main` (no file) and passes after task 3. Files: that test.
-2. **Dependencies.** Install `tailwindcss`, `@tailwindcss/vite` (dev), `@base-ui/react`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `tw-animate-css`, `shadcn`, at the versions the spike resolved (see its `package.json`). *Done when:* `npm ci` is clean and `npm audit --omit=dev --audit-level=high` passes. Files: `package.json`, `package-lock.json`.
+2. **Dependencies.** Install `tailwindcss`, `@tailwindcss/vite` (dev), `@base-ui/react`, `class-variance-authority`, `cn`, `lucide-react`, `tw-animate-css`, `shadcn`, at the versions the spike resolved (see its `package.json`). *Done when:* `npm ci` is clean and `npm audit --omit=dev --audit-level=high` passes. Files: `package.json`, `package-lock.json`.
 3. **Config and entry.** Add `tailwindcss()` to the Vite plugins and the `@` alias; add `jsconfig.json`, `components.json` (`tsx: false`, `css: src/tailwind.css`, `style` base-luma as proven), `src/tailwind.css` (header comment carries the plain `@import "tailwindcss";` text so the CLI's check passes, real imports stay layered), `src/lib/utils.js`; `main.jsx` imports `./tailwind.css` instead of `./index.css`; eslint override from the table. Check whether any other file imports `index.css` or other unlayered CSS (a stray unlayered sheet would now beat legacy rules) and list what is found in the PR. *Done when:* the guard test passes, `npm run build`, `npm run lint`, `npm run format:check` and `npm test` are clean. Files: `vite.config.js`, `jsconfig.json`, `components.json`, `src/tailwind.css`, `src/lib/utils.js`, `src/main.jsx`, `eslint.config.js`.
 4. **Prove nothing moved.** Build `main` and the branch; compare the built CSS (the legacy rules must be identical apart from the layer wrapper; report the size delta). Run `npx shadcn add button` in a scratch clone, confirm it works with no prompt about a missing CSS file, that its generated file lints after format, then discard it (no component is committed). Run `e2e` and `e2e:visual` locally and say plainly what ran; the visual baselines differ on this Mac for the same pixels as on clean `main`, so CI is the real check. *Done when:* the evidence is in the PR body. No files.
 5. **Docs.** `frontend/CLAUDE.md`: a "Design system setup" section (layers, why Preflight is off, the four findings, how to add a component, the `cn` decision). `frontend/README.md`: the same in short, if it has a structure section. `docs/design-system.md`: one line pointing to the setup. *Done when:* each describes the setup and the four findings. Files: those three.
@@ -67,7 +67,7 @@ After the deploy: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haa
 ## Open questions
 
 - Does `shadcn` pass the production audit as a runtime dependency? Task 2 answers it, and the table has the fallback.
-- Does the `cn` npm package turn out to be what the spike doc says? Not needed: the plan does not use it.
+- Is `cn` shadcn's own package? Yes, checked on the registry (maintainer shadcn, repo shadcn-ui/cn).
 
 ## Sources
 

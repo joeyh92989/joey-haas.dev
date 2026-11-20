@@ -339,9 +339,8 @@ format`, `npm run lint`, and check `git diff src/tailwind.css` is empty. Aliases
 are in `components.json` (`@/components/ui`, `@/lib/utils`). `@` maps to `src/`
 in `vite.config.js` and `jsconfig.json`.
 
-**`cn`.** `src/lib/utils.js` exports `cn` (`clsx` + `tailwind-merge`), as
-shadcn's own docs do. Note: shadcn 4.x generates `import { cn } from "cn"`, an
-npm package from the shadcn-ui org, and `shadcn add button` adds `cn` to
-`package.json` and ignores `@/lib/utils`. Decide in #527 or #528 which to
-keep (one source of `cn`); until then a generated component brings the package
-with it.
+**`cn`.** The class-name helper is shadcn's own `cn` package
+(github.com/shadcn-ui/cn, maintainer shadcn, a clsx + tailwind-merge drop-in,
+pinned in `package.json`). shadcn 4.x generates `import { cn } from "cn"`, so
+the repo depends on it directly; `src/lib/utils.js` re-exports it for
+hand-written code. One source of `cn`: do not add `clsx` or `tailwind-merge`.
