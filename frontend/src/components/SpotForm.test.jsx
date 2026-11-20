@@ -174,30 +174,6 @@ describe('SpotForm', () => {
   })
 })
 
-describe('SpotForm initialName', () => {
-  it('starts a new spot with the given name, and an edit ignores it', () => {
-    const { unmount } = render(
-      <SpotForm
-        spot={null}
-        initialName="Cafe Brazil"
-        onSaved={() => {}}
-        onCancel={() => {}}
-      />,
-    )
-    expect(screen.getByLabelText('Name')).toHaveValue('Cafe Brazil')
-    unmount()
-    render(
-      <SpotForm
-        spot={SPOT}
-        initialName="Cafe Brazil"
-        onSaved={() => {}}
-        onCancel={() => {}}
-      />,
-    )
-    expect(screen.getByLabelText('Name')).toHaveValue("Sloan's Lake")
-  })
-})
-
 describe('SpotForm required and public wording', () => {
   it('says Coordinates are required, in a tip that is not the small grey hint (#491)', () => {
     vi.stubGlobal('fetch', vi.fn())

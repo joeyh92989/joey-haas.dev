@@ -60,9 +60,6 @@ export const denver = {
     readError: 'The spots couldn’t be read.',
     sessionEnded: SESSION_ENDED,
     panelTitle: 'All spots',
-    newMark: 'New',
-    savedNotRefreshed: 'Saved, but the table couldn’t be refreshed.',
-    refreshRetry: 'Try again',
   },
   finder: {
     title: 'Spot finder',

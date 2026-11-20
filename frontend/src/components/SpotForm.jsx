@@ -3,9 +3,9 @@ import { TAGS, denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 
 /** The form's fields for a spot, or blank ones for a new spot. */
-function startingFields(spot, initialName = '') {
+function startingFields(spot) {
   return {
-    name: spot?.name ?? initialName,
+    name: spot?.name ?? '',
     coords: spot ? `${spot.lat}, ${spot.lng}` : '',
     neighbourhood: spot?.neighbourhood ?? '',
     blurb: spot?.blurb ?? '',
@@ -51,14 +51,12 @@ async function saveError(response) {
  *
  * @param {object} props
  * @param {object|null} props.spot The spot to edit, or null to add one.
- * @param {string} [props.initialName] A name to start a new spot's Name
- *   field with (the add bar's typed words); ignored when editing.
  * @param {(spot: object) => void} props.onSaved Called with the saved spot.
  * @param {() => void} props.onCancel Called when the form is closed unsaved.
  */
-export default function SpotForm({ spot, initialName, onSaved, onCancel }) {
+export default function SpotForm({ spot, onSaved, onCancel }) {
   const id = useId()
-  const [initial] = useState(() => startingFields(spot, initialName))
+  const [initial] = useState(() => startingFields(spot))
   const [name, setName] = useState(initial.name)
   const [coords, setCoords] = useState(initial.coords)
   const [neighbourhood, setNeighbourhood] = useState(initial.neighbourhood)
