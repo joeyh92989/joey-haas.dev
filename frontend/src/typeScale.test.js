@@ -111,4 +111,21 @@ describe('type scale', () => {
     }
     expect(heavy).toEqual([])
   })
+
+  it('never sets a weight above 500 on a heading selector', () => {
+    const heavy = []
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const onHeading = selector
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split(',')
+        .some((part) => /(^|[\s>+~])h[1-3]$/.test(part.trim()))
+      if (!onHeading) continue
+      const weights = [
+        ...body.matchAll(/font-weight:\s*(\d+)/g),
+        ...body.matchAll(/font:[^;]*?\b([1-9]00)\b/g),
+      ].map((m) => +m[1])
+      if (weights.some((w) => w > 500)) heavy.push(selector.trim())
+    }
+    expect(heavy).toEqual([])
+  })
 })
