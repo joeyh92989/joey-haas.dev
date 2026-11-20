@@ -185,17 +185,42 @@ describe('AdminShell on a desktop', () => {
     ).toHaveAttribute('href', '/admin/collection/add')
   })
 
-  it('shows the account, a way back to the site and sign-out', () => {
+  it('makes the rail mark the Account button, with the menu in it', () => {
     const onSignOut = vi.fn()
     renderAt('/admin', { onSignOut })
-    expect(screen.getByText('admin@example.com')).toBeInTheDocument()
+    const rail = document.querySelector('.admin-rail')
+    const account = within(rail).getByRole('button', {
+      name: 'Account, admin@example.com',
+    })
+    expect(account).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(account)
     expect(
-      screen
-        .getAllByRole('link', { name: /view site/i })
-        .map((link) => link.getAttribute('href')),
-    ).toEqual(['/', '/'])
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+      within(rail).getAllByRole('link', { name: /view site/i }),
+    ).toHaveLength(1)
+    fireEvent.click(within(rail).getByRole('button', { name: 'Sign out' }))
     expect(onSignOut).toHaveBeenCalledOnce()
+  })
+
+  it('has no sidebar foot and no View site arrow in the rail', () => {
+    renderAt()
+    expect(document.querySelector('.admin-side-foot')).toBeNull()
+    expect(document.querySelector('.admin-rail-site')).toBeNull()
+    // The email and View site exist only inside the closed menu.
+    expect(
+      screen.getAllByRole('link', { name: /view site/i, hidden: true }),
+    ).toHaveLength(1)
+    expect(
+      document.querySelector('.admin-side')?.textContent ?? '',
+    ).not.toContain('admin@example.com')
+  })
+
+  it('passes a pending or failed sign-out into the menu', () => {
+    renderAt('/admin', { signOutPending: true, signOutFailed: true })
+    fireEvent.click(screen.getByRole('button', { name: /^Account/ }))
+    expect(
+      screen.getByRole('button', { name: 'Signing out…' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t sign out/i)
   })
 
   it('renders the page in <main>', () => {
@@ -345,14 +370,26 @@ describe('AdminShell on a phone', () => {
     )
   })
 
-  it('signs out from the foot of the page', () => {
+  it('puts the Account pill at the left of the segment row, with no foot', () => {
+    renderAt('/admin/shelf/games')
+    const top = document.querySelector('.admin-phone-top')
+    expect(top.firstElementChild).toContainElement(
+      screen.getByRole('button', { name: 'Account, admin@example.com' }),
+    )
+    expect(top).toContainElement(
+      screen.getByRole('navigation', { name: 'Shelf pages' }),
+    )
+    expect(document.querySelector('.admin-phone-foot')).toBeNull()
+    expect(
+      screen.getAllByRole('link', { name: /view site/i, hidden: true }),
+    ).toHaveLength(1)
+  })
+
+  it('signs out from the pill menu', () => {
     const onSignOut = vi.fn()
     renderAt('/admin', { onSignOut })
-    fireEvent.click(
-      within(screen.getByRole('main')).getByRole('button', {
-        name: 'Sign out',
-      }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: /^Account/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(onSignOut).toHaveBeenCalledOnce()
   })
 })

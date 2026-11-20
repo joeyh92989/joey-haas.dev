@@ -18,6 +18,11 @@ import AdminLayout from './AdminLayout.jsx'
 
 vi.mock('../lib/useMediaQuery.js', () => ({ useMediaQuery: () => false }))
 
+/** Opens the account menu once the shell is up. */
+async function openMenu() {
+  fireEvent.click(await screen.findByRole('button', { name: /^Account/ }))
+}
+
 /** A routed page that shows what the layout handed it. */
 function Page() {
   const { items } = useOutletContext()
@@ -91,7 +96,8 @@ describe('AdminLayout session states', () => {
   it('says it after signing out here too', async () => {
     stubApi()
     renderAt()
-    ;(await screen.findByRole('button', { name: /sign out/i })).click()
+    await openMenu()
+    screen.getByRole('button', { name: 'Sign out' }).click()
     expect(await screen.findByText('You are signed out.')).toBeInTheDocument()
   })
 
@@ -158,11 +164,14 @@ describe('AdminLayout session states', () => {
     // machine where the next visitor still is not.
     const fetch = stubApi({ logout: { ok: false, status: 500 } })
     renderAt()
-    ;(await screen.findByRole('button', { name: /sign out/i })).click()
+    await openMenu()
+    screen.getByRole('button', { name: 'Sign out' }).click()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      /sign out failed/i,
-    )
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Couldn’t sign out. Try again in a minute.')
+    // The line lives in the account menu, not in the page.
+    expect(alert.closest('.acct-panel')).not.toBeNull()
+    expect(screen.getByRole('main')).not.toContainElement(alert)
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/logout'),
       expect.objectContaining({ method: 'POST' }),
@@ -178,7 +187,8 @@ describe('AdminLayout session states', () => {
   it('offers sign-in again after a sign-out the server confirmed', async () => {
     stubApi()
     renderAt()
-    ;(await screen.findByRole('button', { name: /sign out/i })).click()
+    await openMenu()
+    screen.getByRole('button', { name: 'Sign out' }).click()
     expect(await screen.findByText(/sign in with google/i)).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull()
     // Focus moves in an effect after the commit that drew the gate.

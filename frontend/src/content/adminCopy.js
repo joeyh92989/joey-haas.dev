@@ -106,9 +106,13 @@ export const adminCopy = {
     miles: 'mi',
   },
   shell: {
+    account: 'Account',
     areas: 'Areas',
     mark: 'jh',
+    signedInAs: 'Signed in as',
     signOut: 'Sign out',
+    signOutFailed: 'Couldn’t sign out. Try again in a minute.',
+    signingOut: 'Signing out…',
     viewSite: 'View site',
   },
   comic: {

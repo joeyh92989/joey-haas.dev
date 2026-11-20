@@ -1772,21 +1772,6 @@ footer {
   line-height: 1.1;
 }
 
-.admin-rail-site {
-  border-radius: 8px;
-  color: var(--text-3);
-  display: grid;
-  height: 40px;
-  margin-top: auto;
-  place-items: center;
-  width: 40px;
-}
-
-.admin-rail-site:hover {
-  color: var(--text);
-  text-decoration: none;
-}
-
 /* An area's pending count. See --badge for its measured contrast. */
 .admin-badge {
   background: var(--badge);
@@ -1882,24 +1867,8 @@ footer {
   margin-left: auto;
 }
 
-.admin-side-foot {
-  border-top: 1px solid var(--line);
-  color: var(--text-3);
-  font-size: var(--fs-13);
-  margin-top: auto;
-  padding: var(--space-3) var(--space-3) var(--space-1);
-}
-
-.admin-side-email {
-  overflow-wrap: anywhere;
-}
-
-/* Header and footer links reach the 24px floor (WCAG 2.5.8, #505): inline-block
+/* Header links reach the 24px floor (WCAG 2.5.8, #505): inline-block
    keeps the space before an arrow, which inline-flex would drop. */
-.admin-side-foot a,
-.admin-side-foot .link-button,
-.admin-phone-foot a,
-.admin-phone-foot .link-button,
 .admin-head-end a:not(.btn) {
   display: inline-block;
   min-height: 1.5rem;
@@ -1909,11 +1878,11 @@ footer {
 .admin-rail a:focus-visible,
 .admin-subnav a:focus-visible,
 .admin-subnav button:focus-visible,
-.admin-phone-foot a:focus-visible,
-.admin-phone-foot button:focus-visible,
 .admin-side-nav a:focus-visible,
-.admin-side-foot a:focus-visible,
-.admin-side-foot button:focus-visible,
+.acct-mark-btn:focus-visible,
+.acct-btn:focus-visible,
+.acct-list a:focus-visible,
+.acct-list button:focus-visible,
 .admin-tabs a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1983,11 +1952,12 @@ footer {
   border-radius: 999px;
   color: var(--text-2);
   cursor: pointer;
-  flex: 1;
+  flex: 1 0 auto;
   font: var(--fs-13) var(--font-sans);
   min-height: 2.25rem;
-  padding: var(--space-1) var(--space-1);
+  padding: var(--space-1) var(--space-2);
   text-align: center;
+  white-space: nowrap;
 }
 
 .admin-subnav a {
@@ -2007,16 +1977,232 @@ footer {
   font-weight: 500;
 }
 
-.admin-phone-foot {
-  align-items: center;
-  border-top: 1px solid var(--line);
+/* The account menu (#503): the rail's mark on a desktop, a pill at the left
+   of the segment row on a phone. The panel is --surface on --line-strong
+   with the --overlay shadow, as the shelf's card menu is. */
+.acct {
+  position: relative;
+}
+
+.acct-mark-btn {
+  background: none;
+  border: 0;
+  border-radius: 8px;
   color: var(--text-3);
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  min-height: 48px;
+  padding: var(--space-1) 2px; /* space-exception: hairline, optical offset */
+  width: 54px;
+}
+
+.acct-mark-btn .admin-rail-mark {
+  margin: 0;
+}
+
+.acct-mark-btn:hover,
+.acct-mark-btn[aria-expanded='true'] {
+  color: var(--text);
+}
+
+.acct-mark-btn[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+.acct-mark-btn .admin-area-label {
+  font: var(--fs-12) / 1.1 var(--font-sans);
+}
+
+.admin-rail .acct {
+  margin-bottom: var(--space-2);
+}
+
+.acct-btn {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+}
+
+.acct-btn:hover,
+.acct-btn[aria-expanded='true'] {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.acct-btn[aria-expanded='true'] {
+  background: var(--sunken);
+}
+
+.acct-btn .admin-rail-mark {
+  border-radius: 999px;
+  height: 34px;
+  margin: 0;
+  width: 34px;
+}
+
+.acct-caret {
+  color: var(--text-3);
+  flex: none;
+}
+
+.acct-caret-up {
+  transform: rotate(180deg);
+}
+
+.acct-panel {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px var(--overlay);
+  color: var(--text-2);
+  padding: var(--space-2);
+  position: absolute;
+  text-align: left;
+  width: 13.5rem;
+  z-index: 50;
+}
+
+.acct-panel[hidden] {
+  display: none;
+}
+
+.admin-rail .acct-panel {
+  left: calc(100% + var(--space-2));
+  top: 0;
+}
+
+.admin-phone-top .acct-panel {
+  left: 0;
+  top: calc(100% + 6px);
+  width: min(18rem, calc(100vw - 2rem));
+}
+
+.acct-who {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  line-height: 1.4;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+.acct-who-label {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+.acct-who-email {
+  color: var(--text);
+  font-size: var(--fs-14);
+  overflow-wrap: anywhere;
+}
+
+.acct-list {
+  display: grid;
+  gap: 2px; /* space-exception: hairline between rows */
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.acct-list a,
+.acct-list button {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
   display: flex;
-  flex-wrap: wrap;
+  font: var(--fs-14) var(--font-sans);
+  gap: var(--space-2);
+  justify-content: space-between;
+  min-height: 2.25rem;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  width: 100%;
+}
+
+.acct-list a:hover,
+.acct-list button:hover {
+  background: var(--sunken);
+  text-decoration: none;
+}
+
+.acct-list [aria-disabled='true'] {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.acct-list [aria-disabled='true']:hover {
+  background: none;
+}
+
+.acct-arrow {
+  color: var(--text-3);
+}
+
+.acct-error {
+  color: var(--text);
   font-size: var(--fs-13);
-  gap: var(--space-2) var(--space-4);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
+  line-height: 1.4;
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+}
+
+.acct-error::before {
+  background: var(--warn);
+  border-radius: 2px;
+  content: '';
+  display: inline-block;
+  height: 8px;
+  margin-right: var(--space-2);
+  width: 8px;
+}
+
+/* 44px rows on a phone. */
+.admin-phone-top .acct-list a,
+.admin-phone-top .acct-list button {
+  font-size: var(--fs-16);
+  min-height: 2.75rem;
+}
+
+.admin-phone-top {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.admin-phone-top .admin-subnav {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .acct-panel:not([hidden]) {
+    animation: acct-in 0.12s ease-out;
+  }
+
+  @keyframes acct-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* The phone tab bar sits over the page's foot, so the page keeps clear of it. */
