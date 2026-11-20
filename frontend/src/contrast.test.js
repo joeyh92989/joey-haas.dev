@@ -110,6 +110,20 @@ const PAIRS = [
   ['--line', '--bg', 3],
   ['--line-strong', '--bg', 3],
   ['--line-card', '--surface', 3],
+  // Core components (#528). Status mark: the ink outline is the 3:1 mark on
+  // the card and the page. The highlighter fill alone is pale in light (1.3
+  // on the card), so the word and the outline carry the meaning, never the
+  // fill. Mono labels and the word are --text-2.
+  ['--text', '--surface', 3],
+  ['--text', '--bg', 3],
+  ['--text-2', '--surface', 4.5],
+  // Badge outline (--line-card) on the card and the page; the accent badge's fill and
+  // outline are --accent with --accent-ink text (above).
+  ['--line-card', '--bg', 3],
+  ['--accent', '--bg', 3],
+  // The secondary and ghost buttons set --text-2 on the sunken tone.
+  ['--text-2', '--sunken', 4.5],
+  // The destructive text token on the card (set in tailwind.css, not here).
   ...[
     '--ok',
     '--warn',

@@ -81,7 +81,7 @@ describe('Badge', () => {
     render(<Badge>Beta</Badge>)
     const cls = screen.getByText('Beta').className
     expect(cls).toContain('font-mono')
-    expect(cls).toContain('border-border')
+    expect(cls).toContain('border-line-card')
     expect(cls).not.toMatch(GENERATED_LOOK)
   })
 
