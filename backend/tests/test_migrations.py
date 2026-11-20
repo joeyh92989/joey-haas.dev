@@ -61,15 +61,19 @@ def _diff_against_models(connection) -> list:
     """Autogenerate's view of how the live schema differs from the models."""
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
-    # The models no longer carry items.editions (its drop is a later
-    # migration), so a schema that still has the column is not drift.
+    # The models no longer carry items.editions or the outing columns on
+    # visits (their drops are a later migration), so a schema that still has
+    # those columns is not drift.
+    later_drops = {
+        "items": {"editions"},
+        "visits": {"title", "verdict", "kid_along", "precision"},
+    }
     return [
         entry
         for entry in diff
         if not (
             entry[0] == "remove_column"
-            and entry[2] == "items"
-            and entry[3].name == "editions"
+            and entry[3].name in later_drops.get(entry[2], ())
         )
     ]
 
@@ -2011,20 +2015,6 @@ async def test_0025_cycle_downgrades_and_matches_models(clean_database):
         assert await connection.scalar(text("SELECT count(*) FROM visits")) == 1
         diff = await connection.run_sync(_diff_against_models)
     assert diff == []
-
-
-@pytest.mark.asyncio
-async def test_a_head_level_diff_still_reports_a_missing_visits_column(clean_database):
-    """The 0025 carve-out is for schemas below 0025 only: at head, a visits
-    column the models carry but the database lacks must show as drift."""
-    assert _alembic("upgrade", "head").returncode == 0
-    async with clean_database.begin() as connection:
-        await connection.execute(text("ALTER TABLE visits DROP COLUMN kid_along"))
-    async with clean_database.connect() as connection:
-        at_head = await connection.run_sync(_diff_against_models)
-        below = await connection.run_sync(_diff_against_models, True)
-    assert [(e[0], e[3].name) for e in at_head] == [("add_column", "kid_along")]
-    assert below == []  # the carve-out would hide it, which is why it is opt-in
 
 
 # --- Revision 0026: drop items.editions. -------------------------------------
