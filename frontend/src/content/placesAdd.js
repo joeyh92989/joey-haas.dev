@@ -180,8 +180,12 @@ export const placesAdd = {
       wait: 'Not looked up yet',
       saved: 'Already saved',
       same: 'Same place as another line',
+      logged: 'Already logged',
+      out: 'Left out',
     },
     groupNotes: {
+      logged:
+        'The same place and the same day, month or year as an outing in History. Not added again unless you choose Add anyway.',
       saved: 'On your list already. Not saved again.',
       same: 'Found as a place another line already gave. Not saved twice.',
     },
@@ -304,5 +308,112 @@ export const placesAdd = {
         : `${n} lines got no answer from the search. Try them again from their rows.`,
     commitFailed: 'The list was not saved. Nothing was added.',
     noAnswerRow: 'The server did not answer for this line. Try it again.',
+    // Past outings (story #350): a second reading of the same paste.
+    outings: {
+      modeLabel: 'The lines are',
+      modePlaces: 'Places',
+      modeOutings: 'Past outings',
+      modeLocked:
+        'Finish or clear this list before changing what the lines are.',
+      boxLabel: 'Outings, one per line',
+      boxHint:
+        'A place name, a comma, then a date: a day (2024-06-14 or June 14, 2024), a month (June 2024) or a year (2023). Up to 200 lines. Nothing is sent until you press Add lines.',
+      cityLabel: 'City for new places',
+      cityHint:
+        'A place not on your list is looked up by name and saved private in this city when you add the outings.',
+      // The row.
+      precisionWord: { day: 'day', month: 'month', year: 'year' },
+      readAs: 'Read as: ',
+      unread: 'Date not read',
+      whyDate: (text) =>
+        text ? `Date not read: “${text}”.` : 'No date on this line.',
+      newPlace: (city) => `New place, private, ${city}`,
+      onList: 'Place on your list',
+      inHistory: (label) => `In History: ${label}`,
+      alsoInHistory: (label) => `Also in History: ${label}`,
+      leftOut: 'Left out. Not added.',
+      rowButton: {
+        date: 'Fix date',
+        ready: 'Edit',
+        logged: 'Add anyway',
+        out: 'Put back',
+        skip: 'Skip',
+        refused: 'Leave out',
+      },
+      // The date form.
+      dateLabel: 'Date',
+      dateHint:
+        'A day (2024-06-14 or June 14, 2024), a month (June 2024) or a year (2023). The outing keeps that precision.',
+      readAsLine: (label, precision) => `Read as: ${label}, ${precision}`,
+      notRead: 'Not read. Type a day, a month or a year.',
+      readOnUse: 'Press Use this date and it is read.',
+      useDate: 'Use this date',
+      pastedAs: (line) => `Pasted as “${line}”`,
+      dateRequired: 'Type a date first.',
+      // Notices.
+      dateSaved: (name, label) => `${name}: read as ${label}.`,
+      dateStill: (name) => `${name}: the date was not read.`,
+      leftOutNotice: (name) => `${name} left out. It will not be added.`,
+      skippedNotice: (name) => `${name} skipped. It will not be added.`,
+      putBackNotice: (name) => `${name} put back.`,
+      addAnywayNotice: (name) => `${name} will be added again.`,
+      // Summary and tally.
+      tally: (ready, check, logged, out) => {
+        const parts = [
+          [ready, 'ready to add'],
+          [check, 'to check'],
+          [logged, 'already logged'],
+          [out, 'left out'],
+        ].filter(([n]) => n)
+        return parts.length
+          ? `${parts.map(([n, word]) => `${n} ${word}`).join(', ')}.`
+          : ''
+      },
+      // The Add bar.
+      add: 'Add outings',
+      addN: (n) => (n === 1 ? 'Add 1 outing' : `Add ${n} outings`),
+      held: (check, wait) => {
+        const parts = [
+          check &&
+            (check === 1 ? '1 line to check' : `${check} lines to check`),
+          wait &&
+            (wait === 1
+              ? '1 place still being looked up'
+              : `${wait} places still being looked up`),
+        ].filter(Boolean)
+        return `${parts.join(', ')}. Nothing is added until every line is ready, skipped or left out.`
+      },
+      willAdd: (outings, places, logged) => {
+        const o = outings === 1 ? '1 outing' : `${outings} outings`
+        const p =
+          places === 0
+            ? ''
+            : ` and ${places === 1 ? '1 new place' : `${places} new places`}`
+        const l = logged
+          ? ` ${logged === 1 ? '1 line' : `${logged} lines`} already logged, skipped.`
+          : ''
+        return `${o}${p} will be added.${l}`
+      },
+      nothingReady: 'Nothing is ready to add.',
+      running: 'Press Stop to add what is ready so far.',
+      // After adding.
+      doneHeading: (outings, places) =>
+        `Added ${outings === 1 ? '1 outing' : `${outings} outings`}, ${places === 1 ? '1 new place' : `${places} new places`}.`,
+      doneNewPlaces: (city, names) =>
+        `New places, private in ${city}: ${names.join(', ')}.`,
+      doneSkipped: (n) =>
+        `${n === 1 ? '1 line' : `${n} lines`} skipped, already logged.`,
+      doneLeftOut: (n) => `${n === 1 ? '1 line' : `${n} lines`} left out.`,
+      doneEmpty: 'Verdict, note and kid-along are empty. Edit them in History.',
+      addMore: 'Paste more outings',
+      openHistory: 'Open History',
+      // A refused commit.
+      refused: (n) =>
+        `Nothing was added. ${n === 1 ? '1 line needs' : `${n} lines need`} fixing. Fix or leave out each one, then add the outings again.`,
+      refusedFallback:
+        'Nothing was added. Fix or leave out the lines marked, then add the outings again.',
+      refusedRow: 'This line was refused. Fix it or leave it out.',
+      commitFailed: 'The outings were not added. Nothing was written.',
+    },
   },
 }

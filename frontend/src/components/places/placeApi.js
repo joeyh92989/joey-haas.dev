@@ -29,6 +29,8 @@ export async function call(path, method, body, signal) {
       return {
         ok: false,
         status: response.status,
+        // The refused answer itself (a commit's 422 lists `refused`).
+        data: answer,
         message:
           typeof refusal === 'string' && refusal
             ? refusal

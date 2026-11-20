@@ -14511,6 +14511,106 @@ a.btn.sm {
   }
 }
 
+/* Past outings (story #350): the same paste read as `place, date` lines.
+   Mockup a-mode-switch.html. State is a word and a shape, never colour alone:
+   the date chip is solid when read and dashed ("Date not read") when not. */
+.outing-mode {
+  align-items: center;
+  color: var(--text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.outing-mode .place-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.outing-city {
+  max-width: 16rem;
+}
+
+.outing-city select {
+  max-width: 100%;
+}
+
+.outing-chip {
+  justify-self: end;
+  min-width: 0;
+}
+
+.outing-date {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  display: inline-grid;
+  font-size: var(--fs-13);
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-1) var(--space-2);
+}
+
+.outing-date small {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+.outing-date.unread {
+  border-style: dashed;
+  color: var(--text-2);
+}
+
+.outing-readas {
+  color: var(--text);
+  font-size: var(--fs-13);
+  margin: 0;
+}
+
+.outing-row .place-result-act {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .place-result.outing-row {
+    grid-template-areas:
+      'text text'
+      'chip act';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .outing-row > .outing-chip {
+    grid-area: chip;
+    justify-self: start;
+  }
+
+  .outing-row > .place-result-act {
+    grid-area: act;
+  }
+
+  .place-result.outing-row.open {
+    grid-template-areas: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outing-row.open > * {
+    grid-area: auto;
+    grid-column: 1 / -1;
+  }
+
+  .outing-mode .chip {
+    min-height: 2.75rem;
+  }
+}
+
 /* Log an outing sheet (components/LogOutingSheet.jsx): the shell is .sheet;
    on a phone it anchors to the bottom like the other sheets. */
 .lo-sheet {
