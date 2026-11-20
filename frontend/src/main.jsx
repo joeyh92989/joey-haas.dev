@@ -10,8 +10,9 @@ import App from './App.jsx'
 // variable builds carry every weight and axis and cost several times more for
 // the handful of weights actually set. Inter is the face for everything;
 // JetBrains Mono sets the uppercase labels, dates and counts; Source Serif 4
-// sets only the two page-opening headlines (Home and About), with an italic
-// for the accent phrase.
+// sets the headings (h1 to h3) and the display titles, at 500 only, with an
+// italic for the Home accent phrase. Do not set the serif at another weight:
+// only the 500 cuts are installed, and the browser would synthesise it.
 import '@fontsource/inter/latin-400.css'
 import '@fontsource/inter/latin-500.css'
 import '@fontsource/inter/latin-600.css'

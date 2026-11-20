@@ -157,7 +157,7 @@
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  /* Only the Home hero and the About title: see main.jsx. */
+  /* Headings (h1 to h3) and the display titles: see main.jsx. */
   --font-display: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
   color-scheme: dark;
 }
@@ -305,13 +305,14 @@ body {
   margin-right: var(--space-2);
 }
 
-/* Headings are sans 500. The serif (--font-display) is kept for the Home
-   headline and a few display titles (tour stops, trip cards, map labels). */
+/* Headings are Source Serif 4 at 500, the one weight installed: a serif at
+   600 or 700 would be synthesised, so no rule sets one beside
+   --font-display (typeScale.test.js). Body stays Inter, labels mono. */
 h1,
 h2,
 h3 {
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-weight: 500;
   line-height: 1.2;
 }
@@ -1263,7 +1264,7 @@ section + section {
 
 .timeline-role {
   font-size: var(--fs-16);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .timeline-company {
@@ -1433,7 +1434,7 @@ section + section {
 /* An h2 by document structure, but on the card's scale, not the page's. */
 .project-card h2 {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .project-card p {
@@ -2432,7 +2433,7 @@ footer {
 
 .admin-head h1 {
   font-size: var(--fs-24);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
@@ -2539,7 +2540,7 @@ footer {
 
 .panel-head h2 {
   font-size: var(--fs-14);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .panel-head a {
@@ -7485,7 +7486,7 @@ section > .cover-key {
 .wrap-fresh h3 {
   color: var(--text-3);
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.06em;
   line-height: inherit;
   margin: 0;
@@ -7574,7 +7575,7 @@ section > .cover-key {
 }
 .lane-h h3 {
   font-size: var(--fs-16);
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 .live-cap {
@@ -10091,7 +10092,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .trip-card__title {
-  font: 600 var(--fs-24)/1.2 var(--font-display);
+  font: 500 var(--fs-24)/1.2 var(--font-display);
   margin: 0;
 }
 
@@ -10273,7 +10274,7 @@ a.cover-tile-cap:focus-visible span {
 
 .trip-day__title {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -10738,7 +10739,7 @@ a.cover-tile-cap:focus-visible span {
 
 .cand-name {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -11002,7 +11003,7 @@ a.cover-tile-cap:focus-visible span {
 
 .sug-name {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -11760,7 +11761,7 @@ a.cover-tile-cap:focus-visible span {
 .spot-card-name {
   margin: 0;
   font-size: var(--fs-16);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .spot-card-name button {
@@ -11852,7 +11853,7 @@ a.cover-tile-cap:focus-visible span {
 
 .area-card-head h2 {
   font-size: var(--fs-16);
-  font-weight: 600;
+  font-weight: 500;
   margin: 0;
 }
 
