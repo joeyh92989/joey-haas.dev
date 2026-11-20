@@ -29,21 +29,13 @@ function Chip({ pressed, count, label, onClick, className, disabled }) {
 /**
  * Whether a group offers a choice: more than one chip that would render, or
  * a pressed one to clear. A single-member row -- "Games 68" on a games-only
- * shelf -- filters nothing and reads as noise. A group given a `total` (the
- * size of the list) keeps a single chip whose count is below it, since that
- * chip does narrow the list.
+ * shelf -- filters nothing and reads as noise.
  */
 function offersChoice(group, value) {
   if (value[group.key] != null) return true
-  const shown = group.options.filter(
-    (option) => option.count === null || option.count > 0,
-  )
-  if (shown.length > 1) return true
   return (
-    group.total != null &&
-    shown.length === 1 &&
-    shown[0].count !== null &&
-    shown[0].count < group.total
+    group.options.filter((option) => option.count === null || option.count > 0)
+      .length > 1
   )
 }
 
@@ -57,10 +49,9 @@ function offersChoice(group, value) {
  * to show, and none pressed, is left out.
  *
  * @param {object} props
- * @param {{key: string, label: string, total?: number, limit?: number, moreLabel?: string, options: {value: string, label: string, count: number|null}[]}[]} props.groups
+ * @param {{key: string, label: string, limit?: number, moreLabel?: string, options: {value: string, label: string, count: number|null}[]}[]} props.groups
  *   Single-select groups, keyed by the `value` field they set. A group with
- *   a `total` keeps a lone chip that matches fewer than `total` items (the
- *   list's size); a `limit` draws that many chips and a More… chip for the rest. A null count
+ *   a `limit` draws that many chips and a More… chip for the rest. A null count
  *   shows the chip without a count, whatever it would filter to.
  * @param {{key: string, label: string, count: number|null, className?: string}[]} [props.toggles]
  *   Boolean toggles, keyed by the `value` field they flip; `className` is

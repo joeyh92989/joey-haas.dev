@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminSpots from './AdminSpots.jsx'
 
@@ -43,14 +42,6 @@ const SPOTS = [
   spot('c', "Sloan's Lake", { tags: ['park', 'kid-ok'] }),
 ]
 
-function renderSpots() {
-  return render(
-    <MemoryRouter>
-      <AdminSpots />
-    </MemoryRouter>,
-  )
-}
-
 function json(body, status = 200) {
   return { ok: status < 300, status, json: async () => body }
 }
@@ -79,16 +70,10 @@ function stubApi(handlers = {}) {
   return calls
 }
 
-/** The page's own notice line; the add bar has a status of its own. */
-async function pageNotice() {
-  const all = await screen.findAllByRole('status')
-  return all.find((el) => el.classList.contains('spots-notice'))
-}
-
 function rowNames() {
   return screen
     .getAllByRole('rowheader')
-    .map((cell) => cell.querySelector('.spots-name-text').textContent)
+    .map((cell) => cell.firstChild.textContent)
 }
 
 beforeEach(() => {
@@ -97,76 +82,15 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // A test that stubs scrollIntoView never leaks it, even when it fails.
-  delete Element.prototype.scrollIntoView
   vi.useRealTimers()
   vi.unstubAllGlobals()
   media.phone = false
 })
 
 describe('AdminSpots', () => {
-  it('logs an outing from the header, says so, and reads the spots again', async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      let outingSaved = false
-      const calls = stubApi({
-        'GET /api/spots': () =>
-          json(
-            outingSaved
-              ? [
-                  SPOTS[0],
-                  SPOTS[1],
-                  { ...SPOTS[2], visit_count: 1, last_visit: '2026-11-09' },
-                ]
-              : SPOTS,
-          ),
-        'POST /api/spots/outings': () => {
-          outingSaved = true
-          return json(
-            {
-              visit: { id: 5, spot_id: 'c', visited_on: '2026-11-09' },
-              spot: SPOTS[2],
-              created: false,
-            },
-            201,
-          )
-        },
-      })
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderSpots()
-      await screen.findByRole('table')
-      await user.click(screen.getByRole('button', { name: 'Log an outing' }))
-      await user.type(await screen.findByLabelText('Place'), 'sloan')
-      await user.click(
-        await within(document.querySelector('dialog')).findByRole('button', {
-          name: /Sloan.s Lake/,
-        }),
-      )
-      await user.click(screen.getByLabelText('Loved'))
-      await user.click(screen.getByRole('button', { name: 'Save outing' }))
-      await waitFor(async () =>
-        expect((await pageNotice()).textContent).toBe(
-          "Logged an outing at Sloan's Lake.",
-        ),
-      )
-      expect(
-        calls.filter((c) => c.path === '/api/spots' && c.method === 'GET'),
-      ).toHaveLength(3) // page read, sheet's saved spots, reread after save
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
-  })
-
   it('lists every spot with tags, last visit and the public counts', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
     expect(
@@ -184,25 +108,10 @@ describe('AdminSpots', () => {
     expect(screen.getByText('Private 2')).toBeInTheDocument()
   })
 
-  it('links each row to its history, named for the spot', async () => {
-    stubApi()
-    renderSpots()
-    await screen.findByRole('table')
-    const corvus = screen.getByRole('row', { name: /Corvus Coffee/ })
-    const link = within(corvus).getByRole('link', {
-      name: 'History for Corvus Coffee',
-    })
-    expect(link).toHaveTextContent('History')
-    expect(link).toHaveAttribute('href', '/admin/history?spot=a')
-    expect(screen.getAllByRole('link', { name: /^History for / })).toHaveLength(
-      SPOTS.length,
-    )
-  })
-
   it('drops the Last visit column on a phone', async () => {
     media.phone = true
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     expect(
       screen.getAllByRole('columnheader').map((cell) => cell.textContent),
@@ -211,7 +120,7 @@ describe('AdminSpots', () => {
 
   it('filters by name, neighbourhood and tag label', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const search = screen.getByRole('searchbox', { name: 'Search spots' })
@@ -234,7 +143,7 @@ describe('AdminSpots', () => {
     const calls = stubApi({
       'PATCH /api/spots/c': () => json({ ...SPOTS[2], is_public: true }),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
 
@@ -255,7 +164,7 @@ describe('AdminSpots', () => {
           201,
         ),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent
       .setup()
@@ -266,7 +175,7 @@ describe('AdminSpots', () => {
       path: '/api/spots/b/visits',
       body: { visited_on: '2026-11-09' },
     })
-    expect(await pageNotice()).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Logged a visit to Home today.',
     )
     expect(
@@ -280,7 +189,7 @@ describe('AdminSpots', () => {
     stubApi({
       'POST /api/spots': () => json(spot('d', 'Denver Central Market'), 201),
     })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Add by hand' }))
@@ -295,7 +204,9 @@ describe('AdminSpots', () => {
     )
     await user.click(within(form).getByRole('button', { name: 'Save' }))
 
-    expect(await pageNotice()).toHaveTextContent('Saved Denver Central Market.')
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Saved Denver Central Market.',
+    )
     expect(screen.queryByRole('form')).not.toBeInTheDocument()
     expect(rowNames()).toEqual([
       'Corvus Coffee',
@@ -307,7 +218,7 @@ describe('AdminSpots', () => {
 
   it('opens Edit prefilled with the spot', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent
       .setup()
@@ -318,7 +229,7 @@ describe('AdminSpots', () => {
 
   it('gives focus to the form, and back to its opener when it closes', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const user = userEvent.setup()
     const edit = screen.getByRole('button', { name: 'Edit Corvus Coffee' })
@@ -335,7 +246,7 @@ describe('AdminSpots', () => {
 
   it('lists the spots in a panel titled All spots', async () => {
     stubApi()
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     const panel = screen.getByRole('region', { name: 'All spots' })
     expect(within(panel).getByRole('table')).toBeInTheDocument()
@@ -344,7 +255,7 @@ describe('AdminSpots', () => {
 
   it('says the session ended when a write is refused with a 401', async () => {
     stubApi({ 'PATCH /api/spots/c': () => json({ detail: 'x' }, 401) })
-    renderSpots()
+    render(<AdminSpots />)
     await screen.findByRole('table')
     await userEvent.setup().click(screen.getByLabelText("Public: Sloan's Lake"))
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -355,7 +266,7 @@ describe('AdminSpots', () => {
 
   it('says the session ended on a 401, with no Try again', async () => {
     stubApi({ 'GET /api/spots': () => json({ detail: 'x' }, 401) })
-    renderSpots()
+    render(<AdminSpots />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your session ended. Sign in again.',
     )
@@ -367,7 +278,7 @@ describe('AdminSpots', () => {
     stubApi({
       'GET /api/spots': () => (up ? json(SPOTS) : json({}, 500)),
     })
-    renderSpots()
+    render(<AdminSpots />)
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('The spots couldn’t be read.')
     expect(screen.queryByText('Loading spots…')).not.toBeInTheDocument()
@@ -437,7 +348,7 @@ describe('AdminSpots', () => {
 
     it('shows the last run and the queue in order', async () => {
       finderApi()
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Kaffe Landscap' })
       expect(cardNames()).toEqual(['Kaffe Landscap', 'Bruto'])
       expect(within(finder()).getByText(/136 found, 12 new\./)).toBeVisible()
@@ -454,7 +365,7 @@ describe('AdminSpots', () => {
 
     it('says so when the queue is empty and the finder never ran', async () => {
       stubApi()
-      renderSpots()
+      render(<AdminSpots />)
       expect(
         await within(finder()).findByText(
           'Nothing new this week. Next run Sunday.',
@@ -479,7 +390,7 @@ describe('AdminSpots', () => {
         },
         'POST /api/spots/candidates/restore': () => json(QUEUE[0]),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Kaffe Landscap' })
       const user = userEvent.setup()
       const card = screen
@@ -523,7 +434,7 @@ describe('AdminSpots', () => {
         'POST /api/spots/candidates/k2/dismiss': () =>
           json({ candidate: QUEUE[1], spot_id: null }),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Bruto' })
       await userEvent
         .setup()
@@ -539,7 +450,7 @@ describe('AdminSpots', () => {
         'POST /api/spots/candidates/k2/dismiss': () =>
           json({ detail: 'That place has already been answered' }, 409),
       })
-      renderSpots()
+      render(<AdminSpots />)
       await screen.findByRole('heading', { name: 'Bruto' })
       await userEvent
         .setup()
@@ -568,7 +479,7 @@ describe('AdminSpots', () => {
           return json(LAST_RUN['candidates.last_run'])
         },
       })
-      renderSpots()
+      render(<AdminSpots />)
       const user = userEvent.setup()
       await within(finder()).findByText(
         'Nothing new this week. Next run Sunday.',
@@ -592,1129 +503,10 @@ describe('AdminSpots', () => {
             },
           }),
       })
-      renderSpots()
+      render(<AdminSpots />)
       expect(
         await within(finder()).findByText(/failed: Overpass refused twice\./),
       ).toBeInTheDocument()
-    })
-  })
-})
-
-describe('AdminSpots add bar (story #341)', () => {
-  const ROCKS = {
-    kind: 'place',
-    external_source: 'osm',
-    external_id: 'way/1',
-    source_id: 'way/1',
-    title: 'Red Rocks Amphitheatre',
-    address: '18300 W Alameda Pkwy, Morrison',
-    category: 'Amphitheatre',
-    lat: 39.665,
-    lng: -105.205,
-    map_url: 'https://www.openstreetmap.org/way/1',
-    owned_spot_id: null,
-  }
-  const ARVADA = {
-    ...ROCKS,
-    external_id: 'way/2',
-    source_id: 'way/2',
-    title: 'Arvada Center',
-  }
-
-  /**
-   * The page's API plus the two intake routes the bar calls: a search answers
-   * from `found` by query, and an add writes a spot that the next
-   * `GET /api/spots` then returns, as the server does.
-   */
-  function barApi(found = {}) {
-    const stored = [...SPOTS]
-    // failReads: GET /api/spots answers 500; hideNew: it answers without
-    // the spot the bar saved (the server no longer returns it).
-    const control = {
-      failReads: false,
-      hideNew: false,
-      anchorNew: false,
-      // hold: the next read waits for control.release(), answering with the
-      // list as it stood when the read began.
-      hold: false,
-      release: null,
-    }
-    const patch = (id) => (options) => {
-      const body = JSON.parse(options.body)
-      const at = stored.findIndex((row) => row.id === id)
-      stored[at] = { ...stored[at], ...body }
-      return json(stored[at])
-    }
-    const calls = stubApi({
-      'POST /api/spots/b/visits': () =>
-        json(
-          { id: 'v', spot_id: 'b', visited_on: '2026-11-09', note: null },
-          201,
-        ),
-      'POST /api/spots/outings': () =>
-        json(
-          {
-            visit: { id: 'v2', spot_id: 'c', visited_on: '2026-11-09' },
-            spot: SPOTS[2],
-            created: false,
-          },
-          201,
-        ),
-      'PATCH /api/spots/a': patch('a'),
-      'PATCH /api/spots/b': patch('b'),
-      'PATCH /api/spots/c': patch('c'),
-      'POST /api/spots': (options) => {
-        const body = JSON.parse(options.body)
-        const row = spot(`h${stored.length}`, body.name)
-        stored.push(row)
-        stored.sort((x, y) => x.name.localeCompare(y.name))
-        return json(row, 201)
-      },
-      'GET /api/spots': () => {
-        if (control.hold) {
-          control.hold = false
-          const snapshot = [...stored]
-          return new Promise((resolve) => {
-            control.release = () => resolve(json(snapshot))
-          })
-        }
-        if (control.failReads) return json({}, 500)
-        return json(control.hideNew ? [...SPOTS] : [...stored])
-      },
-      'POST /api/intake/add': (options) => {
-        const body = JSON.parse(options.body)
-        const spotRow = spot(`n${stored.length}`, body.payload.name, {
-          anchor: control.anchorNew,
-        })
-        stored.push(spotRow)
-        stored.sort((a, b) => a.name.localeCompare(b.name))
-        return json(
-          { spots_new: [{ id: spotRow.id, name: spotRow.name }] },
-          201,
-        )
-      },
-    })
-    const base = globalThis.fetch
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url, options = {}) => {
-        const path = String(url).replace(/^.*\/api/, '/api')
-        if (path.startsWith('/api/intake/search')) {
-          const q = new URL(path, 'http://x').searchParams.get('query')
-          return json({ results: found[q] ?? [], sources: [] })
-        }
-        return base(url, options)
-      }),
-    )
-    calls.control = control
-    return calls
-  }
-
-  const spotReads = (calls) =>
-    calls.filter((c) => c.method === 'GET' && c.path === '/api/spots').length
-
-  const bar = () => screen.getByRole('region', { name: 'Add a place' })
-  const marked = () => document.querySelectorAll('tr.is-marked')
-
-  async function search(user, text) {
-    const box = within(bar()).getByLabelText('Add a place by name')
-    await user.clear(box)
-    await user.type(box, `${text}{Enter}`)
-  }
-
-  async function addRocks(user) {
-    await search(user, 'red rocks')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Save place' }),
-    )
-  }
-
-  it('draws the bar between the header and the finder, and Add by hand opens the form', async () => {
-    barApi()
-    const { container } = renderSpots()
-    await screen.findByRole('table')
-    const page = container.firstChild
-    const kids = [...page.children]
-    expect(kids.indexOf(bar())).toBeGreaterThan(0)
-    expect(kids.indexOf(bar())).toBeLessThan(
-      kids.findIndex((el) => el.classList.contains('finder-layout')),
-    )
-    const user = userEvent.setup()
-    await user.click(screen.getAllByRole('button', { name: 'Add by hand' })[0])
-    expect(
-      await screen.findByRole('form', { name: 'Add a spot' }),
-    ).toBeVisible()
-    expect(screen.getByLabelText('Name')).toHaveValue('')
-  })
-
-  it('adds a place by name and marks its new row', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-
-    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
-    const row = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
-    expect(within(row).getByText('New')).toBeInTheDocument()
-    expect(row).toHaveClass('is-marked')
-    expect(marked()).toHaveLength(1)
-    expect(calls.filter((c) => c.path === '/api/intake/add')).toHaveLength(1)
-  })
-
-  it("clears the bar save's New pill and tint when an outing is logged", async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      barApi({ 'red rocks': [ROCKS] })
-      renderSpots()
-      await screen.findByRole('table')
-      const user = userEvent.setup()
-      await addRocks(user)
-      const row = await screen.findByRole('row', {
-        name: /Red Rocks Amphitheatre/,
-      })
-      expect(within(row).getByText('New')).toBeInTheDocument()
-      await user.click(screen.getByRole('button', { name: 'Log an outing' }))
-      const dialog = document.querySelector('dialog')
-      await user.type(await within(dialog).findByLabelText('Place'), 'sloan')
-      await user.click(
-        await within(dialog).findByRole('button', { name: /Sloan.s Lake/ }),
-      )
-      await user.click(within(dialog).getByLabelText('Loved'))
-      await user.click(
-        within(dialog).getByRole('button', { name: 'Save outing' }),
-      )
-      await waitFor(() =>
-        expect(screen.queryByText('New')).not.toBeInTheDocument(),
-      )
-      expect(marked()).toHaveLength(0)
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
-  })
-
-  it('shows the row in the table: clears a hiding filter, scrolls and focuses', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    const scroll = vi.fn()
-    Element.prototype.scrollIntoView = scroll
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-
-    const filter = screen.getByRole('searchbox', { name: 'Search spots' })
-    await user.type(filter, 'zzz')
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
-    await user.click(
-      await within(bar()).findByRole('link', { name: 'Show in table' }),
-    )
-    expect(filter).toHaveValue('')
-    const shown = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
-    expect(shown).toHaveFocus()
-    expect(scroll).toHaveBeenCalled()
-
-    // No filter: it still scrolls and focuses.
-    scroll.mockClear()
-    screen.getByRole('searchbox', { name: 'Search spots' }).focus()
-    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
-    expect(shown).toHaveFocus()
-    expect(scroll).toHaveBeenCalledTimes(1)
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('re-reads once for a spot the server no longer returns and shows nothing', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    const scroll = vi.fn()
-    Element.prototype.scrollIntoView = scroll
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    // The re-read after the save fails, so the page does not have the row.
-    calls.control.failReads = true
-    await addRocks(user)
-    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
-    await waitFor(() => expect(spotReads(calls)).toBe(2))
-    expect(
-      screen.queryByRole('row', { name: /Red Rocks/ }),
-    ).not.toBeInTheDocument()
-    // Now the server answers, but without the spot.
-    calls.control.failReads = false
-    calls.control.hideNew = true
-    const before = spotReads(calls)
-    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
-    await waitFor(() => expect(spotReads(calls)).toBe(before + 1))
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(spotReads(calls)).toBe(before + 1)
-    expect(screen.queryByRole('row', { name: /Red Rocks/ })).toBeNull()
-    expect(scroll).not.toHaveBeenCalled()
-    expect(document.activeElement.closest('tr')).toBeNull()
-    // Only the refresh sentence from the failed read after the save.
-    expect(screen.getAllByRole('alert')).toHaveLength(1)
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('survives a failed re-read after a save: Saved shows, Show in table retries once', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    calls.control.failReads = true
-    await addRocks(user)
-    await within(bar()).findByText(/Saved Red Rocks Amphitheatre as a private/)
-    await waitFor(() => expect(spotReads(calls)).toBe(2))
-    expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Saved, but the table couldn’t be refreshed.',
-    )
-
-    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
-    await waitFor(() => expect(spotReads(calls)).toBe(3))
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(spotReads(calls)).toBe(3)
-    expect(rowNames()).toEqual(['Corvus Coffee', 'Home', "Sloan's Lake"])
-    expect(screen.getAllByRole('alert')).toHaveLength(1)
-  })
-
-  it('has no New mark in the page while a filter hides the row, until Show in table', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-
-    await user.type(
-      screen.getByRole('searchbox', { name: 'Search spots' }),
-      'corvus',
-    )
-    expect(rowNames()).toEqual(['Corvus Coffee'])
-    expect(marked()).toHaveLength(0)
-    expect(document.querySelector('.spots-new')).toBeNull()
-    expect(screen.queryByText('New')).not.toBeInTheDocument()
-
-    await user.click(within(bar()).getByRole('link', { name: 'Show in table' }))
-    const row = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
-    expect(row).toHaveClass('is-marked')
-    expect(within(row).getByText('New')).toBeInTheDocument()
-    expect(row).toHaveFocus()
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('keeps the name, the Anchor tag and the New pill apart on a marked anchor row', async () => {
-    const homeAgain = { ...ROCKS, title: 'Home Base' }
-    const calls = barApi({ 'home base': [homeAgain] })
-    renderSpots()
-    await screen.findByRole('table')
-    // The page's rows come back with the new spot as an anchor.
-    calls.control.anchorNew = true
-    const user = userEvent.setup()
-    await search(user, 'home base')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Save place' }),
-    )
-    const row = await screen.findByRole('row', { name: /Home Base/ })
-    const head = within(row).getByRole('rowheader')
-    const pill = within(head).getByText('New')
-    const name = within(head).getByText('Home Base')
-    const anchor = within(head).getByText('Anchor')
-    expect(new Set([pill, name, anchor]).size).toBe(3)
-    expect(pill).toHaveClass('spots-new')
-    expect(name).toHaveClass('spots-name-text')
-    expect(rowNames()).toContain('Home Base')
-  })
-
-  it('never replaces an open new form from the bar: it focuses it instead', async () => {
-    barApi({ nowhere: [], elsewhere: [] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await search(user, 'nowhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    const coords = await screen.findByLabelText('Coordinates')
-    await user.type(coords, '39.7, -105')
-    const form = screen.getByRole('form', { name: 'Add a spot' })
-
-    await search(user, 'elsewhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    expect(screen.getByRole('form', { name: 'Add a spot' })).toBe(form)
-    expect(screen.getByLabelText('Coordinates')).toHaveValue('39.7, -105')
-    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
-    expect(screen.getByRole('heading', { name: 'Add a spot' })).toHaveFocus()
-  })
-
-  it('never replaces an open edit form from the bar: it focuses it instead', async () => {
-    barApi({ nowhere: [] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Edit Home' }))
-    const name = await screen.findByLabelText('Name')
-    await user.type(name, ' Edited')
-    await search(user, 'nowhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    expect(screen.getByLabelText('Name')).toHaveValue('Home Edited')
-    expect(screen.getByRole('heading', { name: /Edit/ })).toHaveFocus()
-    expect(screen.getAllByRole('form', { name: /spot/i })).toHaveLength(1)
-  })
-
-  it('gives an owned result the tint but no New pill when Show in table is used', async () => {
-    barApi({
-      corvus: [{ ...ROCKS, title: 'Corvus Coffee', owned_spot_id: 'a' }],
-    })
-    Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await search(user, 'corvus')
-    await user.click(
-      await within(bar()).findByRole('link', { name: /Show in table/ }),
-    )
-    const row = document.getElementById('spot-a')
-    expect(row).toHaveClass('is-marked')
-    expect(row).toHaveFocus()
-    expect(document.querySelector('.spots-new')).toBeNull()
-    expect(within(row).queryByText('New')).toBeNull()
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('shows a refresh failure after a save with a Try again that re-reads', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    calls.control.failReads = true
-    await addRocks(user)
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent(
-      'Saved, but the table couldn’t be refreshed.',
-    )
-    await within(bar()).findByText(/Saved Red Rocks Amphitheatre/)
-
-    calls.control.failReads = false
-    await user.click(within(alert).getByRole('button', { name: 'Try again' }))
-    const row = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
-    expect(within(row).getByText('New')).toBeInTheDocument()
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
-  it('does not let a re-read in flight undo a Public toggle that landed first', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    calls.control.hold = true
-    await addRocks(user)
-    await waitFor(() => expect(calls.control.release).toBeTypeOf('function'))
-
-    const toggle = screen.getByLabelText('Public: Home')
-    await user.click(toggle)
-    await waitFor(() => expect(toggle).toBeChecked())
-    // The older read answers now, with Home still private.
-    calls.control.release()
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-    expect(screen.getByLabelText('Public: Home')).toBeChecked()
-    expect(spotReads(calls)).toBe(3)
-  })
-
-  it('does not steal focus from the filter box after Show in table', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-    await user.click(
-      await within(bar()).findByRole('link', { name: 'Show in table' }),
-    )
-    const filter = screen.getByRole('searchbox', { name: 'Search spots' })
-    await user.click(filter)
-    await user.type(filter, 'corvus')
-    expect(filter).toHaveFocus()
-    expect(filter).toHaveValue('corvus')
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('clears the New mark and tint when a spot is saved by hand', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-    expect(document.querySelector('.spots-new')).not.toBeNull()
-
-    await user.click(screen.getAllByRole('button', { name: 'Add by hand' })[0])
-    await user.type(await screen.findByLabelText('Name'), 'Hand Made')
-    await user.type(screen.getByLabelText('Coordinates'), '39.7, -105')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await screen.findByRole('row', { name: /Hand Made/ })
-    expect(document.querySelector('.spots-new')).toBeNull()
-    expect(marked()).toHaveLength(0)
-  })
-
-  it('returns focus to the bar box when a bar-opened form is cancelled or saved', async () => {
-    barApi({ nowhere: [], 'also nowhere': [] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    const box = () => within(bar()).getByLabelText('Add a place by name')
-
-    await search(user, 'nowhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    await screen.findByRole('form', { name: 'Add a spot' })
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(box()).toHaveFocus()
-
-    await search(user, 'also nowhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    await user.type(await screen.findByLabelText('Coordinates'), '39.7, -105')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await screen.findByRole('row', { name: /also nowhere/ })
-    expect(box()).toHaveFocus()
-  })
-
-  it('clears the page notice and error when the bar saves', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.click(
-      screen.getByRole('button', { name: 'Log a visit to Home' }),
-    )
-    expect(await pageNotice()).toHaveTextContent('Logged a visit to Home')
-    await addRocks(user)
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-    expect((await pageNotice()).textContent).toBe('')
-  })
-
-  it('offers the cities of saved spots to the bar', async () => {
-    const calls = barApi({ 'red rocks': [ROCKS] })
-    const base = globalThis.fetch
-    expect(calls).toBeDefined()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url, options = {}) => {
-        const path = String(url).replace(/^.*\/api/, '/api')
-        if (path === '/api/spots' && !options.method) {
-          return json([
-            ...SPOTS,
-            spot('d', 'Longmont Lunch', { city: 'longmont' }),
-          ])
-        }
-        return base(url, options)
-      }),
-    )
-    renderSpots()
-    await screen.findByRole('table')
-    await search(userEvent.setup(), 'red rocks')
-    const city = await within(bar()).findByLabelText('City')
-    expect(
-      within(city)
-        .getAllByRole('option')
-        .map((o) => o.value),
-    ).toEqual(['denver', 'longmont', 'other'])
-  })
-
-  it('carries the typed name into Add by hand after an empty search', async () => {
-    barApi({ nowhere: [] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await search(user, 'nowhere')
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Add by hand' }),
-    )
-    expect(
-      await screen.findByRole('form', { name: 'Add a spot' }),
-    ).toBeVisible()
-    expect(screen.getByLabelText('Name')).toHaveValue('nowhere')
-  })
-
-  it('moves the New mark to the latest save and clears it on the next search', async () => {
-    barApi({ 'red rocks': [ROCKS], arvada: [ARVADA] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await addRocks(user)
-    await screen.findByRole('row', { name: /Red Rocks Amphitheatre/ })
-
-    await search(user, 'arvada')
-    expect(marked()).toHaveLength(0)
-    await user.click(
-      await within(bar()).findByRole('button', { name: 'Save place' }),
-    )
-    const row = await screen.findByRole('row', { name: /Arvada Center/ })
-    expect(within(row).getByText('New')).toBeInTheDocument()
-    expect(marked()).toHaveLength(1)
-    expect(
-      within(screen.getByRole('row', { name: /Red Rocks/ })).queryByText('New'),
-    ).not.toBeInTheDocument()
-  })
-
-  it('clears a Show filter that would hide the place the bar saved', async () => {
-    barApi({ 'red rocks': [ROCKS] })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    const show = screen.getByRole('combobox', { name: 'Show' })
-    await user.selectOptions(show, 'been')
-    expect(rowNames()).toEqual(['Corvus Coffee'])
-    await addRocks(user)
-    const row = await screen.findByRole('row', {
-      name: /Red Rocks Amphitheatre/,
-    })
-    expect(within(row).getByText('New')).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Show' })).toHaveValue('')
-  })
-
-  // Horizontal overflow at phone width cannot be measured in jsdom; it is
-  // left to the screenshot review.
-})
-
-describe('AdminSpots city filter (story #343)', () => {
-  const TWO = [
-    spot('a', 'Corvus Coffee', { tags: ['coffee'] }),
-    spot('b', 'Home'),
-    spot('c', 'Pearl Street Walk', { city: 'boulder' }),
-    spot('d', 'Old Town Brewery', { city: 'fort collins' }),
-    spot('e', 'Boulder Falls', { city: 'boulder' }),
-  ]
-  const filterBox = () => screen.getByRole('combobox', { name: 'City' })
-  const nameCell = (id) => document.getElementById(`spot-${id}`)
-  const cityLine = (id) => nameCell(id).querySelector('.spots-city')
-
-  function api(list) {
-    return stubApi({ 'GET /api/spots': () => json(list) })
-  }
-
-  it('has no filter and no city line for a Denver-only catalogue', async () => {
-    api(SPOTS)
-    renderSpots()
-    await screen.findByRole('table')
-    expect(screen.queryByRole('combobox', { name: 'City' })).toBeNull()
-    expect(document.querySelector('.spots-city')).toBeNull()
-  })
-
-  it('shows the filter with counts, Denver first, once there is a second city', async () => {
-    api(TWO)
-    renderSpots()
-    await screen.findByRole('table')
-    expect(
-      within(filterBox())
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['All cities', 'Denver (2)', 'Boulder (2)', 'Fort Collins (1)'])
-  })
-
-  it('filters by city and combines with the text filter', async () => {
-    api(TWO)
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(filterBox(), 'boulder')
-    expect(rowNames()).toEqual(['Pearl Street Walk', 'Boulder Falls'])
-    await user.type(
-      screen.getByRole('searchbox', { name: 'Search spots' }),
-      'pearl',
-    )
-    expect(rowNames()).toEqual(['Pearl Street Walk'])
-    await user.selectOptions(filterBox(), 'denver')
-    expect(screen.queryByRole('table')).toBeNull()
-    expect(screen.getByText('No spot matches that search.')).toBeVisible()
-  })
-
-  it('draws the city line: every non-Denver row, Denver only under All cities', async () => {
-    api(TWO)
-    renderSpots()
-    await screen.findByRole('table')
-    expect(cityLine('c')).toHaveTextContent('Boulder')
-    expect(cityLine('d')).toHaveTextContent('Fort Collins')
-    expect(cityLine('a')).toHaveTextContent('Denver')
-    const user = userEvent.setup()
-    await user.selectOptions(filterBox(), 'denver')
-    expect(cityLine('a')).toBeNull()
-    await user.selectOptions(filterBox(), 'boulder')
-    expect(cityLine('c')).toHaveTextContent('Boulder')
-  })
-
-  it('draws the line for a lone non-Denver spot, with no filter', async () => {
-    api([spot('c', 'Pearl Street Walk', { city: 'boulder' })])
-    renderSpots()
-    await screen.findByRole('table')
-    expect(screen.queryByRole('combobox', { name: 'City' })).toBeNull()
-    expect(cityLine('c')).toHaveTextContent('Boulder')
-  })
-
-  it('resets the City filter after a save moves the row out of it', async () => {
-    const calls = stubApi({
-      'GET /api/spots': () => json(TWO),
-      'PATCH /api/spots/b': () => json(spot('b', 'Home', { city: 'golden' })),
-    })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(filterBox(), 'denver')
-    await user.click(screen.getByRole('button', { name: 'Edit Home' }))
-    const city = await screen.findByLabelText('City', { selector: 'input' })
-    await user.clear(city)
-    await user.type(city, 'Golden')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await screen.findByText('Saved Home.')
-    expect(calls.some((c) => c.method === 'PATCH')).toBe(true)
-    expect(filterBox()).toHaveValue('')
-    expect(nameCell('b')).not.toBeNull()
-  })
-
-  it('disables the table Public box for a private row outside Denver only', async () => {
-    api([
-      spot('a', 'Corvus Coffee'),
-      spot('c', 'Pearl Street Walk', { city: 'boulder' }),
-      spot('d', 'Old Town Brewery', { city: 'fort collins', is_public: true }),
-    ])
-    renderSpots()
-    await screen.findByRole('table')
-    expect(screen.getByLabelText('Public: Pearl Street Walk')).toBeDisabled()
-    expect(screen.getByLabelText('Public: Corvus Coffee')).toBeEnabled()
-    expect(screen.getByLabelText('Public: Old Town Brewery')).toBeEnabled()
-  })
-
-  it('Show in table clears a city filter that hides the row', async () => {
-    api(TWO)
-    const base = globalThis.fetch
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url, options = {}) => {
-        const path = String(url).replace(/^.*\/api/, '/api')
-        if (path.startsWith('/api/intake/search')) {
-          return json({
-            results: [
-              {
-                kind: 'place',
-                external_source: 'osm',
-                external_id: 'way/9',
-                source_id: 'way/9',
-                title: 'Pearl Street Walk',
-                address: 'x',
-                category: 'Street',
-                lat: 40,
-                lng: -105,
-                map_url: 'https://www.openstreetmap.org/way/9',
-                owned_spot_id: 'c',
-              },
-            ],
-            sources: [],
-          })
-        }
-        return base(url, options)
-      }),
-    )
-    Element.prototype.scrollIntoView = vi.fn()
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(filterBox(), 'denver')
-    expect(nameCell('c')).toBeNull()
-    const box = screen.getByLabelText('Add a place by name')
-    await user.type(box, 'pearl{Enter}')
-    await user.click(await screen.findByRole('link', { name: /Show in table/ }))
-    expect(filterBox()).toHaveValue('')
-    expect(nameCell('c')).toHaveClass('is-marked')
-    expect(nameCell('c')).toHaveFocus()
-    delete Element.prototype.scrollIntoView
-  })
-
-  it('hides rows of other cities and brings them back under All cities', async () => {
-    api(TWO)
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(filterBox(), 'denver')
-    expect(rowNames()).toEqual(['Corvus Coffee', 'Home'])
-    await user.selectOptions(filterBox(), '')
-    expect(rowNames()).toHaveLength(5)
-  })
-
-  it('offers the loaded cities to the by-hand form', async () => {
-    api(TWO)
-    renderSpots()
-    await screen.findByRole('table')
-    await userEvent
-      .setup()
-      .click(screen.getByRole('button', { name: 'Add by hand' }))
-    const form = screen.getByRole('form', { name: 'Add a spot' })
-    const list = form.querySelector('datalist')
-    expect([...list.options].map((o) => o.value)).toEqual([
-      'Denver',
-      'Boulder',
-      'Fort Collins',
-    ])
-  })
-})
-
-describe('AdminSpots want and been states (story #345)', () => {
-  const MIX = [
-    spot('a', 'Corvus Coffee', { last_visit: '2026-03-03', visit_count: 2 }),
-    spot('b', 'Home', {
-      anchor: true,
-      visit_count: 5,
-      last_visit: '2026-01-01',
-    }),
-    spot('c', "Sloan's Lake"),
-    spot('d', 'Pearl Street Walk', { city: 'boulder' }),
-    spot('e', 'Boulder Falls', {
-      city: 'boulder',
-      last_visit: '2026-02-02',
-      visit_count: 1,
-    }),
-    spot('f', 'Coors Field', { visit_count: 0 }),
-  ]
-  const showBox = () => screen.getByRole('combobox', { name: 'Show' })
-  const options = () =>
-    within(showBox())
-      .getAllByRole('option')
-      .map((o) => o.textContent)
-  const marker = (id) =>
-    document.getElementById(`spot-${id}`).querySelector('.spots-state')
-  const cityBox = () => screen.getByRole('combobox', { name: 'City' })
-  const rowCount = () => document.querySelectorAll('.spots-name-text').length
-
-  function api(list) {
-    return stubApi({ 'GET /api/spots': () => json(list) })
-  }
-
-  it('has a Show select with the counts, beside the City filter', async () => {
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    expect(options()).toEqual(['All places', 'Want (3)', 'Been (2)'])
-    const toolbar = document.querySelector('.spots-toolbar')
-    expect(toolbar).toContainElement(showBox())
-    expect(toolbar).toContainElement(cityBox())
-  })
-
-  it('has no Show select when every spot is an anchor', async () => {
-    api([spot('b', 'Home', { anchor: true })])
-    renderSpots()
-    await screen.findByRole('table')
-    expect(screen.queryByRole('combobox', { name: 'Show' })).toBeNull()
-  })
-
-  it('marks Want, Been with the date, and no marker on an anchor', async () => {
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    // On desktop the Last visit column holds the date, so it is said once.
-    expect(marker('a')).toHaveTextContent(/^Been$/)
-    expect(marker('c')).toHaveTextContent(/^Want$/)
-    expect(marker('b')).toBeNull()
-    expect(
-      within(document.getElementById('spot-b')).getByText('Anchor'),
-    ).toBeInTheDocument()
-  })
-
-  it('says just Been when the last visit is missing, even on a phone', async () => {
-    media.phone = true
-    api([spot('a', 'No Date', { visit_count: 2, last_visit: null })])
-    renderSpots()
-    await screen.findByRole('table')
-    expect(marker('a')).toHaveTextContent(/^Been$/)
-  })
-
-  it('shows the marker on a phone, where Last visit is dropped', async () => {
-    media.phone = true
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    expect(marker('a')).toHaveTextContent('Been, March 3, 2026')
-    expect(screen.queryByText('Last visit')).toBeNull()
-  })
-
-  it('hides anchors under Want and Been and shows them under All places', async () => {
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(showBox(), 'want')
-    expect(rowNames()).toEqual([
-      "Sloan's Lake",
-      'Pearl Street Walk',
-      'Coors Field',
-    ])
-    await user.selectOptions(showBox(), 'been')
-    expect(rowNames()).toEqual(['Corvus Coffee', 'Boulder Falls'])
-    expect(rowNames()).not.toContain('Home')
-    await user.selectOptions(showBox(), '')
-    expect(rowNames()).toContain('Home')
-  })
-
-  it('takes the counts after the text and City filters, and they equal the rows', async () => {
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    const search = screen.getByRole('searchbox', { name: 'Search spots' })
-    const check = async () => {
-      const [, w, b] = options()
-      const want = Number(/\((\d+)\)/.exec(w)[1])
-      const been = Number(/\((\d+)\)/.exec(b)[1])
-      await user.selectOptions(showBox(), 'want')
-      expect(rowCount()).toBe(want)
-      await user.selectOptions(showBox(), 'been')
-      expect(rowCount()).toBe(been)
-      await user.selectOptions(showBox(), '')
-    }
-    await user.type(search, 'coffee')
-    expect(options()).toEqual(['All places', 'Want (0)', 'Been (1)'])
-    await check()
-    await user.clear(search)
-    // City filter on.
-    await user.selectOptions(cityBox(), 'boulder')
-    expect(options()).toEqual(['All places', 'Want (1)', 'Been (1)'])
-    await check()
-    // Both.
-    await user.type(search, 'pearl')
-    expect(options()).toEqual(['All places', 'Want (1)', 'Been (0)'])
-    await check()
-  })
-
-  it('keeps a pick whose state is empty and says no spot matches', async () => {
-    api(MIX)
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(showBox(), 'been')
-    await user.type(
-      screen.getByRole('searchbox', { name: 'Search spots' }),
-      'sloan',
-    )
-    expect(showBox()).toHaveValue('been')
-    expect(screen.queryByRole('table')).toBeNull()
-    expect(screen.getByText('No spot matches that search.')).toBeVisible()
-  })
-
-  it('moves a row out of Want live when Log a visit is pressed', async () => {
-    const calls = stubApi({
-      'GET /api/spots': () => json(MIX),
-      'POST /api/spots/c/visits': () => json({}, 201),
-    })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(showBox(), 'want')
-    expect(options()).toEqual(['All places', 'Want (3)', 'Been (2)'])
-    await user.click(
-      screen.getByRole('button', { name: "Log a visit to Sloan's Lake" }),
-    )
-    await waitFor(() =>
-      expect(rowNames()).toEqual(['Pearl Street Walk', 'Coors Field']),
-    )
-    expect(options()).toEqual(['All places', 'Want (2)', 'Been (3)'])
-    expect(calls.some((c) => c.path === '/api/spots/c/visits')).toBe(true)
-    await user.selectOptions(showBox(), 'been')
-    expect(rowNames()).toContain("Sloan's Lake")
-    expect(marker('c')).toHaveTextContent(/^Been$/)
-    expect(
-      within(document.getElementById('spot-c')).getByText('November 9, 2026'),
-    ).toBeInTheDocument()
-  })
-
-  it('never lists a finder candidate that is not a spot', async () => {
-    stubApi({
-      'GET /api/spots': () => json(MIX),
-      'GET /api/spots/candidates': () =>
-        json([{ id: 'x', name: 'Candidate Cafe', slug: 'candidate-cafe' }]),
-    })
-    renderSpots()
-    await screen.findByRole('table')
-    expect(rowNames()).toEqual([
-      'Corvus Coffee',
-      'Home',
-      "Sloan's Lake",
-      'Pearl Street Walk',
-      'Boulder Falls',
-      'Coors Field',
-    ])
-    expect(
-      within(screen.getByRole('table')).queryByText('Candidate Cafe'),
-    ).toBeNull()
-  })
-
-  it('does not trap the user on a pick whose places are all gone', async () => {
-    let reads = 0
-    stubApi({
-      'GET /api/spots': () => {
-        reads += 1
-        return json(reads === 1 ? MIX : [MIX[1]])
-      },
-    })
-    const fetchBefore = globalThis.fetch
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url, options = {}) => {
-        const path = String(url).replace(/^.*\/api/, '/api')
-        if (path.startsWith('/api/intake/search')) {
-          return json({
-            results: [
-              {
-                kind: 'place',
-                external_source: 'osm',
-                external_id: 'way/1',
-                source_id: 'way/1',
-                title: 'Red Rocks',
-                address: 'x',
-                category: 'Amphitheatre',
-                lat: 39.6,
-                lng: -105.2,
-                map_url: 'https://www.openstreetmap.org/way/1',
-                owned_spot_id: null,
-              },
-            ],
-            sources: [],
-          })
-        }
-        if (path === '/api/intake/add' && options.method === 'POST') {
-          return json({ spots_new: [{ id: 'zz', name: 'Red Rocks' }] }, 201)
-        }
-        return fetchBefore(url, options)
-      }),
-    )
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    await user.selectOptions(showBox(), 'want')
-    await user.type(
-      screen.getByLabelText('Add a place by name'),
-      'rocks{Enter}',
-    )
-    await user.click(await screen.findByRole('button', { name: 'Save place' }))
-    await waitFor(() => expect(reads).toBe(2))
-    await waitFor(() =>
-      expect(screen.queryByRole('combobox', { name: 'Show' })).toBeNull(),
-    )
-    expect(rowNames()).toEqual(['Home'])
-    expect(screen.queryByText('No spot matches that search.')).toBeNull()
-  })
-
-  it('a save clears the text filter that no longer matches the saved row', async () => {
-    stubApi({
-      'GET /api/spots': () => json(MIX),
-      'PATCH /api/spots/d': () => json(spot('d', 'Walk', { city: 'boulder' })),
-    })
-    renderSpots()
-    await screen.findByRole('table')
-    const user = userEvent.setup()
-    const search = screen.getByRole('searchbox', { name: 'Search spots' })
-    await user.type(search, 'pearl')
-    await user.click(
-      screen.getByRole('button', { name: 'Edit Pearl Street Walk' }),
-    )
-    const form = screen.getByRole('form')
-    const name = within(form).getByLabelText('Name')
-    await user.clear(name)
-    await user.type(name, 'Walk')
-    await user.click(within(form).getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(rowNames()).toContain('Walk'))
-    expect(search).toHaveValue('')
-  })
-
-  describe('Show in table clears all three filters', () => {
-    async function showHidden(target, setup) {
-      api(MIX)
-      const base = globalThis.fetch
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(async (url, options = {}) => {
-          const path = String(url).replace(/^.*\/api/, '/api')
-          if (path.startsWith('/api/intake/search')) {
-            return json({
-              results: [
-                {
-                  kind: 'place',
-                  external_source: 'osm',
-                  external_id: 'way/9',
-                  source_id: 'way/9',
-                  title: target.name,
-                  address: 'x',
-                  category: 'Street',
-                  lat: 40,
-                  lng: -105,
-                  map_url: 'https://www.openstreetmap.org/way/9',
-                  owned_spot_id: target.id,
-                },
-              ],
-              sources: [],
-            })
-          }
-          return base(url, options)
-        }),
-      )
-      Element.prototype.scrollIntoView = vi.fn()
-      renderSpots()
-      await screen.findByRole('table')
-      const user = userEvent.setup()
-      await setup(user)
-      expect(document.getElementById(`spot-${target.id}`)).toBeNull()
-      await user.type(
-        screen.getByLabelText('Add a place by name'),
-        `${target.name}{Enter}`,
-      )
-      await user.click(
-        await screen.findByRole('link', { name: /Show in table/ }),
-      )
-      expect(document.getElementById(`spot-${target.id}`)).toHaveClass(
-        'is-marked',
-      )
-      delete Element.prototype.scrollIntoView
-    }
-
-    it('when only the state filter hides the row', async () => {
-      await showHidden({ id: 'a', name: 'Corvus Coffee' }, async (user) => {
-        await user.selectOptions(showBox(), 'want')
-      })
-      expect(showBox()).toHaveValue('')
-    })
-
-    it('and the text and City filters too', async () => {
-      await showHidden({ id: 'a', name: 'Corvus Coffee' }, async (user) => {
-        await user.selectOptions(cityBox(), 'boulder')
-        await user.selectOptions(showBox(), 'want')
-        await user.type(
-          screen.getByRole('searchbox', { name: 'Search spots' }),
-          'pearl',
-        )
-      })
-      expect(showBox()).toHaveValue('')
-      expect(cityBox()).toHaveValue('')
-      expect(
-        screen.getByRole('searchbox', { name: 'Search spots' }),
-      ).toHaveValue('')
     })
   })
 })

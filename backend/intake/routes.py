@@ -29,9 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import intake.garment_kind  # noqa: F401  (registers the closet's kind)
-import intake.place_kind  # noqa: F401  (registers the places' kind)
 import intake.shelf_kinds  # noqa: F401  (registers the shelf's kinds)
-import spots
 from closet_images import make_garment_image, make_reading_copy, make_thumbnail
 from closet_routes import add_garment_photo, check_media_type, convert_upload
 from config import Config
@@ -51,7 +49,6 @@ from intake.commit import (
     commit_one,
     commit_sitting,
     series_on_shelf_for,
-    spot_answer,
 )
 from intake.isbn_route import register_isbn_route
 from intake.kinds import REGISTRY, describe
@@ -66,18 +63,6 @@ from intake.link_import import (
     merge_edit,
 )
 from intake.nightly import LAST_RUN_KEY, run_nightly
-from intake.outing_dates import label_for
-from intake.place_kind import (
-    DEFAULT_CITY,
-    clean_chosen,
-    clean_fields,
-    clean_name,
-    edit_place,
-    mark_for_count,
-    not_ready_reason,
-    owned_spot_id,
-)
-from intake.place_paste import BUSY, claim_entry, edit_outing, register_paste_routes
 from intake.reader import read_next
 from intake.schemas import (
     AddOut,
@@ -159,27 +144,6 @@ class EntryCreate(BaseModel):
         return refuse_legacy_editions(payload)
 
 
-class PlaceEntryIn(BaseModel):
-    """A place entry for a places sitting. From search: `chosen` is the
-    result row and `result_count` how many results that search returned
-    (one is READY, else CHECK). Typed: `name` and `coords`."""
-
-    chosen: dict[str, Any] | None = None
-    result_count: int = Field(default=0, ge=0, le=100)
-    name: str | None = Field(default=None, max_length=200)
-    coords: str | None = Field(default=None, max_length=500)
-    city: str = Field(default=DEFAULT_CITY, max_length=40)
-    neighbourhood: str | None = Field(default=None, max_length=100)
-    blurb: str | None = Field(default=None, max_length=500)
-    tags: list[str] = Field(default_factory=list, max_length=len(spots.TAGS) * 2)
-    is_public: bool = False
-
-
-PLACE_OWNED = "That place is already on your list"
-PLACE_IN_SITTING = "That place is already in this visit"
-PLACE_KIND_REQUIRED = "A places sitting needs a kind"
-
-
 class CommitIn(BaseModel):
     """The owner's local day, for the playthroughs a commit seeds (as the
     status route takes it); the server's day when left out."""
@@ -232,10 +196,6 @@ class EntryPatch(BaseModel):
     payload: dict[str, Any] | None = None
     state: IntakeEntryState | None = None
     chosen: dict[str, Any] | None = None
-    # A past outing's two owner edits (story #350). The words are re-read on
-    # the server; `visited_on` and `precision` are never taken from the client.
-    outing_date_text: str | None = Field(default=None, max_length=100)
-    outing_skip: bool | None = None
 
     @field_validator("payload")
     @classmethod
@@ -252,24 +212,6 @@ def photo_json(photo: IntakePhoto) -> dict[str, Any]:
         "state": photo.state.value,
         "filename": photo.filename,
         "error": photo.error,
-    }
-
-
-def outing_json(outing: dict[str, Any]) -> dict[str, Any]:
-    """A past outing as the page shows it: the date words, `label` (by
-    precision; null when the date was not read), what was read, and the flags."""
-    visited_on, precision = outing.get("visited_on"), outing.get("precision")
-    label = None
-    if visited_on and precision:
-        label = label_for(date.fromisoformat(visited_on), precision)
-    return {
-        "date_text": outing.get("date_text"),
-        "label": label,
-        "visited_on": visited_on,
-        "precision": precision,
-        "skip": bool(outing.get("skip")),
-        "duplicate_of": outing.get("duplicate_of"),
-        "repeat_of": outing.get("repeat_of"),
     }
 
 
@@ -296,9 +238,6 @@ def entry_json(
         "garment_id": str(entry.garment_id) if entry.garment_id else None,
         "on_shelf": on_shelf,
     }
-    outing = (entry.payload or {}).get("outing")
-    if entry.kind == "place" and isinstance(outing, dict):
-        shown["outing"] = outing_json(outing)
     if entry.kind == "comic":
         shown["number_check"] = number_check(entry.payload, entry.chosen, on_shelf)
         shown.update(adds or {})
@@ -435,7 +374,6 @@ def create_intake_router(
                 "series_grew": [grew.as_json() for grew in outcome.series_grew],
                 "volumes_new": outcome.volumes_new,
                 "titles_created": outcome.titles_created,
-                **spot_answer(outcome.spots_new, outcome.spots_owned),
                 "created": [str(i) for i in outcome.created],
                 "garment_id": str(outcome.garment_id) if outcome.garment_id else None,
             },
@@ -447,8 +385,6 @@ def create_intake_router(
     ) -> dict[str, Any]:
         """Start a sitting. A kind must belong to the area; none is a mixed shelf."""
         _check_kind(body.area, body.kind)
-        if body.area is IntakeArea.PLACES and body.kind is None:
-            raise HTTPException(422, PLACE_KIND_REQUIRED)
         sitting = IntakeSitting(area=body.area, kind=body.kind, label=body.label)
         session.add(sitting)
         await session.commit()
@@ -582,7 +518,7 @@ def create_intake_router(
                 height=thumb.height,
             )
             session.add(row)
-        elif sitting.area is IntakeArea.CLOSET:
+        else:
             (thumb,) = await convert_upload(photo, make_garment_image)
             garment = await add_garment_photo(session, thumb, datetime.now(UTC))
             row = IntakePhoto(
@@ -604,9 +540,6 @@ def create_intake_router(
                     garment_id=garment.id,
                 )
             )
-        else:
-            await photo.close()
-            raise HTTPException(409, f"A {sitting.area.value} sitting takes no photos.")
         await session.commit()
         return photo_json(row)
 
@@ -811,10 +744,6 @@ def create_intake_router(
         duplicate rule, as the reader marks a trusted match."""
         sitting = await _sitting_or_404(session, sitting_id)
         _check_kind(sitting.area, body.kind)
-        if sitting.area is IntakeArea.PLACES:
-            raise HTTPException(
-                422, "Add a place with POST /sittings/{id}/places, not here"
-            )
         state = IntakeEntryState.TYPED
         if body.chosen is not None:
             source = body.chosen.get("external_source")
@@ -843,93 +772,8 @@ def create_intake_router(
         return shown
 
     @router.post(
-        "/sittings/{sitting_id}/places", status_code=201, response_model=EntryOut
-    )
-    async def add_place(
-        sitting_id: uuid.UUID,
-        body: PlaceEntryIn,
-        session: AsyncSession = Depends(get_session),
-    ) -> dict[str, Any]:
-        """Add a place to a places sitting: a chosen search result (its mark
-        from the count of results, `mark_for_count`) or one typed by hand
-        (READY; coordinates that do not parse are a 422). 409 when the place is
-        already a spot or already in this sitting, 422 for a bad tag or a
-        result that fails the checks of `clean_chosen`.
-
-        `result_count` is the client's and the mark is a hint for the page,
-        not a trust boundary: the route is admin-only and the commit
-        validates the entry again. Position, `map_url`, attribution and
-        owned-ness are the server's: whatever the client sent for them is
-        ignored. The sitting row is locked first, so two presses of Add
-        queue and the second sees the first's entry."""
-        locked = await session.scalar(
-            select(IntakeSitting)
-            .where(IntakeSitting.id == sitting_id)
-            .with_for_update()
-        )
-        if locked is None:
-            raise HTTPException(404, "No such sitting")
-        sitting = locked
-        if sitting.area is not IntakeArea.PLACES:
-            raise HTTPException(409, "A place can only be added to a places sitting")
-        chosen: dict[str, Any] | None = None
-        source_id: str | None = None
-        try:
-            payload: dict[str, Any] = clean_fields(
-                {
-                    "city": body.city,
-                    "tags": body.tags,
-                    "blurb": body.blurb,
-                    "neighbourhood": body.neighbourhood,
-                    "is_public": body.is_public,
-                }
-            )
-            if body.chosen is not None:
-                part, chosen = clean_chosen(body.chosen)
-                payload.update(part)
-                source_id = chosen["source_id"]
-                state = mark_for_count(body.result_count)
-            else:
-                payload["name"] = clean_name(body.name)
-                lat, lng = spots.parse_coords(body.coords or "")
-                payload.update(lat=lat, lng=lng)
-                state = IntakeEntryState.READY
-        except ValueError as error:
-            raise HTTPException(422, str(error)) from error
-        if "lat" in payload and await owned_spot_id(
-            session,
-            source_id=source_id,
-            name=payload["name"],
-            lat=payload["lat"],
-            lng=payload["lng"],
-        ):
-            raise HTTPException(409, PLACE_OWNED)
-        held = (
-            await session.scalars(
-                select(IntakeEntry).where(IntakeEntry.sitting_id == sitting.id)
-            )
-        ).all()
-        if source_id and any(
-            (entry.chosen or {}).get("source_id") == source_id for entry in held
-        ):
-            raise HTTPException(409, PLACE_IN_SITTING)
-        entry = IntakeEntry(
-            sitting_id=sitting.id,
-            kind="place",
-            state=state,
-            payload=payload,
-            chosen=chosen,
-        )
-        session.add(entry)
-        sitting.updated_at = func.now()
-        await session.commit()
-        [shown] = await entries_json(session, [entry])
-        return shown
-
-    @router.post(
         "/sittings/{sitting_id}/commit",
         response_model=CommitOut,
-        response_model_exclude_unset=True,
         responses={422: {"model": CommitRefusedOut}},
     )
     async def commit(
@@ -950,8 +794,6 @@ def create_intake_router(
             raise HTTPException(409, refused.detail) from None
         if outcome.refused:
             await session.rollback()
-            outcome.spots_new, outcome.spots_owned = [], []  # nothing was written
-            outcome.outings_new = outcome.outings_skipped = 0
             count = len(outcome.refused)
             return JSONResponse(
                 status_code=422,
@@ -984,42 +826,10 @@ def create_intake_router(
         entry = await session.get(IntakeEntry, entry_id)
         if entry is None:
             raise HTTPException(404, "No such entry")
-        if entry.kind == "place":
-            # A resolve or pick holds the row while it works: wait for none of
-            # them (409), so a stale copy never overwrites its answer.
-            entry = await claim_entry(session, entry_id, BUSY)
-        want_state: IntakeEntryState | None = None
-        if "outing_skip" in body.model_fields_set and body.outing_skip is None:
-            raise HTTPException(422, "outing_skip must be true or false")
-        if entry.kind != "place" and (
-            body.model_fields_set & {"outing_date_text", "outing_skip"}
-        ):
-            raise HTTPException(422, "Only a place entry has an outing")
         for field in body.model_fields_set:
-            if field in ("outing_date_text", "outing_skip"):
-                continue  # applied below, once the payload edit is in
             value = getattr(body, field)
             if field == "state" and value is None:
                 continue
-            if entry.kind == "place":
-                # The server's: only the owner's fields of the payload edit.
-                if field == "payload" and value is None:
-                    raise HTTPException(422, "A place's payload cannot be cleared")
-                if field == "payload":
-                    try:
-                        value = edit_place(entry.payload or {}, value)
-                    except ValueError as error:
-                        raise HTTPException(422, str(error)) from error
-                elif field == "state":
-                    # Checked after the loop, against the payload as edited.
-                    if value not in (IntakeEntryState.READY, IntakeEntryState.CHECK):
-                        raise HTTPException(
-                            422, "A place can only be marked ready or to check"
-                        )
-                    want_state = value
-                    continue
-                elif field == "chosen":
-                    continue
             if field == "payload" and value is not None and entry.kind == "garment":
                 value = (
                     merge_edit(entry.payload or {}, value)
@@ -1034,21 +844,6 @@ def create_intake_router(
                         422, {"message": str(error), "field": error.field}
                     ) from error
             setattr(entry, field, value)
-        if body.model_fields_set & {"outing_date_text", "outing_skip"}:
-            await edit_outing(
-                session,
-                entry,
-                date_text=body.outing_date_text,
-                set_date="outing_date_text" in body.model_fields_set,
-                skip=body.outing_skip,
-            )
-        if want_state is not None:
-            # The owner pressing Save is the confirmation; READY still needs
-            # a name and a position, read from the stored payload.
-            reason = not_ready_reason(entry.payload or {})
-            if want_state is IntakeEntryState.READY and reason:
-                raise HTTPException(422, reason)
-            entry.state = want_state
         await session.commit()
         [shown] = await entries_json(session, [entry])
         return shown
@@ -1171,6 +966,5 @@ def create_intake_router(
         row = await session.get(IntakeSetting, LAST_RUN_KEY)
         return {LAST_RUN_KEY: row.value if row is not None else None}
 
-    register_paste_routes(router, get_session, entries_json)
     register_isbn_route(router, get_session)
     return router

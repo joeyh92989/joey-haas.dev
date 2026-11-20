@@ -27,20 +27,6 @@ TAGS: tuple[str, ...] = (
     "kid-ok",
     "rainy-day",
     "bike-friendly",
-    "cinema",
-    "theatre",
-    "ice-cream",
-    "brewery",
-    "zoo",
-    "aquarium",
-    "mini-golf",
-    "bowling",
-    "arcade",
-    "climbing",
-    "ice-rink",
-    "pool",
-    "nature-reserve",
-    "trailhead",
 )
 
 # Straight-line miles from the nearest anchor, never a routed time. Each band
@@ -51,10 +37,6 @@ DISTANCE_MODES: tuple[tuple[float | None, str], ...] = (
     (None, "drive or bus"),
 )
 _MODE_PHRASES = {"walk": "on foot", "bike": "by bike", "drive or bus": "drive or bus"}
-
-# The one city a public place may be in, as stored (lower case).
-DENVER = "denver"
-CITY_MAX = 40  # Spot.city is String(40)
 
 EARTH_RADIUS_MILES = 3958.8
 SLUG_MAX = 200
@@ -80,35 +62,6 @@ def canonical_tags(values: Iterable[str]) -> list[str]:
             )
         wanted.add(tag)
     return [tag for tag in TAGS if tag in wanted]
-
-
-def normalize_city(raw: str) -> str:
-    """The one rule for a stored city: control and zero-width characters
-    removed, outer whitespace trimmed, inner runs collapsed to one space, lower
-    case. "Denver", " DENVER " and "denver" are one city.
-
-    Raises ValueError("A city is required.") when nothing is left and
-    ValueError("A city is at most 40 characters.") when more than 40 are, the
-    length counted after trimming and collapsing. The message is fit to show.
-    """
-    # Local on purpose: map_links imports spots, so importing clean_line would
-    # be circular, and a city is a lower-cased match key, so joiners go too.
-    visible = "".join(
-        ch for ch in raw if ch.isspace() or unicodedata.category(ch) not in ("Cc", "Cf")
-    )
-    city = " ".join(visible.split()).lower()
-    if not city:
-        raise ValueError("A city is required.")
-    if len(city) > CITY_MAX:
-        raise ValueError(f"A city is at most {CITY_MAX} characters.")
-    return city
-
-
-def check_public_city(city: str, is_public: bool) -> None:
-    """A public place has to be in Denver: ValueError when `is_public` and the
-    normalised city is anything else. Every write path calls this."""
-    if is_public and normalize_city(city) != DENVER:
-        raise ValueError("A public place has to be in Denver.")
 
 
 def slugify(name: str) -> str:

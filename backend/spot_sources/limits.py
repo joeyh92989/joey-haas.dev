@@ -29,7 +29,3 @@ BACKOFF_STATUSES = frozenset({406, 429})
 # Two places are one when they are this close and their names agree.
 SAME_PLACE_METRES = 75.0
 SAME_NAME_RATIO = 0.85
-
-# Nominatim (place search at intake) names the app and a contact page; it
-# carries no email address on purpose. Not the catalogue's `USER_AGENT`.
-NOMINATIM_USER_AGENT = "joey-haas.dev tracker (+https://joey-haas.dev)"

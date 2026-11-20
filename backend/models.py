@@ -857,23 +857,6 @@ class CandidateSource(str, enum.Enum):
     FOURSQUARE = "foursquare"
 
 
-class OutingVerdict(str, enum.Enum):
-    """How an outing went (migration 0025)."""
-
-    LOVED = "loved"
-    FINE = "fine"
-    NOT_AGAIN = "not_again"
-
-
-class OutingPrecision(str, enum.Enum):
-    """How exactly an outing's date is known (migration 0025): the stored
-    `visited_on` is the first day of the day, month or year."""
-
-    DAY = "day"
-    MONTH = "month"
-    YEAR = "year"
-
-
 class Spot(Base):
     """A place the owner keeps (migration 0013), written by `spots_routes.py`.
 
@@ -923,13 +906,9 @@ class Spot(Base):
 
 
 class Visit(Base):
-    """One outing to a spot (migration 0013, grown by 0025), written by
-    `spots_routes.py` (Log a visit, and the planner's Been). The table keeps
-    the name `visits`. `visited_on` is the start of the outing's period: for
-    `precision` month the 1st, for year Jan 1. `title`, `verdict` and
-    `kid_along` are optional (null is unknown, and `kid_along` false is a
-    real answer). Private: no public body carries a visit or any of these.
-    Deleted with its spot."""
+    """One day a spot was visited (migration 0013), written by
+    `spots_routes.py` (Log a visit, and the planner's Been). Private: no
+    public body carries a visit. Deleted with its spot."""
 
     __tablename__ = "visits"
     __table_args__ = (Index("ix_visits_spot_visited", "spot_id", "visited_on"),)
@@ -942,21 +921,6 @@ class Visit(Base):
     )
     visited_on: Mapped[date] = mapped_column(Date, nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
-    title: Mapped[str | None] = mapped_column(String(80))
-    verdict: Mapped[OutingVerdict | None] = _enum_column(
-        OutingVerdict, "outing_verdict"
-    )
-    kid_along: Mapped[bool | None] = mapped_column(Boolean)
-    precision: Mapped[OutingPrecision] = mapped_column(
-        Enum(
-            OutingPrecision,
-            name="outing_precision",
-            values_callable=lambda e: [m.value for m in e],
-        ),
-        nullable=False,
-        default=OutingPrecision.DAY,
-        server_default="day",
-    )
     created_at: Mapped[datetime] = _now_column()
 
 
@@ -1424,7 +1388,6 @@ class ClosetSetting(Base):
 class IntakeArea(str, enum.Enum):
     SHELF = "shelf"
     CLOSET = "closet"
-    PLACES = "places"
 
 
 class IntakePhotoState(str, enum.Enum):
@@ -1618,7 +1581,7 @@ class ComicVolume(Base):
     title (`ed-<from>-<to>` for rows copied from the legacy `items.editions`
     column, so old edition URLs keep working; `vol-<n>` for new ones). `kind` is
     the mapped format and `kind_raw` the original free text, never lost. The legacy
-    `items.editions` column is unmapped and is dropped by a later migration (0025).
+    `items.editions` column is unmapped and is dropped by a later migration (0026).
     """
 
     __tablename__ = "comic_volumes"

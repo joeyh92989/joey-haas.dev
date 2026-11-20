@@ -12,11 +12,8 @@ import { Link } from 'react-router'
  *   the title a focus target (tabIndex -1) for a page that moves focus here.
  * @param {{label: string, to?: string, onClick?: () => void}} [props.action]
  *   The next step: a link with `to`, a button with `onClick`.
- * @param {{label: string, onClick: () => void}[]} [props.actions] Several
- *   next steps as buttons under the text (none by default), for a page whose
- *   empty state offers more than one way on.
  */
-export default function EmptyState({ title, line, action, actions, titleRef }) {
+export default function EmptyState({ title, line, action, titleRef }) {
   return (
     <div className="empty-state">
       <p
@@ -41,20 +38,6 @@ export default function EmptyState({ title, line, action, actions, titleRef }) {
             {action.label}
           </button>
         ))}
-      {actions?.length > 0 && (
-        <div className="intake-actions">
-          {actions.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="btn"
-              onClick={item.onClick}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

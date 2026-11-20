@@ -75,8 +75,6 @@ class EntryOut(TypedDict):
     garment_id: str | None
     on_shelf: dict[str, Any] | None
     number_check: NotRequired[NumberCheckOut]
-    # A past outing's alone (story #350): date words, label, flags.
-    outing: NotRequired[dict[str, Any]]
     # A comic's alone (`intake.commit.comic_adds_for`): what the entry adds
     # (a volume or an issue), and for a collected book its contents.
     adds: NotRequired[dict[str, Any]]
@@ -84,23 +82,6 @@ class EntryOut(TypedDict):
     title_will_be_created: NotRequired[bool]
     already_held: NotRequired[dict[str, Any] | None]
     books_preview: NotRequired[list[dict[str, Any]]]
-
-
-class ResolveOut(EntryOut):
-    """`POST /entries/{id}/resolve`: the entry and how many places in its
-    sitting are still waiting to be looked up."""
-
-    remaining: int
-
-
-class PasteOut(BaseModel):
-    """`POST /sittings/{id}/paste`: the entries made and what was left out."""
-
-    entries: list[EntryOut]
-    added: int
-    blank: int
-    duplicates: int
-    over_limit: int
 
 
 class SittingOut(BaseModel):
@@ -178,13 +159,6 @@ class TitleCreatedOut(BaseModel):
     title: str
 
 
-class SpotRefOut(BaseModel):
-    """A spot a place commit made, or found already owned."""
-
-    id: str
-    name: str
-
-
 class AddOut(BaseModel):
     """`POST /add`, 200 or 201."""
 
@@ -196,8 +170,6 @@ class AddOut(BaseModel):
     garment_id: str | None
     volumes_new: list[VolumeNewOut] = []
     titles_created: list[TitleCreatedOut] = []
-    spots_new: list[SpotRefOut] = []
-    spots_owned: list[SpotRefOut] = []
 
 
 class RefusedOut(BaseModel):
@@ -263,10 +235,6 @@ class CommitOut(BaseModel):
     created: list[str]
     volumes_new: list[VolumeNewOut] = []
     titles_created: list[TitleCreatedOut] = []
-    spots_new: list[SpotRefOut] = []
-    spots_owned: list[SpotRefOut] = []
-    outings_new: int = 0
-    outings_skipped: int = 0
 
 
 class CommitRefusedOut(CommitOut):

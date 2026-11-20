@@ -43,12 +43,10 @@ const AdminRadar = lazy(() => import('./pages/AdminRadar.jsx'))
 const AdminPullList = lazy(() => import('./pages/AdminPullList.jsx'))
 const AdminStoreList = lazy(() => import('./pages/AdminStoreList.jsx'))
 const AdminSpots = lazy(() => import('./pages/AdminSpots.jsx'))
-const AdminHistory = lazy(() => import('./pages/AdminHistory.jsx'))
 const AdminWeekend = lazy(() => import('./pages/AdminWeekend.jsx'))
 const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
 const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
-const PlacesAdd = lazy(() => import('./pages/PlacesAdd.jsx'))
 const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const AdminComic = lazy(() => import('./pages/AdminComic.jsx'))
@@ -234,7 +232,6 @@ export default function App() {
           <Route path="discover" element={<AdminDiscover />} />
           <Route path="store-list" element={<AdminStoreList />} />
           <Route path="spots" element={<AdminSpots />} />
-          <Route path="history" element={<AdminHistory />} />
           <Route path="weekend" element={<AdminWeekend />} />
           <Route path="closet" element={<AdminCloset />} />
           <Route path="closet/profile" element={<AdminClosetProfile />} />
@@ -244,7 +241,6 @@ export default function App() {
           <Route path="collection/add" element={<AdminAdd />} />
           <Route path="collection/add/:sittingId" element={<AdminSitting />} />
           <Route path="closet/add" element={<AdminAdd />} />
-          <Route path="places/add" element={<PlacesAdd />} />
           <Route path="closet/add/:sittingId" element={<AdminSitting />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           <Route path="closet/:id" element={<KeyedAdminGarment />} />

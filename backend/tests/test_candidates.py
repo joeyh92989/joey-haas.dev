@@ -234,21 +234,3 @@ def test_merge_queues_everything_and_falls_back_per_place():
     assert [entry.queued.row.name for entry in scored] == ["Cafe", "Park", "Sight"]
     assert [entry.score.fit for entry in scored] == [None, 90, None]
     assert scored[0].score.reason == NOT_SCORED
-
-
-def test_a_new_tag_is_kept_and_an_unknown_one_dropped_by_the_real_schema_enum():
-    enum = SCORES_SCHEMA["properties"]["scores"]["items"]["properties"]["tags"][
-        "items"
-    ]["enum"]
-    assert "cinema" in enum and "trailhead" in enum and "brunch" not in enum
-    payload = {
-        "scores": [
-            {
-                "index": 0,
-                "fit": 60,
-                "reason": "Ok",
-                "tags": ["cinema", "brunch", "zoo"],
-            },
-        ]
-    }
-    assert validate(payload, LISTED)[0].tags == ("cinema", "zoo")

@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addPath,
-  areaOfPath,
   editedPayload,
   entryTitle,
   fieldPayload,
@@ -252,22 +250,5 @@ describe('link intake helpers', () => {
       'marinelayer.com',
     )
     expect(linkHost('nonsense')).toBe('nonsense')
-  })
-})
-
-describe('the places area', () => {
-  it('reads /admin/places/add as the places area, not the shelf', () => {
-    expect(areaOfPath('/admin/places/add')).toBe('places')
-    expect(areaOfPath('/admin/places')).toBe('places')
-    expect(areaOfPath('/admin/closet/add')).toBe('closet')
-    expect(areaOfPath('/admin/collection/add')).toBe('shelf')
-    expect(areaOfPath('/admin/placesx')).toBe('shelf')
-  })
-
-  it('gives the area its own Add page and its committed things', () => {
-    expect(addPath('places')).toBe('/admin/places/add')
-    expect(addPath('closet')).toBe('/admin/closet/add')
-    expect(addPath('shelf')).toBe('/admin/collection/add')
-    expect(shelfPath('places', 'place')).toBe('/admin/spots')
   })
 })

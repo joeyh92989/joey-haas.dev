@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import LoadState from '../components/LoadState.jsx'
-import LogOutingSheet from '../components/LogOutingSheet.jsx'
 import Panel from '../components/Panel.jsx'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
-import { outings } from '../content/outings.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
 import { localToday } from '../lib/statusMoves.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { WEEKDAY_DAY } from '../lib/formatDate.js'
-import DidYouGo from '../components/DidYouGo.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 
@@ -205,47 +203,28 @@ export default function AdminWeekend() {
   const [skipped, setSkipped] = useState(null)
   const [visited, setVisited] = useState(() => new Set())
   const [editing, setEditing] = useState(false)
-  const [logging, setLogging] = useState(false)
   const undoButton = useRef(null)
   const editButton = useRef(null)
   const wasEditing = useRef(false)
-  const mounted = useRef(true)
-
-  useEffect(() => {
-    mounted.current = true
-    return () => {
-      mounted.current = false
-    }
-  }, [])
-
-  /** Applies a `fetchPlan` result to the page; true when the plan landed. */
-  function take(result) {
-    if (result.plan) {
-      setPlan(result.plan)
-      setReadError(null)
-      setReadEnded(false)
-      return true
-    }
-    if (result.ended) setReadEnded(true)
-    else setReadError(result.error)
-    return false
-  }
 
   useEffect(() => {
     let live = true
     fetchPlan(seed).then((result) => {
-      if (live) take(result)
+      if (!live) return
+      if (result.plan) {
+        setPlan(result.plan)
+        setReadError(null)
+        setReadEnded(false)
+      } else if (result.ended) {
+        setReadEnded(true)
+      } else {
+        setReadError(result.error)
+      }
     })
     return () => {
       live = false
     }
   }, [seed, reload])
-
-  /** Read the plan again for the Did you go? block; true when it landed. */
-  async function rereadPlan() {
-    const result = await fetchPlan(seed)
-    return mounted.current ? take(result) : false
-  }
 
   // A skipped card leaves the list; its Undo is where focus goes next.
   useEffect(() => {
@@ -407,8 +386,6 @@ export default function AdminWeekend() {
         </p>
       )}
 
-      <DidYouGo asks={plan.asks ?? []} onChanged={rereadPlan} />
-
       <div className="wk-pills">
         <span className="visually-hidden">{copy.constraintsTitle}: </span>
         {pills.length ? (
@@ -499,24 +476,10 @@ export default function AdminWeekend() {
         </div>
       )}
 
-      <LogOutingSheet
-        open={logging}
-        onClose={() => setLogging(false)}
-        onSaved={again}
-        onMaybeSaved={again}
-      />
       <div className="wk-foot">
         <Panel
           title={copy.visitsTitle}
-          action={
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setLogging(true)}
-            >
-              {outings.open}
-            </button>
-          }
+          action={<Link to="/admin/spots">{copy.logVisit}</Link>}
         >
           {plan.recent_visits.length ? (
             <ul className="wk-visits">

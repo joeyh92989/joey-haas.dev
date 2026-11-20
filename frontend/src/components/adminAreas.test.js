@@ -136,8 +136,6 @@ describe('areaFor', () => {
     ['/admin/store-list', 'shelf', 'Store list'],
     ['/admin/weekend', 'denver', 'Weekend'],
     ['/admin/spots', 'denver', 'Spots'],
-    ['/admin/history', 'denver', 'History'],
-    ['/admin/places/add', 'denver', 'Add a place'],
     ['/admin/analytics', 'site', 'Analytics'],
   ])('puts %s in %s on %s', (path, key, label) => {
     const area = areaFor(path)

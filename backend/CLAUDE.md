@@ -16,88 +16,9 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   (`plan:<iso-week>`) are rows in `spot_settings` (one JSONB value per
   key), never new columns. The public field for a spot's line is `blurb`,
   because `test_public_outputs.py` forbids `note` at any depth, and
-  `PublicSpot` carries `spot_id` and no anchor, visit or distance.
-  Outings (story #344, migration `0025`): a `visits` row is an outing, with
-  optional `title` (cleaned first: control characters dropped except ZWJ/ZWNJ, whitespace collapsed; then at most 80 characters, a plain 422 sentence), `verdict`
-  (`loved`, `fine`, `not_again`) and `kid_along` (null is unknown, false is
-  an answer) and a `precision` (`day`, `month`, `year`, default `day`).
-  `visited_on` is always the START of the period: `log_visit` moves a month to
-  the 1st and a year to Jan 1, and the future check (more than a day past the
-  owner's Denver day) applies to that start, so the current month and year
-  pass and the next are refused. `VisitOut` carries all four; `SpotOut` gains
-  `last_verdict` (greatest `visited_on`, ties by newest `created_at`, then id; null with
-  no outings or none set) beside the unchanged `last_visit` and `visit_count`.
-  `note` stays admin-only, and no public body carries any outing field
-  (`test_public_outputs.py` pins it).
-  The one-day grace means on a period's last day (month end, Dec 31) the next
-  period is accepted, since its start is tomorrow. Month and year outings are
-  stored as the period's start, so views must format by `precision` (history
-  stories #345 to #347 own that; the planner's `recent_visits` still shows
-  the start day). City:
-  `spots.normalize_city` is the one rule for a stored city (trim, collapse,
-  lower case, 1 to 40 characters, no control characters), `DENVER` the one
-  constant, and `load_public_spots` returns only Denver spots (the filter is
-  case-insensitive and trimmed: `lower(trim(city))`). A public spot has to be in Denver on every write path
-  (`check_public_city`: by-hand create and PATCH, the place commit). The
-  planner and the finder are admin-only and not city-aware yet. The
+  `PublicSpot` carries `spot_id` and no anchor, visit or distance. The
   Dashboard's Weekend forecast and Spot finder rows read
   `GET /api/spots/status`.
-- **Places through intake (story #340, epic #339).** `IntakeArea` now has
-  `places` (a Postgres enum value added by migration `0024`; copy its
-  `autocommit_block` plus `ADD VALUE IF NOT EXISTS` pattern for the next one,
-  and note a downgrade cannot drop the value; it deletes the `places` sittings and their entries instead). The `place` kind
-  (`intake/place_kind.py`) searches Nominatim (`spot_sources/nominatim.py`)
-  through the optional `Kind.search` hook and is added from
-  `/admin/places/add`; the commit writes a private spot through
-  `spots_routes.build_spot`, the one function the by-hand route shares.
-  Read `intake/README.md` ("Places") and `spot_sources/README.md` first. When
-  editing: validate what is stored (`clean_chosen`, `clean_fields`,
-  `clean_position`) and let the commit never trust an entry, so it re-checks
-  everything and re-runs the owned check under `lock_place_commits`; the
-  server rebuilds `map_url` and ignores a client's `owned_spot_id`; and a
-  place is public only when its city is Denver, enforced at commit as a
-  422 (`spots.check_public_city`; the same rule holds on the by-hand routes). The Nominatim client sends
-  `NOMINATIM_USER_AGENT`, never the catalogue's `USER_AGENT`.
-- **Log an outing (story #346, epic #339).** `POST /api/spots/outings`
-  (`spots_routes.log_outing`, admin) takes the `VisitIn` fields plus exactly
-  one of `spot_id` or `place` (`name`, `lat`, `lng`, optional `city` default
-  Denver, optional OSM `source_id`) and answers `{visit, spot, created}` with
-  the spot shaped as the list returns it. `build_visit` is the one check
-  (title length, future date, row) both visit routes use and runs before
-  anything is added. A new place goes through `place_kind.clean_name`,
-  `clean_position` and the `source_id` rule, `lock_place_commits` and
-  `owned_spot_id`; an owned place takes the visit (`created` false), else a
-  private `build_spot` is flushed and the visit added under ONE
-  `commit_spot`, so any failure leaves no spot. Keep it one transaction:
-  never commit the spot before the visit. `intake` is imported inside the
-  handler because `intake.commit` imports `spots_routes`. No outbound call.
-- **History read (story #347, epic #339).** `GET /api/spots/outings`
-  (`spots_routes.list_outings`, admin, `OutingsOut`) answers `{year, outings}`:
-  every outing with its spot's name, neighbourhood and city, ordered
-  `visited_on` desc, then day before month before year, then `created_at`
-  desc, then id desc; `year` is the owner's Denver year with `outings`
-  (every precision, by stored period start), distinct `places` and `loved`.
-  No pagination. Keep it above any `/{spot_id}` GET; `note` stays admin-only.
-- **Did you go? (story #349, epic #339).** `planner.did_you_go(weeks, visited,
-  now)` is the pure rule: a saved slot is asked when its day is before today
-  (Denver), or is today, a Sunday, at or after `SUNDAY_EVENING_HOUR` (18); a
-  no-day slot takes that weekend's Sunday and is answered by a day visit on
-  either weekend day; a dated slot only by a day visit on its own day; the
-  slot in the row's `didnt` list also answers it; rows older than
-  `LOOK_BACK_WEEKS` (4) are not read. `GET /api/spots/plan` returns `asks`
-  (read through `_asks`, which loads the last four `plan:<week>` rows) and
-  `POST /api/spots/plan/didnt` `{week, slot}` adds the slot to `didnt`
-  (422 malformed week or slot, 404 slot not saved in that row, idempotent;
-  returns the remaining asks). `_week`/`_empty_week` carry `didnt`, so a
-  save, unsave or skip keeps it, except that `_release` and `save` drop the
-  slot they touch from `didnt` (re-saving a slot whose day has passed
-  replaces its open ask, and a new spot in an answered slot is asked): add a new row field in both or `_put`
-  drops it. The router takes an injectable `now` beside `today` and reads the clock once
-  per request (only `today` given means noon on that day). The asks read is
-  bounded: one `SpotSetting.key.in_` select and day visits from the oldest
-  look-back Monday. Admin only;
-  nothing public carries an ask (`test_public_outputs.py` pins it). No
-  migration (JSON in `spot_settings`).
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
@@ -108,42 +29,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   (`payload.books[]`) is checked in `comic_books.typed_books` (422 at the
   entry) and written to `comic_volumes.isbn` by `volume_plan.write_volume`;
   no model call, no migration.
-- **Paste a list for places (story #342).** `intake/place_paste.py` (routes
-  `paste`, `resolve`, `pick`) and `spot_sources/map_links.py` (the pure link
-  reader); read `intake/README.md` ("Paste a list") and the map-link section
-  of `spot_sources/README.md` first. Rules when editing: never fetch a pasted
-  link (short links, `g.co` on any path, and links on a known map host with
-  nothing readable stay `check` entries and are never searched); sanitise with
-  `clean_line` and `clean_name` before storing or comparing, and on the
-  owner-edit path too (whitespace controls become spaces; every Cf character
-  but ZWNJ/ZWJ goes); the IGNORED "same place" check counts only `ready` and
-  `owned` entries; resolving from a `check` entry clears its old position and
-  `chosen`; new entries' `created_at` never precedes the sitting's newest;
-  the paste cap is 400,000 characters (match `MAX_PASTE_CHARS` in the page);
-  the search candidates are server-only (PATCH cannot plant them) and pick
-  takes an index into the stored list, never a place from the client; lock
-  the entry first and the sitting second in a lookup (both `NOWAIT`), since a
-  commit takes the sitting and then the entries.
-- **Past outings by paste (story #350, epic #339).** The places paste read a
-  second way: `POST /sittings/{id}/paste` takes `outings: true` and `city`,
-  `intake/outing_dates.py` (pure: `read_date`, `split_outing_line`, `today`
-  passed in) reads each line's date, and the entry carries `payload.outing`.
-  Read `intake/README.md` ("Past outings by paste") first. Rules when editing:
-  never trust a client's `visited_on` or `precision` (entry PATCH takes
-  `outing_date_text` and `outing_skip` only, and the commit reads the stored
-  date words again, so a stored period is never written); the commit refuses an
-  unreadable date as `Refusal(entry, "date")` and the route rolls everything
-  back (the guard test needs a refusal AFTER `write_places`, see
-  `test_a_refusal_after_the_places_are_written_rolls_everything_back`); an
-  already-logged match (same spot, same period start and precision) sets
-  `duplicate_of` and `skip` once and keeps the owner's answer on a re-save;
-  an outing entry is never IGNORED as the same place; no new route (the
-  `/api/spots` count stays 35), no migration, no outbound call beyond the
-  resolve. The clock is `place_kind.owner_today` (patch it in tests).
-  The commit's repeat check is final (`write_outings`, one `visits` query under
-  the place-commit lock, answer `outings_skipped`); paste-time flags
-  (`duplicate_of`, `repeat_of`) are only the page's hint. `write_places` loads
-  the spots once and uses an OWNED entry's stored `owned_spot_id`.
 - `POST /api/auth/test-login` (`backend/e2e_login.py`) is mounted only with
   `E2E_TEST_LOGIN=1` on an http://localhost `FRONTEND_URL` (config refuses to
   boot otherwise), is never set on Render, and `smoke.sh` checks it answers
@@ -188,12 +73,6 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   garment (source, url, order reference, item number, title, price, a JSONB
   snapshot of the parsed product, `fetched_at`); `size` is per garment and
   wins over the profile size on the Sell checklist.
-- **Intake areas.** `IntakeArea` is `shelf`, `closet` or `places`. The commit
-  (`commit_sitting`, `commit_one`) and the photo route branch on the kind's or
-  sitting's area: a `places` sitting commits to private spots and its photo
-  route answers 409 ("A places sitting takes no photos."); the closet never
-  reads photos and shelf entries become items. `GET /api/intake/counts`
-  includes `places`.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay
@@ -740,7 +619,7 @@ Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules sta
   an optional link `item_id` SET NULL + `from_number`/`to_number`). The
   migration copied every `editions` entry into a volume plus one collects row.
   `items.editions` is unmapped (no model attribute; nothing reads or writes the
-  column) and is dropped by migration `0025` in the release after this one (the
+  column) and is dropped by migration `0026` in the release after this one (the
   retire plan's PR 5b, so the old code never maps a missing column): the compat shim that mirrored it into `ed-*` volumes is gone,
   and an `ed-*` volume is an ordinary volume.
   **Volumes are the source of the marks (#326):** `comics.sync_marks` counts a

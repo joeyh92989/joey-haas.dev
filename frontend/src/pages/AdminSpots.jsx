@@ -1,29 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import LoadState from '../components/LoadState.jsx'
-import LogOutingSheet from '../components/LogOutingSheet.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
-import SpotsAddBar from '../components/places/SpotsAddBar.jsx'
 import { denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import {
-  HOME_CITY,
-  cityCounts,
-  spotCity,
-  cityLabel,
-  citiesFrom,
-} from '../lib/cities.js'
-import { spotState, stateCounts } from '../lib/spotState.js'
-import { historyHrefForSpot } from '../lib/historyFilters.js'
 import { formatDate } from '../lib/formatDate.js'
 import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { adminCopy } from '../content/adminCopy.js'
-import { history, outings } from '../content/outings.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
@@ -56,17 +43,6 @@ async function fetchSpots() {
   }
 }
 
-/**
- * The words of a row's want/been line. The date rides along only where the
- * Last visit column is hidden (phone), so a screen reader hears it once.
- */
-function stateText(state, spot, phone) {
-  if (state === 'want') return denver.admin.want
-  return phone && spot.last_visit
-    ? denver.admin.beenOn(formatDate(spot.last_visit))
-    : denver.admin.been
-}
-
 /** Whether a spot matches the search: its name, neighbourhood or a tag. */
 function matches(spot, query) {
   const q = query.trim().toLowerCase()
@@ -96,33 +72,12 @@ export default function AdminSpots() {
   const [attempt, setAttempt] = useState(0)
   const [notice, setNotice] = useState(null)
   const [query, setQuery] = useState('')
-  // The City filter's choice: a city key, or '' for all cities. Page state.
-  const [cityPick, setCityPick] = useState('')
-  // The Show filter's choice: 'want', 'been', or '' for all places. Page state.
-  const [statePick, setStatePick] = useState('')
   // null: no form; 'new': adding; a spot: editing it.
   const [editing, setEditing] = useState(null)
   // The ids of the rows with a write in flight; each row waits on its own.
   const [busy, setBusy] = useState(() => new Set())
   // The button that opened the form, given focus back when it closes.
   const opener = useRef(null)
-  // The spot the add bar saved last wears the "New" pill (newId); the row a
-  // save or "Show in table" points at is tinted (markedId). Both are client
-  // state: a search, a by-hand save or the next bar save moves or clears them.
-  const [newId, setNewId] = useState(null)
-  const [markedId, setMarkedId] = useState(null)
-  // The words the bar carried to Add by hand, for the form's Name field.
-  const [handName, setHandName] = useState('')
-  // The bar saved a place but the table could not be re-read.
-  const [refreshFailed, setRefreshFailed] = useState(false)
-  // Bumped by every per-row write result applied to the list, so a re-read
-  // that began before one is not allowed to overwrite it.
-  const writeSeq = useRef(0)
-  const formWrap = useRef(null)
-  // A "Show in table" waiting for its row to be on the page.
-  const pendingShow = useRef(null)
-  const [showTick, setShowTick] = useState(0)
-  const [logging, setLogging] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -138,91 +93,18 @@ export default function AdminSpots() {
   }, [attempt])
 
   // After Accept: the new spot comes from the server, slug and all.
-  // Resolves true when the list was refreshed. A read that began before a
-  // row write landed is dropped and run once more, so the older answer
-  // cannot undo the newer write; a second stale read counts as a failure.
-  async function rereadSpots(revealId) {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const start = writeSeq.current
-      const result = await fetchSpots()
-      if (!result.spots) return false
-      if (writeSeq.current === start) {
-        setSpots(result.spots)
-        const row = revealId && result.spots.find((s) => s.id === revealId)
-        if (row) revealRow(row)
-        return true
-      }
-    }
-    return false
+  async function rereadSpots() {
+    const result = await fetchSpots()
+    if (result.spots) setSpots(result.spots)
   }
 
-  const counts = useMemo(() => cityCounts(spots), [spots])
-  // The filter shows only when the spots hold more than one city, and a pick
-  // whose city has left the list (its last spot moved) counts as All cities.
-  const manyCities = counts.length > 1
-  const cityFilter =
-    manyCities && counts.some((c) => c.city === cityPick) ? cityPick : ''
-  // The rows the text and City filters let through; the Show counts are
-  // taken here, so they always equal the rows under any combination.
-  const afterTextCity = useMemo(
-    () =>
-      (spots ?? []).filter(
-        (spot) =>
-          matches(spot, query) &&
-          (!cityFilter || spotCity(spot) === cityFilter),
-      ),
-    [spots, query, cityFilter],
-  )
-  const states = useMemo(() => stateCounts(afterTextCity), [afterTextCity])
-  // Shown while the catalogue holds at least one place that is not an anchor.
-  const catalogueStates = useMemo(() => stateCounts(spots), [spots])
-  const hasStates = catalogueStates.want + catalogueStates.been > 0
-  // A pick whose places have all gone counts as All places.
-  const stateFilter = hasStates ? statePick : ''
   const shown = useMemo(
-    () =>
-      stateFilter
-        ? afterTextCity.filter((spot) => spotState(spot) === stateFilter)
-        : afterTextCity,
-    [afterTextCity, stateFilter],
+    () => (spots ?? []).filter((spot) => matches(spot, query)),
+    [spots, query],
   )
-  // The filters as they are now, for code that runs after an await.
-  const filtersNow = useRef({})
-  useEffect(() => {
-    filtersNow.current = { query, cityFilter, stateFilter }
-  })
-
-  // One rule for every path that puts a row on the page (a save, an accept,
-  // Show in table): when the text, City or state filter hides it, all three
-  // clear, so the row is never saved out of sight.
-  function revealRow(row) {
-    const now = filtersNow.current
-    if (
-      !matches(row, now.query ?? '') ||
-      (now.cityFilter && spotCity(row) !== now.cityFilter) ||
-      (now.stateFilter && spotState(row) !== now.stateFilter)
-    ) {
-      setQuery('')
-      setCityPick('')
-      setStatePick('')
-    }
-  }
-
-  // The cities already on saved spots, offered beside Denver; the bar's
-  // short fixed list stands until a spot outside Denver exists.
-  const cityKeys = useMemo(() => citiesFrom(spots), [spots])
-  const cities = cityKeys.length ? cityKeys : undefined
   const publicCount = (spots ?? []).filter((spot) => spot.is_public).length
 
-  // A city line under the name: every city but Denver, and Denver too while
-  // the table lists all cities of a catalogue with more than one.
-  function showCity(spot) {
-    const city = spotCity(spot)
-    return city !== HOME_CITY || (manyCities && !cityFilter)
-  }
-
   function replace(saved) {
-    writeSeq.current += 1
     setSpots((current) => {
       const rest = (current ?? []).filter((spot) => spot.id !== saved.id)
       return [...rest, saved].sort((a, b) => a.name.localeCompare(b.name))
@@ -237,91 +119,14 @@ export default function AdminSpots() {
     opener.current = null
   }, [editing])
 
-  // Scroll to and focus the row "Show in table" asked for, once per request:
-  // keyed on the request only, so a later change to the filter never moves
-  // focus. A row that is not drawn is dropped, not kept waiting.
-  useEffect(() => {
-    const id = pendingShow.current
-    if (!id) return
-    pendingShow.current = null
-    const row = document.getElementById(`spot-${id}`)
-    if (!row) return
-    row.scrollIntoView?.({ block: 'center' })
-    row.focus()
-  }, [showTick])
-
-  async function showInTable(id) {
-    let list = spots ?? []
-    if (!list.some((spot) => spot.id === id)) {
-      // Not in the list yet: read once, and show nothing if still absent.
-      const result = await fetchSpots()
-      if (!result.spots) return
-      setSpots(result.spots)
-      list = result.spots
-    }
-    const row = list.find((spot) => spot.id === id)
-    if (!row) return
-    // The list just set above is not in the ref yet; the filters are.
-    revealRow(row)
-    setMarkedId(id)
-    pendingShow.current = id
-    setShowTick((n) => n + 1)
-  }
-
-  async function addedByBar({ id }) {
-    setNotice(null)
-    setError(null)
-    setNewId(id)
-    setMarkedId(id)
-    const ok = await rereadSpots(id)
-    setRefreshFailed(!ok)
-  }
-
-  // The Log an outing sheet saved: the page says so, and the table is read
-  // again (a new place is a new row; a saved one has a new last visit).
-  async function outingSaved({ spot, created }) {
-    setError(null)
-    setNewId(null)
-    setMarkedId(null)
-    setNotice(outings.saved(spot.name, created))
-    const ok = await rereadSpots(spot.id)
-    setRefreshFailed(!ok)
-  }
-
-  async function retryRefresh() {
-    const ok = await rereadSpots()
-    setRefreshFailed(!ok)
-  }
-
-  // Add by hand from the bar: never replaces a form that is open (an edit or
-  // a half-filled new spot); it moves focus there instead. A form it opens
-  // gives focus back to the bar's name box when it closes.
-  function addByHand(typedName, focusBar) {
-    if (editing !== null) {
-      formWrap.current?.querySelector('.spot-form-title')?.focus()
-      return
-    }
-    opener.current = focusBar ? { isConnected: true, focus: focusBar } : null
-    setNotice(null)
-    setHandName(typedName ?? '')
-    setEditing('new')
-  }
-
   function openForm(event, target) {
     opener.current = event.currentTarget
-    setHandName('')
     setNotice(null)
     setEditing(target)
   }
 
   function saved(spot) {
-    if (editing === 'new') {
-      setNewId(null)
-      setMarkedId(null)
-    }
     replace(spot)
-    // A filter that hides the saved row would make it vanish.
-    revealRow(spot)
     setEditing(null)
     setNotice(`Saved ${spot.name}.`)
   }
@@ -377,7 +182,6 @@ export default function AdminSpots() {
           body: JSON.stringify({ visited_on: today }),
         }),
       async () => {
-        writeSeq.current += 1
         // From the row as it is now, not as it was when clicked: a publish
         // that landed meanwhile stays.
         setSpots((current) =>
@@ -408,37 +212,16 @@ export default function AdminSpots() {
         <button
           type="button"
           className="btn primary"
-          onClick={() => setLogging(true)}
-        >
-          {outings.open}
-        </button>
-        <button
-          type="button"
-          className="btn"
           onClick={(event) => openForm(event, 'new')}
           disabled={editing === 'new'}
         >
           {denver.admin.add}
         </button>
       </AdminPageHeader>
-      <LogOutingSheet
-        open={logging}
-        onClose={() => setLogging(false)}
-        onSaved={outingSaved}
-        onMaybeSaved={() => rereadSpots()}
-      />
 
       {error && (
         <p className="admin-error" role="alert">
           {error}
-        </p>
-      )}
-      {refreshFailed && (
-        <p className="admin-error" role="alert">
-          {denver.admin.savedNotRefreshed}{' '}
-          <button type="button" className="btn" onClick={retryRefresh}>
-            {denver.admin.refreshRetry}
-          </button>
         </p>
       )}
       <p className="spots-notice" role="status" aria-live="polite">
@@ -446,38 +229,24 @@ export default function AdminSpots() {
       </p>
 
       {editing && (
-        <div className="spot-form-wrap" ref={formWrap}>
+        <div className="spot-form-wrap">
           <SpotForm
-            key={editing === 'new' ? `new:${handName}` : editing.id}
+            key={editing === 'new' ? 'new' : editing.id}
             spot={editing === 'new' ? null : editing}
-            initialName={editing === 'new' ? handName : undefined}
-            cities={cityKeys}
             onSaved={saved}
             onCancel={() => setEditing(null)}
           />
         </div>
       )}
 
-      <SpotsAddBar
-        onSaved={addedByBar}
-        onAddByHand={addByHand}
-        onShowInTable={showInTable}
-        cities={cities}
-        onSearchStart={() => {
-          setNewId(null)
-          setMarkedId(null)
-        }}
-      />
-
       <div className="finder-layout">
         <SpotFinder
-          onAccepted={(id) => rereadSpots(id)}
-          onRestored={(id) => {
-            writeSeq.current += 1
+          onAccepted={rereadSpots}
+          onRestored={(id) =>
             setSpots((current) =>
               (current ?? []).filter((spot) => spot.id !== id),
             )
-          }}
+          }
         />
         <div className="finder-table">
           {spots === null && (
@@ -514,45 +283,6 @@ export default function AdminSpots() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
-                {manyCities && (
-                  <label className="spots-city-filter">
-                    <span>{denver.admin.cityFilter}</span>
-                    <select
-                      value={cityFilter}
-                      onChange={(event) => setCityPick(event.target.value)}
-                    >
-                      <option value="">{denver.admin.allCities}</option>
-                      {counts.map(({ city, count }) => (
-                        <option key={city} value={city}>
-                          {denver.admin.cityOption(cityLabel(city), count)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {hasStates && (
-                  <label className="spots-city-filter">
-                    <span>{denver.admin.stateFilter}</span>
-                    <select
-                      value={stateFilter}
-                      onChange={(event) => setStatePick(event.target.value)}
-                    >
-                      <option value="">{denver.admin.allPlaces}</option>
-                      <option value="want">
-                        {denver.admin.stateOption(
-                          denver.admin.want,
-                          states.want,
-                        )}
-                      </option>
-                      <option value="been">
-                        {denver.admin.stateOption(
-                          denver.admin.been,
-                          states.been,
-                        )}
-                      </option>
-                    </select>
-                  </label>
-                )}
               </div>
 
               {spots.length === 0 && <p>{denver.admin.empty}</p>}
@@ -578,107 +308,68 @@ export default function AdminSpots() {
                       </tr>
                     </thead>
                     <tbody>
-                      {shown.map((spot) => {
-                        const state = spotState(spot)
-                        return (
-                          <tr
-                            key={spot.id}
-                            id={`spot-${spot.id}`}
-                            tabIndex={-1}
-                            className={
-                              spot.id === markedId ? 'is-marked' : undefined
-                            }
-                          >
-                            <th scope="row" className="spots-name">
-                              {spot.id === newId && (
-                                <span className="spots-new">
-                                  {denver.admin.newMark}
-                                </span>
-                              )}
-                              <span className="spots-name-text">
-                                {spot.name}
+                      {shown.map((spot) => (
+                        <tr key={spot.id}>
+                          <th scope="row" className="spots-name">
+                            <span>{spot.name}</span>
+                            {spot.anchor && (
+                              <span className="spots-anchor">
+                                {adminCopy.spots.anchor}
                               </span>
-                              {spot.anchor && (
-                                <span className="spots-anchor">
-                                  {adminCopy.spots.anchor}
-                                </span>
-                              )}
-                              {spot.neighbourhood && (
-                                <span className="spots-hood">
-                                  {spot.neighbourhood}
-                                </span>
-                              )}
-                              {showCity(spot) && (
-                                <span className="spots-city">
-                                  {cityLabel(spotCity(spot))}
-                                </span>
-                              )}
-                              {state && (
-                                <span className="spots-state">
-                                  {stateText(state, spot, phone)}
-                                </span>
-                              )}
-                            </th>
-                            <td>
-                              <ul className="spots-tags">
-                                {spot.tags.map((tag) => (
-                                  <li key={tag}>{tagLabel(tag)}</li>
-                                ))}
-                              </ul>
-                            </td>
-                            {!phone && (
-                              <td className="spots-visit">
-                                {spot.last_visit
-                                  ? formatDate(spot.last_visit)
-                                  : '—'}
-                                {spot.visit_count > 1 && (
-                                  <span className="spots-hood">
-                                    {spot.visit_count} visits
-                                  </span>
-                                )}
-                              </td>
                             )}
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={spot.is_public}
-                                disabled={
-                                  busy.has(spot.id) ||
-                                  (!spot.is_public &&
-                                    spotCity(spot) !== HOME_CITY)
-                                }
-                                onChange={() => togglePublic(spot)}
-                                aria-label={`Public: ${spot.name}`}
-                              />
+                            {spot.neighbourhood && (
+                              <span className="spots-hood">
+                                {spot.neighbourhood}
+                              </span>
+                            )}
+                          </th>
+                          <td>
+                            <ul className="spots-tags">
+                              {spot.tags.map((tag) => (
+                                <li key={tag}>{tagLabel(tag)}</li>
+                              ))}
+                            </ul>
+                          </td>
+                          {!phone && (
+                            <td className="spots-visit">
+                              {spot.last_visit
+                                ? formatDate(spot.last_visit)
+                                : '—'}
+                              {spot.visit_count > 1 && (
+                                <span className="spots-hood">
+                                  {spot.visit_count} visits
+                                </span>
+                              )}
                             </td>
-                            <td className="spots-actions">
-                              <button
-                                type="button"
-                                onClick={(event) => openForm(event, spot)}
-                                aria-label={`Edit ${spot.name}`}
-                              >
-                                {adminCopy.spots.edit}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => logVisit(spot)}
-                                disabled={busy.has(spot.id)}
-                                aria-label={`Log a visit to ${spot.name}`}
-                              >
-                                {adminCopy.spots.logVisit}
-                              </button>
-                              <Link
-                                to={historyHrefForSpot(spot.id)}
-                                aria-label={history.placeHistoryLabel(
-                                  spot.name,
-                                )}
-                              >
-                                {history.placeHistory}
-                              </Link>
-                            </td>
-                          </tr>
-                        )
-                      })}
+                          )}
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={spot.is_public}
+                              disabled={busy.has(spot.id)}
+                              onChange={() => togglePublic(spot)}
+                              aria-label={`Public: ${spot.name}`}
+                            />
+                          </td>
+                          <td className="spots-actions">
+                            <button
+                              type="button"
+                              onClick={(event) => openForm(event, spot)}
+                              aria-label={`Edit ${spot.name}`}
+                            >
+                              {adminCopy.spots.edit}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => logVisit(spot)}
+                              disabled={busy.has(spot.id)}
+                              aria-label={`Log a visit to ${spot.name}`}
+                            >
+                              {adminCopy.spots.logVisit}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

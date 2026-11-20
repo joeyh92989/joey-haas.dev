@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -192,70 +192,8 @@ describe('AdminWeekend', () => {
     const visits = screen.getByRole('region', { name: 'Recent visits' })
     expect(within(visits).getByText('November 1, 2026')).toBeInTheDocument()
     expect(
-      within(visits).getByRole('button', { name: 'Log an outing' }),
-    ).toBeInTheDocument()
-    expect(
-      within(visits).queryByRole('link', { name: 'Log a visit' }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('logs an outing from the Visits panel and reads the plan again', async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      const spotRow = {
-        id: 'a1b2c3d4-0000-4000-8000-000000000001',
-        name: 'Corvus Coffee',
-        neighbourhood: null,
-        city: 'denver',
-        visit_count: 1,
-        last_visit: '2026-11-01',
-      }
-      const calls = stubApi({
-        'GET /api/spots': () => json([spotRow]),
-        'POST /api/spots/outings': () =>
-          json(
-            {
-              visit: { id: 2, spot_id: spotRow.id, visited_on: '2026-11-09' },
-              spot: spotRow,
-              created: false,
-            },
-            201,
-          ),
-      })
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderPage()
-      const visits = await screen.findByRole('region', {
-        name: 'Recent visits',
-      })
-      const plansBefore = reads(calls).filter((p) =>
-        p.startsWith('/api/spots/plan?'),
-      ).length
-      await user.click(
-        within(visits).getByRole('button', { name: 'Log an outing' }),
-      )
-      await user.type(await screen.findByLabelText('Place'), 'corvus')
-      await user.click(
-        await within(document.querySelector('dialog')).findByRole('button', {
-          name: /Corvus/,
-        }),
-      )
-      await user.click(screen.getByLabelText('Fine'))
-      await user.click(screen.getByRole('button', { name: 'Save outing' }))
-      await waitFor(() =>
-        expect(
-          reads(calls).filter((p) => p.startsWith('/api/spots/plan?')).length,
-        ).toBe(plansBefore + 1),
-      )
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
+      within(visits).getByRole('link', { name: 'Log a visit' }),
+    ).toHaveAttribute('href', '/admin/spots')
   })
 
   it('rerolls with the next seed', async () => {
@@ -551,110 +489,5 @@ describe('AdminWeekend', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Corvus Coffee' })
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
-  })
-})
-
-describe('AdminWeekend: Did you go?', () => {
-  const ask = {
-    week: '2026-W46',
-    slot: 'best',
-    spot_id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
-    spot_name: 'Ball Arena',
-    neighbourhood: 'Auraria',
-    day: '2026-11-14',
-    slot_label: 'Best fit',
-  }
-
-  it('shows the block above the pills, and nothing when there are no asks', async () => {
-    stubApi({
-      'GET /api/spots/plan?seed=0': () => json(plan({ asks: [ask] })),
-    })
-    const { unmount } = renderPage()
-    const block = await screen.findByRole('region', { name: /Did you go/ })
-    const pills = screen.getByText('Kid along')
-    expect(
-      block.compareDocumentPosition(pills) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    unmount()
-    stubApi({ 'GET /api/spots/plan?seed=0': () => json(plan({ asks: [] })) })
-    renderPage()
-    await screen.findByRole('heading', { name: 'Saturday · Nov 14' })
-    expect(screen.queryByText(/Did you go/)).toBeNull()
-  })
-
-  it('reads a plan that has no asks field as no asks', async () => {
-    stubApi()
-    renderPage()
-    await screen.findByRole('heading', { name: 'Saturday · Nov 14' })
-    expect(screen.queryByText(/Did you go/)).toBeNull()
-  })
-
-  it('logs Been, reads the plan again and the ask is gone', async () => {
-    let asks = [ask]
-    const calls = stubApi({
-      'GET /api/spots/plan?seed=0': () => json(plan({ asks })),
-      'POST /api/spots/outings': () => {
-        asks = []
-        return json(
-          {
-            visit: {
-              id: '1c3f5a7b-2d4e-4f60-8a1b-3c5d7e9f1a03',
-              visited_on: '2026-11-14',
-            },
-            spot: {
-              id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
-              name: 'Ball Arena',
-            },
-            created: false,
-          },
-          201,
-        )
-      },
-    })
-    const user = userEvent.setup()
-    renderPage()
-    await user.click(
-      await screen.findByRole('button', { name: 'Been: Ball Arena' }),
-    )
-    await user.click(screen.getByRole('button', { name: 'Loved' }))
-    await waitFor(() =>
-      expect(reads(calls)).toEqual([
-        '/api/spots/plan?seed=0',
-        '/api/spots/plan?seed=0',
-      ]),
-    )
-    expect(writes(calls)).toEqual([
-      {
-        method: 'POST',
-        path: '/api/spots/outings',
-        body: {
-          spot_id: '6f1c2a4e-3b7d-4c52-9a10-5e8d7b3c1a01',
-          visited_on: '2026-11-14',
-          precision: 'day',
-          verdict: 'loved',
-        },
-      },
-    ])
-    expect(screen.getByText('Logged: Loved at Ball Arena')).toBeVisible()
-    expect(screen.queryByRole('region', { name: /Did you go/ })).toBeNull()
-  })
-
-  it('posts Didn’t to the plan route and reads the plan again', async () => {
-    const calls = stubApi({
-      'GET /api/spots/plan?seed=0': () => json(plan({ asks: [ask] })),
-    })
-    const user = userEvent.setup()
-    renderPage()
-    await user.click(
-      await screen.findByRole('button', { name: 'Didn’t go: Ball Arena' }),
-    )
-    await waitFor(() => expect(reads(calls)).toHaveLength(2))
-    expect(writes(calls)).toEqual([
-      {
-        method: 'POST',
-        path: '/api/spots/plan/didnt',
-        body: { week: '2026-W46', slot: 'best' },
-      },
-    ])
   })
 })

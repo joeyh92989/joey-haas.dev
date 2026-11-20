@@ -83,14 +83,12 @@ export const ADMIN_ROUTES = [
   '/admin/discover',
   '/admin/store-list',
   '/admin/spots',
-  '/admin/history',
   '/admin/weekend',
   '/admin/closet',
   '/admin/closet/profile',
   '/admin/closet/today',
   '/admin/closet/review',
   '/admin/closet/add',
-  '/admin/places/add',
 ]
 
 /**
