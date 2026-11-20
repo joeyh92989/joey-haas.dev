@@ -12,3 +12,16 @@
 @import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Tokens the legacy sheet and Tailwind's theme both define. Tailwind writes
+   its default into the `theme` layer, above `legacy`, once anything uses it,
+   and that replaces the site's value on every page. Redeclare them here with
+   the site's own values (copy from index.css :root, keep them in step).
+   tailwindSetup.test.js fails when a new collision appears. */
+@theme {
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --radius: 6px;
+}

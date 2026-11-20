@@ -302,8 +302,10 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 
 Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
 hand-written `src/index.css`. `main.jsx` imports `src/tailwind.css`, which pulls
-everything in. Nothing visible changes until a page is migrated (epic #519).
-`src/tailwindSetup.test.js` guards the points below.
+everything in. No page should change until it is migrated (epic #519).
+`src/tailwindSetup.test.js` guards the points below. Verified against `main` by
+comparing computed styles of 8 routes in both themes: the only difference is
+`background-position` on elements with no background image.
 
 **Layers.** `@layer legacy, theme, base, components, utilities;` and
 `@import './index.css' layer(legacy);`. Unlayered CSS always beats layered CSS,
@@ -312,10 +314,30 @@ every Tailwind utility (cards and buttons lost their padding in the spike).
 Layered into `legacy`, the lowest layer, every utility wins and old pages still
 render from their own rules. Delete the layer when the last page moves.
 
-**Preflight is off.** Only `tailwindcss/theme.css` and `utilities.css` are
-imported. Preflight is a reset; it would shift every unmigrated page. A
-comment in `tailwind.css` carries the plain `@import "tailwindcss";` text only
-because the shadcn CLI refuses to run without it.
+**Preflight is off.** `tailwindcss/theme.css` and `utilities.css` are
+imported into layers; `tw-animate-css` and `shadcn/tailwind.css` are imported
+*unlayered* (they add `@property` blocks and one `.shimmer` reduced-motion rule
+that nothing uses, and a `properties` layer below `legacy`). Preflight is a
+reset; it would shift every unmigrated page. A comment in `tailwind.css`
+carries the plain `@import "tailwindcss";` text only because the shadcn CLI
+refuses to run without it.
+
+**A legacy token with a Tailwind theme name gets replaced.** Tailwind writes
+its default theme variable into the `theme` layer, above `legacy`, the moment
+any CSS uses it. `--font-sans`, `--font-mono` and `--radius` collide with
+`index.css` `:root`: unfixed, every page lost Inter and JetBrains Mono. They
+are redeclared in the `@theme` block in `tailwind.css` with the site's values
+(keep the two in step). `tailwindSetup.test.js` fails on any new collision.
+
+**Also true while legacy exists.** (a) Tailwind scans the source and emits
+utilities for ordinary words (`.hidden`, `.block`, `.grid`, `.table`,
+`.container`, `.border`, `.transition`), which sit above `legacy`: do not give
+a legacy class one of those names. (b) Layers reverse `!important`: legacy
+`!important` declarations beat `!`-utilities. (c) Browser floor: Tailwind v4's
+(Safari 16.4, Chrome 111, Firefox 128); `@layer` is required, and the
+`min-height:100vh` fallback before `100dvh` is no longer emitted. Accepted.
+`shadcn` and `tw-animate-css` are dev dependencies (build-time CSS only), so
+the CLI's tree stays out of the production audit gate.
 
 **Four findings from the spike (#520)**
 

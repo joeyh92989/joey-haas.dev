@@ -40,7 +40,7 @@ Source of truth for every step: `docs/planning/2026-11-20-design-system-spike-de
 | Generated base layer | Not added | Finding 2. The preset's `@layer base { * {border-color}, body, html }` would restyle every old page. `tailwind.css` has no `base` layer content. |
 | shadcn tokens | Not added here | They collide with the site's `--accent` and `--radius`. They arrive in #527 on a scope class. |
 | Unused `React` import in generated files | `eslint.config.js` override for `src/components/ui/**`: `no-unused-vars` with `varsIgnorePattern: '^React$'` | Finding 4. Narrower than ignoring the folder: everything else in it is still linted. Prettier still formats it. |
-| `shadcn` package | Kept in `dependencies` only if `shadcn/tailwind.css` is imported from `tailwind.css` | The CSS import needs it at build time. Its tree must pass `npm audit --omit=dev --audit-level=high` (the CI gate, learnings 2026-11-17). If it does not, copy the one stylesheet into the repo and make `shadcn` a dev dependency. |
+| `shadcn` and `tw-animate-css` | Dev dependencies | Both are read at build time only (their CSS is imported). As runtime dependencies the CLI tree (217 packages) counted toward the production audit gate. Found in the cold review. |
 | Finding 3 (links as buttons) | Documented only | It needs a component to apply to; #528 builds them. |
 
 ## Tasks
@@ -75,3 +75,10 @@ After the deploy: `./scripts/smoke.sh https://joey-haas.dev https://api.joey-haa
 - Tailwind install and Preflight: https://tailwindcss.com/docs/installation , https://tailwindcss.com/docs/preflight
 - shadcn on Vite: https://ui.shadcn.com/docs/installation/vite
 - Repo rules: `CLAUDE.md` (changelog, planning docs), `frontend/CLAUDE.md`, `docs/learnings.md` (audit gate, stale installs, whole-repo pins)
+
+## Found in review (cold Opus review, before the PR)
+
+- **Blocker, fixed:** Tailwind's theme layer replaced the site's `--font-sans`, `--font-mono` and `--radius`, so every page lost Inter and JetBrains Mono. The plan's task 4 compared only the legacy rules and missed it. Fixed with an `@theme` redeclaration and a guard test for any new collision; computed styles of 8 routes in both themes now match `main`.
+- Guard regex widened; docs corrected; `shadcn` and `tw-animate-css` moved to dev dependencies.
+- Accepted: Tailwind v4's browser floor, `min-height:100vh` fallback no longer emitted, stray utility names (`.hidden`, `.block`...) emitted from source scanning (no collision today; documented).
+- Open for the PR: Render's Node version must be 22 or newer for `cn` (checked in ship).
