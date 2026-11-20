@@ -96,65 +96,6 @@ afterEach(() => {
 })
 
 describe('AdminSpots', () => {
-  it('logs an outing from the header, says so, and reads the spots again', async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      let outingSaved = false
-      const calls = stubApi({
-        'GET /api/spots': () =>
-          json(
-            outingSaved
-              ? [
-                  SPOTS[0],
-                  SPOTS[1],
-                  { ...SPOTS[2], visit_count: 1, last_visit: '2026-11-09' },
-                ]
-              : SPOTS,
-          ),
-        'POST /api/spots/outings': () => {
-          outingSaved = true
-          return json(
-            {
-              visit: { id: 5, spot_id: 'c', visited_on: '2026-11-09' },
-              spot: SPOTS[2],
-              created: false,
-            },
-            201,
-          )
-        },
-      })
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      render(<AdminSpots />)
-      await screen.findByRole('table')
-      await user.click(screen.getByRole('button', { name: 'Log an outing' }))
-      await user.type(await screen.findByLabelText('Place'), 'sloan')
-      await user.click(
-        await within(document.querySelector('dialog')).findByRole('button', {
-          name: /Sloan.s Lake/,
-        }),
-      )
-      await user.click(screen.getByLabelText('Loved'))
-      await user.click(screen.getByRole('button', { name: 'Save outing' }))
-      await waitFor(async () =>
-        expect((await pageNotice()).textContent).toBe(
-          "Logged an outing at Sloan's Lake.",
-        ),
-      )
-      expect(
-        calls.filter((c) => c.path === '/api/spots' && c.method === 'GET'),
-      ).toHaveLength(3) // page read, sheet's saved spots, reread after save
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
-  })
-
   it('lists every spot with tags, last visit and the public counts', async () => {
     stubApi()
     render(<AdminSpots />)
@@ -627,15 +568,6 @@ describe('AdminSpots add bar (story #341)', () => {
           { id: 'v', spot_id: 'b', visited_on: '2026-11-09', note: null },
           201,
         ),
-      'POST /api/spots/outings': () =>
-        json(
-          {
-            visit: { id: 'v2', spot_id: 'c', visited_on: '2026-11-09' },
-            spot: SPOTS[2],
-            created: false,
-          },
-          201,
-        ),
       'PATCH /api/spots/a': patch('a'),
       'PATCH /api/spots/b': patch('b'),
       'PATCH /api/spots/c': patch('c'),
@@ -738,44 +670,6 @@ describe('AdminSpots add bar (story #341)', () => {
     expect(row).toHaveClass('is-marked')
     expect(marked()).toHaveLength(1)
     expect(calls.filter((c) => c.path === '/api/intake/add')).toHaveLength(1)
-  })
-
-  it("clears the bar save's New pill and tint when an outing is logged", async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      barApi({ 'red rocks': [ROCKS] })
-      render(<AdminSpots />)
-      await screen.findByRole('table')
-      const user = userEvent.setup()
-      await addRocks(user)
-      const row = await screen.findByRole('row', {
-        name: /Red Rocks Amphitheatre/,
-      })
-      expect(within(row).getByText('New')).toBeInTheDocument()
-      await user.click(screen.getByRole('button', { name: 'Log an outing' }))
-      const dialog = document.querySelector('dialog')
-      await user.type(await within(dialog).findByLabelText('Place'), 'sloan')
-      await user.click(
-        await within(dialog).findByRole('button', { name: /Sloan.s Lake/ }),
-      )
-      await user.click(within(dialog).getByLabelText('Loved'))
-      await user.click(
-        within(dialog).getByRole('button', { name: 'Save outing' }),
-      )
-      await waitFor(() =>
-        expect(screen.queryByText('New')).not.toBeInTheDocument(),
-      )
-      expect(marked()).toHaveLength(0)
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
   })
 
   it('shows the row in the table: clears a hiding filter, scrolls and focuses', async () => {

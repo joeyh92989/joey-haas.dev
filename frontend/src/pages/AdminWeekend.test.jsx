@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -192,70 +192,8 @@ describe('AdminWeekend', () => {
     const visits = screen.getByRole('region', { name: 'Recent visits' })
     expect(within(visits).getByText('November 1, 2026')).toBeInTheDocument()
     expect(
-      within(visits).getByRole('button', { name: 'Log an outing' }),
-    ).toBeInTheDocument()
-    expect(
-      within(visits).queryByRole('link', { name: 'Log a visit' }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('logs an outing from the Visits panel and reads the plan again', async () => {
-    HTMLDialogElement.prototype.showModal = function () {
-      this.setAttribute('open', '')
-    }
-    HTMLDialogElement.prototype.close = function () {
-      this.removeAttribute('open')
-      this.dispatchEvent(new Event('close'))
-    }
-    try {
-      const spotRow = {
-        id: 'a1b2c3d4-0000-4000-8000-000000000001',
-        name: 'Corvus Coffee',
-        neighbourhood: null,
-        city: 'denver',
-        visit_count: 1,
-        last_visit: '2026-11-01',
-      }
-      const calls = stubApi({
-        'GET /api/spots': () => json([spotRow]),
-        'POST /api/spots/outings': () =>
-          json(
-            {
-              visit: { id: 2, spot_id: spotRow.id, visited_on: '2026-11-09' },
-              spot: spotRow,
-              created: false,
-            },
-            201,
-          ),
-      })
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-      renderPage()
-      const visits = await screen.findByRole('region', {
-        name: 'Recent visits',
-      })
-      const plansBefore = reads(calls).filter((p) =>
-        p.startsWith('/api/spots/plan?'),
-      ).length
-      await user.click(
-        within(visits).getByRole('button', { name: 'Log an outing' }),
-      )
-      await user.type(await screen.findByLabelText('Place'), 'corvus')
-      await user.click(
-        await within(document.querySelector('dialog')).findByRole('button', {
-          name: /Corvus/,
-        }),
-      )
-      await user.click(screen.getByLabelText('Fine'))
-      await user.click(screen.getByRole('button', { name: 'Save outing' }))
-      await waitFor(() =>
-        expect(
-          reads(calls).filter((p) => p.startsWith('/api/spots/plan?')).length,
-        ).toBe(plansBefore + 1),
-      )
-    } finally {
-      delete HTMLDialogElement.prototype.showModal
-      delete HTMLDialogElement.prototype.close
-    }
+      within(visits).getByRole('link', { name: 'Log a visit' }),
+    ).toHaveAttribute('href', '/admin/spots')
   })
 
   it('rerolls with the next seed', async () => {

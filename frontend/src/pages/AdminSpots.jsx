@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import LoadState from '../components/LoadState.jsx'
-import LogOutingSheet from '../components/LogOutingSheet.jsx'
 import Panel from '../components/Panel.jsx'
 import SpotFinder from '../components/SpotFinder.jsx'
 import SpotForm from '../components/SpotForm.jsx'
@@ -21,7 +20,6 @@ import { localToday } from '../lib/statusMoves.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { adminCopy } from '../content/adminCopy.js'
-import { outings } from '../content/outings.js'
 
 /** The admin shell's phone breakpoint; the Last visit column drops below it. */
 const PHONE = '(max-width: 700px)'
@@ -120,7 +118,6 @@ export default function AdminSpots() {
   // A "Show in table" waiting for its row to be on the page.
   const pendingShow = useRef(null)
   const [showTick, setShowTick] = useState(0)
-  const [logging, setLogging] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -275,17 +272,6 @@ export default function AdminSpots() {
     setRefreshFailed(!ok)
   }
 
-  // The Log an outing sheet saved: the page says so, and the table is read
-  // again (a new place is a new row; a saved one has a new last visit).
-  async function outingSaved({ spot, created }) {
-    setError(null)
-    setNewId(null)
-    setMarkedId(null)
-    setNotice(outings.saved(spot.name, created))
-    const ok = await rereadSpots(spot.id)
-    setRefreshFailed(!ok)
-  }
-
   async function retryRefresh() {
     const ok = await rereadSpots()
     setRefreshFailed(!ok)
@@ -405,13 +391,6 @@ export default function AdminSpots() {
       >
         <button
           type="button"
-          className="btn primary"
-          onClick={() => setLogging(true)}
-        >
-          {outings.open}
-        </button>
-        <button
-          type="button"
           className="btn"
           onClick={(event) => openForm(event, 'new')}
           disabled={editing === 'new'}
@@ -419,12 +398,6 @@ export default function AdminSpots() {
           {denver.admin.add}
         </button>
       </AdminPageHeader>
-      <LogOutingSheet
-        open={logging}
-        onClose={() => setLogging(false)}
-        onSaved={outingSaved}
-        onMaybeSaved={() => rereadSpots()}
-      />
 
       {error && (
         <p className="admin-error" role="alert">

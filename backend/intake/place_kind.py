@@ -100,17 +100,6 @@ def clean_position(lat: Any, lng: Any) -> tuple[float, float]:
     )
 
 
-def check_source_id(source_id: Any) -> None:
-    """Raises ValueError unless `source_id` looks like way/123 (the one rule
-    for a chosen search result and for an outing's new place)."""
-    if (
-        not isinstance(source_id, str)
-        or len(source_id) > SOURCE_ID_MAX
-        or not SOURCE_ID.fullmatch(source_id)
-    ):
-        raise ValueError("A chosen place's source_id must look like way/123")
-
-
 def clean_chosen(hit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """`(payload part, chosen)` for a search result the client sent back.
 
@@ -125,7 +114,12 @@ def clean_chosen(hit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     source_id = hit.get("source_id")
     url = None
     if source_id is not None:
-        check_source_id(source_id)
+        if (
+            not isinstance(source_id, str)
+            or len(source_id) > SOURCE_ID_MAX
+            or not SOURCE_ID.fullmatch(source_id)
+        ):
+            raise ValueError("A chosen place's source_id must look like way/123")
         url = f"https://www.openstreetmap.org/{source_id}"
     chosen = {
         "source": "osm",

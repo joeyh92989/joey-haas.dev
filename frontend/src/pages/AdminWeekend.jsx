@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import LoadState from '../components/LoadState.jsx'
-import LogOutingSheet from '../components/LogOutingSheet.jsx'
 import Panel from '../components/Panel.jsx'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
-import { outings } from '../content/outings.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { formatDate } from '../lib/formatDate.js'
 import { whenWords } from '../lib/nightly.js'
@@ -204,7 +203,6 @@ export default function AdminWeekend() {
   const [skipped, setSkipped] = useState(null)
   const [visited, setVisited] = useState(() => new Set())
   const [editing, setEditing] = useState(false)
-  const [logging, setLogging] = useState(false)
   const undoButton = useRef(null)
   const editButton = useRef(null)
   const wasEditing = useRef(false)
@@ -478,24 +476,10 @@ export default function AdminWeekend() {
         </div>
       )}
 
-      <LogOutingSheet
-        open={logging}
-        onClose={() => setLogging(false)}
-        onSaved={again}
-        onMaybeSaved={again}
-      />
       <div className="wk-foot">
         <Panel
           title={copy.visitsTitle}
-          action={
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setLogging(true)}
-            >
-              {outings.open}
-            </button>
-          }
+          action={<Link to="/admin/spots">{copy.logVisit}</Link>}
         >
           {plan.recent_visits.length ? (
             <ul className="wk-visits">
