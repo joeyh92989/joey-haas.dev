@@ -14,7 +14,12 @@ const AUTH_FILE = 'e2e/.auth/admin.json'
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['admin.setup.js', 'admin.spec.js', 'admin-closet.spec.js'],
+  testMatch: [
+    'admin.setup.js',
+    'admin.spec.js',
+    'admin-closet.spec.js',
+    'admin-denver-site.spec.js',
+  ],
   forbidOnly: !!process.env.CI,
   reporter: [
     ['list'],
@@ -25,7 +30,11 @@ export default defineConfig({
     { name: 'setup', testMatch: 'admin.setup.js' },
     {
       name: 'desktop',
-      testMatch: ['admin.spec.js', 'admin-closet.spec.js'],
+      testMatch: [
+        'admin.spec.js',
+        'admin-closet.spec.js',
+        'admin-denver-site.spec.js',
+      ],
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
     },
