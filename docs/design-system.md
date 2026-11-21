@@ -27,7 +27,7 @@ The Tailwind v4 and shadcn/ui build setup (layers, adding a component) is in
 | **List** | Many things of one type: Games, Comics, a Year in review | Area band (`SpineHeader`) · page header (`PageHeader`, no trail) · figures (`StatTile` row) · search and links · labelled filters (`FilterChips labelled`) and sort · result bar (`ResultBar`) · the grid (`PosterGrid`) · overview · empty or error state | Full |
 | **Detail** | One thing: a game, a comic series | Breadcrumb · detail head (cover beside `PageHeader`'s title and facts) · sections as `item-card` panels · source attribution | Full, sections at reading width |
 | **Sub-detail** | One part of a detail: a comic issue or edition | Breadcrumb · detail head · description with its source · neighbours (`NeighbourStrip`) | Full, text at reading width |
-| **Tool** | Something you use: Daily game, Pick for me, the admin pages | Not yet ruled | — |
+| **Tool** | Something you use: Daily game, Pick for me, Denver, the admin pages | Area band where the page has one · page header (`PageHeader`; a kicker may carry the day) · the tool's one `Card` holding its controls and its result · the result's buttons (`Button`, one primary) · a muted status line. See [Charts and tools](#charts-and-tools) | Reading for a game, full for a map |
 | **Prose** | Something you read: posts, TIL, About, Colophon | The page's own `h1` (title, optional lede), then the text. See [Prose pages](#prose-pages) | Reading |
 
 A list page has no breadcrumb: the area band's tabs are its way around. A
@@ -140,6 +140,34 @@ says so in a status line under the thing changed (`role="status"`, the same
 line each time, not a toast), with Undo beside it, which posts the previous
 state back. A refusal replaces the line with the server's own words and
 leaves the control as it was. Nothing asks first: Undo is the safety.
+
+## Charts and tools
+
+(#534, 21 Nov 2026.) The site's charts are hand-built bars, not the shadcn
+Chart: Chart is recharts, a new runtime dependency and a bundle cost for four
+bar rows, with no behaviour the bars lack. The rules below keep them measured.
+
+- **A bar is a track and a fill.** The track (`.bar-list-track`, `.tour-bar`,
+  `.pick-term-bar`) is `--sunken` with a 1px `--line-card` outline, which is a
+  3:1 mark on the card; the fill is `--chart` (3:1 or better on the track in
+  both themes), or `--accent` for a score meter. The day chart's bars are
+  `--chart` on the card. `contrast.test.js` holds every pair.
+- **A chart's words are text tokens**: labels and numbers in `--text` or
+  `--text-2`, never `--chart` as text, and never faded with `opacity`. A bar is
+  `aria-hidden` and the number beside it carries the value; a chart with no
+  numbers on it says its peak in words (`DayBars`).
+- **A chart sits in a `Card`**; ranked lists share one card each, with
+  `--line-card` rules between rows. A changelog day is a `Card` too, its date
+  the mono label.
+- **The Daily game's cells** keep their three states: match is
+  `--accent-ink` on `--status-active` (text, 4.5:1), close is a `--warn` ring on
+  the card (a 3:1 mark), no is the plain cell in `--text-2`; the hidden state
+  word in each cell carries the same for a screen reader. `contrast.test.js`
+  measures all three in both themes.
+- **A choice is a chip**: a toggle is `Button variant="chip"` with
+  `aria-pressed`; a radio drawn as a chip keeps its native input, visually
+  hidden, and its label carries the chip look, the checked bar (`data-checked`)
+  and the focus ring (`has-focus-visible`). A chip row has a visible label.
 
 ## Experience timeline
 

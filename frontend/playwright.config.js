@@ -21,6 +21,7 @@ export default defineConfig({
     'home.spec.js',
     'prose.spec.js',
     'tour-overflow.spec.js',
+    'tools-data.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
