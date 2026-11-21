@@ -225,7 +225,7 @@ describe('AdminComics', () => {
   it('links a private card to its edit page, not a public page that is not there', async () => {
     stubApi()
     await renderPage()
-    expect(screen.getByRole('link', { name: 'Monstress' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Monstress/ })).toHaveAttribute(
       'href',
       '/admin/shelf/comics/m',
     )
@@ -672,5 +672,78 @@ describe('AdminComics: the title kind and the Books and Single issues chips', ()
       screen.getByRole('button', { name: /^Single issues/ }),
     )
     expect(titles().sort()).toEqual(['Harbor Lights', 'Paper Moons'])
+  })
+})
+
+// The design-system look (#532, slice b).
+describe('AdminComics look (#532 b)', () => {
+  const RING = 'focus-visible:outline-solid'
+  const PHONE_TARGET = 'max-[700px]:min-h-11'
+
+  it('draws each series as a record card numbered over the whole shelf', async () => {
+    stubApi()
+    await renderPage()
+    const number = (title) =>
+      within(
+        screen
+          .getByText(title, { selector: '.poster-grid .poster-title' })
+          .closest('.poster-card'),
+      ).getByText(/^No\. \d{3}$/).textContent
+    // Both were added at the same moment: the id breaks the tie.
+    expect(number('Monstress')).toBe('No. 001')
+    expect(number('Saga')).toBe('No. 002')
+  })
+
+  it('keeps the owner controls beside the card link, never inside it', async () => {
+    stubApi()
+    await renderPage()
+    const saga = screen
+      .getByText('Saga', { selector: '.poster-grid .poster-title' })
+      .closest('.poster-card')
+    expect(
+      saga.querySelector('a.poster-link').querySelector('button, input'),
+    ).toBeNull()
+    expect(
+      within(saga).getByRole('group', { name: 'Actions for Saga' }),
+    ).toBeInTheDocument()
+  })
+
+  it('draws the header actions as buttons with a ring and a phone target', async () => {
+    stubApi()
+    await renderPage()
+    const header = screen.getByRole('heading', { level: 1 }).parentElement
+      .parentElement
+    const controls = [
+      within(header).getByRole('link', { name: adminCopy.comics.addComics }),
+      within(header).getByRole('button', { name: adminCopy.comics.hideAll }),
+      within(header).getByRole('button', {
+        name: adminCopy.comics.refreshMetadata,
+      }),
+    ]
+    for (const control of controls) {
+      expect(control.className, control.outerHTML).toContain(RING)
+      expect(control.className, control.outerHTML).toContain(PHONE_TARGET)
+      expect(control).not.toHaveClass('btn')
+    }
+  })
+
+  it('draws Follow with a filled pressed state and a phone target', async () => {
+    stubApi()
+    await renderPage()
+    const follow = within(
+      screen
+        .getByText('Saga', { selector: '.poster-grid .poster-title' })
+        .closest('.poster-card'),
+    ).getByRole('button', { name: adminCopy.comics.follow })
+    expect(follow).toHaveAttribute('aria-pressed', 'true')
+    expect(follow.className).toContain('aria-pressed:bg-foreground')
+    expect(follow.className).toContain('aria-pressed:font-semibold')
+    expect(follow.className).toContain(PHONE_TARGET)
+  })
+
+  it('searches with the shared Input', async () => {
+    stubApi()
+    await renderPage()
+    expect(screen.getByRole('searchbox')).toHaveAttribute('data-slot', 'input')
   })
 })

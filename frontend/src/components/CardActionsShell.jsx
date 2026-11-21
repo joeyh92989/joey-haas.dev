@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
+import { Button } from './ui/button.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 
 /**
@@ -43,17 +44,18 @@ export default function CardActionsShell({
 
   return (
     <div className={classes} data-mode="sheet">
-      <button
+      <Button
         ref={toggle}
-        type="button"
-        className="shelf-actions-toggle"
+        variant="outline"
+        size="icon-sm"
+        className="rounded-full max-[700px]:size-11"
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? sheetId : undefined}
         onClick={() => setOpen((current) => !current)}
       >
         <span aria-hidden="true">…</span>
-      </button>
+      </Button>
       <Sheet
         open={open}
         onClose={() => setOpen(false)}

@@ -22,6 +22,8 @@ import ConfirmDelete from './ConfirmDelete.jsx'
  *   to three titles and the totals.
  * @param {string} [props.label]  The first button's words (default Delete / Redo).
  * @param {string} [props.className]
+ * @param {{confirm?: string, keep?: string}} [props.armedClassName]  The
+ *   armed buttons' classes, as ConfirmDelete takes them.
  * @param {{load: (ids: string[]) => Promise<Response>, describe: (preview: object) => string}} [props.source]
  *   Another route's preview and its words, for rows that are not items (a
  *   comic's book). Without it the items preview and `deleteDetail` are used.
@@ -36,6 +38,7 @@ export default function ShelfConfirm({
   many = false,
   label,
   className,
+  armedClassName,
   source,
   onConfirm,
 }) {
@@ -50,6 +53,7 @@ export default function ShelfConfirm({
     <ConfirmDelete
       subject={title}
       className={className}
+      armedClassName={armedClassName}
       label={label ?? (redo ? 'Redo' : 'Delete')}
       name={`${redo ? 'Redo' : 'Delete'} ${title}`}
       confirmLabel={redo ? 'Yes, redo' : 'Delete for good'}

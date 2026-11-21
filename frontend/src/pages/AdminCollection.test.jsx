@@ -11,6 +11,7 @@ import {
 } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { adminCopy } from '../content/adminCopy.js'
+import { spine } from '../content/spine.js'
 import { localToday } from '../lib/statusMoves.js'
 import { ownerYear } from '../lib/formatDate.js'
 import AdminCollection from './AdminCollection.jsx'
@@ -1735,5 +1736,109 @@ describe('AdminCollection add form feedback (#489)', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('')
     expect(screen.getByLabelText('Owned format')).toHaveValue('')
     await waitFor(() => expect(refreshItems).toHaveBeenCalled())
+  })
+})
+
+// The design-system look (#532, slice b): numbered record cards, the shared
+// primitives for the header and nudge controls, and the Input for search.
+describe('AdminCollection look (#532 b)', () => {
+  const RING = 'focus-visible:outline-solid'
+  const PHONE_TARGET = 'max-[700px]:min-h-11'
+
+  it('draws each game as a record card numbered over the whole shelf', async () => {
+    stubApi()
+    await renderShelf()
+    // Oldest first over every row, private included: Star Fox is No. 001.
+    const strips = (title) => card(title).getByText(/^No\. \d{3}$/).textContent
+    expect(strips('Star Fox')).toBe('No. 001')
+    expect(strips('Dune')).toBe('No. 002')
+    const fox = document.querySelector('.poster-card')
+    expect(fox.querySelector('[data-strip]')).not.toBeNull()
+  })
+
+  it('keeps the owner controls beside the card link, never inside it', async () => {
+    stubApi()
+    await renderShelf()
+    const fox = screen
+      .getByText('Star Fox', { selector: '.poster-grid .poster-title' })
+      .closest('.poster-card')
+    const link = fox.querySelector('a.poster-link')
+    expect(link.querySelector('button, select, input')).toBeNull()
+    expect(
+      within(fox).getByRole('group', { name: 'Actions for Star Fox' }),
+    ).toBeInTheDocument()
+    expect(within(fox).getByText('Private')).toBeInTheDocument()
+  })
+
+  it('draws the header actions as buttons with a ring and a phone target', async () => {
+    stubApi()
+    await renderShelf()
+    const header = screen.getByRole('heading', { level: 1 }).parentElement
+      .parentElement
+    const controls = [
+      within(header).getByRole('link', { name: adminCopy.collection.addGames }),
+      within(header).getByRole('button', {
+        name: adminCopy.collection.hideAll,
+      }),
+      within(header).getByRole('button', { name: 'Refresh game metadata' }),
+      within(header).getByRole('button', { name: 'Publish all 2' }),
+    ]
+    for (const control of controls) {
+      expect(control.className, control.outerHTML).toContain(RING)
+      expect(control.className, control.outerHTML).toContain(PHONE_TARGET)
+      expect(control).not.toHaveClass('btn')
+    }
+  })
+
+  it('marks the pressed view with a fill and weight, not colour alone', async () => {
+    stubApi()
+    await renderShelf()
+    const shelf = screen.getByRole('button', { name: 'Shelf' })
+    expect(shelf).toHaveAttribute('aria-pressed', 'true')
+    expect(shelf.className).toContain('aria-pressed:bg-foreground')
+    expect(shelf.className).toContain('aria-pressed:font-semibold')
+    expect(shelf.className).toContain(PHONE_TARGET)
+  })
+
+  it('searches with the shared Input', async () => {
+    stubApi()
+    await renderShelf()
+    const search = screen.getByRole('searchbox', { name: spine.games.search })
+    expect(search).toHaveAttribute('data-slot', 'input')
+  })
+
+  it('labels the filter rows like the public shelf', async () => {
+    stubApi()
+    await renderShelf()
+    expect(document.querySelector('.chip-rows-labelled')).not.toBeNull()
+    expect(screen.getAllByText('Sort').length).toBeGreaterThan(0)
+  })
+
+  it('draws the nudge buttons from the primitives', async () => {
+    stubApi({
+      items: [
+        ...ITEMS,
+        ...[1, 2, 3].map((n) => ({
+          ...ITEMS[0],
+          id: `u${n}`,
+          title: `Unrated ${n}`,
+          status: 'finished',
+          rating: null,
+        })),
+      ],
+    })
+    await renderShelf()
+    const show = screen.getByRole('button', {
+      name: adminCopy.collection.showThem,
+    })
+    const dismiss = screen.getByRole('button', {
+      name: adminCopy.collection.dismiss,
+    })
+    for (const control of [show, dismiss]) {
+      expect(control.className).toContain(RING)
+      expect(control.className).toContain(PHONE_TARGET)
+      expect(control).not.toHaveClass('chip')
+      expect(control).not.toHaveClass('link-button')
+    }
   })
 })

@@ -12,6 +12,17 @@ import PosterGrid from '../components/PosterGrid.jsx'
 import ResultBar from '../components/ResultBar.jsx'
 import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
+import { Button } from '../components/ui/button.jsx'
+import { Input } from '../components/ui/input.jsx'
+import {
+  ACTION,
+  ARMED,
+  CHECKBOX,
+  DANGER,
+  PHONE_TARGET,
+  TOGGLE,
+} from '../components/adminShelfClasses.js'
+import { catalogueNumbers } from '../lib/catalogue.js'
 import { RunKey } from '../components/RunLanes.jsx'
 import SortControl from '../components/SortControl.jsx'
 import { publishAllDetail } from '../content/shelfPublish.js'
@@ -144,18 +155,20 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
     >
       <div className="comic-actions">
         {row.external_source === 'comicvine' && (
-          <button
-            type="button"
-            className="chip"
+          <Button
+            variant="chip"
+            size="chip"
+            className={TOGGLE}
             aria-pressed={row.following}
             onClick={() => onFollow(row, !row.following)}
           >
             {adminCopy.comics.follow}
-          </button>
+          </Button>
         )}
-        <label>
+        <label className="inline-flex items-center gap-1 max-[700px]:min-h-11">
           <input
             type="checkbox"
+            className={CHECKBOX}
             checked={row.is_public}
             aria-label={`Public: ${row.title}`}
             onChange={(event) => onPublish(row, event.target.checked)}
@@ -178,13 +191,15 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
           mode="redo"
           ids={[row.item_id]}
           title={row.title}
-          className="shelf-pin"
+          className={ACTION}
+          armedClassName={ARMED}
           onConfirm={() => onRedo(row)}
         />
         <ShelfConfirm
           ids={[row.item_id]}
           title={row.title}
-          className="shelf-pin shelf-delete"
+          className={DANGER}
+          armedClassName={ARMED}
           onConfirm={() => onDelete(row)}
         />
       </div>
@@ -403,13 +418,20 @@ export default function AdminComics() {
       <Link to={copy.path}>
         View {copy.path} <span aria-hidden="true">↗</span>
       </Link>
-      <Link to="/admin/collection/add" className="btn sm">
+      <Button
+        variant="outline"
+        size="sm"
+        className={PHONE_TARGET}
+        nativeButton={false}
+        render={<Link to="/admin/collection/add" />}
+      >
         {adminCopy.comics.addComics}
-      </Link>
+      </Button>
       {ready && (
         <>
           <ConfirmDelete
-            className="btn sm"
+            className={ACTION}
+            armedClassName={ARMED}
             label={`Publish all ${rows.length}`}
             subject={`${rows.length} comic series`}
             name={`Publish all ${rows.length}`}
@@ -422,24 +444,26 @@ export default function AdminComics() {
             disabled={busy || publicCount === rows.length}
             onConfirm={() => setAllVisibility(true)}
           />
-          <button
-            type="button"
-            className="btn sm"
+          <Button
+            variant="outline"
+            size="sm"
+            className={PHONE_TARGET}
             disabled={busy || publicCount === 0}
             onClick={() => setAllVisibility(false)}
           >
             {adminCopy.comics.hideAll}
-          </button>
-          <button
-            type="button"
-            className="btn sm"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={PHONE_TARGET}
             disabled={refreshing}
             onClick={refreshMetadata}
           >
             {refreshing
               ? adminCopy.comics.refreshing
               : adminCopy.comics.refreshMetadata}
-          </button>
+          </Button>
         </>
       )}
     </AdminPageHeader>
@@ -512,6 +536,9 @@ export default function AdminComics() {
     chip !== 'all' ||
     publisher !== null ||
     hasTagFilter('comic', picked)
+  // Numbered over every series, private included, so a filter never
+  // renumbers; a number here can differ from the same series' public one.
+  const numbers = catalogueNumbers(rows, (row) => row.item_id)
   const publishers = publishersByCount(rows)
   const publisherOptions =
     publisher && !publishers.some((entry) => entry.publisher === publisher)
@@ -594,7 +621,7 @@ export default function AdminComics() {
       <div className="shelf-top">
         <label className="shelf-search">
           <span className="visually-hidden">{copy.search}</span>
-          <input
+          <Input
             type="search"
             placeholder={copy.search}
             value={query}
@@ -671,6 +698,7 @@ export default function AdminComics() {
                     ? itemPath(item.id)
                     : `/admin/shelf/comics/${item.id}`
                 }
+                number={numbers.get(item.id)}
                 stacked
                 run={<ComicCardRun row={item.row} />}
                 statusLabels={copy.status}

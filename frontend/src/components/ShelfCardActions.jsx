@@ -3,6 +3,21 @@ import { playMove, statusMoves } from '../lib/statusMoves.js'
 import CardActionsShell from './CardActionsShell.jsx'
 import QuickRate from './QuickRate.jsx'
 import ShelfConfirm from './ShelfConfirm.jsx'
+import { Button } from './ui/button.jsx'
+import {
+  ACTION,
+  ARMED,
+  CHECKBOX,
+  DANGER,
+  PHONE_TARGET,
+  SELECT,
+  TOGGLE,
+} from './adminShelfClasses.js'
+
+// A heart: 32px on a pointer, 44px on a phone. Pressed is the filled glyph
+// (not colour alone), in the rating colour. aria-disabled stays focusable.
+const FAVORITE =
+  'text-muted-foreground aria-pressed:text-[var(--rating)] aria-disabled:cursor-not-allowed aria-disabled:opacity-40 max-[700px]:size-11'
 
 /**
  * The admin controls on one shelf card: quick rate, the one-tap move to
@@ -57,33 +72,37 @@ export default function ShelfCardActions({
         {/* The same move as the status menu's Playing entry, one tap away;
             the server decides what it records. */}
         {play && (
-          <button
-            type="button"
-            className="shelf-play"
+          <Button
+            size="sm"
+            className={PHONE_TARGET}
             aria-label={play.name}
             title={play.hint ?? undefined}
             onClick={() => onStatus(item, 'active')}
           >
             {play.label}
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          className="shelf-favourite"
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={FAVORITE}
           aria-pressed={Boolean(item.favorite)}
           aria-label="Favorite"
           aria-disabled={blocked || undefined}
           aria-describedby={blocked ? fullNoteId : undefined}
           onClick={() => onFavorite(item, !item.favorite)}
         >
-          <span aria-hidden="true">{item.favorite ? '♥' : '♡'}</span>
-        </button>
+          <span aria-hidden="true" className="text-base">
+            {item.favorite ? '♥' : '♡'}
+          </span>
+        </Button>
         {blocked && (
           <span id={fullNoteId} className="visually-hidden">
             Four favorites already set. Remove one first.
           </span>
         )}
         <select
+          className={SELECT}
           aria-label={`Status for ${item.title}`}
           value={item.status}
           onChange={(event) => onStatus(item, event.target.value)}
@@ -94,9 +113,10 @@ export default function ShelfCardActions({
             </option>
           ))}
         </select>
-        <label className="shelf-publish">
+        <label className="inline-flex items-center gap-1 text-xs text-muted-foreground max-[700px]:min-h-11">
           <input
             type="checkbox"
+            className={CHECKBOX}
             checked={item.is_public}
             aria-label={`Public: ${item.title}`}
             onChange={(event) => onPublish(item, event.target.checked)}
@@ -104,14 +124,15 @@ export default function ShelfCardActions({
           <span aria-hidden="true">Public</span>
         </label>
         {item.owned_format !== 'none' && (
-          <button
-            type="button"
-            className="shelf-pin"
+          <Button
+            variant="chip"
+            size="chip"
+            className={TOGGLE}
             aria-pressed={Boolean(item.pinned_at)}
             onClick={() => onPin(item, !item.pinned_at)}
           >
             Up next
-          </button>
+          </Button>
         )}
       </div>
       {(onRedo || onDelete) && (
@@ -121,7 +142,8 @@ export default function ShelfCardActions({
               mode="redo"
               ids={[item.id]}
               title={item.title}
-              className="shelf-pin"
+              className={ACTION}
+              armedClassName={ARMED}
               onConfirm={() => onRedo(item)}
             />
           )}
@@ -129,7 +151,8 @@ export default function ShelfCardActions({
             <ShelfConfirm
               ids={[item.id]}
               title={item.title}
-              className="shelf-pin shelf-delete"
+              className={DANGER}
+              armedClassName={ARMED}
               onConfirm={() => onDelete(item)}
             />
           )}

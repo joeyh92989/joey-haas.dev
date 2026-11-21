@@ -1620,8 +1620,9 @@ footer {
 }
 
 /* Header links reach the 24px floor (WCAG 2.5.8, #505): inline-block
-   keeps the space before an arrow, which inline-flex would drop. */
-.admin-head-end a:not(.btn) {
+   keeps the space before an arrow, which inline-flex would drop. A Button
+   drawn as a link (data-slot) has its own box and target. */
+.admin-head-end a:not(.btn):not([data-slot='button']) {
   display: inline-block;
   min-height: 1.5rem;
   padding-block: var(--space-1);
@@ -4912,98 +4913,6 @@ a.month-bar::before {
   margin-top: var(--space-1);
 }
 
-.shelf-actions-row select {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-12);
-  max-width: 100%;
-  padding: 0.1rem var(--space-1); /* space-exception: hairline, optical offset */
-}
-
-.shelf-favourite {
-  background: none;
-  border: 0;
-  color: var(--text-3);
-  cursor: pointer;
-  font-size: var(--fs-16);
-  line-height: 1;
-  padding: 0 0.15rem; /* space-exception: hairline, optical offset */
-}
-
-.shelf-favourite[aria-pressed='true'] {
-  color: var(--rating);
-}
-
-/* Four favourites are set. Faded, not removed: it stays focusable so the
-   reason can be heard, and a click explains itself. */
-.shelf-favourite[aria-disabled='true'] {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-/* The one-tap move to Playing: the panel's primary action, so filled. */
-.shelf-play {
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent-ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-12);
-  line-height: 1.2;
-  padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
-}
-
-/* Up next: one game at a time, so pressed reads as a filled pill. */
-.shelf-pin {
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-3);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-12);
-  line-height: 1.2;
-  padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
-  min-height: 1.5rem; /* WCAG 2.5.8 floor (#505) */
-}
-
-.shelf-pin[aria-pressed='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-.shelf-favourite:focus-visible,
-.shelf-play:focus-visible,
-.shelf-pin:focus-visible,
-.shelf-actions-toggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.shelf-publish {
-  align-items: center;
-  color: var(--text-3);
-  display: inline-flex;
-  font-size: var(--fs-12);
-  gap: var(--space-1);
-}
-
-.shelf-actions-toggle {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-  padding: 0.15rem var(--space-2) var(--space-1); /* space-exception: hairline, optical offset */
-}
-
 .shelf-sheet {
   background: var(--surface);
   border-top: 1px solid var(--line);
@@ -5046,10 +4955,6 @@ dialog.shelf-sheet {
   margin-top: var(--space-3);
 }
 
-.shelf-sheet .shelf-favourite {
-  font-size: var(--fs-28);
-}
-
 .shelf-nudge {
   align-items: center;
   background: var(--surface);
@@ -5065,37 +4970,6 @@ dialog.shelf-sheet {
 .shelf-nudge p {
   flex: 1 1 16rem;
   margin: 0;
-}
-
-/* List view: what to set on the selected rows. */
-.bulk-set {
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-4);
-}
-
-.bulk-set label {
-  align-items: center;
-  color: var(--text-3);
-  display: flex;
-  font-size: var(--fs-13);
-  gap: var(--space-2);
-}
-
-.bulk-set select {
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-13);
-  padding: var(--space-1) var(--space-2);
 }
 
 .play-next-status p {
@@ -12242,11 +12116,6 @@ a.btn.sm {
 .shelf-actions-danger {
   border-top: 1px solid var(--line);
   padding-top: var(--space-2);
-}
-
-.shelf-delete {
-  border-color: var(--accent);
-  color: var(--accent-text);
 }
 
 /* The admin comic page, /admin/shelf/comics/:id (comics 5c). */
