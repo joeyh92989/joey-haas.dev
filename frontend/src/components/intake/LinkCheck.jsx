@@ -10,6 +10,7 @@ import {
 } from '../../lib/intake.js'
 import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
+import { ibtn } from '../addClasses.js'
 
 /** The fields a link piece's card edits; size is a choice when the store lists sizes. */
 const LINK_FIELD_KEYS = [
@@ -241,7 +242,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             <span>{words.removeAsk(title)}</span>
             <button
               type="button"
-              className="btn sm"
+              className={ibtn('plain', 'sm')}
               disabled={busy}
               onClick={remove}
             >
@@ -249,7 +250,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             </button>
             <button
               type="button"
-              className="btn sm ghost"
+              className={ibtn('ghost', 'sm')}
               onClick={() => setAsking(false)}
             >
               {words.removeKeep}
@@ -259,7 +260,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           <div className="intake-actions quiet">
             <button
               type="button"
-              className="btn ghost"
+              className={ibtn('ghost')}
               aria-label={`${words.remove}: ${title}`}
               onClick={() => setAsking(true)}
             >

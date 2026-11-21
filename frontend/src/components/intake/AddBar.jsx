@@ -3,6 +3,7 @@ import { isbnIntake } from '../../content/isbnIntake.js'
 import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake as words } from '../../content/seedIntake.js'
 import BarcodeScanner from './BarcodeScanner.jsx'
+import { ibtn } from '../addClasses.js'
 
 /**
  * The add bar's one row: a text field, ▤ Photos and the barcode button.
@@ -71,7 +72,7 @@ export default function AddBar({
         />
         <button
           type="button"
-          className="btn"
+          className={ibtn('plain')}
           aria-label="Add from photos"
           disabled={busy}
           onClick={onPhotos}
@@ -81,7 +82,7 @@ export default function AddBar({
         {onFile && (
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             aria-label={words.buttonLabel}
             disabled={busy}
             onClick={() => filePicker.current?.click()}
@@ -92,7 +93,7 @@ export default function AddBar({
         {onLinks && (
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             aria-label={linkIntake.buttonLabel}
             aria-expanded={linksOpen}
             disabled={busy}
@@ -103,7 +104,7 @@ export default function AddBar({
         )}
         <button
           type="button"
-          className="btn"
+          className={ibtn('plain')}
           disabled={busy || !onScan}
           aria-label={
             onScan ? isbnIntake.barScan : 'Scan a barcode: not available here'

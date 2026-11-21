@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { spine } from '../../content/spine.js'
 import { countText, nearCells } from '../../lib/comicRun.js'
 import CoverImage from '../CoverImage.jsx'
+import { ibtn } from '../addClasses.js'
 
 const PILL = spine.comics.series.pill
 
@@ -180,10 +181,10 @@ export default function SeriesGrewRow({
               onChange={(event) => setDraft(event.target.value)}
             />
             <span className="intake-grow-form-actions">
-              <button type="submit" className="btn primary" disabled={busy}>
+              <button type="submit" className={ibtn('primary')} disabled={busy}>
                 Save issues
               </button>
-              <button type="button" className="btn" onClick={close}>
+              <button type="button" className={ibtn('plain')} onClick={close}>
                 Cancel
               </button>
             </span>
@@ -194,7 +195,7 @@ export default function SeriesGrewRow({
         <button
           ref={editRef}
           type="button"
-          className="btn ghost intake-grow-edit"
+          className={`${ibtn('ghost')} intake-grow-edit`}
           aria-label={`Edit issues of ${title}`}
           onClick={open}
         >
@@ -204,7 +205,7 @@ export default function SeriesGrewRow({
       {onRemove && !editing && (
         <button
           type="button"
-          className="btn ghost sm"
+          className={ibtn('ghost', 'sm')}
           aria-label={`Remove ${title}`}
           disabled={busy}
           onClick={onRemove}

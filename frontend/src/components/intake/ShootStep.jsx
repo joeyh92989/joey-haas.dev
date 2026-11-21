@@ -14,6 +14,8 @@ import {
 } from '../../lib/intakeRemove.js'
 import PhotoTile, { PendingTile } from './PhotoTile.jsx'
 import ShootSearch from './ShootSearch.jsx'
+import { FILE_PICK } from '../closetClasses.js'
+import { ibtn } from '../addClasses.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -255,7 +257,7 @@ export default function ShootStep({
           </p>
         )}
         <div className="intake-drop-actions">
-          <label className="btn primary intake-file">
+          <label className={`${ibtn('primary')} ${FILE_PICK} intake-file`}>
             Take photos
             <input
               type="file"
@@ -266,7 +268,7 @@ export default function ShootStep({
               onChange={picked}
             />
           </label>
-          <label className="btn intake-file">
+          <label className={`${ibtn('plain')} ${FILE_PICK} intake-file`}>
             Choose files
             <input
               type="file"
@@ -279,7 +281,7 @@ export default function ShootStep({
           {!closet && (
             <button
               type="button"
-              className="btn"
+              className={ibtn('plain')}
               aria-expanded={searching}
               onClick={() => setSearching((open) => !open)}
             >
@@ -311,7 +313,11 @@ export default function ShootStep({
             {error}
           </p>
           {readFailed && (
-            <button type="button" className="btn sm" onClick={readAgain}>
+            <button
+              type="button"
+              className={ibtn('plain', 'sm')}
+              onClick={readAgain}
+            >
               Read again
             </button>
           )}
@@ -350,7 +356,7 @@ export default function ShootStep({
               <span>{entryTitle(entry)}</span>
               <button
                 type="button"
-                className="btn sm ghost"
+                className={ibtn('ghost', 'sm')}
                 aria-label={`Remove ${entryTitle(entry)}`}
                 disabled={removing}
                 onClick={() => removeTitle(entry)}
@@ -368,7 +374,7 @@ export default function ShootStep({
         </p>
         <button
           type="button"
-          className="btn primary"
+          className={ibtn('primary')}
           disabled={!ready}
           onClick={onNext}
         >

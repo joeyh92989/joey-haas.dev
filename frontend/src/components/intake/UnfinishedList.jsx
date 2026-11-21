@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { discardAsk } from '../../content/shelfDelete.js'
 import { meterCounts, startedAt } from '../../lib/intake.js'
+import { BOX, ibtn } from '../addClasses.js'
 
 /** A sitting's name on the page; one left unnamed still has one. */
 export function sittingName(sitting) {
@@ -55,7 +56,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
   const [asking, setAsking] = useState(null)
   if (!sittings.length) return <p className="muted">Nothing unfinished</p>
   return (
-    <ul className="intake-unfinished">
+    <ul className={`${BOX} intake-unfinished`}>
       {sittings.map((sitting) => {
         const name = sittingName(sitting)
         const counts = meterCounts(sitting)
@@ -83,7 +84,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
                 <span>{discardAsk(name, sitting)}</span>
                 <button
                   type="button"
-                  className="btn sm"
+                  className={ibtn('danger', 'sm')}
                   onClick={() => {
                     setAsking(null)
                     onDiscard(sitting)
@@ -93,7 +94,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
                 </button>
                 <button
                   type="button"
-                  className="btn sm ghost"
+                  className={ibtn('ghost', 'sm')}
                   onClick={() => setAsking(null)}
                 >
                   Keep it
@@ -102,7 +103,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
             ) : (
               <div className="intake-sitting-actions">
                 <Link
-                  className="btn sm primary"
+                  className={ibtn('primary', 'sm')}
                   to={`${base}/${sitting.id}`}
                   aria-label={`Resume ${name}`}
                 >
@@ -110,7 +111,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
                 </Link>
                 <button
                   type="button"
-                  className="btn sm ghost"
+                  className={ibtn('ghost', 'sm')}
                   aria-label={`Discard ${name}`}
                   onClick={() => setAsking(sitting.id)}
                 >

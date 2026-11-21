@@ -4,6 +4,7 @@ import CoverImage from './CoverImage.jsx'
 import { spine } from '../content/spine.js'
 import { nowPlaying } from '../lib/nowPlaying.js'
 import { dayWords } from '../lib/releaseWords.js'
+import { btn } from './closetClasses.js'
 
 const copy = spine.nowPlaying
 
@@ -53,7 +54,7 @@ export default function NowPlaying({ items, linkFor, onWrapUp }) {
             {onWrapUp && (
               <button
                 type="button"
-                className="btn sm now-playing-wrap"
+                className={`${btn('plain', 'sm')} now-playing-wrap`}
                 onClick={() => onWrapUp(item)}
               >
                 {copy.wrapUp}

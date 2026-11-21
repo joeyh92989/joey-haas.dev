@@ -10,6 +10,8 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import { adminCopy } from '../content/adminCopy.js'
+import { btn, chipBtn } from '../components/closetClasses.js'
+import { CHECKBOX, CHECK_ROW } from '../components/addClasses.js'
 
 const copy = adminCopy.discover
 
@@ -81,8 +83,9 @@ function Choice({ legend, name, options, value, onChange }) {
     <fieldset className="discover-choice">
       <legend>{legend}</legend>
       {options.map(([option, label]) => (
-        <label key={option}>
+        <label key={option} className={CHECK_ROW}>
           <input
+            className={CHECKBOX}
             type="radio"
             name={name}
             value={option}
@@ -250,7 +253,7 @@ export default function AdminDiscover() {
       >
         <button
           type="button"
-          className="btn primary"
+          className={btn('primary')}
           disabled={busy}
           onClick={generate}
         >
@@ -280,7 +283,7 @@ export default function AdminDiscover() {
               <button
                 key={id}
                 type="button"
-                className="chip"
+                className={chipBtn}
                 aria-pressed={platforms.includes(id)}
                 onClick={() => togglePlatform(id)}
               >
@@ -293,8 +296,9 @@ export default function AdminDiscover() {
       </div>
 
       <div className="radar-header">
-        <label>
+        <label className={CHECK_ROW}>
           <input
+            className={CHECKBOX}
             type="checkbox"
             checked={keyCards}
             onChange={(event) => setKeyCards(event.target.checked)}

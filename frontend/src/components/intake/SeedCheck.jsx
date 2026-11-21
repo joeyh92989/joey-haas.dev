@@ -9,6 +9,7 @@ import {
 } from '../../lib/intake.js'
 import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
+import { ibtn } from '../addClasses.js'
 
 /** The photo's state in words, for a piece that has none to show. */
 function noPhotoWords(payload) {
@@ -140,7 +141,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
             <span>{words.dontOwnAsk(title)}</span>
             <button
               type="button"
-              className="btn sm"
+              className={ibtn('plain', 'sm')}
               disabled={busy}
               onClick={notOwned}
             >
@@ -148,7 +149,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
             </button>
             <button
               type="button"
-              className="btn sm ghost"
+              className={ibtn('ghost', 'sm')}
               onClick={() => setAsking(false)}
             >
               {words.dontOwnKeep}
@@ -158,7 +159,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
           <div className="intake-actions quiet">
             <button
               type="button"
-              className="btn ghost"
+              className={ibtn('ghost')}
               aria-label={`${words.dontOwn}: ${title}`}
               onClick={() => setAsking(true)}
             >

@@ -4,6 +4,7 @@ import { isbnIntake as words } from '../../content/isbnIntake.js'
 import { apiFetch } from '../../lib/api.js'
 import { fillRow, foundLine, toIsbn13 } from '../../lib/isbn.js'
 import BarcodeScanner from './BarcodeScanner.jsx'
+import { ibtn } from '../addClasses.js'
 
 const REASONS = {
   not_found: words.notFound,
@@ -97,7 +98,7 @@ export default function IsbnField({ row, name, onChange }) {
       />
       <button
         type="button"
-        className="btn sm"
+        className={ibtn('plain', 'sm')}
         aria-label={`Look up the ISBN, ${name}`}
         disabled={busy || !isbn.trim()}
         onClick={() => lookUp()}
@@ -106,7 +107,7 @@ export default function IsbnField({ row, name, onChange }) {
       </button>
       <button
         type="button"
-        className="btn sm"
+        className={ibtn('plain', 'sm')}
         aria-label={`${words.scanLabel}, ${name}`}
         disabled={busy}
         onClick={() => setScanning(true)}

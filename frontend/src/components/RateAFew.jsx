@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
+import { BOX } from './addClasses.js'
+import { btn } from './closetClasses.js'
 import QuickRate from './QuickRate.jsx'
 import { ACTION_ERROR } from '../content/status.js'
 
@@ -97,7 +99,7 @@ export default function RateAFew({ items, onRated }) {
   }
 
   return (
-    <section className="rate-a-few" aria-labelledby="rate-a-few-title">
+    <section className={`${BOX} rate-a-few`} aria-labelledby="rate-a-few-title">
       <h2 id="rate-a-few-title">Rate a few</h2>
       <p className="muted">
         You finished these but never rated them. Each rating sharpens what
@@ -144,11 +146,15 @@ export default function RateAFew({ items, onRated }) {
       </table>
       <div className="rate-a-few-actions">
         {more && (
-          <button type="button" onClick={nextFew}>
+          <button
+            type="button"
+            className={btn('plain', 'sm')}
+            onClick={nextFew}
+          >
             Next few
           </button>
         )}
-        <button type="button" onClick={notNow}>
+        <button type="button" className={btn('plain', 'sm')} onClick={notNow}>
           Not now
         </button>
       </div>

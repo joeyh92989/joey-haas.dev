@@ -2095,12 +2095,9 @@ footer {
   margin-bottom: var(--space-5);
 }
 
+/* The tile's card surface, ring and hover come from TILE (addClasses.js). */
 .intake-kind {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   color: var(--text);
-  cursor: pointer;
   display: grid;
   font: inherit;
   gap: 0.15rem; /* space-exception: hairline, optical offset */
@@ -2113,20 +2110,6 @@ footer {
 .intake-kind > span {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.intake-kind:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.intake-kind:focus-visible,
-.intake-file:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.intake-kind:disabled {
-  cursor: not-allowed;
 }
 
 .intake-kind-name {
@@ -2144,10 +2127,8 @@ footer {
   margin-top: var(--space-1);
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .intake-unfinished {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   list-style: none;
   margin: 0;
   padding: 0 var(--space-4);
@@ -3004,11 +2985,10 @@ footer {
   gap: var(--space-2);
 }
 
+/* .intake-resume takes its surface from BOX (addClasses.js). */
 .intake-resume,
 .intake-waiting {
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
@@ -3018,12 +2998,10 @@ footer {
   padding: var(--space-2) var(--space-4);
 }
 
-.intake-resume {
-  background: var(--surface);
-}
-
 .intake-waiting {
   background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   margin-bottom: var(--space-4);
 }
 
@@ -3164,19 +3142,7 @@ footer {
 
 /* The shell's phone layout (PHONE_QUERY in AdminShell.jsx). */
 @media (max-width: 900px) {
-  .intake-addbar .btn,
-  .intake-drawer .btn,
-  .intake-waiting .btn,
-  .intake-resume .btn,
-  .intake-result .btn,
-  .intake-typed .btn,
-  .intake-garment-check .btn {
-    align-items: center;
-    display: inline-flex;
-    justify-content: center;
-    min-height: 2.75rem;
-  }
-
+  /* The intake buttons say their own 44px (ibtn in addClasses.js). */
   .intake-result {
     grid-template-columns: 1.9rem minmax(0, 1fr) auto;
   }
@@ -3190,7 +3156,7 @@ footer {
     grid-row: 2;
   }
 
-  .intake-result > .btn {
+  .intake-result > :is(button, a) {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
@@ -3240,17 +3206,8 @@ footer {
   }
 
   /* Touch targets of at least 44px. */
-  .intake-step .btn,
-  .intake-kind,
-  .intake-sitting-actions .btn,
   .intake-option {
     min-height: 2.75rem;
-  }
-
-  .intake-step .btn {
-    align-items: center;
-    display: inline-flex;
-    justify-content: center;
   }
 }
 
@@ -3277,7 +3234,6 @@ footer {
 }
 
 @media (max-width: 900px) {
-  .intake-shootsearch .btn,
   .intake-shootsearch input {
     min-height: 2.75rem;
   }
@@ -4628,6 +4584,18 @@ a.month-bar::before {
   outline-offset: 1px;
 }
 
+/* Rate a few is read on a phone: the targets are 44px tall there (ten half
+   stars are 9px wide each, so the width stays as drawn). */
+@media (max-width: 700px) {
+  .rate-a-few .quick-rate-target {
+    height: 2.75rem;
+  }
+
+  .rate-a-few .quick-rate-target span {
+    top: calc((2.75rem - 1.2em) / 2 + 0.05em);
+  }
+}
+
 @media (hover: hover) {
   /* Previews the rating a click would set: every target up to the hovered
      one fills, the rest empty. */
@@ -5614,24 +5582,6 @@ section > .cover-key {
   margin: var(--space-4) 0 var(--space-2);
 }
 
-.radar-header button,
-.radar-actions button {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-2) var(--space-3);
-}
-
-.radar-header button:disabled,
-.radar-actions button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .radar-month {
   font-size: var(--fs-16);
   margin: var(--space-4) 0 var(--space-2);
@@ -5643,14 +5593,12 @@ section > .cover-key {
   gap: var(--grid-gap);
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .radar-card {
   display: grid;
-  grid-template-columns: 5.5rem 1fr;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
   gap: var(--space-3);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
 }
 
 .radar-cover img {
@@ -5732,12 +5680,10 @@ section > .cover-key {
   margin: var(--space-2) 0 0;
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .rate-a-few {
   margin: var(--space-5) 0;
   padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
 }
 
 .rate-a-few h2 {
@@ -5796,18 +5742,8 @@ section > .cover-key {
 
 .rate-a-few-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.rate-a-few-actions button {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-2) var(--space-3);
 }
 
 /* Store list: read on a phone in a store. One column at every width, tap
@@ -8382,33 +8318,8 @@ a.cover-tile-cap:focus-visible span {
   margin: var(--space-5) 0 0;
 }
 
-/* Pull list (/admin/pull-list): What's next's rows, with the store list's
-   buttons. An answered issue stays in place, struck through. */
-.pull-list .next-row-actions button,
-.pull-list .next-row-actions a,
-.pull-list-search-form button {
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: var(--fs-16);
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--space-2) var(--space-4);
-  text-decoration: none;
-}
-
-.pull-list .next-row-actions button[aria-pressed='true'] {
-  border-color: var(--accent);
-}
-
-.pull-list .next-row-actions button:focus-visible,
-.pull-list .next-row-actions a:focus-visible,
-.pull-list-search-form button:focus-visible,
+/* Pull list (/admin/pull-list): What's next's rows. The buttons are drawn by
+   bigBtn (addClasses.js). An answered issue stays in place, struck through. */
 .pull-list .catalogue-progress:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -8441,7 +8352,6 @@ a.cover-tile-cap:focus-visible span {
 
 .pull-list-search-form input {
   flex: 1 1 14rem;
-  min-height: 44px;
 }
 
 /* The comic fields replace the copy fields in both item forms. */

@@ -3,6 +3,7 @@ import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import { comicDetails } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
+import { ibtn } from '../addClasses.js'
 
 const sameCandidate = (a, b) =>
   Boolean(a && b) &&
@@ -178,7 +179,7 @@ export default function CheckOne({
             />
             <button
               type="submit"
-              className="btn"
+              className={ibtn('plain')}
               disabled={searchBusy || !query.trim()}
             >
               Search
@@ -193,7 +194,7 @@ export default function CheckOne({
         <div className="intake-actions">
           <button
             type="button"
-            className="btn primary"
+            className={ibtn('primary')}
             disabled={busy || !choice}
             onClick={() => onAnswer(entry, { state: 'ready', chosen: choice })}
           >
@@ -201,7 +202,7 @@ export default function CheckOne({
           </button>
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             disabled={busy}
             aria-expanded={searching}
             onClick={() => setSearching(true)}
@@ -210,7 +211,7 @@ export default function CheckOne({
           </button>
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             disabled={busy}
             onClick={() => onSkip(entry)}
           >
@@ -220,7 +221,7 @@ export default function CheckOne({
         <div className="intake-actions quiet">
           <button
             type="button"
-            className="btn ghost"
+            className={ibtn('ghost')}
             disabled={busy}
             onClick={() => onAnswer(entry, { state: 'ignored' })}
           >
@@ -228,7 +229,7 @@ export default function CheckOne({
           </button>
           <button
             type="button"
-            className="btn ghost"
+            className={ibtn('ghost')}
             disabled={busy}
             onClick={() => onAnswer(entry, { state: 'typed', chosen: null })}
           >

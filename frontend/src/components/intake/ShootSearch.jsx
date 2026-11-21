@@ -3,6 +3,7 @@ import { apiFetch, errorMessage } from '../../lib/api.js'
 import { WRITTEN_STATES } from '../../lib/intake.js'
 import { live } from '../../lib/intakeRemove.js'
 import AddResults from './AddResults.jsx'
+import { ibtn } from '../addClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -103,7 +104,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <button type="submit" className="btn" disabled={busy}>
+        <button type="submit" className={ibtn('plain')} disabled={busy}>
           Search
         </button>
       </form>

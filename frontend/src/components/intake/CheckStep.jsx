@@ -22,6 +22,7 @@ import SeedCheck from './SeedCheck.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import TypedBooksPreview from './TypedBooksPreview.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
+import { ibtn } from '../addClasses.js'
 
 /**
  * Whether an entry adds to a comic series already on the shelf: settled
@@ -398,12 +399,12 @@ export default function CheckStep({
       <div className="intake-bar">
         {hint && <p className="muted">{hint}</p>}
         <span className="intake-bar-actions">
-          <button type="button" className="btn" onClick={onBack}>
+          <button type="button" className={ibtn('plain')} onClick={onBack}>
             <span aria-hidden="true">←</span> Shoot more
           </button>
           <button
             type="button"
-            className="btn primary"
+            className={ibtn('primary')}
             disabled={nextBusy || numberless > 0}
             onClick={onNext}
           >
