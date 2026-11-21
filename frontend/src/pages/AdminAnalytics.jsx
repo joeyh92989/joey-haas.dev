@@ -3,7 +3,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import BarList from '../components/BarList.jsx'
 import DayBars from '../components/DayBars.jsx'
 import LoadState from '../components/LoadState.jsx'
-import Panel from '../components/Panel.jsx'
+import SectionCard from '../components/SectionCard.jsx'
 import RangeControl from '../components/RangeControl.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { dayLabel, deviceName, referrerName } from '../lib/analytics.js'
@@ -91,7 +91,7 @@ export default function AdminAnalytics() {
     data && (SPAN_WORDS[data.range] ?? `since ${dayLabel(data.start)}`)
 
   return (
-    <section className="analytics" aria-busy={loading}>
+    <section className="analytics grid gap-4" aria-busy={loading}>
       <AdminPageHeader
         title={adminCopy.analytics.title}
         description="Page views on the public site, counted without cookies."
@@ -136,7 +136,7 @@ export default function AdminAnalytics() {
         />
       </StatTiles>
 
-      <Panel
+      <SectionCard
         title={adminCopy.analytics.viewsPerDay}
         action={<span className="kicker">{adminCopy.analytics.utcDays}</span>}
       >
@@ -152,10 +152,10 @@ export default function AdminAnalytics() {
             )}
           />
         )}
-      </Panel>
+      </SectionCard>
 
-      <div className="analytics-two">
-        <Panel
+      <div className="analytics-two grid min-w-0 gap-4 min-[901px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <SectionCard
           title={adminCopy.analytics.pages}
           action={<span className="kicker">{adminCopy.analytics.views}</span>}
         >
@@ -164,9 +164,9 @@ export default function AdminAnalytics() {
           ) : (
             pending
           )}
-        </Panel>
-        <div>
-          <Panel
+        </SectionCard>
+        <div className="grid min-w-0 content-start gap-4">
+          <SectionCard
             title={adminCopy.analytics.referrers}
             action={
               <span className="kicker">{adminCopy.analytics.visitors}</span>
@@ -181,8 +181,8 @@ export default function AdminAnalytics() {
             ) : (
               pending
             )}
-          </Panel>
-          <Panel
+          </SectionCard>
+          <SectionCard
             title={adminCopy.analytics.devices}
             action={<span className="kicker">{adminCopy.analytics.views}</span>}
           >
@@ -195,11 +195,11 @@ export default function AdminAnalytics() {
             ) : (
               pending
             )}
-          </Panel>
+          </SectionCard>
         </div>
       </div>
 
-      <p className="analytics-note">
+      <p className="analytics-note m-0 max-w-180 text-[0.8125rem] text-(color:--text-3)">
         Counted from a cookie-free beacon on each public page; your own
         signed-in visits are left out. A visitor is a hash of the connection
         under a salt that changes at midnight UTC, so one person on two days

@@ -8,6 +8,7 @@ import { badgeVariants } from './components/ui/badge-variants.js'
 import * as shelf from './components/shelf-classes.js'
 import * as detail from './components/detail-classes.js'
 import * as prose from './components/prose-classes.js'
+import * as denverSite from './components/denverSiteClasses.js'
 
 // A class string joined with `cx` or a template has no merge, so two utilities
 // of one family under one variant (`aria-pressed:bg-card` and
@@ -81,6 +82,11 @@ function evaluate(statement) {
     parts.push(mastButton(m[1]))
   }
   for (const m of statement.matchAll(/['"`]([^'"`]*)['"`]/g)) parts.push(m[1])
+  // The Denver and Site helpers (#535): a constant spliced into a template,
+  // `${box} text-sm ...`.
+  for (const m of statement.matchAll(/\$\{(\w+)\}/g)) {
+    if (typeof denverSite[m[1]] === 'string') parts.push(denverSite[m[1]])
+  }
   for (const m of statement.matchAll(/\b([A-Z][A-Z_]{3,})\b/g)) {
     if (typeof CONSTANTS[m[1]] === 'string') parts.push(CONSTANTS[m[1]])
   }
@@ -102,7 +108,12 @@ function joined(text) {
   const lines = text.split('\n')
   const out = []
   lines.forEach((line, i) => {
-    if (!/(buttonVariants|badgeVariants|mastButton)\(/.test(line)) return
+    if (
+      !/(buttonVariants|badgeVariants|mastButton)\(|\$\{(box|field|textarea|pill|checkbox|chipBtn|tagBtn)\}/.test(
+        line,
+      )
+    )
+      return
     let start = i
     while (start > 0 && !/^\s*(const|export|className=|<)/.test(lines[start]))
       start--

@@ -1,3 +1,5 @@
+import { chipBtn } from './denverSiteClasses.js'
+
 /** The ranges the analytics read accepts, in order, with their labels. */
 export const RANGES = [
   ['7d', '7d'],
@@ -15,11 +17,12 @@ export const RANGES = [
  */
 export default function RangeControl({ value, onChange }) {
   return (
-    <div className="range-control" role="group" aria-label="Range">
+    <div className="flex flex-wrap gap-1" role="group" aria-label="Range">
       {RANGES.map(([key, label]) => (
         <button
           key={key}
           type="button"
+          className={chipBtn}
           aria-pressed={value === key}
           onClick={() => {
             if (key !== value) onChange(key)

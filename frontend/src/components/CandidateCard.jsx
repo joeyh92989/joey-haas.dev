@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { denver, tagLabel, TAGS } from '../content/denver.js'
+import { box, btn, pill, tagBtn } from './denverSiteClasses.js'
 
 const copy = denver.finder
 
@@ -34,7 +35,10 @@ export default function CandidateCard({
   }
 
   return (
-    <li className="cand" aria-labelledby={headingId}>
+    <li
+      className={`${box} cand grid gap-2 px-4 py-3`}
+      aria-labelledby={headingId}
+    >
       <div className="cand-h">
         <div>
           <h3 className="cand-name" id={headingId}>
@@ -46,7 +50,7 @@ export default function CandidateCard({
               .join(' · ')}
           </p>
         </div>
-        <span className="cand-src" title={copy.sourceName}>
+        <span className={`${pill} cand-src`} title={copy.sourceName}>
           {copy.source}
         </span>
       </div>
@@ -67,7 +71,7 @@ export default function CandidateCard({
       <div className="cand-acts">
         <button
           type="button"
-          className="btn primary"
+          className={btn('primary')}
           disabled={busy}
           data-candidate-accept={candidate.id}
           onClick={() => onAccept(candidate, tags)}
@@ -77,7 +81,7 @@ export default function CandidateCard({
         </button>
         <button
           type="button"
-          className="btn ghost"
+          className={btn('ghost')}
           disabled={busy}
           onClick={() => onDismiss(candidate)}
         >
@@ -92,7 +96,7 @@ export default function CandidateCard({
             <li key={tag}>
               <button
                 type="button"
-                className="minitag"
+                className={tagBtn}
                 aria-pressed={tags.includes(tag)}
                 disabled={busy}
                 onClick={() => toggle(tag)}

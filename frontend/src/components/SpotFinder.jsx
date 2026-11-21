@@ -5,6 +5,7 @@ import { denver } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { whenWords } from '../lib/nightly.js'
 import EmptyState from './EmptyState.jsx'
+import { box, btn } from './denverSiteClasses.js'
 
 const copy = denver.finder
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
@@ -227,7 +228,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
         )}
         <button
           type="button"
-          className="btn ghost"
+          className={btn('ghost')}
           disabled={busy || state === 'loading'}
           onClick={runNow}
         >
@@ -260,7 +261,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
             ) : (
               <li
                 key={entry.answered.candidate.id}
-                className="tonight-toast cand-toast"
+                className={`${box} cand-toast flex flex-wrap items-center justify-between gap-2 border-dashed px-4 py-3 text-sm`}
               >
                 <span>
                   <strong>{entry.answered.candidate.name}</strong>{' '}
@@ -268,7 +269,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
                 </span>
                 <button
                   type="button"
-                  className="btn ghost"
+                  className={btn('ghost')}
                   disabled={busy}
                   data-candidate-undo={entry.answered.candidate.id}
                   onClick={() => undo(entry)}

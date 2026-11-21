@@ -3,7 +3,14 @@ import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import LoadState from '../components/LoadState.jsx'
-import Panel from '../components/Panel.jsx'
+import SectionCard from '../components/SectionCard.jsx'
+import {
+  btn,
+  checkbox,
+  field,
+  linkBtn,
+  pill,
+} from '../components/denverSiteClasses.js'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
@@ -126,6 +133,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       <label className="wk-check">
         <input
           ref={first}
+          className={checkbox}
           type="checkbox"
           checked={kid}
           onChange={(event) => setKid(event.target.checked)}
@@ -134,6 +142,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       </label>
       <label className="wk-check">
         <input
+          className={checkbox}
           type="checkbox"
           checked={bike}
           onChange={(event) => setBike(event.target.checked)}
@@ -143,6 +152,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       <label className="wk-field">
         {copy.within}
         <input
+          className={`${field} w-24!`}
           type="number"
           min="0.5"
           max="50"
@@ -157,6 +167,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       <label className="wk-field">
         {copy.homeBy}
         <select
+          className={`${field} w-auto!`}
           value={homeBy}
           onChange={(event) => setHomeBy(event.target.value)}
         >
@@ -169,10 +180,10 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
         </select>
       </label>
       <div className="wk-form-acts">
-        <button type="submit" className="btn primary" disabled={busy}>
+        <button type="submit" className={btn('primary')} disabled={busy}>
           {copy.saveConstraints}
         </button>
-        <button type="button" className="btn ghost" onClick={onCancel}>
+        <button type="button" className={btn('ghost')} onClick={onCancel}>
           {copy.cancel}
         </button>
       </div>
@@ -364,7 +375,7 @@ export default function AdminWeekend() {
       >
         <button
           type="button"
-          className="btn ghost"
+          className={btn('ghost')}
           onClick={refresh}
           disabled={busy}
         >
@@ -372,7 +383,7 @@ export default function AdminWeekend() {
         </button>
         <button
           type="button"
-          className="btn"
+          className={btn()}
           onClick={() => setSeed((n) => (n >= MAX_SEED ? 0 : n + 1))}
           disabled={busy}
         >
@@ -390,8 +401,10 @@ export default function AdminWeekend() {
         <span className="visually-hidden">{copy.constraintsTitle}: </span>
         {pills.length ? (
           <ul>
-            {pills.map((pill) => (
-              <li key={pill}>{pill}</li>
+            {pills.map((word) => (
+              <li key={word} className={pill}>
+                {word}
+              </li>
             ))}
           </ul>
         ) : (
@@ -400,7 +413,7 @@ export default function AdminWeekend() {
         <button
           ref={editButton}
           type="button"
-          className="btn ghost sm"
+          className={btn('ghost', 'sm')}
           onClick={() => setEditing(true)}
           disabled={editing}
           aria-expanded={editing}
@@ -425,7 +438,7 @@ export default function AdminWeekend() {
             <button
               ref={undoButton}
               type="button"
-              className="btn ghost sm"
+              className={btn('ghost', 'sm')}
               onClick={() => unskip(skipped)}
               disabled={busy}
             >
@@ -463,7 +476,7 @@ export default function AdminWeekend() {
                 {spot.name}{' '}
                 <button
                   type="button"
-                  className="btn ghost sm"
+                  className={btn('ghost', 'sm')}
                   onClick={() => unskip(spot)}
                   disabled={busy}
                 >
@@ -477,9 +490,13 @@ export default function AdminWeekend() {
       )}
 
       <div className="wk-foot">
-        <Panel
+        <SectionCard
           title={copy.visitsTitle}
-          action={<Link to="/admin/spots">{copy.logVisit}</Link>}
+          action={
+            <Link to="/admin/spots" className={linkBtn}>
+              {copy.logVisit}
+            </Link>
+          }
         >
           {plan.recent_visits.length ? (
             <ul className="wk-visits">
@@ -495,17 +512,17 @@ export default function AdminWeekend() {
           ) : (
             <p className="wk-none">{copy.noVisits}</p>
           )}
-        </Panel>
+        </SectionCard>
         <div id="wk-constraints">
           {editing && (
-            <Panel title={copy.constraintsTitle}>
+            <SectionCard title={copy.constraintsTitle}>
               <ConstraintsForm
                 value={plan.constraints}
                 busy={busy}
                 onSave={saveConstraints}
                 onCancel={() => setEditing(false)}
               />
-            </Panel>
+            </SectionCard>
           )}
         </div>
       </div>

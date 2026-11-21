@@ -1,4 +1,4 @@
-import Panel from './Panel.jsx'
+import SectionCard from './SectionCard.jsx'
 import { StatusText } from './JobStatusRow.jsx'
 import { DAY } from '../lib/formatDate.js'
 
@@ -58,7 +58,7 @@ export default function WeatherPanel({ day, range }) {
         (wet.length ? `; wet ${wet.join(', ')}` : '; dry all day')
 
   return (
-    <Panel
+    <SectionCard
       title={`${day.name} · ${date}`}
       action={
         day.high === null ? null : (
@@ -99,6 +99,6 @@ export default function WeatherPanel({ day, range }) {
           {day.verdict.text}
         </StatusText>
       </p>
-    </Panel>
+    </SectionCard>
   )
 }
