@@ -333,4 +333,38 @@ describe('Denver', () => {
     const { container } = renderPage()
     expect(await axeViolations(container)).toEqual([])
   })
+
+  // #534: chips, cards and tags come from the design system.
+  it('draws the tag chips and a visible label for the row', () => {
+    renderPage()
+    expect(screen.getByText(copy.tagsLabel)).toBeVisible()
+    const group = screen.getByRole('group', { name: copy.tagsLabel })
+    const chips = within(group).getAllByRole('button')
+    expect(chips.length).toBeGreaterThan(1)
+    for (const chip of chips) {
+      expect(chip).toHaveAttribute('data-slot', 'button')
+      expect(chip.className).toMatch(/\bborder-line-card\b/)
+    }
+  })
+
+  it('draws each spot as a card with its tags as badges', () => {
+    renderPage()
+    for (const article of screen.getAllByRole('article')) {
+      expect(article.className).toMatch(/\bbg-card\b/)
+      expect(article.className).toMatch(/\bborder-border\b/)
+    }
+    const [first] = screen.getAllByRole('article')
+    const tags = first.querySelectorAll('[data-slot="badge"]')
+    expect(tags.length).toBe(2)
+  })
+
+  it('draws the phone view toggle as chips', () => {
+    media.phone = true
+    renderPage()
+    media.phone = false
+    const group = screen.getByRole('group', { name: copy.viewLabel })
+    for (const chip of within(group).getAllByRole('button')) {
+      expect(chip).toHaveAttribute('data-slot', 'button')
+    }
+  })
 })

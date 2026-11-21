@@ -11,6 +11,7 @@ import { flaky } from '../lib/flaky.test-util.js'
 import { loadIndex } from '../lib/searchIndex.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import Stats from './Stats.jsx'
+import { buttonVariants } from '../components/ui/button-variants.js'
 
 vi.mock('../lib/useSnapshotThenLive.js', () => ({
   useSnapshotThenLive: vi.fn(),
@@ -311,5 +312,43 @@ describe('Stats', () => {
       'href',
       '/stats',
     )
+  })
+
+  // #534: the charts and the changelog sit in design-system cards, and the
+  // feed link is the outline button.
+  it('draws the day chart and each ranked list in a card', () => {
+    mockStats({ data: BODY })
+    const { container } = renderPage()
+    for (const selector of ['.day-bars', '.bar-list']) {
+      const found = container.querySelectorAll(selector)
+      expect(found.length, selector).toBeGreaterThan(0)
+      for (const node of found) {
+        expect(node.closest('[data-slot="card"]'), selector).not.toBeNull()
+      }
+    }
+    expect(container.querySelectorAll('.bar-list')).toHaveLength(3)
+  })
+
+  it('draws each changelog day as a card, keeping the list and its dates', () => {
+    mockStats({ data: BODY })
+    const { container } = renderPage()
+    const entries = container.querySelectorAll('.changelog > li')
+    expect(entries).toHaveLength(CHANGELOG.length)
+    for (const entry of entries) {
+      expect(entry.querySelector('[data-slot="card"] time')).not.toBeNull()
+    }
+  })
+
+  it('draws the RSS link as the outline button', () => {
+    mockStats({ data: BODY })
+    renderPage()
+    const rss = screen.getByRole('link', { name: 'RSS' })
+    expect(rss).toHaveAttribute('href', '/changelog.xml')
+    for (const token of buttonVariants({ variant: 'outline', size: 'xs' })
+      .split(' ')
+      .filter((c) => /^(border-foreground|h-6|rounded-md)$/.test(c))) {
+      expect(rss.className).toContain(token)
+    }
+    expect(rss.className).toMatch(/\bborder-foreground\b/)
   })
 })

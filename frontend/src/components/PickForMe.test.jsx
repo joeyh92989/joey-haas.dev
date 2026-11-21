@@ -221,4 +221,31 @@ describe('PickForMe', () => {
       screen.getByRole('heading', { name: 'Pick for me' }),
     ).not.toHaveFocus()
   })
+
+  // #534: every choice is a design-system chip.
+  it('draws the mood toggles as chip buttons', () => {
+    renderBand()
+    const cozy = screen.getByRole('button', { name: 'Cozy' })
+    expect(cozy).toHaveAttribute('data-slot', 'button')
+    expect(cozy.className).toMatch(/\bborder-line-card\b/)
+    expect(cozy).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('draws the length radios in the chip look and marks the chosen one', async () => {
+    renderBand()
+    const radio = screen.getByRole('radio', { name: /Any length/ })
+    const label = radio.closest('label')
+    expect(label.className).toMatch(/\bborder-line-card\b/)
+    expect(label.className).toMatch(/data-\[checked=true\]:border-foreground/)
+    await userEvent.click(radio)
+    expect(label).toHaveAttribute('data-checked', 'true')
+  })
+
+  it('draws each result as a card-shelled item with a score meter on a track', async () => {
+    renderBand()
+    await userEvent.click(screen.getByRole('radio', { name: /Any length/ }))
+    const first = screen.getByRole('link', { name: 'Alpha' }).closest('li')
+    expect(first.className).toMatch(/\bborder-l-\[3px\]/)
+    expect(first.querySelector('.pick-term-bar')).not.toBeNull()
+  })
 })

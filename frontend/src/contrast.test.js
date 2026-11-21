@@ -94,6 +94,18 @@ const PAIRS = [
   // .progress i).
   ['--accent', '--sunken', 3],
   ['--status-active', '--sunken', 3],
+  // Chart marks (#534): every bar fill on the --sunken track it grows from.
+  // The track's outline is --line-card against the card it sits in (asserted
+  // below, 3:1 in both themes); it is not measured against the track, where
+  // light --line-card is 2.86 and is not what draws the shape. --chart on
+  // --surface is asserted with the marks below.
+  ['--chart', '--sunken', 3],
+  // The Daily game's cells (#534): the match cell's word on its fill (text,
+  // 4.5), the fill and the close ring as marks on the card (3, below for the
+  // fill; the ring is --warn, also below), and the plain cell's word.
+  ['--accent-ink', '--status-active', 4.5],
+  ['--warn', '--surface', 3],
+  ['--status-active', '--surface', 3],
   // Comic "upcoming" cells: numerals over the hatch's stripe, and the stripe
   // as a mark on the card.
   ['--text', '--hatch-stripe', 4.5],
@@ -139,6 +151,40 @@ describe.each(Object.keys(THEMES))('contrast, %s theme', (theme) => {
 const LIGHT_OWN = block("[data-theme='light']")
 
 describe('theme blocks', () => {
+  /** The declarations of the first rule for `selector` at top level. */
+  function rule(selector) {
+    const at = css.indexOf(`\n${selector} {`)
+    expect(at, selector).toBeGreaterThan(-1)
+    return css.slice(at, css.indexOf('}', at))
+  }
+
+  // #534: a chart's track is --sunken with a --line-card outline, so the fill
+  // is measured against the track (above) and the track against the card.
+  it('draws every bar track on --sunken with a --line-card outline', () => {
+    for (const sel of ['.bar-list-track', '.tour-bar', '.pick-term-bar']) {
+      expect(rule(sel), sel).toMatch(/background:\s*var\(--sunken\)/)
+      expect(rule(sel), sel).toMatch(/border:\s*1px solid var\(--line-card\)/)
+    }
+  })
+
+  it('fills bars with --chart, and the score meter with --accent', () => {
+    expect(rule('.bar-list-fill')).toMatch(/background:\s*var\(--chart\)/)
+    expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
+    expect(rule('.day-bar')).toMatch(/background:\s*var\(--chart\)/)
+  })
+
+  // #534: the Daily game's rules, re-measured on the Archive tokens above.
+  it('keeps the match cell as --accent-ink on --status-active and the close ring as --warn on --surface', () => {
+    const match = rule(".shelfle-cell[data-state='match']")
+    expect(match).toMatch(/background:\s*var\(--status-active\)/)
+    expect(match).toMatch(/color:\s*var\(--accent-ink\)/)
+    const close = rule(".shelfle-cell[data-state='close']")
+    expect(close).toMatch(/background:\s*var\(--surface\)/)
+    expect(close).toMatch(/border-color:\s*var\(--warn\)/)
+    const no = rule(".shelfle-cell[data-state='no']")
+    expect(no).toMatch(/color:\s*var\(--text-2\)/)
+  })
+
   it('the light block declares its own highlighter, not dark’s', () => {
     expect(LIGHT_OWN['--highlight']).toBe('#f3dc6b')
     expect(LIGHT_OWN['--highlight-ink']).toBe('#231f1a')

@@ -384,4 +384,30 @@ describe('Daily', () => {
     getItem.mockRestore()
     setItem.mockRestore()
   })
+
+  // #534: the page's header, board card and stats come from the design system.
+  it('heads the page with the shared PageHeader, the day above the title', async () => {
+    renderPage()
+    const day = await screen.findByText('Day 3 · Nov 12')
+    const h1 = screen.getByRole('heading', { level: 1, name: 'Daily game' })
+    const header = h1.closest('header.page-header')
+    expect(header).not.toBeNull()
+    expect(header).toContainElement(day)
+    expect(
+      day.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(header.querySelector('.daily-lede')).not.toBeNull()
+  })
+
+  it('plays inside one card, and shows the streak as badges', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Day 3 · Nov 12')
+    const card = screen.getByRole('table').closest('[data-slot="card"]')
+    expect(card).not.toBeNull()
+    expect(card).toContainElement(screen.getByRole('combobox'))
+    await guess(user, answer().title)
+    const streak = screen.getByText('Streak')
+    expect(streak.closest('[data-slot="badge"]')).not.toBeNull()
+  })
 })

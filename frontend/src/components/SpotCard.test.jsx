@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { denver } from '../content/denver.js'
 import SpotCard from './SpotCard.jsx'
+import { CARD_SHELL } from './ui/card-classes.js'
 
 const SPOT = {
   name: 'Union Station',
@@ -43,5 +44,19 @@ describe('SpotCard', () => {
     expect(screen.getByText(denver.page.offMap)).toBeInTheDocument()
     fireEvent.click(name)
     expect(onSelect).toHaveBeenCalledTimes(1)
+  })
+
+  it('is a card: the card shell and its tags as badges', () => {
+    render(<SpotCard spot={SPOT} />)
+    const card = screen.getByRole('article')
+    for (const token of CARD_SHELL.split(' ').filter((c) => !c.includes('/'))) {
+      expect(card.className).toContain(token)
+    }
+    expect(card.querySelectorAll('[data-slot="badge"]')).toHaveLength(2)
+  })
+
+  it('marks the selected card with a heavier edge as well as the class', () => {
+    render(<SpotCard spot={SPOT} selected onSelect={() => {}} />)
+    expect(screen.getByRole('article').className).toMatch(/\bborder-l-\[3px\]/)
   })
 })
