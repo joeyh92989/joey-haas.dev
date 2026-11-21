@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { readCss } from './testing/readCss.js'
+import { BAR_FILL, BAR_TRACK, DAY_BAR } from './components/overview-classes.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -169,16 +170,20 @@ describe('theme blocks', () => {
   // #534: a chart's track is --sunken with a --line-card outline, so the fill
   // is measured against the track (above) and the track against the card.
   it('draws every bar track on --sunken with a --line-card outline', () => {
-    for (const sel of ['.bar-list-track', '.tour-bar', '.pick-term-bar']) {
+    // The list track is a class string now (overview-classes.js).
+    expect(BAR_TRACK.split(' ')).toContain('bg-(--sunken)')
+    expect(BAR_TRACK.split(' ')).toContain('border')
+    expect(BAR_TRACK.split(' ')).toContain('border-line-card')
+    for (const sel of ['.tour-bar', '.pick-term-bar']) {
       expect(rule(sel), sel).toMatch(/background:\s*var\(--sunken\)/)
       expect(rule(sel), sel).toMatch(/border:\s*1px solid var\(--line-card\)/)
     }
   })
 
   it('fills bars with --chart, and the score meter with --accent', () => {
-    expect(rule('.bar-list-fill')).toMatch(/background:\s*var\(--chart\)/)
+    expect(BAR_FILL.split(' ')).toContain('bg-chart-1')
     expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
-    expect(rule('.day-bar')).toMatch(/background:\s*var\(--chart\)/)
+    expect(DAY_BAR.split(' ')).toContain('bg-chart-1')
     expect(rule('.pick-term-bar > span')).toMatch(
       /background:\s*var\(--accent\)/,
     )

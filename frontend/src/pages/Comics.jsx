@@ -10,6 +10,24 @@ import {
   STAT_CARD,
   VIEW_LAB,
 } from '../components/shelf-classes.js'
+import { cx } from '../lib/cx.js'
+import {
+  BAR,
+  BARS,
+  BAR_AXIS,
+  BAR_AXIS_MONTHS,
+  BAR_COLUMN,
+  BAR_COUNT_FIGURE,
+  SHELF_STATS,
+  STAT_COUNT,
+  STAT_HEAD,
+  STATUS_BAR,
+  STATUS_LEGEND,
+  STATUS_LEGEND_ITEM,
+  STATUS_SEGMENT,
+  STATUS_SWATCH,
+  statusFill,
+} from '../components/overview-classes.js'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import BarList from '../components/BarList.jsx'
@@ -96,15 +114,17 @@ function RunsCard({ runs, missing }) {
       className={`stat-card stat-runs ${STAT_CARD}`}
       aria-label={copy.cards.runs}
     >
-      <h3>
+      <h3 className={STAT_HEAD}>
         {copy.cards.runs}{' '}
-        <span className="stat-count">{copy.cards.runsMissing(missing)}</span>
+        <span className={cx('stat-count', STAT_COUNT)}>
+          {copy.cards.runsMissing(missing)}
+        </span>
       </h3>
-      <div className="status-bar">
+      <div className={cx('status-bar', STATUS_BAR)}>
         {present.map(({ key, fill }) => (
           <span
             key={key}
-            className="status-segment"
+            className={cx('status-segment', STATUS_SEGMENT, statusFill(fill))}
             data-status={fill}
             role="img"
             aria-label={`${copy.runStates[key]}: ${runs[key]}`}
@@ -112,16 +132,16 @@ function RunsCard({ runs, missing }) {
           />
         ))}
       </div>
-      <ul className="status-legend">
+      <ul className={cx('status-legend', STATUS_LEGEND)}>
         {present.map(({ key, fill }) => (
-          <li key={key}>
+          <li key={key} className={STATUS_LEGEND_ITEM}>
             <span
-              className="status-swatch"
+              className={cx('status-swatch', STATUS_SWATCH, statusFill(fill))}
               data-status={fill}
               aria-hidden="true"
             />
             <span>{copy.runStates[key]}</span>
-            <span className="stat-count">{runs[key]}</span>
+            <span className={cx('stat-count', STAT_COUNT)}>{runs[key]}</span>
           </li>
         ))}
       </ul>
@@ -135,7 +155,7 @@ function PublishersCard({ publishers }) {
       className={`stat-card ${STAT_CARD}`}
       aria-label={copy.cards.publishers}
     >
-      <h3>{copy.cards.publishers}</h3>
+      <h3 className={STAT_HEAD}>{copy.cards.publishers}</h3>
       <BarList
         label={copy.cards.publishers}
         rows={publishers.map(({ publisher, count }) => ({
@@ -155,27 +175,32 @@ function AddedCard({ months }) {
       className={`stat-card stat-finishes ${STAT_CARD}`}
       aria-label={copy.cards.added}
     >
-      <h3>{copy.cards.added}</h3>
-      <div className="bar-column">
-        <div className="month-bars">
+      <h3 className={STAT_HEAD}>{copy.cards.added}</h3>
+      <div className={cx('bar-column', BAR_COLUMN)}>
+        <div className={cx('month-bars', BARS)}>
           {months.map(({ month, count }) => {
             const label = `${MONTH_LABEL.format(monthDate(month))}: ${count} added`
             return (
               <span
                 key={month}
-                className="month-bar"
+                className={cx('month-bar', BAR)}
                 role="img"
                 tabIndex={0}
                 aria-label={label}
                 title={label}
                 style={{ '--share': count / most }}
               >
-                <span className="rating-bar-count">{count}</span>
+                <span className={cx('rating-bar-count', BAR_COUNT_FIGURE)}>
+                  {count}
+                </span>
               </span>
             )
           })}
         </div>
-        <div className="bar-axis bar-axis-months" aria-hidden="true">
+        <div
+          className={cx('bar-axis bar-axis-months', BAR_AXIS, BAR_AXIS_MONTHS)}
+          aria-hidden="true"
+        >
           {months.map(({ month }) => (
             <span key={month}>{MONTH_INITIAL.format(monthDate(month))}</span>
           ))}
@@ -444,7 +469,7 @@ export default function Comics() {
             <h2 id="overview-title" className={SECTION_HEAD}>
               {spine.shelf.overview}
             </h2>
-            <div className="shelf-stats">
+            <div className={cx('shelf-stats', SHELF_STATS)}>
               <RunsCard runs={stats.runs} missing={stats.missing} />
               <StatusBar
                 byStatus={stats.by_status}

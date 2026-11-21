@@ -21,6 +21,17 @@ import {
   PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
+import {
+  BAR,
+  BARS,
+  BARS_BASELINE,
+  BAR_AXIS,
+  BAR_AXIS_CAPPED,
+  BAR_AXIS_MONTHS,
+  BAR_COLUMN,
+  BAR_COUNT_FIGURE,
+  BAR_LINK,
+} from '../components/overview-classes.js'
 import { cn } from '../lib/utils.js'
 import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -179,26 +190,35 @@ export default function YearInReview() {
                 <h2 id="year-months" className={SECTION_H2}>
                   By month
                 </h2>
-                <div className="bar-column year-months">
-                  <div className="month-bars">
+                <div className={cx('bar-column year-months', BAR_COLUMN)}>
+                  <div className={cx('month-bars', BARS, BARS_BASELINE)}>
                     {review.byMonth.map((count, index) => {
                       const month = `${year}-${String(index + 1).padStart(2, '0')}`
                       const label = `${MONTHS[index]} ${year}: ${count} finished${
                         playedMonths.has(month) ? ', played' : ''
                       }`
                       const bar = {
-                        className: 'month-bar',
+                        className: cx('month-bar', BAR),
                         'aria-label': label,
                         title: label,
                         style: { '--share': count / most },
                       }
                       const figure = (
-                        <span className="rating-bar-count">{count}</span>
+                        <span
+                          className={cx('rating-bar-count', BAR_COUNT_FIGURE)}
+                        >
+                          {count}
+                        </span>
                       )
                       // A month with a finish or a session opens its journal
                       // page; an empty one stays a plain mark.
                       return count > 0 || playedMonths.has(month) ? (
-                        <Link key={month} to={monthPath(month)} {...bar}>
+                        <Link
+                          key={month}
+                          to={monthPath(month)}
+                          {...bar}
+                          className={cx(bar.className, BAR_LINK)}
+                        >
                           {figure}
                         </Link>
                       ) : (
@@ -208,7 +228,15 @@ export default function YearInReview() {
                       )
                     })}
                   </div>
-                  <div className="bar-axis bar-axis-months" aria-hidden="true">
+                  <div
+                    className={cx(
+                      'bar-axis bar-axis-months',
+                      BAR_AXIS,
+                      BAR_AXIS_MONTHS,
+                      BAR_AXIS_CAPPED,
+                    )}
+                    aria-hidden="true"
+                  >
                     {MONTHS.map((month) => (
                       <span key={month}>{month[0]}</span>
                     ))}

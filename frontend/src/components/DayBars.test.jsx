@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { DAY_BAR } from './overview-classes.js'
 import DayBars from './DayBars.jsx'
 
 const SERIES = [
@@ -19,7 +20,9 @@ describe('DayBars', () => {
     expect(bars[1]).toHaveAccessibleName('Sun, Oct 11: 8 views')
     expect(bars[2]).toHaveAccessibleName('Mon, Oct 12: 1 view')
     // The peak is told in the caption, not by colour.
-    expect(bars.every((bar) => bar.className === 'day-bar')).toBe(true)
+    expect(bars.every((bar) => bar.className === `day-bar ${DAY_BAR}`)).toBe(
+      true,
+    )
     expect(bars[3].style.height).toBe('100%')
     expect(bars[0].style.height).toBe('25%')
   })

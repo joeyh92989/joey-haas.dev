@@ -1,4 +1,31 @@
 import { STAT_CARD } from './shelf-classes.js'
+import { cx } from '../lib/cx.js'
+import {
+  BAR,
+  BARS,
+  BAR_AXIS,
+  BAR_AXIS_MONTHS,
+  BAR_COLUMN,
+  BAR_COUNT_FIGURE,
+  CARTRIDGE_PLATFORM,
+  FAVOURITES,
+  FAVOURITES_HINT,
+  FAVOURITES_ROW,
+  FAVOURITE_EMPTY,
+  FAVOURITE_LINK,
+  STAT_BIG,
+  STAT_BIG_LABEL,
+  STAT_BIG_NUMBER,
+  STAT_COUNT,
+  STAT_FIGURE,
+  STAT_HEAD,
+  STATUS_BAR,
+  STATUS_LEGEND,
+  STATUS_LEGEND_ITEM,
+  STATUS_SEGMENT,
+  STATUS_SWATCH,
+  statusFill,
+} from './overview-classes.js'
 import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import { ownerMonth, ownerYear } from '../lib/formatDate.js'
@@ -58,7 +85,7 @@ export function OnCartridge({ byFormat, headingLevel = 2 }) {
       className={`stat-card stat-cartridge ${STAT_CARD}`}
       aria-label="On cartridge"
     >
-      <Heading>On cartridge</Heading>
+      <Heading className={STAT_HEAD}>On cartridge</Heading>
       {platforms.map(([platformId, counts]) => {
         const name =
           KEY_CARD_PLATFORM_NAMES[platformId] ?? `Platform ${platformId}`
@@ -76,7 +103,10 @@ export function OnCartridge({ byFormat, headingLevel = 2 }) {
           .filter(([count]) => count > 0)
           .map(([count, label]) => `${count} ${label}`)
         return (
-          <div key={platformId} className="cartridge-platform">
+          <div
+            key={platformId}
+            className={cx('cartridge-platform', CARTRIDGE_PLATFORM)}
+          >
             <p>{`${name} — ${counts.game_card} of ${counts.total}`}</p>
             {rest.length > 0 && <p className="muted">{rest.join(' · ')}</p>}
           </div>
@@ -119,28 +149,34 @@ export function FavoritesRow({
   const extra = favourites.length - FAVOURITES_SHOWN
 
   return (
-    <section className="favourites" aria-label="Favorites">
-      <Heading>Favorites</Heading>
-      <ul className="favourites-row">
+    <section className={cx('favourites', FAVOURITES)} aria-label="Favorites">
+      <Heading className={STAT_HEAD}>Favorites</Heading>
+      <ul className={cx('favourites-row', FAVOURITES_ROW)}>
         {favourites.map((item) => (
           <li key={item.id}>
-            <Link to={linkFor(item)} className="favourite-link">
+            <Link
+              to={linkFor(item)}
+              className={cx('favourite-link', FAVOURITE_LINK)}
+            >
               <CoverImage src={item.cover_url} type={item.type} alt="" />
               <span className="visually-hidden">{item.title}</span>
             </Link>
           </li>
         ))}
         {Array.from({ length: empty }, (_, index) => (
-          <li key={`empty-${index}`} className="favourite-empty" />
+          <li
+            key={`empty-${index}`}
+            className={cx('favourite-empty', FAVOURITE_EMPTY)}
+          />
         ))}
       </ul>
       {extra > 0 && (
-        <p className="muted favourites-hint">
+        <p className={cx('muted favourites-hint', FAVOURITES_HINT)}>
           {`${favourites.length} favorites. The public page shows four; remove ${extra}.`}
         </p>
       )}
       {empty > 0 && (
-        <p className="muted favourites-hint">
+        <p className={cx('muted favourites-hint', FAVOURITES_HINT)}>
           Pick your favorites with the heart on any card.
         </p>
       )}
@@ -162,12 +198,12 @@ export function StatusBar({
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
   return (
     <div className={`stat-card stat-status ${STAT_CARD}`}>
-      <Heading>{title}</Heading>
-      <div className="status-bar">
+      <Heading className={STAT_HEAD}>{title}</Heading>
+      <div className={cx('status-bar', STATUS_BAR)}>
         {present.map((status) => (
           <span
             key={status}
-            className="status-segment"
+            className={cx('status-segment', STATUS_SEGMENT, statusFill(status))}
             data-status={status}
             role="img"
             aria-label={`${labels[status]}: ${byStatus[status]}`}
@@ -175,16 +211,18 @@ export function StatusBar({
           />
         ))}
       </div>
-      <ul className="status-legend">
+      <ul className={cx('status-legend', STATUS_LEGEND)}>
         {present.map((status) => (
-          <li key={status}>
+          <li key={status} className={STATUS_LEGEND_ITEM}>
             <span
-              className="status-swatch"
+              className={cx('status-swatch', STATUS_SWATCH, statusFill(status))}
               data-status={status}
               aria-hidden="true"
             />
             <span>{labels[status]}</span>
-            <span className="stat-count">{byStatus[status]}</span>
+            <span className={cx('stat-count', STAT_COUNT)}>
+              {byStatus[status]}
+            </span>
           </li>
         ))}
       </ul>
@@ -206,36 +244,42 @@ export function RatingHistogram({ histogram, average, headingLevel = 2 }) {
       className={`stat-card stat-ratings ${STAT_CARD}`}
       aria-label="Ratings"
     >
-      <Heading>Ratings</Heading>
-      <div className="stat-figure">
-        <div className="bar-column">
-          <div className="rating-bars">
+      <Heading className={STAT_HEAD}>Ratings</Heading>
+      <div className={cx('stat-figure', STAT_FIGURE)}>
+        <div className={cx('bar-column', BAR_COLUMN)}>
+          <div className={cx('rating-bars', BARS)}>
             {RATINGS.map((rating, index) => {
               const label = `Rated ${rating}: ${plural(counts[index], 'item')}`
               return (
                 <span
                   key={rating}
-                  className="rating-bar"
+                  className={cx('rating-bar', BAR)}
                   role="img"
                   tabIndex={0}
                   aria-label={label}
                   title={label}
                   style={{ '--share': counts[index] / most }}
                 >
-                  <span className="rating-bar-count">{counts[index]}</span>
+                  <span className={cx('rating-bar-count', BAR_COUNT_FIGURE)}>
+                    {counts[index]}
+                  </span>
                 </span>
               )
             })}
           </div>
-          <div className="bar-axis" aria-hidden="true">
+          <div className={cx('bar-axis', BAR_AXIS)} aria-hidden="true">
             <span>1</span>
             <span>10</span>
           </div>
         </div>
         {average != null && (
-          <p className="stat-big">
-            <span className="stat-big-number">{average.toFixed(1)}</span>
-            <span className="stat-big-label">Average</span>
+          <p className={cx('stat-big', STAT_BIG)}>
+            <span className={cx('stat-big-number', STAT_BIG_NUMBER)}>
+              {average.toFixed(1)}
+            </span>
+            <span className={cx('stat-big-label', STAT_BIG_LABEL)}>
+              Average
+            </span>
           </p>
         )}
       </div>
@@ -258,35 +302,44 @@ export function FinishesStrip({
       className={`stat-card stat-finishes ${STAT_CARD}`}
       aria-label="Finishes"
     >
-      <Heading>Finishes</Heading>
-      <div className="stat-figure">
-        <div className="bar-column">
-          <div className="month-bars">
+      <Heading className={STAT_HEAD}>Finishes</Heading>
+      <div className={cx('stat-figure', STAT_FIGURE)}>
+        <div className={cx('bar-column', BAR_COLUMN)}>
+          <div className={cx('month-bars', BARS)}>
             {months.map((month, index) => {
               const label = `${month.label}: ${counts[index]} finished`
               return (
                 <span
                   key={month.key}
-                  className="month-bar"
+                  className={cx('month-bar', BAR)}
                   role="img"
                   tabIndex={0}
                   aria-label={label}
                   title={label}
                   style={{ '--share': counts[index] / most }}
                 >
-                  <span className="rating-bar-count">{counts[index]}</span>
+                  <span className={cx('rating-bar-count', BAR_COUNT_FIGURE)}>
+                    {counts[index]}
+                  </span>
                 </span>
               )
             })}
           </div>
-          <div className="bar-axis bar-axis-months" aria-hidden="true">
+          <div
+            className={cx(
+              'bar-axis bar-axis-months',
+              BAR_AXIS,
+              BAR_AXIS_MONTHS,
+            )}
+            aria-hidden="true"
+          >
             {months.map((month) => (
               <span key={month.key}>{month.initial}</span>
             ))}
           </div>
         </div>
-        <p className="stat-big">
-          <span className="stat-big-label">
+        <p className={cx('stat-big', STAT_BIG)}>
+          <span className={cx('stat-big-label', STAT_BIG_LABEL)}>
             {`${finishedThisYear} in ${ownerYear()}`}
           </span>
         </p>

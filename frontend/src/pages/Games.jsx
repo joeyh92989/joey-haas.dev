@@ -34,6 +34,8 @@ import {
   lastTwelveMonths,
 } from '../components/ShelfOverview.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { SHELF_STATS } from '../components/overview-classes.js'
+import { cx } from '../lib/cx.js'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { tagMoreLabels } from '../content/tags.js'
@@ -408,7 +410,10 @@ export default function Games() {
                   </button>
                 )}
                 {(!narrow || chartsOpen) && (
-                  <div className="shelf-stats" id="shelf-charts">
+                  <div
+                    className={cx('shelf-stats', SHELF_STATS)}
+                    id="shelf-charts"
+                  >
                     <StatusBar byStatus={stats.by_status} headingLevel={3} />
                     {hasRatings && (
                       <RatingHistogram

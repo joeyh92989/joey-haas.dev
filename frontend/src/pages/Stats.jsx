@@ -64,7 +64,7 @@ export default function Stats() {
 
       {data ? (
         <>
-          <StatTiles label="Site figures">
+          <StatTiles label="Site figures" margin="mt-6 mb-0">
             <StatTile
               label="Views"
               value={figure(thirty.views)}
@@ -115,6 +115,7 @@ export default function Stats() {
               <span className="kicker">views, last 30 days</span>
               <Card className={LIST_CARD}>
                 <BarList
+                  stacked
                   label="Pages by views"
                   rows={thirty.pages}
                   name={(path) => pageName(titles, path)}
@@ -126,6 +127,7 @@ export default function Stats() {
               <span className="kicker">visitors, last 30 days</span>
               <Card className={LIST_CARD}>
                 <BarList
+                  stacked
                   label="Referrers by visitors"
                   rows={referrerRows(thirty)}
                   name={referrerLabel}
@@ -137,6 +139,7 @@ export default function Stats() {
               <span className="kicker">views, last 30 days</span>
               <Card className={LIST_CARD}>
                 <BarList
+                  stacked
                   label="Devices by views"
                   rows={thirty.devices}
                   name={deviceName}

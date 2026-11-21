@@ -818,9 +818,150 @@ async function d4(theme, vp) {
   })
 }
 
+async function loaded(page) {
+  await page
+    .locator('.stat-tile, .poster-card, .status-bar, .day-bars')
+    .first()
+    .waitFor({ timeout: 6000 })
+    .catch(() => {})
+  await page.waitForTimeout(300)
+}
+
+async function act(page, selector, n, action) {
+  const found = await page
+    .locator(selector)
+    .first()
+    .waitFor({ timeout: 6000 })
+    .then(
+      () => true,
+      () => false,
+    )
+  if (!found) {
+    console.error(`absent: ${selector}`)
+    return
+  }
+  await page.locator(selector).nth(n)[action]({ timeout: 5000 })
+  await page.waitForTimeout(250)
+}
+
+// Slice D4b (#536): the shelf overview, the charts and the stat tiles.
+async function d4b(theme, vp) {
+  const at = (name) => `screen ${theme} ${vp} d4b ${name}`
+  const overview = async (page) => {
+    await loaded(page)
+    await press(page, 'charts')
+    if (await page.locator('#overview').count())
+      await page.locator('#overview').scrollIntoViewIfNeeded()
+  }
+  const focusBar = (selector, n) => async (page) => {
+    await overview(page)
+    await act(page, selector, n, 'focus')
+  }
+  const hoverBar = (selector, n) => async (page) => {
+    await overview(page)
+    await act(page, selector, n, 'hover')
+  }
+  for (const [path, kind] of [
+    ['/shelf/games', undefined],
+    ['/shelf/comics', undefined],
+    ['/admin/shelf/games', 'shelf'],
+    ['/admin/shelf/comics', 'shelf-comics'],
+  ]) {
+    const base = { path, theme, vp, kind }
+    const name = (s) => at(`${path} ${s}`)
+    await record(name('overview'), base, overview)
+    await record(name('rating-hover'), base, hoverBar('.rating-bar', 6))
+    await record(name('rating-focus'), base, focusBar('.rating-bar', 6))
+    await record(name('month-hover'), base, hoverBar('.month-bar', 11))
+    await record(name('month-focus'), base, focusBar('.month-bar', 11))
+    await record(
+      name('reduce'),
+      { ...base, reduce: true },
+      hoverBar('.month-bar', 11),
+    )
+    await record(name('closed'), base, loaded)
+    await record(name('favourite-focus'), base, async (page) => {
+      await overview(page)
+      await act(page, '.favourite-link', 0, 'focus')
+    })
+    await record(name('now-hover'), base, async (page) => {
+      await act(page, '.now-playing-card', 0, 'hover')
+    })
+    await record(name('now-focus'), base, async (page) => {
+      await act(page, '.now-playing-card', 0, 'focus')
+    })
+    await record(
+      name('query-empty'),
+      { ...base, path: path + '?q=zzqqxx' },
+      loaded,
+    )
+  }
+  await record(
+    at('admin-games-touch'),
+    {
+      path: '/admin/shelf/games',
+      theme,
+      vp,
+      kind: 'shelf',
+      touch: true,
+    },
+    loaded,
+  )
+  await record(at('/shelf/games item'), { path: ITEM, theme, vp }, loaded)
+  await record(at('/shelf/comics series'), { path: SERIES, theme, vp }, loaded)
+  for (const path of ['/shelf/year/2025/', '/shelf/year/2025'])
+    await record(at(path), { path, theme, vp }, (page) =>
+      act(page, '.month-bar', 2, 'hover'),
+    )
+  await record(
+    at('/shelf/year/2025 focus'),
+    { path: '/shelf/year/2025/', theme, vp },
+    (page) => act(page, '.month-bar', 2, 'focus'),
+  )
+  await record(
+    at('/stats'),
+    { path: '/stats', theme, vp, serve: ['site-stats'] },
+    async (page) => {
+      await page.locator('.day-bars').waitFor()
+      await act(page, '.day-bar', 8, 'hover')
+    },
+  )
+  await record(
+    at('/stats all'),
+    { path: '/stats', theme, vp, serve: ['site-stats'] },
+    async (page) => {
+      await page.locator('.day-bars').waitFor()
+      await press(page, 'All')
+    },
+  )
+  for (const range of [undefined, 'All'])
+    await record(
+      at(`/admin/analytics ${range ?? '30'}`),
+      { path: '/admin/analytics', theme, vp, kind: 'denver-admin' },
+      async (page) => {
+        await page.locator('.day-bars').waitFor()
+        if (range) await press(page, range)
+        await act(page, '.day-bar', 8, 'hover')
+      },
+    )
+  await record(at('/admin/catalogue'), {
+    path: '/admin/catalogue',
+    theme,
+    vp,
+    kind: 'home',
+  })
+  await record(at('/admin/closet/review'), {
+    path: '/admin/closet/review',
+    theme,
+    vp,
+    kind: 'closet',
+  })
+}
+
 for (const theme of ['dark', 'light']) {
   for (const vp of ['desktop', 'phone']) {
     await d4(theme, vp)
+    await d4b(theme, vp)
     for (const path of PUBLIC)
       await record(`screen ${theme} ${vp} ${path}`, { path, theme, vp })
     for (const [path, kind] of ADMIN)
