@@ -3455,9 +3455,11 @@ p.muted a,
 
 /* Positioned, so an absolutely placed visually-hidden header label is
    clipped by this scroller and cannot widen the page. */
+/* Scroll padding keeps a focused control's ring whole at the scroller's edge. */
 .playthroughs-wrap {
   overflow-x: auto;
   position: relative;
+  scroll-padding-inline: var(--space-4);
 }
 
 .playthroughs-table {
