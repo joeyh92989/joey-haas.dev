@@ -1,0 +1,387 @@
+import AxeBuilder from '@axe-core/playwright'
+import { test, expect } from '@playwright/test'
+import { unringed } from './closet-ring.js'
+import {
+  COMIC_ID,
+  GAME_ID,
+  VOLUME_SLUG,
+  mockAdminData,
+} from './admin-data-mocks.js'
+
+// The admin Shelf data and edit pages (#535): Sources, Store list, the item
+// edit page, the comic edit page and a book's page, filled with realistic
+// data. Desktop project only (the viewport is set here); the session and the
+// API are routed in the page, so no backend is needed.
+const WIDTHS = [
+  { width: 320, height: 700 },
+  { width: 390, height: 800 },
+  { width: 1280, height: 800 },
+  { width: 1440, height: 900 },
+]
+const ROUTES = [
+  '/admin/catalogue',
+  '/admin/store-list',
+  `/admin/collection/${GAME_ID}`,
+  `/admin/shelf/comics/${COMIC_ID}`,
+  `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`,
+]
+const THEMES = ['dark', 'light']
+const GATED = ['serious', 'critical']
+
+test.beforeEach(async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+  await mockAdminData(page)
+})
+
+async function open(page, route, { width, height }, theme = 'light') {
+  await page.setViewportSize({ width, height })
+  await page.goto(route)
+  await expect(page.locator('main h1').first()).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  await page.evaluate(
+    (value) => document.documentElement.setAttribute('data-theme', value),
+    theme,
+  )
+  await page.mouse.move(1, 1)
+  // The theme change fades colours (transition-colors): let it finish.
+  await page.waitForTimeout(400)
+}
+
+// ---- No sideways scroll, with a named offender ----
+for (const size of WIDTHS) {
+  for (const route of ROUTES) {
+    test(`no sideways scroll at ${size.width}px on ${route}`, async ({
+      page,
+    }) => {
+      await open(page, route, size)
+      const { overflow, wide } = await page.evaluate(() => {
+        const edge = document.documentElement.clientWidth
+        const wide = [...document.querySelectorAll('body *')]
+          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+          // An element inside its own scroller is clipped, not overflowing.
+          .filter((el) => {
+            for (let p = el.parentElement; p; p = p.parentElement) {
+              const o = getComputedStyle(p).overflowX
+              if (o === 'auto' || o === 'scroll' || o === 'hidden') return false
+            }
+            return true
+          })
+          .slice(0, 4)
+          .map((el) => `${el.tagName}.${el.className}`.slice(0, 80))
+        return { overflow: document.documentElement.scrollWidth - edge, wide }
+      })
+      expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
+    })
+  }
+}
+
+// ---- Painted focus rings on every control ----
+for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
+  for (const route of ROUTES) {
+    for (const theme of THEMES) {
+      test(`focus rings paint on every control at ${size.width}px, ${theme}, ${route}`, async ({
+        page,
+      }) => {
+        test.setTimeout(240_000)
+        await open(page, route, size, theme)
+        const controls = page.locator(
+          'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
+        )
+        expect(await unringed(page, controls)).toEqual([])
+      })
+    }
+  }
+}
+
+// Opened states: each control in them is ringed too.
+const STATES = [
+  {
+    name: 'Item Delete confirm',
+    route: `/admin/collection/${GAME_ID}`,
+    scope: 'main',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Delete Star Fox/ }).click()
+      await expect(page.getByRole('button', { name: /^Keep / })).toBeVisible()
+    },
+  },
+  {
+    name: 'Comic Delete confirm',
+    route: `/admin/shelf/comics/${COMIC_ID}`,
+    scope: 'main',
+    prep: async (page) => {
+      await page
+        .getByRole('button', { name: /^Delete Saga/ })
+        .first()
+        .click()
+      await expect(page.getByRole('button', { name: /^Keep / })).toBeVisible()
+    },
+  },
+  {
+    name: 'Book Delete confirm',
+    route: `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`,
+    scope: 'main',
+    prep: async (page) => {
+      await page
+        .getByRole('button', { name: /^Delete Saga/ })
+        .first()
+        .click()
+      await expect(page.getByRole('button', { name: /^Keep / })).toBeVisible()
+    },
+  },
+  {
+    name: 'Sources needs-match platform',
+    route: '/admin/catalogue',
+    scope: '.needs-match, [aria-labelledby=needs-match-heading]',
+    prep: async (page) => {
+      await page.getByLabel(/^Platform for Mystery/).selectOption({ index: 1 })
+    },
+  },
+  {
+    name: 'Store list answered row',
+    route: '/admin/store-list',
+    scope: 'main',
+    prep: async (page) => {
+      await expect(
+        page.getByRole('button', { name: /^Want: Game a/ }),
+      ).toBeVisible()
+    },
+  },
+]
+
+for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
+  for (const state of STATES) {
+    for (const theme of THEMES) {
+      test(`focus rings paint in ${state.name} at ${size.width}px, ${theme}`, async ({
+        page,
+      }) => {
+        test.setTimeout(240_000)
+        await open(page, state.route, size, theme)
+        await state.prep(page)
+        await page.mouse.move(1, 1)
+        const controls = page
+          .locator(state.scope)
+          .locator(
+            ':is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
+          )
+        expect(await controls.count()).toBeGreaterThan(0)
+        expect(await unringed(page, controls)).toEqual([])
+      })
+    }
+  }
+}
+
+// ---- #276: a control is 44px tall on a phone ----
+for (const route of ROUTES) {
+  test(`phone tap targets are 44px on ${route}`, async ({ page }) => {
+    await open(page, route, WIDTHS[1])
+    const short = await page.evaluate(() =>
+      [
+        ...document.querySelectorAll(
+          'main :is(button, select, input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), a.btn, [role=button])',
+        ),
+      ]
+        .filter((el) => el.getBoundingClientRect().height > 0)
+        .filter((el) => el.getBoundingClientRect().height < 43.5)
+        .map(
+          (el) =>
+            `${el.tagName}.${String(el.className).slice(0, 40)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 16)}" ${Math.round(el.getBoundingClientRect().height)}px`,
+        ),
+    )
+    expect(short).toEqual([])
+  })
+}
+
+// ---- Computed contrast of states, in the built CSS, both themes ----
+async function textContrast(control) {
+  await control.page().waitForTimeout(400)
+  return control.evaluate((el) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    const rgba = (css) => {
+      ctx.clearRect(0, 0, 1, 1)
+      ctx.fillStyle = '#000'
+      ctx.fillStyle = css
+      ctx.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+      return [r, g, b, a / 255]
+    }
+    const layers = []
+    for (let up = el; up; up = up.parentElement) {
+      const [r, g, b, a] = rgba(getComputedStyle(up).backgroundColor)
+      if (a > 0) layers.push([r, g, b, a])
+      if (a === 1) break
+    }
+    let back = [255, 255, 255]
+    for (const [r, g, b, a] of layers.reverse())
+      back = [
+        r * a + back[0] * (1 - a),
+        g * a + back[1] * (1 - a),
+        b * a + back[2] * (1 - a),
+      ]
+    const [fr, fg, fb, fa] = rgba(getComputedStyle(el).color)
+    const fore = [
+      fr * fa + back[0] * (1 - fa),
+      fg * fa + back[1] * (1 - fa),
+      fb * fa + back[2] * (1 - fa),
+    ]
+    const lum = ([r, g, b]) =>
+      [r, g, b]
+        .map((c) => c / 255)
+        .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+    const [hi, lo] = [lum(fore), lum(back)].sort((a, b) => b - a)
+    return (hi + 0.05) / (lo + 0.05)
+  })
+}
+
+for (const theme of THEMES) {
+  test(`every control and note keeps 4.5:1 text on each page (${theme})`, async ({
+    page,
+  }) => {
+    test.setTimeout(240_000)
+    for (const route of ROUTES) {
+      await open(page, route, WIDTHS[2], theme)
+      const items = page.locator(
+        'main :is(button, a[href], select, input:not([type=hidden]):not([type=checkbox]), textarea, th, label, .muted):visible',
+      )
+      const count = await items.count()
+      const low = []
+      for (let i = 0; i < count; i++) {
+        const item = items.nth(i)
+        const text = (await item.textContent())?.trim()
+        const hasText =
+          text ||
+          (await item.evaluate(
+            (el) => el.value || el.placeholder || el.selectedOptions?.length,
+          ))
+        if (!hasText) continue
+        const value = await item.evaluate((el) => {
+          const canvas = document.createElement('canvas')
+          canvas.width = canvas.height = 1
+          const ctx = canvas.getContext('2d', { willReadFrequently: true })
+          const rgba = (css) => {
+            ctx.clearRect(0, 0, 1, 1)
+            ctx.fillStyle = '#000'
+            ctx.fillStyle = css
+            ctx.fillRect(0, 0, 1, 1)
+            const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+            return [r, g, b, a / 255]
+          }
+          const layers = []
+          for (let up = el; up; up = up.parentElement) {
+            const [r, g, b, a] = rgba(getComputedStyle(up).backgroundColor)
+            if (a > 0) layers.push([r, g, b, a])
+            if (a === 1) break
+          }
+          let back = [255, 255, 255]
+          for (const [r, g, b, a] of layers.reverse())
+            back = [
+              r * a + back[0] * (1 - a),
+              g * a + back[1] * (1 - a),
+              b * a + back[2] * (1 - a),
+            ]
+          const [fr, fg, fb, fa] = rgba(getComputedStyle(el).color)
+          const fore = [
+            fr * fa + back[0] * (1 - fa),
+            fg * fa + back[1] * (1 - fa),
+            fb * fa + back[2] * (1 - fa),
+          ]
+          const lum = ([r, g, b]) =>
+            [r, g, b]
+              .map((c) => c / 255)
+              .map((c) =>
+                c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
+              )
+              .reduce((sum, c, k) => sum + c * [0.2126, 0.7152, 0.0722][k], 0)
+          const [hi, lo] = [lum(fore), lum(back)].sort((a, b) => b - a)
+          return (hi + 0.05) / (lo + 0.05)
+        })
+        if (value < 4.5)
+          low.push(
+            `${route} ${await item.evaluate((el) => `${el.tagName}.${String(el.className).slice(0, 30)}`)} "${(text ?? '').slice(0, 20)}" ${value.toFixed(2)}`,
+          )
+      }
+      expect(low, `low contrast at ${route}`).toEqual([])
+    }
+  })
+
+  test(`armed and pressed states keep 4.5:1 text (${theme})`, async ({
+    page,
+  }) => {
+    test.setTimeout(240_000)
+    for (const route of [
+      `/admin/collection/${GAME_ID}`,
+      `/admin/shelf/comics/${COMIC_ID}`,
+      `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`,
+    ]) {
+      await open(page, route, WIDTHS[2], theme)
+      await page
+        .getByRole('button', { name: /^Delete / })
+        .first()
+        .click()
+      for (const name of [/for good/, /^Keep /]) {
+        expect(
+          await textContrast(page.getByRole('button', { name })),
+          `armed ${name} on ${route}`,
+        ).toBeGreaterThan(4.5)
+      }
+    }
+    await open(page, `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`, WIDTHS[2], theme)
+    for (const pressed of await page
+      .locator('main button[aria-pressed=true]')
+      .all())
+      expect(await textContrast(pressed), 'pressed mark').toBeGreaterThan(4.5)
+  })
+}
+
+// ---- axe, both themes ----
+for (const route of ROUTES) {
+  for (const theme of THEMES) {
+    test(`axe finds no serious violation on ${route}, ${theme}`, async ({
+      page,
+    }) => {
+      await open(page, route, WIDTHS[2], theme)
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      const fresh = results.violations.filter((v) => GATED.includes(v.impact))
+      expect(
+        fresh.map(
+          (v) =>
+            `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`,
+        ),
+      ).toEqual([])
+    })
+  }
+}
+
+// ---- Review shots: set E2E_SHOT_DIR ----
+test('data pages review shots', async ({ page }) => {
+  test.skip(!process.env.E2E_SHOT_DIR, 'set E2E_SHOT_DIR to save the shots')
+  test.setTimeout(900_000)
+  for (const theme of THEMES) {
+    for (const size of WIDTHS) {
+      for (const route of ROUTES) {
+        await open(page, route, size, theme)
+        const name = route.replace(/^\/admin\//, '').replace(/\//g, '-')
+        await page.screenshot({
+          path: `${process.env.E2E_SHOT_DIR}/data-${name}-${size.width}-${theme}.png`,
+          fullPage: true,
+        })
+      }
+    }
+  }
+  for (const theme of THEMES) {
+    for (const state of STATES) {
+      await open(page, state.route, WIDTHS[1], theme)
+      await state.prep(page)
+      await page.waitForTimeout(400)
+      const name = state.name.toLowerCase().replace(/ /g, '-')
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/data-state-${name}-390-${theme}.png`,
+        fullPage: true,
+      })
+    }
+  }
+})
