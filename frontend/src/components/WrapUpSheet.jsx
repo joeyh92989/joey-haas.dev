@@ -3,6 +3,8 @@ import Sheet from './Sheet.jsx'
 import CoverImage from './CoverImage.jsx'
 import QuickRate from './QuickRate.jsx'
 import { btn } from './closetClasses.js'
+import { cx } from '../lib/cx.js'
+import { STATUS_SWATCH_LARGE, statusFill } from './overview-classes.js'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -207,7 +209,11 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
             >
               <b>
                 <span
-                  className="status-swatch"
+                  className={cx(
+                    'status-swatch',
+                    STATUS_SWATCH_LARGE,
+                    statusFill(key),
+                  )}
                   data-status={key}
                   aria-hidden="true"
                 />
