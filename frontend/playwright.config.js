@@ -18,6 +18,7 @@ export default defineConfig({
     'comics-shelf.spec.js',
     'verify.spec.js',
     'more-menu.spec.js',
+    'home.spec.js',
     'tour-overflow.spec.js',
   ],
   forbidOnly: !!process.env.CI,

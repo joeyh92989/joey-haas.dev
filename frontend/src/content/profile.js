@@ -10,15 +10,11 @@
  *
  * `headline` is Home's hero and the only place its claim is made; About
  * opens with the bio instead, so the two pages do not start on one line.
- * `accent` is the headline's closing phrase, set in the serif italic.
  */
 export const profile = {
   name: 'Joey Haas',
   tagline: 'Senior software engineer · Denver, Colorado',
-  headline: {
-    lead: 'Building software',
-    accent: 'since 2012.',
-  },
+  headline: 'Building software since 2012.',
   lede: 'I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. I spent eight years as a product manager before that, so I care as much about why we build things as how.',
   /** Home's facts table, after which the derived Last shipped and Playing rows. */
   facts: [

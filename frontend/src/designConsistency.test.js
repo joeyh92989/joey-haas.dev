@@ -194,6 +194,77 @@ describe('shared component rules', () => {
     expect(wrong).toEqual([])
   })
 
+  // `cn` is tailwind-merge (~30KB raw) and Base UI is heavy: eager files (the
+  // shell, Home, the pages App.jsx imports directly and the record card's
+  // parts) use `cx` (lib/cx.js) and `button-variants.js`. A lazy chunk may
+  // import either. Only direct imports are checked here; the built entry
+  // chunk is checked by scripts/check-entry-chunk.mjs after `npm run build`.
+  const EAGER_BANNED =
+    /lib\/utils(\.js)?['"]|from ['"]cn['"]|ui\/card(\.jsx)?['"]|ui\/button(\.jsx)?['"]|@base-ui|\bcn\(/
+  const EAGER_FILES = [
+    'components/SiteMast.jsx',
+    'components/SearchButton.jsx',
+    'components/NavSheet.jsx',
+    'components/MoreMenu.jsx',
+    'components/RecordCard.jsx',
+    'components/CatalogueNumber.jsx',
+    'components/StatusMark.jsx',
+    'components/CoverStrip.jsx',
+    'components/ContactLine.jsx',
+    'components/Kicker.jsx',
+    'layouts/RootLayout.jsx',
+    'pages/Home.jsx',
+    'pages/About.jsx',
+    'pages/Blog.jsx',
+    'pages/BlogPost.jsx',
+    'pages/Colophon.jsx',
+    'pages/Now.jsx',
+    'pages/NotFound.jsx',
+    'pages/Projects.jsx',
+    'pages/Til.jsx',
+    'pages/TilNote.jsx',
+    'pages/Trip.jsx',
+  ]
+
+  it('keeps cn, Button, Card and Base UI out of the eager files', () => {
+    const found = files.filter((f) => EAGER_FILES.includes(f.name))
+    expect(found.map((f) => f.name).sort()).toEqual([...EAGER_FILES].sort())
+    expect(
+      found.filter((f) => EAGER_BANNED.test(f.text)).map((f) => f.name),
+    ).toEqual([])
+  })
+
+  it('lists every page App.jsx imports directly as eager', () => {
+    const app = sources.find((f) => f.name === 'App.jsx').text
+    const direct = [
+      ...app.matchAll(/^import \w+ from '\.\/pages\/(\w+)\.jsx'/gm),
+    ].map((m) => `pages/${m[1]}.jsx`)
+    expect(direct.filter((name) => !EAGER_FILES.includes(name))).toEqual([])
+  })
+
+  it('catches each banned import pattern', () => {
+    for (const line of [
+      "import { cn } from '../lib/utils.js'",
+      "import { cn } from '@/lib/utils'",
+      "import { cn } from 'cn'",
+      "import { Card } from './ui/card'",
+      "import { Card } from './ui/card.jsx'",
+      "import { Button } from '../components/ui/button'",
+      "import { Button } from './ui/button.jsx'",
+      "import { Tabs } from '@base-ui/react/tabs'",
+      'const x = cn(a, b)',
+    ]) {
+      expect(EAGER_BANNED.test(line), line).toBe(true)
+    }
+    for (const line of [
+      "import { cx } from '../lib/cx.js'",
+      "import { buttonVariants } from '../components/ui/button-variants.js'",
+      "import { CARD_SHELL } from './ui/card-classes.js'",
+    ]) {
+      expect(EAGER_BANNED.test(line), line).toBe(false)
+    }
+  })
+
   it('draws the search dialog with Button and Input, not bare elements', () => {
     const search = files.find((f) => f.name === 'components/SearchDialog.jsx')
     expect(search.text).not.toMatch(/<button[\s>]|<input[\s>]/)

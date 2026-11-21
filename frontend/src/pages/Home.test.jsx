@@ -41,7 +41,7 @@ function renderHome() {
 
 function facts() {
   return Object.fromEntries(
-    [...document.querySelectorAll('.facts > div')].map((row) => [
+    [...document.querySelectorAll('.glance-facts > div')].map((row) => [
       row.querySelector('dt').textContent,
       row.querySelector('dd').textContent,
     ]),
@@ -64,6 +64,93 @@ describe('Home', () => {
         name: 'Building software since 2012.',
       }),
     ).toBeInTheDocument()
+  })
+
+  it('sets the headline as plain text: no italic phrase, no hidden duplicate', () => {
+    renderHome()
+    expect(typeof profile.headline).toBe('string')
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveTextContent(/^Building software since 2012\.$/)
+    expect(h1.querySelector('em')).toBeNull()
+    expect(h1.querySelector('.visually-hidden')).toBeNull()
+    expect(h1.children).toHaveLength(0)
+  })
+
+  it('draws the hero actions as design-system buttons, not .btn', () => {
+    renderHome()
+    const actions = document.querySelector('.hero-actions')
+    expect(actions.querySelector('.btn')).toBeNull()
+    const links = within(actions).getAllByRole('link')
+    expect(links).toHaveLength(6)
+    const [primary, ...rest] = links
+    expect(primary).toHaveTextContent('About me')
+    expect(primary.className).toMatch(/\bbg-primary\b/)
+    expect(primary.className).not.toMatch(/bg-primary!|bg-transparent/)
+    // Every other action is the bordered outline button: none is a
+    // borderless, padded text link (GitHub and LinkedIn included).
+    for (const link of rest) {
+      expect(link.className).toMatch(/\bborder-foreground\b/)
+      expect(link.className).not.toMatch(/border-transparent/)
+    }
+    for (const link of links) {
+      expect(link.className).toMatch(/focus-visible:outline-solid/)
+    }
+  })
+
+  it('lets the whole Work card answer hover, and puts no underline hover on the title', () => {
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const [card] = work.querySelectorAll('[data-slot="card"]')
+    expect(card.className).toMatch(/has-\[a:hover\]:border/)
+    const link = within(card).getByRole('link', { name: 'My Shelf' })
+    expect(link.className).not.toMatch(/hover:underline/)
+  })
+
+  it('keeps the At a glance heading out of an inline span', () => {
+    renderHome()
+    const glance = screen.getByRole('complementary', { name: 'At a glance' })
+    const heading = within(glance).getByRole('heading', { level: 2 })
+    expect(heading.closest('span')).toBeNull()
+    expect(glance.querySelector('[data-strip] > span:empty')).toBeNull()
+    expect(glance.className + glance.innerHTML).not.toMatch(
+      /first-child\]:hidden/,
+    )
+  })
+
+  it('shows At a glance as a record card with its own heading', () => {
+    renderHome()
+    const glance = screen.getByRole('complementary', { name: 'At a glance' })
+    expect(
+      within(glance).getByRole('heading', { level: 2, name: 'At a glance' }),
+    ).toBeInTheDocument()
+    expect(glance.querySelector('[data-strip]')).not.toBeNull()
+    expect(glance.querySelector('dl.glance-facts')).not.toBeNull()
+  })
+
+  it('numbers the Work records, decoratively, in order', () => {
+    content.posts.push(POST)
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const items = within(work).getAllByRole('listitem')
+    expect(items).toHaveLength(3)
+    items.forEach((item, i) => {
+      const number = item.querySelector('[data-strip] [aria-hidden="true"]')
+      expect(number).toHaveTextContent(`No. 00${i + 1}`)
+    })
+  })
+
+  it('marks the shelf record live, with the word beside the mark', () => {
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const [shelf] = within(work).getAllByRole('listitem')
+    expect(shelf.querySelector('[data-filled="true"]')).not.toBeNull()
+    expect(within(shelf).getByText('live')).toBeInTheDocument()
+  })
+
+  it('lists experience as an ordered list of dated rows', () => {
+    renderHome()
+    const experience = screen.getByRole('region', { name: 'Experience' })
+    expect(experience.querySelector('ol')).not.toBeNull()
   })
 
   it('offers About, My Shelf, and GitHub', () => {
@@ -152,7 +239,7 @@ describe('Home', () => {
       '/colophon',
       '/blog/how-my-shelf-works',
     ])
-    for (const card of document.querySelectorAll('.card')) {
+    for (const card of document.querySelectorAll('[data-slot="card"]')) {
       expect(card.querySelector('[class*="accent"]')).toBeNull()
     }
     expect(
@@ -178,12 +265,15 @@ describe('Home', () => {
     expect(facts()['Latest trip']).toBe('Croatia & Greece · Sept 2026')
     const card = screen.getByRole('link', { name: /Croatia & Greece/ })
     expect(card).toHaveAttribute('href', '/travel/croatia-greece-2026')
-    expect(within(card).getByText('Twelve days, three places.')).toBeVisible()
+    expect(
+      within(card.closest('li')).getByText('Twelve days, three places.'),
+    ).toBeVisible()
   })
 
   it('has no writing card while nothing is published', () => {
     renderHome()
-    expect(document.querySelectorAll('.card')).toHaveLength(2)
+    const work = screen.getByRole('region', { name: 'Work' })
+    expect(within(work).getAllByRole('listitem')).toHaveLength(2)
   })
 
   it('folds the roles before Guild into one experience row', () => {

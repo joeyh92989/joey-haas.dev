@@ -9,7 +9,7 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
 ## 2. Samples
 
 **Hero** (`frontend/src/content/profile.js`)
-> Building software *since 2012.*
+> Building software since 2012.
 
 **Lede** (`frontend/src/content/profile.js`)
 > I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. I spent eight years as a product manager before that, so I care as much about why we build things as how.

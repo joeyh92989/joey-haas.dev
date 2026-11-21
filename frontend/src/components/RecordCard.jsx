@@ -1,6 +1,12 @@
-import { cn } from '../lib/utils.js'
-import { Card } from './ui/card.jsx'
+import { cx } from '../lib/cx.js'
+import { CARD_SHELL } from './ui/card-classes.js'
 import CatalogueNumber from './CatalogueNumber.jsx'
+
+// Card's shell with its spacing left out (the strip and body pad themselves)
+// and a 3px accent edge: the shell string is Card's own (ui/card-classes.js),
+// so a restyle of Card reaches record cards, and no class here needs a merge
+// to win. Card's `data-size` and image-first padding do not apply.
+const CARD = `${CARD_SHELL} border-l-[3px] border-l-primary`
 
 /**
  * An index card for one record in a collection: a mono label strip across
@@ -24,20 +30,17 @@ export default function RecordCard({
 }) {
   const hasStrip = number != null || label != null
   return (
-    <Card
-      className={cn('gap-0 border-l-[3px] border-l-primary py-0', className)}
-      {...rest}
-    >
+    <div data-slot="card" className={cx(CARD, className)} {...rest}>
       {hasStrip && (
         <div
           data-strip
           className="flex items-center justify-between gap-3 border-b border-line-card px-4 py-2 font-mono text-xs text-muted-foreground"
         >
-          {number != null ? <CatalogueNumber n={number} /> : <span />}
-          {label != null && <span>{label}</span>}
+          {number != null && <CatalogueNumber n={number} />}
+          {label != null && <div>{label}</div>}
         </div>
       )}
       {children}
-    </Card>
+    </div>
   )
 }

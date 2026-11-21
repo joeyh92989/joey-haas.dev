@@ -1,4 +1,4 @@
-import { cn } from '../lib/utils.js'
+import { cx } from '../lib/cx.js'
 
 /** Statuses that fill the mark; every other one is an outlined square. */
 const FILLED = new Set(['live', 'finished'])
@@ -18,7 +18,7 @@ export default function StatusMark({ status, children, className }) {
   const filled = FILLED.has(status)
   return (
     <span
-      className={cn(
+      className={cx(
         'inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground',
         className,
       )}
@@ -27,7 +27,7 @@ export default function StatusMark({ status, children, className }) {
         aria-hidden="true"
         data-slot="status-mark-square"
         data-filled={filled}
-        className={cn(
+        className={cx(
           'inline-block size-2.5 shrink-0 border-[1.5px] border-foreground',
           filled && 'bg-highlight',
         )}
