@@ -14,7 +14,7 @@ export const WRAP_OUTCOME =
 /** One outcome: the pressed one has an accent outline and an inset ring, so
  *  it never relies on colour alone (its swatch and word say it too). */
 export const WRAP_CHOICE =
-  'grid cursor-pointer gap-1 rounded-lg border border-border bg-muted p-3 text-left text-foreground [font:inherit] hover:border-(--line-strong) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-primary aria-pressed:border-primary aria-pressed:shadow-[inset_0_0_0_1px_var(--accent)] max-[34rem]:min-h-[52px] max-[34rem]:grid-cols-[auto_1fr] max-[34rem]:items-center'
+  'grid cursor-pointer gap-1 rounded-lg border border-border bg-muted p-3 text-left text-foreground [font:inherit] hover:border-(--line-strong) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-primary aria-pressed:border-primary aria-pressed:[box-shadow:inset_0_0_0_1px_var(--accent)] max-[34rem]:min-h-[52px] max-[34rem]:grid-cols-[auto_1fr] max-[34rem]:items-center'
 export const WRAP_CHOICE_WORD = 'flex items-center gap-2 font-semibold'
 export const WRAP_CHOICE_HINT = 'text-[0.75rem] text-muted-foreground'
 

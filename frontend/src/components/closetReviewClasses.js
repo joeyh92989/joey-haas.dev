@@ -18,7 +18,7 @@ export const REVIEW_PROGRESS =
 export const REVIEW_BAR =
   'mb-4 h-[3px] overflow-hidden rounded-[2px] bg-muted [&_span]:block [&_span]:h-full [&_span]:bg-primary'
 export const REVIEW_CARD =
-  'grid grid-cols-[8rem_1fr] items-start gap-4 p-4 max-[640px]:grid-cols-[1fr]'
+  'grid grid-cols-[8rem_1fr] gap-4 p-4 [align-items:start] max-[640px]:grid-cols-[1fr]'
 const THUMB_IMG =
   '[&_img]:block [&_img]:h-full [&_img]:w-full [&_img]:object-cover'
 export const REVIEW_THUMB = `block aspect-square w-32 overflow-hidden rounded-md bg-muted max-[640px]:w-28 ${THUMB_IMG}`
@@ -56,7 +56,7 @@ export const REVIEW_LISTED_ROW =
   'flex flex-wrap items-center justify-between gap-4 [&>span]:min-w-0 [&>span]:[overflow-wrap:anywhere]'
 
 /** The sell sheet's listing checklist. */
-export const SELL_CHECK = 'grid grid-cols-[6rem_1fr] items-start gap-4'
+export const SELL_CHECK = 'grid grid-cols-[6rem_1fr] gap-4 [align-items:start]'
 export const SELL_THUMB = `block aspect-square w-24 overflow-hidden rounded-md bg-muted ${THUMB_IMG}`
 export const SELL_LINES = 'grid gap-1'
 export const SELL_LINE = 'grid grid-cols-[6rem_1fr] gap-2'
