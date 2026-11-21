@@ -348,6 +348,39 @@ export async function serveAdminAdd(page) {
     if (path === '/api/track') return route.abort()
     if (path === '/api/intake/counts') return json({ shelf: 3, closet: 1 })
     if (path === '/api/intake/kinds') return json(KINDS)
+    if (path === '/api/intake/search')
+      return json({
+        results: [
+          {
+            kind: 'game',
+            external_source: 'igdb',
+            external_id: '1',
+            title: LONG,
+            year: 2023,
+            thumbnail_url: null,
+            owned_item_id: null,
+          },
+          {
+            kind: 'game',
+            external_source: 'igdb',
+            external_id: '2',
+            title: UNBROKEN,
+            year: 2020,
+            thumbnail_url: null,
+            owned_item_id: 'g1',
+          },
+          {
+            kind: 'comic',
+            external_source: 'comicvine',
+            external_id: '3',
+            title: 'Saga',
+            year: 2012,
+            thumbnail_url: null,
+            owned_item_id: null,
+          },
+        ],
+        sources: [{ kind: 'game', state: 'ok' }],
+      })
     if (path === '/api/intake/budget')
       return json({ remaining: 30, enforced: true })
     if (path === '/api/intake/sittings' && method === 'GET')

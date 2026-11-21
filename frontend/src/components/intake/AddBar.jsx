@@ -3,7 +3,7 @@ import { isbnIntake } from '../../content/isbnIntake.js'
 import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake as words } from '../../content/seedIntake.js'
 import BarcodeScanner from './BarcodeScanner.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 /**
  * The add bar's one row: a text field, ▤ Photos and the barcode button.
@@ -59,6 +59,7 @@ export default function AddBar({
       >
         <input
           ref={inputRef}
+          className={INTAKE_FIELD}
           type={searchable ? 'search' : 'text'}
           aria-label="Add"
           enterKeyHint={searchable ? 'search' : 'done'}

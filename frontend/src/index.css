@@ -2906,9 +2906,8 @@ footer {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
+/* The field's look and 44px come from INTAKE_FIELD (addClasses.js). */
 .intake-addbar input {
-  font-size: var(--fs-16);
-  min-height: 2.75rem;
   min-width: 0;
 }
 
@@ -3223,20 +3222,8 @@ footer {
 }
 
 .intake-shootsearch input {
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  color: var(--text);
   flex: 1;
-  min-height: 2.25rem;
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
-}
-
-@media (max-width: 900px) {
-  .intake-shootsearch input {
-    min-height: 2.75rem;
-  }
 }
 
 /* Public intake demo (/shelf/intake). A drawn shelf, the four stages and

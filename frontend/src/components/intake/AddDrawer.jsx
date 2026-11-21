@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import CoverImage from '../CoverImage.jsx'
 import KindFields from './KindFields.jsx'
 import Sheet from '../Sheet.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -111,6 +111,7 @@ export default function AddDrawer({
             <label htmlFor={`${id}-typed-title`}>Title</label>
             <input
               id={`${id}-typed-title`}
+              className={INTAKE_FIELD}
               required
               value={title}
               onChange={(event) => setTitle(event.target.value)}

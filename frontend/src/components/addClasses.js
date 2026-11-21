@@ -1,4 +1,5 @@
-import { btn, closetCard, field, PRESSED } from './closetClasses.js'
+import { btn, closetCard, field, PRESSED, textarea } from './closetClasses.js'
+import { CHECKBOX } from './adminShelfClasses.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages' controls (#535,
 // slice c), drawn from the Button, Card and Input looks through
@@ -29,9 +30,12 @@ export const BOX = closetCard
  *  drawn with a dashed border, so it is never told apart by fading alone. */
 export const TILE = `${closetCard} cursor-pointer text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:border-dashed disabled:hover:border-border max-[900px]:min-h-11`
 
-/** A native checkbox or radio: sized, with the ring every control paints. */
-export const CHECKBOX =
-  'size-4 cursor-pointer accent-primary outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
+export { CHECKBOX }
+
+/** A text field, select or textarea in an intake row: the Input look, 44px
+ *  tall up to 900px as the legacy fields were. */
+export const INTAKE_FIELD = `${field} max-[900px]:h-11`
+export const INTAKE_TEXTAREA = textarea
 
 /** The label around a checkbox or radio: 44px tall on a phone. */
 export const CHECK_ROW =

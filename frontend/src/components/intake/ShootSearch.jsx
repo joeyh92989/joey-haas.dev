@@ -3,7 +3,7 @@ import { apiFetch, errorMessage } from '../../lib/api.js'
 import { WRITTEN_STATES } from '../../lib/intake.js'
 import { live } from '../../lib/intakeRemove.js'
 import AddResults from './AddResults.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -98,6 +98,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
     <div className="intake-shootsearch">
       <form role="search" aria-label="Search instead" onSubmit={search}>
         <input
+          className={INTAKE_FIELD}
           type="search"
           aria-label="Search for a title"
           enterKeyHint="search"

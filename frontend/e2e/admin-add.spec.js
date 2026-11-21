@@ -100,6 +100,18 @@ const STATES = [
     },
   },
   {
+    name: 'Add bar results',
+    spec: PAGES[6],
+    scope: 'main',
+    prep: async (page) => {
+      await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
+      await page.keyboard.press('Enter')
+      await expect(
+        page.getByRole('list', { name: /^Results for/ }),
+      ).toBeVisible()
+    },
+  },
+  {
     name: 'Wrap up sheet',
     spec: PAGES[6],
     scope: 'dialog[open]',
@@ -293,6 +305,17 @@ const CONTRAST = [
     name: 'Games Now playing',
     spec: PAGES[6],
     selector: 'main .now-playing *',
+  },
+  {
+    name: 'Add bar results (Add, Added, On shelf)',
+    spec: PAGES[6],
+    prep: STATES.find((s) => s.name === 'Add bar results').prep,
+    selector: 'main .intake-results *',
+  },
+  {
+    name: 'Radar and Discover answers',
+    spec: PAGES[3],
+    selector: 'main .radar-card *, main .rate-a-few *',
   },
 ]
 

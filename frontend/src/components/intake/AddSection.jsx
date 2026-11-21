@@ -22,7 +22,7 @@ import AddBar from './AddBar.jsx'
 import AddDrawer from './AddDrawer.jsx'
 import AddResults from './AddResults.jsx'
 import { sittingName } from './UnfinishedList.jsx'
-import { BOX, ibtn } from '../addClasses.js'
+import { BOX, ibtn, INTAKE_TEXTAREA } from '../addClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -533,6 +533,7 @@ export default function AddSection({ area, onAdded, children }) {
           <label htmlFor="intake-links-text">{linkIntake.fieldLabel}</label>
           <textarea
             id="intake-links-text"
+            className={INTAKE_TEXTAREA}
             rows={4}
             placeholder={linkIntake.placeholder}
             value={linksText}
