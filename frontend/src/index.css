@@ -6016,8 +6016,8 @@ section > .cover-key {
     overflow-x: auto;
     /* The scroller clips on the left too: 4px (outline plus offset) of
        padding, cancelled by margin, keeps the first chip's ring whole. */
-    margin-inline-start: -4px;
-    padding-inline-start: 4px;
+    margin-inline-start: calc(-1 * var(--space-1));
+    padding-inline-start: var(--space-1);
     margin-top: -0.25rem;
     padding-bottom: var(--space-1);
     padding-right: var(--space-6);
