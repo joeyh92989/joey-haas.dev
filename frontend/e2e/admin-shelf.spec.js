@@ -414,6 +414,11 @@ if (SHOTS) {
           test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
           await page.setViewportSize({ width, height: 1000 })
           await open(page, openRoute, spec, theme)
+          // The toolbar and the first cards, where the new look is.
+          await page
+            .locator(width <= 390 ? '.poster-grid' : '.shelf-toolbar')
+            .first()
+            .evaluate((el) => el.scrollIntoView())
           mkdirSync(SHOTS, { recursive: true })
           await page.screenshot({
             path: `${SHOTS}/${spec.name}-${width}-${theme}.png`,
