@@ -147,3 +147,28 @@ describe('Archive palette', () => {
     expect(svg).not.toMatch(/#0f1114|#6ea0ef/)
   })
 })
+
+// iOS paints transparent pixels of a home-screen icon black and applies its
+// own rounded mask: the touch icon is an opaque full-bleed square.
+describe('apple-touch-icon', () => {
+  it('is 180px and opaque at every corner and edge', async () => {
+    const sharp = (await import('sharp')).default
+    const { data, info } = await sharp(
+      path.join(root, 'public/apple-touch-icon.png'),
+    )
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    expect([info.width, info.height]).toEqual([180, 180])
+    const alpha = (x, y) => data[(y * info.width + x) * 4 + 3]
+    for (const [x, y] of [
+      [0, 0],
+      [179, 0],
+      [0, 179],
+      [179, 179],
+      [90, 0],
+      [0, 90],
+    ])
+      expect(alpha(x, y), `${x},${y}`).toBe(255)
+  })
+})
