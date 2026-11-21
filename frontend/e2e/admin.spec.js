@@ -322,7 +322,7 @@ for (const { width, phone } of [
 }
 
 // Review shots of the shell (#535): set E2E_SHOT_DIR to save /admin,
-// /admin/jobs and /admin/shelf/games at 1280 and 390, in both themes.
+// /admin/jobs, /admin/shelf/games and /admin/closet/today at 1280, 390 and 320, in both themes.
 test('shell review shots', async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop' || !process.env.E2E_SHOT_DIR,
@@ -336,9 +336,9 @@ test('shell review shots', async ({ page }, testInfo) => {
         /* storage unavailable: the shot is the default theme */
       }
     }, theme)
-    for (const width of [1280, 390]) {
+    for (const width of [1280, 390, 320]) {
       await page.setViewportSize({ width, height: width === 1280 ? 800 : 844 })
-      for (const route of SHELL_ROUTES) {
+      for (const route of [...SHELL_ROUTES, '/admin/closet/today']) {
         await page.goto(route)
         await expect(page.locator('main h1').first()).toBeVisible()
         await page.waitForLoadState('networkidle')
