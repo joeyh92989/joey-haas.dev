@@ -1,5 +1,5 @@
 ---
-status: planned
+status: shipped
 kind: UI (admin page bodies, slice b of #532)
 mode: auto
 issue: "#532 (slice b) and #535, epic #519"

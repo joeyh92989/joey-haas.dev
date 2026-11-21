@@ -21,7 +21,8 @@ async function open(page, openRoute, spec, theme, view) {
   await serveAdmin(page, spec.rows)
   if (view) {
     await page.addInitScript(
-      (value) => localStorage.setItem('shelf.admin.view', value),
+      (value) =>
+        localStorage.setItem('shelf.admin.view', JSON.stringify(value)),
       view,
     )
   }
@@ -34,11 +35,19 @@ async function open(page, openRoute, spec, theme, view) {
 async function wideElements(page) {
   return page.evaluate(() => {
     const inner = document.documentElement.clientWidth
-    const name = (el) =>
-      el.tagName.toLowerCase() +
-      (typeof el.className === 'string' && el.className
-        ? `.${el.className.trim().split(/\s+/).slice(0, 3).join('.')}`
-        : '')
+    const name = (el) => {
+      const own = (node) =>
+        node.tagName.toLowerCase() +
+        (typeof node.className === 'string' && node.className
+          ? `.${node.className.trim().split(/\s+/).slice(0, 3).join('.')}`
+          : '')
+      // The element, its nearest classed ancestor and a bit of its text.
+      let up = el.parentElement
+      while (up && !(typeof up.className === 'string' && up.className))
+        up = up.parentElement
+      const text = (el.textContent || '').trim().slice(0, 24)
+      return `${own(el)} in ${up ? own(up) : '-'} "${text}"`
+    }
     const wide = [...document.querySelectorAll('body *')]
       .filter((el) => el.getBoundingClientRect().right > inner + 0.5)
       .filter((el) => {
@@ -114,6 +123,42 @@ for (const spec of PAGES) {
 // ---- Focus rings, measured in pixels ----
 
 const BAND = 6
+
+/** The sides of `card` whose inside edge strip does not change on focus. */
+async function insideRing(page, card, link) {
+  await page.mouse.move(0, 0)
+  await card.scrollIntoViewIfNeeded()
+  await link.evaluate((el) => el.blur())
+  const box = await card.boundingBox()
+  const strips = {
+    top: { x: box.x + 12, y: box.y + 1, width: box.width - 24, height: 3 },
+    bottom: {
+      x: box.x + 12,
+      y: box.y + box.height - 4,
+      width: box.width - 24,
+      height: 3,
+    },
+    // The card's own 3px accent edge is the ring's colour: start past it.
+    left: { x: box.x + 4, y: box.y + 12, width: 3, height: box.height - 24 },
+    right: {
+      x: box.x + box.width - 4,
+      y: box.y + 12,
+      width: 3,
+      height: box.height - 24,
+    },
+  }
+  const before = {}
+  for (const [side, clip] of Object.entries(strips))
+    before[side] = await page.screenshot({ clip })
+  await page.keyboard.press('Shift')
+  await link.focus()
+  await page.mouse.move(0, 0)
+  const missing = []
+  for (const [side, clip] of Object.entries(strips)) {
+    if (before[side].equals(await page.screenshot({ clip }))) missing.push(side)
+  }
+  return missing
+}
 
 /** The 6px strips around a box, those that stay inside the viewport. */
 async function bands(page, box) {
@@ -195,16 +240,14 @@ for (const spec of PAGES) {
       )
       expect(await unringed(page, toolbar), 'toolbar').toEqual([])
 
-      // The card: its link ring is inset (the card clips the outside).
+      // The card: its link ring is inset (the card clips the outside), so it
+      // is measured on the four strips just inside the card's edges.
       const card = page
         .locator('.poster-card')
         .filter({ hasText: spec.card })
         .first()
       const link = card.locator('a.poster-link')
-      expect(
-        await unringed(page, link, () => card.hover()),
-        'card link',
-      ).toEqual([])
+      expect(await insideRing(page, card, link), 'card link').toEqual([])
 
       // The owner controls, shown by hovering the card, which stays hovered.
       const panel = card.locator(
@@ -255,6 +298,9 @@ test('the games list view paints rings on its bulk and row controls', async ({
     .check()
   const bar = page.getByRole('group', { name: /selected/i })
   await expect(bar).toBeVisible()
+  // Apply is disabled until something is chosen, and a disabled button
+  // cannot take focus.
+  await bar.locator('select').first().selectOption({ index: 1 })
   expect(
     await unringed(page, bar.locator('select, button')),
     'bulk bar',
@@ -290,8 +336,11 @@ for (const spec of PAGES) {
         )
         expect(heights, `${what} under 44px`).toEqual([])
       }
+      // The "View /shelf/..." text link keeps its 24px floor (adminPolish).
       await small(
-        page.locator('.admin-head-end').locator('a, button'),
+        page
+          .locator('.admin-head-end')
+          .locator("a[data-slot='button'], button"),
         'header',
       )
       await small(page.locator('.shelf-toolbar button'), 'toolbar')

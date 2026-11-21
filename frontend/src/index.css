@@ -5213,6 +5213,24 @@ dialog.shelf-sheet {
   opacity: 1;
 }
 
+/* The admin lists (#532, slice b) fade only the cover of a finished or
+   abandoned title, not its marks: a faded "x2" or heart fell below 4.5:1
+   against the cover under it. The public lists keep the whole-art fade. */
+.collection-list .poster-card[data-dimmed] .poster-art,
+.collection-list .poster-card[data-dimmed]:hover .poster-art,
+.collection-list .poster-card[data-dimmed]:focus-within .poster-art {
+  opacity: 1;
+}
+
+.collection-list .poster-card[data-dimmed] .poster-art .cover {
+  opacity: 0.45;
+}
+
+.collection-list .poster-card[data-dimmed]:hover .poster-art .cover,
+.collection-list .poster-card[data-dimmed]:focus-within .poster-art .cover {
+  opacity: 1;
+}
+
 .poster-link {
   color: inherit;
   display: block;

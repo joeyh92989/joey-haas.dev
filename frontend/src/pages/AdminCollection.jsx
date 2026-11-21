@@ -923,6 +923,7 @@ export default function AdminCollection() {
           <PosterGrid
             items={visible}
             size={size}
+            layout="records"
             renderCard={(item) => (
               <PosterCard
                 item={item}

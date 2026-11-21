@@ -176,15 +176,25 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
           <span aria-hidden="true">{adminCopy.comics.isPublic}</span>
         </label>
         {row.is_public && (
-          <Link to={itemPath(row.item_id)}>
+          <Button
+            variant="link"
+            className={PHONE_TARGET}
+            nativeButton={false}
+            render={<Link to={itemPath(row.item_id)} />}
+          >
             {row.missing > 0
               ? `Cover wall · ${row.missing} missing`
               : 'Cover wall'}
-          </Link>
+          </Button>
         )}
-        <Link to={`/admin/shelf/comics/${row.item_id}`}>
+        <Button
+          variant="link"
+          className={PHONE_TARGET}
+          nativeButton={false}
+          render={<Link to={`/admin/shelf/comics/${row.item_id}`} />}
+        >
           {adminCopy.comics.edit}
-        </Link>
+        </Button>
       </div>
       <div className="shelf-actions-row shelf-actions-danger">
         <ShelfConfirm
@@ -690,6 +700,7 @@ export default function AdminComics() {
               row,
             }))}
             size="comfortable"
+            layout="records"
             renderCard={(item) => (
               <PosterCard
                 item={item}
