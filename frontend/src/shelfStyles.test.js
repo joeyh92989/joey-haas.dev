@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { readCss } from './testing/readCss.js'
 import { POSTER_HEART } from './components/shelf-classes.js'
+import { BAR, BAR_FILL, DAY_BAR } from './components/overview-classes.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -64,12 +65,13 @@ function mediaRule(selector, from = rules) {
 }
 
 describe('single-series charts (#197)', () => {
-  it.each(['.rating-bar', '.month-bar', '.day-bar', '.bar-list-fill'])(
-    'draws %s in --chart',
-    (selector) => {
-      expect(rule(selector)).toContain('background: var(--chart);')
-    },
-  )
+  it.each([
+    ['a rating or month bar', BAR],
+    ['a day bar', DAY_BAR],
+    ['a list fill', BAR_FILL],
+  ])('draws %s in --chart', (_name, classes) => {
+    expect(classes.split(' ')).toContain('bg-chart-1')
+  })
 
   it('keeps amber for the rating star and the favorite heart only', () => {
     // Both are utilities on the components now (#536, slice D4).
@@ -79,8 +81,8 @@ describe('single-series charts (#197)', () => {
     )
     expect(rating).toMatch(/mr-\[0\.2em\] text-\(--rating\)/)
     expect(POSTER_HEART).toContain('text-(--rating)')
-    expect(rule('.rating-bar')).not.toContain('--rating')
-    expect(rule('.day-bar')).not.toContain('--chart-2')
+    expect(BAR).not.toContain('--rating')
+    expect(DAY_BAR).not.toContain('chart-2')
   })
 })
 

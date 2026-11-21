@@ -1,5 +1,12 @@
 import { PEAK_CAPTION } from '../content/stats.js'
 import { counted, dayLabel } from '../lib/analytics.js'
+import { cx } from '../lib/cx.js'
+import {
+  DAY_BAR,
+  DAY_BARS_AXIS,
+  DAY_BARS_CHART,
+  DAY_BARS_PEAK,
+} from './overview-classes.js'
 
 /** Most axis labels under the chart; the rest of the days go unlabelled. */
 const AXIS_LABELS = 5
@@ -33,26 +40,26 @@ export default function DayBars({ series }) {
 
   return (
     <div className="day-bars">
-      <div className="day-bars-chart">
+      <div className={cx('day-bars-chart', DAY_BARS_CHART)}>
         {series.map((point) => (
           <span
             key={point.day}
             role="img"
             aria-label={`${dayLabel(point.day, { weekday: true })}: ${counted(point.views, 'view')}`}
-            className="day-bar"
+            className={cx('day-bar', DAY_BAR)}
             style={{
               height: `${highest ? (point.views / highest) * 100 : 0}%`,
             }}
           />
         ))}
       </div>
-      <div className="day-bars-axis" aria-hidden="true">
+      <div className={cx('day-bars-axis', DAY_BARS_AXIS)} aria-hidden="true">
         {axis.map((index) => (
           <span key={series[index].day}>{dayLabel(series[index].day)}</span>
         ))}
       </div>
       {peak >= 0 && (
-        <p className="day-bars-peak">
+        <p className={cx('day-bars-peak', DAY_BARS_PEAK)}>
           {PEAK_CAPTION(dayLabel(series[peak].day, { weekday: true }), highest)}
         </p>
       )}
