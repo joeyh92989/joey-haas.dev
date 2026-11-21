@@ -8,16 +8,16 @@ export const CARD_LINK =
   'block text-inherit no-underline outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-ring'
 
 /** The card itself: positioned for the link's `::after`, the other three
- *  edges darken with the hover as Home's do, and no lift (the legacy
- *  `.poster-card` hover transform is for the admin's loose posters). */
+ *  edges darken with the hover as Home's do, and no lift (the loose posters
+ *  below lift; a record card does not). */
 export const CARD_HOST =
-  'relative h-full has-[a:hover]:border-y-foreground has-[a:hover]:border-r-foreground hover:transform-none focus-within:transform-none'
+  'relative h-full has-[a:hover]:border-y-foreground has-[a:hover]:border-r-foreground'
 
 /** A card's title: the serif, with the accent underline Home's titles use.
- *  The legacy `.poster-title` clamps to two lines and hides the overflow,
- *  which cuts the underline off the last line, so both are cancelled here. */
+ *  Not clamped (the loose poster's title is, to two lines), so the underline
+ *  is never cut off the last line. */
 export const CARD_TITLE =
-  'mt-2 block overflow-visible [-webkit-line-clamp:unset] [line-clamp:unset] font-heading text-base leading-tight font-medium text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 [overflow-wrap:anywhere]'
+  'mt-2 block font-heading text-base leading-tight font-medium text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 [overflow-wrap:anywhere]'
 
 /** The grid of numbered cards: wider columns than loose posters, since a
  *  strip holds a number and a word. Two columns on a phone, one under 23rem (a strip's number and word do not fit two across at 320px). */
@@ -154,3 +154,128 @@ export const SORT_SELECT_FIELD =
 
 /** The labelled filter rows. */
 export const CHIP_ROWS = 'flex flex-col gap-2'
+// The poster family (#536, slice D4): the loose posters (Now, a year, a month,
+// an item's neighbours, the admin Radar) and the parts a record card shares
+// with them. The class names `poster-card`, `poster-art`, `poster-link`,
+// `poster-title`, `poster-meta`, `status-mark`, `format-mark`, `replay-mark`,
+// `upcoming-ribbon` and `poster-heart` stay on the elements as the names
+// tests and e2e read; they carry no rule.
+
+/** The grid of loose posters: a column minimum of 8.5rem, 6rem when compact
+ *  and on a phone (three across at 375px). A record grid and the spine rail
+ *  bring their own minimums. */
+export const POSTER_MIN =
+  '[--poster-min:8.5rem] data-[size=compact]:[--poster-min:6rem] max-[34rem]:[--poster-min:6rem]'
+
+/** Every poster grid: auto-filling columns of at least `--poster-min`. The
+ *  spine rail sets its own columns after this. */
+export const POSTER_GRID =
+  'grid gap-(--grid-gap) m-0 list-none p-0 [grid-template-columns:repeat(auto-fill,minmax(var(--poster-min),1fr))]'
+
+/** A poster card's frame: positioned for the marks, fading in step with the
+ *  lift. */
+export const POSTER_CARD = 'relative [transition:opacity_0.15s,transform_0.15s]'
+
+/** The loose poster lifts 2px on a pointer device, on hover and on focus. */
+export const POSTER_LIFT =
+  'hover:[transform:translateY(-2px)] [@media(hover:hover)]:focus-within:[transform:translateY(-2px)]'
+
+/** Finished and abandoned fade back so the backlog stands out; a card being
+ *  looked at or worked with comes back to full strength. Only the cover
+ *  dims: fading the whole card took the title and meta text below 4.5:1. */
+export const POSTER_DIMMED =
+  'data-dimmed:[&:not(:hover):not(:focus-within)_.poster-art]:opacity-45'
+
+/** The admin lists fade only the cover of a finished or abandoned title, not
+ *  its marks: a faded "x2" or heart fell below 4.5:1 against the cover. */
+export const POSTER_DIMMED_COVER =
+  'data-dimmed:[&:not(:hover):not(:focus-within)_.poster-art_.cover]:opacity-45'
+
+/** A loose poster's link: the whole poster and its title, ringed on focus. */
+export const POSTER_LINK =
+  'block text-inherit no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[3px] focus-visible:outline-ring'
+
+/** The cover and its marks. The scrim over it darkens on hover and focus
+ *  without catching the pointer. A comic's `data-stacked` draws two offset
+ *  edges behind the cover (decorative, --line-strong on --surface). */
+export const POSTER_ART =
+  "relative block after:pointer-events-none after:absolute after:inset-0 after:rounded-[4px] after:bg-transparent after:content-[''] after:[transition:background-color_0.15s] [@media(hover:hover)]:[.poster-card:hover_&]:after:bg-(--overlay) [@media(hover:hover)]:[.poster-card:focus-within_&]:after:bg-(--overlay) data-stacked:isolate data-stacked:mr-2 data-stacked:mb-2 data-stacked:before:absolute data-stacked:before:inset-0 data-stacked:before:-z-1 data-stacked:before:rounded-[4px] data-stacked:before:border data-stacked:before:border-(--line-strong) data-stacked:before:bg-(--surface) data-stacked:before:content-[''] data-stacked:before:[box-shadow:3px_3px_0_-1px_var(--surface),3px_3px_0_0_var(--line-strong)] data-stacked:before:[transform:translate(3px,3px)]"
+
+/** A loose poster's title, clamped to two lines. */
+export const POSTER_TITLE =
+  'mt-2 line-clamp-2 overflow-hidden text-foreground [font-size:var(--fs-13)] leading-[1.3]'
+
+/** The line under a title: year and creator. */
+export const POSTER_META = 'mt-[0.15rem] [font-size:var(--fs-12)]'
+
+/** A private row's tag on the admin shelf: always visible, not a control. */
+export const POSTER_PRIVATE =
+  'mt-1 w-fit justify-self-start rounded-[999px] border border-(--line-strong) px-2 text-(--text-2) [font-size:var(--fs-12)]'
+
+/** The status mark: a small square in the cover's top-left corner. The
+ *  fills carry the status colour; a paused mark is an outline in the same
+ *  colour, inside the 1px --surface halo the filled marks rely on against
+ *  covers. The key draws it static (`CoverKey`). */
+export const STATUS_MARK =
+  'left-[0.4rem] top-[0.4rem] z-1 h-[0.625rem] w-[0.625rem] rounded-[2px] border border-(--surface) data-[status=active]:bg-(--status-active) data-[status=paused]:bg-(--surface) data-[status=paused]:[box-shadow:inset_0_0_0_2px_var(--status-active)] data-[status=finished]:bg-(--status-finished) data-[status=abandoned]:bg-(--status-abandoned)'
+
+/** The format mark, bottom-right: a key for a copy that does not hold the
+ *  game, "?" for a Switch 2 copy whose format was never recorded. */
+export const FORMAT_MARK =
+  'absolute right-[0.4rem] bottom-[0.4rem] z-1 flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-[3px] bg-(--overlay) font-semibold leading-none text-(--text-3) [font-size:var(--fs-12)]'
+
+/** The replay mark: how many times a game was finished, when more than once.
+ *  The format mark's overlay style with a mono numeral. Position and fill
+ *  come from where it is drawn (the cover, or the key). */
+export const REPLAY_MARK =
+  'bottom-[0.4rem] left-[0.4rem] z-1 flex h-[1.1rem] items-center rounded-[3px] px-1 font-mono leading-none font-medium text-foreground [font-size:var(--fs-12)]'
+
+/** The "Coming" ribbon along the bottom edge, clear of the corner marks. */
+export const UPCOMING_RIBBON =
+  'absolute inset-x-0 bottom-0 bg-(--overlay) py-1 pr-8 pl-2 tracking-[0.04em] text-foreground uppercase [font-size:var(--fs-12)]'
+
+/** The favourite heart, top-right of the cover. Amber is a mark here (3:1),
+ *  never text. The key draws it static. */
+export const POSTER_HEART =
+  'right-[0.4rem] top-[0.35rem] z-1 leading-none text-(--rating) [font-size:var(--fs-14)]'
+
+// The admin card's controls (#536, slice D4). `shelf-actions`, `shelf-sheet`,
+// `shelf-actions-row`, `quick-rate` and `quick-rate-target` stay as the names
+// tests and e2e read; they carry no rule.
+
+/** The star row: ten half-star targets. In the phone sheet it fills the width
+ *  at 3rem, so each half star is 24px wide (WCAG 2.5.8's minimum). */
+export const QUICK_RATE =
+  'inline-flex leading-none [font-size:var(--fs-18)] [.shelf-sheet_&]:flex [.shelf-sheet_&]:justify-center [.shelf-sheet_&]:[font-size:var(--fs-48)]'
+
+/** One half-star target. The targets are at least 44px tall on a phone (ten
+ *  half stars are 9px wide each, so the width stays as drawn). Hovering a star
+ *  fills every target up to it and empties the rest, previewing the click. */
+export const QUICK_RATE_TARGET =
+  'group/target relative h-[1.2em] w-[0.5em] cursor-pointer overflow-hidden border-0 bg-none p-0 text-(--text-3) [font:inherit] data-filled:text-(--rating) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-foreground max-[700px]:min-h-11 [@media(hover:hover)]:[.quick-rate:hover_&]:text-(--rating) [@media(hover:hover)]:[.quick-rate-target:hover~&]:text-(--text-3)'
+
+/** The star inside a target: a full star, shifted so each target shows one
+ *  half. Centred in the taller phone box; where the box is already taller
+ *  (the sheet draws the stars at 3rem) the star keeps its own top. */
+export const QUICK_RATE_STAR =
+  'absolute top-[0.05em] left-0 block w-[1em] group-data-[half=right]/target:-left-[0.5em] max-[700px]:top-[max(0.05em,calc((2.75rem-1.2em)/2+0.05em))]'
+
+/** A row of controls under the stars. In the phone sheet it centres at the
+ *  page size with room between. */
+export const SHELF_ACTIONS_ROW =
+  'mt-1 flex flex-wrap items-center gap-1 [.shelf-sheet_&]:mt-3 [.shelf-sheet_&]:justify-center [.shelf-sheet_&]:gap-4 [.shelf-sheet_&]:[font-size:var(--fs-16)]'
+
+/** The panel on a pointer device: out of the flow, anchored to the card foot,
+ *  on a solid surface, and revealed with opacity on hover and on focus-within
+ *  (never display or visibility, so the keyboard still reaches it and nothing
+ *  moves). */
+export const SHELF_ACTIONS_HOVER =
+  'absolute inset-x-0 bottom-0 z-10 m-0 max-h-full overflow-y-auto border-t border-t-(--line) bg-(--surface) px-3 pt-2 pb-3 opacity-0 [transition:opacity_0.15s] focus-within:opacity-100 [.poster-card:hover_&]:opacity-100'
+
+/** The touch form: one "..." button, in flow above the card's cover-wide link. */
+export const SHELF_ACTIONS_SHEET = 'relative z-10 mt-1'
+
+/** The bottom sheet the touch form opens: a modal dialog, so its own box is
+ *  undone (no margin, no max width, no border but the top). */
+export const SHELF_SHEET =
+  'fixed inset-x-0 top-auto bottom-0 z-10 [.admin-app-phone_&]:z-40 m-0 max-h-[85dvh] w-auto max-w-none overflow-auto border-0 border-t border-t-(--line) bg-(--surface) px-4 pt-4 pb-6 text-foreground [box-shadow:0_-8px_24px_var(--overlay)] backdrop:bg-(--overlay)'

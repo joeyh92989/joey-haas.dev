@@ -2,6 +2,12 @@ import { useId, useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { Button } from './ui/button.jsx'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { cx } from '../lib/cx.js'
+import {
+  SHELF_ACTIONS_HOVER,
+  SHELF_ACTIONS_SHEET,
+  SHELF_SHEET,
+} from './shelf-classes.js'
 
 /**
  * The frame around an admin card's controls, shared by the Games and Comics
@@ -27,12 +33,11 @@ export default function CardActionsShell({
   const [open, setOpen] = useState(false)
   const toggle = useRef(null)
   const sheetId = useId()
-  const classes = className ? `shelf-actions ${className}` : 'shelf-actions'
 
   if (hover) {
     return (
       <div
-        className={classes}
+        className={cx('shelf-actions', SHELF_ACTIONS_HOVER, className)}
         data-mode="hover"
         role="group"
         aria-label={label}
@@ -43,7 +48,10 @@ export default function CardActionsShell({
   }
 
   return (
-    <div className={classes} data-mode="sheet">
+    <div
+      className={cx('shelf-actions', SHELF_ACTIONS_SHEET, className)}
+      data-mode="sheet"
+    >
       <Button
         ref={toggle}
         variant="outline"
@@ -61,7 +69,7 @@ export default function CardActionsShell({
         onClose={() => setOpen(false)}
         ariaLabel={label}
         variant="bare"
-        className="shelf-sheet"
+        className={cx('shelf-sheet', SHELF_SHEET)}
         initialFocus={focusSelector}
         returnFocus={toggle}
       >

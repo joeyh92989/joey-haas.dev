@@ -315,9 +315,11 @@ describe('PosterCard in a numbered collection', () => {
   it('lets the title’s underline show: no clip, no line clamp', () => {
     renderCard({ number: 7 })
     const title = document.querySelector('.poster-title')
-    expect(title.className).toContain('overflow-visible')
+    // The loose poster's title clamps to two lines and clips; a record
+    // card's title is a plain block, so nothing cuts the underline off.
     expect(title.className).toContain('block')
-    expect(title.className).toContain('[-webkit-line-clamp:unset]')
+    expect(title.className).not.toContain('line-clamp')
+    expect(title.className).not.toContain('overflow-hidden')
   })
 
   it('spaces the rating under the title', () => {

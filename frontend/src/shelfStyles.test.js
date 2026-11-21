@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { readCss } from './testing/readCss.js'
+import { POSTER_HEART } from './components/shelf-classes.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -70,8 +72,13 @@ describe('single-series charts (#197)', () => {
   )
 
   it('keeps amber for the rating star and the favorite heart only', () => {
-    expect(rule('.rating-star')).toContain('color: var(--rating);')
-    expect(rule('.poster-heart')).toContain('color: var(--rating);')
+    // Both are utilities on the components now (#536, slice D4).
+    const rating = readFileSync(
+      new URL('./components/Rating.jsx', import.meta.url),
+      'utf8',
+    )
+    expect(rating).toMatch(/mr-\[0\.2em\] text-\(--rating\)/)
+    expect(POSTER_HEART).toContain('text-(--rating)')
     expect(rule('.rating-bar')).not.toContain('--rating')
     expect(rule('.day-bar')).not.toContain('--chart-2')
   })

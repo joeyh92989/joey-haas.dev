@@ -1,5 +1,7 @@
 import { spine } from '../content/spine.js'
 import { STATUS_LABEL } from '../lib/shelf.js'
+import { cx } from '../lib/cx.js'
+import { POSTER_HEART, REPLAY_MARK, STATUS_MARK } from './shelf-classes.js'
 
 const copy = spine.shelf.key
 
@@ -19,22 +21,35 @@ const MARKED = ['active', 'paused', 'finished', 'abandoned']
  */
 export default function CoverKey({ statuses = true, children }) {
   return (
-    <ul className="cover-key" aria-label={copy.aria}>
-      <li className="key-h">{copy.label}</li>
+    <ul
+      className="cover-key m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0 text-(--text-3) [font-size:var(--fs-12)] [section>&]:mt-1 [section>&]:mb-3 [&>li]:flex [&>li]:items-center [&>li]:gap-1 [&>li]:whitespace-nowrap"
+      aria-label={copy.aria}
+    >
+      <li className="key-h font-medium text-(--text-2)">{copy.label}</li>
       {(statuses ? MARKED : []).map((status) => (
         <li key={status}>
-          <i className="status-mark" data-status={status} aria-hidden="true" />
+          <i
+            className={cx('status-mark', STATUS_MARK, 'static')}
+            data-status={status}
+            aria-hidden="true"
+          />
           {STATUS_LABEL[status]}
         </li>
       ))}
       <li>
-        <span className="replay-mark" aria-hidden="true">
+        <span
+          className={cx('replay-mark', REPLAY_MARK, 'static bg-(--sunken)')}
+          aria-hidden="true"
+        >
           ×2
         </span>
         {copy.finishedTwice}
       </li>
       <li>
-        <span className="poster-heart" aria-hidden="true">
+        <span
+          className={cx('poster-heart', POSTER_HEART, 'static')}
+          aria-hidden="true"
+        >
           ♥
         </span>
         {copy.favorite}

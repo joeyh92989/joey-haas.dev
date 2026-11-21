@@ -175,6 +175,18 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `QuickRate`, `ShelfCardActions`, and the pieces the public pages share:
   `ResultBar`, `CoverKey`, `ShowMore`, `JumpNav`, `CappedList` and
   `EmptyState` (the one empty state).
+  The shelf cards draw from utilities, with no rule in `index.css` (#536,
+  slice D4): the class strings are in `components/shelf-classes.js`
+  (`POSTER_*`, `STATUS_MARK`, `FORMAT_MARK`, `REPLAY_MARK`, `UPCOMING_RIBBON`,
+  `POSTER_HEART`, the `QUICK_RATE*` and `SHELF_ACTIONS_*` strings, `SHELF_SHEET`).
+  `.poster-grid`, `.poster-card`, `.poster-link`, `.poster-art`,
+  `.poster-title`, `.poster-meta`, `.poster-private`, `.status-mark`,
+  `.format-mark`, `.replay-mark`, `.upcoming-ribbon`, `.poster-heart`,
+  `.rating*`, `.cover-key`, `.quick-rate*`, `.shelf-actions`, `.shelf-actions-row`
+  and `.shelf-sheet` stay as hook names (tests, e2e, and a few utilities
+  select on them, such as `[.poster-card:hover_&]`); they carry no rule. A loose poster lifts on hover; a record card (`PosterCard` with a
+  `number`) does not. A dimmed public card fades its whole art, and an admin
+  card (one with `actions`) fades only the cover.
   `SortControl` is chips on a wide screen and a select on a phone unless it
   is given `select`, the public shelf's labeled select at every width.
   `FavoritesRow`, `StatusBar`, `RatingHistogram`, `FinishesStrip` and

@@ -1,7 +1,9 @@
 import { useId } from 'react'
+import { cx } from '../lib/cx.js'
 import { playMove, statusMoves } from '../lib/statusMoves.js'
 import CardActionsShell from './CardActionsShell.jsx'
 import QuickRate from './QuickRate.jsx'
+import { SHELF_ACTIONS_ROW } from './shelf-classes.js'
 import ShelfConfirm from './ShelfConfirm.jsx'
 import { Button } from './ui/button.jsx'
 import {
@@ -69,7 +71,7 @@ export default function ShelfCardActions({
   const panel = (
     <>
       <QuickRate value={item.rating} onChange={(next) => onRate(item, next)} />
-      <div className="shelf-actions-row">
+      <div className={cx('shelf-actions-row', SHELF_ACTIONS_ROW)}>
         {/* The same move as the status menu's Playing entry, one tap away;
             the server decides what it records. */}
         {play && (
@@ -137,7 +139,12 @@ export default function ShelfCardActions({
         )}
       </div>
       {(onRedo || onDelete) && (
-        <div className="shelf-actions-row shelf-actions-danger">
+        <div
+          className={cx(
+            'shelf-actions-row shelf-actions-danger',
+            SHELF_ACTIONS_ROW,
+          )}
+        >
           {onRedo && (
             <ShelfConfirm
               mode="redo"
