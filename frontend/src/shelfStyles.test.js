@@ -100,23 +100,17 @@ describe('two widths (#188)', () => {
   const COLUMN = 'max-width: 45rem;'
   const TEXT = 'max-width: min(45rem, 68ch);'
 
-  it.each([
-    '.year-diary',
-    '.month-days',
-    '.month-index',
-    '.month-step',
-    '.comic-hero-next',
-    '.tour-stop-cols.one',
-  ])('holds %s to the 45rem column', (selector) => {
-    expect(rule(selector)).toContain(COLUMN)
-  })
+  it.each(['.month-index', '.month-step', '.tour-stop-cols.one'])(
+    'holds %s to the 45rem column',
+    (selector) => {
+      expect(rule(selector)).toContain(COLUMN)
+    },
+  )
 
   it.each([
     '.prose',
     '.prose-list',
     '.daily-lede',
-    '.comic-issue-desc',
-    '.item-description-wrap',
     '.tour-lede',
     '.tour-stop-claim',
     '.tour-stop-why',

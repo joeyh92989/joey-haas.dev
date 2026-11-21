@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { PANEL_HEAD } from './detail-classes.js'
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
 import { expandRanges, monthYear } from '../lib/comics.js'
@@ -326,7 +327,12 @@ export default function CoverWall({
       className="item-card cover-wall"
       aria-labelledby="item-wall"
     >
-      <h2 id="item-wall" tabIndex={-1} data-focus="heading">
+      <h2
+        id="item-wall"
+        tabIndex={-1}
+        data-focus="heading"
+        className={PANEL_HEAD}
+      >
         {title}
       </h2>
       <div className="wall-bar">

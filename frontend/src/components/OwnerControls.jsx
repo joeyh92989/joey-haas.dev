@@ -1,8 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
+import { buttonVariants } from './ui/button-variants.js'
+import { OWNER_BOX, OWNER_NOTE, PHONE_TARGET } from './detail-classes.js'
+import { PRESSED_FILL } from './shelf-classes.js'
+import { cn } from '../lib/utils.js'
+import { cx } from '../lib/cx.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 
 const COPY = spine.comics.issue.owner
+
+// An owned/read/skip toggle is a chip button; pressed is the ink fill and
+// weight (docs/design-system.md → Shelf lists → Pressed state), 44px tall on a
+// phone.
+const TOGGLE = cn(
+  buttonVariants({ variant: 'chip', size: 'chip' }),
+  PRESSED_FILL,
+  PHONE_TARGET,
+)
 
 /**
  * The owner's buttons on an issue page, drawn only when signed in. Owned and
@@ -84,12 +98,12 @@ export default function OwnerControls({
   }
 
   return (
-    <div className="comic-issue-owner">
-      <p className="comic-issue-owner-note">{COPY.note}</p>
-      <div className="comic-issue-owner-buttons">
+    <div className={cx('comic-issue-owner', OWNER_BOX)}>
+      <p className={cx('comic-issue-owner-note', OWNER_NOTE)}>{COPY.note}</p>
+      <div className="comic-issue-owner-buttons flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn sm"
+          className={TOGGLE}
           ref={ownRef}
           aria-pressed={held}
           disabled={busy || editionOnly}
@@ -99,7 +113,7 @@ export default function OwnerControls({
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={TOGGLE}
           aria-pressed={read}
           disabled={busy}
           onClick={() => mark(read ? 'owned' : 'read')}
@@ -109,7 +123,7 @@ export default function OwnerControls({
         {!held && (
           <button
             type="button"
-            className="btn sm"
+            className={TOGGLE}
             aria-pressed={skipped}
             disabled={busy}
             onClick={() => run(() => toggleSkip(id, n), null)}
@@ -119,11 +133,14 @@ export default function OwnerControls({
         )}
       </div>
       {editionOnly && (
-        <p className="comic-issue-owner-note">
+        <p className={cx('comic-issue-owner-note', OWNER_NOTE)}>
           {COPY.inEdition(edition.label)}
         </p>
       )}
-      <p className="comic-issue-saved" role="status">
+      <p
+        className="comic-issue-saved mt-2 mb-0 min-h-[1.4rem] text-[0.8125rem] text-muted-foreground"
+        role="status"
+      >
         {error ? (
           <span className="admin-error" role="alert">
             {error}
@@ -133,7 +150,7 @@ export default function OwnerControls({
             {COPY.marked[last.now]}{' '}
             <button
               type="button"
-              className="link-button"
+              className={buttonVariants({ variant: 'link', size: 'bare' })}
               disabled={busy}
               onClick={undo}
             >

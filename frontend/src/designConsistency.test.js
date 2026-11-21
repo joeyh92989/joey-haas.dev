@@ -59,11 +59,7 @@ const H1_ALLOWED = new Set([
   'pages/NotFound.jsx',
   // Not yet migrated
   'pages/Next.jsx',
-  'pages/YearInReview.jsx',
   'pages/HowItWorks.jsx',
-  'pages/Item.jsx',
-  'pages/ComicIssue.jsx',
-  'pages/ComicVolume.jsx',
   'layouts/AdminLayout.jsx',
   'components/RouteErrorBoundary.jsx',
 ])
@@ -214,6 +210,8 @@ describe('shared component rules', () => {
     'components/PostMeta.jsx',
     'components/TagList.jsx',
     'components/Kicker.jsx',
+    'components/Breadcrumb.jsx',
+    'components/PageHeader.jsx',
     'layouts/RootLayout.jsx',
     'pages/Home.jsx',
     'pages/About.jsx',

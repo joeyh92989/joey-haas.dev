@@ -307,23 +307,6 @@ body {
 }
 
 /* The breadcrumb every detail page opens with (components/Breadcrumb). */
-.crumbs ol {
-  color: var(--text-3);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-13);
-  gap: var(--space-1) var(--space-2);
-  list-style: none;
-  margin: 0 0 var(--space-3);
-  padding: 0;
-}
-
-.crumbs li + li::before {
-  color: var(--text-3);
-  content: '/';
-  content: '/' / '';
-  margin-right: var(--space-2);
-}
 
 /* Headings are Source Serif 4 at 500, the one weight installed: a serif at
    600 or 700 would be synthesised, so no rule sets one beside
@@ -361,9 +344,6 @@ a:hover {
 .empty-box a,
 .intake-demo-fine a,
 .attribution a,
-.comic-issue-attribution a,
-.comic-issue-held a,
-.volume-collects a,
 p.muted a,
 .now-finished a,
 .job-summary a {
@@ -3950,12 +3930,6 @@ footer {
   opacity: 0.45;
 }
 
-.comic-issue-cover-caption {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: var(--space-2) 0 0;
-}
-
 /* In a tile the frame already carries the dashed outline and the state. */
 .cover-tile .cover[data-nocover] {
   border: 0;
@@ -4787,69 +4761,6 @@ a.month-bar::before {
 }
 
 /* Public item page: the breadcrumb, then the cover beside the title. */
-.item-head {
-  align-items: flex-end;
-  display: flex;
-  gap: var(--space-5);
-  margin: var(--space-2) 0 var(--space-5);
-  position: relative;
-}
-
-.item-cover {
-  flex: 0 0 9rem;
-}
-
-.item-cover .cover {
-  box-shadow: 0 6px 18px var(--overlay);
-}
-
-.item-heading {
-  /* The rest of the row, so a comic's What's next tiles have room. */
-  flex: 1 1 auto;
-  min-width: 0;
-  padding-bottom: var(--space-1);
-}
-
-.item-heading h1 {
-  margin: 0 0 var(--space-1);
-}
-
-.item-heading p {
-  margin: 0;
-}
-
-.item-status {
-  color: var(--text);
-  font-size: var(--fs-14);
-  margin-top: var(--space-1);
-}
-
-.item-edit {
-  display: inline-block;
-  font-size: var(--fs-13);
-  margin-top: var(--space-2);
-}
-
-.item-groups {
-  display: grid;
-  gap: var(--space-2) var(--space-4);
-  grid-template-columns: max-content 1fr;
-  margin: 0 0 var(--space-4);
-}
-
-.item-groups > div {
-  display: contents;
-}
-
-.item-groups dt {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-  padding-top: var(--space-1);
-}
-
-.item-groups dd {
-  margin: 0;
-}
 
 .item-chips {
   display: flex;
@@ -4860,23 +4771,7 @@ a.month-bar::before {
   padding: 0;
 }
 
-@media (max-width: 700px) {
-  .item-groups {
-    gap: var(--space-1);
-    grid-template-columns: 1fr;
-  }
-
-  .item-groups dd {
-    margin-bottom: var(--space-2);
-  }
-}
-
 /* The owner's copy: its own line, not a chip among the game's genres. */
-.item-copy {
-  color: var(--text-2);
-  font-size: var(--fs-16);
-  margin: var(--space-1) 0 0;
-}
 
 .item-chip {
   border: 1px solid var(--line);
@@ -4888,15 +4783,6 @@ a.month-bar::before {
 
 .item-chip-muted {
   color: var(--text-3);
-}
-
-.item-description-wrap {
-  margin: 0 0 var(--space-5);
-  max-width: min(45rem, 68ch);
-}
-
-.item-description {
-  margin: 0 0 var(--space-1);
 }
 
 .clamp-6 {
@@ -4944,13 +4830,6 @@ a.month-bar::before {
   color: var(--text);
   font-size: var(--fs-16);
   font-variant-numeric: tabular-nums;
-}
-
-.item-similar h2 {
-  font-size: var(--fs-13);
-  letter-spacing: 0.04em;
-  margin: 0 0 var(--space-2);
-  text-transform: uppercase;
 }
 
 /* Quick rate: ten half-star targets. Each button shows one half of a star;
@@ -6045,13 +5924,6 @@ section > .cover-key {
   }
 
   /* The cover shrinks so the title still fits beside it. */
-  .item-head {
-    gap: var(--space-4);
-  }
-
-  .item-cover {
-    flex-basis: 6.5rem;
-  }
 
   /* 375px leaves about 21.4rem inside the gutters: three 6rem columns. */
   .skeleton-grid,
@@ -7497,27 +7369,6 @@ main h1[tabindex='-1']:focus,
 
 /* ---------- Year in review ---------- */
 
-.year-review h1 {
-  margin-top: var(--space-5);
-}
-
-.year-review h2 {
-  font-size: var(--fs-18);
-  margin: var(--space-6) 0 var(--space-3);
-}
-
-.year-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-
-.year-nav [aria-current='page'] {
-  color: var(--text);
-  font-weight: 600;
-}
-
 .month-nav {
   margin-top: var(--space-2);
 }
@@ -7565,66 +7416,13 @@ main h1[tabindex='-1']:focus,
   max-width: 45rem;
 }
 
-.month-days {
-  display: grid;
-  gap: var(--space-4);
-  list-style: none;
-  margin: 0;
-  max-width: 45rem;
-  padding-left: 0;
-}
-
-.month-days > li > time {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-13);
-  margin-bottom: var(--space-1);
-}
-
-.month-days .year-diary li {
-  grid-template-columns: 1fr auto;
-}
-
-.year-numbers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4) var(--space-6);
-  margin: var(--space-5) 0 0;
-}
-
-.year-numbers dt {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-}
-
-.year-numbers dd {
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: var(--fs-32);
-  font-variant-numeric: tabular-nums;
-  margin: 0;
-}
-
 /* The community's score is written whole: "42 / 100" never breaks. */
-.year-community {
-  color: var(--text);
-  white-space: nowrap;
-}
 
 /* Year in review: the months and the finishes beside the genres and the
    crowd at desktop widths; one column below that. */
-.year-columns {
-  align-items: start;
-  display: grid;
-  gap: 0 var(--space-7);
-  grid-template-columns: minmax(0, 1fr);
-}
 
 /* The genre bars fill their column, as the mockup's do, and By month sits on
    a baseline. */
-.year-columns .bar-list li {
-  grid-template-columns: minmax(0, 10rem) minmax(2rem, 1fr) auto;
-}
 
 .year-months .month-bars {
   border-bottom: 1px solid var(--text-3);
@@ -7635,52 +7433,7 @@ main h1[tabindex='-1']:focus,
   max-width: 36rem;
 }
 
-@media (min-width: 60rem) {
-  .year-columns {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  }
-}
-
-.year-diary {
-  color: var(--text-2);
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  max-width: 45rem;
-  padding-left: var(--space-5);
-}
-
-.year-diary {
-  list-style: none;
-  padding-left: 0;
-}
-
-.year-diary li {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: 4.5rem 1fr auto;
-}
-
-.year-diary time {
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-}
-
 /* A finish's title cell: a small cover, then the title (and "again"). */
-.year-diary-title {
-  align-items: center;
-  display: flex;
-  gap: var(--space-3);
-}
-
-.year-diary li:has(.year-diary-cover) {
-  align-items: center;
-}
-
-.year-diary-cover {
-  flex: none;
-  width: 2.25rem;
-}
 
 /* ---- Tour (/shelf/how): the tour's primitives ---- */
 
@@ -8565,75 +8318,9 @@ button.run-cell[aria-disabled='true'] {
 
 /* The series page's run: the count and pill, What's next, the dashed box
    for a want or an unrecorded run, and the run card's sentence. */
-.comic-sum {
-  color: var(--text);
-  font-size: var(--fs-16);
-  margin: var(--space-3) 0 0;
-}
-
-.comic-sum b {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
 
 /* A comic's hero is a grid: What's next sits under the heading beside the
    cover, and spans the row under both on a phone. */
-.item-head:has(> .comic-hero-next) {
-  align-items: end;
-  display: grid;
-  grid-template-areas:
-    'cover heading'
-    '. next';
-  grid-template-columns: 9rem minmax(0, 1fr);
-}
-
-.item-head:has(> .comic-hero-next) .item-cover {
-  grid-area: cover;
-}
-
-.item-head:has(> .comic-hero-next) .item-heading {
-  grid-area: heading;
-}
-
-.comic-hero-next {
-  grid-area: next;
-  margin-top: var(--space-4);
-  max-width: 45rem;
-}
-
-.comic-next {
-  display: grid;
-  gap: var(--space-2);
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-}
-
-.comic-next > div {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: var(--space-2) var(--space-3);
-}
-
-.comic-next span {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-12);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.comic-next b {
-  color: var(--text);
-  display: block;
-  font-size: var(--fs-16);
-  font-weight: 600;
-}
-
-.comic-next small {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-12);
-}
 
 .comic-empty {
   border: 1px dashed var(--line-strong);
@@ -8989,52 +8676,15 @@ a.cover-tile-cap:focus-visible span {
   }
 }
 
-.comic-box-kicker {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  letter-spacing: 0.06em;
-  margin: var(--space-4) 0 var(--space-2);
-  text-transform: uppercase;
-}
-
-.comic-sentence {
-  font-size: var(--fs-14);
-  margin: var(--space-3) 0 0;
-}
-
-@media (max-width: 700px) {
-  .item-head:has(> .comic-hero-next) {
-    grid-template-areas:
-      'cover heading'
-      'next next';
-    grid-template-columns: 6.5rem minmax(0, 1fr);
-  }
-
-  .comic-hero-next {
-    margin-right: var(--space-4);
-  }
-
-  .comic-next {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Out this week: one row of issue tiles, scrolling sideways when it
    outgrows the column. */
 /* The series page (/shelf/:id for a comic): the kicker and facts in the
    heading, then the Issues, Editions and About cards. */
-.item-kicker {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  letter-spacing: 0.08em;
-  margin: 0 0 var(--space-1);
-  text-transform: uppercase;
-}
 
 .item-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   margin: 0 0 var(--space-4);
   padding: var(--space-4) var(--space-4);
 }
@@ -9053,31 +8703,6 @@ a.cover-tile-cap:focus-visible span {
   letter-spacing: 0;
   margin-left: var(--space-2);
   text-transform: none;
-}
-
-.item-editions {
-  display: grid;
-  gap: var(--space-2);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.item-editions li {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-}
-
-.item-edition-kind {
-  color: var(--text-3);
-  font: 400 var(--fs-12) var(--font-mono);
-}
-
-.item-card-source {
-  font-size: var(--fs-13);
-  margin: var(--space-3) 0 0;
 }
 
 .item-attribution {
@@ -12435,34 +12060,6 @@ a.cover-tile-cap:focus-visible span {
    width the cover (62%, centred) comes first, then the text, then the
    neighbouring issues under their heading. The strip scrolls inside itself,
    never the page. */
-.crumbs-bar {
-  align-items: baseline;
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
-}
-
-.crumbs-bar .crumbs {
-  min-width: 0;
-}
-
-.crumbs-end {
-  flex: none;
-  font-size: var(--fs-13);
-}
-
-.issue-neighbours {
-  border-top: 1px solid var(--line);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-}
-
-.issue-neighbours h2 {
-  font-size: var(--fs-13);
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-2);
-  text-transform: uppercase;
-}
 
 .neighbour-strip {
   display: flex;
@@ -12482,24 +12079,6 @@ a.cover-tile-cap:focus-visible span {
   flex-basis: auto;
 }
 
-.comic-issue-main {
-  align-items: start;
-  display: grid;
-  gap: var(--space-5);
-  grid-template-columns: 300px minmax(0, 1fr);
-}
-
-.comic-issue-text h1 {
-  margin: 0 0 var(--space-2);
-}
-
-.comic-issue-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-}
-
 a.state-pill {
   color: var(--text);
   text-decoration: none;
@@ -12510,92 +12089,8 @@ a.state-pill:focus-visible {
   border-color: var(--accent);
 }
 
-.comic-issue-held {
-  font-size: var(--fs-14);
-  margin: var(--space-3) 0 0;
-}
-
-.comic-issue-facts {
-  display: grid;
-  font-size: var(--fs-14);
-  gap: var(--space-1) var(--space-4);
-  grid-template-columns: max-content 1fr;
-  margin: var(--space-4) 0;
-}
-
-.comic-issue-facts dt {
-  color: var(--text-3);
-}
-
-.comic-issue-facts dd {
-  color: var(--text);
-  margin: 0;
-}
-
-.comic-issue-desc {
-  color: var(--text-2);
-  max-width: min(45rem, 68ch);
-}
-
-.comic-issue-desc.muted {
-  font-style: italic;
-}
-
-.comic-issue-owner {
-  border: 1px dashed var(--line-strong);
-  border-radius: 6px;
-  margin: var(--space-4) 0;
-  padding: var(--space-3);
-}
-
-.comic-issue-owner-note {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: 0 0 var(--space-2);
-}
-
-.comic-issue-owner-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.comic-issue-saved {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  margin: var(--space-2) 0 0;
-  min-height: 1.4rem;
-}
-
-.desc-source {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: var(--space-1) 0 0;
-}
-
-.comic-issue-attribution {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: var(--space-4) 0 0;
-}
-
-@media (max-width: 640px) {
-  .comic-issue-main {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .comic-issue-cover {
-    margin: 0 auto;
-    width: 62%;
-  }
-}
-
 /* The collected-edition page: the issue page's layout, the covers inside the
    book in a strip, and the neighbouring editions under it. */
-.edition-inside-title {
-  font-size: var(--fs-16);
-  margin: var(--space-5) 0 var(--space-2);
-}
 
 .inside-strip > li {
   flex: 0 0 46px;
@@ -12603,13 +12098,6 @@ a.state-pill:focus-visible {
 
 .inside-strip .cover-tile[data-size='inside'] {
   flex-basis: auto;
-}
-
-.volume-collects {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding-left: var(--space-5);
 }
 
 .edition-neighbours {

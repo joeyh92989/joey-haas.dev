@@ -1441,3 +1441,44 @@ describe('Item title kinds', () => {
     }
   })
 })
+
+describe('Item look (#533)', () => {
+  it('draws the status as a StatusMark with its word, filled when finished', async () => {
+    stubItem()
+    await renderReady()
+    const status = document.querySelector('.item-status')
+    const square = status.querySelector('[data-slot="status-mark-square"]')
+    expect(square).not.toBeNull()
+    expect(square).toHaveAttribute('data-filled', 'true')
+    expect(status).toHaveTextContent('Finished twice · last Jun 2026')
+  })
+
+  it('leaves the mark hollow for a game that is not finished', async () => {
+    stubItem({ status: 'backlog', finished_at: null, times_completed: 0 })
+    await renderReady()
+    const square = document.querySelector(
+      '.item-status [data-slot="status-mark-square"]',
+    )
+    expect(square).toHaveAttribute('data-filled', 'false')
+  })
+
+  it('puts the title in the page header, under the breadcrumb', async () => {
+    stubItem()
+    await renderReady()
+    const header = document.querySelector('header.page-header')
+    expect(header).not.toBeNull()
+    expect(within(header).getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Hades',
+    )
+    // The way back is the breadcrumb alone.
+    expect(screen.queryByRole('link', { name: /back/i })).toBeNull()
+  })
+
+  it('draws a chip as a mono outlined label', async () => {
+    stubItem()
+    await renderReady()
+    const chip = document.querySelector('.item-chips li')
+    expect(chip.className).toMatch(/\bfont-mono\b/)
+    expect(chip.className).toMatch(/\bborder-line-card\b/)
+  })
+})

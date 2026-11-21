@@ -7,6 +7,13 @@ import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
 import PageHeader from '../components/PageHeader.jsx'
+import {
+  DIARY,
+  DIARY_DAY_ROW,
+  SECTION_H2,
+  PAGE_WRAP,
+} from '../components/detail-classes.js'
+import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
 import MonthIndex from '../components/MonthIndex.jsx'
 import {
@@ -64,7 +71,7 @@ export default function MonthInReview() {
     diary.settled && review.finished.length === 0 && review.days.length === 0
 
   return (
-    <section className="year-review">
+    <section className={cx('year-review', PAGE_WRAP)}>
       <PageHeader
         trail={[
           { label: spine.name, to: spine.path },
@@ -90,7 +97,7 @@ export default function MonthInReview() {
       />
 
       {data && empty && (
-        <p className="muted">
+        <p className="muted text-muted-foreground">
           {diary.failed
             ? `Nothing finished in ${name}.`
             : `Nothing finished or played in ${name}.`}
@@ -103,7 +110,9 @@ export default function MonthInReview() {
 
       {review.finished.length > 0 && (
         <section aria-labelledby="month-finished">
-          <h2 id="month-finished">Finished</h2>
+          <h2 id="month-finished" className={SECTION_H2}>
+            Finished
+          </h2>
           <CoverKey />
           <PosterGrid
             items={review.finished}
@@ -120,8 +129,10 @@ export default function MonthInReview() {
 
       {review.days.length > 0 && (
         <section aria-labelledby="month-played">
-          <h2 id="month-played">Played</h2>
-          <p className="muted">
+          <h2 id="month-played" className={SECTION_H2}>
+            Played
+          </h2>
+          <p className="muted text-muted-foreground">
             {review.days.length} {review.days.length === 1 ? 'day' : 'days'}{' '}
             with a session logged
             {review.minutes > 0 &&
@@ -130,16 +141,26 @@ export default function MonthInReview() {
                 : `, ${review.minutes} minutes in all`)}
             .
           </p>
-          <ol className="month-days">
+          <ol className="month-days m-0 grid max-w-[45rem] list-none gap-4 p-0">
             {review.days.map((day) => (
               <li key={day.date}>
-                <time dateTime={day.date}>{dayWords(day.date)}</time>
-                <ul className="year-diary">
+                <time
+                  dateTime={day.date}
+                  className="mb-1 block font-mono text-xs text-muted-foreground"
+                >
+                  {dayWords(day.date)}
+                </time>
+                <ul className={cx('year-diary', DIARY)}>
                   {day.sessions.map((row, index) => (
-                    <li key={`${row.item_id}-${index}`}>
+                    <li
+                      key={`${row.item_id}-${index}`}
+                      className={DIARY_DAY_ROW}
+                    >
                       <Link to={itemPath(row.item_id)}>{row.title}</Link>
                       {row.minutes != null && (
-                        <span className="muted">{row.minutes} min</span>
+                        <span className="muted text-muted-foreground">
+                          {row.minutes} min
+                        </span>
                       )}
                     </li>
                   ))}

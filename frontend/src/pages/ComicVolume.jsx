@@ -4,7 +4,20 @@ import Breadcrumb from '../components/Breadcrumb.jsx'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import LoadState from '../components/LoadState.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import StatePill from '../components/StatePill.jsx'
+import { buttonVariants } from '../components/ui/button-variants.js'
+import {
+  FACTS,
+  OWNER_BOX,
+  OWNER_NOTE,
+  PHONE_TARGET,
+  SIBLING_LINK,
+  SOURCE_LINE,
+  SUB_HEAD,
+  PAGE_WRAP,
+} from '../components/detail-classes.js'
+import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
 import { SAVED_NOT_REFRESHED } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
@@ -23,6 +36,11 @@ const COMIC_VINE_HOME = 'https://comicvine.gamespot.com/'
 // Metron's contents are CC BY-SA 4.0: the credit links the site and the licence.
 const METRON_HOME = 'https://metron.cloud/'
 const METRON_LICENCE = 'https://creativecommons.org/licenses/by-sa/4.0/'
+
+const SMALL_BUTTON = cx(
+  buttonVariants({ variant: 'outline', size: 'sm' }),
+  PHONE_TARGET,
+)
 
 /**
  * The owner's buttons: Read to the end (when the book has a linked range on
@@ -46,20 +64,22 @@ function OwnerBox({ id, slug, range, read, onChanged }) {
   }
 
   return (
-    <div className="comic-issue-owner">
-      <p className="comic-issue-owner-note">{ISSUE.owner.note}</p>
-      <div className="comic-issue-owner-buttons">
+    <div className={cx('comic-issue-owner', OWNER_BOX)}>
+      <p className={cx('comic-issue-owner-note', OWNER_NOTE)}>
+        {ISSUE.owner.note}
+      </p>
+      <div className="comic-issue-owner-buttons flex flex-wrap gap-2">
         {range && (
           <button
             type="button"
-            className="btn sm"
+            className={SMALL_BUTTON}
             disabled={busy || read}
             onClick={readToEnd}
           >
             {read ? COPY.owner.readDone : COPY.owner.readToEnd}
           </button>
         )}
-        <Link className="btn sm" to={adminVolumePath(id, slug)}>
+        <Link className={SMALL_BUTTON} to={adminVolumePath(id, slug)}>
           {COPY.owner.edit}
         </Link>
       </div>
@@ -76,15 +96,22 @@ function OwnerBox({ id, slug, range, read, onChanged }) {
 function Neighbour({ side, id, book }) {
   return (
     <Link
-      className={`edition-neighbour ${side}`}
+      className={cx(
+        'edition-neighbour',
+        side,
+        SIBLING_LINK,
+        side === 'next' && 'ml-auto text-right',
+      )}
       to={volumePath(id, book.slug)}
     >
-      <span className="tiny">
+      <span className="tiny text-xs text-muted-foreground">
         {side === 'prev' ? COPY.previous : COPY.next}
       </span>
       <strong>{book.label}</strong>
       {book.line_number != null && (
-        <span className="tiny">{COPY.number(book.line_number)}</span>
+        <span className="tiny text-xs text-muted-foreground">
+          {COPY.number(book.line_number)}
+        </span>
       )}
     </Link>
   )
@@ -148,7 +175,7 @@ export default function ComicVolume({ id, slug }) {
 
   if (!page) {
     return (
-      <article className="comic-issue comic-volume">
+      <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
         <Breadcrumb
           label={ISSUE.breadcrumb}
           trail={[
@@ -158,7 +185,7 @@ export default function ComicVolume({ id, slug }) {
             { label: COPY.fallbackTitle },
           ]}
         />
-        <h1>{COPY.fallbackTitle}</h1>
+        <PageHeader title={COPY.fallbackTitle} />
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </article>
     )
@@ -171,7 +198,7 @@ export default function ComicVolume({ id, slug }) {
     collects.find((entry) => entry.link?.item_id === title.id)?.link ?? null
 
   return (
-    <article className="comic-issue comic-volume">
+    <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
       <Breadcrumb
         label={ISSUE.breadcrumb}
         trail={[
@@ -190,8 +217,8 @@ export default function ComicVolume({ id, slug }) {
         onRetry={tryAgain}
       />
 
-      <div className="comic-issue-main">
-        <div className="comic-issue-cover book-tile">
+      <div className="comic-issue-main grid grid-cols-[300px_minmax(0,1fr)] items-start gap-5 max-[640px]:grid-cols-[minmax(0,1fr)]">
+        <div className="comic-issue-cover book-tile max-[640px]:mx-auto max-[640px]:w-[62%]">
           <CoverImage
             src={cover}
             type="comic"
@@ -200,12 +227,15 @@ export default function ComicVolume({ id, slug }) {
           />
         </div>
         <div className="comic-issue-text">
-          <h1>{volume.label}</h1>
-          <p className="comic-issue-pills">
+          <PageHeader
+            title={volume.label}
+            className="[&_h1]:mb-2 [&_h1]:[overflow-wrap:anywhere]"
+          />
+          <p className="comic-issue-pills m-0 flex flex-wrap gap-2">
             <StatePill state={volume.read ? 'read' : 'owned'} />
           </p>
 
-          <dl className="comic-issue-facts">
+          <dl className={cx('comic-issue-facts', FACTS)}>
             <dt>{COPY.facts.format}</dt>
             <dd>{COPY.kinds[volume.kind] ?? volume.kind}</dd>
             {volume.line_number != null && (
@@ -244,7 +274,7 @@ export default function ComicVolume({ id, slug }) {
             />
           )}
 
-          <p className="comic-issue-attribution">
+          <p className={cx('comic-issue-attribution mt-4 mb-0', SOURCE_LINE)}>
             {ISSUE.attribution.before}{' '}
             <a
               href={page.source_url || COMIC_VINE_HOME}
@@ -255,7 +285,7 @@ export default function ComicVolume({ id, slug }) {
             {ISSUE.attribution.after}
           </p>
           {page.metron_credit && (
-            <p className="comic-issue-attribution">
+            <p className={cx('comic-issue-attribution mt-4 mb-0', SOURCE_LINE)}>
               {COPY.metron.before}{' '}
               <a href={METRON_HOME} rel="noreferrer noopener">
                 {COPY.metron.label}
@@ -270,29 +300,35 @@ export default function ComicVolume({ id, slug }) {
         </div>
       </div>
 
-      <h2 className="edition-inside-title" id="volume-collects">
+      <h2 className={cx('edition-inside-title', SUB_HEAD)} id="volume-collects">
         {COPY.collects}
       </h2>
       {collects.length ? (
-        <ol className="volume-collects" aria-labelledby="volume-collects">
+        <ol
+          className="volume-collects m-0 grid gap-1 pl-5 [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-[1.5px] [&_a]:underline-offset-4"
+          aria-labelledby="volume-collects"
+        >
           {collects.map((entry, index) => (
             <CollectEntry key={index} entry={entry} />
           ))}
         </ol>
       ) : (
-        <p className="muted">{COPY.collectsEmpty}</p>
+        <p className="muted text-muted-foreground">{COPY.collectsEmpty}</p>
       )}
 
-      <nav aria-label={COPY.neighbours} className="edition-neighbours">
+      <nav
+        aria-label={COPY.neighbours}
+        className="edition-neighbours mt-6 flex flex-wrap justify-between gap-x-4 gap-y-3"
+      >
         {prev ? (
           <Neighbour side="prev" id={title.id} book={prev} />
         ) : (
-          <p className="tiny">{COPY.first}</p>
+          <p className="tiny text-xs text-muted-foreground">{COPY.first}</p>
         )}
         {next ? (
           <Neighbour side="next" id={title.id} book={next} />
         ) : (
-          <p className="tiny">{COPY.last}</p>
+          <p className="tiny text-xs text-muted-foreground">{COPY.last}</p>
         )}
       </nav>
     </article>

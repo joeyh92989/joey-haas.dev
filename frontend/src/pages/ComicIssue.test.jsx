@@ -181,7 +181,7 @@ describe('ComicIssue, public', () => {
       'https://example.test/58.jpg',
     )
     // The series is in the trail and the title, so the kicker is the publisher.
-    expect(screen.getByText('Image')).toHaveClass('item-kicker')
+    expect(screen.getByText('Image')).toHaveClass('kicker')
   })
 
   it('does not dim an upcoming issue or call it not owned', async () => {

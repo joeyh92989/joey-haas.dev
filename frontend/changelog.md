@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-21
+
+- Game, comic, issue, book, year and month pages have the same flat card look as the rest of the shelf, and the trail above a post, note or trip reads the same way.
+
 ## 2026-11-20
 
 - The [Games](/shelf/games) and [Comics](/shelf/comics) lists follow the new look: each title is a numbered record card with its status in words, single-choice filter rows are underline tabs, and View has a new Spines choice (also `?view=spines`) that shows the shelf as upright spines on a rail.
