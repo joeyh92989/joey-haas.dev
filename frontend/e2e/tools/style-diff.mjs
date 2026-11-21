@@ -11,7 +11,20 @@ const [a, b] = process.argv
 const WIDTH = 32
 const jobsRow = (label, key) =>
   label.endsWith('/admin/jobs') && key.includes('>tbody[')
+// A border with no width is not drawn whatever its style: Preflight's
+// `border: 0 solid` and the browser's `none` are the same on screen, and a
+// width that changes still shows up as its own difference. Compared as equal.
+const STYLE = 24
+const WIDTH_TOP = 20
+const unstyled = (record) => {
+  if (record === undefined) return record
+  const parts = record.split('|')
+  if (parts[WIDTH_TOP] === '0px') parts[STYLE] = 'none'
+  return parts.join('|')
+}
 const same = (label, key, x, y) => {
+  x = unstyled(x)
+  y = unstyled(y)
   if (x === y) return true
   if (x === undefined || y === undefined || !jobsRow(label, key)) return false
   const [p, q] = [x.split('|'), y.split('|')]

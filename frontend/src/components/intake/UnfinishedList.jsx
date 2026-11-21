@@ -33,8 +33,10 @@ function Meter({ name, counts }) {
           role="img"
           aria-label={`${value} ${words}`}
           className={`intake-meter-${key}`}
+          // No `hidden`: `.intake-meter i { display: block }` always beat it,
+          // so an empty part drew as a zero-width segment with its gap, and
+          // Preflight's `[hidden]` would now remove it and shift the rest.
           style={{ flexGrow: total ? value : 0 }}
-          hidden={!value}
         />
       ))}
     </span>

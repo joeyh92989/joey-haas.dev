@@ -10,7 +10,8 @@ import { chromium } from '@playwright/test'
 import { writeFileSync } from 'node:fs'
 import { GARMENTS, mockCloset } from '../closet-mocks.js'
 import { serveHome } from '../admin-home.fixtures.js'
-import { GAMES, serveAdmin } from '../admin-shelf.fixtures.js'
+import { COMICS, GAMES, serveAdmin } from '../admin-shelf.fixtures.js'
+import { serveAdminAdd } from '../admin-add.fixtures.js'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE } from '../tools-data.fixtures.js'
 
@@ -83,6 +84,12 @@ const PROPS = [
   'animation-name',
   'page-break-inside',
   'break-inside',
+  'list-style-type',
+  'vertical-align',
+  'border-collapse',
+  'resize',
+  'text-indent',
+  'appearance',
 ]
 
 const NOW = new Date('2026-12-15T18:00:00Z')
@@ -105,6 +112,14 @@ const PUBLIC = [
   '/shelf/year/2025/',
   '/colophon',
   '/shelf/comics',
+  '/blog',
+  '/til',
+  '/til/profile-before-parallelizing-ci',
+  '/til/render-rewrites-need-the-slash',
+  '/travel',
+  '/shelf/intake',
+  '/shelf/year',
+  '/shelf/how/',
 ]
 const ADMIN = [
   ['/admin', 'home'],
@@ -116,6 +131,18 @@ const ADMIN = [
   ['/admin/closet/review', 'closet'],
   [`/admin/closet/${GARMENTS[0].id}`, 'closet'],
   ['/admin/shelf/comics', 'shelf'],
+  ['/admin/collection/add', 'add'],
+  ['/admin/closet/add', 'add'],
+  ['/admin/collection/add/s1', 'add'],
+  ['/admin/collection/add/chk', 'add'],
+  ['/admin/collection/add/det', 'add'],
+  ['/admin/discover', 'add'],
+  ['/admin/radar', 'add'],
+  ['/admin/pull-list', 'add'],
+  [`/admin/collection/${GAMES[2].id}`, 'item'],
+  [`/admin/shelf/comics/${COMICS[0].id}`, 'comic'],
+  ['/admin/play-next', 'shelf'],
+  ['/admin/catalogue', 'shelf'],
 ]
 // Denver, spots and the map (slice D3): the public /denver page's snapshot
 // (the four tools-data spots, a crowded extra one, one outside the drawing),
@@ -204,6 +231,8 @@ async function dumpPage(page) {
       if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) continue
       const key = path(el)
       rows[key] = read(el)
+      if (['INPUT', 'TEXTAREA'].includes(el.tagName) && el.placeholder)
+        rows[key + '::placeholder'] = read(el, '::placeholder')
       for (const pseudo of ['::before', '::after']) {
         if (getComputedStyle(el, pseudo).content !== 'none')
           rows[key + pseudo] = read(el, pseudo)
@@ -272,6 +301,19 @@ async function open(
       r.fulfill({ status: 401, json: { detail: 'no' } }),
     )
   }
+  if (kind === 'comics') await serveAdmin(page, COMICS)
+  if (kind === 'add') await serveAdminAdd(page)
+  if (kind === 'item' || kind === 'comic') {
+    const rows = kind === 'item' ? GAMES : COMICS
+    await serveAdmin(page, rows)
+    await page.route(/\/api\/items\/[\w-]+$/, (r) =>
+      r.request().method() === 'GET'
+        ? r.fulfill({
+            json: rows.find((x) => r.request().url().endsWith(x.id)) ?? {},
+          })
+        : r.fallback(),
+    )
+  }
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -307,13 +349,23 @@ const browser = await chromium.launch()
 const result = {}
 async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
-  const { context, page } = await open(browser, spec)
-  if (after) await after(page)
-  // Let hover, focus and state transitions settle: a half-faded colour is
-  // timing, not a style.
-  await page.waitForTimeout(500)
-  result[label] = await dumpPage(page)
-  await context.close()
+  // A busy machine can time a step out: try the scenario once more.
+  for (let attempt = 1; ; attempt++) {
+    const { context, page } = await open(browser, spec)
+    try {
+      if (after) await after(page)
+      // Let hover, focus and state transitions settle: a half-faded colour is
+      // timing, not a style.
+      await page.waitForTimeout(500)
+      result[label] = await dumpPage(page)
+      return
+    } catch (error) {
+      if (attempt === 3) throw error
+      console.error(`retrying ${label}: ${error.message.split('\n')[0]}`)
+    } finally {
+      await context.close()
+    }
+  }
 }
 
 // Slice D3's scenarios: /denver in list and map view, a selected spot at each
@@ -642,8 +694,24 @@ for (const theme of ['dark', 'light']) {
         await page.locator('footer').scrollIntoViewIfNeeded()
       },
     )
+    if (vp === 'phone')
+      await record(
+        `screen ${theme} ${vp} nav-sheet-open`,
+        { path: '/', theme, vp },
+        async (page) => {
+          await page.getByRole('button', { name: 'Menu' }).click()
+          await page.waitForTimeout(600)
+        },
+      )
   }
-  for (const path of ['/about', '/blog/how-my-shelf-works', '/']) {
+  for (const path of [
+    '/about',
+    '/blog/how-my-shelf-works',
+    '/',
+    '/projects',
+    '/colophon',
+    '/shelf/comics',
+  ]) {
     await record(`print ${theme} ${path}`, {
       path,
       theme,

@@ -14,5 +14,9 @@ cascade, so do not reorder them:
 3. `../index.css`: the remaining per-page class rules, being removed.
 4. `print.css`: `@page` and `@media print`, last so paper wins.
 
+Tailwind's Preflight sits in a `preflight` layer below all of these; the block
+at the top of `base.css` hands its resets back with `revert` (a shim, removed
+when Preflight moves to `base`, #536).
+
 Tests that read the CSS as text use `src/testing/readCss.js`, which lists the
 same files. A move that must change nothing is proved with `e2e/tools/`.

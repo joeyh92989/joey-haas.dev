@@ -4,6 +4,170 @@
   padding: 0;
 }
 
+/* Preflight restatements (#536 slice C). Tailwind's Preflight sits in the
+   `preflight` layer, below this one, and resets things pages never set:
+   list markers, form-control fonts and borders, heading and code sizes,
+   media display, table borders. Until a page sets those itself (the slice
+   that moves Preflight to `base` replaces each group with utilities on the
+   component), these rules hand them back to the browser's own value with
+   `revert`. :where() keeps specificity at zero, so any legacy class or
+   element rule still wins and Tailwind utilities, in later layers, win over
+   both. e2e/tools/style-dump.mjs proves it changed nothing. */
+:where(html) {
+  font-family: revert;
+  line-height: revert;
+  tab-size: revert;
+  -webkit-tap-highlight-color: revert;
+}
+
+:where(button, input, select, optgroup, textarea) {
+  font: revert;
+  font-feature-settings: revert;
+  font-variation-settings: revert;
+  letter-spacing: revert;
+  color: revert;
+  border-radius: revert;
+  background-color: revert;
+  opacity: revert;
+}
+
+:where(
+  button,
+  input,
+  select,
+  textarea,
+  fieldset,
+  hr,
+  iframe,
+  dialog,
+  [popover]
+) {
+  border: revert;
+}
+
+:where(button, input:is([type='button'], [type='reset'], [type='submit'])) {
+  appearance: revert;
+}
+
+:where(textarea) {
+  resize: revert;
+}
+
+::file-selector-button {
+  font: revert;
+  letter-spacing: revert;
+  color: revert;
+  border: revert;
+  border-radius: revert;
+  background-color: revert;
+  opacity: revert;
+  margin-inline-end: revert;
+  appearance: revert;
+}
+
+:where(hr) {
+  height: revert;
+  color: revert;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  font-size: revert;
+  font-weight: revert;
+}
+
+:where(code, kbd, samp, pre) {
+  font-family: revert;
+  font-feature-settings: revert;
+  font-variation-settings: revert;
+  font-size: revert;
+}
+
+:where(small, sub, sup) {
+  font-size: revert;
+  line-height: revert;
+  position: revert;
+  vertical-align: revert;
+}
+
+:where(sub, sup) {
+  top: revert;
+  bottom: revert;
+}
+
+:where(ul, ol, menu) {
+  list-style: revert;
+}
+
+:where(table) {
+  text-indent: revert;
+  border-color: revert;
+  border-collapse: revert;
+}
+
+:where(img, svg, video, canvas, audio, iframe, embed, object, progress) {
+  display: revert;
+  vertical-align: revert;
+}
+
+:where(img, video) {
+  max-width: revert;
+  height: revert;
+}
+
+/* Preflight trims the date and time field's inner parts and the spin and
+   picker buttons; the browser's own sizes are the ones pages were laid out on. */
+::-webkit-date-and-time-value {
+  min-height: revert;
+  text-align: revert;
+}
+
+::-webkit-datetime-edit {
+  display: revert;
+}
+
+::-webkit-datetime-edit-fields-wrapper {
+  padding: revert;
+}
+
+::-webkit-datetime-edit,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-second-field,
+::-webkit-datetime-edit-millisecond-field,
+::-webkit-datetime-edit-meridiem-field {
+  padding-block: revert;
+}
+
+::-webkit-calendar-picker-indicator {
+  line-height: revert;
+}
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: revert;
+}
+
+::-webkit-search-decoration {
+  appearance: revert;
+}
+
+/* Preflight's `*, ::before, ::after` also puts border-box on generated
+   content, which the legacy `*` rule never reached. */
+:where(*)::before,
+:where(*)::after {
+  box-sizing: revert;
+}
+
+/* Preflight's placeholder is half-transparent currentcolor, the browser's is
+   dark grey; the contrast test pins this token on the field backgrounds. */
+::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
 body {
   background: var(--bg);
   color: var(--text-2);
