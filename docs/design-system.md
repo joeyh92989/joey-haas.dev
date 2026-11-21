@@ -14,8 +14,8 @@ Scope of this version: the shelf's list, detail and sub-detail pages
 (shelf sweep, 12 Nov 2026). Tool and prose pages are named so the feature
 list can use them; their rules are added when one of them is next designed.
 
-Tokens (colour, type, spacing, status marks) are in `frontend/src/index.css`
-and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
+Tokens (colour, type, spacing, status marks) are in `frontend/src/styles/tokens.css`
+(base rules in `base.css`, print in `print.css`) and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
 
 The Tailwind v4 and shadcn/ui build setup (layers, adding a component) is in
 `frontend/CLAUDE.md` → "Design system setup".

@@ -1,0 +1,168 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-2);
+  font-family: var(--font-sans);
+  font-size: var(--fs-16);
+  line-height: 1.65;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+/* The outer measure every full-width band shares: the masthead and footer
+   rows, the content pages (.page-content) and the tracker pages (.page-wide).
+   1200px with 32px gutters, 16px on a phone (#529). Prose pages keep their
+   45rem column inside it. */
+.wrap {
+  margin: 0 auto;
+  max-width: 75rem;
+  padding-inline: var(--space-6);
+}
+
+/* The public shell is a full-height column, so the footer sits at the bottom
+   of a short page (#200). The admin shell is also a `.site`, so it is excluded:
+   it brings its own `.admin-app` height. */
+.site:not(.site-admin) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.site > .page {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* The routed region. A 45rem reading column by default; the tracker pages
+   widen it to the same 75rem as the masthead and footer rows (`.wrap`). */
+.page {
+  margin: 0 auto;
+  max-width: 45rem;
+  padding: var(--space-6) var(--space-5) 0;
+}
+
+/* Home, About and Projects: cards and columns on the masthead's measure. */
+.page.page-content,
+.page.page-wide {
+  max-width: 75rem;
+  padding-inline: var(--space-6);
+}
+
+/* Headings are Source Serif 4 at 500, the one weight installed: a serif at
+   600 or 700 would be synthesised, so no rule sets one beside
+   --font-display (typeScale.test.js). Body stays Inter, labels mono. */
+h1,
+h2,
+h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+h1,
+h2 {
+  font-size: var(--fs-28);
+}
+
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+section + section {
+  margin-top: var(--space-6);
+}
+
+.prose {
+  color: var(--text-2);
+  margin-top: var(--space-3);
+  max-width: min(45rem, 68ch);
+}
+
+.prose + .prose {
+  margin-top: var(--space-3);
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: var(--fs-14);
+  margin-top: var(--space-7);
+  padding-top: var(--space-4);
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Skip link: off-screen until a keyboard user reaches it, then the first
+   thing on the page. */
+.skip-link {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  left: 1rem;
+  padding: var(--space-2) var(--space-4);
+  position: absolute;
+  top: -10rem;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Route changes move focus here or to the page's h1 (useRouteFocus); the
+   focus is for screen readers and the next Tab, not a visible ring. */
+main:focus,
+main h1[tabindex='-1']:focus,
+.daily-result h2[tabindex='-1']:focus {
+  outline: none;
+}
+
+/* Motion is decoration here: card lifts, fades and reveals all stop for
+   anyone who has asked their system for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes search-fade {
+  from {
+    opacity: 0;
+  }
+}

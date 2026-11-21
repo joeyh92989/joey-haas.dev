@@ -3,12 +3,10 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readCss } from './testing/readCss.js'
 
-// Read from disk: Vitest stubs CSS imports.
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), 'index.css'),
-  'utf8',
-)
+// Read from disk (testing/readCss.js): Vitest stubs CSS imports.
+const css = readCss()
 
 /** The declarations of the first top-level block that opens with `selector`. */
 function block(selector) {

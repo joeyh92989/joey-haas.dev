@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
+import { CSS_FILES, readCss } from './testing/readCss.js'
 
 // Read from disk: Vitest stubs CSS imports. Guards the coexistence setup in
 // frontend/CLAUDE.md "Design system setup": index.css sits in the lowest
@@ -12,8 +13,7 @@ const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'tailwind.css'),
   'utf8',
 )
-const here = dirname(fileURLToPath(import.meta.url))
-const legacy = readFileSync(join(here, 'index.css'), 'utf8')
+const legacy = readCss()
 const themeCss = readFileSync(
   createRequire(import.meta.url).resolve('tailwindcss/theme.css'),
   'utf8',
@@ -26,8 +26,13 @@ describe('tailwind.css setup', () => {
     expect(code).toContain('@layer legacy, theme, base, components, utilities;')
   })
 
-  it('imports index.css into the legacy layer', () => {
-    expect(code).toMatch(/@import\s+['"]\.\/index\.css['"]\s+layer\(legacy\)/)
+  it('imports the hand-written CSS into the legacy layer, in cascade order', () => {
+    const imports = [
+      ...code.matchAll(
+        /@import\s+['"]\.\/([^'"]+\.css)['"]\s+layer\(legacy\)/g,
+      ),
+    ].map((m) => m[1])
+    expect(imports).toEqual(CSS_FILES)
   })
 
   it('never imports Preflight', () => {

@@ -1,9 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminPageHeader from './components/AdminPageHeader.jsx'
@@ -12,14 +9,14 @@ import JobStatusRow from './components/JobStatusRow.jsx'
 import Panel from './components/Panel.jsx'
 import SwapSheet from './components/SwapSheet.jsx'
 import * as home from './components/adminHomeClasses.js'
+import { readCss } from './testing/readCss.js'
 
 // Admin Home, Jobs and the page header (#535) are drawn from utilities on
 // the Button and Card looks. The hook classes stay; the legacy sheet's rules
 // for these pieces are gone, since nothing else reads them.
 
-const here = dirname(fileURLToPath(import.meta.url))
 // Read from disk: Vitest stubs CSS imports.
-const css = readFileSync(join(here, 'index.css'), 'utf8')
+const css = readCss()
 
 const GONE = [
   '.admin-head',

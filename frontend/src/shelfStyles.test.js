@@ -1,14 +1,9 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readCss } from './testing/readCss.js'
 
-// Read from disk: Vitest stubs CSS imports, `?raw` included.
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), 'index.css'),
-  'utf8',
-)
+// Read from disk (testing/readCss.js): Vitest stubs CSS imports.
+const css = readCss()
 
 /**
  * Every `selectors { body }` pair with the at-rule it sits in (the @media

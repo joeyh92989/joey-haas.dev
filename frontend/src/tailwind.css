@@ -5,7 +5,10 @@
 @layer legacy, theme, base, components, utilities;
 /* The hand-written stylesheet moves into the lowest layer: it has an unlayered
    `* { padding: 0 }` reset that would otherwise beat every Tailwind utility. */
+@import './styles/tokens.css' layer(legacy);
+@import './styles/base.css' layer(legacy);
 @import './index.css' layer(legacy);
+@import './styles/print.css' layer(legacy);
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import 'tw-animate-css';
@@ -16,7 +19,7 @@
 /* Tokens the legacy sheet and Tailwind's theme both define. Tailwind writes
    its default into the `theme` layer, above `legacy`, once anything uses it,
    and that replaces the site's value on every page. Redeclare them here with
-   the site's own values (copy from index.css :root, keep them in step).
+   the site's own values (copy from styles/tokens.css :root, keep them in step).
    tailwindSetup.test.js fails when a new collision appears. */
 @theme {
   --font-sans:
@@ -27,7 +30,7 @@
 }
 
 /* shadcn semantic tokens (#527). Each one points at a legacy token, so there
-   is one palette: edit index.css and both vocabularies follow, in both themes
+   is one palette: edit styles/tokens.css and both vocabularies follow, in both themes
    (the var() resolves on <html>, where [data-theme] overrides the legacy
    value). Unlayered, so they sit above the theme layer.
    The one collision: shadcn's --accent is a hover background, the site's

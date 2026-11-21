@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
+import { readCss } from '../testing/readCss.js'
 
 // The Closet pages draw from the Button, Card and Input looks (#535). The
 // legacy `.btn`, `.chip` and `.panel` classes stay for areas not yet migrated
@@ -50,7 +51,7 @@ describe('Closet pages and the legacy look', () => {
   }
 
   it('the Today grid column may shrink', () => {
-    const css = readFileSync(resolve(cwd(), 'src/index.css'), 'utf8')
+    const css = readCss()
     expect(css).toMatch(
       /\.today \{[^}]*grid-template-columns: minmax\(0, 1fr\)/,
     )
@@ -72,7 +73,7 @@ describe('Closet pages and the legacy look', () => {
     '.pick-choices .chip-row',
   ]) {
     it(`${selector} resets the start margin`, () => {
-      const css = readFileSync(resolve(cwd(), 'src/index.css'), 'utf8')
+      const css = readCss()
       const at = css.indexOf(`${selector} {`)
       expect(at).toBeGreaterThan(-1)
       const body = css.slice(at, css.indexOf('}', at))

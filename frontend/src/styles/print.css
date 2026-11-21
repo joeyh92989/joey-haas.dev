@@ -1,0 +1,181 @@
+/* ===== Print (#292) ===== */
+/* Paper is light whatever theme the visitor browses in: the light tokens are
+   repeated here (keep them in step with [data-theme='light'] above) and the
+   interactive chrome is dropped. */
+@page {
+  margin: 18mm 16mm;
+}
+
+@media print {
+  :root,
+  [data-theme] {
+    --bg: #f1ede6;
+    --surface: #fcfbf9;
+    --sunken: #e8e3da;
+    --line: #8c8579;
+    /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+       wired by the card components (#528). */
+    --line-card: #8c8579;
+    --line-strong: #8c8579;
+    /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
+       text 12.81, text-2 5.98, text-3 5.98, accent 5.23. */
+    --text: #231f1a;
+    --text-2: #57534d;
+    --text-3: #57534d;
+    --accent: #a8321f;
+    /* --accent-ink on --accent 6.69; --bg on --text 14.03. */
+    --accent-ink: #ffffff;
+    /* The accent as TEXT: the same colour, 6.46 on --surface, 5.73 on --bg,
+       5.23 on --sunken, 5.71 on --accent-soft. --ok-text 5.57 on --surface,
+       4.94 on --bg, 4.51 on --sunken (the --ok mark is 4.16 there);
+       --warn-text is the badge colour. */
+    --accent-text: var(--accent);
+    --ok-text: #1d7449;
+    --warn-text: var(--badge);
+    --accent-soft: #f5ebe8;
+    --highlight: #f3dc6b;
+    --highlight-ink: #231f1a;
+    /* The highlighter: a status mark's fill, with its own text colour. Its
+       text is 11.90 on it; the fill is only 1.33 on --surface, so it always
+       sits in an outline beside a word. Marks on --surface: ok 5.14, warn
+       4.10, chart 5.89, chart-2 3.73 (3.02 on --sunken). */
+    --ok: #1f7a4d;
+    --warn: #b26a00;
+    /* --bg on --warn reaches only 3.63, short of 4.5 for 9px numerals, so the
+       badge darkens: white on --badge 6.11; the colour as text on --bg 5.24,
+       --surface 5.91, --sunken 4.78. */
+    --badge: #8f5400;
+    --badge-ink: #ffffff;
+    --chart: #1f5fbf;
+    --chart-2: #5d82c3;
+    /* Redaction stripe 3.40 on --surface. Pill borders ok 5.14, warn 4.10,
+       accent 6.46; the New badge on --bg 5.73. */
+    --redact: repeating-linear-gradient(
+      135deg,
+      #848993 0 6px,
+      #e8e3da 6px 12px
+    );
+    /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
+       --text over the hatch 4.66. */
+    --run-missing: #848993;
+    /* The hatch's own stripe: 3.40 on --surface, --text over it 4.66. */
+    --hatch-stripe: #848993;
+    --hatch: repeating-linear-gradient(
+      135deg,
+      var(--hatch-stripe) 0 2px,
+      transparent 2px 6px
+    );
+    /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
+       string escapes); on --bg it drops to 4.41. */
+    --code-bg: #ffffff;
+    /* Measured, light, on --surface: finished 13.01, backlog 6.04, active
+       4.43, abandoned 3.11; rating 4.10. Darkest first: finished, backlog,
+       active, abandoned; no two closer than 1.36:1, and active is the only
+       green. */
+    --rating: var(--warn);
+    --status-active: #2a8556;
+    --status-finished: #2b2f35;
+    --status-backlog: #5b616a;
+    --status-abandoned: #8a9099;
+    --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+    /* Computed from the tokens, light: row title 12.81, sub line 5.98, accent
+       bar 5.23 on --search-active; group label 7.38 on --surface. */
+    --search-active: var(--sunken);
+    --skeleton: #e0dbd1;
+    --grid-gap: 1rem;
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-2);
+    font-size: var(--fs-14);
+    transition: none;
+  }
+
+  .skip-link,
+  .mast,
+  .search-dialog,
+  .site-footer,
+  .post-toc {
+    display: none !important;
+  }
+
+  .site,
+  .page,
+  .page-content,
+  .page-wide {
+    max-width: none;
+    min-height: 0;
+  }
+
+  /* Shiki's dark pass is !important; take the light colors back. */
+  [data-theme='dark'] .shiki,
+  [data-theme='dark'] .shiki span {
+    color: var(--shiki-light) !important;
+    font-style: var(--shiki-light-font-style) !important;
+    font-weight: var(--shiki-light-font-weight) !important;
+    text-decoration: var(--shiki-light-text-decoration) !important;
+  }
+
+  .post-body pre {
+    white-space: pre-wrap;
+  }
+
+  .project-hero__img--dark {
+    display: none;
+  }
+
+  .project-hero__img--light {
+    display: block;
+  }
+
+  /* External links print their address, in About and post prose only. */
+  .about a[href^='http']::after,
+  .post-body a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: var(--fs-12);
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  h1,
+  h2,
+  h3,
+  .timeline-entry,
+  .post-body pre,
+  .post-body figure,
+  .post-body img {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+  }
+
+  /* About stacks: the aside (photo and facts) above the body, so the
+     timeline gets the full page width. */
+  .about {
+    display: block;
+  }
+
+  .about-aside {
+    margin-bottom: var(--space-5);
+    position: static;
+  }
+
+  /* An employer holding several roles is taller than a page can promise, so
+     it may break between roles; a role keeps its heading with its bullets. */
+  .timeline-entry.timeline-employer {
+    break-inside: auto;
+  }
+
+  .timeline-step,
+  .timeline-points li {
+    break-inside: avoid;
+  }
+}
+/* ===== end Print ===== */

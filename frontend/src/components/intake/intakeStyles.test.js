@@ -1,15 +1,10 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { ibtn } from '../addClasses.js'
+import { readCss } from '../../testing/readCss.js'
 
 // Read from disk: Vitest stubs CSS imports, `?raw` included.
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'index.css'),
-  'utf8',
-)
+const css = readCss()
 
 /** The intake block of index.css, from its heading to the next block's. */
 function intakeBlock() {
