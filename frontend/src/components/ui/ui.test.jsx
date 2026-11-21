@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Badge } from './badge.jsx'
 import { Button } from './button.jsx'
 import { buttonVariants } from './button-variants.js'
+import { CARD_SHELL } from './card-classes.js'
 import { Card, CardContent, CardHeader, CardTitle } from './card.jsx'
 import { Input } from './input.jsx'
 import { Separator } from './separator.jsx'
@@ -207,7 +208,36 @@ describe('Separator', () => {
   })
 })
 
+describe('buttonVariants backgrounds', () => {
+  it('leaves a filled variant without bg-transparent, which would beat bg-primary', () => {
+    for (const variant of ['default', 'secondary']) {
+      expect(buttonVariants({ variant })).not.toContain('bg-transparent')
+    }
+  })
+
+  it('keeps bg-transparent on every variant that has no fill of its own', () => {
+    for (const variant of [
+      'outline',
+      'ghost',
+      'destructive',
+      'chip',
+      'quiet',
+      'nav',
+      'link',
+    ]) {
+      expect(buttonVariants({ variant }), variant).toContain('bg-transparent')
+    }
+  })
+})
+
 describe('Card', () => {
+  it('takes its shell from the shared class constant', () => {
+    render(<Card data-testid="c" />)
+    for (const part of CARD_SHELL.split(' ')) {
+      expect(screen.getByTestId('c').className).toContain(part)
+    }
+  })
+
   it('is a flat 1px outline on the card colour', () => {
     render(
       <Card data-testid="card">

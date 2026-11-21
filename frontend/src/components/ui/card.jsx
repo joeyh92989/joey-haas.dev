@@ -1,15 +1,13 @@
 import * as React from 'react'
 import { cn } from 'cn'
+import { CARD_SHELL, CARD_SPACING } from './card-classes.js'
 
 function Card({ className, size = 'default', ...props }) {
   return (
     <div
       data-slot="card"
       data-size={size}
-      className={cn(
-        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-md border border-border bg-card py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(4)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)]',
-        className,
-      )}
+      className={cn(CARD_SHELL, CARD_SPACING, className)}
       {...props}
     />
   )

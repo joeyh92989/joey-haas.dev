@@ -20,12 +20,10 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { DAY as SHORT_DAY } from '../lib/formatDate.js'
 
 /** A hero action: the shadcn button's look from `button-variants.js` (cva
- *  only), put on a plain link, so the eager Home takes no Base UI. */
+ *  only), put on a plain link, so the eager Home takes no Base UI. Full width
+ *  of its grid cell, so the six sit in even rows. */
 const action = (variant) =>
-  `${buttonVariants({ variant })} max-[700px]:min-h-11${
-    // The base class's bg-transparent sorts after bg-primary and would win.
-    variant === 'default' ? ' bg-primary!' : ''
-  }`
+  `${buttonVariants({ variant })} w-full max-[700px]:min-h-11`
 
 const SECTION = 'pt-14 max-[700px]:pt-10'
 const SECTION_HEAD =
@@ -159,10 +157,10 @@ export default function Home() {
             <Link to={spine.path} className={action('outline')}>
               See {spine.name}
             </Link>
-            <a href={profile.github} className={action('ghost')}>
+            <a href={profile.github} className={action('outline')}>
               GitHub <span aria-hidden="true">↗</span>
             </a>
-            <a href={profile.linkedin} className={action('ghost')}>
+            <a href={profile.linkedin} className={action('outline')}>
               LinkedIn <span aria-hidden="true">↗</span>
             </a>
           </div>
@@ -177,7 +175,6 @@ export default function Home() {
                 At a glance
               </h2>
             }
-            className="[&_[data-strip]]:justify-start [&_[data-strip]>span:first-child]:hidden"
           >
             <dl className="glance-facts px-4 py-1">
               {facts.map((row) => (
@@ -214,13 +211,13 @@ export default function Home() {
               <RecordCard
                 number={i + 1}
                 label={record.label}
-                className="relative h-full"
+                className="relative h-full has-[a:hover]:border-y-foreground has-[a:hover]:border-r-foreground"
               >
                 <div className="p-4 pb-5">
                   <h3 className="mb-2 font-heading text-xl leading-tight font-medium">
                     <Link
                       to={record.to}
-                      className="text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-ring"
+                      className="text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 outline-none after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-ring"
                     >
                       {record.title}
                     </Link>

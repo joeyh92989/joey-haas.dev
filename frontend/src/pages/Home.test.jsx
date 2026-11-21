@@ -80,15 +80,41 @@ describe('Home', () => {
     renderHome()
     const actions = document.querySelector('.hero-actions')
     expect(actions.querySelector('.btn')).toBeNull()
-    expect(
-      within(actions).getByRole('link', { name: 'About me' }).className,
-    ).toMatch(/\bbg-primary!/)
-    expect(
-      within(actions).getByRole('link', { name: 'Resume (PDF)' }).className,
-    ).toMatch(/\bborder-foreground\b/)
-    for (const link of within(actions).getAllByRole('link')) {
+    const links = within(actions).getAllByRole('link')
+    expect(links).toHaveLength(6)
+    const [primary, ...rest] = links
+    expect(primary).toHaveTextContent('About me')
+    expect(primary.className).toMatch(/\bbg-primary\b/)
+    expect(primary.className).not.toMatch(/bg-primary!|bg-transparent/)
+    // Every other action is the bordered outline button: none is a
+    // borderless, padded text link (GitHub and LinkedIn included).
+    for (const link of rest) {
+      expect(link.className).toMatch(/\bborder-foreground\b/)
+      expect(link.className).not.toMatch(/border-transparent/)
+    }
+    for (const link of links) {
       expect(link.className).toMatch(/focus-visible:outline-solid/)
     }
+  })
+
+  it('lets the whole Work card answer hover, and puts no underline hover on the title', () => {
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const [card] = work.querySelectorAll('[data-slot="card"]')
+    expect(card.className).toMatch(/has-\[a:hover\]:border/)
+    const link = within(card).getByRole('link', { name: 'My Shelf' })
+    expect(link.className).not.toMatch(/hover:underline/)
+  })
+
+  it('keeps the At a glance heading out of an inline span', () => {
+    renderHome()
+    const glance = screen.getByRole('complementary', { name: 'At a glance' })
+    const heading = within(glance).getByRole('heading', { level: 2 })
+    expect(heading.closest('span')).toBeNull()
+    expect(glance.querySelector('[data-strip] > span:empty')).toBeNull()
+    expect(glance.className + glance.innerHTML).not.toMatch(
+      /first-child\]:hidden/,
+    )
   })
 
   it('shows At a glance as a record card with its own heading', () => {

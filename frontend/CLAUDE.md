@@ -369,7 +369,7 @@ look: flat, 1px outlines, radius 4 to 6px, no shadow, no opacity on text (a disa
 Tabs use `disabled:opacity-55`), a
 `chip` button variant for `FilterChips`. Running `shadcn add` again on one of
 them overwrites the look. `RecordCard`, `CatalogueNumber` and `StatusMark` sit
-on top in `src/components/`; the rules for using them are in
+on top in `src/components/` and are eager-safe (they join classes with `cx`, below; `RecordCard` takes Card's shell from `ui/card-classes.js`, shared with `ui/card.jsx`); the rules for using them are in
 `docs/design-system.md` → One of each. Tailwind utilities beat the legacy
 layer, so a rebuilt component keeps its legacy class names (tests and other
 CSS read them) and sets only the properties it means to change: leave
@@ -413,6 +413,18 @@ link-preview card (`scripts/og-card.mjs`), the favicon and the opaque
 pinned in `package.json`). shadcn 4.x generates `import { cn } from "cn"`, so
 the repo depends on it directly; `src/lib/utils.js` re-exports it for
 hand-written code. One source of `cn`: do not add `clsx` or `tailwind-merge`.
+
+**`cx`, for eager code (#530).** `cn` is tailwind-merge: about 30KB raw in the
+entry chunk if any eager file imports it. Eager files (the shell, `Home`, the
+pages `App.jsx` imports directly, `RecordCard`, `CatalogueNumber`,
+`StatusMark`) join classes with `cx` from `lib/cx.js`, a plain join that merges
+nothing, so a component using it must not need one class to beat another: put
+each property on one side only (this is why `ui/card-classes.js` splits Card's
+shell from its spacing, and why `button-variants.js` has no base background).
+Lazy `components/ui` code keeps `cn`. `designConsistency.test.js` forbids `cn`,
+`ui/button`, `ui/card` and Base UI imports in the eager files, and
+`scripts/check-entry-chunk.mjs` (a CI step after the build) fails if the built
+entry chunk contains the tailwind-merge tables.
 
 ## Tokens and theme (#527)
 

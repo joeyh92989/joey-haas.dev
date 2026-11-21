@@ -177,6 +177,10 @@ jobs:
           # value only has to be non-empty.
           VITE_DAILY_SALT: ci
 
+      # An eager import of `cn` (tailwind-merge) adds ~30KB to every page.
+      - name: Entry chunk has no tailwind-merge
+        run: node scripts/check-entry-chunk.mjs
+
       - name: Audit dependencies
         # High and critical only. A moderate transitive advisory with no patch
         # would otherwise block every unrelated pull request until suppressed,

@@ -4,11 +4,12 @@ import { cva } from 'class-variance-authority'
 // the Base UI runtime or `cn` (about 35KB raw), which are not in the entry chunk
 // (#529).
 // Restyled in place for the Archive look (#528): flat, a 1px outline, no
-// shadow. `bg-primary` is the brand fill; `bg-accent` is shadcn's hover
+// shadow. No background on the base: a base `bg-transparent` sorts after
+// `bg-primary` and hides the fill, so every variant names its own. `bg-primary` is the brand fill; `bg-accent` is shadcn's hover
 // background (--sunken) and is not used for fills. A link-button passes
 // `render={<Link />}` with `nativeButton={false}`.
 export const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -32,8 +33,8 @@ export const buttonVariants = cva(
           'border-muted-foreground bg-transparent text-foreground hover:border-foreground hover:bg-card',
         // A nav trigger that reads like the links beside it (More): no box,
         // the 2px top and bottom borders keep its label level with them.
-        nav: 'h-auto rounded-none border-x-0 border-y-2 border-transparent px-0 font-normal text-foreground hover:underline',
-        link: 'h-auto border-transparent px-0 text-accent-text underline underline-offset-4 hover:underline',
+        nav: 'h-auto rounded-none border-x-0 border-y-2 border-transparent bg-transparent px-0 font-normal text-foreground hover:underline',
+        link: 'h-auto border-transparent bg-transparent px-0 text-accent-text underline underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-9 gap-2 px-4',

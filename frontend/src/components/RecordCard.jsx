@@ -1,11 +1,12 @@
 import { cx } from '../lib/cx.js'
+import { CARD_SHELL } from './ui/card-classes.js'
 import CatalogueNumber from './CatalogueNumber.jsx'
 
-// Card's look with no vertical padding, a 3px accent edge and no gap: written
-// out here, not Card plus overrides, so no class needs a merge to win (this
-// file is in the entry chunk, which has no tailwind-merge).
-const CARD =
-  'group/card flex flex-col overflow-hidden rounded-md border border-border border-l-[3px] border-l-primary bg-card text-sm text-card-foreground'
+// Card's shell with its spacing left out (the strip and body pad themselves)
+// and a 3px accent edge: the shell string is Card's own (ui/card-classes.js),
+// so a restyle of Card reaches record cards, and no class here needs a merge
+// to win. Card's `data-size` and image-first padding do not apply.
+const CARD = `${CARD_SHELL} border-l-[3px] border-l-primary`
 
 /**
  * An index card for one record in a collection: a mono label strip across
@@ -35,8 +36,8 @@ export default function RecordCard({
           data-strip
           className="flex items-center justify-between gap-3 border-b border-line-card px-4 py-2 font-mono text-xs text-muted-foreground"
         >
-          {number != null ? <CatalogueNumber n={number} /> : <span />}
-          {label != null && <span>{label}</span>}
+          {number != null && <CatalogueNumber n={number} />}
+          {label != null && <div>{label}</div>}
         </div>
       )}
       {children}

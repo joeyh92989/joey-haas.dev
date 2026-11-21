@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import CatalogueNumber from './CatalogueNumber.jsx'
+import { CARD_SHELL } from './ui/card-classes.js'
 import RecordCard from './RecordCard.jsx'
 import StatusMark from './StatusMark.jsx'
 
@@ -101,5 +102,21 @@ describe('RecordCard', () => {
       </RecordCard>,
     )
     expect(screen.getByRole('heading', { name: 'Dredge' })).toBeVisible()
+  })
+
+  it('draws no placeholder span when there is no number, and holds the label in a block', () => {
+    render(<RecordCard label={<h2>At a glance</h2>} data-testid="card" />)
+    const strip = screen.getByTestId('card').querySelector('[data-strip]')
+    expect(strip.children).toHaveLength(1)
+    expect(strip.firstElementChild.tagName).toBe('DIV')
+    expect(
+      screen.getByRole('heading', { name: 'At a glance' }).closest('span'),
+    ).toBeNull()
+  })
+
+  it('takes its look from the shared card class constant', () => {
+    render(<RecordCard number={1} data-testid="card" />)
+    const cls = screen.getByTestId('card').className
+    for (const part of CARD_SHELL.split(' ')) expect(cls).toContain(part)
   })
 })
