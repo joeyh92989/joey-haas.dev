@@ -2,7 +2,7 @@ import { mastButton } from './ui/button-variants.js'
 
 /**
  * The masthead's Search button, with the keyboard shortcut as a hint
- * (⌘K on a Mac, Ctrl K elsewhere). The hint is hidden on a phone by CSS,
+ * (⌘K on a Mac, Ctrl K elsewhere). The hint is hidden on a phone,
  * where there is no keyboard to press it on; it is aria-hidden throughout,
  * since `aria-keyshortcuts` already tells assistive tech.
  *
@@ -16,7 +16,7 @@ export default function SearchButton({ onOpen, onPreload, open }) {
   return (
     <button
       type="button"
-      className={`${mastButton()} mast-search`}
+      className={mastButton()}
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-keyshortcuts={isMac() ? 'Meta+K /' : 'Control+K /'}
@@ -25,7 +25,10 @@ export default function SearchButton({ onOpen, onPreload, open }) {
       onClick={onOpen}
     >
       Search
-      <kbd className="search-kbd" aria-hidden="true">
+      <kbd
+        className="rounded-[4px] border border-(--line-strong) px-1 py-[2px] font-sans text-[0.75rem] leading-none text-(--text-3) max-[640px]:hidden"
+        aria-hidden="true"
+      >
         {isMac() ? '⌘K' : 'Ctrl K'}
       </kbd>
     </button>

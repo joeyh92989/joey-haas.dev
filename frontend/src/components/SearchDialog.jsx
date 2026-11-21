@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { posts } from '../content/posts.js'
 import { searchPages } from '../content/pages.js'
 import { hiddenPaths } from '../lib/snapshotPresence.js'
+import { cx } from '../lib/cx.js'
 import Sheet from './Sheet.jsx'
 import { Button } from './ui/button.jsx'
 import { Input } from './ui/input.jsx'
@@ -12,6 +13,8 @@ import { loadIndex, pageEntry, search } from '../lib/searchIndex.js'
 const PAGE_ENTRIES = searchPages(posts.length > 0)
   .filter((entry) => !hiddenPaths.includes(entry.path))
   .map(pageEntry)
+
+const NOTE = 'm-0 border-t border-border px-4 py-3 [&_a]:text-accent-text'
 
 /**
  * The site search: a native modal <dialog> holding a combobox and its
@@ -105,14 +108,14 @@ export default function SearchDialog({ open, onClose }) {
       onClose={close}
       ariaLabel="Search the site"
       variant="bare"
-      className="search-dialog"
+      className="search-dialog mx-auto mt-[12vh] mb-auto max-h-[76vh] w-[36rem] max-w-[calc(100%-32px)] overflow-hidden rounded-[var(--radius)] border border-border bg-card p-0 text-foreground open:flex open:flex-col backdrop:bg-(--overlay) motion-safe:open:animate-[search-in_140ms_ease-out] motion-safe:open:backdrop:animate-[search-fade_140ms_ease-out] max-[640px]:m-0 max-[640px]:max-h-dvh max-[640px]:w-full max-[640px]:max-w-none max-[640px]:rounded-none max-[640px]:border-x-0 max-[640px]:border-t-0"
       initialFocus=".search-input"
     >
-      <div className="search-body">
-        <div className="search-head">
+      <div className="flex min-h-0 flex-col">
+        <div className="flex items-center gap-2 border-b border-border p-3">
           <Input
             type="search"
-            className="search-input md:text-base"
+            className="search-input min-h-11 min-w-0 flex-1 md:text-base"
             role="combobox"
             aria-label="Search"
             aria-expanded={rows.length > 0}
@@ -144,14 +147,13 @@ export default function SearchDialog({ open, onClose }) {
           id={listId}
           role="listbox"
           aria-label="Results"
-          className="search-list"
+          className="overflow-y-auto overscroll-contain pt-1 pb-2"
         >
           {groups.map((group) => (
             <div
               key={group.key}
               role="group"
               aria-labelledby={`${id}-${group.key}`}
-              className="search-group"
             >
               {/* Not a heading: a listbox may own only groups and
                     options (axe's aria-required-children). The label
@@ -159,7 +161,7 @@ export default function SearchDialog({ open, onClose }) {
               <span
                 id={`${id}-${group.key}`}
                 role="presentation"
-                className="search-group-label kicker"
+                className="kicker block px-4 pt-3 pb-1"
               >
                 {group.label}
               </span>
@@ -171,15 +173,19 @@ export default function SearchDialog({ open, onClose }) {
                     id={optionId(mine)}
                     role="option"
                     aria-selected={mine === current}
-                    className="search-row"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2 aria-selected:bg-(--search-active) aria-selected:shadow-[inset_3px_0_0_var(--accent)]"
                     onClick={() => go(row)}
                     onMouseMove={() => mine !== current && setActive(mine)}
                   >
                     <RowMark row={row} />
-                    <span className="search-row-text">
-                      <span className="search-row-title">{row.title}</span>
+                    <span className="grid min-w-0">
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                        {row.title}
+                      </span>
                       {row.sub && (
-                        <span className="search-row-sub muted">{row.sub}</span>
+                        <span className="muted overflow-hidden text-[0.8125rem] text-ellipsis whitespace-nowrap">
+                          {row.sub}
+                        </span>
                       )}
                     </span>
                   </div>
@@ -190,12 +196,12 @@ export default function SearchDialog({ open, onClose }) {
         </div>
 
         {index?.unavailable && (
-          <p className="search-note muted">
+          <p className={cx(NOTE, 'muted')}>
             Search is unavailable right now; pages still work.
           </p>
         )}
         {trimmed && rows.length === 0 && (
-          <p className="search-note">
+          <p className={NOTE}>
             Nothing for ‘{trimmed}’.{' '}
             <Link
               to={`/shelf?q=${encodeURIComponent(trimmed)}`}
@@ -219,7 +225,7 @@ function RowMark({ row }) {
   if (row.cover && !failed) {
     return (
       <img
-        className="search-mark search-cover"
+        className="size-8 flex-none rounded-[3px] object-cover"
         src={row.cover}
         alt=""
         loading="lazy"
@@ -229,7 +235,7 @@ function RowMark({ row }) {
   }
   return (
     <svg
-      className="search-mark search-glyph"
+      className="size-8 flex-none rounded-[3px] fill-none stroke-current p-2 text-(--text-3) [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.6]"
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

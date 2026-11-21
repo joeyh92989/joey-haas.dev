@@ -249,24 +249,26 @@ for (const theme of ['dark', 'light']) {
       { path: '/', theme, vp, noIndex: true },
       (page) => openSearch(page),
     )
-    await record(
-      `screen ${theme} ${vp} nav-sheet`,
-      { path: '/now', theme, vp },
-      async (page) => {
-        await page.getByRole('button', { name: 'Menu' }).click()
-        await page.locator('dialog.nav-sheet[open]').waitFor()
-        await page.waitForTimeout(300)
-      },
-    )
-    await record(
-      `screen ${theme} ${vp} nav-sheet-about`,
-      { path: '/about', theme, vp },
-      async (page) => {
-        await page.getByRole('button', { name: 'Menu' }).click()
-        await page.locator('dialog.nav-sheet[open]').waitFor()
-        await page.waitForTimeout(300)
-      },
-    )
+    if (vp === 'phone')
+      await record(
+        `screen ${theme} ${vp} nav-sheet`,
+        { path: '/now', theme, vp },
+        async (page) => {
+          await page.getByRole('button', { name: 'Menu' }).click()
+          await page.locator('dialog.nav-sheet[open]').waitFor()
+          await page.waitForTimeout(300)
+        },
+      )
+    if (vp === 'phone')
+      await record(
+        `screen ${theme} ${vp} nav-sheet-about`,
+        { path: '/about', theme, vp },
+        async (page) => {
+          await page.getByRole('button', { name: 'Menu' }).click()
+          await page.locator('dialog.nav-sheet[open]').waitFor()
+          await page.waitForTimeout(300)
+        },
+      )
     await record(
       `screen ${theme} ${vp} more-open-now`,
       { path: '/now', theme, vp },

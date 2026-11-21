@@ -56,6 +56,16 @@ body {
   padding-inline: var(--space-6);
 }
 
+/* A phone: 16px gutters on the masthead's rows, the footer's and the page. */
+@media (max-width: 700px) {
+  .wrap,
+  .page,
+  .page.page-content,
+  .page.page-wide {
+    padding-inline: var(--space-4);
+  }
+}
+
 /* Headings are Source Serif 4 at 500, the one weight installed: a serif at
    600 or 700 would be synthesised, so no rule sets one beside
    --font-display (typeScale.test.js). Body stays Inter, labels mono. */

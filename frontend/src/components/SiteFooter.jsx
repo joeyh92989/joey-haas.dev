@@ -1,6 +1,15 @@
 import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
 import { loginUrl } from '../lib/api.js'
+import { cx } from '../lib/cx.js'
+
+/**
+ * The footer's two lines: no margin of their own, and links that sit in a row,
+ * not a sentence, so WCAG 2.5.8 applies: 24px high (#477). The line box
+ * carries it, so the separators stay where they are.
+ */
+const FOOTER_P =
+  'm-0 [&_a]:inline-block [&_a]:leading-6 [&_a]:text-foreground [&_a]:decoration-primary'
 
 /**
  * The site footer: a credit line and the contact links, at the two ends of
@@ -22,9 +31,9 @@ export default function SiteFooter({
   hasSpots = true,
 }) {
   return (
-    <footer className="site-footer">
-      <div className="wrap site-footer-row">
-        <p className="footer-credit">
+    <footer className="site-footer mt-12 border-t border-border pt-6 pb-8 text-[0.8125rem]">
+      <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-2 max-[700px]:flex-col max-[700px]:gap-2">
+        <p className={cx('footer-credit', FOOTER_P)}>
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}
           <a href={profile.repo}>Source</a> &middot; <Link to="/now">Now</Link>{' '}
           &middot; <Link to="/daily">Daily game</Link>{' '}
@@ -46,7 +55,7 @@ export default function SiteFooter({
           &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}
           <Link to="/stats">Stats</Link> &middot; <a href="/feed.xml">RSS</a>
         </p>
-        <p className="footer-links">
+        <p className={FOOTER_P}>
           <a href={`mailto:${profile.email}`}>{profile.email}</a>
           {' · '}
           <a href={profile.github}>GitHub</a>
