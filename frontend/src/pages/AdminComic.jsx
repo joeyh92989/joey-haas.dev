@@ -7,7 +7,7 @@ import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import BooksPanel from '../components/BooksPanel.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
-import DataPanel from '../components/DataPanel.jsx'
+import Panel from '../components/Panel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import TagPicker from '../components/TagPicker.jsx'
 import { spine } from '../content/spine.js'
@@ -21,7 +21,6 @@ import {
   FIELD_AUTO,
   FORM_ACTIONS,
   FORM_GRID,
-  HEAD_WRAP,
   LABEL,
   MUTED,
   PLAIN,
@@ -410,7 +409,7 @@ export default function AdminComic() {
   const comic = wall?.comic
   const run = item.comic_run
   const deletePanel = (
-    <DataPanel title={COPY.delete}>
+    <Panel title={COPY.delete}>
       <p className={MUTED}>{COPY.deleteLine}</p>
       <ShelfConfirm
         ids={[id]}
@@ -419,7 +418,7 @@ export default function AdminComic() {
         armedClassName={ARMED}
         onConfirm={remove}
       />
-    </DataPanel>
+    </Panel>
   )
 
   return (
@@ -436,27 +435,25 @@ export default function AdminComic() {
         <div className="admin-comic-cover">
           <CoverImage src={item.cover_url} type="comic" alt="" />
         </div>
-        <div className={HEAD_WRAP}>
-          <AdminPageHeader
-            title={item.title}
-            description={[
-              COPY.kicker,
-              comic ? kindWord(comic) : null,
-              item.creator,
-              item.year,
-              item.is_public ? COPY.public : COPY.private,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          >
-            {viewOnSite}
-          </AdminPageHeader>
-        </div>
+        <AdminPageHeader
+          title={item.title}
+          description={[
+            COPY.kicker,
+            comic ? kindWord(comic) : null,
+            item.creator,
+            item.year,
+            item.is_public ? COPY.public : COPY.private,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        >
+          {viewOnSite}
+        </AdminPageHeader>
       </div>
 
       <div className="admin-comic-cols">
         <div>
-          <DataPanel title={COPY.series}>
+          <Panel title={COPY.series}>
             <form className={FORM_GRID} onSubmit={save}>
               <label htmlFor="title" className={LABEL}>
                 {adminCopy.comic.title}
@@ -575,13 +572,13 @@ export default function AdminComic() {
                 )}
               </div>
             </form>
-          </DataPanel>
+          </Panel>
 
           {!single && deletePanel}
         </div>
 
         <div>
-          <DataPanel title={COPY.issues}>
+          <Panel title={COPY.issues}>
             {run && (
               <p className="admin-comic-sum">
                 {COPY.issuesLine(
@@ -624,7 +621,7 @@ export default function AdminComic() {
               </p>
             )}
             <p className={`${MUTED} comic-hint`}>{COPY.issuesHint}</p>
-          </DataPanel>
+          </Panel>
           {comic &&
             (wall.wall.issues.length > 0 ||
               comic.released > 0 ||
@@ -641,10 +638,12 @@ export default function AdminComic() {
 
           <BooksPanel itemId={id} />
 
-          <DataPanel title={COPY.match}>
+          <Panel title={COPY.match}>
             {linked ? (
               <>
-                <p className="match-line">{item.title}</p>
+                <p className="match-line min-w-0 [overflow-wrap:anywhere]">
+                  {item.title}
+                </p>
                 <p className={MUTED}>
                   {[
                     meta.publisher,
@@ -678,7 +677,7 @@ export default function AdminComic() {
               )}
               <MetadataPicker type="comic" onSelect={relink} />
             </div>
-          </DataPanel>
+          </Panel>
           {single && deletePanel}
         </div>
       </div>

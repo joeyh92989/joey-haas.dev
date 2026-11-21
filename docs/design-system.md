@@ -131,11 +131,12 @@ comic edit pages and a book's page, with the components only they use
 `PlayJournal`, `TagPicker` and the editable playthrough controls), are the
 Button, Card and Input looks through `components/adminDataClasses.js`: a form
 is `FORM_GRID` (one column on a phone, label and field from 560px) with
-`LABEL`, `FIELD`, `CHECKBOX` and `FORM_ACTIONS`; a titled panel is `DataPanel`
-(the cover wall's card); a wide table sits in `TABLE_WRAP`, which scrolls
+`LABEL`, `FIELD`, `CHECKBOX` and `FORM_ACTIONS`; a titled panel is `Panel` (the
+Home slice's, one admin panel look); a wide table sits in `TABLE_WRAP`, which scrolls
 inside itself and keeps room for a ring at its edge. A text button in a
-sentence (Undo, Cancel) is `LINK_BTN`. Each control carries its own 44px
-phone target, and the pressed Owned and Read marks are the chip look (outline,
+sentence (Undo, Cancel) is `LINK_BTN`. Each button, select and text field
+carries its own 44px phone target; a checkbox is 24px and its label, a
+separate element, is the 44px one, and the pressed Owned and Read marks are the chip look (outline,
 weight and bar, never colour alone). `adminDataStyle.test.js` pins the legacy
 `btn`, `chip`, `panel` and `link-button` classes off these files.
 

@@ -4214,10 +4214,6 @@ dialog.shelf-sheet {
   margin: 0;
 }
 
-.play-next-status p {
-  margin: 0 0 var(--space-2);
-}
-
 /* Play next. Three cards in a row that wraps; the pinned game above them. */
 .play-next-controls {
   display: flex;

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { unringed } from './closet-ring.js'
+import { tabRings } from './denver-site-ring.js'
 import {
   COMIC_ID,
   GAME_ID,
@@ -75,9 +75,23 @@ for (const size of WIDTHS) {
           .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
           .slice(0, 4)
           .map((el) => `abs ${el.tagName}.${el.className}`.slice(0, 80))
+        // Text cut off inside an `overflow: hidden` ancestor is not page
+        // overflow, but it is lost: a name must wrap, not clip.
+        const cut = [
+          ...document.querySelectorAll('main :is(p, h2, h3, li, strong)'),
+        ]
+          .filter((el) => el.scrollWidth > el.clientWidth + 1)
+          .filter((el) => {
+            for (let p = el; p; p = p.parentElement)
+              if (getComputedStyle(p).overflowX === 'hidden') return true
+            return false
+          })
+          .slice(0, 4)
+          .map((el) => `clipped ${el.tagName}.${el.className}`.slice(0, 80))
         return {
-          overflow: document.documentElement.scrollWidth - edge,
-          wide: [...wide, ...escaped],
+          overflow:
+            document.documentElement.scrollWidth - edge + cut.length * 1000,
+          wide: [...wide, ...escaped, ...cut],
         }
       })
       expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
@@ -97,7 +111,7 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
         const controls = page.locator(
           'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
         )
-        expect(await unringed(page, controls)).toEqual([])
+        expect(await tabRings(page, controls)).toEqual([])
       })
     }
   }
@@ -151,9 +165,12 @@ const STATES = [
     route: '/admin/store-list',
     scope: 'main',
     prep: async (page) => {
+      await page.getByRole('button', { name: /^Got it: Game a/ }).click()
+      await expect(page.getByText('Game a', { exact: true })).toHaveCount(0)
+      // Focus goes to the next row's first answer, never to the page.
       await expect(
-        page.getByRole('button', { name: /^Want: Game a/ }),
-      ).toBeVisible()
+        page.getByRole('button', { name: /^Got it: Game c/ }),
+      ).toBeFocused()
     },
   },
 ]
@@ -174,7 +191,7 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
             ':is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
           )
         expect(await controls.count()).toBeGreaterThan(0)
-        expect(await unringed(page, controls)).toEqual([])
+        expect(await tabRings(page, controls)).toEqual([])
       })
     }
   }
@@ -345,6 +362,65 @@ for (const theme of THEMES) {
       .locator('main button[aria-pressed=true]')
       .all())
       expect(await textContrast(pressed), 'pressed mark').toBeGreaterThan(4.5)
+  })
+}
+
+// ---- Colours that changed from the legacy look (fail on the old code) ----
+/** An element's computed colour and a token's, both through a canvas. */
+async function paint(control, property, token) {
+  return control.evaluate(
+    (el, [prop, tok]) => {
+      const ctx = document.createElement('canvas').getContext('2d', {
+        willReadFrequently: true,
+      })
+      const rgba = (css) => {
+        ctx.clearRect(0, 0, 1, 1)
+        ctx.fillStyle = '#000'
+        ctx.fillStyle = css
+        ctx.fillRect(0, 0, 1, 1)
+        return [...ctx.getImageData(0, 0, 1, 1).data].join(',')
+      }
+      return {
+        have: rgba(getComputedStyle(el)[prop]),
+        want: rgba(
+          getComputedStyle(document.documentElement).getPropertyValue(tok),
+        ),
+      }
+    },
+    [property, token],
+  )
+}
+
+for (const theme of THEMES) {
+  test(`item page states use the new look and keep 4.5:1 (${theme})`, async ({
+    page,
+  }) => {
+    await open(page, `/admin/collection/${GAME_ID}`, WIDTHS[2], theme)
+    await page.waitForTimeout(400)
+    // Save is the brand fill (the legacy button was a surface box).
+    const save = page.getByRole('button', { name: 'Save', exact: true })
+    const fill = await paint(save, 'backgroundColor', '--accent')
+    expect(fill.have, 'Save fill is --accent').toBe(fill.want)
+    expect(await textContrast(save), 'Save').toBeGreaterThan(4.5)
+    // A pressed tag keeps the card surface and a heavier word (the legacy
+    // pressed chip was a solid ink fill); an unpressed one is plain.
+    const on = page.getByRole('button', { name: 'RPG', exact: true })
+    const off = page.getByRole('button', { name: 'Shooter', exact: true })
+    await expect(on).toHaveAttribute('aria-pressed', 'true')
+    await expect(off).toHaveAttribute('aria-pressed', 'false')
+    const surface = await paint(on, 'backgroundColor', '--surface')
+    expect(surface.have, 'pressed tag sits on --surface').toBe(surface.want)
+    expect(await on.evaluate((el) => getComputedStyle(el).fontWeight)).toBe(
+      '500',
+    )
+    expect(await textContrast(on), 'pressed tag').toBeGreaterThan(4.5)
+    expect(await textContrast(off), 'unpressed tag').toBeGreaterThan(4.5)
+    // The journal's Delete is a text button with a name per session.
+    const del = page.getByRole('button', { name: /^Delete the session on/ })
+    await expect(del).toHaveCount(2)
+    expect(await textContrast(del.first()), 'session Delete').toBeGreaterThan(
+      4.5,
+    )
   })
 }
 

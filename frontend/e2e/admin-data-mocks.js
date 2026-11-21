@@ -224,7 +224,10 @@ const GAME = {
   release_date: '2026-09-01',
   pinned_at: null,
   play_next_excluded: true,
-  tags: [],
+  tags: [
+    { group: 'play_style', tag: 'rpg' },
+    { group: 'tone', tag: 'comedy' },
+  ],
   source_metadata: {},
   playthroughs: [
     {
@@ -353,7 +356,11 @@ export async function mockAdminData(page) {
     if (path === '/api/recommendations/store-list') return json(STORE_LIST)
     if (path === `/api/items/${GAME_ID}`) return json(GAME)
     if (path === `/api/items/${COMIC_ID}`) return json(COMIC)
-    if (path.endsWith('/sessions')) return json([])
+    if (path.endsWith('/sessions'))
+      return json([
+        { id: 's1', played_on: '2026-11-18', minutes: 95, note: 'Boss two' },
+        { id: 's2', played_on: '2026-11-12', minutes: null, note: null },
+      ])
     if (path.includes('search-metadata')) return json([])
     if (path === `/api/comics/${COMIC_ID}/wall`) return json(WALL)
     if (path === `/api/comics/${COMIC_ID}/volumes`) return json(volumesFixture)

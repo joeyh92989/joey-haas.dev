@@ -86,8 +86,10 @@ export const ATTENTION =
 /** A sentence under a heading or a table: muted body text. */
 export const MUTED = 'text-muted-foreground'
 
-/** A store list answer: 44px at every width, for a phone held in an aisle. */
-export const ANSWER = `${buttonVariants({ variant: 'outline', size: 'lg' })} min-w-11 px-4`
+/** A store list answer: 44px at every width, for a phone held in an aisle.
+ *  The lg size's own 20px padding, and 16px text as the page had (`!`: the
+ *  Button base says text-sm). */
+export const ANSWER = `${buttonVariants({ variant: 'outline', size: 'lg' })} min-w-11 text-base!`
 
 /** The status line that takes focus when the last answered row leaves. */
 export const STATUS_LINE =
@@ -107,8 +109,3 @@ export const HIT = `${RING} max-[700px]:min-h-11`
 
 /** A quiet button beside the primary one (Cancel). */
 export const GHOST = btn('ghost', 'sm')
-
-/** Around an `AdminPageHeader` whose title is the owner's own words: a long
- *  unbroken name wraps inside the header instead of widening the page. */
-export const HEAD_WRAP =
-  'min-w-0 [&_div]:min-w-0 [&_h1]:[overflow-wrap:anywhere] [&_p]:[overflow-wrap:anywhere]'

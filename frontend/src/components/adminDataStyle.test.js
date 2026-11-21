@@ -57,6 +57,18 @@ describe('admin data pages and the legacy look', () => {
     expect(legacyClasses('<a className={btn()}>x</a>')).toEqual([])
   })
 
+  // The legacy `.item-detail-form label` rule is gone, so a label with no
+  // class is 16px ink with no phone target (#535 review).
+  for (const file of FILES) {
+    it(`${file}: every <label> carries a class`, () => {
+      const text = readFileSync(resolve(cwd(), 'src', file), 'utf8')
+      const bare = [...text.matchAll(/<label\b[^>]*>/g)]
+        .map((m) => m[0])
+        .filter((tag) => !/className=/.test(tag))
+      expect(bare).toEqual([])
+    })
+  }
+
   it('every field takes a 44px phone target', () => {
     for (const look of [FIELD, FIELD_AUTO, FIELD_CELL])
       expect(look).toContain('max-[700px]:min-h-11')

@@ -9,7 +9,7 @@ import {
 } from '../lib/volumeEdits.js'
 import CoverImage from './CoverImage.jsx'
 import LoadState from './LoadState.jsx'
-import DataPanel from './DataPanel.jsx'
+import Panel from './Panel.jsx'
 import StatePill from './StatePill.jsx'
 import { FIELD, LABEL, MUTED, PLAIN } from './adminDataClasses.js'
 
@@ -121,7 +121,7 @@ export default function BooksPanel({ itemId }) {
   const general = error && Object.keys(error.fields ?? {}).length === 0
 
   return (
-    <DataPanel title={COPY.title}>
+    <Panel title={COPY.title}>
       {state.status === 'loading' && <LoadState loading />}
       {state.status === 'error' && <LoadState failed onRetry={retry} />}
       {state.status === 'ready' &&
@@ -213,6 +213,6 @@ export default function BooksPanel({ itemId }) {
           </p>
         )}
       </form>
-    </DataPanel>
+    </Panel>
   )
 }

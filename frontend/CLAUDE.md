@@ -145,8 +145,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   The admin Shelf data and edit pages (Sources, Store list, item and comic edit,
   a book's page; #535) take the same looks from `components/adminDataClasses.js`
   (`FIELD`, `FORM_GRID`, `LABEL`, `CHECKBOX`, the table strings, `LINK_BTN`,
-  `HIT`, and `SMALL`/`PRIMARY`/`PLAIN`/`GHOST` buttons on `btn()`), with `DataPanel`
-  for a titled panel (the cover wall's card). The components only those pages
+  `HIT`, and `SMALL`/`PRIMARY`/`PLAIN`/`GHOST` buttons on `btn()`), with `Panel`
+  for a titled panel. The components only those pages
   use (`BooksPanel`, `CollectsEditor`, `MetronFind`, `EditionLinkPicker`,
   `PlayJournal`, `TagPicker`, the editable playthrough controls) are on them
   too; `adminDataStyle.test.js` pins the legacy classes off. A wide table sits
