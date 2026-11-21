@@ -42,22 +42,33 @@ export default function SiteMast({
   const target = theme === 'dark' ? 'light' : 'dark'
 
   return (
-    <header className="mast">
-      <div className="wrap mast-row">
-        <Link to="/" className="brand">
-          <span className="mark" aria-hidden="true">
+    <header className="mast relative z-2 border-b border-b-border bg-background">
+      <div className="wrap mast-row flex h-[60px] items-center gap-6 max-[700px]:h-[54px] max-[700px]:gap-3 max-[384px]:gap-2">
+        <Link
+          to="/"
+          className="brand flex flex-none items-center gap-3 font-bold text-foreground hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring max-[700px]:min-h-11 max-[384px]:gap-2"
+        >
+          {/* Mono 500: the 600 cut of JetBrains Mono is not loaded (main.jsx). */}
+          <span
+            className="grid size-8 place-items-center rounded-[4px] border border-foreground bg-transparent font-mono text-[0.75rem] leading-[normal] font-medium text-foreground"
+            aria-hidden="true"
+          >
             JH
           </span>
           {profile.name}
         </Link>
-        <nav className="site-nav" aria-label="Site">
+        {/* The links are the full height of the bar (self-stretch). */}
+        <nav
+          className="site-nav ml-2 flex self-stretch gap-6 text-[0.875rem] max-[960px]:hidden"
+          aria-label="Site"
+        >
           {items.map((item) => (
-            <MastNavLink key={item.to} item={item} />
+            <MastNavLink key={item.to} item={item} variant="bar" />
           ))}
           {more.length > 0 && <MoreMenu items={more} />}
         </nav>
         {/* Outside <nav>: the toggle is a control, not a destination. */}
-        <div className="mast-end">
+        <div className="mast-end ml-auto flex items-center gap-3 max-[384px]:gap-2">
           <a
             href="/resume.pdf"
             className={`${mastButton('ghost')} mast-resume max-[1100px]:hidden`}

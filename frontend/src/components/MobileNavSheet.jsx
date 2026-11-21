@@ -43,10 +43,14 @@ export default function MobileNavSheet({
       ))}
       {more.length > 0 && (
         <>
-          <p className="kicker sheet-group" id="sheet-more">
+          <p className="kicker mt-4" id="sheet-more">
             More
           </p>
-          <div className="sheet-two" role="group" aria-labelledby="sheet-more">
+          <div
+            className="grid grid-cols-[1fr_1fr] gap-x-4"
+            role="group"
+            aria-labelledby="sheet-more"
+          >
             {more.map((item) => (
               <MastNavLink
                 key={item.to}
@@ -57,7 +61,7 @@ export default function MobileNavSheet({
           </div>
         </>
       )}
-      <div className="sheet-foot">
+      <div className="mt-4 grid">
         <a href="/resume.pdf" onClick={onClose}>
           Resume (PDF)
         </a>
