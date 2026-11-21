@@ -373,6 +373,7 @@ async function open(
     await page.route('**/snapshot/**', (r) => r.abort())
     await page.route('**/api/**', () => {})
   }
+  if (kind === 'admin-add') await serveAdminAdd(page)
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -958,6 +959,128 @@ async function d4b(theme, vp) {
   })
 }
 
+// Slice D5 (#536): the Closet leftovers and the admin intake (add) flow.
+async function click(page, name, opts = {}) {
+  const button = page.getByRole('button', { name, ...opts }).first()
+  await button.click()
+  await page.waitForTimeout(300)
+}
+
+async function d5(theme, vp) {
+  const at = (name) => `screen ${theme} ${vp} d5 ${name}`
+  const closet = (path) => ({ path, theme, vp, kind: 'closet' })
+  const add = (path) => ({ path, theme, vp, kind: 'admin-add' })
+  await record(at('/admin/closet/today'), closet('/admin/closet/today'))
+  await record(
+    at('today match sheet'),
+    closet('/admin/closet/today'),
+    async (page) => {
+      await click(page, /^Match this/)
+      const sheet = page.getByRole('dialog')
+      await sheet
+        .getByRole('button', { name: /closet/i })
+        .first()
+        .click()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(at('today swap sheet'), closet('/admin/closet/today'), (page) =>
+    click(page, /^Swap/),
+  )
+  await record(at('today not-this'), closet('/admin/closet/today'), (page) =>
+    click(page, /^Not this/),
+  )
+  await record(
+    at('today tab-focus'),
+    closet('/admin/closet/today'),
+    async (page) => {
+      for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
+    },
+  )
+  await record(at('/admin/closet'), closet('/admin/closet'))
+  await record(at('/admin/closet list'), closet('/admin/closet'), (page) =>
+    click(page, 'List', { exact: true }),
+  )
+  await record(
+    at('/admin/closet tile-hover'),
+    closet('/admin/closet'),
+    async (page) => {
+      await page.locator('.garment-tile').nth(1).hover()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(at('/admin/closet/review'), closet('/admin/closet/review'))
+  await record(
+    at('review sell sheet'),
+    closet('/admin/closet/review'),
+    (page) => click(page, /^Sell/),
+  )
+  await record(
+    at('review pack month'),
+    closet('/admin/closet/review'),
+    (page) => click(page, /^Pack away/),
+  )
+  await record(at('/admin/closet/profile'), closet('/admin/closet/profile'))
+  await record(at('/admin/closet/a'), closet('/admin/closet/a'))
+  await record(at('garment delete'), closet('/admin/closet/a'), (page) =>
+    click(page, 'Delete', { exact: true }),
+  )
+  await record(at('closet add'), add('/admin/closet/add'))
+  await record(
+    at('closet add links'),
+    add('/admin/closet/add'),
+    async (page) => {
+      await click(page, /link/i)
+    },
+  )
+  await record(at('add'), add('/admin/collection/add'))
+  await record(at('add discard'), add('/admin/collection/add'), (page) =>
+    click(page, /^Discard /),
+  )
+  await record(at('sitting'), add('/admin/collection/add/s1'))
+  await record(at('sitting check'), add('/admin/collection/add/chk'))
+  await record(at('sitting details'), add('/admin/collection/add/det'))
+  await record(at('sitting done'), add('/admin/collection/add/det'), (page) =>
+    click(page, /^Add \d+ to/),
+  )
+  await record(at('discover'), add('/admin/discover'))
+  await record(at('radar'), add('/admin/radar'))
+  await record(at('pull list'), add('/admin/pull-list'))
+  await record(at('games'), add('/admin/shelf/games'))
+  await record(
+    at('games add results'),
+    add('/admin/shelf/games'),
+    async (page) => {
+      await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
+      await page.keyboard.press('Enter')
+      await page.getByRole('list', { name: /^Results for/ }).waitFor()
+    },
+  )
+  await record(
+    at('games add drawer'),
+    add('/admin/shelf/games'),
+    async (page) => {
+      await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
+      await page.keyboard.press('Enter')
+      await page.getByRole('list', { name: /^Results for/ }).waitFor()
+      await click(page, /^Add (The Legend|Super)/)
+    },
+  )
+  await record(at('games scanner'), add('/admin/shelf/games'), (page) =>
+    click(page, /^Scan a barcode/),
+  )
+  await record(at('games wrap-up sheet'), add('/admin/shelf/games'), (page) =>
+    click(page, /^Wrap up/),
+  )
+  await record(at('/shelf/intake'), { path: '/shelf/intake', theme, vp })
+  await record(at('/shelf/intake reduce'), {
+    path: '/shelf/intake',
+    theme,
+    vp,
+    reduce: true,
+  })
+}
+
 for (const theme of ['dark', 'light']) {
   for (const vp of ['desktop', 'phone']) {
     await d4(theme, vp)
@@ -1118,6 +1241,7 @@ for (const theme of ['dark', 'light']) {
           await page.waitForTimeout(600)
         },
       )
+    await d5(theme, vp)
   }
   for (const path of [
     '/about',
