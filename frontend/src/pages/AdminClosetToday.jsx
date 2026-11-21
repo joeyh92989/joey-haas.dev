@@ -42,7 +42,32 @@ import {
   chipBtn,
   closetCard,
   FILE_PICK,
+  GARMENT_GRID,
+  GARMENT_NAME,
+  GARMENT_PHOTO,
+  GARMENT_SLOT,
+  GARMENT_TILE,
   PRESSED,
+  TODAY,
+  TODAY_ACTS,
+  TODAY_ALT,
+  TODAY_ALT_NAMES,
+  TODAY_ALT_REASON,
+  TODAY_ALTS,
+  TODAY_CARD,
+  TODAY_FOOTNOTE,
+  TODAY_HIGH,
+  TODAY_HOURS,
+  TODAY_KICKER,
+  TODAY_LOW,
+  TODAY_PICK,
+  TODAY_REASON,
+  TODAY_SENTENCE,
+  TODAY_SHEET_BODY,
+  TODAY_STATUS,
+  TODAY_TEMPS,
+  TODAY_WEATHER,
+  TODAY_WORN,
 } from '../components/closetClasses.js'
 
 /**
@@ -74,18 +99,18 @@ function todayPath(choice) {
 function WeatherStrip({ weather }) {
   return (
     <section
-      className={`${closetCard} today-weather`}
+      className={`${closetCard} today-weather ${TODAY_WEATHER}`}
       aria-label={adminCopy.closetToday.weather}
     >
-      <p className="today-temps">
-        <span className="today-low">{weather.low}°</span>
+      <p className={`today-temps ${TODAY_TEMPS}`}>
+        <span className={`today-low ${TODAY_LOW}`}>{weather.low}°</span>
         <span aria-hidden="true"> → </span>
         <span className="visually-hidden"> {adminCopy.closetToday.to} </span>
-        <span className="today-high">{weather.high}°</span>
+        <span className={`today-high ${TODAY_HIGH}`}>{weather.high}°</span>
       </p>
-      <p className="today-sentence">{weather.sentence}</p>
+      <p className={`today-sentence ${TODAY_SENTENCE}`}>{weather.sentence}</p>
       {weather.hours?.length > 0 && (
-        <ol className="today-hours">
+        <ol className={`today-hours ${TODAY_HOURS}`}>
           {weather.hours.map((hour) => (
             <li key={hour.label}>
               <span>{hour.label}</span> {hour.temp}°
@@ -152,9 +177,9 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
   }
 
   return (
-    <div className="today-sheet-body">
+    <div className={`today-sheet-body ${TODAY_SHEET_BODY}`}>
       <h2 id={titleId}>{adminCopy.closetToday.matchThis}</h2>
-      <div className="today-sheet-modes">
+      <div className={`today-sheet-modes ${TODAY_ACTS}`}>
         <button
           type="button"
           className={`${btn()} ${PRESSED}`}
@@ -187,27 +212,29 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         <EmptyState title={adminCopy.closetNoPieces} />
       )}
       {garments?.length > 0 && (
-        <ul className="garment-grid today-picker">
+        <ul className={`garment-grid today-picker ${GARMENT_GRID}`}>
           {garments.map((garment) => (
             <li key={garment.id}>
               <button
                 type="button"
-                className="garment-tile today-pick"
+                className={`garment-tile today-pick ${GARMENT_TILE} ${TODAY_PICK}`}
                 onClick={() => onGarment(garment)}
               >
-                <span className="garment-photo">
+                <span className={`garment-photo ${GARMENT_PHOTO}`}>
                   <Swatch garment={garment} className="today-tile-swatch" />
-                  <span className="garment-slot">
+                  <span className={`garment-slot ${GARMENT_SLOT}`}>
                     {categoryLabel(garment.category)}
                   </span>
                 </span>
-                <span className="garment-name">{garment.name}</span>
+                <span className={`garment-name ${GARMENT_NAME}`}>
+                  {garment.name}
+                </span>
               </button>
             </li>
           ))}
         </ul>
       )}
-      <div className="today-sheet-acts">
+      <div className={`today-sheet-acts ${TODAY_ACTS}`}>
         <button type="button" className={btn('ghost')} onClick={onClose}>
           {adminCopy.closetToday.cancel}
         </button>
@@ -238,11 +265,11 @@ function OutfitCard({
 
   return (
     <section
-      className={`${closetCard} today-card`}
+      className={`${closetCard} today-card ${TODAY_CARD}`}
       aria-labelledby="today-wear"
     >
       <p
-        className="today-kicker"
+        className={`today-kicker ${TODAY_KICKER}`}
         id="today-wear"
         tabIndex={-1}
         ref={headingRef}
@@ -258,9 +285,9 @@ function OutfitCard({
         onSwap={onSwapSlot}
         onSave={onSave}
       />
-      <p className="today-reason">{outfitReason(outfit)}</p>
+      <p className={`today-reason ${TODAY_REASON}`}>{outfitReason(outfit)}</p>
       {wornState ? (
-        <p className="today-worn">
+        <p className={`today-worn ${TODAY_WORN}`}>
           <span>
             {wornState === 'this' ? 'Worn ✓' : 'Worn today: another outfit'}
           </span>
@@ -270,7 +297,7 @@ function OutfitCard({
           </button>
         </p>
       ) : (
-        <div className="today-acts">
+        <div className={`today-acts ${TODAY_ACTS}`}>
           <button
             type="button"
             className={btn('primary')}
@@ -335,12 +362,14 @@ function OutfitCard({
 /** An alternative: the small board, the names on one line, the reason. */
 function OutfitAlt({ outfit, busy, onWear }) {
   return (
-    <li className={`${closetCard} today-alt`}>
+    <li className={`${closetCard} today-alt ${TODAY_ALT}`}>
       <OutfitBoard garments={outfit.garments} small />
-      <p className="today-alt-names">
+      <p className={`today-alt-names ${TODAY_ALT_NAMES}`}>
         {outfit.garments.map((g) => g.name).join(' · ')}
       </p>
-      <p className="today-alt-reason">{outfitReason(outfit)}</p>
+      <p className={`today-alt-reason ${TODAY_ALT_REASON}`}>
+        {outfitReason(outfit)}
+      </p>
       <button
         type="button"
         className={btn('plain', 'sm')}
@@ -602,7 +631,7 @@ export default function AdminClosetToday() {
     : null
 
   return (
-    <section className="today">
+    <section className={`today ${TODAY}`}>
       <AdminPageHeader
         title={adminCopy.closetToday.title}
         description={description}
@@ -636,7 +665,7 @@ export default function AdminClosetToday() {
       {!answer && !error && elapsed >= STILL_PLANNING_AFTER_S && (
         <p className="muted">{STILL_PLANNING}</p>
       )}
-      <p className="muted today-status" role="status">
+      <p className={`muted today-status ${TODAY_STATUS}`} role="status">
         {pending}
       </p>
 
@@ -694,9 +723,11 @@ export default function AdminClosetToday() {
               onNotThis={notThis}
             />
           ) : (
-            <section className={`${closetCard} today-card`}>
-              <p className="today-kicker">{adminCopy.closetToday.wearThis}</p>
-              <p className="today-reason">
+            <section className={`${closetCard} today-card ${TODAY_CARD}`}>
+              <p className={`today-kicker ${TODAY_KICKER}`}>
+                {adminCopy.closetToday.wearThis}
+              </p>
+              <p className={`today-reason ${TODAY_REASON}`}>
                 {plan?.model_note ?? 'Nothing is planned for today yet.'}
               </p>
             </section>
@@ -704,7 +735,7 @@ export default function AdminClosetToday() {
 
           {lead && alternatives.length > 0 && (
             <ul
-              className="today-alts"
+              className={`today-alts ${TODAY_ALTS}`}
               aria-label={adminCopy.closetToday.alternatives}
             >
               {alternatives.map((outfit, index) => (
@@ -719,7 +750,7 @@ export default function AdminClosetToday() {
           )}
 
           {plan && (
-            <footer className="today-footnote">
+            <footer className={`today-footnote ${TODAY_FOOTNOTE}`}>
               <p>{footnoteLine(plan, answer.planned_just_now)}</p>
               {lead && plan.model_note && <p>Model: {plan.model_note}</p>}
             </footer>

@@ -36,7 +36,12 @@ import {
   WaitTimeout,
   withDeadline,
 } from '../lib/waits.js'
-import { btn, chipBtn, PHONE_ROW } from '../components/closetClasses.js'
+import {
+  btn,
+  chipBtn,
+  GARMENT_GRID,
+  PHONE_ROW,
+} from '../components/closetClasses.js'
 
 /** `GET /api/closet/garments`, returned rather than set. */
 async function fetchCloset() {
@@ -321,7 +326,7 @@ export default function AdminCloset() {
         ) : view === 'list' ? (
           <GarmentTable garments={shown} />
         ) : (
-          <ul className="garment-grid">
+          <ul className={`garment-grid ${GARMENT_GRID}`}>
             {shown.map((garment) => (
               <li key={garment.id}>
                 <GarmentTile garment={garment} />

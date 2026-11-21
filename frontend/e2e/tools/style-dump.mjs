@@ -273,7 +273,13 @@ async function open(
       r.fulfill({ status: 401, json: { detail: 'no' } }),
     )
   }
-  if (kind === 'admin-add') await serveAdminAdd(page)
+  if (kind === 'admin-add' || kind === 'closet-add') await serveAdminAdd(page)
+  if (kind === 'closet-add') {
+    await page.route('**/api/auth/me', (r) =>
+      r.fulfill({ json: { email: 'a@example.com' } }),
+    )
+    await mockCloset(page)
+  }
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -562,13 +568,15 @@ async function d5(theme, vp) {
     click(page, 'Delete', { exact: true }),
   )
   await record(at('closet add'), add('/admin/closet/add'))
-  await record(
-    at('closet add links'),
-    add('/admin/closet/add'),
-    async (page) => {
-      await click(page, /link/i)
-    },
+  const closetAdd = { path: '/admin/closet', theme, vp, kind: 'closet-add' }
+  await record(at('closet add-bar'), closetAdd)
+  await record(at('closet add links'), closetAdd, (page) =>
+    click(page, /^Add from product links/),
   )
+  await record(at('closet add typed'), closetAdd, async (page) => {
+    await page.getByRole('textbox', { name: 'Add', exact: true }).fill('shirt')
+    await page.waitForTimeout(300)
+  })
   await record(at('add'), add('/admin/collection/add'))
   await record(at('add discard'), add('/admin/collection/add'), (page) =>
     click(page, /^Discard /),

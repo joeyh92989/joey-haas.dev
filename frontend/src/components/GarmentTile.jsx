@@ -5,6 +5,13 @@ import {
   imageUrl,
   statLine,
 } from '../lib/closet.js'
+import {
+  GARMENT_NAME,
+  GARMENT_PHOTO,
+  GARMENT_SLOT,
+  GARMENT_STAT,
+  GARMENT_TILE,
+} from './closetClasses.js'
 
 /**
  * One garment in the Closet grid: the photo at 4:5, the slot in mono in the
@@ -29,12 +36,12 @@ export default function GarmentTile({ garment }) {
   return (
     <Link
       to={`/admin/closet/${garment.id}`}
-      className="garment-tile"
+      className={`garment-tile ${GARMENT_TILE}`}
       data-status={garment.status}
       aria-label={label}
     >
       <span
-        className="garment-photo"
+        className={`garment-photo ${GARMENT_PHOTO}`}
         // The model's colour stands in until the photo loads, or for a
         // garment added by hand; it is data, not a design colour.
         style={
@@ -44,12 +51,12 @@ export default function GarmentTile({ garment }) {
         }
       >
         {src && <img src={src} alt="" loading="lazy" decoding="async" />}
-        <span className="garment-slot" aria-hidden="true">
+        <span className={`garment-slot ${GARMENT_SLOT}`} aria-hidden="true">
           {slot ? slot.toLowerCase() : '?'}
         </span>
       </span>
-      <span className="garment-name">{title}</span>
-      <span className="garment-stat">{stat}</span>
+      <span className={`garment-name ${GARMENT_NAME}`}>{title}</span>
+      <span className={`garment-stat ${GARMENT_STAT}`}>{stat}</span>
     </Link>
   )
 }
