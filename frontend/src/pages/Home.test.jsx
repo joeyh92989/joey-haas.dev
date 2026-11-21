@@ -56,24 +56,58 @@ afterEach(() => {
 })
 
 describe('Home', () => {
-  it('reads the headline once, as one sentence', () => {
+  it('opens with the name as the one h1', () => {
     renderHome()
     expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: 'Building software since 2012.',
-      }),
+      screen.getByRole('heading', { level: 1, name: 'Joey Haas' }),
     ).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
   })
 
-  it('sets the headline as plain text: no italic phrase, no hidden duplicate', () => {
+  it('sets the name as plain text in the h1', () => {
+    renderHome()
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveTextContent(/^Joey Haas$/)
+    expect(h1.children).toHaveLength(0)
+  })
+
+  it('reads the headline once, as a paragraph under the name, not a heading', () => {
     renderHome()
     expect(typeof profile.headline).toBe('string')
+    const sub = screen.getByText('Building software since 2012.')
+    expect(sub.tagName).toBe('P')
+    expect(sub.children).toHaveLength(0)
+    expect(
+      screen.queryByRole('heading', { name: /Building software/ }),
+    ).toBeNull()
     const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1).toHaveTextContent(/^Building software since 2012\.$/)
-    expect(h1.querySelector('em')).toBeNull()
-    expect(h1.querySelector('.visually-hidden')).toBeNull()
-    expect(h1.children).toHaveLength(0)
+    expect(
+      h1.compareDocumentPosition(sub) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('keeps the kicker above the name and the lede after the subline', () => {
+    renderHome()
+    const kicker = screen.getByText(profile.tagline)
+    const h1 = screen.getByRole('heading', { level: 1 })
+    const sub = screen.getByText(profile.headline)
+    const lede = screen.getByText(profile.lede)
+    const follows = (a, b) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(follows(kicker, h1)).toBe(true)
+    expect(follows(h1, sub)).toBe(true)
+    expect(follows(sub, lede)).toBe(true)
+  })
+
+  it('keeps the heading order: one h1, then h2s, no skipped level', () => {
+    renderHome()
+    const levels = screen
+      .getAllByRole('heading')
+      .map((h) => Number(h.tagName[1]))
+    expect(levels[0]).toBe(1)
+    levels.slice(1).forEach((level, i) => {
+      expect(level).toBeLessThanOrEqual(levels[i] + 1)
+    })
   })
 
   it('draws the hero actions as design-system buttons, not .btn', () => {

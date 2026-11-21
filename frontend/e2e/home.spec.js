@@ -13,7 +13,7 @@ for (const width of [320, 390, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       await openRoute('/', theme)
       await expect(
-        page.getByRole('heading', { level: 1, name: /Building software/ }),
+        page.getByRole('heading', { level: 1, name: 'Joey Haas' }),
       ).toBeVisible()
       const sizes = await page.evaluate(() => ({
         scroll: document.documentElement.scrollWidth,

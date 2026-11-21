@@ -8,8 +8,9 @@
  * Bio paragraphs are separated by a blank line; About.jsx splits on '\n\n'.
  * Work history lives in experience.js.
  *
- * `headline` is Home's hero and the only place its claim is made; About
- * opens with the bio instead, so the two pages do not start on one line.
+ * `headline` is the subline under the name in Home's hero and the only place
+ * its claim is made; About opens with the bio instead, so the two pages do
+ * not start on one line.
  */
 export const profile = {
   name: 'Joey Haas',

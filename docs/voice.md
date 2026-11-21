@@ -9,6 +9,7 @@ Joey: a senior software engineer in Denver, talking to visitors who are recruite
 ## 2. Samples
 
 **Hero** (`frontend/src/content/profile.js`)
+> Joey Haas
 > Building software since 2012.
 
 **Lede** (`frontend/src/content/profile.js`)

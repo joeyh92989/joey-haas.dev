@@ -136,9 +136,12 @@ export default function Home() {
           <Kicker className="text-sm tracking-normal text-muted-foreground normal-case">
             {profile.tagline}
           </Kicker>
-          <h1 id="home-title" className="hero-title">
-            {profile.headline}
+          <h1 id="home-title" className="hero-title max-w-none">
+            {profile.name}
           </h1>
+          <p className="mt-2 font-heading text-[length:var(--fs-28)] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground max-[700px]:text-[length:var(--fs-24)]">
+            {profile.headline}
+          </p>
           <p className="hero-lede">{profile.lede}</p>
           <div className="hero-actions">
             <Link to="/about" className={action('default')}>
