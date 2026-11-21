@@ -296,6 +296,9 @@ async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
   const { context, page } = await open(browser, spec)
   if (after) await after(page)
+  // Let hover, focus and state transitions settle: a half-faded colour is
+  // timing, not a style.
+  await page.waitForTimeout(500)
   result[label] = await dumpPage(page)
   await context.close()
 }
