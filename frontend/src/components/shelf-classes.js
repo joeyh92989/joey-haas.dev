@@ -11,16 +11,16 @@ export const CARD_LINK =
  *  edges darken with the hover as Home's do, and no lift (the legacy
  *  `.poster-card` hover transform is for the admin's loose posters). */
 export const CARD_HOST =
-  'relative has-[a:hover]:border-y-foreground has-[a:hover]:border-r-foreground hover:transform-none focus-within:transform-none'
+  'relative h-full has-[a:hover]:border-y-foreground has-[a:hover]:border-r-foreground hover:transform-none focus-within:transform-none'
 
 /** A card's title: the serif, with the accent underline Home's titles use. */
 export const CARD_TITLE =
   'mt-2 block font-heading text-base leading-tight font-medium text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 [overflow-wrap:anywhere]'
 
 /** The grid of numbered cards: wider columns than loose posters, since a
- *  strip holds a number and a word. Two columns on a phone. */
+ *  strip holds a number and a word. Two columns on a phone, one under 23rem (a strip's number and word do not fit two across at 320px). */
 export const RECORD_GRID =
-  '[--poster-min:12rem] data-[size=compact]:[--poster-min:10rem] max-[34rem]:[--poster-min:8.5rem] max-[34rem]:data-[size=compact]:[--poster-min:8.5rem]'
+  '[--poster-min:12rem] data-[size=compact]:[--poster-min:10rem] max-[34rem]:[--poster-min:8.5rem] max-[34rem]:data-[size=compact]:[--poster-min:8.5rem] max-[23rem]:[--poster-min:100%] max-[23rem]:data-[size=compact]:[--poster-min:100%]'
 
 /** The spine rail: four columns on a phone, six on a tablet, twelve on a
  *  desktop (3b2), with the rail's 6px between spines. */
@@ -42,11 +42,21 @@ export const SPINE_LINK =
 /** A spine's title, set upright (vertical, reading top down). Wraps into
  *  more lines when it runs past `max-h`, never clamps or clips. */
 export const SPINE_TITLE =
-  'min-h-0 max-h-[12rem] min-[701px]:max-h-[13rem] flex-1 py-3 font-sans text-[0.92rem] min-[701px]:text-base leading-tight font-semibold [overflow-wrap:anywhere] [writing-mode:vertical-rl] group-hover:underline group-hover:decoration-primary group-hover:decoration-[1.5px]'
+  'min-h-0 flex-auto py-3 font-sans text-[0.92rem] min-[701px]:text-base leading-tight font-semibold [overflow-wrap:anywhere] [writing-mode:vertical-rl] group-hover:underline group-hover:decoration-primary group-hover:decoration-[1.5px]'
 
 /** An Overview figure's box (the status bar, the charts): Card's look, on
  *  the card colour with its 1px outline, with room inside. Not clipped
  *  (`overflow-hidden`): a bar's number shows above it on hover and focus,
  *  and a focused bar draws its ring outside. */
 export const STAT_CARD =
-  'flex flex-col gap-2 rounded-md border border-border bg-card p-4 text-card-foreground'
+  'm-0 flex h-full flex-col gap-2 rounded-md border border-border bg-card p-4 text-card-foreground'
+
+/** How tall a spine's title may run before it wraps to another line: a
+ *  usual title in about 13rem, a long one (over `LONG_TITLE` characters) in
+ *  28rem, so it takes two or three lines of a phone's narrow spine and never
+ *  more than the spine is wide. */
+export const SPINE_TITLE_USUAL = 'max-h-[12rem] min-[701px]:max-h-[13rem]'
+export const SPINE_TITLE_LONG = 'max-h-[28rem]'
+export const SPINE_TITLE_LONGEST = 'max-h-[44rem]'
+export const LONG_TITLE = 48
+export const LONGEST_TITLE = 90

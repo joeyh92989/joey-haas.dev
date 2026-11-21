@@ -2,7 +2,16 @@ import { Link } from 'react-router'
 import { cx } from '../lib/cx.js'
 import { statusLabel } from '../lib/shelf.js'
 import StatusMark from './StatusMark.jsx'
-import { SPINE_LINK, SPINE_RAIL, SPINE_TITLE } from './shelf-classes.js'
+import {
+  LONG_TITLE,
+  LONGEST_TITLE,
+  SPINE_LINK,
+  SPINE_RAIL,
+  SPINE_TITLE,
+  SPINE_TITLE_LONG,
+  SPINE_TITLE_LONGEST,
+  SPINE_TITLE_USUAL,
+} from './shelf-classes.js'
 
 /**
  * One spine on the shelf's spine view (3b2): an upright label standing on a
@@ -35,7 +44,18 @@ export default function SpineCard({ item, to, number, statusLabels }) {
         >
           {String(number).padStart(3, '0')}
         </span>
-        <span className={SPINE_TITLE}>{item.title}</span>{' '}
+        <span
+          className={cx(
+            SPINE_TITLE,
+            item.title.length > LONGEST_TITLE
+              ? SPINE_TITLE_LONGEST
+              : item.title.length > LONG_TITLE
+                ? SPINE_TITLE_LONG
+                : SPINE_TITLE_USUAL,
+          )}
+        >
+          {item.title}
+        </span>{' '}
         {item.year ? (
           <span className="h-4 font-mono text-xs text-muted-foreground">
             {item.year}
