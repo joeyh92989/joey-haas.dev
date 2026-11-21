@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminPageHeader from './components/AdminPageHeader.jsx'
 import AreaCard, { AreaLead } from './components/AreaCard.jsx'
-import JobStatusRow from './components/JobStatusRow.jsx'
+import JobStatusRow, { StatusText } from './components/JobStatusRow.jsx'
 import Panel from './components/Panel.jsx'
 import SwapSheet from './components/SwapSheet.jsx'
 import * as home from './components/adminHomeClasses.js'
@@ -47,6 +47,11 @@ const GONE = [
   '.swap-list',
   '.swap-choice',
   '.swap-choice-text',
+  '.status-text',
+  '.status-dot',
+  '.area-card-cover .cover',
+  '.area-card-cover img',
+  '.wx-verdict .status-text',
 ]
 
 describe('legacy rules these pages alone read', () => {
@@ -234,5 +239,29 @@ describe('SwapSheet', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Shoes' }),
     ).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('StatusText', () => {
+  it('draws a dot and the word, keeping its hooks, and squares a failed dot', () => {
+    const { container } = render(
+      <>
+        <StatusText state="ok">Up</StatusText>
+        <StatusText state="failed">Down</StatusText>
+        <StatusText state="stale" strong>
+          Rain
+        </StatusText>
+      </>,
+    )
+    const [ok, failed, rain] = container.querySelectorAll('.status-text')
+    expect(ok).toHaveClass('status-text', 'text-muted-foreground', 'font-mono')
+    expect(rain).toHaveClass('text-foreground')
+    expect(rain).not.toHaveClass('text-muted-foreground')
+    expect(ok.querySelector('.status-dot')).toHaveClass('ok', 'rounded-[50%]')
+    expect(failed.querySelector('.status-dot')).toHaveClass(
+      'failed',
+      'rounded-[1px]',
+    )
+    expect(failed.querySelector('.status-dot')).not.toHaveClass('rounded-[50%]')
   })
 })

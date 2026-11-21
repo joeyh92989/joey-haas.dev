@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, useNavigate } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import { HEAD_LINK } from '../components/adminHomeClasses.js'
 import CardActionsShell from '../components/CardActionsShell.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
 import ComicFigures from '../components/ComicFigures.jsx'
@@ -427,7 +428,7 @@ export default function AdminComics() {
         ready ? `${publicCount} of ${rows.length} public` : undefined
       }
     >
-      <Link to={copy.path}>
+      <Link className={HEAD_LINK} to={copy.path}>
         View {copy.path} <span aria-hidden="true">↗</span>
       </Link>
       <Button

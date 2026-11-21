@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import { HEAD_LINK } from '../components/adminHomeClasses.js'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverKey from '../components/CoverKey.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -975,7 +976,7 @@ export default function AdminCollection() {
         ready ? `${publicCount} of ${items.length} public` : undefined
       }
     >
-      <Link to={gamesPath()}>
+      <Link className={HEAD_LINK} to={gamesPath()}>
         View {gamesPath()} <span aria-hidden="true">↗</span>
       </Link>
       <Button

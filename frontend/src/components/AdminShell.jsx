@@ -6,7 +6,32 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 import { ADMIN_AREAS, areaFor, currentPage, segmentsFor } from './adminAreas.js'
 import { adminCopy } from '../content/adminCopy.js'
+import { cx } from '../lib/cx.js'
 import {
+  APP,
+  APP_DESKTOP,
+  APP_PHONE,
+  AREA_ICON,
+  AREA_LABEL,
+  BADGE_PAGE,
+  BADGE_RAIL,
+  BADGE_SEGMENT,
+  BADGE_TAB,
+  MAIN,
+  MAIN_DESKTOP,
+  MAIN_PHONE,
+  PHONE_TOP,
+  RAIL,
+  RAIL_NAV,
+  SIDE,
+  SIDE_COUNT,
+  SIDE_KICKER,
+  SIDE_LIST,
+  SIDE_SMALL,
+  SIDE_TITLE,
+  SUBNAV,
+  TAB_LABEL,
+  TABS,
   pageLink,
   railLink,
   segmentLink,
@@ -24,7 +49,7 @@ function OwnedCount({ value }) {
   if (value === null || value === undefined) return null
   return (
     <>
-      <span className="admin-side-count" aria-hidden="true">
+      <span className={SIDE_COUNT} aria-hidden="true">
         {value}
       </span>
       <span className="visually-hidden">{`, ${value} owned`}</span>
@@ -36,11 +61,11 @@ function OwnedCount({ value }) {
  * An area's pending count as a warn badge, read out as part of the area's
  * name ("Closet, 9 to review"). Nothing when there is nothing pending.
  */
-function AreaBadge({ badge }) {
+function AreaBadge({ badge, className }) {
   if (!badge?.value) return null
   return (
     <>
-      <span className="admin-badge" aria-hidden="true">
+      <span className={className} aria-hidden="true">
         {badge.value}
       </span>
       <span className="visually-hidden">{`, ${badge.value} ${badge.words}`}</span>
@@ -52,8 +77,10 @@ function AreaBadge({ badge }) {
  * A page's pending count (the Add page's entries left to check), drawn
  * like an area's badge and read out as part of the page's name.
  */
-function PageBadge({ page, badges }) {
-  return page.badge ? <AreaBadge badge={badges[page.badge]} /> : null
+function PageBadge({ page, badges, className }) {
+  return page.badge ? (
+    <AreaBadge badge={badges[page.badge]} className={className} />
+  ) : null
 }
 
 /**
@@ -78,7 +105,7 @@ function PageLink({ page, current, className, children, onClick }) {
  * One link per area, landing on its home. The rail (desktop) and the tab
  * bar (phone) differ only in their class and layout.
  */
-function AreaLinks({ current, badges, iconClass, className }) {
+function AreaLinks({ current, badges, labelClass, badgeClass, className }) {
   return ADMIN_AREAS.map((area) => {
     const active = area.key === current.key
     return (
@@ -88,11 +115,11 @@ function AreaLinks({ current, badges, iconClass, className }) {
         className={className}
         aria-current={active ? 'true' : undefined}
       >
-        <span className={iconClass} aria-hidden="true">
+        <span className={AREA_ICON} aria-hidden="true">
           {area.icon}
         </span>
-        <span className="admin-area-label">{area.label}</span>
-        <AreaBadge badge={badges[area.key]} />
+        <span className={labelClass}>{area.label}</span>
+        <AreaBadge badge={badges[area.key]} className={badgeClass} />
       </Link>
     )
   })
@@ -101,13 +128,14 @@ function AreaLinks({ current, badges, iconClass, className }) {
 /** The desktop's first column: the account menu and the areas. */
 function AreaRail({ current, badges, account }) {
   return (
-    <div className="admin-rail">
+    <div className={cx('admin-rail', RAIL)}>
       <AccountMenu variant="rail" {...account} />
-      <nav aria-label={adminCopy.shell.areas} className="admin-rail-nav">
+      <nav aria-label={adminCopy.shell.areas} className={RAIL_NAV}>
         <AreaLinks
           current={current}
           badges={badges}
-          iconClass="admin-rail-icon"
+          labelClass={AREA_LABEL}
+          badgeClass={BADGE_RAIL}
           className={railLink}
         />
       </nav>
@@ -130,20 +158,24 @@ function runs(pages) {
 function AreaPages({ area, pathname, ownedCount, pageBadges }) {
   const here = currentPage(area.pages, pathname)
   return (
-    <aside className="admin-side">
-      <p className="admin-side-title">
+    <aside className={cx('admin-side', SIDE)}>
+      <p className={SIDE_TITLE}>
         {area.label}
-        <small>{area.description}</small>
+        <small className={SIDE_SMALL}>{area.description}</small>
       </p>
       <nav aria-label={`${area.label} pages`} className="admin-side-nav">
         {runs(area.pages).map((run) => (
-          <div key={run.group ?? 'pages'} className="admin-side-group">
+          <div key={run.group ?? 'pages'}>
             {run.group && (
-              <p className="kicker" id={`admin-group-${run.group}`}>
+              <p
+                className={cx('kicker', SIDE_KICKER)}
+                id={`admin-group-${run.group}`}
+              >
                 {run.group}
               </p>
             )}
             <ul
+              className={SIDE_LIST}
               aria-labelledby={
                 run.group ? `admin-group-${run.group}` : undefined
               }
@@ -157,7 +189,11 @@ function AreaPages({ area, pathname, ownedCount, pageBadges }) {
                   >
                     {page.label}
                     {page.count && <OwnedCount value={ownedCount} />}
-                    <PageBadge page={page} badges={pageBadges} />
+                    <PageBadge
+                      page={page}
+                      badges={pageBadges}
+                      className={BADGE_PAGE}
+                    />
                   </PageLink>
                 </li>
               ))}
@@ -218,9 +254,12 @@ function AreaSubnav({
   const refFor = (label) => (refs.current[label] ??= { current: null })
   return (
     <>
-      <div className="admin-phone-top">
+      <div className={cx('admin-phone-top', PHONE_TOP)}>
         <AccountMenu variant="pill" {...account} />
-        <nav aria-label={`${area.label} pages`} className="admin-subnav">
+        <nav
+          aria-label={`${area.label} pages`}
+          className={cx('admin-subnav', SUBNAV)}
+        >
           {segments.map((segment) => {
             if (!segment.sheet) {
               return (
@@ -231,7 +270,11 @@ function AreaSubnav({
                   className={segmentLink}
                 >
                   {segment.label}
-                  <PageBadge page={segment} badges={pageBadges} />
+                  <PageBadge
+                    page={segment}
+                    badges={pageBadges}
+                    className={BADGE_SEGMENT}
+                  />
                 </PageLink>
               )
             }
@@ -321,7 +364,12 @@ export default function AdminShell({
   }
 
   return (
-    <div className={phone ? 'admin-app admin-app-phone' : 'admin-app'}>
+    <div
+      className={cx(
+        APP,
+        phone ? cx('admin-app-phone', APP_PHONE) : APP_DESKTOP,
+      )}
+    >
       {!phone && <AreaRail current={area} badges={badges} account={account} />}
       {!phone && (
         <AreaPages
@@ -332,7 +380,12 @@ export default function AdminShell({
         />
       )}
 
-      <main id="main" ref={mainRef} tabIndex={-1} className="admin-main">
+      <main
+        id="main"
+        ref={mainRef}
+        tabIndex={-1}
+        className={cx('admin-main', MAIN, phone ? MAIN_PHONE : MAIN_DESKTOP)}
+      >
         {phone && (
           <AreaSubnav
             area={area}
@@ -348,11 +401,15 @@ export default function AdminShell({
       </main>
 
       {phone && (
-        <nav aria-label={adminCopy.shell.areas} className="admin-tabs">
+        <nav
+          aria-label={adminCopy.shell.areas}
+          className={cx('admin-tabs', TABS)}
+        >
           <AreaLinks
             current={area}
             badges={badges}
-            iconClass="admin-tabs-icon"
+            labelClass={TAB_LABEL}
+            badgeClass={BADGE_TAB}
             className={tabLink}
           />
         </nav>

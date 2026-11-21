@@ -14,9 +14,24 @@ import {
   JOB_WHEN,
   LINK,
   LINK_BUTTON,
+  DOT_FAILED,
+  DOT_OK,
+  DOT_STALE,
+  DOT_UNKNOWN,
+  STATUS_TEXT,
+  STATUS_WORDS,
+  STATUS_WORDS_STRONG,
 } from './adminHomeClasses.js'
+import { cx } from '../lib/cx.js'
 
 const copy = adminCopy.jobRun
+
+const DOTS = {
+  ok: DOT_OK,
+  stale: DOT_STALE,
+  failed: DOT_FAILED,
+  unknown: DOT_UNKNOWN,
+}
 
 /**
  * A status as a dot and a word, never the dot alone: the word carries the
@@ -27,11 +42,23 @@ const copy = adminCopy.jobRun
  * @param {import('react').ReactNode} [props.children] The words; the state
  *   itself when omitted.
  * @param {string} [props.className] Extra classes, for where it sits.
+ * @param {boolean} [props.strong] The words in the page's text colour at
+ *   13px (the Weekend weather verdict), not the small muted word.
  */
-export function StatusText({ state, children, className }) {
+export function StatusText({ state, children, className, strong = false }) {
   return (
-    <span className={className ? `status-text ${className}` : 'status-text'}>
-      <span className={`status-dot ${state}`} aria-hidden="true" />
+    <span
+      className={cx(
+        'status-text',
+        STATUS_TEXT,
+        strong ? STATUS_WORDS_STRONG : STATUS_WORDS,
+        className,
+      )}
+    >
+      <span
+        className={cx('status-dot', state, DOTS[state] ?? DOT_OK)}
+        aria-hidden="true"
+      />
       {children ?? state}
     </span>
   )
