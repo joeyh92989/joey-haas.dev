@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
+import { mastButton } from './ui/button-variants.js'
 import MastNavLink from './MastNavLink.jsx'
 import MoreMenu from './MoreMenu.jsx'
 import MobileNavSheet from './MobileNavSheet.jsx'
@@ -23,6 +24,8 @@ import SearchButton from './SearchButton.jsx'
  * @param {object[]} [props.more] The pages under More (`moreItems()`);
  *   shown in the desktop panel and the phone sheet's More group.
  * @param {() => void} [props.onOpenSearch] Opens the site search.
+ * @param {() => void} [props.onPreloadSearch] Fetches the search code early
+ *   (pointer or focus on the Search button).
  * @param {boolean} [props.searchOpen] Whether the site search is open.
  */
 export default function SiteMast({
@@ -31,6 +34,7 @@ export default function SiteMast({
   items,
   more = [],
   onOpenSearch,
+  onPreloadSearch,
   searchOpen = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -54,24 +58,36 @@ export default function SiteMast({
         </nav>
         {/* Outside <nav>: the toggle is a control, not a destination. */}
         <div className="mast-end">
-          <a href="/resume.pdf" className="btn ghost mast-resume">
+          <a
+            href="/resume.pdf"
+            className={`${mastButton('ghost')} mast-resume max-[1100px]:hidden`}
+          >
             Resume (PDF)
           </a>
           {onOpenSearch && (
-            <SearchButton onOpen={onOpenSearch} open={searchOpen} />
+            <SearchButton
+              onOpen={onOpenSearch}
+              onPreload={onPreloadSearch}
+              open={searchOpen}
+            />
           )}
           <button
             type="button"
-            className="btn sm"
+            className={mastButton()}
             aria-label={`Switch to ${target} theme`}
             onClick={onToggleTheme}
           >
-            Switch to {target}
+            {/* On a phone the label shortens to Light or Dark so the bar fits
+                320px; the accessible name stays whole (aria-label). */}
+            <span>
+              <span className="max-[700px]:sr-only">Switch to </span>
+              <span className="max-[700px]:capitalize">{target}</span>
+            </span>
           </button>
           <button
             type="button"
             ref={menuRef}
-            className="btn sm mast-menu"
+            className={`${mastButton()} mast-menu min-[961px]:hidden`}
             aria-haspopup="dialog"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}

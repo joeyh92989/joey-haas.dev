@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { isUnder } from '../lib/navMore.js'
+import { buttonVariants } from './ui/button-variants.js'
 
 /**
  * The masthead's More: a disclosure button at the end of the nav that opens
@@ -54,7 +55,9 @@ export default function MoreMenu({ items }) {
       <button
         type="button"
         ref={buttonRef}
-        className={underlined ? 'more-btn active' : 'more-btn'}
+        className={`${buttonVariants({ variant: 'nav', size: 'bare' })} more-btn ${
+          underlined ? 'active border-b-primary font-semibold' : ''
+        }`}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}

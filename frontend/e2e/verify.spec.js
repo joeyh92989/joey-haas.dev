@@ -331,3 +331,230 @@ test.describe('keyboard focus ring (#528)', () => {
     }
   }
 })
+
+test.describe('site shell frame and focus (#529)', () => {
+  // Content and tracker pages share the 1200px measure; prose keeps its
+  // 45rem reading column.
+  for (const [path, width] of [
+    ['/', 1200],
+    ['/projects', 1200],
+    ['/shelf/games', 1200],
+    ['/blog/how-my-shelf-works', 720],
+  ]) {
+    test(`${path}: main is ${width}px wide at 1440px`, async ({
+      page,
+      openRoute,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await openRoute(path, 'light')
+      const box = await page.locator('main#main').boundingBox()
+      expect(Math.round(box.width)).toBe(width)
+    })
+  }
+
+  test('the masthead row sits on the same 1200px measure', async ({
+    page,
+    openRoute,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openRoute('/blog/how-my-shelf-works', 'light')
+    const box = await page.locator('.mast-row').boundingBox()
+    expect(Math.round(box.width)).toBe(1200)
+  })
+
+  // A focus ring that is `outline-style: none` is invisible: Tailwind's
+  // outline-2 sets only the width, so each new control needs outline-solid.
+  test('keyboard focus draws a ring on every masthead control', async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    await openRoute('/', 'light')
+    const phone = testInfo.project.name === 'phone'
+    const names = phone
+      ? ['Search', 'Switch to dark theme', 'Menu']
+      : ['More', 'Search', 'Switch to dark theme']
+    for (const name of names) {
+      const control = page.getByRole('button', { name: new RegExp(name) })
+      await control.first().focus()
+      await page.keyboard.press('Shift+Tab')
+      await page.keyboard.press('Tab')
+      const style = await control
+        .first()
+        .evaluate((el) => getComputedStyle(el).outlineStyle)
+      expect(style, name).not.toBe('none')
+    }
+  })
+
+  // Tailwind sorts `border-transparent` after every named border colour, so a
+  // base class of it would hide each variant's outline.
+  test('masthead buttons draw their outline, not a transparent border', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    const toggle = page.getByRole('button', { name: /^Switch to dark/ })
+    const color = await toggle.evaluate(
+      (el) => getComputedStyle(el).borderTopColor,
+    )
+    expect(color).not.toBe('rgba(0, 0, 0, 0)')
+    expect(
+      await toggle.evaluate((el) => getComputedStyle(el).borderTopWidth),
+    ).toBe('1px')
+  })
+
+  test('the search field and its Close button draw a ring', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    const input = page.getByRole('combobox', { name: 'Search' })
+    await expect(input).toBeFocused()
+    expect(
+      await input.evaluate((el) => getComputedStyle(el).outlineStyle),
+    ).not.toBe('none')
+    await page.keyboard.press('Tab')
+    const close = page.getByRole('button', { name: 'Close' })
+    await expect(close).toBeFocused()
+    expect(
+      await close.evaluate((el) => getComputedStyle(el).outlineStyle),
+    ).not.toBe('none')
+  })
+})
+
+test.describe('masthead fit and search loading (#529 review)', () => {
+  // A real phone widens the layout viewport to fit content, so these use
+  // isMobile like tour-overflow.spec.js.
+  for (const width of [320, 360, 390]) {
+    test.describe(`${width}px phone`, () => {
+      test.use({
+        viewport: { width, height: 800 },
+        isMobile: true,
+        hasTouch: true,
+      })
+      test('the page does not scroll sideways and the bar gutters are equal', async ({
+        page,
+        openRoute,
+      }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+        await openRoute('/', 'light')
+        const m = await page.evaluate(() => ({
+          scroll: document.documentElement.scrollWidth,
+          inner: window.innerWidth,
+          left: document.querySelector('.brand').getBoundingClientRect().left,
+          right: document.querySelector('.mast-menu').getBoundingClientRect()
+            .right,
+        }))
+        expect(m.scroll).toBe(m.inner)
+        expect(Math.round(m.inner - m.right)).toBe(Math.round(m.left))
+      })
+    })
+  }
+
+  for (const width of [961, 1000, 1035, 1100]) {
+    test(`no sideways scroll at ${width}px`, async ({
+      page,
+      openRoute,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+      await page.setViewportSize({ width, height: 800 })
+      await openRoute('/', 'light')
+      const m = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        inner: window.innerWidth,
+      }))
+      expect(m.scroll).toBe(m.inner)
+    })
+  }
+
+  test('More has the padding and gap of the other links', async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'the phone uses Menu')
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await openRoute('/', 'light')
+    const m = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('.site-nav > a')]
+      const last = links[links.length - 1].getBoundingClientRect()
+      const btn = document.querySelector('.more-btn')
+      const b = btn.getBoundingClientRect()
+      const cs = getComputedStyle(btn)
+      const a = links[links.length - 1].getBoundingClientRect()
+      const prev = links[links.length - 2].getBoundingClientRect()
+      return {
+        gapToMore: b.left - last.right,
+        gapBetween: a.left - prev.right,
+        padL: cs.paddingLeft,
+        padR: cs.paddingRight,
+        gap: cs.columnGap,
+      }
+    })
+    expect(Math.round(m.gapToMore)).toBe(Math.round(m.gapBetween))
+    expect(m.padL).toBe('0px')
+    expect(m.padR).toBe('0px')
+    expect(m.gap).toBe('4px')
+  })
+
+  test('a failed search chunk leaves the page up and the next click retries', async ({
+    page,
+    openRoute,
+  }) => {
+    let failed = 0
+    await page.route('**/assets/SearchDialog-*.js', (route) => {
+      if (failed++ < 3) return route.abort()
+      return route.continue()
+    })
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    await page.waitForTimeout(500)
+    await expect(page.locator('#root > *').first()).toBeVisible()
+    await expect(page.locator('main#main')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Search' })).toHaveCount(0)
+    failed = 3
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    await expect(page.getByRole('combobox', { name: 'Search' })).toBeFocused()
+  })
+
+  test('keys pressed while the search chunk loads still open it', async ({
+    page,
+    openRoute,
+  }) => {
+    await page.route('**/assets/SearchDialog-*.js', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      await route.continue()
+    })
+    await openRoute('/', 'light')
+    // Wait for the app to mount: its key handler is attached by an effect.
+    await expect(
+      page.getByRole('button', { name: /^Search/ }).first(),
+    ).toBeVisible()
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.getByRole('combobox', { name: 'Search' })).toBeFocused()
+  })
+
+  test('the search field is 16px and rings on its own control', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    const input = page.getByRole('combobox', { name: 'Search' })
+    await expect(input).toBeFocused()
+    expect(await input.evaluate((el) => getComputedStyle(el).fontSize)).toBe(
+      '16px',
+    )
+  })
+})

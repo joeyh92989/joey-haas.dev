@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Component, lazy, Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
-import SearchDialog from '../components/SearchDialog.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { notes } from '../content/notes.js'
@@ -16,6 +15,47 @@ import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 const STORAGE_KEY = 'theme'
+
+// The dialog and its Base UI field load on first use, so the entry chunk skips
+// them (#529). The chunk is fetched on idle and when the Search button is
+// pointed at or focused, so it is usually there by the first press. A failed
+// fetch must not take the page with it: `SearchBoundary` catches it and
+// `resetSearchChunk` makes the next open fetch again.
+let searchLoad
+function loadSearch() {
+  searchLoad ??= import('../components/SearchDialog.jsx').catch((error) => {
+    searchLoad = undefined
+    throw error
+  })
+  return searchLoad
+}
+let SearchDialog = lazy(loadSearch)
+
+/** Starts the fetch early; a failure is left for the open to report. */
+function preloadSearch() {
+  loadSearch().catch(() => {})
+}
+
+function resetSearchChunk() {
+  SearchDialog = lazy(loadSearch)
+}
+
+/** Renders nothing for a search that failed to load, and tells the layout. */
+class SearchBoundary extends Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch() {
+    this.props.onFail()
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
 
 /**
  * Routes that break out of the 45rem reading column: the tracker's shelves
@@ -33,7 +73,7 @@ const WIDE_ROUTES = ['/shelf', '/daily', '/denver']
 const SHELL_ROUTES = ['/admin']
 
 /**
- * Routes laid out on the site's full 1040px measure rather than the reading
+ * Routes laid out on the site's full 75rem measure rather than the reading
  * column: pages of cards and columns, not running prose. Matched exactly,
  * since '/' would otherwise match everything.
  */
@@ -118,6 +158,9 @@ export default function RootLayout() {
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
   const [searchOpen, setSearchOpen] = useState(false)
+  // Once opened it stays mounted, closed, so it keeps its own state and exit.
+  const [searchUsed, setSearchUsed] = useState(false)
+  if (searchOpen && !searchUsed) setSearchUsed(true)
   // Any route change closes search (Back, a link behind the dialog), so it
   // never stays open over a page it was not opened on, or reopens later.
   const [searchPath, setSearchPath] = useState(pathname)
@@ -138,6 +181,14 @@ export default function RootLayout() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [shell])
+
+  useEffect(() => {
+    if (shell) return
+    const idle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 2000))
+    const cancel = window.cancelIdleCallback ?? clearTimeout
+    const handle = idle(preloadSearch)
+    return () => cancel(handle)
   }, [shell])
 
   useEffect(() => {
@@ -225,7 +276,7 @@ export default function RootLayout() {
       : 'page'
 
   return (
-    <div className={wide ? 'site site-wide' : 'site'}>
+    <div className="site">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -235,9 +286,25 @@ export default function RootLayout() {
         items={navItems(posts.length > 0, trips.length > 0)}
         more={moreItems({ hasNotes: notes.length > 0, hasSpots })}
         onOpenSearch={() => setSearchOpen(true)}
+        onPreloadSearch={preloadSearch}
         searchOpen={searchOpen}
       />
-      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {searchUsed && (
+        <SearchBoundary
+          onFail={() => {
+            resetSearchChunk()
+            setSearchOpen(false)
+            setSearchUsed(false)
+          }}
+        >
+          <Suspense fallback={null}>
+            <SearchDialog
+              open={searchOpen}
+              onClose={() => setSearchOpen(false)}
+            />
+          </Suspense>
+        </SearchBoundary>
+      )}
 
       <main id="main" ref={mainRef} tabIndex={-1} className={pageClass}>
         <RouteErrorBoundary key={pathname}>

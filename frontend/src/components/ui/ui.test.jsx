@@ -5,6 +5,7 @@ import { MemoryRouter, Link } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Badge } from './badge.jsx'
 import { Button } from './button.jsx'
+import { buttonVariants } from './button-variants.js'
 import { Card, CardContent, CardHeader, CardTitle } from './card.jsx'
 import { Input } from './input.jsx'
 import { Separator } from './separator.jsx'
@@ -19,6 +20,36 @@ const GENERATED_LOOK =
 afterEach(() => vi.restoreAllMocks())
 
 describe('Button', () => {
+  // Tailwind sorts border-transparent after every named border colour, so a
+  // base class of it hides each variant's outline (#529). Colour lives on the
+  // variants that mean it; the e2e suite measures the computed border.
+  it('has no border-transparent in its base class', () => {
+    expect(buttonVariants({ variant: 'outline' })).not.toContain(
+      'border-transparent',
+    )
+    expect(buttonVariants({ variant: 'ghost' })).toContain('border-transparent')
+  })
+
+  it('renders the nav and link variants without the default size', () => {
+    render(
+      <>
+        <Button variant="nav">Nav</Button>
+        <Button variant="link">Link</Button>
+      </>,
+    )
+    for (const name of ['Nav', 'Link'])
+      expect(screen.getByRole('button', { name }).className).not.toMatch(
+        /\bh-9\b|\bpx-4\b|\bgap-2\b/,
+      )
+  })
+
+  it('gives the nav and link variants no box padding or height of their own', () => {
+    for (const variant of ['nav', 'link']) {
+      const cls = buttonVariants({ variant, size: 'bare' })
+      expect(cls).not.toMatch(/\bh-9\b|\bpx-4\b/)
+    }
+  })
+
   it('is flat: a token fill, 6px-or-less radius, no shadow', () => {
     render(<Button>Save</Button>)
     const cls = screen.getByRole('button', { name: 'Save' }).className

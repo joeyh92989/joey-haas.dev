@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   COLORS,
@@ -114,5 +117,58 @@ describe('renderCardPng', () => {
         await renderCardPng(card, faces),
       ),
     ).toBe(true)
+  })
+})
+
+// The Archive palette (#527): the card and the favicon are paper and ink, the
+// light tokens of index.css, so a link preview matches the site it links to.
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+function lightToken(name) {
+  const css = readFileSync(path.join(root, 'src/index.css'), 'utf8')
+  const block = css.match(/\[data-theme='light'\] \{([\s\S]*?)\n\}/)[1]
+  return block.match(new RegExp(`--${name}: (#[0-9a-f]{6})`))[1]
+}
+
+describe('Archive palette', () => {
+  it('draws the card in the light tokens', () => {
+    expect(COLORS).toEqual({
+      bg: lightToken('bg'),
+      text: lightToken('text'),
+      text2: lightToken('text-2'),
+      accent: lightToken('accent'),
+    })
+  })
+
+  it('draws the favicon in paper, ink and the accent', () => {
+    const svg = readFileSync(path.join(root, 'public/favicon.svg'), 'utf8')
+    expect(svg).toContain(`fill="${lightToken('bg')}"`)
+    expect(svg).toContain(`stroke="${lightToken('text')}"`)
+    expect(svg).toContain(`fill="${lightToken('accent')}"`)
+    expect(svg).not.toMatch(/#0f1114|#6ea0ef/)
+  })
+})
+
+// iOS paints transparent pixels of a home-screen icon black and applies its
+// own rounded mask: the touch icon is an opaque full-bleed square.
+describe('apple-touch-icon', () => {
+  it('is 180px and opaque at every corner and edge', async () => {
+    const sharp = (await import('sharp')).default
+    const { data, info } = await sharp(
+      path.join(root, 'public/apple-touch-icon.png'),
+    )
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    expect([info.width, info.height]).toEqual([180, 180])
+    const alpha = (x, y) => data[(y * info.width + x) * 4 + 3]
+    for (const [x, y] of [
+      [0, 0],
+      [179, 0],
+      [0, 179],
+      [179, 179],
+      [90, 0],
+      [0, 90],
+    ])
+      expect(alpha(x, y), `${x},${y}`).toBe(255)
   })
 })
