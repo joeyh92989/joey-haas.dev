@@ -348,7 +348,7 @@ test('the spine view is a choice in the URL and cards stay the default', async (
   await expect(page.locator('.shelf-spine')).toHaveCount(0)
   await page.getByRole('button', { name: 'Spines' }).click()
   await expect(page).toHaveURL(/\?view=spines$/)
-  expect(await page.locator('.shelf-spine').count()).toBeGreaterThan(0)
+  await expect(page.locator('.shelf-spine').first()).toBeVisible()
   await page.getByRole('button', { name: 'Cards' }).click()
   await expect(page).not.toHaveURL(/view=/)
   await expect(page.locator('.shelf-spine')).toHaveCount(0)
