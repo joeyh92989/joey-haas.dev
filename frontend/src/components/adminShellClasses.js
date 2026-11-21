@@ -6,6 +6,10 @@ import { buttonVariants } from './ui/button-variants.js'
 // mark. Type sizes for the rail and tab labels sit on their inner spans in
 // index.css, since a size class here would fight the button's `text-sm`.
 //
+// `justify-start!` and `justify-between!` are important on purpose: the
+// button look centres (`justify-center`), and with no class merger two
+// utilities for one property are ordered by the stylesheet, not by us.
+//
 // Current pages carry a foreground border and a card fill as well as the
 // colour, and an area or page is current through `aria-current`, so the
 // style follows the same attribute a screen reader reads.
@@ -22,10 +26,13 @@ export const railLink = `${ghost} h-auto min-h-12 w-14 flex-col px-0.5 py-1.5 ${
 export const tabLink = `${ghost} h-auto min-h-13 min-w-0 flex-col px-0.5 py-1.5 ${CURRENT}`
 
 /** A page link in the area's page list (desktop). */
-export const pageLink = `${ghost} h-auto min-h-9 w-full justify-start gap-3 px-3 py-2 ${CURRENT}`
+export const pageLink = `${ghost} h-auto min-h-9 w-full justify-start! px-3 py-2 ${CURRENT}`
 
-/** A segment of the phone's page control: a link, or the sheet's button. */
-export const segmentLink = `${buttonVariants({ variant: 'ghost', size: 'sm' })} min-h-9 ${CURRENT}`
+/**
+ * A segment of the phone's page control: a link, or the sheet's button. Its
+ * 6px side padding lets four segments and the account button fit 320px.
+ */
+export const segmentLink = `${ghost} h-8 min-h-9 px-1.5 text-[0.8125rem] ${CURRENT}`
 
 /** The account trigger at the head of the desktop rail. */
 export const accountRail = `${ghost} h-auto min-h-12 w-14 flex-col px-0.5 py-1 aria-expanded:border-foreground aria-expanded:bg-card aria-expanded:text-foreground`
@@ -34,7 +41,7 @@ export const accountRail = `${ghost} h-auto min-h-12 w-14 flex-col px-0.5 py-1 a
 export const accountPill = `${buttonVariants({ variant: 'quiet', size: 'bare' })} h-11 px-2 aria-expanded:border-foreground aria-expanded:bg-card`
 
 /** A row in the account panel; 44px on a phone. */
-export const accountRow = `${ghost} h-auto min-h-9 w-full justify-between px-3 py-2 max-[900px]:min-h-11 max-[900px]:text-base`
+export const accountRow = `${ghost} h-auto min-h-9 w-full justify-between! px-3 py-2 max-[900px]:min-h-11 max-[900px]:text-base`
 
 /** The sign-in link on the gate. */
 export const signInLink = buttonVariants({ variant: 'outline', size: 'lg' })

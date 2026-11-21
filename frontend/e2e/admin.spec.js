@@ -110,12 +110,19 @@ for (const { width, height, phone } of SHELL_WIDTHS) {
       await expect(page.locator('main h1').first()).toBeVisible()
       await page.waitForLoadState('networkidle')
 
-      const overflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth -
-          document.documentElement.clientWidth,
-      )
-      expect(overflow, 'horizontal overflow in px').toBeLessThanOrEqual(0)
+      // The elements that poke past the right edge, so a failure names them.
+      const { overflow, wide } = await page.evaluate(() => {
+        const edge = document.documentElement.clientWidth
+        const wide = [...document.querySelectorAll('body *')]
+          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+          .slice(0, 4)
+          .map((el) => `${el.tagName}.${el.className}`.slice(0, 80))
+        return {
+          overflow: document.documentElement.scrollWidth - edge,
+          wide,
+        }
+      })
+      expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
 
       const targets = {
         account: page
@@ -143,6 +150,36 @@ for (const { width, height, phone } of SHELL_WIDTHS) {
     })
   }
 }
+
+// Review shots of the shell (#535): set E2E_SHOT_DIR to save /admin,
+// /admin/jobs and /admin/shelf/games at 1280 and 390, in both themes.
+test('shell review shots', async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop' || !process.env.E2E_SHOT_DIR,
+    'set E2E_SHOT_DIR to save the shell shots',
+  )
+  for (const theme of ['dark', 'light']) {
+    await page.addInitScript((value) => {
+      try {
+        localStorage.setItem('theme', value)
+      } catch {
+        /* storage unavailable: the shot is the default theme */
+      }
+    }, theme)
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: width === 1280 ? 800 : 844 })
+      for (const route of SHELL_ROUTES) {
+        await page.goto(route)
+        await expect(page.locator('main h1').first()).toBeVisible()
+        await page.waitForLoadState('networkidle')
+        const name = route.replace(/^\/admin\/?/, '').replace(/\//g, '-')
+        await page.screenshot({
+          path: `${process.env.E2E_SHOT_DIR}/shell-${name || 'home'}-${width}-${theme}.png`,
+        })
+      }
+    }
+  }
+})
 
 test('every known a11y entry on an admin page still applies', async ({
   page,

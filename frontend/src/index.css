@@ -1953,6 +1953,9 @@ footer {
   display: flex;
   gap: var(--space-1);
   margin: 0 0 var(--space-4);
+  /* A safety net, not the layout: a badge on a segment must never widen the
+     page (the focus ring still fits in the 4px padding). */
+  overflow-x: auto;
   padding: var(--space-1);
 }
 
