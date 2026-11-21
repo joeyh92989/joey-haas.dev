@@ -19,6 +19,7 @@ export default defineConfig({
     'verify.spec.js',
     'more-menu.spec.js',
     'home.spec.js',
+    'prose.spec.js',
     'tour-overflow.spec.js',
   ],
   forbidOnly: !!process.env.CI,

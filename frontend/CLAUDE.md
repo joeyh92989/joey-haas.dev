@@ -391,7 +391,7 @@ shadcn button's look but not its component: they import `buttonVariants` (and
 `mastButton`, the bar's size) from `components/ui/button-variants.js`, cva
 only, and put the classes on a plain `<button>` or `<a>`, because the Base UI
 `Button` and `cn` add 34.6KB raw to the entry chunk, which loads on every page
-(`designConsistency.test.js` holds the eager shell files to it). `Button` keeps
+(`designConsistency.test.js` holds the eager shell files to it). `ui/badge-variants.js` is the same split for the badge (#531): eager pages draw tags, chips and the draft mark with `badgeVariants` (`TagList`, `DraftBadge`), never `Badge`. `shadcn add badge` regenerates `badge.jsx` with its own copy of the cva: re-point it at `badge-variants.js` afterwards, or the two looks drift. The guard bans any `components/ui/*` import from an eager file except the `*-variants.js` and `*-classes.js` ones. `Button` keeps
 `variant="quiet"` (the masthead control) and `nav` (a nav trigger); `nav` and
 `link` take `size="bare"` (no height or padding of their own), which `Button`
 picks by itself. Tailwind sorts same-property utilities by name, not by

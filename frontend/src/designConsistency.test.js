@@ -200,7 +200,7 @@ describe('shared component rules', () => {
   // import either. Only direct imports are checked here; the built entry
   // chunk is checked by scripts/check-entry-chunk.mjs after `npm run build`.
   const EAGER_BANNED =
-    /lib\/utils(\.js)?['"]|from ['"]cn['"]|ui\/card(\.jsx)?['"]|ui\/button(\.jsx)?['"]|@base-ui|\bcn\(/
+    /lib\/utils(\.js)?['"]|from ['"]cn['"]|\/ui\/(?![\w-]*-(variants|classes)\.js['"])[\w-]+(\.jsx?)?['"]|@base-ui|\bcn\(/
   const EAGER_FILES = [
     'components/SiteMast.jsx',
     'components/SearchButton.jsx',
@@ -211,6 +211,9 @@ describe('shared component rules', () => {
     'components/StatusMark.jsx',
     'components/CoverStrip.jsx',
     'components/ContactLine.jsx',
+    'components/DraftBadge.jsx',
+    'components/PostMeta.jsx',
+    'components/TagList.jsx',
     'components/Kicker.jsx',
     'layouts/RootLayout.jsx',
     'pages/Home.jsx',
@@ -251,6 +254,11 @@ describe('shared component rules', () => {
       "import { Card } from './ui/card.jsx'",
       "import { Button } from '../components/ui/button'",
       "import { Button } from './ui/button.jsx'",
+      "import { Badge } from './ui/badge'",
+      "import { Badge } from '../components/ui/badge.jsx'",
+      "import { Separator } from './ui/separator'",
+      "import { Separator } from './ui/separator.jsx'",
+      "import { Input } from './ui/input.jsx'",
       "import { Tabs } from '@base-ui/react/tabs'",
       'const x = cn(a, b)',
     ]) {
@@ -260,6 +268,7 @@ describe('shared component rules', () => {
       "import { cx } from '../lib/cx.js'",
       "import { buttonVariants } from '../components/ui/button-variants.js'",
       "import { CARD_SHELL } from './ui/card-classes.js'",
+      "import { badgeVariants } from './ui/badge-variants.js'",
     ]) {
       expect(EAGER_BANNED.test(line), line).toBe(false)
     }

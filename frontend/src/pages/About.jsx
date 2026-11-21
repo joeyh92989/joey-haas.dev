@@ -1,20 +1,28 @@
 import joeyPhoto from '../assets/joey.jpg'
 import ContactLine from '../components/ContactLine.jsx'
 import Kicker from '../components/Kicker.jsx'
+import RecordCard from '../components/RecordCard.jsx'
+import TagList from '../components/TagList.jsx'
+import { PROSE_H1, SECTION_HEAD } from '../components/prose-classes.js'
+import { buttonVariants } from '../components/ui/button-variants.js'
 import { awards, certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
 import { profile } from '../content/profile.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 /**
- * About page: an aside with the photo, the serif title and the facts at a
- * glance, sticky beside the body on a desktop; then the summary, the work
+ * About page: an aside with the photo, the serif title and the facts in a
+ * record card, sticky beside the body on a desktop; then the summary, the work
  * timeline with education under it, the areas of expertise and the toolbox.
  *
  * Bio prose lives in content/profile.js and is split on blank lines so
  * multi-paragraph text renders as separate paragraphs; the timeline reads from
  * content/experience.js, and education reads from content/education.js.
  */
+const FACT_ROW =
+  'grid grid-cols-[5.75rem_minmax(0,1fr)] gap-3 border-t border-line-card py-3 first:border-t-0'
+const FACT_TERM = 'font-mono text-xs leading-6 text-muted-foreground'
+
 export default function About() {
   usePageTitle('About · Joey Haas')
   const paragraphs = profile.bio.split('\n\n').filter(Boolean)
@@ -30,33 +38,35 @@ export default function About() {
           height="96"
           decoding="async"
         />
-        <h1 className="about-title">About</h1>
-        <Kicker>{profile.location}</Kicker>
-        <dl className="about-facts">
-          {profile.aboutFacts.map((fact) => (
-            <div key={fact.label}>
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
+        <h1 className={`mb-2 ${PROSE_H1}`}>About</h1>
+        <Kicker className="mb-4">{profile.location}</Kicker>
+        <RecordCard label="At a glance">
+          <dl className="about-facts px-4 py-1">
+            {profile.aboutFacts.map((fact) => (
+              <div key={fact.label} className={FACT_ROW}>
+                <dt className={FACT_TERM}>{fact.label}</dt>
+                <dd className="text-sm font-semibold">{fact.value}</dd>
+              </div>
+            ))}
+            <div className={FACT_ROW}>
+              <dt className={FACT_TERM}>Resume</dt>
+              <dd className="text-sm font-semibold">
+                <a
+                  href="/resume.pdf"
+                  download="Joey Haas Resume.pdf"
+                  aria-label="Resume PDF"
+                >
+                  PDF <span aria-hidden="true">↓</span>
+                </a>
+              </dd>
             </div>
-          ))}
-          <div>
-            <dt>Resume</dt>
-            <dd>
-              <a
-                href="/resume.pdf"
-                download="Joey Haas Resume.pdf"
-                aria-label="Resume PDF"
-              >
-                PDF <span aria-hidden="true">↓</span>
-              </a>
-            </dd>
-          </div>
-        </dl>
+          </dl>
+        </RecordCard>
       </aside>
 
       <div className="about-body">
         <section aria-labelledby="about-summary">
-          <h2 className="about-label" id="about-summary">
+          <h2 className={SECTION_HEAD} id="about-summary">
             Summary
           </h2>
           <p className="prose">I’m Joseph (Joey) Haas.</p>
@@ -69,7 +79,7 @@ export default function About() {
         </section>
 
         <section aria-labelledby="about-experience">
-          <h2 className="about-label" id="about-experience">
+          <h2 className={SECTION_HEAD} id="about-experience">
             Experience
           </h2>
           <ol className="timeline" role="list">
@@ -126,15 +136,19 @@ export default function About() {
               ),
             )}
           </ol>
-          <p className="prose">
-            <a href="/resume.pdf" download="Joey Haas Resume.pdf">
+          <p className="mt-2">
+            <a
+              href="/resume.pdf"
+              download="Joey Haas Resume.pdf"
+              className={buttonVariants({ variant: 'outline' })}
+            >
               Download the full resume (PDF)
             </a>
           </p>
         </section>
 
         <section aria-labelledby="about-education">
-          <h2 className="about-label" id="about-education">
+          <h2 className={SECTION_HEAD} id="about-education">
             Education
           </h2>
           <ol className="timeline" role="list">
@@ -149,39 +163,39 @@ export default function About() {
             ))}
           </ol>
           {/* list-style: none strips list semantics from Safari/VoiceOver,
-              so the item count goes unannounced without an explicit role. */}
-          <ul className="chip-list" aria-label="Certifications" role="list">
-            {certifications.map((certification) => (
-              <li key={certification}>{certification}</li>
-            ))}
-          </ul>
-          <ul className="chip-list" aria-label="Awards" role="list">
-            {awards.map((award) => (
-              <li key={award}>{award}</li>
-            ))}
-          </ul>
+              so TagList gives its list an explicit role. */}
+          <TagList
+            items={certifications}
+            aria-label="Certifications"
+            className="mt-4"
+          />
+          <TagList items={awards} aria-label="Awards" className="mt-2" />
         </section>
 
         <section aria-labelledby="about-expertise">
-          <h2 className="about-label" id="about-expertise">
+          <h2 className={SECTION_HEAD} id="about-expertise">
             Areas of expertise
           </h2>
-          <ul className="expertise-list" role="list">
+          <ul
+            className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(14rem,100%),1fr))] gap-x-5 gap-y-2 p-0"
+            role="list"
+          >
             {profile.expertise.map((area) => (
-              <li key={area}>{area}</li>
+              <li
+                key={area}
+                className="border-l-2 border-line-card pl-3 text-sm text-muted-foreground"
+              >
+                {area}
+              </li>
             ))}
           </ul>
         </section>
 
         <section aria-labelledby="about-toolbox">
-          <h2 className="about-label" id="about-toolbox">
+          <h2 className={SECTION_HEAD} id="about-toolbox">
             Toolbox
           </h2>
-          <ul className="chip-list" role="list">
-            {profile.toolbox.map((tool) => (
-              <li key={tool}>{tool}</li>
-            ))}
-          </ul>
+          <TagList items={profile.toolbox} />
         </section>
 
         <ContactLine downloadName="Joey Haas Resume.pdf" />

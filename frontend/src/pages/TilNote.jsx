@@ -1,4 +1,5 @@
 import { useParams } from 'react-router'
+import DraftBadge from '../components/DraftBadge.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import PostMeta from '../components/PostMeta.jsx'
 import { findNote } from '../content/notes.js'
@@ -28,7 +29,11 @@ export default function TilNote() {
         ]}
         title={note.frontmatter.title}
       />
-      {note.frontmatter.draft && <span className="draft-badge">Draft</span>}
+      {note.frontmatter.draft && (
+        <div className="mt-3">
+          <DraftBadge />
+        </div>
+      )}
       <PostMeta
         date={note.frontmatter.date}
         updated={note.frontmatter.updated}

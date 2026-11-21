@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { profile } from '../content/profile.js'
 import { spine } from '../content/spine.js'
 import ArchitectureFigure from '../components/ArchitectureFigure.jsx'
+import { PROSE_H1, PROSE_H2 } from '../components/prose-classes.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 
 /**
@@ -13,20 +14,22 @@ export default function Colophon() {
 
   return (
     <section className="colophon">
-      <h1>Colophon</h1>
-      <p className="prose">
+      <h1 className={PROSE_H1}>Colophon</h1>
+      <p className="prose mt-4">
         How this site is built, for anyone curious. The whole thing is open:{' '}
         <a href={profile.repo}>the source is on GitHub</a>.
       </p>
 
-      <h2 id="architecture">Architecture</h2>
+      <h2 id="architecture" className={PROSE_H2}>
+        Architecture
+      </h2>
       <ArchitectureFigure />
 
-      <h2>Frontend</h2>
+      <h2 className={PROSE_H2}>Frontend</h2>
       <ul className="prose-list">
         <li>
-          React 19 and Vite, routed with React Router. Plain CSS with design
-          tokens; no CSS framework.
+          React 19 and Vite, routed with React Router. Styled with Tailwind and
+          shadcn/ui on design tokens; some older pages still use plain CSS.
         </li>
         <li>
           Set in Inter for text, JetBrains Mono for labels, and Source Serif 4
@@ -46,7 +49,7 @@ export default function Colophon() {
         </li>
       </ul>
 
-      <h2>Backend</h2>
+      <h2 className={PROSE_H2}>Backend</h2>
       <ul className="prose-list">
         <li>
           FastAPI on Python 3.12, with Postgres 18 on Neon. Migrations are
@@ -67,7 +70,7 @@ export default function Colophon() {
         </li>
       </ul>
 
-      <h2>Hosting</h2>
+      <h2 className={PROSE_H2}>Hosting</h2>
       <ul className="prose-list">
         <li>
           Render&rsquo;s free tier: a static site and a web service that sleeps
@@ -81,7 +84,9 @@ export default function Colophon() {
         </li>
       </ul>
 
-      <h2 id="accessibility">Accessibility</h2>
+      <h2 id="accessibility" className={PROSE_H2}>
+        Accessibility
+      </h2>
       <p className="prose">
         I haven&rsquo;t had the site audited, and I don&rsquo;t claim a
         conformance level. What I test:
@@ -108,7 +113,9 @@ export default function Colophon() {
         and what happened, and I&rsquo;ll fix it.
       </p>
 
-      <h2 id="docs">Docs and decisions</h2>
+      <h2 id="docs" className={PROSE_H2}>
+        Docs and decisions
+      </h2>
       <ul className="prose-list">
         <li>
           <a href={`${profile.repo}/blob/main/docs/design-system.md`}>

@@ -80,6 +80,18 @@ optional lede, then reading-width text. It does not use `PageHeader`, which
 is for pages with a trail, a kicker or a list under them. Only a prose page
 may hand-write an `h1`, and the list is in `designConsistency.test.js`.
 
+Parts of a prose page (#531). A collection on one (Projects, the Blog
+index, the TIL notes) is one numbered `RecordCard` per entry, with the type
+or date on the strip. A card holding a single link (a Blog post) makes its
+title link cover the card, and that link's keyboard ring is inset
+(`WHOLE_CARD_LINK` in `components/prose-classes.js`), since the card clips an
+outward ring; a card holding several links (a project, a note) links only
+its title. Facts and the contents list are record cards with no number. Tags,
+tech, toolbox and certification chips are `TagList` and the draft mark is
+`DraftBadge`, both on the badge's look from `ui/badge-variants.js`, which an
+eager page takes instead of `Badge` (Base UI and `cn` stay out of the entry
+chunk). A section's `h2` is the serif with a 1px rule (`SECTION_HEAD`).
+
 A drawn diagram on a prose page is a `<figure>` like `ArchitectureFigure`
 (Colophon): an inline SVG drawn with tokens, `role="img"` with an
 `aria-label`, and a `<figcaption>` that carries the same facts as a list,
