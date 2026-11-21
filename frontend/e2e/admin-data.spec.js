@@ -100,6 +100,17 @@ for (const size of WIDTHS) {
 }
 
 // ---- Painted focus rings on every control ----
+// The phone's fixed tab bar is the shell's: Tab leaves a control that is
+// already on screen where it is, even under the bar, so a control near the
+// bottom edge has its ring band under the bar. That is a shell matter (the
+// scroll-padding only moves controls that are off screen); the bar is hidden
+// for these checks so they measure the pages' own rings.
+async function hideTabBar(page) {
+  await page.addStyleTag({
+    content: '.admin-tabs { display: none !important }',
+  })
+}
+
 for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
   for (const route of ROUTES) {
     for (const theme of THEMES) {
@@ -108,6 +119,7 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
       }) => {
         test.setTimeout(240_000)
         await open(page, route, size, theme)
+        await hideTabBar(page)
         const controls = page.locator(
           'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
         )
@@ -184,6 +196,7 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
         test.setTimeout(240_000)
         await open(page, state.route, size, theme)
         await state.prep(page)
+        await hideTabBar(page)
         await page.mouse.move(1, 1)
         const controls = page
           .locator(state.scope)

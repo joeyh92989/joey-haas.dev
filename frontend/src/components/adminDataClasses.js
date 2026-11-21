@@ -15,14 +15,17 @@ import { ACTION, ARMED, DANGER } from './adminShelfClasses.js'
 export { btn, chipBtn, PRESSED, ACTION, ARMED, DANGER }
 
 const TAP = 'max-[700px]:min-h-11'
+// Tab scrolls a control that was off screen flush to the viewport edge, which
+// would cut its 4px ring: 16px of scroll margin keeps it whole.
+const SCROLL = 'scroll-my-4'
 const RING =
   'outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** A text field, select or date input: the Input look with a phone target. */
-export const FIELD = `${FIELD_LOOK} ${TAP}`
+export const FIELD = `${FIELD_LOOK} ${TAP} ${SCROLL}`
 
 /** A select or input that sits beside a label or a button, at its own width. */
-export const FIELD_AUTO = `${FIELD_LOOK.replace('w-full ', 'w-auto max-w-full ')} ${TAP}`
+export const FIELD_AUTO = `${FIELD_LOOK.replace('w-full ', 'w-auto max-w-full ')} ${TAP} ${SCROLL}`
 
 /** A multi-line field. */
 export const TEXTAREA = FIELD_LOOK.replace('h-10 ', 'min-h-16 ')
@@ -31,7 +34,7 @@ export const TEXTAREA = FIELD_LOOK.replace('h-10 ', 'min-h-16 ')
 export const FIELD_CELL = `${FIELD_LOOK.replace('h-10 ', 'h-8 ')
   .replace('w-full ', 'w-auto max-w-full ')
   .replace('px-3 ', 'px-2 ')
-  .replace('text-base', 'text-sm')} ${TAP}`
+  .replace('text-base', 'text-sm')} ${TAP} ${SCROLL}`
 
 /** A native checkbox: 24px, with the ring every control paints. */
 export const CHECKBOX = `size-6 cursor-pointer justify-self-start accent-primary ${RING}`
@@ -96,16 +99,16 @@ export const STATUS_LINE =
   'min-h-6 text-muted-foreground outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** A small button inside a row or a panel (44px on a phone). */
-export const SMALL = ACTION
+export const SMALL = `${ACTION} ${SCROLL}`
 
 /** The form's primary button (Save): the brand fill, 44px on a phone. */
-export const PRIMARY = btn('primary', 'sm')
+export const PRIMARY = `${btn('primary', 'sm')} ${SCROLL}`
 
 /** A plain button at the form's size. */
-export const PLAIN = ACTION
+export const PLAIN = SMALL
 
 /** A search hit that is a whole-row button (the Comic Vine link picker). */
 export const HIT = `${RING} max-[700px]:min-h-11`
 
 /** A quiet button beside the primary one (Cancel). */
-export const GHOST = btn('ghost', 'sm')
+export const GHOST = `${btn('ghost', 'sm')} ${SCROLL}`
