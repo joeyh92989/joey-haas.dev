@@ -103,10 +103,14 @@ for (const size of WIDTHS) {
         wrap: wrap.getBoundingClientRect().right,
         edge: document.documentElement.clientWidth,
         scrolls: getComputedStyle(wrap).overflowX,
+        // A visually hidden label inside a scroller escapes it, and widens
+        // the page, unless the scroller is positioned.
+        position: getComputedStyle(wrap).position,
       }
     })
     expect(result.wrap).toBeLessThanOrEqual(result.edge)
     expect(result.scrolls).toBe('auto')
+    expect(result.position).toBe('relative')
   })
 }
 

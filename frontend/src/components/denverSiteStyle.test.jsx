@@ -84,6 +84,15 @@ describe('Denver and Site pages and the legacy look', () => {
     }
   })
 
+  it('the spots table scrolls in a positioned wrapper that pads its focus', () => {
+    // Positioned, so a visually hidden label cannot escape it and widen the
+    // page; scroll padding, so a focused control is not scrolled flush against
+    // the edge, where the wrapper would clip its ring.
+    expect(read('pages/AdminSpots.jsx')).toMatch(
+      /className="relative overflow-x-auto scroll-px-4"/,
+    )
+  })
+
   it('every grid these pages lay out lets its columns shrink', () => {
     for (const selector of ['.finder-layout', '.wx-days', '.wk-foot']) {
       const block = css.match(new RegExp(`\\n\\${selector}[^{]*\\{[^}]*\\}`))

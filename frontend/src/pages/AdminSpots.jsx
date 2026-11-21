@@ -302,7 +302,7 @@ export default function AdminSpots() {
                 <p>{denver.admin.noMatch}</p>
               )}
               {shown.length > 0 && (
-                <div className="overflow-x-auto">
+                <div className="relative overflow-x-auto scroll-px-4">
                   <table className={TABLE}>
                     <thead>
                       <tr>
