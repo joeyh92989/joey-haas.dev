@@ -16,8 +16,8 @@ export const profile = {
   name: 'Joey Haas',
   tagline: 'Senior software engineer · Denver, Colorado',
   headline: {
-    lead: 'Building software since 2012, as a product manager first and an engineer',
-    accent: 'since 2021.',
+    lead: 'Building software',
+    accent: 'since 2012.',
   },
   lede: 'I’m a senior software engineer at Guild, building the payments and ledger systems behind employer-funded education. I spent eight years as a product manager before that, so I care as much about why we build things as how.',
   /** Home's facts table, after which the derived Last shipped and Playing rows. */
