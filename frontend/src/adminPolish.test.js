@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { HEAD_LINK } from './components/adminHomeClasses.js'
 import { readCss } from './testing/readCss.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -65,12 +66,19 @@ describe('American spelling in admin copy (#505)', () => {
 })
 
 describe('admin tap targets reach 24px (#505, WCAG 2.5.8)', () => {
-  const FLOOR = /min-height: 1\.5rem;/
+  // The plain text link in a header's right-hand slot ("View /shelf/games")
+  // carried its floor as a legacy rule (`.admin-head-end a:not(.btn)`); it is
+  // the HEAD_LINK utilities now (#536), on the two pages that draw one.
+  it('gives the header text link a 24px floor and an inline-block box', () => {
+    expect(HEAD_LINK).toContain('min-h-6')
+    expect(HEAD_LINK).toContain('inline-block')
+  })
 
-  it.each([".admin-head-end a:not(.btn):not([data-slot='button'])"])(
-    'gives %s a 24px floor',
-    (selector) => {
-      expect(bodyOf(selector)).toMatch(FLOOR)
+  it.each(['AdminCollection', 'AdminComics'])(
+    '%s draws its "View" link with HEAD_LINK',
+    (page) => {
+      const source = readFileSync(join(here, 'pages', `${page}.jsx`), 'utf8')
+      expect(source).toContain('className={HEAD_LINK}')
     },
   )
 })

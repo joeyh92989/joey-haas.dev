@@ -366,7 +366,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
 hand-written CSS: `src/styles/tokens.css` (the two palettes), `src/styles/base.css`
 (element rules, the page frame, `.skip-link`, `.visually-hidden`, reduced motion,
-the search dialog's keyframes), `src/index.css` (the remaining class rules; being
+the search and account-panel keyframes, the admin form-control defaults and the
+tab bar's scroll padding), `src/index.css` (the remaining class rules; being
 removed, #536) and `src/styles/print.css` (`@page` and `@media print`). `main.jsx`
 imports `src/tailwind.css`, which pulls everything in. Tests that read the CSS as
 text go through `src/testing/readCss.js`, which concatenates those files in cascade

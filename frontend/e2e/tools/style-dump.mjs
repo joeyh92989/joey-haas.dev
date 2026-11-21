@@ -8,7 +8,7 @@
 // subset for every element and its ::before/::after.
 import { chromium } from '@playwright/test'
 import { writeFileSync } from 'node:fs'
-import { mockCloset } from '../closet-mocks.js'
+import { GARMENTS, mockCloset } from '../closet-mocks.js'
 import { serveHome } from '../admin-home.fixtures.js'
 import { GAMES, serveAdmin } from '../admin-shelf.fixtures.js'
 import { mockDenverSite } from '../denver-site-mocks.js'
@@ -111,6 +111,11 @@ const ADMIN = [
   ['/admin/jobs', 'home'],
   ['/admin/shelf/games', 'shelf'],
   ['/admin/closet/today', 'closet'],
+  ['/admin/closet', 'closet'],
+  ['/admin/closet/profile', 'closet'],
+  ['/admin/closet/review', 'closet'],
+  [`/admin/closet/${GARMENTS[0].id}`, 'closet'],
+  ['/admin/shelf/comics', 'shelf'],
 ]
 // Denver, spots and the map (slice D3): the public /denver page's snapshot
 // (the four tools-data spots, a crowded extra one, one outside the drawing),
@@ -171,6 +176,8 @@ const NEXT_ROWS = {
     item_id: null,
   })),
 }
+// The signed-out gate and the access-denied gate (AdminLayout, no shell).
+const GATES = ['/admin', '/admin?error=access_denied']
 const VIEWPORTS = {
   desktop: { width: 1280, height: 800 },
   phone: { width: 393, height: 851 },
@@ -226,11 +233,12 @@ async function openMore(page) {
 
 async function open(
   browser,
-  { path, theme, vp, kind, media, reduce, noIndex },
+  { path, theme, vp, kind, media, reduce, noIndex, touch },
 ) {
   const context = await browser.newContext({
     viewport: VIEWPORTS[vp],
     reducedMotion: reduce ? 'reduce' : 'no-preference',
+    ...(touch ? { hasTouch: true, isMobile: true } : {}),
     serviceWorkers: 'block',
   })
   const page = await context.newPage()
@@ -259,6 +267,11 @@ async function open(
     }
   }
   if (kind === 'denver-admin') await mockDenverSite(page)
+  if (kind === 'gate') {
+    await page.route('**/api/auth/me', (r) =>
+      r.fulfill({ status: 401, json: { detail: 'no' } }),
+    )
+  }
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -486,6 +499,72 @@ for (const theme of ['dark', 'light']) {
       await record(`screen ${theme} ${vp} ${path}`, { path, theme, vp })
     for (const [path, kind] of ADMIN)
       await record(`screen ${theme} ${vp} ${path}`, { path, theme, vp, kind })
+    for (const path of GATES)
+      await record(`screen ${theme} ${vp} gate ${path}`, {
+        path,
+        theme,
+        vp,
+        kind: 'gate',
+      })
+    // Admin states: the account menu, the swap sheets, the phone's page sheet
+    // and the shelf's action sheet (slice D2 of #536).
+    await record(
+      `screen ${theme} ${vp} admin account-open`,
+      { path: '/admin', theme, vp, kind: 'home' },
+      async (page) => {
+        await page.getByRole('button', { name: /^Account/ }).click()
+        await page.mouse.move(1, 1)
+        await page.waitForTimeout(400)
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} admin home swap-open`,
+      { path: '/admin', theme, vp, kind: 'home' },
+      async (page) => {
+        await page.getByRole('button', { name: 'Swap', exact: true }).click()
+        await page.getByRole('dialog').waitFor()
+        await page.mouse.move(1, 1)
+        await page.waitForTimeout(400)
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} admin closet-today swap-open`,
+      { path: '/admin/closet/today', theme, vp, kind: 'closet' },
+      async (page) => {
+        await page.getByRole('button', { name: /^Swap/ }).first().click()
+        await page.locator('.swap-choice').first().waitFor()
+        await page.mouse.move(1, 1)
+        await page.waitForTimeout(400)
+      },
+    )
+    if (vp === 'phone') {
+      await record(
+        `screen ${theme} ${vp} admin segment-sheet-open`,
+        { path: '/admin/shelf/games', theme, vp, kind: 'shelf' },
+        async (page) => {
+          await page
+            .locator('.admin-subnav button[aria-haspopup="dialog"]')
+            .first()
+            .click()
+          await page.locator('dialog[open]').waitFor()
+          await page.mouse.move(1, 1)
+          await page.waitForTimeout(400)
+        },
+      )
+      await record(
+        `screen ${theme} ${vp} admin shelf-actions-open`,
+        { path: '/admin/shelf/games', theme, vp, kind: 'shelf', touch: true },
+        async (page) => {
+          await page
+            .getByRole('button', { name: /^Actions for/ })
+            .first()
+            .click()
+          await page.locator('dialog[open]').waitFor()
+          await page.mouse.move(1, 1)
+          await page.waitForTimeout(400)
+        },
+      )
+    }
     await record(
       `screen ${theme} ${vp} search-open`,
       { path: '/', theme, vp },

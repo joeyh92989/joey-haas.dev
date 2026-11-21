@@ -1,7 +1,26 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { adminCopy } from '../content/adminCopy.js'
-import { accountPill, accountRail, accountRow } from './adminShellClasses.js'
+import { cx } from '../lib/cx.js'
+import {
+  ACCT,
+  ACCT_ARROW,
+  ACCT_CARET,
+  ACCT_CARET_UP,
+  ACCT_ERROR,
+  ACCT_LIST,
+  ACCT_PANEL_PHONE,
+  ACCT_PANEL_RAIL,
+  ACCT_RAIL,
+  ACCT_WHO,
+  ACCT_WHO_EMAIL,
+  ACCT_WHO_LABEL,
+  AREA_LABEL,
+  MARK,
+  accountPill,
+  accountRail,
+  accountRow,
+} from './adminShellClasses.js'
 
 /**
  * The admin account menu: a disclosure button and a plain panel of the
@@ -66,7 +85,11 @@ export default function AccountMenu({
   }
 
   return (
-    <div className="acct" ref={rootRef} onBlur={onBlur}>
+    <div
+      className={cx('acct', ACCT, rail && ACCT_RAIL)}
+      ref={rootRef}
+      onBlur={onBlur}
+    >
       <button
         type="button"
         ref={buttonRef}
@@ -76,14 +99,14 @@ export default function AccountMenu({
         aria-label={`${adminCopy.shell.account}, ${email}`}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="admin-rail-mark" aria-hidden="true">
+        <span className={MARK} aria-hidden="true">
           {adminCopy.shell.mark}
         </span>
         {rail ? (
-          <span className="admin-area-label">{adminCopy.shell.account}</span>
+          <span className={AREA_LABEL}>{adminCopy.shell.account}</span>
         ) : (
           <svg
-            className={open ? 'acct-caret acct-caret-up' : 'acct-caret'}
+            className={cx(ACCT_CARET, open && ACCT_CARET_UP)}
             viewBox="0 0 12 12"
             width="12"
             height="12"
@@ -100,16 +123,20 @@ export default function AccountMenu({
           </svg>
         )}
       </button>
-      <div className="acct-panel" id={panelId} hidden={!open}>
-        <p className="acct-who">
-          <span className="acct-who-label">{adminCopy.shell.signedInAs}</span>
-          <span className="acct-who-email">{email}</span>
+      <div
+        className={cx('acct-panel', rail ? ACCT_PANEL_RAIL : ACCT_PANEL_PHONE)}
+        id={panelId}
+        hidden={!open}
+      >
+        <p className={ACCT_WHO}>
+          <span className={ACCT_WHO_LABEL}>{adminCopy.shell.signedInAs}</span>
+          <span className={ACCT_WHO_EMAIL}>{email}</span>
         </p>
-        <ul className="acct-list">
+        <ul className={cx('acct-list', ACCT_LIST)}>
           <li>
             <Link to="/" className={accountRow}>
               {adminCopy.shell.viewSite}{' '}
-              <span className="acct-arrow" aria-hidden="true">
+              <span className={ACCT_ARROW} aria-hidden="true">
                 ↗
               </span>
             </Link>
@@ -128,7 +155,7 @@ export default function AccountMenu({
           </li>
         </ul>
         {failed && (
-          <p className="acct-error" role="alert">
+          <p className={ACCT_ERROR} role="alert">
             {adminCopy.shell.signOutFailed}
           </p>
         )}

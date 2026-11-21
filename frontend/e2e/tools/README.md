@@ -5,7 +5,10 @@ Not specs: nothing here runs in CI.
 ## style-dump.mjs and style-diff.mjs
 
 Proof that a CSS move changed nothing (#536). `style-dump.mjs` opens the
-public pages, four mocked admin pages and the opened search dialog in both
+public pages, the mocked admin pages (Home, Jobs, the shelf, the Closet and
+its profile, review and garment pages, the signed-out and denied gates), the
+opened search dialog, the account menu, the swap sheets, the phone's page
+sheet and the shelf's action sheet in both
 themes at desktop and phone width, plus print emulation (About, a post, Home)
 and a reduced-motion pass, and writes `getComputedStyle` (about 60 properties,
 plus `::before` / `::after` with content) for every element to a JSON file.
@@ -20,3 +23,8 @@ node e2e/tools/style-diff.mjs /tmp/before.json /tmp/after.json
 ```
 
 Run one at a time: it opens one browser and loads about 120 pages in series.
+
+`ONLY='<regex>'` records only the scenarios whose label matches (for example
+`ONLY='admin|gate'`). `style-dump` takes a base URL, so two builds can be
+served side by side: pick a port of your own (`vite preview --port <n>
+--strictPort`), since other worktrees use 4173 and 4180 and up.

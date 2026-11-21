@@ -28,7 +28,7 @@ body {
 
 /* The public shell is a full-height column, so the footer sits at the bottom
    of a short page (#200). The admin shell is also a `.site`, so it is excluded:
-   it brings its own `.admin-app` height. */
+   it brings its own height (`APP` in `adminShellClasses.js`). */
 .site:not(.site-admin) {
   display: flex;
   flex-direction: column;
@@ -174,5 +174,110 @@ main h1[tabindex='-1']:focus,
 @keyframes search-fade {
   from {
     opacity: 0;
+  }
+}
+
+/* ---------- Admin shell leftovers (#536 D2) ---------- */
+
+/* Every admin page's form controls, so a form without its own rules
+   (the Closet profile, the play journal, the pull list search) is not left
+   with the browser's light grey defaults. The look is .item-detail-form's.
+   Wrapped in :where() so it has no specificity: any form's own rule wins,
+   whatever its order. Buttons are only the classless ones, because a
+   classed button (.btn, .link-button, .chip) is a design of its own.
+   Native pickers follow the theme through color-scheme on the root. */
+:where(.admin-main)
+  :where(
+    input:not([type]),
+    input[type='text'],
+    input[type='search'],
+    input[type='number'],
+    input[type='date'],
+    input[type='time'],
+    input[type='email'],
+    input[type='url'],
+    input[type='tel'],
+    select,
+    textarea,
+    button:not([class])
+  ) {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-14);
+  padding: var(--space-2) var(--space-2);
+}
+
+:where(.admin-main input[type='file']) {
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-14);
+}
+
+/* A rule of its own: one selector a browser does not know drops the
+   whole list it is in. */
+:where(.admin-main input[type='file'])::file-selector-button {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-14);
+  margin-right: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+}
+
+:where(
+  .admin-main input[type='file']:hover:not(:disabled)
+)::file-selector-button {
+  border-color: var(--accent);
+}
+
+:where(.admin-main)
+  :where(
+    button:not([class]):not(:disabled),
+    input[type='file']:not(:disabled)
+  ) {
+  cursor: pointer;
+}
+
+:where(.admin-main) :where(button:not([class]):hover:not(:disabled)) {
+  border-color: var(--accent);
+}
+
+:where(.admin-main) :where(button:not([class]):disabled),
+:where(.admin-main input[type='file']:disabled) {
+  cursor: default;
+  opacity: 0.6;
+}
+
+:where(.admin-main)
+  :where(input, select, textarea, button:not([class])):where(:focus-visible) {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The tab bar is fixed over the bottom of the page, so a control Tab scrolls
+   to the bottom edge would sit under it: keep the focused one above it. */
+@media (max-width: 900px) {
+  html:has(.admin-tabs) {
+    scroll-padding-bottom: 5rem;
+  }
+}
+
+/* The account panel's entrance (AccountMenu: `animate-[acct-in_...]` under
+   motion-safe). */
+@keyframes acct-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

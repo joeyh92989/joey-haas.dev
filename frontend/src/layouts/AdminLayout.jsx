@@ -9,7 +9,12 @@ import {
 import AdminShell from '../components/AdminShell.jsx'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
 import { adminCopy } from '../content/adminCopy.js'
-import { signInLink } from '../components/adminShellClasses.js'
+import {
+  GATE,
+  GATE_PANEL,
+  GATE_TITLE,
+  signInLink,
+} from '../components/adminShellClasses.js'
 import { WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
@@ -340,9 +345,9 @@ export default function AdminLayout() {
   }
 
   return (
-    <main id="main" ref={mainRef} tabIndex={-1} className="admin-gate">
-      <section className="admin-gate-panel">
-        <h1>Admin</h1>
+    <main id="main" ref={mainRef} tabIndex={-1} className={GATE}>
+      <section className={GATE_PANEL}>
+        <h1 className={GATE_TITLE}>Admin</h1>
 
         {denied && (
           <p className="admin-error" role="alert">

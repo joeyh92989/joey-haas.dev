@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AccountMenu from './AccountMenu.jsx'
 import AdminShell from './AdminShell.jsx'
+import * as shell from './adminShellClasses.js'
 import { signInLink } from './adminShellClasses.js'
 import { buttonVariants } from './ui/button-variants.js'
 import { readCss } from '../testing/readCss.js'
@@ -229,5 +230,58 @@ describe('admin shell source', () => {
     for (const selector of ['.acct-btn', '.acct-mark-btn', '.admin-signin']) {
       expect(css, selector).not.toContain(selector)
     }
+  })
+
+  // The shell's layout was `.admin-app`, `.admin-rail`, `.acct-*` ... rules in
+  // index.css; it is the utilities in adminShellClasses.js now (#536 D2).
+  it.each([
+    '.admin-app',
+    '.admin-rail',
+    '.admin-rail-mark',
+    '.admin-rail-nav',
+    '.admin-side',
+    '.admin-side-title',
+    '.admin-side-count',
+    '.admin-main',
+    '.admin-tabs',
+    '.admin-subnav',
+    '.admin-phone-top',
+    '.admin-badge',
+    '.admin-area-label',
+    '.acct',
+    '.acct-panel',
+    '.acct-who',
+    '.acct-list',
+    '.acct-error',
+    '.admin-gate',
+    '.admin-gate-panel',
+  ])('has no legacy rule for %s', (selector) => {
+    expect(css).not.toMatch(
+      new RegExp(`(^|\\n)${selector.replace('.', '\\.')}[ ,:{]`),
+    )
+  })
+
+  it('keeps the tab bar clear of a focused control: scroll padding on the root', () => {
+    expect(css).toMatch(
+      /@media \(max-width: 900px\) \{\s*html:has\(\.admin-tabs\) \{\s*scroll-padding-bottom: 5rem;/,
+    )
+  })
+
+  it('leaves the account panel its `hidden` attribute: no display utility on it', () => {
+    for (const panel of [shell.ACCT_PANEL_RAIL, shell.ACCT_PANEL_PHONE]) {
+      expect(panel).not.toMatch(
+        /(^| )(block|flex|grid|inline-\w+|contents)( |$)/,
+      )
+    }
+  })
+
+  it('opens the account panel with its entrance only where motion is allowed', () => {
+    expect(shell.ACCT_PANEL_RAIL).toContain('motion-safe:')
+    expect(css).toContain('@keyframes acct-in')
+  })
+
+  it('keeps the page clear of the fixed tab bar on a phone', () => {
+    expect(shell.MAIN_PHONE).toContain('pb-[90px]')
+    expect(shell.TABS).toContain('env(safe-area-inset-bottom')
   })
 })

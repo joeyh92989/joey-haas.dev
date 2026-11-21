@@ -33,6 +33,32 @@ export const HEAD_DESC =
 /** The right-hand slot: it drops under the title when it does not fit. */
 export const HEAD_END = 'ml-auto flex flex-wrap items-center gap-x-3 gap-y-2'
 
+/** A plain text link in the right-hand slot ("View /shelf/games"): it reaches
+ *  the 24px floor (WCAG 2.5.8, #505). `inline-block` keeps the space before an
+ *  arrow, which `inline-flex` would drop. A Button drawn as a link has its own
+ *  box and target. */
+export const HEAD_LINK = 'inline-block min-h-6 py-1'
+
+/** Status in a header or a job row: a dot and the word, never the dot alone.
+ *  Dots on --surface: ok and warn as measured in the token block; --text-3
+ *  (unknown) at least 4.89 dark and 6.54 light. Failed is also squared, so
+ *  stale and failed differ in shape as well as in the word. */
+export const STATUS_TEXT =
+  'inline-flex items-center gap-2 font-mono leading-[normal] font-medium'
+
+/** The words' size and colour: the small muted word, or the Weekend weather
+ *  verdict's, which is the page's text colour at 13px. */
+export const STATUS_WORDS = 'text-[0.75rem] text-muted-foreground'
+export const STATUS_WORDS_STRONG = 'text-[0.8125rem] text-foreground'
+
+const DOT = 'size-2 flex-none'
+
+/** The dot by state: the shape and the fill each state has. */
+export const DOT_OK = `${DOT} rounded-[50%] bg-[color:var(--ok)]`
+export const DOT_STALE = `${DOT} rounded-[50%] bg-[color:var(--warn)]`
+export const DOT_FAILED = `${DOT} rounded-[1px] bg-[color:var(--warn)]`
+export const DOT_UNKNOWN = `${DOT} rounded-[50%] bg-[color:var(--text-3)]`
+
 /** The header's status line: one dot-and-word per state, side by side. */
 export const HEAD_STATUS = 'flex flex-wrap items-center gap-x-3 gap-y-2'
 
@@ -75,7 +101,8 @@ export const AREA_TITLE_H2 =
 export const AREA_LEAD_COVER =
   'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3'
 
-export const AREA_COVER = 'w-[2.4rem] [&:has(.outfit-swatches)]:w-auto'
+export const AREA_COVER =
+  'w-[2.4rem] [&:has(.outfit-swatches)]:w-auto [&_.cover]:block [&_.cover]:aspect-[3/4] [&_.cover]:overflow-hidden [&_.cover]:rounded-[3px] [&_.cover]:border [&_.cover]:border-border [&_img]:h-full [&_img]:w-full [&_img]:object-cover'
 
 /** The lead's title: it wraps, however long its one word. */
 export const AREA_TITLE =
@@ -127,7 +154,7 @@ export const JOB_STATE =
 export const JOB_LABEL = 'text-foreground'
 
 export const JOB_SUMMARY =
-  'text-[0.8125rem] text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:underline-offset-4'
+  'text-[0.8125rem] text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-1 [&_a]:underline-offset-4'
 
 export const JOB_ACTIONS =
   'min-[1000px]:col-start-3 min-[1000px]:row-span-2 min-[1000px]:row-start-1 inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1'

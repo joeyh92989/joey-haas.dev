@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
 import { ADMIN_AREAS } from '../src/components/adminAreas.js'
+import { BADGE_SEGMENT } from '../src/components/adminShellClasses.js'
 import { KNOWN_A11Y } from './known-a11y.js'
 
 const GATED = ['serious', 'critical']
@@ -240,14 +241,14 @@ for (const width of [320, 360, 390]) {
       await page.goto(route)
       await expect(page.locator('main h1').first()).toBeVisible()
       await page.waitForLoadState('networkidle')
-      const fit = await page.evaluate(() => {
+      const fit = await page.evaluate((badgeClass) => {
         const row = document.querySelector('.admin-subnav')
         const add = [...row.querySelectorAll('a')].find((a) =>
           a.textContent.startsWith('Add'),
         )
         if (add) {
           const badge = document.createElement('span')
-          badge.className = 'admin-badge'
+          badge.className = badgeClass
           badge.textContent = '12'
           add.append(badge)
         }
@@ -258,7 +259,7 @@ for (const width of [320, 360, 390]) {
             document.documentElement.scrollWidth -
             document.documentElement.clientWidth,
         }
-      })
+      }, BADGE_SEGMENT)
       expect(
         fit.scroll,
         'segment row scrolls inside itself',

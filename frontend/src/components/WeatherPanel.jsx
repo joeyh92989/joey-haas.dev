@@ -112,7 +112,7 @@ export default function WeatherPanel({ day, range }) {
         </p>
       )}
       <p className={VERDICT}>
-        <StatusText state={day.verdict.state === 'ok' ? 'ok' : 'stale'}>
+        <StatusText strong state={day.verdict.state === 'ok' ? 'ok' : 'stale'}>
           {day.verdict.text}
         </StatusText>
       </p>
