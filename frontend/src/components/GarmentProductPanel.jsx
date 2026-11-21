@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { productCopy as copy } from '../content/closetProduct.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { btn, field, FILE_PICK } from './closetClasses.js'
 
 /** Dollars as the store gave them, or nothing. */
 function priceText(price) {
@@ -165,7 +166,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       </h2>
 
       <div className="garment-attach-row">
-        <label className="btn sm garment-photo-pick">
+        <label className={`${btn('plain', 'sm')} ${FILE_PICK}`}>
           {garment.image ? copy.replacePhoto : copy.addPhoto}
           <input
             type="file"
@@ -187,6 +188,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
         <label className="garment-attach-link">
           <span className="garment-field-label">{copy.linkLabel}</span>
           <input
+            className={field}
             type="url"
             value={link}
             placeholder={copy.linkHint}
@@ -196,7 +198,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
         </label>
         <button
           type="submit"
-          className="btn sm"
+          className={btn('plain', 'sm')}
           disabled={busy !== null || !link.trim()}
         >
           {busy === 'look' ? copy.lookingUp : copy.lookUp}
@@ -241,7 +243,11 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
           {sizes.length > 0 && (
             <label>
               <span className="garment-field-label">{copy.sizeLabel}</span>
-              <select value={size} onChange={(e) => setSize(e.target.value)}>
+              <select
+                className={field}
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+              >
                 <option value="">{copy.sizeNone}</option>
                 {sizes.map((s) => (
                   <option key={s.variant_id ?? s.size} value={s.size}>
@@ -297,7 +303,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
           </p>
           <button
             type="button"
-            className="btn primary sm"
+            className={btn('primary', 'sm')}
             disabled={busy !== null || !ready}
             onClick={attach}
           >

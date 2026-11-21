@@ -8,22 +8,24 @@ import { e2eBackendBin, E2E_DB_URL } from './e2e/admin-env.js'
  * prepares the database first. Needs a build (`VITE_DAILY_SALT=local npm run
  * build`) and the backend venv (E2E_BACKEND_BIN overrides its bin directory).
  */
+// E2E_PREVIEW_PORT moves the preview off 4173 when another worktree holds it.
+const PORT = process.env.E2E_PREVIEW_PORT ?? '4173'
 const AUTH_FILE = 'e2e/.auth/admin.json'
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['admin.setup.js', 'admin.spec.js'],
+  testMatch: ['admin.setup.js', 'admin.spec.js', 'admin-closet.spec.js'],
   forbidOnly: !!process.env.CI,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report-admin' }],
   ],
-  use: { baseURL: 'http://localhost:4173', trace: 'on-first-retry' },
+  use: { baseURL: `http://localhost:${PORT}`, trace: 'on-first-retry' },
   projects: [
     { name: 'setup', testMatch: 'admin.setup.js' },
     {
       name: 'desktop',
-      testMatch: 'admin.spec.js',
+      testMatch: ['admin.spec.js', 'admin-closet.spec.js'],
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
     },
@@ -47,15 +49,15 @@ export default defineConfig({
         GOOGLE_CLIENT_SECRET: 'e2e-client-secret',
         SESSION_SECRET: randomBytes(32).toString('hex'),
         ADMIN_EMAIL: 'admin@example.com',
-        FRONTEND_URL: 'http://localhost:4173',
+        FRONTEND_URL: `http://localhost:${PORT}`,
         DATABASE_URL: E2E_DB_URL,
         DATABASE_URL_DIRECT: E2E_DB_URL,
         E2E_TEST_LOGIN: '1',
       },
     },
     {
-      command: 'npm run preview -- --port 4173 --strictPort',
-      url: 'http://localhost:4173',
+      command: `npm run preview -- --port ${PORT} --strictPort`,
+      url: `http://localhost:${PORT}`,
       reuseExistingServer: false,
     },
   ],

@@ -7,12 +7,13 @@ import {
   seasonLabel,
   shortDate,
 } from '../lib/closet.js'
+import { btn } from './closetClasses.js'
 
 /** The trailing cell: what to do next with the row, if anything. */
 function Trailing({ garment }) {
   if (garment.status === 'untagged') {
     return (
-      <Link className="btn sm" to={`/admin/closet/${garment.id}`}>
+      <Link className={btn('plain', 'sm')} to={`/admin/closet/${garment.id}`}>
         Add details
       </Link>
     )

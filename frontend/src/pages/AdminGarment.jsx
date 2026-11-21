@@ -7,6 +7,7 @@ import GarmentProductPanel from '../components/GarmentProductPanel.jsx'
 import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle, statLine } from '../lib/closet.js'
+import { btn } from '../components/closetClasses.js'
 
 /**
  * One garment, at /admin/closet/:id: the photo and every field the tagger
@@ -93,7 +94,7 @@ export default function AdminGarment() {
         title={adminCopy.closetGarment.title}
         description={garment ? garmentTitle(garment) : null}
       >
-        <Link className="btn sm ghost" to="/admin/closet">
+        <Link className={btn('ghost', 'sm')} to="/admin/closet">
           {adminCopy.closetGarment.backToCloset}
         </Link>
       </AdminPageHeader>

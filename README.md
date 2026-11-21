@@ -929,6 +929,10 @@ The backend starts with `E2E_TEST_LOGIN=1` and `FRONTEND_URL=http://localhost:41
 (see Auth for the route and its guards); `e2e/admin.setup.js` posts to it through
 the preview proxy and saves the session in `frontend/e2e/.auth/` (gitignored).
 
+`E2E_PREVIEW_PORT=4190 npm run e2e:admin` serves the preview on another port
+(default 4173), for a second worktree while one already holds 4173. The backend
+still takes :8000, so only one admin run goes at a time.
+
 ### Screenshots
 
 `npm run shots` (in `frontend/`) takes a full-page screenshot of every route in

@@ -5,6 +5,7 @@ import {
   imageUrl,
   monthName,
 } from '../lib/closet.js'
+import { btn, chipBtn, field, textarea, CHECKED_CHIP } from './closetClasses.js'
 
 const TEXT = [
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
@@ -78,7 +79,7 @@ function Stepper({ label, value, onChange }) {
       </span>
       <button
         type="button"
-        className="btn sm"
+        className={btn('plain', 'sm')}
         aria-label={`Less ${label.toLowerCase()}`}
         disabled={value !== null && value <= 1}
         onClick={() => onChange(value === null ? 1 : value - 1)}
@@ -90,7 +91,7 @@ function Stepper({ label, value, onChange }) {
       </output>
       <button
         type="button"
-        className="btn sm"
+        className={btn('plain', 'sm')}
         aria-label={`More ${label.toLowerCase()}`}
         disabled={value !== null && value >= 5}
         onClick={() => onChange(value === null ? 3 : value + 1)}
@@ -109,6 +110,7 @@ function Color({ label, name, hex, onName, onHex }) {
       <label>
         <span className="garment-field-label">{label} color</span>
         <input
+          className={field}
           type="text"
           value={name}
           maxLength={40}
@@ -127,7 +129,7 @@ function Color({ label, name, hex, onName, onHex }) {
       {hex !== null && (
         <button
           type="button"
-          className="btn sm ghost"
+          className={btn('ghost', 'sm')}
           aria-label={`Clear the ${slug} swatch`}
           onClick={() => onHex(null)}
         >
@@ -184,6 +186,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       <label>
         <span className="garment-field-label">Name</span>
         <input
+          className={field}
           type="text"
           value={form.name}
           maxLength={120}
@@ -194,7 +197,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       <fieldset className="garment-segments">
         <legend className="garment-field-label">Slot</legend>
         {CATEGORIES.map((c) => (
-          <label key={c.value} className="chip">
+          <label key={c.value} className={`${chipBtn} ${CHECKED_CHIP}`}>
             <input
               type="radio"
               name="category"
@@ -211,6 +214,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         <label key={key}>
           <span className="garment-field-label">{label}</span>
           <input
+            className={field}
             type="text"
             value={form[key]}
             placeholder={hint}
@@ -248,7 +252,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
           <button
             key={month}
             type="button"
-            className="chip"
+            className={chipBtn}
             aria-pressed={form.seasons.includes(month)}
             onClick={() => toggleMonth(month)}
           >
@@ -260,6 +264,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       <label>
         <span className="garment-field-label">Notes</span>
         <textarea
+          className={textarea}
           rows={3}
           value={form.notes}
           maxLength={2000}
@@ -270,6 +275,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       <label>
         <span className="garment-field-label">Acquired</span>
         <input
+          className={field}
           type="date"
           value={form.acquired_on}
           onChange={(e) => set('acquired_on')(e.target.value)}
@@ -279,6 +285,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       <label>
         <span className="garment-field-label">Status</span>
         <select
+          className={field}
           value={form.status}
           onChange={(e) => set('status')(e.target.value)}
         >
@@ -294,6 +301,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         <label>
           <span className="garment-field-label">Back in</span>
           <input
+            className={field}
             type="month"
             pattern="\d{4}-\d{2}"
             placeholder="2027-05"
@@ -304,14 +312,14 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       )}
 
       <div className="garment-form-acts">
-        <button type="submit" className="btn primary" disabled={busy}>
+        <button type="submit" className={btn('primary')} disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
         {confirming ? (
           <>
             <button
               type="button"
-              className="btn danger"
+              className={btn('danger')}
               disabled={busy}
               onClick={onDelete}
             >
@@ -319,7 +327,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
             </button>
             <button
               type="button"
-              className="btn ghost"
+              className={btn('ghost')}
               onClick={() => setConfirming(false)}
             >
               Keep it
@@ -328,7 +336,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         ) : (
           <button
             type="button"
-            className="btn ghost"
+            className={btn('ghost')}
             onClick={() => setConfirming(true)}
           >
             Delete

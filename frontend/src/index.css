@@ -5998,6 +5998,7 @@ section > .cover-key {
     margin-top: 0;
     mask-image: none;
     overflow-x: visible;
+    margin-inline-start: 0;
     padding: 0;
   }
 
@@ -6014,6 +6015,10 @@ section > .cover-key {
   .chip-row {
     flex-wrap: nowrap;
     overflow-x: auto;
+    /* The scroller clips on the left too: 4px (outline plus offset) of
+       padding, cancelled by margin, keeps the first chip's ring whole. */
+    margin-inline-start: calc(-1 * var(--space-1));
+    padding-inline-start: var(--space-1);
     margin-top: -0.25rem;
     padding-bottom: var(--space-1);
     padding-right: var(--space-6);
@@ -9312,6 +9317,7 @@ a.cover-tile-cap:focus-visible span {
   margin-top: 0;
   mask-image: none;
   overflow-x: visible;
+  margin-inline-start: 0;
   padding: 0;
 }
 
@@ -9353,6 +9359,7 @@ a.cover-tile-cap:focus-visible span {
   -webkit-mask-image: none;
   mask-image: none;
   overflow-x: visible;
+  margin-inline-start: 0;
   padding: 0;
 }
 
@@ -11350,6 +11357,11 @@ a.cover-tile-cap:focus-visible span {
   margin-bottom: var(--space-4);
 }
 
+.closet-toolbar > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .closet-toolbar-end {
   display: flex;
   flex-wrap: wrap;
@@ -11442,6 +11454,16 @@ a.cover-tile-cap:focus-visible span {
 .garment-tile:hover .garment-name,
 .garment-tile:focus-visible .garment-name {
   text-decoration: underline;
+}
+
+.garment-grid > li {
+  min-width: 0;
+}
+
+.garment-name,
+.review-name,
+.garment-row-name {
+  overflow-wrap: anywhere;
 }
 
 .garment-name {
@@ -11599,17 +11621,6 @@ a.cover-tile-cap:focus-visible span {
 
 /* The radio is hidden inside its chip; the chip shows its state and focus
    with the pressed chip's own colours. */
-.garment-segments .chip:has(input:checked) {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
-}
-
-.garment-segments .chip:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .garment-color {
   display: flex;
   flex-wrap: wrap;
@@ -11652,12 +11663,6 @@ a.cover-tile-cap:focus-visible span {
   gap: var(--space-2);
 }
 
-/* Distinguished by border and text, never colour alone (as the item page). */
-.garment-form-acts .danger {
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-
 .closet-week-day {
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr) auto;
@@ -11694,6 +11699,9 @@ a.cover-tile-cap:focus-visible span {
 .today {
   display: grid;
   gap: var(--space-4);
+  /* One column that may shrink: a bare grid track is as wide as its widest
+     child's min-content, and the nowrap chip rows pushed the page sideways. */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .today-weather {
@@ -11916,40 +11924,10 @@ a.cover-tile-cap:focus-visible span {
   gap: var(--space-1);
 }
 
-/* Swap and Build around: real buttons under each piece, always shown, so
-   a keyboard or a touch reaches them without a hover. The locked piece
-   gets an --accent outline (3.49 dark on --surface, 5.71 light at worst) next to the
+/* Swap and Build around are real buttons under each piece (pieceBtn in
+   closetClasses.js), always shown, so a keyboard or a touch reaches them
+   without a hover. The locked piece gets an --accent outline (3.49 dark on --surface, 5.71 light at worst) next to the
    "Built around" pill, so the outline is never alone. */
-.outfit-piece-btn {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  cursor: pointer;
-  font: var(--fs-12) var(--font-mono);
-  padding: 0.1rem var(--space-2); /* space-exception: hairline, optical offset */
-}
-
-.outfit-piece-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.outfit-piece-btn:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-.outfit-piece-btn[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-
-.outfit-piece-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .outfit-piece[data-locked='true'] .outfit-board-pic {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -12091,12 +12069,6 @@ a.cover-tile-cap:focus-visible span {
   margin: 0;
 }
 
-.today-sheet-modes .btn[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-
 .today-pick {
   background: none;
   border: 0;
@@ -12201,6 +12173,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .review-card {
+  padding: var(--space-4);
   display: grid;
   grid-template-columns: 8rem 1fr;
   gap: var(--space-4);
@@ -12351,12 +12324,18 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .review-listed {
+  padding: var(--space-4);
   margin-top: var(--space-5);
   max-width: 34rem;
 }
 
 .review-listed h2 {
   margin: 0 0 var(--space-2);
+}
+
+.review-listed li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .review-listed ul {
@@ -12369,6 +12348,7 @@ a.cover-tile-cap:focus-visible span {
 
 .review-listed li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
@@ -12422,6 +12402,12 @@ a.cover-tile-cap:focus-visible span {
 
 .sell-copied {
   min-height: 1.4em;
+}
+
+.sell-sheet .sheet-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .sell-sheet .sheet-actions {
@@ -13393,11 +13379,6 @@ a.btn.sm {
   display: grid;
   gap: var(--space-1);
   flex: 1 1 14rem;
-}
-
-.garment-photo-pick:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .garment-attach-read {

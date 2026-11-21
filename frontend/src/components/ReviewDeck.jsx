@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { garmentTitle, ownerDay, shortDate } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
+import { btn, closetCard } from './closetClasses.js'
 
 /** The four outcomes, in order, with the sub-label under each. */
 export const OUTCOMES = [
@@ -120,10 +121,10 @@ function PackMonth({ card, day, busy, onPack, onCancel }) {
         aria-describedby={invalid ? hintId : undefined}
         onChange={(event) => setMonth(event.target.value)}
       />
-      <button type="submit" className="btn primary sm" disabled={busy}>
+      <button type="submit" className={btn('primary', 'sm')} disabled={busy}>
         Pack away
       </button>
-      <button type="button" className="btn ghost sm" onClick={onCancel}>
+      <button type="button" className={btn('ghost', 'sm')} onClick={onCancel}>
         Cancel
       </button>
       {invalid && (
@@ -194,7 +195,7 @@ export default function ReviewDeck({
       <div className="review-bar" aria-hidden="true">
         <span style={{ width: `${percent}%` }} />
       </div>
-      <article className="panel review-card">
+      <article className={`${closetCard} review-card`}>
         <Swatch garment={card.garment} className="review-thumb" />
         <div className="review-text">
           <h2 className="review-name" tabIndex={-1} ref={headingRef}>
@@ -222,7 +223,7 @@ export default function ReviewDeck({
       )}
       <button
         type="button"
-        className="btn ghost review-skip"
+        className={`${btn('ghost')} review-skip`}
         disabled={busy}
         onClick={onSkip}
       >

@@ -36,6 +36,7 @@ import {
   WaitTimeout,
   withDeadline,
 } from '../lib/waits.js'
+import { btn, chipBtn, PHONE_ROW } from '../components/closetClasses.js'
 
 /** `GET /api/closet/garments`, returned rather than set. */
 async function fetchCloset() {
@@ -231,7 +232,7 @@ export default function AdminCloset() {
             <span className="intake-waiting-actions">
               <button
                 type="button"
-                className="btn"
+                className={`${btn()} ${PHONE_ROW}`}
                 onClick={() =>
                   setFilter({
                     ...DEFAULT_FILTER,
@@ -245,7 +246,7 @@ export default function AdminCloset() {
               {waiting > 0 && (
                 <button
                   type="button"
-                  className="btn primary"
+                  className={`${btn('primary')} ${PHONE_ROW}`}
                   disabled={tagging?.state === 'tagging'}
                   onClick={tagNow}
                 >
@@ -285,7 +286,7 @@ export default function AdminCloset() {
           />
           <div className="closet-toolbar-end">
             <div
-              className="chip-row"
+              className="flex flex-wrap gap-2"
               role="group"
               aria-label={adminCopy.closet.view}
             >
@@ -296,7 +297,7 @@ export default function AdminCloset() {
                 <button
                   key={value}
                   type="button"
-                  className="chip"
+                  className={chipBtn}
                   aria-pressed={view === value}
                   onClick={() => changeView(value)}
                 >

@@ -16,6 +16,7 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { garmentTitle } from '../lib/closet.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { EMPTY } from '../content/emptyStates.js'
+import { btn, closetCard } from '../components/closetClasses.js'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -62,7 +63,7 @@ function DueBack({ garments, busy, onUnpackAll }) {
       <div className="review-banner-acts">
         <button
           type="button"
-          className="btn primary sm"
+          className={btn('primary', 'sm')}
           disabled={busy}
           onClick={onUnpackAll}
         >
@@ -76,7 +77,10 @@ function DueBack({ garments, busy, onUnpackAll }) {
 /** Listed garments, each with Mark sold. */
 function Listed({ garments, busy, onSold }) {
   return (
-    <section className="panel review-listed" aria-labelledby="review-listed">
+    <section
+      className={`${closetCard} review-listed`}
+      aria-labelledby="review-listed"
+    >
       <h2 id="review-listed" className="kicker">
         {adminCopy.closetReview.listedForSale}
       </h2>
@@ -86,7 +90,7 @@ function Listed({ garments, busy, onSold }) {
             <span>{garmentTitle(garment)}</span>
             <button
               type="button"
-              className="btn sm"
+              className={btn('plain', 'sm')}
               disabled={busy}
               onClick={() => onSold(garment)}
             >
@@ -109,13 +113,17 @@ function UndoToast({ toast, busy, onUndo, onDismiss }) {
       <span className="closet-toast-acts">
         <button
           type="button"
-          className="btn sm"
+          className={btn('plain', 'sm')}
           disabled={busy}
           onClick={onUndo}
         >
           {adminCopy.closetReview.undo}
         </button>
-        <button type="button" className="btn sm ghost" onClick={onDismiss}>
+        <button
+          type="button"
+          className={btn('ghost', 'sm')}
+          onClick={onDismiss}
+        >
           {adminCopy.closetReview.dismiss}
         </button>
       </span>
