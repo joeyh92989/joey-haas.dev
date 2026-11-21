@@ -28,7 +28,7 @@ body {
 
 /* The public shell is a full-height column, so the footer sits at the bottom
    of a short page (#200). The admin shell is also a `.site`, so it is excluded:
-   it brings its own `.admin-app` height. */
+   it brings its own height (`APP` in `adminShellClasses.js`). */
 .site:not(.site-admin) {
   display: flex;
   flex-direction: column;
