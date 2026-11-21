@@ -5,7 +5,10 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import AccountMenu from './AccountMenu.jsx'
 import AdminShell from './AdminShell.jsx'
+import { signInLink } from './adminShellClasses.js'
+import { buttonVariants } from './ui/button-variants.js'
 
 // The admin shell (#535, slice 1) is drawn from the Button look
 // (`ui/button-variants.js`), like the public shell (#529). These tests pin
@@ -80,14 +83,59 @@ describe('admin shell on a desktop', () => {
     )
   })
 
-  it('marks the current area and page by border as well as colour', () => {
+  it('marks the current area and page through aria-current, with a border and fill to match', () => {
     renderAt()
     const rail = screen.getByRole('navigation', { name: 'Areas' })
-    const area = within(rail).getByRole('link', { name: 'Shelf' })
-    expect(area.className).toContain('aria-[current]:border-')
     const pages = screen.getByRole('navigation', { name: 'Shelf pages' })
-    const page = within(pages).getByRole('link', { name: /^Games/ })
-    expect(page.className).toContain('aria-[current]:border-')
+    const links = [
+      ...within(rail).getAllByRole('link'),
+      ...within(pages).getAllByRole('link'),
+    ]
+    for (const link of links) {
+      const current = link.hasAttribute('aria-current')
+      // The classes only bite on an element that carries the attribute, so
+      // the pair (attribute, classes) is what is checked: the current link
+      // has both, and no other link has the attribute.
+      expect(link.className).toContain('aria-[current]:border-foreground')
+      expect(link.className).toContain('aria-[current]:bg-card')
+      expect(current, link.textContent).toBe(
+        ['Shelf', 'Games'].some((name) => link.textContent.includes(name)),
+      )
+    }
+  })
+
+  it('draws every link and trigger from the ghost Button look, with a visible hover', () => {
+    renderAt()
+    const ghost = buttonVariants({ variant: 'ghost', size: 'bare' })
+    const rail = screen.getByRole('navigation', { name: 'Areas' })
+    const pages = screen.getByRole('navigation', { name: 'Shelf pages' })
+    for (const el of [
+      screen.getByRole('button', { name: /^Account/ }),
+      ...within(rail).getAllByRole('link'),
+      ...within(pages).getAllByRole('link'),
+    ]) {
+      expect(el.className, el.outerHTML).toContain(ghost)
+      // --sunken (ghost's hover) is the rail's own fill: hover is --surface.
+      expect(el.className, el.outerHTML).toContain('hover:bg-card!')
+    }
+  })
+
+  it('reads a pending sign-out as disabled: default cursor, no hover fill', () => {
+    render(
+      <MemoryRouter>
+        <AccountMenu
+          email="admin@example.com"
+          variant="rail"
+          onSignOut={() => {}}
+          pending
+        />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /^Account/ }))
+    const row = screen.getByRole('button', { name: 'Signing out…' })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    expect(row.className).toContain('aria-disabled:cursor-default!')
+    expect(row.className).toContain('aria-disabled:hover:bg-transparent!')
   })
 })
 
@@ -108,12 +156,28 @@ describe('admin shell on a phone', () => {
     )
   })
 
-  it('marks the current tab by border as well as colour', () => {
+  it('marks the current tab through aria-current; the others carry none', () => {
     renderAt('/admin/shelf/games')
     const tabs = screen.getByRole('navigation', { name: 'Areas' })
-    expect(
-      within(tabs).getByRole('link', { name: 'Shelf' }).className,
-    ).toContain('aria-[current]:border-')
+    const current = within(tabs)
+      .getAllByRole('link')
+      .filter((link) => link.hasAttribute('aria-current'))
+    expect(current.map((link) => link.textContent)).toEqual(['▦Shelf'])
+    expect(current[0].className).toContain('aria-[current]:border-foreground')
+  })
+
+  it('keeps segments at weight 400 until current, with side padding that fits 320px', () => {
+    renderAt('/admin/shelf/games')
+    const segments = screen.getByRole('navigation', { name: 'Shelf pages' })
+    for (const el of [
+      ...within(segments).getAllByRole('link'),
+      ...within(segments).getAllByRole('button'),
+    ]) {
+      expect(el.className).toContain('font-normal!')
+      expect(el.className).toContain('aria-[current]:font-medium!')
+      expect(el.className).toContain('px-1 ')
+      expect(el.className).not.toMatch(/(^| )h-8( |$)/)
+    }
   })
 })
 
@@ -139,43 +203,30 @@ describe('admin shell source', () => {
     expect(read(file)).not.toMatch(/text-[\w-]+\/\d/)
   })
 
-  it('draws the shell controls with the Button look', () => {
-    expect(read('components/adminShellClasses.js')).toContain(
-      "from './ui/button-variants.js'",
-    )
-    for (const file of ['AdminShell', 'AccountMenu']) {
-      expect(read(`components/${file}.jsx`)).toContain('adminShellClasses.js')
-    }
-  })
-
   it('draws the sign-in link with the Button look', () => {
-    expect(read('layouts/AdminLayout.jsx')).toMatch(
-      /buttonVariants|adminShellClasses/,
-    )
-  })
-
-  it('keeps the page frame gutters equal, on a desktop and a phone', () => {
-    const gutters = (selector) => {
-      const body = css.match(
-        new RegExp(`${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`),
-      )?.[1]
-      expect(body, `a rule for ${selector}`).toBeTruthy()
-      const [, top, right, bottom, left] = body
-        .match(/padding:\s*([^;]+);/)[1]
-        .replace(/\/\*.*\*\//, '')
-        .trim()
-        .match(/^(\S+)(?:\s+(\S+))?(?:\s+(\S+))?(?:\s+(\S+))?/)
-      return [right ?? top, left ?? right ?? top, bottom]
-    }
-    for (const selector of ['.admin-main', '.admin-app-phone .admin-main']) {
-      const [right, left] = gutters(selector)
-      expect(right, selector).toBe(left)
-    }
+    expect(signInLink).toBe(buttonVariants({ variant: 'outline', size: 'lg' }))
+    expect(read('layouts/AdminLayout.jsx')).toContain('signInLink')
   })
 
   it('has no focus rule that restates what the controls now carry', () => {
-    expect(css).not.toMatch(/\.admin-rail a:focus-visible/)
-    expect(css).not.toMatch(/\.acct-mark-btn:focus-visible/)
-    expect(css).not.toMatch(/\.admin-tabs a:focus-visible/)
+    for (const selector of [
+      '.admin-rail a:focus-visible',
+      '.admin-subnav a:focus-visible',
+      '.admin-subnav button:focus-visible',
+      '.admin-side-nav a:focus-visible',
+      '.acct-mark-btn:focus-visible',
+      '.acct-btn:focus-visible',
+      '.acct-list a:focus-visible',
+      '.acct-list button:focus-visible',
+      '.admin-tabs a:focus-visible',
+    ]) {
+      expect(css, selector).not.toContain(selector)
+    }
+  })
+
+  it('keeps no rule for the classes the shell no longer renders', () => {
+    for (const selector of ['.acct-btn', '.acct-mark-btn', '.admin-signin']) {
+      expect(css, selector).not.toContain(selector)
+    }
   })
 })

@@ -1951,7 +1951,7 @@ footer {
   border: 1px solid var(--line-card);
   border-radius: var(--radius);
   display: flex;
-  gap: var(--space-1);
+  gap: 2px; /* space-exception: hairline between segments */
   margin: 0 0 var(--space-4);
   /* A safety net, not the layout: a badge on a segment must never widen the
      page (the focus ring still fits in the 4px padding). */
@@ -1972,11 +1972,6 @@ footer {
 
 .admin-rail .acct {
   margin-bottom: var(--space-2);
-}
-
-.acct-btn .admin-rail-mark,
-.acct-mark-btn .admin-rail-mark {
-  margin: 0;
 }
 
 .acct-caret {
@@ -2042,11 +2037,6 @@ footer {
   padding: 0;
 }
 
-.acct-list [aria-disabled='true'] {
-  color: var(--text-3);
-  cursor: default;
-}
-
 .acct-arrow {
   color: var(--text-3);
 }
@@ -2072,12 +2062,15 @@ footer {
 .admin-phone-top {
   align-items: center;
   display: flex;
+  /* A row that does not fit beside the account button (Closet's five
+     segments at 320px) drops under it, so nothing is clipped. */
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
 }
 
 .admin-phone-top .admin-subnav {
-  flex: 1;
+  flex: 1 1 auto;
   margin: 0;
   min-width: 0;
 }
@@ -2567,7 +2560,7 @@ footer {
 }
 
 .admin-subnav .admin-badge {
-  margin-left: var(--space-2);
+  margin-left: var(--space-1);
   vertical-align: middle;
 }
 

@@ -86,11 +86,9 @@ test('signing out returns to the signed-out admin page', async ({ page }) => {
   await expect(page.getByText('Sign in with Google')).toBeVisible()
 })
 
-// The shell's look (#535): a visible focus ring on the account trigger, the
-// area links and the page links (rail and page list on a desktop; tab bar,
-// segments and account button on a phone), and no sideways scroll at any
-// width. `outline-2` alone leaves the style `none`, so the ring is read from
-// the computed outline style, not assumed from a class.
+// The shell's look (#535): no sideways scroll at any width, and (below) a
+// focus ring that really paints on every control, a segment row that fits,
+// and hover, current and disabled states you can see.
 const SHELL_WIDTHS = [
   { width: 320, height: 700, phone: true },
   { width: 390, height: 800, phone: true },
@@ -99,9 +97,9 @@ const SHELL_WIDTHS = [
 ]
 const SHELL_ROUTES = ['/admin', '/admin/jobs', '/admin/shelf/games']
 
-for (const { width, height, phone } of SHELL_WIDTHS) {
+for (const { width, height } of SHELL_WIDTHS) {
   for (const route of SHELL_ROUTES) {
-    test(`shell at ${width}px on ${route}: focus rings, no sideways scroll`, async ({
+    test(`shell at ${width}px on ${route}: no sideways scroll`, async ({
       page,
     }, testInfo) => {
       test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
@@ -123,32 +121,204 @@ for (const { width, height, phone } of SHELL_WIDTHS) {
         }
       })
       expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
-
-      const targets = {
-        account: page
-          .getByRole('button', { name: /^Account, / })
-          .and(page.locator(':visible'))
-          .first(),
-        area: page.locator('nav[aria-label="Areas"]:visible a').first(),
-        page: phone
-          ? page
-              .locator('.admin-subnav:visible a, .admin-subnav:visible button')
-              .first()
-          : page.locator('.admin-side-nav:visible a').first(),
-      }
-      for (const [name, target] of Object.entries(targets)) {
-        await expect(target, name).toBeVisible()
-        // A key press first, so the browser treats focus as keyboard focus
-        // (:focus-visible) when the script moves it.
-        await page.keyboard.press('Shift')
-        await target.focus()
-        const style = await target.evaluate(
-          (el) => getComputedStyle(el).outlineStyle,
-        )
-        expect(style, `${name} focus ring`).not.toBe('none')
-      }
     })
   }
+}
+
+// The ring is measured in pixels, not read from a class or from the computed
+// outline style: the pixels in a 6px band outside each side of the control
+// are compared before and after focus. A ring clipped by an ancestor's
+// overflow, or drawn in the page's own colour, leaves that band unchanged.
+// A side whose band would leave the viewport is skipped.
+const RING_BAND = 6
+
+async function bands(page, box) {
+  const view = page.viewportSize()
+  const t = RING_BAND
+  const wanted = {
+    top: { x: box.x, y: box.y - t, width: box.width, height: t },
+    bottom: { x: box.x, y: box.y + box.height, width: box.width, height: t },
+    left: { x: box.x - t, y: box.y, width: t, height: box.height },
+    right: { x: box.x + box.width, y: box.y, width: t, height: box.height },
+  }
+  const out = {}
+  for (const [side, clip] of Object.entries(wanted)) {
+    const inside =
+      clip.x >= 0 &&
+      clip.y >= 0 &&
+      clip.x + clip.width <= view.width &&
+      clip.y + clip.height <= view.height
+    if (inside) out[side] = await page.screenshot({ clip })
+  }
+  return out
+}
+
+/** Focuses each control by keyboard and returns the sides with no ring. */
+async function unringed(page, locator) {
+  const missing = []
+  const count = await locator.count()
+  for (let i = 0; i < count; i++) {
+    const control = locator.nth(i)
+    if (!(await control.isVisible())) continue
+    await control.scrollIntoViewIfNeeded()
+    await control.evaluate((el) => el.blur())
+    const box = await control.boundingBox()
+    const before = await bands(page, box)
+    // A key press first, so focus counts as keyboard focus (:focus-visible).
+    await page.keyboard.press('Shift')
+    await control.focus()
+    const after = await bands(page, box)
+    const label = (await control.textContent())?.trim().slice(0, 20)
+    for (const side of Object.keys(before)) {
+      if (before[side].equals(after[side])) missing.push(`${label}:${side}`)
+    }
+  }
+  return missing
+}
+
+const RING_ROUTES = ['/admin/shelf/games', '/admin/closet/today']
+const RING_THEMES = ['dark', 'light']
+
+for (const { width, height, phone } of SHELL_WIDTHS) {
+  for (const route of RING_ROUTES) {
+    for (const theme of RING_THEMES) {
+      test(`focus rings paint on every shell control at ${width}px, ${theme}, ${route}`, async ({
+        page,
+      }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+        await page.setViewportSize({ width, height })
+        await page.goto(route)
+        await expect(page.locator('main h1').first()).toBeVisible()
+        await page.waitForLoadState('networkidle')
+        await page.evaluate(
+          (value) => document.documentElement.setAttribute('data-theme', value),
+          theme,
+        )
+        await page.mouse.move(1, 1)
+
+        const groups = {
+          areas: page.locator('nav[aria-label="Areas"]:visible a'),
+          pages: phone
+            ? page.locator(
+                '.admin-subnav:visible a, .admin-subnav:visible button',
+              )
+            : page.locator('.admin-side-nav:visible a'),
+          account: page
+            .getByRole('button', { name: /^Account, / })
+            .and(page.locator(':visible')),
+        }
+        for (const [name, locator] of Object.entries(groups)) {
+          expect(await unringed(page, locator), name).toEqual([])
+        }
+
+        // The account menu's rows, with the panel open.
+        await groups.account.first().click()
+        await page.mouse.move(1, 1)
+        const rows = page.locator(
+          '.acct-panel:visible .acct-list a, .acct-panel:visible .acct-list button',
+        )
+        expect(await rows.count()).toBe(2)
+        expect(await unringed(page, rows), 'account rows').toEqual([])
+      })
+    }
+  }
+}
+
+// Every area's segment row fits beside the account button, on a phone, with
+// nothing scrolling inside it (an `overflow` would clip the last segment and
+// its ring). The test data has no pending intake, so the Add segment gets a
+// badge of the same markup (`PageBadge`) to measure the worst case.
+const AREA_HOMES = ADMIN_AREAS.map((area) => area.pages[0].to)
+
+for (const width of [320, 360, 390]) {
+  for (const route of AREA_HOMES) {
+    test(`segment row fits at ${width}px on ${route}, with a badge`, async ({
+      page,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+      await page.setViewportSize({ width, height: 800 })
+      await page.goto(route)
+      await expect(page.locator('main h1').first()).toBeVisible()
+      await page.waitForLoadState('networkidle')
+      const fit = await page.evaluate(() => {
+        const row = document.querySelector('.admin-subnav')
+        const add = [...row.querySelectorAll('a')].find((a) =>
+          a.textContent.startsWith('Add'),
+        )
+        if (add) {
+          const badge = document.createElement('span')
+          badge.className = 'admin-badge'
+          badge.textContent = '12'
+          add.append(badge)
+        }
+        return {
+          scroll: row.scrollWidth,
+          client: row.clientWidth,
+          page:
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        }
+      })
+      expect(
+        fit.scroll,
+        'segment row scrolls inside itself',
+      ).toBeLessThanOrEqual(fit.client)
+    })
+  }
+}
+
+// Hover and current are visible on the surface they sit on, and a pending
+// sign-out reads as disabled. Measured from computed style.
+for (const { width, phone } of [
+  { width: 1280, phone: false },
+  { width: 390, phone: true },
+]) {
+  test(`hover, current and disabled states show at ${width}px`, async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+    await page.setViewportSize({ width, height: 800 })
+    await page.route('**/api/auth/logout', () => {})
+    await page.goto('/admin/shelf/games')
+    await expect(page.locator('main h1').first()).toBeVisible()
+    await page.waitForLoadState('networkidle')
+    const areas = page.locator('nav[aria-label="Areas"]:visible a')
+    const colors = (el) => {
+      const style = getComputedStyle(el)
+      return { bg: style.backgroundColor, border: style.borderTopColor }
+    }
+    const current = areas.filter({ hasText: 'Shelf' })
+    const other = areas.filter({ hasText: 'Closet' })
+    const now = await current.evaluate(colors)
+    const idle = await other.evaluate(colors)
+    expect(now.border, 'current border differs from the rest').not.toBe(
+      idle.border,
+    )
+    const surface = await page
+      .locator(phone ? '.admin-tabs' : '.admin-rail')
+      .evaluate((el) => getComputedStyle(el).backgroundColor)
+    await other.hover()
+    const hover = await other.evaluate(colors)
+    expect(hover.bg, 'hover fill differs from the bar behind it').not.toBe(
+      surface,
+    )
+
+    await page
+      .getByRole('button', { name: /^Account, / })
+      .and(page.locator(':visible'))
+      .first()
+      .click()
+    await page.getByRole('button', { name: 'Sign out' }).click()
+    const row = page.getByRole('button', { name: 'Signing out…' })
+    await expect(row).toBeVisible()
+    await row.hover()
+    const disabled = await row.evaluate((el) => ({
+      cursor: getComputedStyle(el).cursor,
+      bg: getComputedStyle(el).backgroundColor,
+    }))
+    expect(disabled.cursor).toBe('default')
+    expect(disabled.bg).toBe('rgba(0, 0, 0, 0)')
+  })
 }
 
 // Review shots of the shell (#535): set E2E_SHOT_DIR to save /admin,

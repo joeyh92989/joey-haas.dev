@@ -8,7 +8,13 @@ issue: "#535, epic #519"
 # Design system: admin shell (slice 1 of #535)
 
 ## Problem
-Admin is the largest surface (22 page files). #535 says to split by area when it starts. This is slice 1: the shell every admin page sits in. Pages follow in later slices, one PR per area of `ADMIN_AREAS` (Home, Shelf, Recommend, Data, and the rest).
+Admin is the largest surface (22 page files). #535 says to split by area when it starts. This is slice 1: the shell every admin page sits in. Pages follow in later slices, one PR per area of `ADMIN_AREAS`:
+
+- Home: Home, Jobs
+- Shelf: Games, Comics, Add; Play next, Discover, Radar, Pull list; Sources, Store list
+- Closet: Today, Closet, Add, Review, Profile
+- Denver: Weekend, Spots
+- Site: Analytics (Jobs is listed here as an alias of Home's)
 
 ## Scope
 In: `AdminLayout`, `AdminShell`, `AccountMenu`, `AdminPageHeader`, the area rail, the phone tab bar and sheet, on the #528 components and tokens. Behaviour, routes, ids, aria, focus targets and tests stay; only the look and primitives change.
@@ -30,6 +36,12 @@ Same 3b1 "Archive catalogue" look as the public shell. Mockups on disk: `/Users/
 2. Restyle shell, rail, account menu, tab bar and sheet. Tests first for each pinned behaviour.
 3. Verify: lint, format, targeted tests, build, `npm run e2e:admin` (needs local Postgres, see README) or CI's `e2e-admin`, plus `npm run e2e`; screenshots of `/admin`, `/admin/jobs`, `/admin/shelf/games` at 1280 and 390 in both themes. Baselines (if any admin ones exist) regenerate on CI (mine).
 4. List in the PR description the remaining areas and pages for the next slices.
+
+## Findings for later slices (page bodies, not fixed here)
+- `/admin/closet/today` scrolls sideways 80 to 150px at 320 to 390 on main too (`.admin-head`, `.today-weather`, `.chip-row`).
+- The `/admin/jobs` table is wider than 320px.
+- Jobs has a wide empty first column at 1280.
+- Closet's five segments do not fit beside the account button at 320px; the row drops under the button (`.admin-phone-top` wraps), so nothing is clipped.
 
 ## Ship notes
 No migration, secrets or render.yaml change. No changelog entry (admin only). Smoke: `/admin` redirects as before; public pages untouched.
