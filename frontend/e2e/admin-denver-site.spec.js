@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { unringed } from './denver-site-ring.js'
+import { tabRings } from './denver-site-ring.js'
 import { mockDenverSite } from './denver-site-mocks.js'
 
 // The Denver and Site areas (#535, slice 3): Weekend, Spots and Analytics with
@@ -125,11 +125,74 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
         const controls = page.locator(
           'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
         )
-        expect(await unringed(page, controls)).toEqual([])
+        expect(await tabRings(page, controls)).toEqual([])
       })
     }
   }
 }
+
+// A phone tap target is 44px tall (#276). Buttons and links must reach it;
+// text fields and selects are 40px (the Input look). Checkboxes are native.
+for (const state of STATES) {
+  test(`every button and link is 44px tall at 390px on ${state.name}`, async ({
+    page,
+  }) => {
+    await open(page, state, WIDTHS[1])
+    const short = await page.evaluate(() =>
+      [...document.querySelectorAll('main :is(a[href], button):not(nav *)')]
+        .filter((el) => !el.disabled && el.getBoundingClientRect().height > 0)
+        .map((el) => [
+          `${el.textContent.trim().slice(0, 24) || el.getAttribute('aria-label')}`,
+          Math.round(el.getBoundingClientRect().height),
+        ])
+        .filter(([, height]) => height < 44)
+        .map(([name, height]) => `${name}: ${height}px`),
+    )
+    expect(short).toEqual([])
+  })
+}
+
+// Computed styles the legacy sheet and the utilities fight over: a utility
+// width (`w-full`) must not beat the page's own narrow fields, and the saved
+// card's green border must not lose to the Card look's border colour.
+test('the constraints fields keep their narrow widths at 1280px', async ({
+  page,
+}) => {
+  await open(page, STATES[1], WIDTHS[2])
+  const widths = await page.evaluate(() => ({
+    miles: document.querySelector('.wk-field input').getBoundingClientRect()
+      .width,
+    home: document.querySelector('.wk-field select').getBoundingClientRect()
+      .width,
+    rows: [...document.querySelectorAll('.wk-field')].map(
+      (el) => el.getBoundingClientRect().height,
+    ),
+  }))
+  expect(widths.miles).toBe(96)
+  expect(widths.home).toBeLessThan(160)
+  // One line each: the label does not wrap.
+  for (const height of widths.rows) expect(height).toBeLessThan(50)
+})
+
+test('the saved suggestion keeps its green border', async ({ page }) => {
+  await open(page, STATES[0], WIDTHS[2])
+  const { card, ok, plain } = await page.evaluate(() => {
+    const probe = document.createElement('i')
+    probe.style.color = 'var(--ok)'
+    document.body.append(probe)
+    const ok = getComputedStyle(probe).color
+    probe.remove()
+    const saved = document.querySelector('.sug.saved')
+    const other = document.querySelector('.sug:not(.saved):not(.lead)')
+    return {
+      card: getComputedStyle(saved).borderTopColor,
+      ok,
+      plain: getComputedStyle(other).borderTopColor,
+    }
+  })
+  expect(card).toBe(ok)
+  expect(card).not.toBe(plain)
+})
 
 for (const state of STATES) {
   for (const theme of THEMES) {

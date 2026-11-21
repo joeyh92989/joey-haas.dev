@@ -120,6 +120,16 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   and `.btn.sm` media rule no longer reaches them, and a label over a hidden file
   input takes `FILE_PICK` for its ring (the legacy `.btn-file:focus-within` sits
   in a lower layer than the button look's `outline-none`).
+  The Denver and Site pages (#535, slice 3: Weekend, Spots, Analytics) take them
+  from `components/denverSiteClasses.js` (`btn()`, `chipBtn`, `tagBtn`, `pill`,
+  `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px
+  targets, and a titled card from `components/SectionCard.jsx` (Card look, `mt-0`
+  against the global `section + section` gap, no `overflow`). Utilities sit above
+  `index.css`, so a width, border colour or margin the legacy sheet used to set
+  on those controls is said on the element (`w-24!`, `border-(color:--ok)!`).
+  The Spots table folds Last visit under the name below 1440px and the tags and
+  actions under it on a phone, so no action is ever half-scrolled out of its
+  wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.
   Home, About and Projects take the 75rem `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (75rem).

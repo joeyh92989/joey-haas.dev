@@ -261,7 +261,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
             ) : (
               <li
                 key={entry.answered.candidate.id}
-                className={`${box} cand-toast flex flex-wrap items-center justify-between gap-2 border-dashed px-4 py-3 text-sm text-muted-foreground [&_strong]:text-foreground`}
+                className={`${box} cand-toast flex flex-wrap items-center justify-between gap-2 border-dashed px-4 py-3 text-sm`}
               >
                 <span>
                   <strong>{entry.answered.candidate.name}</strong>{' '}

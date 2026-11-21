@@ -146,7 +146,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       <label className="wk-field">
         {copy.within}
         <input
-          className={field}
+          className={`${field} w-24!`}
           type="number"
           min="0.5"
           max="50"
@@ -161,7 +161,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
       <label className="wk-field">
         {copy.homeBy}
         <select
-          className={field}
+          className={`${field} w-auto!`}
           value={homeBy}
           onChange={(event) => setHomeBy(event.target.value)}
         >

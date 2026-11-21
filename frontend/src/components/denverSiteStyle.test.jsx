@@ -102,12 +102,16 @@ describe('Denver and Site pages and the legacy look', () => {
 })
 
 const RING = 'focus-visible:outline-ring'
+// #276: a phone tap target is 44px; the legacy rule that said so no longer
+// reaches a utility-styled control.
+const TAP = 'max-[700px]:min-h-11'
 
 describe('controls carry the Button look', () => {
   it('RangeControl buttons draw the ring and mark the pressed one', () => {
     render(<RangeControl value="30d" onChange={() => {}} />)
     for (const button of screen.getAllByRole('button')) {
       expect(button.className).toContain(RING)
+      expect(button.className).toContain(TAP)
     }
     expect(screen.getByRole('button', { name: '30d' }).className).toContain(
       'aria-pressed:border-foreground',
@@ -136,7 +140,10 @@ describe('controls carry the Button look', () => {
     )
     const buttons = screen.getAllByRole('button')
     expect(buttons).toHaveLength(3)
-    for (const button of buttons) expect(button.className).toContain(RING)
+    for (const button of buttons) {
+      expect(button.className).toContain(RING)
+      expect(button.className).toContain(TAP)
+    }
   })
 
   it('CandidateCard buttons and tag toggles draw the ring', () => {
@@ -152,7 +159,10 @@ describe('controls carry the Button look', () => {
     )
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(3)
-    for (const button of buttons) expect(button.className).toContain(RING)
+    for (const button of buttons) {
+      expect(button.className).toContain(RING)
+      expect(button.className).toContain(TAP)
+    }
   })
 })
 
@@ -177,7 +187,7 @@ describe('SectionCard', () => {
         <p>b</p>
       </SectionCard>,
     )
-    expect(screen.getByRole('region').className).toContain('mt-0!')
+    expect(screen.getByRole('region').className).toContain('mt-0')
   })
 
   it('does not clip a ring at its edge', () => {

@@ -39,6 +39,8 @@ export default function SuggestionCard({
     'sug grid gap-2 p-4',
     lead && 'lead',
     s.saved && 'saved',
+    // The Card look's border colour would beat the sheet's: say these here.
+    s.saved ? 'border-(color:--ok)!' : lead && 'border-(color:--line-strong)!',
   )
 
   return (

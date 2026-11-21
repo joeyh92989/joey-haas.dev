@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminSpots from './AdminSpots.jsx'
 
-const media = { phone: false }
+const media = { phone: false, narrow: false }
 vi.mock('../lib/useMediaQuery.js', () => ({
-  useMediaQuery: (query) => query === '(max-width: 700px)' && media.phone,
+  useMediaQuery: (query) =>
+    (query === '(max-width: 700px)' && media.phone) ||
+    (query === '(max-width: 1439px)' && media.narrow),
 }))
 
 function spot(id, name, fields = {}) {
@@ -85,6 +87,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
   media.phone = false
+  media.narrow = false
 })
 
 describe('AdminSpots', () => {
@@ -108,14 +111,42 @@ describe('AdminSpots', () => {
     expect(screen.getByText('Private 2')).toBeInTheDocument()
   })
 
-  it('drops the Last visit column on a phone', async () => {
-    media.phone = true
+  it('folds Last visit under the name below 1440px', async () => {
+    media.narrow = true
     stubApi()
     render(<AdminSpots />)
     await screen.findByRole('table')
     expect(
       screen.getAllByRole('columnheader').map((cell) => cell.textContent),
     ).toEqual(['Spot', 'Tags', 'Public', 'Actions'])
+    const corvus = screen.getByRole('row', { name: /Corvus Coffee/ })
+    expect(
+      within(corvus).getByRole('rowheader', {
+        name: /Last visit November 1, 2026 · 3 visits/,
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('folds the tags and actions under the name on a phone', async () => {
+    media.narrow = true
+    media.phone = true
+    stubApi()
+    render(<AdminSpots />)
+    await screen.findByRole('table')
+    expect(
+      screen.getAllByRole('columnheader').map((cell) => cell.textContent),
+    ).toEqual(['Spot', 'Public'])
+    const corvus = screen.getByRole('row', { name: /Corvus Coffee/ })
+    const head = within(corvus).getByRole('rowheader')
+    expect(within(head).getByText('Rainy day')).toBeInTheDocument()
+    expect(
+      within(head).getByRole('button', { name: 'Edit Corvus Coffee' }),
+    ).toBeInTheDocument()
+    expect(
+      within(head).getByRole('button', {
+        name: 'Log a visit to Corvus Coffee',
+      }),
+    ).toBeInTheDocument()
   })
 
   it('filters by name, neighbourhood and tag label', async () => {

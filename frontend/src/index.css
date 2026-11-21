@@ -9631,13 +9631,9 @@ a.cover-tile-cap:focus-visible span {
   padding: 0;
 }
 
-.sug.lead {
-  border-color: var(--line-strong);
-}
-
-/* A saved card's border is --ok; the Saved for line says it in words. */
+/* A saved card's border is --ok (set on the card, since utilities sit above
+   this sheet) and the inset bar and the Saved for line say it again. */
 .sug.saved {
-  border-color: var(--ok);
   box-shadow: inset 3px 0 0 var(--ok);
 }
 
@@ -9755,14 +9751,6 @@ a.cover-tile-cap:focus-visible span {
   display: flex;
   font-size: var(--fs-14);
   gap: var(--space-2);
-}
-
-.wk-field input {
-  width: 6rem;
-}
-
-.wk-field select {
-  width: auto;
 }
 
 .wk-form-acts {
