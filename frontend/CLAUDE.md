@@ -120,6 +120,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   and `.btn.sm` media rule no longer reaches them, and a label over a hidden file
   input takes `FILE_PICK` for its ring (the legacy `.btn-file:focus-within` sits
   in a lower layer than the button look's `outline-none`).
+  The Closet's own rules left `index.css` in #536 slice D5 (a start: garment
+  tiles and the list view, Today, the outfit board, the review deck, the sell
+  sheet and the undo toast, and the Wrap up sheet): they are utilities in
+  `closetClasses.js`, `closetReviewClasses.js` and `wrapUpClasses.js`, and the
+  `garment-*`, `today-*`, `outfit-*`, `review-*`, `sell-*` and `wrap-*` names
+  stay on the elements as hooks. Where the old rule was a `margin: 0` or
+  `padding: 0`, nothing is written (the base layer zeroes both); where it said
+  `align-items: start` or `border: 0`, write `[align-items:start]` or
+  `[border:0]` (`items-start` is `flex-start`, and `border-0` leaves the style
+  and colour a button brings). The Closet's intake rules are still in
+  `index.css`.
   Admin Home, Jobs and the page header (#535, slice 5) take theirs from
   `components/adminHomeClasses.js` (`PRIMARY`, `PLAIN`, `LINK`, `LINK_BUTTON`,
   the panel, area card, job row and Jobs table strings, and the swap sheet's):
