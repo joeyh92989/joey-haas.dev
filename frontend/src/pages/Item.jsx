@@ -25,6 +25,7 @@ import {
   SOURCE_LINE,
   PAGE_WRAP,
 } from '../components/detail-classes.js'
+import { SKELETON_BLOCK, SKELETON_COVER } from '../components/shelf-classes.js'
 import { cx } from '../lib/cx.js'
 import CoverImage from '../components/CoverImage.jsx'
 import BookWall from '../components/BookWall.jsx'
@@ -808,11 +809,23 @@ function ItemSkeleton() {
       aria-hidden="true"
     >
       <div className={cx('item-cover', DETAIL_COVER)}>
-        <span className="skeleton-cover" />
+        <span className={cx('skeleton-cover', SKELETON_COVER)} />
       </div>
       <div className={cx('item-heading', DETAIL_HEADING)}>
-        <span className="skeleton-line item-skeleton-title" />
-        <span className="skeleton-line skeleton-line-short" />
+        <span
+          className={cx(
+            'skeleton-line item-skeleton-title',
+            SKELETON_BLOCK,
+            'mt-3 h-[1.6rem] w-[70%]',
+          )}
+        />
+        <span
+          className={cx(
+            'skeleton-line skeleton-line-short',
+            SKELETON_BLOCK,
+            'mt-3 h-[0.9rem] w-[60%]',
+          )}
+        />
       </div>
     </div>
   )

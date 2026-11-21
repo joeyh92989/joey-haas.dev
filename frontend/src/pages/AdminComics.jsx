@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, useNavigate } from 'react-router'
+import {
+  SHELF_CONTROLS,
+  SHELF_SEARCH,
+  SHELF_TOP,
+} from '../components/shelf-classes.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { HEAD_LINK } from '../components/adminHomeClasses.js'
 import CardActionsShell from '../components/CardActionsShell.jsx'
@@ -631,8 +636,8 @@ export default function AdminComics() {
         hasLine={fig.hasLine}
       />
 
-      <div className="shelf-top">
-        <label className="shelf-search">
+      <div className={`shelf-top ${SHELF_TOP}`}>
+        <label className={`shelf-search ${SHELF_SEARCH}`}>
           <span className="visually-hidden">{copy.search}</span>
           <Input
             type="search"
@@ -644,7 +649,7 @@ export default function AdminComics() {
       </div>
 
       <section
-        className="shelf-toolbar controls"
+        className={`shelf-toolbar controls ${SHELF_CONTROLS}`}
         aria-label={adminCopy.comics.filterAndSort}
       >
         <FilterChips

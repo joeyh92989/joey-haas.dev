@@ -1,4 +1,13 @@
-import { STAT_CARD } from '../components/shelf-classes.js'
+import {
+  CTL_SPLIT,
+  SHELF_CONTROLS,
+  SHELF_OVERVIEW,
+  SHELF_SEARCH,
+  SHELF_TOP,
+  SHELF_VIEW_CONTROLS,
+  STAT_CARD,
+  VIEW_LAB,
+} from '../components/shelf-classes.js'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import BarList from '../components/BarList.jsx'
@@ -329,8 +338,8 @@ export default function Comics() {
         <>
           <ComicsFigures stats={stats} rows={series} />
 
-          <div className="shelf-top">
-            <label className="shelf-search">
+          <div className={`shelf-top ${SHELF_TOP}`}>
+            <label className={`shelf-search ${SHELF_SEARCH}`}>
               <span className="visually-hidden">{copy.search}</span>
               <Input
                 type="search"
@@ -342,7 +351,7 @@ export default function Comics() {
           </div>
 
           <section
-            className="shelf-toolbar controls"
+            className={`shelf-toolbar controls ${SHELF_CONTROLS}`}
             aria-label="Filter and sort"
           >
             <FilterChips
@@ -359,7 +368,7 @@ export default function Comics() {
               <span className="ctl-label" aria-hidden="true">
                 {spine.shelf.sort}
               </span>
-              <div className="ctl-split">
+              <div className={`ctl-split ${CTL_SPLIT}`}>
                 <SortControl
                   value={sort}
                   direction="asc"
@@ -372,11 +381,11 @@ export default function Comics() {
                   hideLabel
                 />
                 <div
-                  className="shelf-view-controls"
+                  className={`shelf-view-controls ${SHELF_VIEW_CONTROLS}`}
                   role="group"
                   aria-label={spine.shelf.view}
                 >
-                  <span className="view-lab" aria-hidden="true">
+                  <span className={`view-lab ${VIEW_LAB}`} aria-hidden="true">
                     {spine.shelf.view}
                   </span>
                   <LayoutToggle layout={layout} onChange={changeLayout} />
@@ -426,7 +435,7 @@ export default function Comics() {
           )}
 
           <section
-            className="shelf-overview"
+            className={`shelf-overview ${SHELF_OVERVIEW}`}
             id="overview"
             aria-labelledby="overview-title"
           >

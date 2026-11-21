@@ -776,6 +776,7 @@ export default function Next() {
                 sorts={SORTS}
                 directional={false}
                 onChange={changeSort}
+                className="my-1"
               />
             }
           >

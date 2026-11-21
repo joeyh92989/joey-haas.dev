@@ -72,3 +72,78 @@ export const LONGEST_TITLE = 90
  *  is for single-select rows only). */
 export const PRESSED_FILL =
   'aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:font-semibold aria-pressed:text-background aria-pressed:after:hidden'
+
+// The shelf's frame: the top row, the toolbar, the result bar, the pager, the
+// Overview and the loading skeleton (#536, slice D4c). Each user keeps the
+// old class name beside these as a hook for tests and e2e.
+
+/** The row above the toolbar: the links on the left, the search on the right. */
+export const SHELF_TOP = 'mb-4 flex flex-wrap items-center gap-x-6 gap-y-2'
+
+/** The links beside the search. A phone gets a 44px target (#276). */
+export const SHELF_LINKS =
+  'm-0 flex flex-wrap gap-x-4 gap-y-[0.1rem] text-[0.875rem] max-[700px]:[&_a]:inline-flex max-[700px]:[&_a]:min-h-11 max-[700px]:[&_a]:items-center'
+
+/** The search label: 16rem on the right, the full row on a phone. */
+export const SHELF_SEARCH =
+  'm-0 ml-auto block w-64 max-w-none max-[34rem]:ml-0 max-[34rem]:w-full'
+
+/** The unlabelled toolbar (the admin games list). */
+export const SHELF_TOOLBAR = 'mb-6 flex flex-col gap-3'
+
+/** The labelled toolbar: rows between two rules. */
+export const SHELF_CONTROLS =
+  'm-0 grid flex-col gap-2 border-y border-border py-3'
+
+/** The unlabelled toolbar's second row: sort left, view right. */
+export const SHELF_TOOLBAR_ROW =
+  'flex flex-wrap items-center justify-between gap-x-6 gap-y-3'
+
+/** The View group: Cards and Spines, size, dim. */
+export const SHELF_VIEW_CONTROLS =
+  'flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.75rem] text-muted-foreground'
+
+/** The Sort row's split: the select left, the View group right. */
+export const CTL_SPLIT =
+  'flex flex-wrap items-center justify-between gap-x-6 gap-y-2'
+
+/** The word View; both sizes are 6rem on a phone, so it goes there. */
+export const VIEW_LAB =
+  'text-[0.8125rem] text-muted-foreground max-[34rem]:hidden'
+
+/** The count line above a grid. */
+export const RESULTBAR =
+  'mt-3 mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2'
+
+/** The Show more row under a grid. */
+export const PAGER =
+  'mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[0.875rem]'
+
+/** The Overview section under a list. */
+export const SHELF_OVERVIEW = 'mt-8 border-t border-border pt-6'
+
+/** The line under the Overview; its links are underlined and, on a phone,
+ *  44px high. */
+export const SHELF_BEHIND =
+  'm-0 mt-6 text-[0.8125rem] text-muted-foreground [&_a]:underline [&_a]:underline-offset-[3px] max-[700px]:[&_a]:inline-flex max-[700px]:[&_a]:min-h-11 max-[700px]:[&_a]:items-center'
+
+/** The loading grid, in the grid's shape. */
+export const SKELETON_GRID =
+  'mt-6 grid list-none grid-cols-[repeat(auto-fill,minmax(var(--poster-min),1fr))] gap-(--grid-gap) [--poster-min:8.5rem] max-[34rem]:[--poster-min:6rem]'
+
+/** A skeleton block: the cover (3:4) or a line of text. */
+export const SKELETON_BLOCK = 'block rounded-[4px] bg-(--skeleton)'
+export const SKELETON_COVER = `${SKELETON_BLOCK} aspect-[3/4]`
+export const SKELETON_LINE = `${SKELETON_BLOCK} mt-2 h-[0.7rem]`
+export const SKELETON_LINE_SHORT = 'w-[60%]'
+
+/** The sort control: chips or a select, and Shuffle. */
+export const SORT_CONTROL = 'flex flex-wrap items-center gap-2'
+export const SORT_OPTIONS = 'flex flex-wrap gap-2'
+export const SORT_SELECT =
+  'flex items-center gap-2 text-[0.8125rem] text-muted-foreground'
+export const SORT_SELECT_FIELD =
+  'rounded-lg border border-border bg-card px-2 py-1 text-[0.875rem] text-foreground [font-family:inherit] [font-style:inherit] [font-weight:inherit] [line-height:inherit]'
+
+/** The labelled filter rows. */
+export const CHIP_ROWS = 'flex flex-col gap-2'

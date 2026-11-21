@@ -11,6 +11,17 @@ import SpineCard from '../components/SpineCard.jsx'
 import SpineKey from '../components/SpineKey.jsx'
 import { Input } from '../components/ui/input.jsx'
 import { SECTION_HEAD } from '../components/prose-classes.js'
+import {
+  SHELF_BEHIND,
+  SHELF_LINKS,
+  SHELF_OVERVIEW,
+  SHELF_SEARCH,
+  SHELF_TOP,
+  SKELETON_COVER,
+  SKELETON_GRID,
+  SKELETON_LINE,
+  SKELETON_LINE_SHORT,
+} from '../components/shelf-classes.js'
 import ResultBar from '../components/ResultBar.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
@@ -195,12 +206,14 @@ export default function Games() {
         {header}
         <LoadState loading={waiting} failed={failed} onRetry={retry} />
         {waiting && (
-          <ul className="skeleton-grid" aria-hidden="true">
+          <ul className={`skeleton-grid ${SKELETON_GRID}`} aria-hidden="true">
             {Array.from({ length: SKELETON_CARDS }, (_, index) => (
               <li key={index} className="skeleton-card">
-                <span className="skeleton-cover" />
-                <span className="skeleton-line" />
-                <span className="skeleton-line skeleton-line-short" />
+                <span className={`skeleton-cover ${SKELETON_COVER}`} />
+                <span className={`skeleton-line ${SKELETON_LINE}`} />
+                <span
+                  className={`skeleton-line skeleton-line-short ${SKELETON_LINE} ${SKELETON_LINE_SHORT}`}
+                />
               </li>
             ))}
           </ul>
@@ -281,8 +294,8 @@ export default function Games() {
         <>
           {stats && <GamesFigures stats={stats} />}
 
-          <div className="shelf-top">
-            <p className="shelf-links">
+          <div className={`shelf-top ${SHELF_TOP}`}>
+            <p className={`shelf-links ${SHELF_LINKS}`}>
               <Link to={spine.next.path}>
                 {tonightTitle
                   ? `${spine.next.band.tonight} ${tonightTitle}`
@@ -293,7 +306,7 @@ export default function Games() {
               )}
               <a href="#overview">{copy.overview}</a>
             </p>
-            <label className="shelf-search">
+            <label className={`shelf-search ${SHELF_SEARCH}`}>
               <span className="visually-hidden">{games.search}</span>
               <Input
                 ref={searchField}
@@ -369,7 +382,7 @@ export default function Games() {
           )}
 
           <section
-            className="shelf-overview"
+            className={`shelf-overview ${SHELF_OVERVIEW}`}
             id="overview"
             aria-labelledby="overview-title"
           >
@@ -417,7 +430,7 @@ export default function Games() {
                 )}
               </>
             )}
-            <p className="shelf-behind">
+            <p className={`shelf-behind ${SHELF_BEHIND}`}>
               <span>{copy.behind}</span>{' '}
               {status && (
                 <>
