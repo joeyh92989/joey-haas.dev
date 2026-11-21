@@ -37,6 +37,12 @@ import {
   woreGarments,
 } from '../lib/closet.js'
 import EmptyState from '../components/EmptyState.jsx'
+import {
+  btn,
+  chipBtn,
+  closetCard,
+  PRESSED,
+} from '../components/closetClasses.js'
 
 /**
  * How the outfit on screen was chosen, for `POST /api/closet/wore`. A photo
@@ -67,7 +73,7 @@ function todayPath(choice) {
 function WeatherStrip({ weather }) {
   return (
     <section
-      className="panel today-weather"
+      className={`${closetCard} today-weather`}
       aria-label={adminCopy.closetToday.weather}
     >
       <p className="today-temps">
@@ -150,14 +156,14 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
       <div className="today-sheet-modes">
         <button
           type="button"
-          className="btn"
+          className={`${btn()} ${PRESSED}`}
           aria-pressed={mode === 'closet'}
           data-autofocus
           onClick={() => setMode('closet')}
         >
           {adminCopy.closetToday.fromCloset}
         </button>
-        <label className="btn btn-file">
+        <label className={`${btn()} btn-file`}>
           {adminCopy.closetToday.fromPhoto}
           <input
             type="file"
@@ -201,7 +207,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         </ul>
       )}
       <div className="today-sheet-acts">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button type="button" className={btn('ghost')} onClick={onClose}>
           {adminCopy.closetToday.cancel}
         </button>
       </div>
@@ -230,7 +236,10 @@ function OutfitCard({
   const transient = outfit.garments.some((g) => g.transient)
 
   return (
-    <section className="panel today-card" aria-labelledby="today-wear">
+    <section
+      className={`${closetCard} today-card`}
+      aria-labelledby="today-wear"
+    >
       <p
         className="today-kicker"
         id="today-wear"
@@ -263,7 +272,7 @@ function OutfitCard({
         <div className="today-acts">
           <button
             type="button"
-            className="btn primary"
+            className={btn('primary')}
             disabled={busy || transient}
             onClick={onWore}
           >
@@ -271,7 +280,7 @@ function OutfitCard({
           </button>
           <button
             type="button"
-            className="btn"
+            className={btn()}
             disabled={busy}
             onClick={onSwap}
           >
@@ -279,7 +288,7 @@ function OutfitCard({
           </button>
           <button
             type="button"
-            className="btn ghost"
+            className={btn('ghost')}
             disabled={busy}
             onClick={onMatch}
           >
@@ -287,7 +296,7 @@ function OutfitCard({
           </button>
           <button
             type="button"
-            className="btn ghost"
+            className={btn('ghost')}
             aria-expanded={asking}
             disabled={busy}
             onClick={() => setAsking((open) => !open)}
@@ -298,7 +307,7 @@ function OutfitCard({
       )}
       {asking && !wornState && (
         <div
-          className="chip-row"
+          className="flex flex-wrap gap-2"
           role="group"
           aria-label={adminCopy.closetToday.whyNotThis}
         >
@@ -306,7 +315,7 @@ function OutfitCard({
             <button
               key={reason.value}
               type="button"
-              className="chip"
+              className={chipBtn}
               disabled={busy}
               onClick={() => {
                 setAsking(false)
@@ -325,13 +334,18 @@ function OutfitCard({
 /** An alternative: the small board, the names on one line, the reason. */
 function OutfitAlt({ outfit, busy, onWear }) {
   return (
-    <li className="panel today-alt">
+    <li className={`${closetCard} today-alt`}>
       <OutfitBoard garments={outfit.garments} small />
       <p className="today-alt-names">
         {outfit.garments.map((g) => g.name).join(' · ')}
       </p>
       <p className="today-alt-reason">{outfitReason(outfit)}</p>
-      <button type="button" className="btn sm" disabled={busy} onClick={onWear}>
+      <button
+        type="button"
+        className={btn('plain', 'sm')}
+        disabled={busy}
+        onClick={onWear}
+      >
         {adminCopy.closetToday.wearThisInstead}
       </button>
     </li>
@@ -601,7 +615,7 @@ export default function AdminClosetToday() {
       {retryable && !answer && error && (
         <button
           type="button"
-          className="btn"
+          className={btn()}
           onClick={() => {
             setError(null)
             setRetryable(false)
@@ -679,7 +693,7 @@ export default function AdminClosetToday() {
               onNotThis={notThis}
             />
           ) : (
-            <section className="panel today-card">
+            <section className={`${closetCard} today-card`}>
               <p className="today-kicker">{adminCopy.closetToday.wearThis}</p>
               <p className="today-reason">
                 {plan?.model_note ?? 'Nothing is planned for today yet.'}

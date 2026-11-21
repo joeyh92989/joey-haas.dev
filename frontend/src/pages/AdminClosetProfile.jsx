@@ -4,6 +4,7 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { CATEGORIES, profileBody, profileForm } from '../lib/closet.js'
+import { btn, field, textarea } from '../components/closetClasses.js'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const COLORING = [
@@ -115,6 +116,7 @@ export default function AdminClosetProfile() {
     <label>
       <span className="garment-field-label">{label}</span>
       <input
+        className={field}
         type="number"
         min={min}
         max={max}
@@ -135,6 +137,7 @@ export default function AdminClosetProfile() {
             <label key={c.value}>
               <span className="garment-field-label">{c.plural}</span>
               <input
+                className={field}
                 type="text"
                 maxLength={40}
                 value={form.sizes[c.value]}
@@ -150,6 +153,7 @@ export default function AdminClosetProfile() {
             <label key={key}>
               <span className="garment-field-label">{label}</span>
               <input
+                className={field}
                 type="text"
                 maxLength={40}
                 value={form.coloring[key]}
@@ -164,6 +168,7 @@ export default function AdminClosetProfile() {
             {adminCopy.closetProfile.buildFit}
           </span>
           <textarea
+            className={textarea}
             rows={2}
             maxLength={500}
             value={form.build_fit}
@@ -175,6 +180,7 @@ export default function AdminClosetProfile() {
             {adminCopy.closetProfile.styleWords}
           </span>
           <input
+            className={field}
             type="text"
             value={form.style_words}
             placeholder={adminCopy.closetProfile.styleWordsPlaceholder}
@@ -189,6 +195,7 @@ export default function AdminClosetProfile() {
             {adminCopy.closetProfile.dislikes}
           </span>
           <input
+            className={field}
             type="text"
             value={form.dislikes}
             placeholder={adminCopy.closetProfile.dislikesPlaceholder}
@@ -205,6 +212,7 @@ export default function AdminClosetProfile() {
             <div key={day} className="closet-week-day">
               <span className="garment-field-label">{day}</span>
               <select
+                className={field}
                 aria-label={`${day} occasion`}
                 value={form.weekly_occasions[i]}
                 onChange={(e) => setDay('weekly_occasions', i)(e.target.value)}
@@ -237,6 +245,7 @@ export default function AdminClosetProfile() {
             <label key={key}>
               <span className="garment-field-label">{label}</span>
               <input
+                className={field}
                 type="text"
                 inputMode="numeric"
                 placeholder="04-25"
@@ -277,7 +286,7 @@ export default function AdminClosetProfile() {
           </p>
         )}
         <div className="garment-form-acts">
-          <button type="submit" className="btn primary" disabled={busy}>
+          <button type="submit" className={btn('primary')} disabled={busy}>
             {busy ? 'Saving…' : 'Save'}
           </button>
         </div>

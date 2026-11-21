@@ -1,3 +1,5 @@
+import { btn } from './closetClasses.js'
+
 /**
  * The season turn: "It's the autumn turn. 12 summer pieces close their
  * season until May", with Pack all and One by one. Shown from the turn date
@@ -28,7 +30,7 @@ export default function SeasonTurnBanner({
       <div className="review-banner-acts">
         <button
           type="button"
-          className="btn primary sm"
+          className={btn('primary', 'sm')}
           disabled={busy}
           onClick={onPackAll}
         >
@@ -36,7 +38,7 @@ export default function SeasonTurnBanner({
         </button>
         <button
           type="button"
-          className="btn ghost sm"
+          className={btn('ghost', 'sm')}
           disabled={busy}
           onClick={onOneByOne}
         >

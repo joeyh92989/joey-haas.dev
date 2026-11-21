@@ -1,5 +1,6 @@
 import { adminCopy } from '../content/adminCopy.js'
 import { categoryLabel, imageUrl } from '../lib/closet.js'
+import { pieceBtn } from './closetClasses.js'
 
 const copy = adminCopy.closetToday
 
@@ -174,7 +175,7 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
           <span className="outfit-piece-acts">
             <button
               type="button"
-              className="outfit-piece-btn"
+              className={pieceBtn}
               aria-label={`${copy.swap} the ${tile.name}`}
               disabled={busy}
               onClick={() => onSwap(tile.slot)}
@@ -184,7 +185,7 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
             {tile.transient ? (
               <button
                 type="button"
-                className="outfit-piece-btn"
+                className={pieceBtn}
                 disabled={saving || busy}
                 onClick={onSave}
               >
@@ -193,7 +194,7 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
             ) : (
               <button
                 type="button"
-                className="outfit-piece-btn"
+                className={pieceBtn}
                 aria-pressed={locked}
                 aria-label={`${locked ? copy.builtAround : copy.buildAround} the ${tile.name}`}
                 disabled={busy}

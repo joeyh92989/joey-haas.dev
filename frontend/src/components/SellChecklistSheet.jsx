@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { garmentTitle } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
 import Sheet from './Sheet.jsx'
+import { btn } from './closetClasses.js'
 
 /**
  * The listing's lines for a garment: what a resale listing asks for, from
@@ -104,19 +105,19 @@ function SellBody({ titleId, card, busy, error, onClose, onList }) {
         </p>
       )}
       <div className="sheet-actions">
-        <button type="button" className="btn" onClick={copy}>
+        <button type="button" className={btn()} onClick={copy}>
           Copy listing
         </button>
         <button
           type="button"
-          className="btn primary"
+          className={btn('primary')}
           disabled={busy}
           onClick={onList}
           data-autofocus
         >
           List it
         </button>
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <button type="button" className={btn('ghost')} onClick={onClose}>
           Cancel
         </button>
       </div>
