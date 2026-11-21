@@ -10,8 +10,9 @@
  *
  * Everything but `loadFaces` and `renderCardPng` is pure and takes a `faces`
  * object ({width(face, text, size), path(face, text, x, y, size)}).
- * The colors are the dark tokens from index.css; their ratios on `--bg` are
- * measured in og-card.test.mjs.
+ * The colors are the light (paper and ink) tokens from index.css, so a link
+ * preview matches the site (#529; og-card.test.mjs holds them to index.css and
+ * measures their ratios on `--bg`).
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -19,10 +20,10 @@ import { fileURLToPath } from 'node:url'
 
 export const CARD = { width: 1200, height: 630 }
 export const COLORS = {
-  bg: '#0f1114',
-  text: '#eceef1',
-  text2: '#aeb4bd',
-  accent: '#6ea0ef',
+  bg: '#f1ede6',
+  text: '#231f1a',
+  text2: '#57534d',
+  accent: '#a8321f',
 }
 
 const MARGIN = 80
