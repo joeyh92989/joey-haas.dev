@@ -377,21 +377,36 @@ CSS read them) and sets only the properties it means to change: leave
 (`Button` is `inline-flex`), so a legacy `display` rule on that element loses.
 
 **The shell (#529).** The masthead, More, the phone sheet and Search use the
-shadcn button's look but not its component: they import `buttonVariants` from
-`components/ui/button-variants.js` (cva only) and put the classes on a plain
-`<button>` or `<a>`, because the Base UI `Button` and `cn` add about 40KB to
-the entry chunk, which loads on every page (`designConsistency.test.js` holds
-the four eager shell files to it). `Button` keeps `variant="quiet"` (the
-masthead control) and `nav` (a nav trigger). Search is `React.lazy` in
-`RootLayout`, mounted on first open, and takes `Button` and `Input`. A
-legacy `display` rule loses to a component's own, so Menu and Resume hide
-with `min-[961px]:hidden` and `max-[960px]:hidden` utilities, not `.mast-menu`
-CSS; the 44px phone target is `max-[700px]:min-h-11` on each control. The
-dialogs stay native (`Sheet`, `NavSheet`) and More stays a disclosure: Command,
-Dialog and DropdownMenu were not adopted, since each would change roles, ids
-or focus behaviour that tests and the a11y run pin. The link-preview card
-(`scripts/og-card.mjs`) and favicon are the light tokens; `og-card.test.mjs`
-reads them from `index.css`.
+shadcn button's look but not its component: they import `buttonVariants` (and
+`mastButton`, the bar's size) from `components/ui/button-variants.js`, cva
+only, and put the classes on a plain `<button>` or `<a>`, because the Base UI
+`Button` and `cn` add 34.6KB raw to the entry chunk, which loads on every page
+(`designConsistency.test.js` holds the eager shell files to it). `Button` keeps
+`variant="quiet"` (the masthead control) and `nav` (a nav trigger); `nav` and
+`link` take `size="bare"` (no height or padding of their own), which `Button`
+picks by itself. Tailwind sorts same-property utilities by name, not by
+order in the class string, so a variant's class never overrides a size's: put
+a value on one side only (this is why `border-transparent` sits on `ghost` and
+`link`, not on the base). Search is `React.lazy` in `RootLayout`: fetched on
+idle and on pointer or focus of the Search button, mounted on first open, and a
+failed fetch is caught by `SearchBoundary`, which renders nothing, resets the
+lazy import and lets the next open fetch again. It takes `Button` and `Input`
+(16px, `md:text-base`). A legacy `display` rule loses to a component's own, so
+Menu hides at 961px and up with `min-[961px]:hidden`, and Resume under 1101px
+with `max-[1100px]:hidden`, not `.mast-menu` CSS; the 44px phone target is
+`max-[700px]:min-h-11`, and on a phone the theme toggle reads Light or Dark
+(its `aria-label` stays whole) so the bar fits 320px with equal gutters.
+
+Search stays on the native dialog and its own combobox and listbox; the story's
+"search uses shadcn `Command`" is deliberately not met. The native `<dialog>`
+(`Sheet`) already gives the focus trap, the inert page, Escape and focus
+return, and the hand-built combobox/listbox keeps the roles, ids and
+`aria-activedescendant` flow the tests and the a11y run pin; cmdk would add
+a dependency without improving any of them. For the same reason the nav sheets
+stay native and More stays a disclosure (no `Dialog` or `DropdownMenu`). The
+link-preview card (`scripts/og-card.mjs`), the favicon and the opaque
+`apple-touch-icon.png` are the light tokens; `og-card.test.mjs` reads them from
+`index.css`.
 
 **`cn`.** The class-name helper is shadcn's own `cn` package
 (github.com/shadcn-ui/cn, maintainer shadcn, a clsx + tailwind-merge drop-in,
