@@ -1,3 +1,4 @@
+import { STAT_CARD } from './shelf-classes.js'
 import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import { ownerMonth, ownerYear } from '../lib/formatDate.js'
@@ -53,7 +54,10 @@ export function OnCartridge({ byFormat, headingLevel = 2 }) {
   )
   if (platforms.length === 0) return null
   return (
-    <section className="stat-card stat-cartridge" aria-label="On cartridge">
+    <section
+      className={`stat-card stat-cartridge ${STAT_CARD}`}
+      aria-label="On cartridge"
+    >
       <Heading>On cartridge</Heading>
       {platforms.map(([platformId, counts]) => {
         const name =
@@ -157,7 +161,7 @@ export function StatusBar({
   const Heading = `h${headingLevel}`
   const present = STATUS_ORDER.filter((status) => byStatus[status] > 0)
   return (
-    <div className="stat-card stat-status">
+    <div className={`stat-card stat-status ${STAT_CARD}`}>
       <Heading>{title}</Heading>
       <div className="status-bar">
         {present.map((status) => (
@@ -198,7 +202,10 @@ export function RatingHistogram({ histogram, average, headingLevel = 2 }) {
   const counts = RATINGS.map((rating) => histogram[rating] ?? 0)
   const most = Math.max(...counts, 1)
   return (
-    <section className="stat-card stat-ratings" aria-label="Ratings">
+    <section
+      className={`stat-card stat-ratings ${STAT_CARD}`}
+      aria-label="Ratings"
+    >
       <Heading>Ratings</Heading>
       <div className="stat-figure">
         <div className="bar-column">
@@ -247,7 +254,10 @@ export function FinishesStrip({
   const counts = months.map((month) => byMonth[month.key] ?? 0)
   const most = Math.max(...counts, 1)
   return (
-    <section className="stat-card stat-finishes" aria-label="Finishes">
+    <section
+      className={`stat-card stat-finishes ${STAT_CARD}`}
+      aria-label="Finishes"
+    >
       <Heading>Finishes</Heading>
       <div className="stat-figure">
         <div className="bar-column">

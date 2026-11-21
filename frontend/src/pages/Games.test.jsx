@@ -8,7 +8,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Link, MemoryRouter, Route, Routes } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { readSnapshot } from '../lib/snapshot.js'
@@ -1282,5 +1282,144 @@ describe('Games tags', () => {
     expect(gridTitles()).toEqual(['Game 8'])
     await userEvent.click(screen.getByRole('button', { name: /Clear filters/ }))
     expect(gridTitles()).toHaveLength(10)
+  })
+})
+
+// The look (#532): record cards with a catalogue number and a status word,
+// the shared search field, and the spine view kept in the URL.
+function Where() {
+  const { search } = useLocation()
+  return <output data-testid="where">{search}</output>
+}
+
+async function renderAt(path) {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <Games />
+      <Where />
+    </MemoryRouter>,
+  )
+  await waitFor(() =>
+    expect(document.querySelector('.poster-grid')).not.toBeNull(),
+  )
+}
+
+const cardNumbers = () =>
+  [...document.querySelectorAll('.poster-card [data-strip]')].map(
+    (strip) => strip.textContent.match(/No\. \d+/)?.[0],
+  )
+
+describe('Games as record cards', () => {
+  it('numbers each card by its place on the whole shelf, oldest first', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    // Newest first by default: Gloomhaven (No. 002) leads Dune (No. 001).
+    expect(gridTitles()).toEqual(['Gloomhaven', 'Dune'])
+    expect(cardNumbers()).toEqual(['No. 002', 'No. 001'])
+  })
+
+  it('keeps a card’s number when a search or filter narrows the list', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    await userEvent.type(screen.getByRole('searchbox'), 'Gloom')
+    expect(gridTitles()).toEqual(['Gloomhaven'])
+    expect(cardNumbers()).toEqual(['No. 002'])
+  })
+
+  it('says each status in words on the strip', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    const strips = [...document.querySelectorAll('.poster-card [data-strip]')]
+    expect(strips[0]).toHaveTextContent('Backlog')
+    expect(strips[1]).toHaveTextContent('Finished')
+  })
+
+  it('searches in the shared field, still named by the page', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    const field = screen.getByRole('searchbox', { name: spine.games.search })
+    expect(field).toHaveAttribute('data-slot', 'input')
+    expect(field).toHaveAttribute('id', 'shelf-search')
+  })
+
+  it('draws the card grid with wider columns for the strip', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    expect(document.querySelector('.poster-grid')).toHaveAttribute(
+      'data-layout',
+      'records',
+    )
+  })
+})
+
+describe('Games spine view', () => {
+  it('opens as cards, never as spines, when the URL says nothing', async () => {
+    stubApi()
+    await renderAt('/shelf/games')
+    expect(document.querySelector('.shelf-spine')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Cards' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('opens as spines at ?view=spines, one spine for each card', async () => {
+    stubApi()
+    await renderAt('/shelf/games?view=spines')
+    expect(document.querySelector('.poster-grid')).toHaveAttribute(
+      'data-layout',
+      'spines',
+    )
+    const spines = [...document.querySelectorAll('.shelf-spine')]
+    expect(spines).toHaveLength(2)
+    expect(spines[0]).toHaveAccessibleName(/^Gloomhaven\b/)
+    expect(spines[0]).toHaveAccessibleName(/Backlog/)
+    expect(spines[0]).toHaveAttribute('href', '/shelf/2/')
+    expect(screen.getByRole('button', { name: 'Spines' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('keeps the choice only in the URL, and keeps other parameters', async () => {
+    stubApi()
+    await renderAt('/shelf/games?q=dune')
+    await userEvent.click(screen.getByRole('button', { name: 'Spines' }))
+    expect(screen.getByTestId('where')).toHaveTextContent(
+      /^\?q=dune&view=spines$/,
+    )
+    expect(document.querySelectorAll('.shelf-spine')).toHaveLength(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Cards' }))
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\?q=dune$/)
+    expect(document.querySelector('.shelf-spine')).toBeNull()
+    expect(localStorage.length).toBe(0)
+  })
+
+  it('follows the same filters as the cards, and shows the same numbers', async () => {
+    stubApi()
+    await renderAt('/shelf/games?view=spines')
+    await userEvent.type(screen.getByRole('searchbox'), 'Dune')
+    const spines = [...document.querySelectorAll('.shelf-spine')]
+    expect(spines).toHaveLength(1)
+    expect(spines[0]).toHaveTextContent('001')
+  })
+
+  it('offers no poster size or dimming over spines', async () => {
+    stubApi()
+    await renderAt('/shelf/games?view=spines')
+    expect(screen.queryByRole('button', { name: 'Compact' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Dim finished' })).toBeNull()
+  })
+
+  it('has no axe violations as spines', async () => {
+    stubApi()
+    await renderAt('/shelf/games?view=spines')
+    expect(await axeViolations(document.body.firstElementChild)).toEqual([])
+  })
+
+  it('ignores any other value of view', async () => {
+    stubApi()
+    await renderAt('/shelf/games?view=banana')
+    expect(document.querySelector('.shelf-spine')).toBeNull()
   })
 })

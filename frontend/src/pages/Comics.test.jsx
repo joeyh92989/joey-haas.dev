@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { axeViolations } from '../lib/axe.test-util.js'
 import { flaky } from '../lib/flaky.test-util.js'
@@ -311,7 +311,8 @@ describe('Comics', () => {
     expect(lanes.closest('a')).toBeNull()
     expect(card.querySelector('.poster-art')).toHaveAttribute('data-stacked')
     expect(card.querySelector('.run-badge')).toBeNull()
-    expect(screen.getByRole('img', { name: 'Reading' })).toBeInTheDocument()
+    // The status is a word on the strip now, not a mark on the cover (#532).
+    expect(card.querySelector('[data-strip]')).toHaveTextContent('Reading')
   })
 
   it('labels the filter rows and the sort', () => {
@@ -665,5 +666,96 @@ describe('Comics: the title kind and the Books and Single issues chips', () => {
     renderPage()
     expect(card('Saga')).toHaveTextContent('Run of issues')
     expect(screen.queryByRole('button', { name: /^Books/ })).toBeNull()
+  })
+})
+
+// The look (#532): record cards with a number and a status word, the shared
+// search field, and the spine view kept in the URL.
+function Where() {
+  const { search } = useLocation()
+  return <output data-testid="where">{search}</output>
+}
+
+function renderAt(path) {
+  mockComics({ data: COMICS, live: true, failed: false })
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Comics />
+      <Where />
+    </MemoryRouter>,
+  )
+}
+
+describe('Comics as record cards', () => {
+  it('numbers each card by its place on the whole shelf', () => {
+    renderAt('/shelf/comics')
+    const strip = (title) =>
+      screen
+        .getByText(title, { selector: '.poster-title' })
+        .closest('.poster-card')
+        .querySelector('[data-strip]')
+    // Equal dates break by id: Absolute Batman, Monstress, Paper Girls, Saga.
+    expect(strip('Absolute Batman')).toHaveTextContent('No. 001')
+    expect(strip('Saga')).toHaveTextContent('No. 004')
+  })
+
+  it('keeps a number through a search', async () => {
+    renderAt('/shelf/comics')
+    await userEvent.type(screen.getByRole('searchbox'), 'Saga')
+    const strips = [...document.querySelectorAll('.poster-card [data-strip]')]
+    expect(strips).toHaveLength(1)
+    expect(strips[0]).toHaveTextContent('No. 004')
+  })
+
+  it('says the status in the comics’ own words on the strip', () => {
+    renderAt('/shelf/comics')
+    const saga = screen
+      .getByText('Saga', { selector: '.poster-title' })
+      .closest('.poster-card')
+    expect(saga.querySelector('[data-strip]')).toHaveTextContent(
+      copy.status.active,
+    )
+  })
+
+  it('searches in the shared field', () => {
+    renderAt('/shelf/comics')
+    expect(screen.getByRole('searchbox')).toHaveAttribute('data-slot', 'input')
+  })
+})
+
+describe('Comics spine view', () => {
+  it('opens as cards unless the URL says ?view=spines', () => {
+    renderAt('/shelf/comics')
+    expect(document.querySelector('.shelf-spine')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Cards' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('draws a spine for each series from the same rows', () => {
+    renderAt('/shelf/comics?view=spines')
+    const spines = [...document.querySelectorAll('.shelf-spine')]
+    expect(spines).toHaveLength(ROWS.length)
+    const saga = spines.find((spine) => spine.textContent.includes('Saga'))
+    expect(saga).toHaveAccessibleName(/^Saga\b/)
+    expect(saga).toHaveAccessibleName(new RegExp(copy.status.active))
+    expect(saga).toHaveTextContent('004')
+  })
+
+  it('toggles through the URL and leaves storage alone', async () => {
+    renderAt('/shelf/comics')
+    await userEvent.click(screen.getByRole('button', { name: 'Spines' }))
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\?view=spines$/)
+    expect(document.querySelectorAll('.shelf-spine')).toHaveLength(ROWS.length)
+    await userEvent.click(screen.getByRole('button', { name: 'Cards' }))
+    expect(screen.getByTestId('where')).toBeEmptyDOMElement()
+    expect(localStorage.getItem('shelf.public.comics.view')).toBeNull()
+  })
+
+  it('narrows with the same search and filters', async () => {
+    renderAt('/shelf/comics?view=spines')
+    await userEvent.type(screen.getByRole('searchbox'), 'Monstress')
+    expect(document.querySelectorAll('.shelf-spine')).toHaveLength(1)
   })
 })

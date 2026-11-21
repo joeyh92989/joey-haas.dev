@@ -13,13 +13,15 @@ const MARKED = ['active', 'paused', 'finished', 'abandoned']
  * names, so they are hidden from assistive tech; the names carry the key.
  *
  * @param {object} props
+ * @param {boolean} [props.statuses] - Draw the status marks and the backlog
+ *   line (the default). Off where the cards say their status in words.
  * @param {import('react').ReactNode} [props.children] - Extra entries, as `<li>`s.
  */
-export default function CoverKey({ children }) {
+export default function CoverKey({ statuses = true, children }) {
   return (
     <ul className="cover-key" aria-label={copy.aria}>
       <li className="key-h">{copy.label}</li>
-      {MARKED.map((status) => (
+      {(statuses ? MARKED : []).map((status) => (
         <li key={status}>
           <i className="status-mark" data-status={status} aria-hidden="true" />
           {STATUS_LABEL[status]}
@@ -37,7 +39,7 @@ export default function CoverKey({ children }) {
         </span>
         {copy.favorite}
       </li>
-      <li className="key-none">{copy.backlog}</li>
+      {statuses && <li className="key-none">{copy.backlog}</li>}
       {children}
     </ul>
   )

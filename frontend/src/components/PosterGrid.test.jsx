@@ -97,3 +97,42 @@ describe('PosterGrid paged', () => {
     expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
   })
 })
+
+describe('PosterGrid layouts', () => {
+  it('is the loose posters unless told otherwise', () => {
+    render(
+      <PosterGrid items={ITEMS} size="comfortable" renderCard={() => null} />,
+    )
+    expect(screen.getByRole('list')).not.toHaveAttribute('data-layout')
+  })
+
+  it('widens its columns for numbered cards', () => {
+    render(
+      <PosterGrid
+        items={ITEMS}
+        size="comfortable"
+        layout="records"
+        renderCard={() => null}
+      />,
+    )
+    const list = screen.getByRole('list')
+    expect(list).toHaveAttribute('data-layout', 'records')
+    expect(list.className).toContain('[--poster-min:12rem]')
+  })
+
+  it('lays spines out on a 4, 6 and 12 column rail', () => {
+    render(
+      <PosterGrid
+        items={ITEMS}
+        size="comfortable"
+        layout="spines"
+        renderCard={() => null}
+      />,
+    )
+    const list = screen.getByRole('list')
+    expect(list).toHaveAttribute('data-layout', 'spines')
+    expect(list.className).toContain('grid-cols-4')
+    expect(list.className).toContain('min-[701px]:grid-cols-6')
+    expect(list.className).toContain('min-[981px]:grid-cols-12')
+  })
+})

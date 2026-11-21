@@ -2,18 +2,24 @@ import { useId, useState } from 'react'
 import { Button } from './ui/button.jsx'
 import { cn } from '../lib/utils.js'
 
+// A labelled row's chips are underline tabs (#532): no pill, the pressed one
+// bold with the chip variant's 3px accent bar under it (its `after`), on the
+// row's own 1px rule.
+const TAB =
+  'rounded-none border-transparent px-3 text-sm hover:border-transparent hover:underline aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:font-semibold'
+
 /**
  * One chip; hidden at zero unless pressed, so a filter can be undone. A null
  * count is a chip without one (a choice, not a filter), always shown.
  */
-function Chip({ pressed, count, label, onClick, className, disabled }) {
+function Chip({ pressed, count, label, onClick, className, disabled, tab }) {
   const counted = count !== null
   if (counted && !pressed && !count) return null
   return (
     <Button
       variant="chip"
       size="chip"
-      className={cn('chip', className)}
+      className={cn('chip', tab && TAB, className)}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
@@ -111,6 +117,7 @@ export default function FilterChips({
           count={option.count}
           label={option.label}
           disabled={disabled}
+          tab={labelled}
           onClick={() =>
             onChange({
               ...value,
@@ -127,7 +134,7 @@ export default function FilterChips({
         key="more"
         variant="chip"
         size="chip"
-        className="chip"
+        className={cn('chip', labelled && TAB)}
         aria-expanded={expanded.has(group.key)}
         disabled={disabled}
         onClick={() =>
@@ -151,6 +158,7 @@ export default function FilterChips({
       label={toggle.label}
       className={toggle.className}
       disabled={disabled}
+      tab={labelled}
       onClick={() => onChange({ ...value, [toggle.key]: !value[toggle.key] })}
     />
   ))
@@ -177,7 +185,7 @@ export default function FilterChips({
               {row.label}
             </span>
             <div
-              className="chip-row"
+              className="chip-row border-b border-line"
               role="group"
               aria-labelledby={`${id}-${row.key}`}
             >
