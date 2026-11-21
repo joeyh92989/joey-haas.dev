@@ -65,6 +65,16 @@ describe('tailwind.css setup', () => {
     expect(base).toMatch(/:where\(\*\)::before/)
   })
 
+  // The placeholder is text on a field: --text-3 is pinned at 4.5 or more on
+  // --bg, --surface and --sunken in both themes by contrast.test.js.
+  it('colours the placeholder with a pinned text token', () => {
+    const base = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'styles/base.css'),
+      'utf8',
+    )
+    expect(base).toMatch(/::placeholder\s*\{\s*color: var\(--text-3\);/)
+  })
+
   it('has no unlayered tailwindcss import', () => {
     expect(code).not.toMatch(/@import\s+['"]tailwindcss['"]/)
   })

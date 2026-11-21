@@ -377,7 +377,7 @@ changed nothing. No page should change until it is migrated (epic #519).
 comparing computed styles of 8 routes in both themes: the only difference is
 `background-position` on elements with no background image.
 
-**Layers.** `@layer legacy, theme, base, components, utilities;` and
+**Layers.** `@layer preflight, legacy, theme, base, components, utilities;` and
 the four legacy files imported `layer(legacy)` in the order tokens, base, index,
 print. Unlayered CSS always beats layered CSS, and `base.css` has an unlayered
 `* { padding: 0 }`; unlayered it would beat
@@ -385,13 +385,31 @@ every Tailwind utility (cards and buttons lost their padding in the spike).
 Layered into `legacy`, the lowest layer, every utility wins and old pages still
 render from their own rules. Delete the layer when the last page moves.
 
-**Preflight is off.** `tailwindcss/theme.css` and `utilities.css` are
-imported into layers; `tw-animate-css` and `shadcn/tailwind.css` are imported
-*unlayered* (they add `@property` blocks and one `.shimmer` reduced-motion rule
-that nothing uses, and a `properties` layer below `legacy`). Preflight is a
-reset; it would shift every unmigrated page. A comment in `tailwind.css`
-carries the plain `@import "tailwindcss";` text only because the shadcn CLI
-refuses to run without it.
+**Preflight is on, below `legacy` (#536 slice C).** `tailwindcss/preflight.css` is
+imported `layer(preflight)`, the lowest layer, so it only changes properties the
+legacy sheet never sets (placed in `base` it would sit above `legacy` and beat
+every legacy rule that sets the same property). Pages relied on browser defaults
+Preflight removes: list markers, form-control fonts, colours and borders,
+`h3`/`h4` sizes, `code` and `pre` fonts, table borders and collapse,
+`img`/`svg` display, the date field's inner padding, `html` font and line
+height, border-box on `::before`/`::after`. `src/styles/base.css` hands each of
+them back with `revert` in a zero-specificity `:where()` rule, so a legacy
+rule still wins, Tailwind utilities win over both, and the computed styles are
+unchanged (`e2e/tools/` dump: 0 differing records; a border with no width is
+compared equal whatever its style). That block is a shim: the slice that moves
+Preflight to `base` replaces each group with utilities on the component.
+Three things `revert` cannot do. (1) Preflight's `[hidden] { display: none
+!important }` is important in the lowest layer, so nothing above it can show an
+element that has `hidden`; a component must not put `hidden` on an element it
+means to show (the intake meter did, and it was always ignored). (2) The
+placeholder colour is the one deliberate change: `::placeholder` is
+`var(--text-3)` (4.5 or more on `--bg`, `--surface`, `--sunken` in both themes,
+`contrast.test.js`), where the browser's grey was 2.4 on a dark field. (3)
+`tw-animate-css` and `shadcn/tailwind.css` are imported *unlayered* (they add
+`@property` blocks and one `.shimmer` reduced-motion rule that nothing uses, and
+a `properties` layer below `legacy`). A comment in `tailwind.css` carries the
+plain `@import "tailwindcss";` text only because the shadcn CLI refuses to run
+without it.
 
 **A legacy token with a Tailwind theme name gets replaced.** Tailwind writes
 its default theme variable into the `theme` layer, above `legacy`, the moment
