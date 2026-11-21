@@ -546,130 +546,6 @@ p.muted a,
   padding: var(--space-3) var(--space-4);
 }
 
-.stat-tiles {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: var(--space-5);
-}
-
-.stat-tile {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: var(--space-4) var(--space-4);
-}
-
-.stat-tile .kicker {
-  display: block;
-  margin-bottom: var(--space-2);
-}
-
-.stat-value {
-  color: var(--text);
-  font-size: var(--fs-28);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.stat-detail {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin-top: var(--space-2);
-}
-
-/* Beside the sidebar, four tiles would be too narrow for their labels. */
-@media (max-width: 900px) {
-  .stat-tiles {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Analytics (/admin/analytics). The day bars and the list fills use
-   --chart, measured on --surface above; the list fills sit on a --sunken track, where --chart measures
-   5.53 dark and 4.77 light. */
-.day-bars-chart {
-  align-items: flex-end;
-  display: flex;
-  gap: 2px; /* space-exception: hairline, optical offset */
-  height: 180px;
-  padding-top: var(--space-2);
-}
-
-.day-bar {
-  background: var(--chart);
-  border-radius: 2px 2px 0 0;
-  display: block;
-  flex: 1;
-  min-width: 0;
-}
-
-.day-bars-peak {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  margin: var(--space-2) 0 0;
-}
-
-.day-bars-axis {
-  color: var(--text-3);
-  display: flex;
-  font: var(--fs-12) var(--font-mono);
-  justify-content: space-between;
-  margin-top: var(--space-2);
-}
-
-.bar-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.bar-list li {
-  align-items: center;
-  border-top: 1px solid var(--line-card);
-  display: grid;
-  font-size: var(--fs-14);
-  gap: var(--space-3);
-  grid-template-columns: minmax(0, 1fr) 70px 50px;
-  padding: var(--space-2) 0;
-}
-
-.bar-list li:first-child {
-  border-top: 0;
-}
-
-.bar-list-label {
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* A bar's track is --sunken with a --line-card outline (the outline is a 3:1
-   mark on the card, contrast.test.js) and the fill is --chart, 3:1 or better
-   on the track in both themes. */
-.bar-list-track {
-  background: var(--sunken);
-  border: 1px solid var(--line-card);
-  border-radius: 4px;
-  height: 10px;
-  overflow: hidden;
-}
-
-.bar-list-fill {
-  background: var(--chart);
-  display: block;
-  height: 100%;
-}
-
-.bar-list-count {
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 /* Intake (/admin/collection/add, /admin/closet/add and their sittings).
    Tokens only; form controls take the shared admin rule above.
 
@@ -2990,32 +2866,6 @@ a.month-bar::before {
   overflow: hidden;
 }
 
-.stat-tiles-figures {
-  display: grid;
-  gap: var(--grid-gap);
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  margin: 0 0 var(--space-6);
-}
-
-.stat-tile-figures {
-  padding: var(--space-3) var(--space-4);
-}
-
-.stat-tile-figures dt {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  letter-spacing: 0.08em;
-  margin-bottom: var(--space-1);
-  text-transform: uppercase;
-}
-
-.stat-tile-figures dd {
-  display: flex;
-  flex-direction: column;
-  font-size: var(--fs-13);
-  gap: 0.15rem; /* space-exception: hairline, optical offset */
-}
-
 .item-ttb {
   align-items: baseline;
   display: flex;
@@ -4530,13 +4380,6 @@ a.month-bar::before {
   margin: var(--space-6) 0 var(--space-3);
 }
 
-/* /stats: the admin analytics components (.stat-tiles, .day-bars,
-   .bar-list) in the 45rem column. The bars use --chart,
-   measured beside the tokens; no new colour. */
-.site-stats .stat-tiles {
-  margin: var(--space-5) 0 0;
-}
-
 .site-stats-status {
   font-size: var(--fs-13);
   margin: var(--space-3) 0 0;
@@ -4566,18 +4409,6 @@ a.month-bar::before {
 .site-stats-lists .kicker {
   display: block;
   margin-bottom: var(--space-2);
-}
-
-/* Three lists share the column, so a row is the label above its bar and
-   count rather than the admin page's one line, which would cut every path
-   and host short. */
-.site-stats-lists .bar-list li {
-  grid-template-columns: minmax(0, 1fr) 3rem;
-  row-gap: var(--space-1);
-}
-
-.site-stats-lists .bar-list-label {
-  grid-column: 1 / -1;
 }
 
 .changelog {
