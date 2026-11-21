@@ -474,7 +474,10 @@ export async function serveAdminAdd(page) {
         photos_waiting: 0,
         refused: [],
         created: ['i1', 'i2', 'i3'],
-        titles_created: [UNBROKEN, LONG],
+        titles_created: [
+          { id: 't1', title: UNBROKEN },
+          { id: 't2', title: LONG },
+        ],
       })
     if (path === '/api/intake/budget')
       return json({ remaining: 30, enforced: true })

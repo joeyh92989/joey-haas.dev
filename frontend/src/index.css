@@ -2340,6 +2340,16 @@ footer {
   gap: var(--space-2);
 }
 
+/* A long or unbroken title wraps inside its column instead of widening it
+   (grid items default to min-width: auto). */
+.intake-checkone > div,
+.intake-checkone-source,
+.intake-option > span,
+.intake-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .intake-checkone-source p {
   margin: 0;
 }
@@ -2358,6 +2368,7 @@ footer {
 }
 
 .intake-readline {
+  overflow-wrap: anywhere;
   background: var(--sunken);
   border-radius: var(--radius);
   font-family: var(--font-mono);
@@ -2804,6 +2815,7 @@ footer {
 }
 
 .intake-adds-title {
+  overflow-wrap: anywhere;
   color: var(--text);
   font-weight: 600;
   margin: 0;

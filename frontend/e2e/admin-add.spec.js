@@ -282,7 +282,7 @@ for (const width of [390, 1280]) {
         await state.prep(page)
         await page.mouse.move(1, 1)
         const controls = page.locator(
-          `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):not(.poster-card, .poster-card *):visible`,
+          `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled, [tabindex='-1']):not(.poster-card, .poster-card *):visible`,
         )
         expect(await controls.count()).toBeGreaterThan(0)
         // Real Tab presses, geometry and pixels (denver-site-ring.js).
@@ -543,6 +543,10 @@ test('the shelf sheet keeps its stars whole and 44px tall', async ({
     expect(target.topCut).toBeLessThanOrEqual(0.5)
     expect(target.clipped).toBe(false)
   }
+  if (process.env.E2E_SHOT_DIR)
+    await sheet.screenshot({
+      path: `${process.env.E2E_SHOT_DIR}/state-shelf-sheet-stars-phone.png`,
+    })
   // Pixels: the top row of a target is as empty as the row just above it.
   await sheet.locator('.quick-rate').scrollIntoViewIfNeeded()
   const box = await targets.nth(4).boundingBox()
