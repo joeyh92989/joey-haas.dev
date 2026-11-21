@@ -93,7 +93,10 @@ export default function YearInReview() {
   return (
     <section className="year-review">
       <SpineHeader />
-      <PageHeader title={`${year} in review`} className="mt-5" />
+      <PageHeader
+        title={`${year} in review`}
+        className="mt-5 [&_h1]:[overflow-wrap:anywhere]"
+      />
 
       {/* Shown whenever another year has finishes: in January the redirect
           lands on a year with none yet, and the way back is this nav. */}

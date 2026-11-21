@@ -21,6 +21,7 @@ export default defineConfig({
     'home.spec.js',
     'prose.spec.js',
     'shelf-lists.spec.js',
+    'detail.spec.js',
     'tour-overflow.spec.js',
     'tools-data.spec.js',
   ],

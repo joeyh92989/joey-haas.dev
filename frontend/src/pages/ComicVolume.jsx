@@ -226,7 +226,10 @@ export default function ComicVolume({ id, slug }) {
           />
         </div>
         <div className="comic-issue-text">
-          <PageHeader title={volume.label} className="[&_h1]:mb-2" />
+          <PageHeader
+            title={volume.label}
+            className="[&_h1]:mb-2 [&_h1]:[overflow-wrap:anywhere]"
+          />
           <p className="comic-issue-pills m-0 flex flex-wrap gap-2">
             <StatePill state={volume.read ? 'read' : 'owned'} />
           </p>

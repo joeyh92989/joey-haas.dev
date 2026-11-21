@@ -84,3 +84,21 @@ describe('the detail pages hold their measures in utilities (#533)', () => {
     expect(strings.DETAIL_BELOW).toContain('max-w-[45rem]')
   })
 })
+
+describe('phone tap targets (#533)', () => {
+  const read = (path) => readFileSync(join(here, path), 'utf8')
+  it('keeps 44px on the controls that were 44px with the legacy rules', () => {
+    expect(read('components/detail-classes.js')).toMatch(
+      /PHONE_TARGET = 'max-\[700px\]:min-h-11'/,
+    )
+    for (const file of [
+      'pages/Item.jsx',
+      'pages/ComicIssue.jsx',
+      'pages/ComicVolume.jsx',
+      'pages/YearInReview.jsx',
+      'components/OwnerControls.jsx',
+    ]) {
+      expect(read(file), file).toContain('PHONE_TARGET')
+    }
+  })
+})

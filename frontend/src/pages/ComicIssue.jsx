@@ -230,7 +230,7 @@ export default function ComicIssue({ id, n }) {
           <PageHeader
             kicker={kicker || null}
             title={`${page.series_title} #${page.number}${page.name ? ` · ${page.name}` : ''}`}
-            className="[&_h1]:mb-2 [&_.kicker]:mb-1"
+            className="[&_h1]:mb-2 [&_h1]:[overflow-wrap:anywhere] [&_.kicker]:mb-1"
           />
           <p className="comic-issue-pills m-0 flex flex-wrap gap-2">
             <StatePill state={pill} />

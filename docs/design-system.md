@@ -114,6 +114,29 @@ the admin shelf until its twin moves (slice b). The admin games shelf
 count line (the admin comics shelf takes `ResultBar` too). `STAT_CARD` is used
 by the public Games and Comics pages only; `/shelf/next` does not draw it.
 
+## Shelf details
+
+(#533.) The item page, the comic title page, an issue, a book and the Year and
+Month in review take their look from utility strings in
+`components/detail-classes.js`, not from the legacy sheet. The detail head is
+the cover beside a `PageHeader` (kicker, title, one muted line), under the
+`Breadcrumb`; the head's `h1` breaks inside a long word rather than push the
+page sideways. A game's status line is a `StatusMark` with its word (filled
+for finished and playing); a comic's state stays a `StatePill`. Sections are
+panels (`PANEL`: Card's shell, 6px radius, 1px outline, no shadow, body text
+at 16px), What's next is three `RecordCard`s with no number (a catalogue
+number is for collections, and a detail page has no whole shelf to place the
+title in without a new read), and tags and platforms are badge-look chips that
+may wrap. A control that was a legacy `.btn.sm` is a `buttonVariants` button
+and keeps its 44px phone target (`PHONE_TARGET`). Whole-link rings on the
+neighbour strip are drawn inside the tile (`NEIGHBOUR_RING`), because the strip
+scrolls and would clip an outward outline.
+
+Still legacy, shared with the admin twins until #536: `CoverWall`, `BookWall`,
+`SingleBookCard` (`.item-card`), `StatTile`, `PlaythroughTable`, `StatePill`,
+`MonthIndex`, `.edition-neighbour` (the admin book page) and the chips' CSS
+(`PlayNext`).
+
 ## Prose pages
 
 A prose page (Home, About, Projects, Now, Colophon, Blog, TIL and their
@@ -444,11 +467,8 @@ names and the admin list paths.
 
 | Gap | Where | Closed by |
 |---|---|---|
-| Hand-rolled `h1` under the area band | `Next.jsx`, `YearInReview.jsx`, `HowItWorks.jsx` | when touched |
-| Hand-rolled `h1` on a detail or sub-detail head | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` (and their fallback heads) | next games detail change |
+| Hand-rolled `h1` under the area band | `Next.jsx`, `HowItWorks.jsx` | when touched |
 | Hand-rolled `h1` on a shell or error page | `AdminLayout.jsx` (the signed-out gate), `RouteErrorBoundary.jsx` | when touched |
-| Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | next games detail change |
-| Item status words outside `StatePill` | `Item.jsx` (`statusInWords`) | next games detail change |
 | Empty words inline, not `EmptyState` | the Closet and intake lists | when touched |
 | Admin game edit and add paths not under `/admin/shelf` | `/admin/collection/:id`, `/admin/collection/add*` | next games detail change |
 | The admin comic card shows no sync state: `ItemOut` carries no `issues_synced_on` | `AdminComics.jsx` | item 5 |

@@ -12,7 +12,8 @@ export const DETAIL_HEAD =
 export const DETAIL_COVER = 'overflow-hidden rounded-sm border border-border'
 
 /** The heading cell: the title tight under its kicker, the rest below. */
-export const DETAIL_HEADING = 'min-w-0 pb-1 [&_h1]:mb-1'
+export const DETAIL_HEADING =
+  'min-w-0 pb-1 [&_h1]:mb-1 [&_h1]:[overflow-wrap:anywhere]'
 
 /** The row under the head's cover and heading: full width on a phone, under
  *  the heading on a desktop. */
