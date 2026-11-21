@@ -1,4 +1,4 @@
-import { buttonVariants } from './ui/button-variants.js'
+import { mastButton } from './ui/button-variants.js'
 
 /**
  * The masthead's Search button, with the keyboard shortcut as a hint
@@ -14,7 +14,7 @@ export default function SearchButton({ onOpen, open }) {
   return (
     <button
       type="button"
-      className={`${buttonVariants({ variant: 'quiet', size: 'sm' })} mast-search max-[700px]:min-h-11 max-[24rem]:px-1`}
+      className={`${mastButton()} mast-search`}
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-keyshortcuts={isMac() ? 'Meta+K /' : 'Control+K /'}

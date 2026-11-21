@@ -55,3 +55,16 @@ export const buttonVariants = cva(
     },
   },
 )
+
+/**
+ * A masthead control: the button's look at the bar's size, with a 44px target
+ * on a phone (#276) and tighter padding and type there, where the brand,
+ * Search, the theme toggle and Menu must fit 320px without sideways scroll
+ * (#475). Both phone steps are in px so the smaller one sorts last.
+ *
+ * @param {'quiet'|'ghost'} [variant]
+ * @returns {string} Class names.
+ */
+export function mastButton(variant = 'quiet') {
+  return `${buttonVariants({ variant, size: 'sm' })} max-[700px]:min-h-11 max-[700px]:px-2 max-[700px]:text-xs max-[384px]:px-1`
+}
