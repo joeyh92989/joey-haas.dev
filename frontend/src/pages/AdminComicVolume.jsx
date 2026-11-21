@@ -43,6 +43,7 @@ import {
   replaceVolume,
   toFacts,
 } from '../lib/volumeEdits.js'
+import { TEXT_LINK } from '../components/detail-classes.js'
 
 const KINDS = spine.comics.volume.kinds
 const MARKS = [
@@ -208,7 +209,11 @@ export default function AdminComicVolume() {
         )}
         {load === 'unauthorized' && (
           <p className="admin-error" role="alert">
-            {COPY.signIn} <Link to="/admin">{COPY.adminHome}</Link>.
+            {COPY.signIn}{' '}
+            <Link className={TEXT_LINK} to="/admin">
+              {COPY.adminHome}
+            </Link>
+            .
           </p>
         )}
       </section>

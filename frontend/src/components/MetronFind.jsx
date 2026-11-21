@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { volume as COPY } from '../content/adminVolume.js'
 import { collectBody, findMetronContents } from '../lib/volumeEdits.js'
 import { LINK_BTN, MUTED, SMALL } from './adminDataClasses.js'
+import { TEXT_LINK } from './detail-classes.js'
 
 const M = COPY.collects.metron
 
@@ -95,7 +96,11 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
             {candidate.resource_url && (
               <>
                 {' · '}
-                <a href={candidate.resource_url} rel="noreferrer noopener">
+                <a
+                  className={TEXT_LINK}
+                  href={candidate.resource_url}
+                  rel="noreferrer noopener"
+                >
                   {M.open}
                 </a>
               </>

@@ -21,6 +21,7 @@ import {
   TH,
   TH_ROW,
 } from '../components/adminDataClasses.js'
+import { TEXT_LINK } from '../components/detail-classes.js'
 
 const copy = adminCopy.catalogue
 
@@ -337,7 +338,12 @@ function Disagreements() {
             key={item.item_id}
             className="border-b border-border py-3 [overflow-wrap:anywhere]"
           >
-            <Link to={`/admin/collection/${item.item_id}`}>{item.title}</Link>{' '}
+            <Link
+              className={TEXT_LINK}
+              to={`/admin/collection/${item.item_id}`}
+            >
+              {item.title}
+            </Link>{' '}
             <span className={MUTED}>({item.region})</span>
             <p className="m-0">
               Yours: {FORMAT_WORDS[item.yours] ?? 'not recorded'}
@@ -512,7 +518,10 @@ export default function AdminCatalogue() {
       <section>
         <AdminPageHeader title={copy.sources} />
         <p>
-          <Link to="/admin">{copy.signIn}</Link> {copy.toSeeSources}
+          <Link className={TEXT_LINK} to="/admin">
+            {copy.signIn}
+          </Link>{' '}
+          {copy.toSeeSources}
         </p>
       </section>
     )

@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { FIELD, FIELD_AUTO, FIELD_CELL } from './adminDataClasses.js'
+import { TEXT_LINK } from './detail-classes.js'
 
 // The admin Shelf data and edit pages draw from the Button, Card and Input
 // looks (#535). The legacy `.btn`, `.chip`, `.panel` and `.link-button`
@@ -68,6 +69,23 @@ describe('admin data pages and the legacy look', () => {
       expect(bare).toEqual([])
     })
   }
+
+  // A link in running text with no underline is told from the words around
+  // it by colour alone (axe link-in-text-block, serious). Every link in these
+  // files names a class: TEXT_LINK for text, a button look for a button.
+  for (const file of FILES) {
+    it(`${file}: every link carries a class`, () => {
+      const text = readFileSync(resolve(cwd(), 'src', file), 'utf8')
+      const bare = [...text.matchAll(/<(Link|a)\b[^>]*>/g)]
+        .map((m) => m[0])
+        .filter((tag) => !/className=/.test(tag))
+      expect(bare).toEqual([])
+    })
+  }
+
+  it('TEXT_LINK underlines', () => {
+    expect(TEXT_LINK.split(/\s+/)).toContain('underline')
+  })
 
   it('every field takes a 44px phone target', () => {
     for (const look of [FIELD, FIELD_AUTO, FIELD_CELL])

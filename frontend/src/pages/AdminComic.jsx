@@ -36,6 +36,7 @@ import { kindWord } from '../lib/titleKind.js'
 import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { adminListPath } from '../lib/shelf.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { TEXT_LINK } from '../components/detail-classes.js'
 
 const COPY = spine.comics.admin
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
@@ -375,7 +376,10 @@ export default function AdminComic() {
         {header}
         <p className="admin-error" role="alert">
           {adminCopy.comic.notSignedIn}{' '}
-          <Link to="/admin">{adminCopy.comic.goToAdmin}</Link>.
+          <Link className={TEXT_LINK} to="/admin">
+            {adminCopy.comic.goToAdmin}
+          </Link>
+          .
         </p>
       </section>
     )
@@ -684,7 +688,9 @@ export default function AdminComic() {
 
       <p className="item-attribution muted">
         {spine.comics.attribution.before}{' '}
-        <a href={COMIC_VINE}>{spine.comics.attribution.label}</a>
+        <a className={TEXT_LINK} href={COMIC_VINE}>
+          {spine.comics.attribution.label}
+        </a>
         {spine.comics.attribution.after}
       </p>
     </section>

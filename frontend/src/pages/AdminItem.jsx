@@ -37,6 +37,7 @@ import {
   SMALL,
   TEXTAREA,
 } from '../components/adminDataClasses.js'
+import { TEXT_LINK } from '../components/detail-classes.js'
 
 // A comic has its own page (`AdminComic`), so it is not offered here.
 const TYPES = ['game', 'movie', 'boardgame']
@@ -513,7 +514,7 @@ export default function AdminItem() {
     <AdminPageHeader
       title={state === 'ready' && item ? item.title : 'Item'}
       description={
-        <Link to={adminListPath(item?.type)}>
+        <Link className={TEXT_LINK} to={adminListPath(item?.type)}>
           ← Back to {item?.type === 'comic' ? 'Comics' : 'Games'}
         </Link>
       }
@@ -535,7 +536,10 @@ export default function AdminItem() {
         {header}
         <p className="admin-error" role="alert">
           {adminCopy.item.notSignedIn}{' '}
-          <Link to="/admin">{adminCopy.item.goToAdmin}</Link>.
+          <Link className={TEXT_LINK} to="/admin">
+            {adminCopy.item.goToAdmin}
+          </Link>
+          .
         </p>
       </section>
     )

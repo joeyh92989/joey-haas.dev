@@ -12,6 +12,7 @@ import LoadState from './LoadState.jsx'
 import Panel from './Panel.jsx'
 import StatePill from './StatePill.jsx'
 import { FIELD, LABEL, MUTED, PLAIN } from './adminDataClasses.js'
+import { TEXT_LINK } from './detail-classes.js'
 
 const KINDS = spine.comics.volume.kinds
 
@@ -23,7 +24,9 @@ function BookRow({ itemId, book }) {
         <CoverImage src={book.cover_url} type="comic" alt="" />
       </span>
       <span className="admin-book-text">
-        <Link to={adminVolumePath(itemId, book.slug)}>{book.label}</Link>
+        <Link className={TEXT_LINK} to={adminVolumePath(itemId, book.slug)}>
+          {book.label}
+        </Link>
         <span className={`${MUTED} admin-book-facts`}>
           {[
             book.line_number != null
@@ -39,7 +42,7 @@ function BookRow({ itemId, book }) {
           <span className={`${MUTED} admin-book-facts`}>
             {COPY.noContents}
             {' · '}
-            <Link to={adminVolumePath(itemId, book.slug)}>
+            <Link className={TEXT_LINK} to={adminVolumePath(itemId, book.slug)}>
               {COPY.findContents}{' '}
               <span className="visually-hidden">
                 {COPY.findContentsFor(book.label)}

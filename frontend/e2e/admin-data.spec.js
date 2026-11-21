@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { tabRings } from './denver-site-ring.js'
+import { tabRings } from './admin-data-ring.js'
 import {
   COMIC_ID,
   GAME_ID,
@@ -48,55 +48,65 @@ async function open(page, route, { width, height }, theme = 'light') {
 }
 
 // ---- No sideways scroll, with a named offender ----
-for (const size of WIDTHS) {
-  for (const route of ROUTES) {
-    test(`no sideways scroll at ${size.width}px on ${route}`, async ({
-      page,
-    }) => {
-      await open(page, route, size)
-      const { overflow, wide } = await page.evaluate(() => {
-        const edge = document.documentElement.clientWidth
-        const wide = [...document.querySelectorAll('body *')]
-          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
-          // An element inside its own scroller is clipped, not overflowing.
-          .filter((el) => {
-            for (let p = el.parentElement; p; p = p.parentElement) {
-              const o = getComputedStyle(p).overflowX
-              if (o === 'auto' || o === 'scroll' || o === 'hidden') return false
-            }
-            return true
-          })
-          .slice(0, 4)
-          .map((el) => `${el.tagName}.${el.className}`.slice(0, 80))
-        // A scroller that is not positioned does not clip an absolutely
-        // placed child (a visually-hidden label): name those too.
-        const escaped = [...document.querySelectorAll('body *')]
-          .filter((el) => getComputedStyle(el).position === 'absolute')
-          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
-          .slice(0, 4)
-          .map((el) => `abs ${el.tagName}.${el.className}`.slice(0, 80))
-        // Text cut off inside an `overflow: hidden` ancestor is not page
-        // overflow, but it is lost: a name must wrap, not clip.
-        const cut = [
-          ...document.querySelectorAll('main :is(p, h2, h3, li, strong)'),
-        ]
-          .filter((el) => el.scrollWidth > el.clientWidth + 1)
-          .filter((el) => {
-            for (let p = el; p; p = p.parentElement)
-              if (getComputedStyle(p).overflowX === 'hidden') return true
-            return false
-          })
-          .slice(0, 4)
-          .map((el) => `clipped ${el.tagName}.${el.className}`.slice(0, 80))
-        return {
-          overflow:
-            document.documentElement.scrollWidth - edge + cut.length * 1000,
-          wide: [...wide, ...escaped, ...cut],
+// One page load per route; each width is a resize of the same page.
+async function sideways(page) {
+  const { overflow, wide } = await page.evaluate(() => {
+    const edge = document.documentElement.clientWidth
+    const wide = [...document.querySelectorAll('body *')]
+      .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+      // An element inside its own scroller is clipped, not overflowing.
+      .filter((el) => {
+        for (let p = el.parentElement; p; p = p.parentElement) {
+          const o = getComputedStyle(p).overflowX
+          if (o === 'auto' || o === 'scroll' || o === 'hidden') return false
         }
+        return true
       })
-      expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
-    })
-  }
+      .slice(0, 4)
+      .map((el) => `${el.tagName}.${el.className}`.slice(0, 80))
+    // A scroller that is not positioned does not clip an absolutely
+    // placed child (a visually-hidden label): name those too.
+    const escaped = [...document.querySelectorAll('body *')]
+      .filter((el) => getComputedStyle(el).position === 'absolute')
+      .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+      .slice(0, 4)
+      .map((el) => `abs ${el.tagName}.${el.className}`.slice(0, 80))
+    // Text cut off inside an `overflow: hidden` ancestor is not page
+    // overflow, but it is lost: a name must wrap, not clip.
+    const cut = [
+      ...document.querySelectorAll('main :is(p, h2, h3, li, strong)'),
+    ]
+      .filter((el) => el.scrollWidth > el.clientWidth + 1)
+      .filter((el) => {
+        for (let p = el; p; p = p.parentElement)
+          if (getComputedStyle(p).overflowX === 'hidden') return true
+        return false
+      })
+      .slice(0, 4)
+      .map((el) => `clipped ${el.tagName}.${el.className}`.slice(0, 80))
+    return {
+      overflow: document.documentElement.scrollWidth - edge + cut.length * 1000,
+      wide: [...wide, ...escaped, ...cut],
+    }
+  })
+  return { overflow, wide }
+}
+
+for (const route of ROUTES) {
+  test(`no sideways scroll at 320, 390, 1280 and 1440px on ${route}`, async ({
+    page,
+  }) => {
+    await open(page, route, WIDTHS[0])
+    for (const size of WIDTHS) {
+      await page.setViewportSize(size)
+      await page.waitForTimeout(150)
+      const { overflow, wide } = await sideways(page)
+      expect(
+        overflow,
+        `horizontal overflow in px at ${size.width}: ${wide.join(' | ')}`,
+      ).toBe(0)
+    }
+  })
 }
 
 // ---- Painted focus rings on every control ----
@@ -111,21 +121,34 @@ async function hideTabBar(page) {
   })
 }
 
-for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
+const RING_WIDTHS = WIDTHS.filter((s) => [390, 1280].includes(s.width))
+const PAGE_CONTROLS =
+  'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible'
+
+/** The theme is an attribute: switch it on the page already open. */
+async function setTheme(page, theme) {
+  await page.evaluate(
+    (value) => document.documentElement.setAttribute('data-theme', value),
+    theme,
+  )
+  await page.mouse.move(1, 1)
+  await page.waitForTimeout(400)
+}
+
+for (const size of RING_WIDTHS) {
   for (const route of ROUTES) {
-    for (const theme of THEMES) {
-      test(`focus rings paint on every control at ${size.width}px, ${theme}, ${route}`, async ({
-        page,
-      }) => {
-        test.setTimeout(240_000)
-        await open(page, route, size, theme)
-        await hideTabBar(page)
-        const controls = page.locator(
-          'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
-        )
-        expect(await tabRings(page, controls)).toEqual([])
-      })
-    }
+    test(`focus rings paint on every control at ${size.width}px, both themes, ${route}`, async ({
+      page,
+    }) => {
+      test.setTimeout(300_000)
+      await open(page, route, size, THEMES[0])
+      await hideTabBar(page)
+      for (const theme of THEMES) {
+        await setTheme(page, theme)
+        const rings = await tabRings(page, page.locator(PAGE_CONTROLS))
+        expect(rings, theme).toEqual([])
+      }
+    })
   }
 }
 
@@ -187,26 +210,26 @@ const STATES = [
   },
 ]
 
-for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
+for (const size of RING_WIDTHS) {
   for (const state of STATES) {
-    for (const theme of THEMES) {
-      test(`focus rings paint in ${state.name} at ${size.width}px, ${theme}`, async ({
-        page,
-      }) => {
-        test.setTimeout(240_000)
-        await open(page, state.route, size, theme)
-        await state.prep(page)
-        await hideTabBar(page)
-        await page.mouse.move(1, 1)
+    test(`focus rings paint in ${state.name} at ${size.width}px, both themes`, async ({
+      page,
+    }) => {
+      test.setTimeout(300_000)
+      await open(page, state.route, size, THEMES[0])
+      await state.prep(page)
+      await hideTabBar(page)
+      for (const theme of THEMES) {
+        await setTheme(page, theme)
         const controls = page
           .locator(state.scope)
           .locator(
             ':is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
           )
         expect(await controls.count()).toBeGreaterThan(0)
-        expect(await tabRings(page, controls)).toEqual([])
-      })
-    }
+        expect(await tabRings(page, controls), theme).toEqual([])
+      }
+    })
   }
 }
 
@@ -438,25 +461,56 @@ for (const theme of THEMES) {
 }
 
 // ---- axe, both themes ----
-for (const route of ROUTES) {
-  for (const theme of THEMES) {
-    test(`axe finds no serious violation on ${route}, ${theme}`, async ({
-      page,
-    }) => {
-      await open(page, route, WIDTHS[2], theme)
-      const results = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa'])
-        .analyze()
-      const fresh = results.violations.filter((v) => GATED.includes(v.impact))
-      expect(
-        fresh.map(
-          (v) =>
-            `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`,
-        ),
-      ).toEqual([])
-    })
-  }
+async function serious(page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze()
+  return results.violations
+    .filter((v) => GATED.includes(v.impact))
+    .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
 }
+
+for (const route of ROUTES) {
+  test(`axe finds no serious violation on ${route}, both themes`, async ({
+    page,
+  }) => {
+    await open(page, route, WIDTHS[2], THEMES[0])
+    for (const theme of THEMES) {
+      await setTheme(page, theme)
+      expect(await serious(page), theme).toEqual([])
+    }
+  })
+}
+
+// The Store list with nothing left to show: its sentence holds links to
+// Discover and Radar in running text, which must not rely on colour alone
+// (link-in-text-block).
+test('axe finds no serious violation on the empty Store list, both themes', async ({
+  page,
+}) => {
+  await page.route('**/api/recommendations/store-list', (route) =>
+    route.fulfill({
+      json: {
+        generated_at: { radar: null, discover: null },
+        catalogue: { stores_at: null, registry_at: null },
+        sections: {
+          buy_now: [],
+          preorders: [],
+          later: [],
+          not_on_cartridge: [],
+        },
+      },
+    }),
+  )
+  await open(page, '/admin/store-list', WIDTHS[2], THEMES[0])
+  await expect(
+    page.getByRole('main').getByRole('link', { name: 'Discover' }),
+  ).toBeVisible()
+  for (const theme of THEMES) {
+    await setTheme(page, theme)
+    expect(await serious(page), theme).toEqual([])
+  }
+})
 
 // ---- Review shots: set E2E_SHOT_DIR ----
 test('data pages review shots', async ({ page }) => {

@@ -14,6 +14,7 @@ import {
   NOTE_BOX,
   STATUS_LINE,
 } from '../components/adminDataClasses.js'
+import { TEXT_LINK } from '../components/detail-classes.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
@@ -46,7 +47,7 @@ function StoreLines({ lines }) {
       {lines.map((line, index) => (
         <li key={`${line.store}-${index}`}>
           {line.url ? (
-            <a href={line.url} rel="noreferrer noopener">
+            <a className={TEXT_LINK} href={line.url} rel="noreferrer noopener">
               {storeWords(line, lines)}
             </a>
           ) : (
@@ -200,7 +201,10 @@ export default function AdminStoreList() {
       <section>
         <AdminPageHeader title={copy.title} />
         <p>
-          <Link to="/admin">{pageCopy.signInLink}</Link> {copy.signIn}
+          <Link className={TEXT_LINK} to="/admin">
+            {pageCopy.signInLink}
+          </Link>{' '}
+          {copy.signIn}
         </p>
       </section>
     )
@@ -250,8 +254,14 @@ export default function AdminStoreList() {
       {empty && (
         <p className={MUTED}>
           {copy.empty.before}{' '}
-          <Link to="/admin/discover">{pageCopy.discover}</Link> {copy.empty.and}{' '}
-          <Link to="/admin/radar">{pageCopy.radar}</Link> {copy.empty.after}
+          <Link className={TEXT_LINK} to="/admin/discover">
+            {pageCopy.discover}
+          </Link>{' '}
+          {copy.empty.and}{' '}
+          <Link className={TEXT_LINK} to="/admin/radar">
+            {pageCopy.radar}
+          </Link>{' '}
+          {copy.empty.after}
         </p>
       )}
       {sections &&
