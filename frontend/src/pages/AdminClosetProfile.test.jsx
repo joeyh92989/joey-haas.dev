@@ -40,6 +40,22 @@ afterEach(() => {
 })
 
 describe('AdminClosetProfile', () => {
+  it('names every fieldset, the colouring one included', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json(PROFILE)),
+    )
+    render(
+      <MemoryRouter>
+        <AdminClosetProfile />
+      </MemoryRouter>,
+    )
+    await screen.findByLabelText(/^Dislikes/)
+    expect(
+      screen.getByRole('group', { name: adminCopy.closetProfile.coloring }),
+    ).toBeInTheDocument()
+  })
+
   it('sends the whole profile as one PATCH', async () => {
     const calls = []
     vi.stubGlobal(

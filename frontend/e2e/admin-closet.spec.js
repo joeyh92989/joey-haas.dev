@@ -38,6 +38,8 @@ async function open(page, route, { width, height }, theme = 'light') {
     theme,
   )
   await page.mouse.move(1, 1)
+  // The theme change fades colours (transition-colors): let it finish.
+  await page.waitForTimeout(400)
 }
 
 for (const size of WIDTHS) {

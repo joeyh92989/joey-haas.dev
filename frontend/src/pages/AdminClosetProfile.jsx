@@ -148,7 +148,7 @@ export default function AdminClosetProfile() {
         </fieldset>
 
         <fieldset>
-          <legend>{adminCopy.closetProfile.colouring}</legend>
+          <legend>{adminCopy.closetProfile.coloring}</legend>
           {COLORING.map(([key, label]) => (
             <label key={key}>
               <span className="garment-field-label">{label}</span>
