@@ -33,6 +33,14 @@ const NARROW = '(max-width: 1439px)'
 const TABLE =
   'spots-table w-full border-collapse text-sm [&_td]:border-b [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_td]:align-top [&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_thead_th]:text-xs [&_thead_th]:font-semibold [&_thead_th]:tracking-wider [&_thead_th]:text-(color:--text-3) [&_thead_th]:uppercase [&_tbody_th]:font-medium'
 
+// The notice under the header: empty, it takes no room (#536). The finder's
+// queue sits left of the table from 1280px, first on a phone; below that one
+// column, since the table beside the queue is too tight.
+const NOTICE =
+  'mx-0 mt-0 mb-4 text-[0.875rem] text-muted-foreground empty:hidden'
+const LAYOUT =
+  'grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start gap-4 [@media(max-width:1279px)]:grid-cols-[minmax(0,1fr)]'
+
 /** A refused read or write in words: a 401 or 403 means sign in again. */
 async function failureText(response) {
   return response.status === 401 || response.status === 403
@@ -291,7 +299,7 @@ export default function AdminSpots() {
           {error}
         </p>
       )}
-      <p className="spots-notice" role="status" aria-live="polite">
+      <p className={NOTICE} role="status" aria-live="polite">
         {notice}
       </p>
 
@@ -306,7 +314,7 @@ export default function AdminSpots() {
         </div>
       )}
 
-      <div className="finder-layout">
+      <div className={LAYOUT}>
         <SpotFinder
           onAccepted={rereadSpots}
           onRestored={(id) =>

@@ -7,6 +7,11 @@ import { whenWords } from '../lib/nightly.js'
 import EmptyState from './EmptyState.jsx'
 import { box, btn } from './denverSiteClasses.js'
 
+const TITLE = 'mx-0 mt-0 mb-2 text-[1.125rem]'
+const RUNLINE =
+  'mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-[0.8125rem] text-(color:--text-3)'
+const QUEUE = 'm-0 grid list-none gap-3 p-0'
+
 const copy = denver.finder
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
 /** A weekly job more than eight days old has missed a Sunday. */
@@ -219,10 +224,10 @@ export default function SpotFinder({ onAccepted, onRestored }) {
 
   return (
     <section className="finder" aria-labelledby="finder-title">
-      <h2 className="finder-title" id="finder-title" tabIndex={-1}>
+      <h2 className={TITLE} id="finder-title" tabIndex={-1}>
         {copy.title}
       </h2>
-      <div className="runline">
+      <div className={RUNLINE}>
         {state === 'ready' && (
           <StatusText state={run.state}>{run.words}</StatusText>
         )}
@@ -246,7 +251,7 @@ export default function SpotFinder({ onAccepted, onRestored }) {
         <EmptyState title={copy.empty} />
       )}
       {entries.length > 0 && (
-        <ul className="cand-list">
+        <ul className={QUEUE}>
           {entries.map((entry) =>
             entry.candidate ? (
               <CandidateCard

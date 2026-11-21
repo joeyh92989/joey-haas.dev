@@ -142,6 +142,18 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   The Spots table folds Last visit under the name below 1440px and the tags and
   actions under it on a phone, so no action is ever half-scrolled out of its
   wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.
+  Denver, spots and the map have no rule in `index.css` (#536, slice D3): `/denver`
+  (`pages/Denver.jsx`, `SpotCard`, `SpotMap`), What's next's `JumpNav` and the
+  weekend and finder cards draw from utilities written on the components. A
+  state hook that tests or e2e read stays as a name: `spot-card`,
+  `spot-card-name`, `denver-chips`, `spot-map-pin`, `spot-map-ground`,
+  `spot-map-popover` (with its `below`, `start` and `end` placements, which the
+  popover's transforms key on), `jump-nav`, `sug` (`lead`, `saved`), `wk-field`
+  and `wx-bars` (`wet`). Tailwind reads classes from the source text, so a long
+  class string is written out, never joined from a `${}` piece; a media bound
+  that must stay inclusive is `[@media(max-width:760px)]:`, since `max-[760px]:`
+  is a strict `<`. A `font:` shorthand in the old sheet also reset the line
+  height, so its port is `[font:...]`, not `font-mono text-[..]`.
   The admin Shelf data and edit pages (Sources, Store list, item and comic edit,
   a book's page; #535) take the same looks from `components/adminDataClasses.js`
   (`FIELD`, `FORM_GRID`, `LABEL`, `CHECKBOX`, the table strings, `LINK_BTN`,

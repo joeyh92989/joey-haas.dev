@@ -24,6 +24,34 @@ import EmptyState from '../components/EmptyState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 
 const copy = denver.weekend
+
+// The planner reads on a phone first: everything stacks, and the two days sit
+// side by side from 701px (#536).
+const STACK = 'grid gap-4'
+const TWO_UP = 'min-[701px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
+const WEEKEND = STACK
+const PILLS = 'flex flex-wrap items-center gap-2'
+const PILL_LIST = 'm-0 flex list-none flex-wrap gap-1 p-0'
+const NONE = 'm-0 text-[0.875rem] text-(color:--text-3)'
+const DAYS = `wx-days grid grid-cols-[minmax(0,1fr)] gap-4 ${TWO_UP}`
+const KICKER =
+  'mx-0 mt-2 mb-0 [font:600_var(--fs-12)_var(--font-mono)] tracking-[0.06em] text-(color:--text-3) uppercase'
+// Always rendered, never `display: none` when empty: a live region added or
+// revealed later is often not announced. Empty, it takes no room.
+const TOAST =
+  'm-0 flex min-h-0 flex-wrap items-center gap-2 text-[0.875rem] text-muted-foreground'
+const SUGGESTIONS = 'm-0 grid list-none gap-3 p-0'
+const SKIPS =
+  'flex flex-wrap items-center gap-2 text-[0.8125rem] text-(color:--text-3)'
+const SKIP_LIST = 'm-0 flex list-none flex-wrap gap-x-3 gap-y-2 p-0'
+const FOOT = `wk-foot grid grid-cols-[minmax(0,1fr)] items-start gap-4 ${TWO_UP}`
+const VISITS = 'm-0 grid list-none gap-1 p-0'
+const VISIT = 'flex justify-between gap-3 text-[0.875rem]'
+const VISIT_DATE = 'font-mono text-[0.8125rem] text-(color:--text-3)'
+const FORM = 'grid gap-3'
+const FIELD_ROW = 'wk-field flex items-center gap-2 text-[0.875rem]'
+const CHECK_ROW = 'flex items-center gap-2 text-[0.875rem]'
+const FORM_ACTS = 'flex flex-wrap gap-2'
 const ACTION_ERROR = 'That didn’t go through. Check your connection.'
 /** The API's ceiling on `seed`; Reroll wraps back to the first plan. */
 const MAX_SEED = 10000
@@ -129,8 +157,8 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
   }
 
   return (
-    <form className="wk-form" onSubmit={submit}>
-      <label className="wk-check">
+    <form className={FORM} onSubmit={submit}>
+      <label className={CHECK_ROW}>
         <input
           ref={first}
           className={checkbox}
@@ -140,7 +168,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
         />
         {copy.kidAlong}
       </label>
-      <label className="wk-check">
+      <label className={CHECK_ROW}>
         <input
           className={checkbox}
           type="checkbox"
@@ -149,7 +177,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
         />
         {copy.bikeIfDry}
       </label>
-      <label className="wk-field">
+      <label className={FIELD_ROW}>
         {copy.within}
         <input
           className={`${field} w-24!`}
@@ -164,7 +192,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
         />
         <span aria-hidden="true">{adminCopy.weekend.miles}</span>
       </label>
-      <label className="wk-field">
+      <label className={FIELD_ROW}>
         {copy.homeBy}
         <select
           className={`${field} w-auto!`}
@@ -179,7 +207,7 @@ function ConstraintsForm({ value, busy, onSave, onCancel }) {
           ))}
         </select>
       </label>
-      <div className="wk-form-acts">
+      <div className={FORM_ACTS}>
         <button type="submit" className={btn('primary')} disabled={busy}>
           {copy.saveConstraints}
         </button>
@@ -335,7 +363,7 @@ export default function AdminWeekend() {
 
   if (!plan) {
     return (
-      <div className="weekend">
+      <div className={WEEKEND}>
         <AdminPageHeader title={copy.title} />
         <LoadState
           loading={!error && !readEnded}
@@ -364,7 +392,7 @@ export default function AdminWeekend() {
   )
 
   return (
-    <div className="weekend">
+    <div className={WEEKEND}>
       <AdminPageHeader
         title={copy.title}
         description={
@@ -397,10 +425,10 @@ export default function AdminWeekend() {
         </p>
       )}
 
-      <div className="wk-pills">
+      <div className={PILLS}>
         <span className="visually-hidden">{copy.constraintsTitle}: </span>
         {pills.length ? (
-          <ul>
+          <ul className={PILL_LIST}>
             {pills.map((word) => (
               <li key={word} className={pill}>
                 {word}
@@ -408,7 +436,7 @@ export default function AdminWeekend() {
             ))}
           </ul>
         ) : (
-          <span className="wk-none">{copy.noConstraints}</span>
+          <span className={NONE}>{copy.noConstraints}</span>
         )}
         <button
           ref={editButton}
@@ -424,14 +452,14 @@ export default function AdminWeekend() {
         </button>
       </div>
 
-      <div className="wx-days">
+      <div className={DAYS}>
         {plan.days.map((day) => (
           <WeatherPanel key={day.date} day={day} range={range} />
         ))}
       </div>
 
-      <h2 className="wk-kicker">{copy.suggestions}</h2>
-      <p className="wk-toast" role="status" aria-live="polite">
+      <h2 className={KICKER}>{copy.suggestions}</h2>
+      <p className={TOAST} role="status" aria-live="polite">
         {skipped && (
           <>
             {skipped.name} {copy.skipped}{' '}
@@ -448,7 +476,7 @@ export default function AdminWeekend() {
         )}
       </p>
       {plan.suggestions.length ? (
-        <ul className="sug-list">
+        <ul className={SUGGESTIONS}>
           {plan.suggestions.map((s, i) => (
             <SuggestionCard
               key={s.slot_key}
@@ -468,9 +496,9 @@ export default function AdminWeekend() {
       )}
 
       {otherSkips.length > 0 && (
-        <div className="wk-skips">
+        <div className={SKIPS}>
           <span>{copy.skipsTitle}</span>
-          <ul>
+          <ul className={SKIP_LIST}>
             {otherSkips.map((spot) => (
               <li key={spot.spot_id}>
                 {spot.name}{' '}
@@ -489,7 +517,7 @@ export default function AdminWeekend() {
         </div>
       )}
 
-      <div className="wk-foot">
+      <div className={FOOT}>
         <SectionCard
           title={copy.visitsTitle}
           action={
@@ -499,18 +527,18 @@ export default function AdminWeekend() {
           }
         >
           {plan.recent_visits.length ? (
-            <ul className="wk-visits">
+            <ul className={VISITS}>
               {plan.recent_visits.map((visit) => (
-                <li key={visit.id}>
+                <li key={visit.id} className={VISIT}>
                   <span>{visit.name}</span>
-                  <span className="wk-visit-date">
+                  <span className={VISIT_DATE}>
                     {formatDate(visit.visited_on)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="wk-none">{copy.noVisits}</p>
+            <p className={NONE}>{copy.noVisits}</p>
           )}
         </SectionCard>
         <div id="wk-constraints">

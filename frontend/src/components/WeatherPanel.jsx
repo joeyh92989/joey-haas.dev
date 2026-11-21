@@ -2,6 +2,23 @@ import SectionCard from './SectionCard.jsx'
 import { StatusText } from './JobStatusRow.jsx'
 import { DAY } from '../lib/formatDate.js'
 
+// One day's strip: thirteen bars in --chart on --surface (4.04 dark, 5.89
+// light, in the token block); a wet hour is hatched with --hatch over a
+// --chart-2 bar, so wet differs in texture, not colour alone, and the panel
+// names the wet hours in words (#536).
+const RANGE = '[font:500_var(--fs-13)_var(--font-mono)] text-muted-foreground'
+const BODY = 'grid gap-2'
+const BARS =
+  'wx-bars grid h-18 grid-cols-[repeat(13,minmax(0,1fr))] items-end gap-1'
+const BAR = 'block min-h-1 rounded-t-[2px]'
+const BAR_DRY = `${BAR} bg-chart-1`
+const BAR_WET = `${BAR} wet [background:var(--hatch),var(--chart-2)]`
+const AXIS =
+  'flex justify-between [font:var(--fs-12)_var(--font-mono)] text-(color:--text-3)'
+const SUMMARY = 'm-0 text-[0.875rem] text-muted-foreground'
+const VERDICT =
+  'm-0 [&_.status-text]:text-[0.8125rem] [&_.status-text]:text-foreground'
+
 /**
  * The wet hours as runs of labels: "10a–4p, 7p". Hours are consecutive
  * in the view, so a run is a stretch of wet neighbours.
@@ -62,25 +79,25 @@ export default function WeatherPanel({ day, range }) {
       title={`${day.name} · ${date}`}
       action={
         day.high === null ? null : (
-          <span className="wx-range">
+          <span className={RANGE}>
             {day.high}° / {day.low}°
           </span>
         )
       }
-      className="wx"
+      className={BODY}
     >
       {label && (
         <>
-          <div className="wx-bars" role="img" aria-label={label}>
+          <div className={BARS} role="img" aria-label={label}>
             {hours.map((hour) => (
               <i
                 key={hour.hour}
-                className={hour.wet ? 'wet' : undefined}
+                className={hour.wet ? BAR_WET : BAR_DRY}
                 style={{ height: `${height(hour.temp_f, scale)}%` }}
               />
             ))}
           </div>
-          <div className="wx-axis" aria-hidden="true">
+          <div className={AXIS} aria-hidden="true">
             <span>8a</span>
             <span>noon</span>
             <span>4p</span>
@@ -89,12 +106,12 @@ export default function WeatherPanel({ day, range }) {
         </>
       )}
       {day.summary && (
-        <p className="wx-summary">
+        <p className={SUMMARY}>
           {day.summary}
           {wet.length > 0 && <> · Wet {wet.join(', ')}</>}
         </p>
       )}
-      <p className="wx-verdict">
+      <p className={VERDICT}>
         <StatusText state={day.verdict.state === 'ok' ? 'ok' : 'stale'}>
           {day.verdict.text}
         </StatusText>
