@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { PANEL_HEAD } from './detail-classes.js'
 import CoverTile from './CoverTile.jsx'
 
 const BOOKS = spine.comics.books
@@ -63,7 +64,9 @@ export default function BookWall({ comic, series }) {
   if (tiles.length === 0) return null
   return (
     <section className="item-card cover-wall" aria-labelledby="item-books">
-      <h2 id="item-books">{BOOKS.title}</h2>
+      <h2 id="item-books" className={PANEL_HEAD}>
+        {BOOKS.title}
+      </h2>
       <p className="book-wall-have muted">{haveLine(comic)}</p>
       <div className="cover-wall-grid">
         {tiles.map((tile) => (

@@ -6,7 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-21
 
-- Game, comic, issue, book, year and month pages have the same flat card look as the rest of the shelf.
+- Game, comic, issue, book, year and month pages have the same flat card look as the rest of the shelf, and the trail above a post, note or trip reads the same way.
 
 ## 2026-11-20
 

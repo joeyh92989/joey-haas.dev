@@ -210,6 +210,8 @@ describe('shared component rules', () => {
     'components/PostMeta.jsx',
     'components/TagList.jsx',
     'components/Kicker.jsx',
+    'components/Breadcrumb.jsx',
+    'components/PageHeader.jsx',
     'layouts/RootLayout.jsx',
     'pages/Home.jsx',
     'pages/About.jsx',

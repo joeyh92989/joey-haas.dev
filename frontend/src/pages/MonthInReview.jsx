@@ -11,6 +11,7 @@ import {
   DIARY,
   DIARY_DAY_ROW,
   SECTION_H2,
+  PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
@@ -70,7 +71,7 @@ export default function MonthInReview() {
     diary.settled && review.finished.length === 0 && review.days.length === 0
 
   return (
-    <section className="year-review">
+    <section className={cx('year-review', PAGE_WRAP)}>
       <PageHeader
         trail={[
           { label: spine.name, to: spine.path },

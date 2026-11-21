@@ -5,8 +5,9 @@ import { Link } from 'react-router'
 // text, so a screen reader does not announce it. The `crumbs` class names
 // stay as hooks for tests and the styles of other pages.
 const LIST =
-  "m-0 mb-3 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 text-[0.8125rem] text-muted-foreground [&_li+li]:before:mr-2 [&_li+li]:before:text-muted-foreground [&_li+li]:before:content-['/'_/_''] [&_li[aria-current]]:text-foreground [&_li[aria-current]]:font-medium [&_a]:break-words"
-const BAR = 'flex items-center justify-between gap-3 [&>nav]:min-w-0'
+  "m-0 mb-3 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 text-[0.8125rem] text-muted-foreground [&_li+li]:before:mr-2 [&_li+li]:before:text-muted-foreground [&_li+li]:before:content-['/'_/_''] [&_li[aria-current]]:text-foreground [&_li[aria-current]]:font-medium [&_li]:max-w-full [&_li]:min-w-0 [&_li]:[overflow-wrap:anywhere]"
+const BAR =
+  'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 [&>nav]:max-w-full [&>nav]:min-w-0'
 const END = 'flex-none text-[0.8125rem]'
 
 /**

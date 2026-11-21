@@ -15,6 +15,7 @@ import {
   SIBLING_LINK,
   SOURCE_LINE,
   SUB_HEAD,
+  PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
@@ -174,7 +175,7 @@ export default function ComicVolume({ id, slug }) {
 
   if (!page) {
     return (
-      <article className="comic-issue comic-volume">
+      <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
         <Breadcrumb
           label={ISSUE.breadcrumb}
           trail={[
@@ -197,7 +198,7 @@ export default function ComicVolume({ id, slug }) {
     collects.find((entry) => entry.link?.item_id === title.id)?.link ?? null
 
   return (
-    <article className="comic-issue comic-volume">
+    <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
       <Breadcrumb
         label={ISSUE.breadcrumb}
         trail={[

@@ -18,8 +18,10 @@ import {
   SECTION_H2,
   YEAR_CHIP,
   YEAR_COLUMNS,
+  PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
+import { cn } from '../lib/utils.js'
 import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
@@ -47,7 +49,7 @@ const MONTHS = [
 ]
 
 // A year in the nav is a chip, 44px tall on a phone.
-const chip = cx(buttonVariants({ variant: 'chip', size: 'chip' }), PHONE_TARGET)
+const chip = cn(buttonVariants({ variant: 'chip', size: 'chip' }), PHONE_TARGET)
 
 function shortDate(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)
@@ -91,7 +93,7 @@ export default function YearInReview() {
   const { versusCommunity: versus } = review
 
   return (
-    <section className="year-review">
+    <section className={cx('year-review', PAGE_WRAP)}>
       <SpineHeader />
       <PageHeader
         title={`${year} in review`}
@@ -107,7 +109,7 @@ export default function YearInReview() {
               <span
                 key={other}
                 aria-current="page"
-                className={cx(chip, YEAR_CHIP)}
+                className={cn(chip, YEAR_CHIP)}
               >
                 {other}
               </span>

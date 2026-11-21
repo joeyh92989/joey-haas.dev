@@ -120,22 +120,34 @@ by the public Games and Comics pages only; `/shelf/next` does not draw it.
 Month in review take their look from utility strings in
 `components/detail-classes.js`, not from the legacy sheet. The detail head is
 the cover beside a `PageHeader` (kicker, title, one muted line), under the
-`Breadcrumb`; the head's `h1` breaks inside a long word rather than push the
-page sideways. A game's status line is a `StatusMark` with its word (filled
-for finished and playing); a comic's state stays a `StatePill`. Sections are
+`Breadcrumb`; a long word in the title breaks inside its box rather than push
+the page sideways (`PAGE_WRAP` on each page's root). A game's and a comic
+title's status line is a `StatusMark` with its word (filled for finished and
+playing); an issue's and a book's state stays a `StatePill`. Sections are
 panels (`PANEL`: Card's shell, 6px radius, 1px outline, no shadow, body text
-at 16px), What's next is three `RecordCard`s with no number (a catalogue
+at 16px) with a serif 18px heading over a hairline, never upper-case: the
+wall, books and single-book panels take the same heading (`PANEL_HEAD`), so
+the comic title page reads as one set of panels (the admin comic page shares
+those three components and so takes it too). What's next is three `RecordCard`s with no number (a catalogue
 number is for collections, and a detail page has no whole shelf to place the
 title in without a new read), and tags and platforms are badge-look chips that
 may wrap. A control that was a legacy `.btn.sm` is a `buttonVariants` button
-and keeps its 44px phone target (`PHONE_TARGET`). Whole-link rings on the
+and keeps its 44px phone target (`PHONE_TARGET`). A pressed toggle is built
+with `cn`, which merges, since `cx` would leave two `aria-pressed` fills in the
+sheet (`classCollisions.test.js` fails any such join). Whole-link rings on the
 neighbour strip are drawn inside the tile (`NEIGHBOUR_RING`), because the strip
 scrolls and would clip an outward outline.
 
+`Breadcrumb` is restyled in utilities, and it is shared: blog posts, TIL notes,
+trips and the admin comic and book pages draw it too, so they have the same
+trail (13px, the current crumb in ink and medium weight, the trail wraps and
+breaks a long word, the owner's Edit link sits to the right and drops under
+the trail when it does not fit). `Breadcrumb` and `PageHeader` are eager files.
+
 Still legacy, shared with the admin twins until #536: `CoverWall`, `BookWall`,
-`SingleBookCard` (`.item-card`), `StatTile`, `PlaythroughTable`, `StatePill`,
-`MonthIndex`, `.edition-neighbour` (the admin book page) and the chips' CSS
-(`PlayNext`).
+`SingleBookCard` (their panel box, `.item-card`, now 6px like `PANEL`),
+`StatTile`, `PlaythroughTable`, `StatePill`, `MonthIndex`, `.edition-neighbour`
+(the admin book page) and the chips' CSS (`PlayNext`).
 
 ## Prose pages
 

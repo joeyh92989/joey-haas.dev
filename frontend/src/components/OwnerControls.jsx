@@ -3,6 +3,7 @@ import { spine } from '../content/spine.js'
 import { buttonVariants } from './ui/button-variants.js'
 import { OWNER_BOX, OWNER_NOTE, PHONE_TARGET } from './detail-classes.js'
 import { PRESSED_FILL } from './shelf-classes.js'
+import { cn } from '../lib/utils.js'
 import { cx } from '../lib/cx.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 
@@ -11,7 +12,7 @@ const COPY = spine.comics.issue.owner
 // An owned/read/skip toggle is a chip button; pressed is the ink fill and
 // weight (docs/design-system.md → Shelf lists → Pressed state), 44px tall on a
 // phone.
-const TOGGLE = cx(
+const TOGGLE = cn(
   buttonVariants({ variant: 'chip', size: 'chip' }),
   PRESSED_FILL,
   PHONE_TARGET,

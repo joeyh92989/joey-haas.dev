@@ -28,7 +28,7 @@ export const PANEL =
 
 /** A panel's `h2`: a serif with a hairline under it, as a record card's strip. */
 export const PANEL_HEAD =
-  'mb-3 border-b border-line-card pb-2 font-heading text-lg leading-tight font-medium text-foreground'
+  'mb-3 border-b border-line-card pb-2 font-heading text-lg leading-tight font-medium tracking-normal text-foreground normal-case'
 
 /** A mono caption: a source line, a fact label. Muted, never faded. */
 export const CAPTION = 'font-mono text-xs text-muted-foreground'
@@ -86,12 +86,12 @@ export const DIARY =
 
 /** A diary row: date, title, then the rating or minutes. */
 export const DIARY_ROW =
-  'grid grid-cols-[4.5rem_1fr_auto] items-center gap-x-3 border-b border-line-card pb-2'
+  'grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-line-card pb-2 [&>*]:min-w-0'
 
 /** A day's rows in the Month in review: the date is the heading above, so a
  *  row is a title and its minutes. */
 export const DIARY_DAY_ROW =
-  'grid grid-cols-[1fr_auto] items-center gap-x-3 border-b border-line-card pb-2'
+  'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-line-card pb-2 [&>*]:min-w-0'
 
 /** The Year in review's two columns: the months and finishes beside the
  *  genres and the crowd from 60rem, one column below. The genre bars fill
@@ -116,3 +116,7 @@ export const OWNER_BOX =
 
 /** The owner box's note: the smallest line. */
 export const OWNER_NOTE = 'm-0 mb-2 text-xs text-muted-foreground'
+
+/** The root of a detail page: a word with no break points (a 62-character
+ *  title, a long tag) wraps inside its box rather than widening the page. */
+export const PAGE_WRAP = '[overflow-wrap:anywhere]'

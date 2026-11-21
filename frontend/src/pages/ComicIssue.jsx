@@ -13,6 +13,7 @@ import {
   FACTS,
   PHONE_TARGET,
   SOURCE_LINE,
+  PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
@@ -143,7 +144,7 @@ export default function ComicIssue({ id, n }) {
 
   if (!page) {
     return (
-      <article className="comic-issue">
+      <article className={cx('comic-issue', PAGE_WRAP)}>
         <Breadcrumb
           label={COPY.breadcrumb}
           trail={[
@@ -177,7 +178,7 @@ export default function ComicIssue({ id, n }) {
   const ownTitleBook = page.also_in?.find((book) => book.same_title) ?? null
 
   return (
-    <article className="comic-issue">
+    <article className={cx('comic-issue', PAGE_WRAP)}>
       <Breadcrumb
         label={COPY.breadcrumb}
         trail={[

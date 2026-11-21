@@ -23,6 +23,7 @@ import {
   PHONE_TARGET,
   SECTION_H2,
   SOURCE_LINE,
+  PAGE_WRAP,
 } from '../components/detail-classes.js'
 import { cx } from '../lib/cx.js'
 import CoverImage from '../components/CoverImage.jsx'
@@ -772,7 +773,7 @@ function ItemPage({ id }) {
   // Nothing to show yet, or the read failed: the same breadcrumb as the
   // loaded page, so nothing shifts when the item arrives.
   return (
-    <article className="item-page">
+    <article className={cx('item-page', PAGE_WRAP)}>
       <Breadcrumb trail={itemTrail(null, false)} />
       <PageHeader className="visually-hidden" title={spine.name} />
       {!failed && <ItemSkeleton />}
@@ -871,7 +872,7 @@ function ItemView({
   const similar = detail ? (item.similar_in_collection ?? []) : []
 
   return (
-    <article className="item-page">
+    <article className={cx('item-page', PAGE_WRAP)}>
       <Breadcrumb trail={itemTrail(item.title, isComic)} />
 
       <div className={cx('item-head', DETAIL_HEAD)}>

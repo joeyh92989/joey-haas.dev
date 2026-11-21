@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { PANEL_HEAD } from './detail-classes.js'
 import { spine } from '../content/spine.js'
 import { volumePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
@@ -29,7 +30,9 @@ export default function SingleBookCard({ comic, series }) {
         <CoverImage src={book.cover_url} type="comic" alt="" />
       </div>
       <div className="single-book-text">
-        <h2 id="item-book">{BOOKS.single.title}</h2>
+        <h2 id="item-book" className={PANEL_HEAD}>
+          {BOOKS.single.title}
+        </h2>
         <p className="single-book-name">
           <b>{book.label}</b>
         </p>
