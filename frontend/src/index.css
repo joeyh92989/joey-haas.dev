@@ -5213,6 +5213,33 @@ dialog.shelf-sheet {
   opacity: 1;
 }
 
+/* The admin card's owner controls (#532, slice b). Above the link's
+   cover-wide ::after. On a pointer device the panel is out of the flow, over
+   the foot of the card on a solid surface, so a card is only as tall as its
+   content: shown with opacity (never display or visibility) on hover and on
+   focus-within, so the keyboard still reaches it and nothing moves. */
+.collection-list .shelf-actions {
+  position: relative;
+  z-index: 10;
+}
+
+.collection-list .shelf-actions[data-mode='hover'] {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  position: absolute;
+  right: 0;
+}
+
+.collection-list .poster-card:hover .shelf-actions[data-mode='hover'] {
+  opacity: 1;
+}
+
 /* The admin lists (#532, slice b) fade only the cover of a finished or
    abandoned title, not its marks: a faded "x2" or heart fell below 4.5:1
    against the cover under it. The public lists keep the whole-art fade. */

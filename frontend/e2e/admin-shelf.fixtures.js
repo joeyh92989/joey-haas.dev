@@ -153,10 +153,17 @@ export const COMICS = COMIC_TITLES.map((title, index) => ({
   tags: tagsFor('comic', index),
 }))
 
-/** Serves the session and the admin rows; `rows` are what /api/items returns. */
+/**
+ * Serves the session and the admin rows. `rows` are copied, and the writes
+ * the lists make (visibility, rating and status PATCHes, follow, pin) change
+ * the copy, so the page's reload shows what the click did.
+ */
 export async function serveAdmin(page, rows) {
-  await page.route('**/api/**', (route) => {
-    const url = new URL(route.request().url())
+  const live = structuredClone(rows)
+  await page.route('**/api/**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const method = request.method()
     const json = (body, status = 200) =>
       route.fulfill({
         status,
@@ -164,9 +171,15 @@ export async function serveAdmin(page, rows) {
         body: JSON.stringify(body),
       })
     const path = url.pathname
+    const body = () => {
+      try {
+        return JSON.parse(request.postData() ?? '{}')
+      } catch {
+        return {}
+      }
+    }
     if (path === '/api/auth/me') return json({ email: 'admin@example.com' })
-    if (path === '/api/items' && route.request().method() === 'GET')
-      return json(rows)
+    if (path === '/api/items' && method === 'GET') return json(live)
     if (path === '/api/items/delete-preview')
       return json({
         items: 1,
@@ -176,6 +189,21 @@ export async function serveAdmin(page, rows) {
         pick_events: 0,
         titles: ['A title'],
       })
+    const item = path.match(/^\/api\/items\/([\w-]+)(\/pin)?$/)
+    if (item) {
+      const row = live.find((entry) => entry.id === item[1])
+      if (!row) return json({}, 404)
+      if (item[2]) {
+        row.pinned_at = method === 'DELETE' ? null : '2026-11-20T00:00:00Z'
+        return json(row)
+      }
+      if (method === 'PATCH') return json(Object.assign(row, body()))
+    }
+    if (path === '/api/comics/follow' || path === '/api/comics/unfollow') {
+      const row = live.find((entry) => entry.external_id === body().external_id)
+      if (row) row.following = path.endsWith('/follow')
+      return json({})
+    }
     if (path === '/api/intake/counts') return json({ shelf: 0, closet: 0 })
     if (path.startsWith('/api/closet')) return json({}, 404)
     if (path === '/api/track') return route.abort()

@@ -8,6 +8,7 @@ import {
   ACTION,
   ARMED,
   CHECKBOX,
+  CHECK_LABEL,
   DANGER,
   PHONE_TARGET,
   SELECT,
@@ -113,7 +114,7 @@ export default function ShelfCardActions({
             </option>
           ))}
         </select>
-        <label className="inline-flex items-center gap-1 text-xs text-muted-foreground max-[700px]:min-h-11">
+        <label className={CHECK_LABEL}>
           <input
             type="checkbox"
             className={CHECKBOX}

@@ -154,9 +154,7 @@ export default function PosterCard({
           {item.is_public === false && (
             <p className="poster-private">Private</p>
           )}
-          {actions && (
-            <div className="relative z-10 mt-auto pt-1">{actions(item)}</div>
-          )}
+          {actions && <div className="mt-auto">{actions(item)}</div>}
         </div>
       </RecordCard>
     )

@@ -17,6 +17,8 @@ import { Input } from '../components/ui/input.jsx'
 import {
   ACTION,
   ARMED,
+  ARMED_NEUTRAL,
+  CHECK_LABEL,
   CHECKBOX,
   DANGER,
   PHONE_TARGET,
@@ -165,7 +167,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
             {adminCopy.comics.follow}
           </Button>
         )}
-        <label className="inline-flex items-center gap-1 max-[700px]:min-h-11">
+        <label className={CHECK_LABEL}>
           <input
             type="checkbox"
             className={CHECKBOX}
@@ -441,7 +443,7 @@ export default function AdminComics() {
         <>
           <ConfirmDelete
             className={ACTION}
-            armedClassName={ARMED}
+            armedClassName={ARMED_NEUTRAL}
             label={`Publish all ${rows.length}`}
             subject={`${rows.length} comic series`}
             name={`Publish all ${rows.length}`}

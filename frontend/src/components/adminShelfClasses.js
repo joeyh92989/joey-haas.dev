@@ -55,3 +55,19 @@ export const SELECT = cn(
 /** A native checkbox: sized, with the same ring as every other control. */
 export const CHECKBOX =
   'size-4 cursor-pointer accent-primary outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+/**
+ * The armed buttons of an action that is not destructive (Publish all): the
+ * primary fill to go ahead, a ghost to keep things as they are.
+ */
+export const ARMED_NEUTRAL = {
+  confirm: cn(buttonVariants({ variant: 'default', size: 'sm' }), PHONE_TARGET),
+  keep: ARMED.keep,
+}
+
+/**
+ * The label around a card panel's Public checkbox: at least 24px tall
+ * (WCAG 2.5.8, #505) so it is a target beside Up next, and 44px on a phone.
+ */
+export const CHECK_LABEL =
+  'inline-flex min-h-6 items-center gap-1 text-xs text-muted-foreground max-[700px]:min-h-11'

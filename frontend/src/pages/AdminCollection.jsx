@@ -24,6 +24,7 @@ import { Input } from '../components/ui/input.jsx'
 import {
   ACTION,
   ARMED,
+  ARMED_NEUTRAL,
   DANGER,
   PHONE_TARGET,
   SELECT,
@@ -990,7 +991,7 @@ export default function AdminCollection() {
         <>
           <ConfirmDelete
             className={ACTION}
-            armedClassName={ARMED}
+            armedClassName={ARMED_NEUTRAL}
             label={`Publish all ${items.length}`}
             subject={`${items.length} games`}
             name={`Publish all ${items.length}`}

@@ -307,6 +307,147 @@ test('the games list view paints rings on its bulk and row controls', async ({
   ).toEqual([])
 })
 
+// ---- Pressed and armed states: computed colours, both themes, at 1280 ----
+
+/**
+ * The contrast of `control`'s text against what is painted behind it, read
+ * from the computed colours (so a class that never applied cannot pass).
+ * Colours are normalised through a canvas, which resolves any CSS colour
+ * (color-mix, oklch) to sRGB; backgrounds are composited up the ancestors.
+ */
+async function textContrast(control) {
+  // The Button look eases its colours over 150ms: measure once settled.
+  await control.page().waitForTimeout(400)
+  return control.evaluate((el) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    const rgba = (css) => {
+      ctx.clearRect(0, 0, 1, 1)
+      ctx.fillStyle = '#000'
+      ctx.fillStyle = css
+      ctx.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+      return [r, g, b, a / 255]
+    }
+    const layers = []
+    for (let up = el; up; up = up.parentElement) {
+      const [r, g, b, a] = rgba(getComputedStyle(up).backgroundColor)
+      if (a > 0) layers.push([r, g, b, a])
+      if (a === 1) break
+    }
+    let back = [255, 255, 255]
+    for (const [r, g, b, a] of layers.reverse())
+      back = [
+        r * a + back[0] * (1 - a),
+        g * a + back[1] * (1 - a),
+        b * a + back[2] * (1 - a),
+      ]
+    const [fr, fg, fb, fa] = rgba(getComputedStyle(el).color)
+    const fore = [
+      fr * fa + back[0] * (1 - fa),
+      fg * fa + back[1] * (1 - fa),
+      fb * fa + back[2] * (1 - fa),
+    ]
+    const lum = ([r, g, b]) =>
+      [r, g, b]
+        .map((c) => c / 255)
+        .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+    const [hi, lo] = [lum(fore), lum(back)].sort((a, b) => b - a)
+    return (hi + 0.05) / (lo + 0.05)
+  })
+}
+
+for (const theme of THEMES) {
+  test(`pressed and armed states keep 4.5:1 text on the games list (${theme})`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    await open(page, openRoute, PAGES[0], theme)
+    const card = page
+      .locator('.poster-card')
+      .filter({ hasText: 'Star Fox' })
+      .first()
+    const toggle = page.getByRole('button', { name: 'Shelf', exact: true })
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(await textContrast(toggle), 'pressed view toggle').toBeGreaterThan(
+      4.5,
+    )
+    await card.hover()
+    const upNext = card.getByRole('button', { name: 'Up next' })
+    await upNext.click()
+    await expect(upNext).toHaveAttribute('aria-pressed', 'true')
+    await card.hover()
+    expect(await textContrast(upNext), 'pressed Up next').toBeGreaterThan(4.5)
+    expect(
+      await textContrast(card.getByRole('combobox', { name: /^Status for / })),
+      'status select',
+    ).toBeGreaterThan(4.5)
+    await card.getByRole('button', { name: 'Delete Star Fox' }).click()
+    for (const name of [/for good/, /^Keep /]) {
+      expect(
+        await textContrast(card.getByRole('button', { name })),
+        `armed ${name}`,
+      ).toBeGreaterThan(4.5)
+    }
+  })
+
+  test(`a pressed Follow keeps 4.5:1 text on the comics list (${theme})`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    await open(page, openRoute, PAGES[1], theme)
+    const card = page
+      .locator('.poster-card')
+      .filter({ hasText: 'Saga' })
+      .first()
+    await card.hover()
+    const follow = card.getByRole('button', { name: 'Follow' })
+    await expect(follow).toHaveAttribute('aria-pressed', 'true')
+    expect(await textContrast(follow), 'pressed Follow').toBeGreaterThan(4.5)
+    const label = card.locator('label:has(input[type=checkbox])')
+    expect(
+      (await label.boundingBox()).height,
+      'Public label is a 24px target',
+    ).toBeGreaterThanOrEqual(24)
+  })
+}
+
+// ---- Round trips: the mocked API keeps the rows, so a click shows ----
+
+test('publishing a game and following a series update the page', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'pointer panel')
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await open(page, openRoute, PAGES[0], 'light')
+  await expect(page.getByText('22 of 30 public')).toBeVisible()
+  const card = page
+    .locator('.poster-card')
+    .filter({ hasText: 'Star Fox' })
+    .first()
+  await card.hover()
+  // Controlled: the box follows the reload, so click rather than uncheck().
+  await card.getByRole('checkbox', { name: 'Public: Star Fox' }).click()
+  await expect(page.getByText('21 of 30 public')).toBeVisible()
+
+  await open(page, openRoute, PAGES[1], 'light')
+  const saga = page.locator('.poster-card').filter({ hasText: 'Saga' }).first()
+  await saga.hover()
+  await saga.getByRole('button', { name: 'Follow' }).click()
+  await saga.hover()
+  await expect(saga.getByRole('button', { name: 'Follow' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+})
+
 // ---- The phone: 44px targets, and the controls inside the opened sheet ----
 
 for (const spec of PAGES) {

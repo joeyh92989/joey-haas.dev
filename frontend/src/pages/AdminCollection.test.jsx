@@ -1841,4 +1841,25 @@ describe('AdminCollection look (#532 b)', () => {
       expect(control).not.toHaveClass('link-button')
     }
   })
+
+  it('arms Publish all in a neutral style and Delete in the destructive one', async () => {
+    stubApi()
+    await renderShelf()
+    await userEvent.click(screen.getByRole('button', { name: 'Publish all 2' }))
+    const yes = await screen.findByRole('button', { name: /Yes, publish/ })
+    expect(yes.className).not.toMatch(/(^| )text-destructive/)
+    await userEvent.click(screen.getByRole('button', { name: /^Keep / }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Delete Star Fox' }),
+    )
+    const sure = await screen.findByRole('button', { name: /for good/ })
+    expect(sure.className).toMatch(/(^| )text-destructive/)
+  })
+
+  it('makes the Public checkbox label a 24px target', async () => {
+    stubApi()
+    await renderShelf()
+    const box = screen.getByRole('checkbox', { name: 'Public: Star Fox' })
+    expect(box.closest('label').className).toContain('min-h-6')
+  })
 })
