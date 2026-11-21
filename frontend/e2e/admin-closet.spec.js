@@ -120,6 +120,16 @@ const STATES = [
     },
   },
   {
+    name: 'Swap sheet',
+    route: '/admin/closet/today',
+    scope: 'dialog[open]',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Swap/ }).first().click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expect(page.locator('.swap-choice').first()).toBeVisible()
+    },
+  },
+  {
     name: 'Not this reasons',
     route: '/admin/closet/today',
     scope: 'main',

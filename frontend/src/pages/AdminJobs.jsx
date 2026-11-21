@@ -1,6 +1,17 @@
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
+import {
+  TABLE,
+  TBODY,
+  TD_ITEM,
+  TD_WHEN,
+  TD_WORDS,
+  TEXT_LINK,
+  TH,
+  THEAD,
+  TR,
+} from '../components/adminHomeClasses.js'
 import Panel from '../components/Panel.jsx'
 import { useNightly } from '../lib/adminJobs.js'
 import { recentChanges } from '../lib/dashboard.js'
@@ -33,23 +44,35 @@ export default function AdminJobs() {
         }
       >
         {changes.length ? (
-          <div className="item-table-wrap">
-            <table className="item-table recent-table">
-              <thead>
-                <tr>
-                  <th scope="col">{adminCopy.jobs.item}</th>
-                  <th scope="col">{adminCopy.jobs.change}</th>
-                  <th scope="col">{adminCopy.jobs.when}</th>
+          <div className="min-w-0">
+            <table role="table" className={`recent-table ${TABLE}`}>
+              <thead role="rowgroup" className={THEAD}>
+                <tr role="row">
+                  <th scope="col" role="columnheader" className={TH}>
+                    {adminCopy.jobs.item}
+                  </th>
+                  <th scope="col" role="columnheader" className={TH}>
+                    {adminCopy.jobs.change}
+                  </th>
+                  <th scope="col" role="columnheader" className={TH}>
+                    {adminCopy.jobs.when}
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup" className={TBODY}>
                 {changes.map((change) => (
-                  <tr key={change.key}>
-                    <td>
-                      <Link to={change.to}>{change.title}</Link>
+                  <tr key={change.key} role="row" className={TR}>
+                    <td role="cell" className={TD_ITEM}>
+                      <Link to={change.to} className={TEXT_LINK}>
+                        {change.title}
+                      </Link>
                     </td>
-                    <td>{change.change}</td>
-                    <td className="job-when">{whenWords(change.at)}</td>
+                    <td role="cell" className={TD_WORDS}>
+                      {change.change}
+                    </td>
+                    <td role="cell" className={`job-when ${TD_WHEN}`}>
+                      {whenWords(change.at)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

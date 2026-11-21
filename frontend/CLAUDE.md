@@ -120,6 +120,12 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   and `.btn.sm` media rule no longer reaches them, and a label over a hidden file
   input takes `FILE_PICK` for its ring (the legacy `.btn-file:focus-within` sits
   in a lower layer than the button look's `outline-none`).
+  Admin Home, Jobs and the page header (#535, slice 5) take theirs from
+  `components/adminHomeClasses.js` (`PRIMARY`, `PLAIN`, `LINK`, `LINK_BUTTON`,
+  the panel, area card, job row and Jobs table strings, and the swap sheet's):
+  44px phone targets, a disabled button in the page colours with a dashed
+  outline (`CALM`, never the look's 55% opacity), and a stacked Jobs table on a
+  phone. `SwapSheet` is shared with Closet Today.
   The Denver and Site pages (#535, slice 3: Weekend, Spots, Analytics) take them
   from `components/denverSiteClasses.js` (`btn()`, `chipBtn`, `tagBtn`, `pill`,
   `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px

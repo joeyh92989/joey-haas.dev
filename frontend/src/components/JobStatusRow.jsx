@@ -2,6 +2,19 @@ import { Link } from 'react-router'
 import { adminCopy } from '../content/adminCopy.js'
 import { whenWords } from '../lib/nightly.js'
 import { useJobRun } from '../lib/useJobRun.js'
+import {
+  JOB_ACTIONS,
+  JOB_LABEL,
+  JOB_RESULT,
+  JOB_RESULT_FAILED,
+  JOB_STATE,
+  JOB_ROW,
+  JOB_SUMMARY,
+  JOB_TEXT,
+  JOB_WHEN,
+  LINK,
+  LINK_BUTTON,
+} from './adminHomeClasses.js'
 
 const copy = adminCopy.jobRun
 
@@ -13,10 +26,11 @@ const copy = adminCopy.jobRun
  * @param {'ok'|'stale'|'failed'|'unknown'} props.state
  * @param {import('react').ReactNode} [props.children] The words; the state
  *   itself when omitted.
+ * @param {string} [props.className] Extra classes, for where it sits.
  */
-export function StatusText({ state, children }) {
+export function StatusText({ state, children, className }) {
   return (
-    <span className="status-text">
+    <span className={className ? `status-text ${className}` : 'status-text'}>
       <span className={`status-dot ${state}`} aria-hidden="true" />
       {children ?? state}
     </span>
@@ -56,25 +70,27 @@ function RowBody({ job, extra, control }) {
   const words = job.runWords ?? `Open ${job.label}`
   const running = control?.state === 'running'
   return (
-    <li className="job-row">
-      <span className="job-when">
+    <li className={`job-row ${JOB_ROW}`}>
+      <span className={`job-when ${JOB_WHEN}`}>
         {job.at === null ? '—' : whenWords(job.at)}
       </span>
-      <span className="job-text">
-        <span className="job-label">{job.label}</span>
-        <span className="job-summary">
+      <span className={`job-text ${JOB_TEXT}`}>
+        <span className={`job-label ${JOB_LABEL}`}>{job.label}</span>
+        <span className={`job-summary ${JOB_SUMMARY}`}>
           {job.summary}
           {extra}
         </span>
         {control && <JobResult control={control} />}
       </span>
-      <StatusText state={job.state}>{job.stateWords}</StatusText>
+      <StatusText state={job.state} className={JOB_STATE}>
+        {job.stateWords}
+      </StatusText>
       {job.runNow || control ? (
-        <span className="job-actions">
+        <span className={`job-actions ${JOB_ACTIONS}`}>
           {control && (
             <button
               type="button"
-              className="job-run job-run-button"
+              className={`job-run job-run-button ${LINK_BUTTON}`}
               disabled={running}
               aria-busy={running}
               onClick={control.start}
@@ -84,7 +100,7 @@ function RowBody({ job, extra, control }) {
             </button>
           )}
           {job.runNow && (
-            <Link to={job.runNow} className="job-run">
+            <Link to={job.runNow} className={`job-run ${LINK}`}>
               {words}
               {!words.includes(job.label) && (
                 <span className="visually-hidden">{`: ${job.label}`}</span>
@@ -108,12 +124,12 @@ function JobResult({ control }) {
   const conflict = error === copy.conflict
   return (
     <>
-      <span role="status" className="job-result">
+      <span role="status" className={`job-result ${JOB_RESULT}`}>
         {state === 'running' && copy.running}
         {state === 'done' && `${copy.done}, ${whenWords(at)}`}
       </span>
       {state === 'failed' && (
-        <span role="alert" className="job-result failed">
+        <span role="alert" className={`job-result failed ${JOB_RESULT_FAILED}`}>
           {conflict ? error : `${copy.failed}: ${error}`}
         </span>
       )}

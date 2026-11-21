@@ -1,4 +1,11 @@
 import { usePageTitle } from '../lib/usePageTitle.js'
+import {
+  HEAD,
+  HEAD_DESC,
+  HEAD_END,
+  HEAD_TEXT,
+  HEAD_TITLE,
+} from './adminHomeClasses.js'
 
 /**
  * Every admin page's header: the title, an optional one-line description,
@@ -14,12 +21,16 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 export default function AdminPageHeader({ title, description, children }) {
   usePageTitle(`${title} · Admin · Joey Haas`)
   return (
-    <header className="admin-head">
-      <div className="admin-head-text">
-        <h1>{title}</h1>
-        {description && <p className="admin-head-desc">{description}</p>}
+    <header className={`admin-head ${HEAD}`}>
+      <div className={`admin-head-text ${HEAD_TEXT}`}>
+        <h1 className={HEAD_TITLE}>{title}</h1>
+        {description && (
+          <p className={`admin-head-desc ${HEAD_DESC}`}>{description}</p>
+        )}
       </div>
-      {children && <div className="admin-head-end">{children}</div>}
+      {children && (
+        <div className={`admin-head-end ${HEAD_END}`}>{children}</div>
+      )}
     </header>
   )
 }

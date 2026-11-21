@@ -1,5 +1,17 @@
 import { useId } from 'react'
 import { Link } from 'react-router'
+import {
+  AREA_ACTIONS,
+  AREA_CARD,
+  AREA_COVER,
+  AREA_FIGURES,
+  AREA_HEAD,
+  AREA_LEAD_COVER,
+  AREA_META,
+  AREA_TITLE,
+  AREA_TITLE_H2,
+  LINK,
+} from './adminHomeClasses.js'
 
 /**
  * One area on admin Home: its name, a link to its home page, the one thing
@@ -24,16 +36,18 @@ export default function AreaCard({
 }) {
   const id = useId()
   return (
-    <section className="area-card" aria-labelledby={id}>
-      <header className="area-card-head">
-        <h2 id={id}>{title}</h2>
-        <Link to={to}>
+    <section className={`area-card ${AREA_CARD}`} aria-labelledby={id}>
+      <header className={`area-card-head ${AREA_HEAD}`}>
+        <h2 id={id} className={AREA_TITLE_H2}>
+          {title}
+        </h2>
+        <Link to={to} className={LINK}>
           {linkLabel} <span aria-hidden="true">→</span>
         </Link>
       </header>
       {lead}
       {figures.length > 0 && (
-        <dl className="area-card-figures">
+        <dl className={`area-card-figures ${AREA_FIGURES}`}>
           {figures.map((figure) => (
             <div key={figure.label}>
               <dt>{figure.label}</dt>
@@ -42,7 +56,9 @@ export default function AreaCard({
           ))}
         </dl>
       )}
-      {actions && <div className="area-card-actions">{actions}</div>}
+      {actions && (
+        <div className={`area-card-actions ${AREA_ACTIONS}`}>{actions}</div>
+      )}
     </section>
   )
 }
@@ -57,11 +73,17 @@ export default function AreaCard({
  */
 export function AreaLead({ cover, title, meta }) {
   return (
-    <div className={cover ? 'area-card-lead with-cover' : 'area-card-lead'}>
-      {cover && <div className="area-card-cover">{cover}</div>}
+    <div
+      className={
+        cover
+          ? `area-card-lead with-cover ${AREA_LEAD_COVER}`
+          : 'area-card-lead'
+      }
+    >
+      {cover && <div className={`area-card-cover ${AREA_COVER}`}>{cover}</div>}
       <div>
-        <p className="area-card-title">{title}</p>
-        {meta && <p className="area-card-meta">{meta}</p>}
+        <p className={`area-card-title ${AREA_TITLE}`}>{title}</p>
+        {meta && <p className={`area-card-meta ${AREA_META}`}>{meta}</p>}
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ export default defineConfig({
     'admin-shelf.spec.js',
     'tour-overflow.spec.js',
     'tools-data.spec.js',
+    'admin-home.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

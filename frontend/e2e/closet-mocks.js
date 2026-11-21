@@ -205,6 +205,13 @@ export async function mockCloset(page) {
     if (pathname.startsWith('/api/closet/garments/')) return json(GARMENTS[0])
     if (pathname === '/api/closet/today') return json(TODAY)
     if (pathname === '/api/closet/review') return json(REVIEW)
+    if (pathname === '/api/closet/candidates')
+      return json({
+        candidates: [
+          tile('top', 'c1', 'grey tee'),
+          tile('top', 'c2', 'white tee'),
+        ],
+      })
     if (pathname === '/api/closet/profile') return json(PROFILE)
     return json({})
   })
