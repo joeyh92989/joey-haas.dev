@@ -1,4 +1,4 @@
-import { cn } from '../lib/utils.js'
+import { cx } from '../lib/cx.js'
 
 /**
  * A catalogue number, "No. 007": a mono label on a record card's strip.
@@ -11,7 +11,7 @@ import { cn } from '../lib/utils.js'
  */
 export default function CatalogueNumber({ n, className, ...rest }) {
   return (
-    <span aria-hidden="true" className={cn('font-mono', className)} {...rest}>
+    <span aria-hidden="true" className={cx('font-mono', className)} {...rest}>
       No. {String(n).padStart(3, '0')}
     </span>
   )

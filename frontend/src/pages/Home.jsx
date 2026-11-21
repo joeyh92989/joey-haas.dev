@@ -135,7 +135,9 @@ export default function Home() {
     <>
       <section className="hero" aria-labelledby="home-title">
         <div>
-          <Kicker>{profile.tagline}</Kicker>
+          <Kicker className="text-sm tracking-normal text-muted-foreground normal-case">
+            {profile.tagline}
+          </Kicker>
           <h1 id="home-title" className="hero-title">
             {profile.headline}
           </h1>
@@ -181,12 +183,12 @@ export default function Home() {
               {facts.map((row) => (
                 <div
                   key={row.label}
-                  className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 border-t border-line-card py-3 first:border-t-0"
+                  className="grid grid-cols-[5.75rem_minmax(0,1fr)] gap-3 border-t border-line-card py-3 first:border-t-0"
                 >
                   <dt className="font-mono text-xs leading-6 text-muted-foreground">
                     {row.label}
                   </dt>
-                  <dd className="font-medium">{row.value}</dd>
+                  <dd className="text-base font-semibold">{row.value}</dd>
                 </div>
               ))}
             </dl>
@@ -218,7 +220,7 @@ export default function Home() {
                   <h3 className="mb-2 font-heading text-xl leading-tight font-medium">
                     <Link
                       to={record.to}
-                      className="text-foreground no-underline outline-none after:absolute after:inset-0 hover:underline focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-ring"
+                      className="text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-ring"
                     >
                       {record.title}
                     </Link>

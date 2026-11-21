@@ -194,6 +194,34 @@ describe('shared component rules', () => {
     expect(wrong).toEqual([])
   })
 
+  // `cn` is tailwind-merge (~30KB raw): eager files use `cx` (lib/cx.js).
+  it('keeps cn and lib/utils out of the eager shell, Home and the record card', () => {
+    const EAGER = [
+      'components/SiteMast.jsx',
+      'components/SearchButton.jsx',
+      'components/NavSheet.jsx',
+      'components/MoreMenu.jsx',
+      'pages/Home.jsx',
+      'components/RecordCard.jsx',
+      'components/CatalogueNumber.jsx',
+      'components/StatusMark.jsx',
+      'components/CoverStrip.jsx',
+      'components/ContactLine.jsx',
+      'components/Kicker.jsx',
+    ]
+    const found = files.filter((f) => EAGER.includes(f.name))
+    expect(found).toHaveLength(EAGER.length)
+    const bad = found
+      .filter(
+        (f) =>
+          /lib\/utils(\.js)?['"]|@\/lib\/utils|from 'cn'|ui\/card\.jsx/.test(
+            f.text,
+          ) || /\bcn\(/.test(f.text),
+      )
+      .map((f) => f.name)
+    expect(bad).toEqual([])
+  })
+
   it('draws the search dialog with Button and Input, not bare elements', () => {
     const search = files.find((f) => f.name === 'components/SearchDialog.jsx')
     expect(search.text).not.toMatch(/<button[\s>]|<input[\s>]/)

@@ -948,7 +948,7 @@ p.muted a,
 }
 
 .hero-lede {
-  color: var(--text-2);
+  color: var(--text);
   font-size: var(--fs-18);
   margin: var(--space-4) 0 var(--space-5);
   max-width: 54ch;
