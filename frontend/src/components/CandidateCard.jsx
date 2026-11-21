@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { denver, tagLabel, TAGS } from '../content/denver.js'
 import { ACTS, box, btn, pill, tagBtn } from './denverSiteClasses.js'
 
-const HEAD = 'flex items-start justify-between gap-3'
-const NAME = 'm-0 text-[1.125rem] font-medium'
+const CAND_HEAD = 'flex items-start justify-between gap-3'
+const CAND_NAME = 'm-0 text-[1.125rem] font-medium'
 // The hairline top margin is an optical offset, not a scale step.
-const AREA =
+const CAND_AREA =
   'mx-0 mt-[0.1rem] mb-0 text-[0.8125rem] text-(color:--text-3) first-letter:uppercase'
-const WHY = 'm-0 text-[0.875rem] text-muted-foreground'
-const SCORE =
+const CAND_WHY = 'm-0 text-[0.875rem] text-muted-foreground'
+const CAND_SCORE =
   'font-mono text-[0.75rem] text-(color:--text-3) [&_strong]:text-foreground'
-const TAG_LIST =
+const CAND_TAG_LIST =
   'mt-0 mr-0 mb-0 ml-auto flex list-none flex-wrap gap-1 p-0 [@media(max-width:700px)]:ml-0 [@media(max-width:700px)]:w-full'
 
 const copy = denver.finder
@@ -50,12 +50,12 @@ export default function CandidateCard({
       className={`${box} cand grid gap-2 px-4 py-3`}
       aria-labelledby={headingId}
     >
-      <div className={HEAD}>
+      <div className={CAND_HEAD}>
         <div>
-          <h3 className={NAME} id={headingId}>
+          <h3 className={CAND_NAME} id={headingId}>
             {candidate.name}
           </h3>
-          <p className={AREA}>
+          <p className={CAND_AREA}>
             {[candidate.category?.replaceAll('_', ' '), candidate.distance]
               .filter(Boolean)
               .join(' · ')}
@@ -66,10 +66,10 @@ export default function CandidateCard({
         </span>
       </div>
 
-      <p className={WHY}>
+      <p className={CAND_WHY}>
         {scored ? (
           <>
-            <span className={SCORE}>
+            <span className={CAND_SCORE}>
               Fit <strong>{candidate.fit}</strong>
             </span>{' '}
             {candidate.reason}
@@ -100,7 +100,7 @@ export default function CandidateCard({
           <span className="visually-hidden">: {candidate.name}</span>
         </button>
         <ul
-          className={TAG_LIST}
+          className={CAND_TAG_LIST}
           aria-label={`${copy.tagsLabel}: ${candidate.name}`}
         >
           {TAGS.map((tag) => (
