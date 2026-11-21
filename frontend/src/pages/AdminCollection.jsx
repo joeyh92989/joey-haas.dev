@@ -19,9 +19,21 @@ import ShelfCardActions from '../components/ShelfCardActions.jsx'
 import ConfirmDelete from '../components/ConfirmDelete.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
+import { Button } from '../components/ui/button.jsx'
+import { Input } from '../components/ui/input.jsx'
+import {
+  ACTION,
+  ARMED,
+  ARMED_NEUTRAL,
+  DANGER,
+  PHONE_TARGET,
+  SELECT,
+  TOGGLE,
+} from '../components/adminShelfClasses.js'
 import WrapUpSheet from '../components/WrapUpSheet.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { catalogueNumbers } from '../lib/catalogue.js'
 import { comicPayload } from '../lib/comics.js'
 import { finishedIn } from '../lib/dashboard.js'
 import { ownerYear } from '../lib/formatDate.js'
@@ -68,6 +80,10 @@ import {
 } from '../content/shelfDelete.js'
 
 /** The empty selection: the shelf's filters and one null per tag group. */
+// The bulk bar's labels: the words beside their selects.
+const BULK_LABEL =
+  'flex items-center gap-2 text-[0.8125rem] text-muted-foreground'
+
 const NO_GAME_FILTER = { ...NO_FILTER, ...noTags('game') }
 /** Play style has the most tags, so its chips sit behind More… past eight. */
 const TAG_LIMITS = { play_style: 8 }
@@ -784,6 +800,10 @@ export default function AdminCollection() {
       Object.keys(NO_FILTER).some((key) => filters[key] !== NO_FILTER[key]) ||
       hasTagFilter('game', filters)
     const privateCount = rows.filter((item) => !item.is_public).length
+    // Numbered over every row, private included, so a filter never renumbers.
+    // These count titles the public list does not show, so a number here can
+    // differ from the same title's number on /shelf/games.
+    const numbers = catalogueNumbers(rows)
     function clearAll() {
       setFilters(NO_GAME_FILTER)
       setQuery('')
@@ -800,7 +820,7 @@ export default function AdminCollection() {
         <div className="shelf-top">
           <label className="shelf-search">
             <span className="visually-hidden">{spine.games.search}</span>
-            <input
+            <Input
               ref={searchField}
               type="search"
               placeholder={spine.games.search}
@@ -819,22 +839,26 @@ export default function AdminCollection() {
         <FavoritesRow items={rows} linkFor={linkFor} placeholders />
 
         {showNudge && (
-          <div className="shelf-nudge" role="note">
-            <p>{nudgeText(unrated)}</p>
-            <button
-              type="button"
-              className="chip"
+          <div
+            className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border bg-card p-4"
+            role="note"
+          >
+            <p className="m-0 flex-[1_1_16rem]">{nudgeText(unrated)}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className={PHONE_TARGET}
               onClick={() => setFilters({ ...NO_GAME_FILTER, unrated: true })}
             >
               {adminCopy.collection.showThem}
-            </button>
-            <button
-              type="button"
-              className="link-button"
+            </Button>
+            <Button
+              variant="link"
+              className={PHONE_TARGET}
               onClick={() => setNudgeDismissed(true)}
             >
               {adminCopy.collection.dismiss}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -900,10 +924,12 @@ export default function AdminCollection() {
           <PosterGrid
             items={visible}
             size={size}
+            layout="records"
             renderCard={(item) => (
               <PosterCard
                 item={item}
                 to={linkFor(item)}
+                number={numbers.get(item.id)}
                 dimmed={dim && isDimmable(item)}
                 actions={(row) => (
                   <ShelfCardActions
@@ -952,13 +978,20 @@ export default function AdminCollection() {
       <Link to={gamesPath()}>
         View {gamesPath()} <span aria-hidden="true">↗</span>
       </Link>
-      <Link to="/admin/collection/add" className="btn sm">
+      <Button
+        variant="outline"
+        size="sm"
+        className={PHONE_TARGET}
+        nativeButton={false}
+        render={<Link to="/admin/collection/add" />}
+      >
         {adminCopy.collection.addGames}
-      </Link>
+      </Button>
       {ready && (
         <>
           <ConfirmDelete
-            className="btn sm"
+            className={ACTION}
+            armedClassName={ARMED_NEUTRAL}
             label={`Publish all ${items.length}`}
             subject={`${items.length} games`}
             name={`Publish all ${items.length}`}
@@ -967,26 +1000,28 @@ export default function AdminCollection() {
             disabled={bulkBusy || publicCount === items.length}
             onConfirm={() => setAllVisibility(true)}
           />
-          <button
-            type="button"
-            className="btn sm"
+          <Button
+            variant="outline"
+            size="sm"
+            className={PHONE_TARGET}
             disabled={bulkBusy || publicCount === 0}
             onClick={() => setAllVisibility(false)}
           >
             {adminCopy.collection.hideAll}
-          </button>
-          <button
-            type="button"
-            className="btn sm"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className={PHONE_TARGET}
             disabled={refreshing !== null}
             onClick={() => refreshMetadata(REFRESH_TYPE)}
           >
             {refreshing === REFRESH_TYPE
               ? 'Refreshing…'
               : `Refresh ${REFRESH_TYPE} metadata`}
-          </button>
+          </Button>
           <div
-            className="chip-row"
+            className="flex flex-wrap gap-2"
             role="group"
             aria-label={adminCopy.collection.view}
           >
@@ -994,15 +1029,16 @@ export default function AdminCollection() {
               ['shelf', 'Shelf'],
               ['list', 'List'],
             ].map(([value, label]) => (
-              <button
+              <Button
                 key={value}
-                type="button"
-                className="chip"
+                variant="chip"
+                size="chip"
+                className={TOGGLE}
                 aria-pressed={view === value}
                 onClick={() => changeView(value)}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
         </>
@@ -1126,14 +1162,15 @@ export default function AdminCollection() {
                 <div className="item-table-wrap">
                   {selected.size > 0 && (
                     <div
-                      className="bulk-set"
+                      className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-border bg-card px-4 py-2"
                       role="group"
                       aria-label={adminCopy.collection.selectedItems}
                     >
                       <span>{selected.size} selected</span>
-                      <label>
+                      <label className={BULK_LABEL}>
                         {adminCopy.collection.setPlatform}
                         <select
+                          className={SELECT}
                           value={bulkPlatform}
                           onChange={(event) =>
                             setBulkPlatform(event.target.value)
@@ -1149,9 +1186,10 @@ export default function AdminCollection() {
                           ))}
                         </select>
                       </label>
-                      <label>
+                      <label className={BULK_LABEL}>
                         {adminCopy.collection.setFormat}
                         <select
+                          className={SELECT}
                           value={bulkFormat}
                           onChange={(event) =>
                             setBulkFormat(event.target.value)
@@ -1167,21 +1205,25 @@ export default function AdminCollection() {
                           ))}
                         </select>
                       </label>
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={PHONE_TARGET}
                         disabled={
                           bulkBusy || (bulkPlatform === '' && bulkFormat === '')
                         }
                         onClick={applyBulkSet}
                       >
                         {adminCopy.collection.apply}
-                      </button>
+                      </Button>
                       <ShelfConfirm
                         key={[...selected].sort().join(',')}
                         many
                         ids={[...selected]}
                         title={`${selected.size} ${selected.size === 1 ? 'item' : 'items'}`}
                         label={`Delete ${selected.size}`}
+                        className={DANGER}
+                        armedClassName={ARMED}
                         onConfirm={removeSelected}
                       />
                     </div>

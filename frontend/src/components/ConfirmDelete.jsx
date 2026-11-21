@@ -25,6 +25,9 @@ import { useEffect, useId, useRef, useState } from 'react'
  *   or there is nothing to act on).
  * @param {() => void} [props.onArm]  Called when the first button is
  *   pressed, so the page can fetch `detail`.
+ * @param {{confirm?: string, keep?: string}} [props.armedClassName]  Classes
+ *   for the two buttons shown once armed, in place of the legacy `.btn danger`
+ *   and `.btn ghost` look (the shelf lists draw them from the Button look).
  */
 export default function ConfirmDelete({
   onConfirm,
@@ -38,6 +41,7 @@ export default function ConfirmDelete({
   ready = true,
   disabled = false,
   onArm,
+  armedClassName,
 }) {
   const detailId = useId()
   const [confirming, setConfirming] = useState(false)
@@ -85,7 +89,7 @@ export default function ConfirmDelete({
         )}
         <button
           type="button"
-          className="btn danger"
+          className={armedClassName?.confirm ?? 'btn danger'}
           aria-label={
             subject
               ? confirmLabel === 'Delete for good'
@@ -103,7 +107,7 @@ export default function ConfirmDelete({
         <button
           type="button"
           ref={keepRef}
-          className="btn ghost"
+          className={armedClassName?.keep ?? 'btn ghost'}
           aria-label={subject ? `Keep ${subject}` : undefined}
           disabled={busy}
           onClick={close}

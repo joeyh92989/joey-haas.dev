@@ -22,6 +22,7 @@ export default defineConfig({
     'prose.spec.js',
     'shelf-lists.spec.js',
     'detail.spec.js',
+    'admin-shelf.spec.js',
     'tour-overflow.spec.js',
     'tools-data.spec.js',
   ],

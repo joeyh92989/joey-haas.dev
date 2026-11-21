@@ -107,12 +107,27 @@ title with the status as a visually hidden word, a key to the mark over them
 about 24rem tall; the rail is three columns on a small phone, then 4, 6 and
 12).
 
-**What the shared pieces reach.** The loose `PosterCard` (no number) stays on
-the admin shelf until its twin moves (slice b). The admin games shelf
-(`/admin/shelf/games`) takes the new look early through the pieces it shares:
-`FilterChips labelled` and the `ShelfToolbar` chip buttons, and `ResultBar`'s
-count line (the admin comics shelf takes `ResultBar` too). `STAT_CARD` is used
-by the public Games and Comics pages only; `/shelf/next` does not draw it.
+**Admin twins (#532, slice b).** `/admin/shelf/games` and `/admin/shelf/comics`
+draw the same numbered record cards (`PosterCard` with a `number`, in a
+`PosterGrid layout="records"`) with the owner's controls as a sibling of the
+card's link, in a box above its cover-wide `::after` so they take clicks
+(`PosterCard`'s `actions` prop). A private row carries its Private tag. The
+admin number counts every row, private included, so a title can be a
+different number here than on the public list: it is a position label, never
+an id. The page header's actions, the nudge, the bulk bar and the card panel
+are the Button look (`components/adminShelfClasses.js`): outline buttons,
+toggles with the filled pressed state (`TOGGLE`), `SELECT` and `CHECKBOX`
+with the same ring, and the armed Delete/Redo buttons through
+`ConfirmDelete`'s `armedClassName`. Each carries `max-[700px]:min-h-11`,
+since the Button look has no phone target of its own. Finished and abandoned
+titles fade only their cover on the admin lists (`.collection-list`), so the
+replay and heart marks keep their contrast. The List view's table keeps the
+shared `.item-table` look (Spots and Catalogue read it) until a later slice.
+
+**What the shared pieces reach.** `STAT_CARD` is used by the public Games and
+Comics pages only; `/shelf/next` does not draw it. `ResultBar`'s count line,
+`FilterChips labelled` and the `ShelfToolbar` chip buttons are shared by the
+public and admin lists.
 
 ## Shelf details
 

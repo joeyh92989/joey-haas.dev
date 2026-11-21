@@ -79,8 +79,10 @@ function KeyGlyph() {
  * @param {number} [props.number] - The card's catalogue number. With it the
  *   card is a record card in a numbered collection (the public lists): a
  *   strip with the catalogue number and the status mark with its word, and the whole
- *   card is the link. Without it the card is the loose poster the admin
- *   shelf and the other grids draw.
+ *   card is the link. Without it the card is the loose poster the other
+ *   grids draw. The admin lists pass both: `actions` then sits below the
+ *   card's link (above its cover-wide `::after`, so it takes clicks), and a
+ *   private row carries its Private tag.
  */
 export default function PosterCard({
   item,
@@ -148,6 +150,11 @@ export default function PosterCard({
             </div>
           ) : null}
           {meta && <p className="poster-meta muted">{meta}</p>}
+          {/* Admin rows only: a public row has no is_public at all. */}
+          {item.is_public === false && (
+            <p className="poster-private">Private</p>
+          )}
+          {actions && <div className="mt-auto">{actions(item)}</div>}
         </div>
       </RecordCard>
     )

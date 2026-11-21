@@ -235,3 +235,50 @@ describe('theme blocks', () => {
     expect(missing).toEqual([])
   })
 })
+
+// The admin shelf lists (#532, slice b). Delete is the destructive Button
+// look (a border and text in --destructive on the card, and its word, so it
+// is not colour alone): shadcn's --destructive lives in tailwind.css, one
+// hex per theme, so it is read here and measured as text on --surface. The
+// other new states reuse pairs measured above: a pressed toggle is --bg on
+// --text (4.5), Play is --accent-ink on --accent (4.5), the heart is
+// --rating on --surface (3) and its glyph changes shape when pressed.
+describe.each(Object.keys(THEMES))(
+  'admin shelf controls, %s theme',
+  (theme) => {
+    it('Delete (--destructive) is at least 4.5:1 on --surface', () => {
+      const tailwind = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'tailwind.css'),
+        'utf8',
+      )
+      const hex =
+        theme === 'dark'
+          ? tailwind.match(
+              /:root \{[\s\S]*?--destructive:\s*(#[0-9a-f]{6})/i,
+            )[1]
+          : tailwind.match(
+              /\[data-theme='light'\] \{[\s\S]*?--destructive:\s*(#[0-9a-f]{6})/i,
+            )[1]
+      const surface = rgb(resolve(THEMES[theme], '--surface'))
+      expect(ratio(rgb(hex), surface)).toBeGreaterThanOrEqual(4.5)
+    })
+
+    // The comics panel's "Cover wall" and "Edit" are accent-text links on the
+    // card (4.5, as text), and a pressed heart is a non-text mark in
+    // --rating on the card (3:1; its glyph also changes from outline to
+    // filled).
+    it('the panel links (--accent-text) are at least 4.5:1 on --surface', () => {
+      expect(
+        measure(theme, '--accent-text', '--surface'),
+      ).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('the pressed heart (--rating) is at least 3:1 on --surface', () => {
+      expect(measure(theme, '--rating', '--surface')).toBeGreaterThanOrEqual(3)
+    })
+
+    it('a pressed toggle (--bg on a --text fill) is at least 4.5:1', () => {
+      expect(measure(theme, '--bg', '--text')).toBeGreaterThanOrEqual(4.5)
+    })
+  },
+)
