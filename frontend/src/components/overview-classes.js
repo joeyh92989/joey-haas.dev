@@ -47,7 +47,7 @@ export const BAR_LIST = 'm-0 list-none p-0'
 /** A row: label, bar and number on one line (admin), or the label above its
  *  bar and number where three lists share a column (`stacked`, /stats). */
 export const BAR_ROW =
-  'grid items-center border-t border-line-card py-2 text-[0.875rem] first:[border-top:0]'
+  'grid items-center border-t border-t-line-card py-2 text-[0.875rem] first:[border-top:0]'
 export const BAR_ROW_WIDE = 'grid-cols-[minmax(0,1fr)_70px_50px] gap-3'
 export const BAR_ROW_STACKED = 'grid-cols-[minmax(0,1fr)_3rem] gap-x-3 gap-y-1'
 export const BAR_LABEL =
@@ -72,7 +72,7 @@ export const SHELF_STATS =
 
 export const STAT_COUNT = 'text-(color:--text-3) tabular-nums'
 
-export const FAVOURITES = 'mb-6'
+export const FAVOURITES = 'mt-0 mb-6'
 export const FAVOURITES_ROW =
   'grid list-none grid-cols-[repeat(4,minmax(0,8.5rem))] gap-4'
 export const FAVOURITE_LINK =
@@ -151,7 +151,7 @@ export const NOW_PLAYING_LIST =
 /** The rule is --status-active, the grid's Playing dot, so the two read as
  *  one mark; it already clears 3:1 on --surface in both themes. */
 export const NOW_PLAYING_CARD =
-  'flex h-full items-center gap-4 rounded-md border border-l-4 border-border border-l-(--status-active) bg-card p-3 text-foreground no-underline hover:border-(--line-strong) hover:border-l-(--status-active) focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-solid focus-visible:outline-ring'
+  'flex h-full items-center gap-4 rounded-md border border-l-4 border-border border-l-(--status-active) bg-card p-3 text-foreground no-underline hover:underline hover:border-(--line-strong) hover:border-l-(--status-active) focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-solid focus-visible:outline-ring'
 export const NOW_PLAYING_COVER =
   'shrink-0 grow-0 basis-24 group-data-[count=1]/now:basis-[8.5rem]'
 export const NOW_PLAYING_BODY = 'flex min-w-0 flex-col gap-1'
