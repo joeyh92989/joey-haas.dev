@@ -15,8 +15,6 @@ const BANNED =
 const EAGER_SHELF = [
   'PosterCard.jsx',
   'PosterGrid.jsx',
-  'SpineCard.jsx',
-  'SpineKey.jsx',
   'shelf-classes.js',
   'RecordCard.jsx',
   'StatusMark.jsx',

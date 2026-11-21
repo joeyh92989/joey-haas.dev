@@ -1,10 +1,12 @@
 import { useId, useState } from 'react'
 import { Button } from './ui/button.jsx'
 import { cn } from '../lib/utils.js'
+import { PRESSED_FILL } from './shelf-classes.js'
 
-// A labelled row's chips are underline tabs (#532): no pill, the pressed one
-// bold with the chip variant's 3px accent bar under it (its `after`), on the
-// row's own 1px rule.
+// A labelled single-select row's chips are underline tabs (#532): no pill, the
+// pressed one bold with the chip variant's 3px accent bar under it (its
+// `after`), on the row's own 1px rule. A toggle on such a row stays a chip
+// button with a filled pressed state (PRESSED_FILL).
 const TAB =
   'rounded-none border-transparent px-3 text-sm hover:border-transparent hover:underline aria-pressed:border-transparent aria-pressed:bg-transparent aria-pressed:font-semibold'
 
@@ -19,7 +21,12 @@ function Chip({ pressed, count, label, onClick, className, disabled, tab }) {
     <Button
       variant="chip"
       size="chip"
-      className={cn('chip', tab && TAB, className)}
+      className={cn(
+        'chip',
+        tab && TAB,
+        tab === false && PRESSED_FILL,
+        className,
+      )}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
@@ -117,7 +124,7 @@ export default function FilterChips({
           count={option.count}
           label={option.label}
           disabled={disabled}
-          tab={labelled}
+          tab={labelled ? true : undefined}
           onClick={() =>
             onChange({
               ...value,
@@ -158,7 +165,7 @@ export default function FilterChips({
       label={toggle.label}
       className={toggle.className}
       disabled={disabled}
-      tab={labelled}
+      tab={labelled ? false : undefined}
       onClick={() => onChange({ ...value, [toggle.key]: !value[toggle.key] })}
     />
   ))

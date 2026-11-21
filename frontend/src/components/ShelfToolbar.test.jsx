@@ -127,4 +127,14 @@ describe('ShelfToolbar', () => {
       ).toBeInTheDocument()
     })
   })
+
+  it('presses Comfortable, Dim finished and the layout with a fill, not a thin rule', () => {
+    renderToolbar({ labelled: true, layout: 'cards', onLayoutChange: vi.fn() })
+    for (const name of ['Comfortable', 'Dim finished', 'Cards']) {
+      const button = screen.getByRole('button', { name })
+      expect(button.className, name).toContain('aria-pressed:bg-foreground')
+      expect(button.className, name).toContain('aria-pressed:text-background')
+      expect(button.className, name).toContain('aria-pressed:font-semibold')
+    }
+  })
 })

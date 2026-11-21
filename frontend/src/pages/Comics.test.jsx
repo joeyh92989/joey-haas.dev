@@ -715,6 +715,10 @@ describe('Comics as record cards', () => {
     expect(saga.querySelector('[data-strip]')).toHaveTextContent(
       copy.status.active,
     )
+    // And the card's link carries it too, once, for a screen reader.
+    expect(within(saga).getByRole('link')).toHaveAccessibleName(
+      new RegExp(`^Saga\\b.*${copy.status.active}`),
+    )
   })
 
   it('searches in the shared field', () => {

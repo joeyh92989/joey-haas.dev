@@ -92,11 +92,62 @@ for (const path of PAGES) {
   }
 }
 
-// A computed outline cannot show clipping. Compare pixels of a strip just
-// inside the card's top edge, focused and not (as the Blog card's test).
+// A computed outline cannot show clipping, so the ring is read from pixels:
+// a 3px band just inside each of the card's four edges must hold the ring's
+// own colour once focused, and none of it before. The screenshot is decoded
+// in a blank page's canvas.
+async function ringPixels(page, shot, box, ring) {
+  const probe = await page.context().newPage()
+  try {
+    return await probe.evaluate(
+      async ({ data, box, ring }) => {
+        const image = new Image()
+        image.src = `data:image/png;base64,${data}`
+        await image.decode()
+        const canvas = document.createElement('canvas')
+        canvas.width = image.width
+        canvas.height = image.height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(image, 0, 0)
+        const near = (x, y) => {
+          const [r, g, b] = ctx.getImageData(x, y, 1, 1).data
+          return (
+            Math.abs(r - ring[0]) < 12 &&
+            Math.abs(g - ring[1]) < 12 &&
+            Math.abs(b - ring[2]) < 12
+          )
+        }
+        const share = (points) =>
+          points.filter(([x, y]) => near(x, y)).length / points.length
+        const { w, h } = box
+        const span = (n) => Array.from({ length: n - 24 }, (_, i) => i + 12)
+        // Each band is the 3 pixels inside the 1px border; a pixel counts if
+        // any of the 3 on its line is the ring colour.
+        const band = (fn) =>
+          span(fn.n).map((i) => [0, 1, 2].map((d) => fn.at(i, 1 + d)))
+        const any = (rows) =>
+          rows.filter((row) => row.some(([x, y]) => near(x, y))).length /
+          rows.length
+        return {
+          top: any(band({ n: w, at: (i, d) => [i, d] })),
+          bottom: any(band({ n: w, at: (i, d) => [i, h - 1 - d] })),
+          // The card's own 3px accent edge is the same colour as the ring: the
+          // ring starts inside it, at x = 3.
+          left: any(band({ n: h, at: (i, d) => [d + 2, i] })),
+          right: any(band({ n: h, at: (i, d) => [w - 1 - d, i] })),
+          unused: share([[0, 0]]),
+        }
+      },
+      { data: shot.toString('base64'), box, ring },
+    )
+  } finally {
+    await probe.close()
+  }
+}
+
 for (const path of PAGES) {
   for (const theme of THEMES) {
-    test(`a focused ${path} card paints a visible inset ring (${theme})`, async ({
+    test(`a focused ${path} card paints its ring on all four inside edges (${theme})`, async ({
       page,
       openRoute,
     }, testInfo) => {
@@ -107,19 +158,74 @@ for (const path of PAGES) {
       await page.mouse.move(0, 0)
       await card.scrollIntoViewIfNeeded()
       const box = await card.boundingBox()
-      const clip = {
-        x: box.x + 24,
-        y: box.y + 1,
-        width: Math.max(box.width - 48, 8),
-        height: 3,
-      }
-      const before = await page.screenshot({ clip })
+      const size = { w: Math.round(box.width), h: Math.round(box.height) }
+      const clip = { x: box.x, y: box.y, width: box.width, height: box.height }
+      const beforeShot = await page.screenshot({ clip })
       await link.focus()
       await page.keyboard.press('Shift+Tab')
       await page.keyboard.press('Tab')
       await expect(link).toBeFocused()
-      const after = await page.screenshot({ clip })
-      expect(Buffer.compare(before, after)).not.toBe(0)
+      await page.mouse.move(0, 0)
+      const afterShot = await page.screenshot({ clip })
+      // Read once focused: an unfocused link has no ring colour yet.
+      const ring = await link.evaluate((el) => {
+        const probe = document.createElement('span')
+        probe.style.color = getComputedStyle(el, '::after').outlineColor
+        document.body.append(probe)
+        const [r, g, b] = getComputedStyle(probe)
+          .color.match(/\d+(\.\d+)?/g)
+          .map(Number)
+        probe.remove()
+        return [r, g, b]
+      })
+      const before = await ringPixels(page, beforeShot, size, ring)
+      const after = await ringPixels(page, afterShot, size, ring)
+      for (const edge of ['top', 'bottom', 'left', 'right']) {
+        expect(before[edge], `${edge} before`).toBeLessThan(0.5)
+        expect(after[edge], `${edge} after`).toBeGreaterThan(0.9)
+      }
+    })
+  }
+}
+
+// The title is underlined in the accent (Home's titles do the same). The old
+// poster-title clipped it: sample the title box with and without the line;
+// they differ only if the underline is painted. A long title is not clipped.
+for (const path of PAGES) {
+  for (const theme of THEMES) {
+    test(`a one-line ${path} card title paints its underline (${theme})`, async ({
+      page,
+      openRoute,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+      await openRoute(path, theme)
+      const title = page.locator('.poster-card .poster-title').first()
+      await title.scrollIntoViewIfNeeded()
+      await page.mouse.move(0, 0)
+      const style = await title.evaluate((el) => {
+        const c = getComputedStyle(el)
+        return {
+          overflow: c.overflow,
+          display: c.display,
+          lines: Math.round(
+            el.getBoundingClientRect().height / parseFloat(c.lineHeight),
+          ),
+        }
+      })
+      expect(style.overflow).toBe('visible')
+      expect(style.display).toBe('block')
+      expect(style.lines).toBe(1)
+      const box = await title.boundingBox()
+      const clip = {
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height + 8,
+      }
+      const withLine = await page.screenshot({ clip })
+      await title.evaluate((el) => (el.style.textDecorationLine = 'none'))
+      const without = await page.screenshot({ clip })
+      expect(Buffer.compare(withLine, without)).not.toBe(0)
     })
   }
 }
@@ -180,7 +286,7 @@ test('a long title wraps on its spine and is not clipped or wider than it', asyn
   await page.route('**/snapshot/items.json', (route) =>
     route.fulfill({ json: items }),
   )
-  for (const width of [320, 390, 1280, 1440]) {
+  for (const width of [320, 390, 430, 800, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await openRoute('/shelf/games?view=spines', 'light')
     const spine = page.locator('.shelf-spine', { hasText: long }).first()
@@ -197,6 +303,9 @@ test('a long title wraps on its spine and is not clipped or wider than it', asyn
         bottom: a.bottom - t.bottom,
         top: t.top - a.top,
         clipped: title.scrollHeight > title.clientHeight + 1,
+        wide: title.scrollWidth > title.clientWidth + 1,
+        linkWide: link.scrollWidth > link.clientWidth + 1,
+        height: a.height,
         page: document.documentElement.scrollWidth - window.innerWidth,
       }
     })
@@ -204,6 +313,11 @@ test('a long title wraps on its spine and is not clipped or wider than it', asyn
     expect(fit.right, `right @${width}`).toBeGreaterThanOrEqual(-0.5)
     expect(fit.bottom, `bottom @${width}`).toBeGreaterThanOrEqual(-0.5)
     expect(fit.clipped).toBe(false)
+    // A vertical title that runs out of lines overflows sideways.
+    expect(fit.wide, `title wider than itself @${width}`).toBe(false)
+    expect(fit.linkWide, `spine wider than itself @${width}`).toBe(false)
+    // No row is stretched past about 24rem by one long title.
+    expect(fit.height, `spine height @${width}`).toBeLessThanOrEqual(24 * 16)
     expect(fit.page).toBeLessThanOrEqual(0)
     await expect(spine).toHaveAccessibleName(new RegExp(`^${long}`))
   }

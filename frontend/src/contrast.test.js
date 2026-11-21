@@ -119,6 +119,9 @@ const PAIRS = [
   ['--badge-ink', '--badge', 4.5],
   // The badge colour is also text on the page, the card and the rail.
   ...['--bg', '--surface', '--sunken'].map((b) => ['--badge', b, 4.5]),
+  // A pressed filter chip (#532): the page colour as text on the ink fill.
+  ['--bg', '--text', 4.5],
+  ['--text', '--bg', 3],
   ['--line', '--bg', 3],
   ['--line-strong', '--bg', 3],
   ['--line-card', '--surface', 3],

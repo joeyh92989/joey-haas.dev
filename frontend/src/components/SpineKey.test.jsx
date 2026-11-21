@@ -11,7 +11,7 @@ describe('SpineKey', () => {
       within(key)
         .getAllByRole('listitem')
         .map((item) => item.textContent),
-    ).toEqual(['Key', 'Playing or finished', 'Any other status'])
+    ).toEqual(['Key', 'Playing, reading or finished', 'Any other status'])
     const squares = key.querySelectorAll('[data-slot="status-mark-square"]')
     expect([...squares].map((s) => s.getAttribute('data-filled'))).toEqual([
       'true',

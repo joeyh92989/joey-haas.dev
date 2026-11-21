@@ -21,8 +21,8 @@ import {
  * It draws from the same item shape as `PosterCard`, so the two views read
  * one list.
  *
- * Eager-safe like PosterCard (the Now page reaches this folder): `cx`, no
- * `cn`, no `ui/*`.
+ * Only the lazy Games and Comics pages import it, but it takes the same
+ * `cx` and class strings as `PosterCard` so the two views share one look.
  *
  * @param {object} props
  * @param {object} props.item - A shelf row (the shape PosterCard takes).

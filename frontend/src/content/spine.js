@@ -539,7 +539,7 @@ export const spine = {
     spineKey: {
       label: 'Key',
       aria: 'Key to the marks on spines',
-      filled: 'Playing or finished',
+      filled: 'Playing, reading or finished',
       outlined: 'Any other status',
     },
     key: {

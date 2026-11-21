@@ -124,11 +124,13 @@ export default function PosterCard({
         number={number}
         label={
           markLabel && (
-            <StatusMark
-              status={item.status === 'active' ? 'live' : item.status}
-            >
-              {markLabel}
-            </StatusMark>
+            <span aria-hidden="true">
+              <StatusMark
+                status={item.status === 'active' ? 'live' : item.status}
+              >
+                {markLabel}
+              </StatusMark>
+            </span>
           )
         }
       >
@@ -136,9 +138,15 @@ export default function PosterCard({
           <Link to={to} className={cx('poster-link', CARD_LINK)}>
             {art}
             <span className={cx('poster-title', CARD_TITLE)}>{item.title}</span>
+            {markLabel && ' '}
+            {markLabel && <span className="sr-only">{markLabel}</span>}
           </Link>
           {run}
-          <Rating rating={item.rating} />
+          {item.rating ? (
+            <div className="mt-1">
+              <Rating rating={item.rating} />
+            </div>
+          ) : null}
           {meta && <p className="poster-meta muted">{meta}</p>}
         </div>
       </RecordCard>

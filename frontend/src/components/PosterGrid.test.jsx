@@ -120,7 +120,7 @@ describe('PosterGrid layouts', () => {
     expect(list.className).toContain('[--poster-min:12rem]')
   })
 
-  it('lays spines out on a 4, 6 and 12 column rail', () => {
+  it('lays spines out on a 3, 4, 6 and 12 column rail', () => {
     render(
       <PosterGrid
         items={ITEMS}
@@ -131,7 +131,8 @@ describe('PosterGrid layouts', () => {
     )
     const list = screen.getByRole('list')
     expect(list).toHaveAttribute('data-layout', 'spines')
-    expect(list.className).toContain('grid-cols-4')
+    expect(list.className).toContain('grid-cols-3')
+    expect(list.className).toContain('min-[430px]:grid-cols-4')
     expect(list.className).toContain('min-[701px]:grid-cols-6')
     expect(list.className).toContain('min-[981px]:grid-cols-12')
   })

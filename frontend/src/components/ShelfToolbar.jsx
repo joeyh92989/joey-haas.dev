@@ -1,8 +1,10 @@
 import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { cn } from '../lib/utils.js'
 import { Button } from './ui/button.jsx'
 import FilterChips from './FilterChips.jsx'
 import LayoutToggle from './LayoutToggle.jsx'
+import { PRESSED_FILL } from './shelf-classes.js'
 import SortControl from './SortControl.jsx'
 
 const copy = spine.shelf
@@ -67,7 +69,7 @@ export default function ShelfToolbar({
           key={value}
           variant="chip"
           size="chip"
-          className="chip"
+          className={cn('chip', labelled && PRESSED_FILL)}
           aria-pressed={size === value}
           onClick={() => onSizeChange(value)}
           data-size={value}
@@ -81,7 +83,7 @@ export default function ShelfToolbar({
     <Button
       variant="chip"
       size="chip"
-      className="chip"
+      className={cn('chip', labelled && PRESSED_FILL)}
       aria-pressed={dim}
       onClick={() => onDimChange(!dim)}
     >

@@ -91,4 +91,18 @@ describe('SpineCard', () => {
     expect(link.className).toContain('focus-visible:outline-2')
     expect(link.className).toContain('motion-safe:hover:-translate-y-1.5')
   })
+
+  it('gives a long title more room, and the longest a smaller size, never a clamp', () => {
+    const size = (title) => {
+      const { unmount } = renderSpine({ item: { ...ITEM, title } })
+      const className = screen.getByText(title).className
+      unmount()
+      return className
+    }
+    expect(size('Hades')).toContain('max-h-[12rem]')
+    expect(size('x'.repeat(60))).toContain('max-h-[16rem]')
+    const longest = size('x'.repeat(117))
+    expect(longest).toContain('max-h-[17rem]')
+    expect(longest).toContain('text-[0.8rem]')
+  })
 })

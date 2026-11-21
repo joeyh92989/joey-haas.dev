@@ -223,7 +223,7 @@ describe('PosterCard in a numbered collection', () => {
     expect(container.querySelector('[aria-hidden="true"]')).toHaveTextContent(
       'No. 007',
     )
-    expect(screen.getByRole('link')).toHaveAccessibleName('Hades')
+    expect(screen.getByRole('link')).toHaveAccessibleName(/^Hades\b/)
   })
 
   it('says the status in words only, so the cover carries no status mark', () => {
@@ -261,7 +261,7 @@ describe('PosterCard in a numbered collection', () => {
       item: { ...ITEM, status: 'active' },
       statusLabels: { active: 'Reading' },
     })
-    expect(screen.getByText('Reading')).toBeInTheDocument()
+    expect(screen.getAllByText('Reading')).toHaveLength(2)
   })
 
   it('covers the card with its one link, and draws the keyboard ring inside it', () => {
@@ -293,5 +293,36 @@ describe('PosterCard in a numbered collection', () => {
     expect(screen.getByRole('img', { name: 'Finished' })).toHaveClass(
       'status-mark',
     )
+  })
+
+  it('names the card’s link by its title and then its status, said once', () => {
+    const { container } = renderCard({
+      number: 7,
+      item: { ...ITEM, favorite: false, status: 'paused' },
+    })
+    const link = screen.getByRole('link')
+    expect(link).toHaveAccessibleName(/^Hades\b.*Paused/)
+    const word = link.querySelector('.sr-only')
+    expect(word).toHaveTextContent('Paused')
+    // The strip's word is for the eye: a screen reader gets it from the link.
+    const strip = container.querySelector('[data-strip]')
+    const hidden = [...strip.querySelectorAll('[aria-hidden="true"]')].map(
+      (node) => node.textContent,
+    )
+    expect(hidden.some((text) => text.includes('Paused'))).toBe(true)
+  })
+
+  it('lets the title’s underline show: no clip, no line clamp', () => {
+    renderCard({ number: 7 })
+    const title = document.querySelector('.poster-title')
+    expect(title.className).toContain('overflow-visible')
+    expect(title.className).toContain('block')
+    expect(title.className).toContain('[-webkit-line-clamp:unset]')
+  })
+
+  it('spaces the rating under the title', () => {
+    renderCard({ number: 7 })
+    const rating = screen.getByRole('img', { name: '9 out of 10' })
+    expect(rating.parentElement.className).toContain('mt-1')
   })
 })

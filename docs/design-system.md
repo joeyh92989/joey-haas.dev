@@ -75,18 +75,44 @@ tab shows only while the build's snapshot holds a public row of that type.
 ## Shelf lists
 
 (#532, slice a.) The public Games and Comics lists draw each title as a
-numbered `RecordCard` (`PosterCard` with a `number`): "No. 007" on the strip
-is the title's place on the whole shelf, oldest first (`lib/catalogue.js`), so
-filtering never renumbers it. The status is a `StatusMark` with its word on
-the strip, not a mark on the cover. The card's one link covers it, with an
-inset keyboard ring (`CARD_LINK`). Filter rows are underline tabs
-(`FilterChips labelled`), search is `Input`, and Overview figures are boxed
-(`STAT_CARD`). **Spines** is an alternative layout, never the default, kept
-only in the URL (`?view=spines`): upright labels on a rail (`SpineCard`),
-each a link named by its title with the status as a visually hidden word, a
-mark key over them (`SpineKey`), and a title that wraps rather than clips.
-The loose `PosterCard` (no number) stays on the admin shelf until its twin
-moves (slice b).
+numbered `RecordCard` (`PosterCard` with a `number`). The number ("No. 007")
+is a position label: the title's place on the whole shelf, oldest first
+(`lib/catalogue.js`), stable across filtering, sorting and search, but it
+shifts when a title is deleted or made private, so it is never an id. The
+status is a `StatusMark` with its word on the strip beside the number; the
+strip's word is hidden from assistive tech and the card's link carries the
+status as a visually hidden word after the title, so it is read once. The
+card's one link covers it, with an inset keyboard ring (`CARD_LINK`); the
+title is underlined in the accent, unclipped.
+
+**Deviation from the mockup (3b1):** the mockup keeps only the number on the
+strip and puts status and year at the foot. Here the status sits on the strip
+with the number and the card keeps its cover, year and rating; at 320px the
+grid is one column because a strip's number and word do not fit two across.
+
+**Pressed state.** A filter row that picks one value is underline tabs
+(`FilterChips labelled`: a 3px accent bar and weight). Anything that toggles
+or sits beside the rows (a `FilterChips` toggle, Comfortable, Dim finished,
+Cards and Spines) is a chip button whose pressed state is the ink as a fill
+with the page colour on it and weight (`PRESSED_FILL`, measured in
+`contrast.test.js`), never a thin rule or colour alone. Search is `Input`, and
+the Overview figures on the public Games and Comics pages are boxed
+(`STAT_CARD`).
+
+**Spines** is an alternative layout, never the default, kept only in the URL
+(`?view=spines`, set with `replace: true`, so toggling adds no history
+entry): upright labels on a rail (`SpineCard`), each a link named by its
+title with the status as a visually hidden word, a key to the mark over them
+(`SpineKey`), and a title that wraps rather than clips (a spine stays under
+about 24rem tall; the rail is three columns on a small phone, then 4, 6 and
+12).
+
+**What the shared pieces reach.** The loose `PosterCard` (no number) stays on
+the admin shelf until its twin moves (slice b). The admin games shelf
+(`/admin/shelf/games`) takes the new look early through the pieces it shares:
+`FilterChips labelled` and the `ShelfToolbar` chip buttons, and `ResultBar`'s
+count line (the admin comics shelf takes `ResultBar` too). `STAT_CARD` is used
+by the public Games and Comics pages only; `/shelf/next` does not draw it.
 
 ## Prose pages
 

@@ -407,4 +407,35 @@ describe('FilterChips tab look', () => {
     const chip = screen.getByRole('button', { name: /Finished/ })
     expect(chip.className).not.toContain('rounded-none')
   })
+
+  it('keeps a toggle a filled chip button, not a tab, with a strong pressed state', () => {
+    render(
+      <FilterChips
+        labelled
+        groups={groups}
+        toggles={[{ key: 'wanted', label: 'Want', count: 2 }]}
+        value={{ wanted: true }}
+        onChange={() => {}}
+      />,
+    )
+    const toggle = screen.getByRole('button', { name: /Want/ })
+    expect(toggle.className).not.toContain('rounded-none')
+    expect(toggle.className).toContain('aria-pressed:bg-foreground')
+    expect(toggle.className).toContain('aria-pressed:text-background')
+    expect(toggle.className).toContain('aria-pressed:font-semibold')
+  })
+
+  it('is single-select in a tab row: pressing one releases the other', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        labelled
+        groups={groups}
+        value={{ status: 'finished' }}
+        onChange={onChange}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Backlog/ }))
+    expect(onChange).toHaveBeenCalledWith({ status: 'backlog' })
+  })
 })
