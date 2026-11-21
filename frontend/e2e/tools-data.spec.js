@@ -122,24 +122,26 @@ for (const spec of PAGES) {
     }
   }
 
-  test(`${spec.name} has no serious axe violations`, async ({
-    page,
-    openRoute,
-  }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
-    await serve(page, spec.serve)
-    await openRoute(spec.path, 'light')
-    await spec.ready(page)
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze()
-    const serious = results.violations.filter((v) =>
-      ['serious', 'critical'].includes(v.impact),
-    )
-    expect(
-      serious.map((v) => `${v.id}: ${v.nodes[0].target.join(' ')}`),
-    ).toEqual([])
-  })
+  for (const theme of ['light', 'dark']) {
+    test(`${spec.name} has no serious axe violations (${theme})`, async ({
+      page,
+      openRoute,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+      await serve(page, spec.serve)
+      await openRoute(spec.path, theme)
+      await spec.ready(page)
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      const serious = results.violations.filter((v) =>
+        ['serious', 'critical'].includes(v.impact),
+      )
+      expect(
+        serious.map((v) => `${v.id}: ${v.nodes[0].target.join(' ')}`),
+      ).toEqual([])
+    })
+  }
 }
 
 /**
@@ -203,10 +205,88 @@ for (const theme of ['light', 'dark']) {
       height: box.height + 12,
     }
     const before = await page.screenshot({ clip })
-    await page.locator('.pick-radio input').first().focus()
+    const input = page.locator('.pick-radio input').first()
+    await input.focus()
     await page.keyboard.press('Shift+Tab')
     await page.keyboard.press('Tab')
+    await expect(input).toBeFocused()
     const after = await page.screenshot({ clip })
     expect(Buffer.compare(before, after)).not.toBe(0)
+  })
+}
+
+// Review items on the Daily board, Stats and the Card's 14px (#534).
+for (const width of [320, 1280]) {
+  test(`Daily: no header clipped, body at 16px, the open guess list inside its card at ${width}px`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await page.setViewportSize({ width, height: 900 })
+    await openRoute('/daily', 'light')
+    const box = page.getByRole('combobox', { name: 'Your guess' })
+    await expect(box).toBeVisible()
+
+    // Every visible header word fits its column, and is not a truncated word.
+    const heads = await page.locator('.shelfle th').evaluateAll((ths) =>
+      ths.map((th) => {
+        const shown = [...th.querySelectorAll('.kicker')].find(
+          (el) => el.getBoundingClientRect().width > 2,
+        )
+        return {
+          text: shown.textContent,
+          fits: shown.scrollWidth <= shown.clientWidth + 1,
+          inside: th.scrollWidth <= th.clientWidth + 1,
+          name: th.textContent,
+        }
+      }),
+    )
+    for (const head of heads) {
+      expect(head.fits, head.text).toBe(true)
+      expect(head.inside, head.text).toBe(true)
+    }
+    expect(heads.map((h) => h.text)).toEqual(
+      width <= 384
+        ? ['Guess', 'Plat.', 'Year', 'Genre', 'Size']
+        : ['Guess', 'Platform', 'Year', 'Genre', 'Size'],
+    )
+
+    // A Card is 14px; the Daily card says 16px.
+    const size = await page
+      .locator('.daily-status')
+      .evaluate((el) => getComputedStyle(el).fontSize)
+    expect(size).toBe('16px')
+
+    // The suggestion list at its cap stays inside the card.
+    await box.fill('Fixture')
+    const list = page.locator('.guess-list')
+    await expect(list.getByRole('option')).toHaveCount(6)
+    const edges = await page.evaluate(() => {
+      const list = document.querySelector('.guess-list').getBoundingClientRect()
+      const card = document.querySelector('.daily-card').getBoundingClientRect()
+      return { listBottom: list.bottom, cardBottom: card.bottom }
+    })
+    expect(edges.listBottom).toBeLessThanOrEqual(edges.cardBottom)
+  })
+
+  test(`Stats: changelog text is 16px and the day chart is not clipped at ${width}px`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await page.setViewportSize({ width, height: 900 })
+    await serve(page, ['site-stats'])
+    await openRoute('/stats', 'light')
+    await expect(page.locator('.day-bars')).toBeVisible()
+    const clip = await page.locator('.site-stats-days').evaluate((el) => ({
+      scroll: el.scrollWidth,
+      client: el.clientWidth,
+    }))
+    expect(clip.scroll).toBeLessThanOrEqual(clip.client)
+    const size = await page
+      .locator('.changelog li li')
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontSize)
+    expect(size).toBe('16px')
   })
 }

@@ -224,19 +224,28 @@ export default function Denver() {
         onChange={changeTags}
       />
       {phone ? (
-        <div className="denver-view" role="group" aria-label={copy.viewLabel}>
-          {['list', 'map'].map((value) => (
-            <Button
-              key={value}
-              variant="chip"
-              size="chip"
-              className="chip"
-              aria-pressed={view === value}
-              onClick={() => setView(value)}
-            >
-              {copy.views[value]}
-            </Button>
-          ))}
+        <div className="denver-filter">
+          <span className="ctl-label" id="denver-view-label">
+            {copy.viewLabel}
+          </span>
+          <div
+            className="denver-view"
+            role="group"
+            aria-labelledby="denver-view-label"
+          >
+            {['list', 'map'].map((value) => (
+              <Button
+                key={value}
+                variant="chip"
+                size="chip"
+                className="chip"
+                aria-pressed={view === value}
+                onClick={() => setView(value)}
+              >
+                {copy.views[value]}
+              </Button>
+            ))}
+          </div>
         </div>
       ) : null}
       <div className="denver-layout">

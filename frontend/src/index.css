@@ -4276,13 +4276,6 @@ footer {
   width: 2.25rem;
 }
 
-/* The lone feed link under Changes is not inside a sentence: 24px high, per
-   WCAG 2.5.8 (#477). */
-.prose.changes-feed a {
-  display: inline-block;
-  line-height: 1.5rem;
-}
-
 /* Understated on purpose: a door for one person, not a call to action. */
 .footer-admin {
   color: var(--text-3);
@@ -10597,18 +10590,28 @@ a.cover-tile-cap:focus-visible span {
 .shelfle th .kicker {
   font-size: var(--fs-12);
 }
-/* At 320px "PLATFORM" (8 mono characters at the 12px floor) is wider than its
-   column and ran into "YEAR": clip it with an ellipsis instead. The cells
-   below say the same, and the column's name is still in the header's text. */
+/* "PLATFORM" (8 mono characters at the 12px floor) is wider than its column
+   at 320px, so there the header shows "PLAT." and the full word stays for a
+   screen reader (visually hidden, not display:none). */
+.shelfle th .th-short {
+  display: none;
+}
 @media (max-width: 24rem) {
   .shelfle th {
-    overflow: hidden;
+    position: relative;
   }
-  .shelfle th .kicker {
-    letter-spacing: 0;
+  .shelfle th .th-short {
+    display: inline;
+  }
+  .shelfle th .th-short ~ .th-full,
+  .shelfle th .th-full:has(+ .th-short) {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    position: absolute;
     white-space: nowrap;
+    width: 1px;
   }
 }
 .shelfle th.shelfle-title {

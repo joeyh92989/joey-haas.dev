@@ -170,7 +170,9 @@ export default function Daily() {
             </p>
           )}
 
-          <Card className="daily-card gap-4 p-4">
+          {/* overflow-visible: the guess list drops below the input and must not
+              be clipped by the card. Body size: a Card sets 14px. */}
+          <Card className="daily-card gap-4 overflow-visible p-4 text-[1rem]">
             {rows.length === 0 && (
               <p id="daily-hint" className="daily-hint muted">
                 {copy.hint}

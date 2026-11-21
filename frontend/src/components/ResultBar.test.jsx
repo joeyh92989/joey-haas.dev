@@ -76,5 +76,8 @@ describe('ResultBar', () => {
     expect(clear).toHaveAttribute('data-slot', 'button')
     expect(clear.className).toMatch(/\btext-accent-text\b/)
     expect(clear.className).not.toContain('linkbtn')
+    // As it was: regular weight, 8px off the count.
+    expect(clear.className).toMatch(/\bfont-normal\b/)
+    expect(clear.className).toMatch(/\bml-2\b/)
   })
 })

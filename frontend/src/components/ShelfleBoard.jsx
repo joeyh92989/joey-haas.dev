@@ -3,6 +3,10 @@ import { GRADE_KEYS, MAX_GUESSES } from '../lib/daily.js'
 
 const copy = daily
 
+/** A header too wide for its column on a 320px phone has a short form, shown
+ *  there only; the full word stays for a screen reader (see `.th-short`). */
+const SHORT = { platform: 'Plat.' }
+
 /**
  * One graded cell: the value, the arrow and its word on a second line when
  * the answer lies one way, and the state as hidden text so a screen reader
@@ -49,7 +53,12 @@ export default function ShelfleBoard({ rows }) {
           </th>
           {GRADE_KEYS.map((key) => (
             <th scope="col" key={key}>
-              <span className="kicker">{copy.columns[key]}</span>
+              <span className="kicker th-full">{copy.columns[key]}</span>
+              {SHORT[key] && (
+                <span className="kicker th-short" aria-hidden="true">
+                  {SHORT[key]}
+                </span>
+              )}
             </th>
           ))}
         </tr>

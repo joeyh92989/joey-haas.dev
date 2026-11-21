@@ -339,6 +339,17 @@ describe('Stats', () => {
     }
   })
 
+  it('keeps the changelog text at body size inside its cards (a Card sets 14px)', () => {
+    mockStats({ data: BODY })
+    const { container } = renderPage()
+    for (const card of container.querySelectorAll(
+      '.changelog [data-slot="card"]',
+    )) {
+      expect(card.className.split(' ')).toContain('text-[1rem]')
+      expect(card.className.split(' ')).not.toContain('text-sm')
+    }
+  })
+
   it('draws the RSS link as the outline button', () => {
     mockStats({ data: BODY })
     renderPage()

@@ -171,6 +171,9 @@ describe('theme blocks', () => {
     expect(rule('.bar-list-fill')).toMatch(/background:\s*var\(--chart\)/)
     expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
     expect(rule('.day-bar')).toMatch(/background:\s*var\(--chart\)/)
+    expect(rule('.pick-term-bar > span')).toMatch(
+      /background:\s*var\(--accent\)/,
+    )
   })
 
   // #534: the Daily game's rules, re-measured on the Archive tokens above.

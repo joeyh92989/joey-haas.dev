@@ -40,7 +40,11 @@ export default function ResultBar({
         {filtered && (
           <>
             {' '}
-            <Button variant="link" onClick={onClear}>
+            <Button
+              variant="link"
+              className="ml-2 font-normal"
+              onClick={onClear}
+            >
               {copy.clear}
             </Button>
           </>

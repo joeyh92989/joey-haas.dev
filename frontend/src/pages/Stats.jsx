@@ -100,6 +100,8 @@ export default function Stats() {
 
           <h2>Views per day</h2>
           {thirty.views ? (
+            /* The thirty bars flex to the card's width (.day-bar has min-width 0), so
+               the chart cannot overflow it; e2e checks it at 320px. */
             <Card className="site-stats-days gap-0 px-4 py-4">
               <DayBars series={thirty.series} />
             </Card>
@@ -163,7 +165,7 @@ export default function Stats() {
         <ol className="changelog" role="list">
           {CHANGELOG.map((entry) => (
             <li key={entry.date}>
-              <Card className="gap-2 px-4 py-3">
+              <Card className="gap-2 px-4 py-3 text-[1rem]">
                 <time dateTime={entry.date}>
                   {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
                 </time>

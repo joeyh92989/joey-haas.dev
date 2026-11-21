@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: UI (page bodies)
 mode: auto
 issue: "#534, epic #519"

@@ -362,6 +362,7 @@ describe('Denver', () => {
     media.phone = true
     renderPage()
     media.phone = false
+    expect(screen.getByText(copy.viewLabel)).toBeVisible()
     const group = screen.getByRole('group', { name: copy.viewLabel })
     for (const chip of within(group).getAllByRole('button')) {
       expect(chip).toHaveAttribute('data-slot', 'button')

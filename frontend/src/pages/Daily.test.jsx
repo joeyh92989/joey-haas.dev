@@ -399,6 +399,17 @@ describe('Daily', () => {
     expect(header.querySelector('.daily-lede')).not.toBeNull()
   })
 
+  it('keeps the card at body size and lets the suggestion list overflow it', async () => {
+    renderPage()
+    await screen.findByText('Day 3 · Nov 12')
+    const card = screen.getByRole('table').closest('[data-slot="card"]')
+    const classes = card.className.split(' ')
+    expect(classes).toContain('text-[1rem]')
+    expect(classes).not.toContain('text-sm')
+    expect(classes).toContain('overflow-visible')
+    expect(classes).not.toContain('overflow-hidden')
+  })
+
   it('plays inside one card, and shows the streak as badges', async () => {
     const user = userEvent.setup()
     renderPage()

@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { denver } from '../content/denver.js'
 import SpotCard from './SpotCard.jsx'
-import { CARD_SHELL } from './ui/card-classes.js'
 
 const SPOT = {
   name: 'Union Station',
@@ -49,14 +48,38 @@ describe('SpotCard', () => {
   it('is a card: the card shell and its tags as badges', () => {
     render(<SpotCard spot={SPOT} />)
     const card = screen.getByRole('article')
-    for (const token of CARD_SHELL.split(' ').filter((c) => !c.includes('/'))) {
-      expect(card.className).toContain(token)
+    for (const token of [
+      'flex',
+      'flex-col',
+      'overflow-hidden',
+      'rounded-md',
+      'border',
+      'border-border',
+      'bg-card',
+    ]) {
+      expect(card.className.split(' ')).toContain(token)
     }
     expect(card.querySelectorAll('[data-slot="badge"]')).toHaveLength(2)
   })
 
-  it('marks the selected card with a heavier edge as well as the class', () => {
-    render(<SpotCard spot={SPOT} selected onSelect={() => {}} />)
-    expect(screen.getByRole('article').className).toMatch(/\bborder-l-\[3px\]/)
+  it('marks the selected card with an inset edge that moves nothing, and adds no spacing of its own', () => {
+    const { rerender } = render(<SpotCard spot={SPOT} onSelect={() => {}} />)
+    const plain = screen.getByRole('article').className.split(' ')
+    rerender(<SpotCard spot={SPOT} selected onSelect={() => {}} />)
+    const picked = screen.getByRole('article').className.split(' ')
+    // Selection changes colour and an inset shadow only: no border width, so
+    // the content does not shift, and no gap on top of the margins.
+    expect(picked.some((c) => c.startsWith('shadow-[inset_3px_0_0'))).toBe(true)
+    expect(picked.join(' ')).not.toMatch(/border-l-\[3px\]/)
+    expect(plain).not.toContain('gap-1')
+    expect(
+      picked.filter((c) => /^(p|px|py|border|gap)-/.test(c)).sort(),
+    ).toEqual(
+      plain
+        .filter((c) => /^(p|px|py|border|gap)-/.test(c))
+        .concat(['border-primary'])
+        .filter((c) => c !== 'border-border')
+        .sort(),
+    )
   })
 })
