@@ -12,7 +12,7 @@ import {
   SWAP_SLOTS,
   SWAP_TITLE,
 } from './adminHomeClasses.js'
-import { chipBtn } from './closetClasses.js'
+import { chipBtn, GARMENT_NAME_TEXT, GARMENT_STAT } from './closetClasses.js'
 import { Swatch } from './OutfitSwatches.jsx'
 import Sheet from './Sheet.jsx'
 
@@ -141,8 +141,12 @@ function SwapBody({
               >
                 <Swatch garment={tile} />
                 <span className={`swap-choice-text ${SWAP_CHOICE_TEXT}`}>
-                  <span className="garment-name">{tile.name}</span>
-                  <span className="garment-stat">{tile.qualifier}</span>
+                  <span className={`garment-name ${GARMENT_NAME_TEXT}`}>
+                    {tile.name}
+                  </span>
+                  <span className={`garment-stat ${GARMENT_STAT}`}>
+                    {tile.qualifier}
+                  </span>
                 </span>
               </button>
             </li>
