@@ -28,3 +28,12 @@ Run one at a time: it opens one browser and loads about 120 pages in series.
 `ONLY='admin|gate'`). `style-dump` takes a base URL, so two builds can be
 served side by side: pick a port of your own (`vite preview --port <n>
 --strictPort`), since other worktrees use 4173 and 4180 and up.
+
+Scenario groups: `d5` (slice D5) covers every Closet route with filled data,
+the Match, swap and sell sheets, the pack-away month, a garment's form and its
+delete confirm, the add bar and its links panel, the admin add flow
+(`/admin/collection/add`, a sitting, Check, Details, Done), Discover, Radar,
+Pull list, the games page with the add results, the add drawer, the scanner
+and the Wrap up sheet, and the public `/shelf/intake` replay, each in both
+themes at desktop and phone width (`ONLY=' d5 '`). The Closet scenarios use
+`closet-mocks.js`; the add ones `admin-add.fixtures.js`.
