@@ -114,6 +114,46 @@
   height: revert;
 }
 
+/* Preflight trims the date and time field's inner parts and the spin and
+   picker buttons; the browser's own sizes are the ones pages were laid out on. */
+::-webkit-date-and-time-value {
+  min-height: revert;
+  text-align: revert;
+}
+
+::-webkit-datetime-edit {
+  display: revert;
+}
+
+::-webkit-datetime-edit-fields-wrapper {
+  padding: revert;
+}
+
+::-webkit-datetime-edit,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-second-field,
+::-webkit-datetime-edit-millisecond-field,
+::-webkit-datetime-edit-meridiem-field {
+  padding-block: revert;
+}
+
+::-webkit-calendar-picker-indicator {
+  line-height: revert;
+}
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: revert;
+}
+
+::-webkit-search-decoration {
+  appearance: revert;
+}
+
 /* Preflight's `*, ::before, ::after` also puts border-box on generated
    content, which the legacy `*` rule never reached. */
 :where(*)::before,
