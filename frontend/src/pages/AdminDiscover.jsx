@@ -10,8 +10,13 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import { adminCopy } from '../content/adminCopy.js'
-import { btn, chipBtn } from '../components/closetClasses.js'
-import { CHECKBOX, CHECK_ROW } from '../components/addClasses.js'
+import { chipBtn } from '../components/closetClasses.js'
+import {
+  CHECKBOX,
+  CHECK_ROW,
+  headBtn,
+  PHONE_LINK,
+} from '../components/addClasses.js'
 
 const copy = adminCopy.discover
 
@@ -253,7 +258,7 @@ export default function AdminDiscover() {
       >
         <button
           type="button"
-          className={btn('primary')}
+          className={headBtn('primary')}
           disabled={busy}
           onClick={generate}
         >
@@ -305,7 +310,9 @@ export default function AdminDiscover() {
           />{' '}
           Include Game-Key Cards
         </label>
-        <Link to="/admin/catalogue">{copy.needsMatch}</Link>
+        <Link to="/admin/catalogue" className={PHONE_LINK}>
+          {copy.needsMatch}
+        </Link>
       </div>
 
       {ranking && <p className="muted">{ranking}</p>}

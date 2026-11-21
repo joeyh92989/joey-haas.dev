@@ -4577,14 +4577,14 @@ a.month-bar::before {
   outline-offset: 1px;
 }
 
-/* Rate a few is read on a phone: the targets are 44px tall there (ten half
+/* The targets are 44px tall on a phone (ten half
    stars are 9px wide each, so the width stays as drawn). */
 @media (max-width: 700px) {
-  .rate-a-few .quick-rate-target {
+  .quick-rate-target {
     height: 2.75rem;
   }
 
-  .rate-a-few .quick-rate-target span {
+  .quick-rate-target span {
     top: calc((2.75rem - 1.2em) / 2 + 0.05em);
   }
 }
@@ -5642,6 +5642,13 @@ section > .cover-key {
 .radar-digital summary {
   cursor: pointer;
   font-weight: 600;
+}
+
+/* A target on a phone: 44px. */
+@media (max-width: 700px) {
+  .radar-digital summary {
+    padding-block: var(--space-3);
+  }
 }
 
 .radar-digital summary .radar-summary-title {

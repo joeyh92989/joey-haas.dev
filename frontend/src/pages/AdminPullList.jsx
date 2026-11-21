@@ -7,8 +7,12 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { shortDate } from '../lib/comics.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
-import { btn } from '../components/closetClasses.js'
-import { BIG_FIELD, BIG_PRESSED, bigBtn } from '../components/addClasses.js'
+import {
+  BIG_FIELD,
+  BIG_PRESSED,
+  bigBtn,
+  headBtn,
+} from '../components/addClasses.js'
 
 /** Got it and Skip take a whole issue number; "1.5" or "Annual" do not. */
 const WHOLE_NUMBER = /^\d+$/
@@ -375,7 +379,7 @@ export default function AdminPullList() {
       {state === 'ready' && (
         <button
           type="button"
-          className={btn('primary')}
+          className={headBtn('primary')}
           disabled={refreshing}
           onClick={refresh}
         >

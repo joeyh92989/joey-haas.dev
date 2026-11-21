@@ -393,7 +393,7 @@ Discard is the destructive button. Discover's platform chips are the filter
 chip, pressed by weight, border and the accent bar. The legacy `.btn` and
 `.chip` classes stay for the areas not yet migrated (#536). The ten
 half-star targets of Quick rate keep their drawn width (ten 44px targets do
-not fit a phone); in Rate a few they are 44px tall on a phone.
+not fit a phone); they are 44px tall on a phone.
 
 **The admin twin of a detail page** (comics 5c): the area rail, a
 breadcrumb (Shelf › Comics › the series), `AdminPageHeader` with the page's

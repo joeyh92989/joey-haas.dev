@@ -1,5 +1,6 @@
 import { btn, closetCard, field, PRESSED, textarea } from './closetClasses.js'
 import { CHECKBOX } from './adminShelfClasses.js'
+import { cn } from '../lib/utils.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages' controls (#535,
 // slice c), drawn from the Button, Card and Input looks through
@@ -51,3 +52,19 @@ export const BIG_PRESSED = `${bigBtn('plain')} ${PRESSED}`
 
 /** A search field as tall as the big buttons beside it. */
 export const BIG_FIELD = field.replace('h-10 ', 'h-11 ')
+
+/**
+ * A page header's action (Generate, Refresh): the Button look, 44px on a
+ * phone. A long label (Discover's) wraps in its own button instead of
+ * widening the header; `cn` merges the nowrap and fixed height away.
+ */
+export function headBtn(kind = 'primary') {
+  return cn(
+    btn(kind),
+    'h-auto min-h-9 max-w-full shrink whitespace-normal py-1.5 text-left max-[700px]:min-h-11',
+  )
+}
+
+/** A text link that is a target on a phone (Needs match). */
+export const PHONE_LINK =
+  'max-[700px]:inline-flex max-[700px]:min-h-11 max-[700px]:items-center'

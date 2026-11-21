@@ -18,7 +18,14 @@ const PAGES = [
   { name: 'discover', path: '/admin/discover', ready: 'Rate a few' },
   { name: 'radar', path: '/admin/radar', ready: 'Suggested' },
   { name: 'pull list', path: '/admin/pull-list', ready: 'Week of' },
-  { name: 'games', path: '/admin/shelf/games', ready: 'Now playing' },
+  {
+    name: 'games',
+    path: '/admin/shelf/games',
+    ready: 'Now playing',
+    // The games page is the shelf slice's; these are this slice's parts. Its
+    // poster cards (inside rings, #532) are measured by that slice's spec.
+    tap: ['.now-playing', '.intake-add', '.quick-rate'],
+  },
 ]
 const THEMES = ['light', 'dark']
 
@@ -149,25 +156,29 @@ for (const spec of PAGES) {
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
     await open(page, openRoute, spec, 'light', { width: 390, height: 900 })
-    const short = await page.evaluate(() =>
-      [
-        ...document.querySelectorAll(
-          'main :is(button, summary, label:has(input), a):not(p a, li a, h1 a, h2 a, h3 a, nav *)',
-        ),
-      ]
-        .filter((el) => {
-          const box = el.getBoundingClientRect()
-          return (
-            box.height > 0 &&
-            getComputedStyle(el).display !== 'inline' &&
-            !el.matches('.visually-hidden') &&
-            box.height < 43.5
+    const short = await page.evaluate(
+      (roots) => {
+        const found = roots.flatMap((root) => [
+          ...document.querySelectorAll(
+            `${root} :is(button, summary, label:has(input), a):not(p a, li a, h1 a, h2 a, h3 a, nav *)`,
+          ),
+        ])
+        return [...new Set(found)]
+          .filter((el) => {
+            const box = el.getBoundingClientRect()
+            return (
+              box.height > 0 &&
+              getComputedStyle(el).display !== 'inline' &&
+              !el.matches('.visually-hidden') &&
+              box.height < 43.5
+            )
+          })
+          .map(
+            (el) =>
+              `${el.tagName}.${String(el.className).slice(0, 40)} "${el.textContent.trim().slice(0, 16)}" ${Math.round(el.getBoundingClientRect().height)}px`,
           )
-        })
-        .map(
-          (el) =>
-            `${el.tagName}.${String(el.className).slice(0, 40)} "${el.textContent.trim().slice(0, 16)}" ${Math.round(el.getBoundingClientRect().height)}px`,
-        ),
+      },
+      spec.tap ?? ['main'],
     )
     expect(short).toEqual([])
   })
@@ -184,7 +195,7 @@ for (const width of [390, 1280]) {
         test.setTimeout(240_000)
         await open(page, openRoute, spec, theme, { width, height: 900 })
         const controls = page.locator(
-          'main :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):visible',
+          'main :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):not(.poster-card, .poster-card *):visible',
         )
         expect(await unringed(page, controls)).toEqual([])
       })
@@ -202,7 +213,7 @@ for (const width of [390, 1280]) {
         await state.prep(page)
         await page.mouse.move(1, 1)
         const controls = page.locator(
-          `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):visible`,
+          `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):not(.poster-card, .poster-card *):visible`,
         )
         expect(await controls.count()).toBeGreaterThan(0)
         expect(await unringed(page, controls)).toEqual([])
@@ -349,6 +360,8 @@ test('a pressed platform chip differs by more than colour', async ({
   test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
   await open(page, openRoute, PAGES[3], 'light', { width: 1280, height: 900 })
   const chips = page.locator('main button[aria-pressed]')
+  await chips.first().click()
+  await page.mouse.move(1, 1)
   const traits = await chips.evaluateAll((all) =>
     all.map((el) => {
       const style = getComputedStyle(el)
