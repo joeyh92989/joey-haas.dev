@@ -13,6 +13,7 @@ const read = (name) =>
   )
 const volumeFixture = read('admin-volume')
 const volumesFixture = read('admin-volumes')
+const previewFixture = read('admin-volume-delete-preview')
 
 export const GAME_ID = 'g1'
 export const COMIC_ID = volumeFixture.item_id
@@ -356,6 +357,7 @@ export async function mockAdminData(page) {
     if (path.includes('search-metadata')) return json([])
     if (path === `/api/comics/${COMIC_ID}/wall`) return json(WALL)
     if (path === `/api/comics/${COMIC_ID}/volumes`) return json(volumesFixture)
+    if (path.endsWith('/delete-preview')) return json(previewFixture)
     if (path.startsWith('/api/comics/volumes/')) return json(VOLUME)
     if (path === '/api/items') return json(TITLES)
     if (path.endsWith('.png'))

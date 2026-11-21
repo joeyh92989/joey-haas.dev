@@ -142,6 +142,17 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   The Spots table folds Last visit under the name below 1440px and the tags and
   actions under it on a phone, so no action is ever half-scrolled out of its
   wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.
+  The admin Shelf data and edit pages (Sources, Store list, item and comic edit,
+  a book's page; #535) take the same looks from `components/adminDataClasses.js`
+  (`FIELD`, `FORM_GRID`, `LABEL`, `CHECKBOX`, the table strings, `LINK_BTN`,
+  `HIT`, and `SMALL`/`PRIMARY`/`PLAIN`/`GHOST` buttons on `btn()`), with `DataPanel`
+  for a titled panel (the cover wall's card). The components only those pages
+  use (`BooksPanel`, `CollectsEditor`, `MetronFind`, `EditionLinkPicker`,
+  `PlayJournal`, `TagPicker`, the editable playthrough controls) are on them
+  too; `adminDataStyle.test.js` pins the legacy classes off. A wide table sits
+  in `TABLE_WRAP` (`relative overflow-x-auto scroll-px-4`) so a ring at its edge
+  is whole. `e2e/admin-data.spec.js` routes the session and the API in the page
+  (`e2e/admin-data-mocks.js`), so it needs no backend.
   Home, About and Projects take the 75rem `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (75rem).

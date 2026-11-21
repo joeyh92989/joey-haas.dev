@@ -31,6 +31,7 @@ import {
   FIELD_AUTO,
   FORM_ACTIONS,
   FORM_GRID,
+  HEAD_WRAP,
   LABEL,
   MUTED,
   PRIMARY,
@@ -510,14 +511,16 @@ export default function AdminItem() {
 
   // One header for every state: "Item" until the row loads, then its title.
   const header = (
-    <AdminPageHeader
-      title={state === 'ready' && item ? item.title : 'Item'}
-      description={
-        <Link to={adminListPath(item?.type)}>
-          ← Back to {item?.type === 'comic' ? 'Comics' : 'Games'}
-        </Link>
-      }
-    />
+    <div className={HEAD_WRAP}>
+      <AdminPageHeader
+        title={state === 'ready' && item ? item.title : 'Item'}
+        description={
+          <Link to={adminListPath(item?.type)}>
+            ← Back to {item?.type === 'comic' ? 'Comics' : 'Games'}
+          </Link>
+        }
+      />
+    </div>
   )
 
   if (state === 'loading') {

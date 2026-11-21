@@ -107,3 +107,8 @@ export const HIT = `${RING} max-[700px]:min-h-11`
 
 /** A quiet button beside the primary one (Cancel). */
 export const GHOST = btn('ghost', 'sm')
+
+/** Around an `AdminPageHeader` whose title is the owner's own words: a long
+ *  unbroken name wraps inside the header instead of widening the page. */
+export const HEAD_WRAP =
+  'min-w-0 [&_div]:min-w-0 [&_h1]:[overflow-wrap:anywhere] [&_p]:[overflow-wrap:anywhere]'

@@ -3316,6 +3316,15 @@ p.muted a,
   margin: 0 0 var(--space-2);
 }
 
+/* The look-up field of the re-link and match pickers is a 44px target on a
+   phone (#276); MetadataPicker is shared, so the rule is scoped to them. */
+@media (max-width: 700px) {
+  .item-relink .metadata-picker input,
+  .needs-match-row .metadata-picker input {
+    min-height: 44px;
+  }
+}
+
 /* The play journal: a compact form, then the logged days. */
 .play-journal-form {
   display: grid;
@@ -3444,8 +3453,11 @@ p.muted a,
   margin: 0 0 var(--space-3);
 }
 
+/* Positioned, so an absolutely placed visually-hidden header label is
+   clipped by this scroller and cannot widen the page. */
 .playthroughs-wrap {
   overflow-x: auto;
+  position: relative;
 }
 
 .playthroughs-table {

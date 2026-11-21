@@ -21,6 +21,7 @@ import {
   FIELD_AUTO,
   FORM_ACTIONS,
   FORM_GRID,
+  HEAD_WRAP,
   LABEL,
   MUTED,
   PLAIN,
@@ -435,20 +436,22 @@ export default function AdminComic() {
         <div className="admin-comic-cover">
           <CoverImage src={item.cover_url} type="comic" alt="" />
         </div>
-        <AdminPageHeader
-          title={item.title}
-          description={[
-            COPY.kicker,
-            comic ? kindWord(comic) : null,
-            item.creator,
-            item.year,
-            item.is_public ? COPY.public : COPY.private,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        >
-          {viewOnSite}
-        </AdminPageHeader>
+        <div className={HEAD_WRAP}>
+          <AdminPageHeader
+            title={item.title}
+            description={[
+              COPY.kicker,
+              comic ? kindWord(comic) : null,
+              item.creator,
+              item.year,
+              item.is_public ? COPY.public : COPY.private,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          >
+            {viewOnSite}
+          </AdminPageHeader>
+        </div>
       </div>
 
       <div className="admin-comic-cols">

@@ -19,6 +19,7 @@ export default defineConfig({
     'admin.spec.js',
     'admin-closet.spec.js',
     'admin-denver-site.spec.js',
+    'admin-data.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   reporter: [
@@ -34,6 +35,7 @@ export default defineConfig({
         'admin.spec.js',
         'admin-closet.spec.js',
         'admin-denver-site.spec.js',
+        'admin-data.spec.js',
       ],
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },

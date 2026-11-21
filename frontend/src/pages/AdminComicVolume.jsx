@@ -13,6 +13,7 @@ import {
   FIELD_AUTO,
   FORM_ACTIONS,
   FORM_GRID,
+  HEAD_WRAP,
   LABEL,
   LINK_BTN,
   MUTED,
@@ -390,7 +391,7 @@ export default function AdminComicVolume() {
             alt={COPY.coverAlt(volume.title.title, volume.label)}
           />
         </div>
-        <div>
+        <div className={HEAD_WRAP}>
           <AdminPageHeader
             title={volume.label}
             description={[

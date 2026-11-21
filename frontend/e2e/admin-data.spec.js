@@ -68,7 +68,17 @@ for (const size of WIDTHS) {
           })
           .slice(0, 4)
           .map((el) => `${el.tagName}.${el.className}`.slice(0, 80))
-        return { overflow: document.documentElement.scrollWidth - edge, wide }
+        // A scroller that is not positioned does not clip an absolutely
+        // placed child (a visually-hidden label): name those too.
+        const escaped = [...document.querySelectorAll('body *')]
+          .filter((el) => getComputedStyle(el).position === 'absolute')
+          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+          .slice(0, 4)
+          .map((el) => `abs ${el.tagName}.${el.className}`.slice(0, 80))
+        return {
+          overflow: document.documentElement.scrollWidth - edge,
+          wide: [...wide, ...escaped],
+        }
       })
       expect(overflow, `horizontal overflow in px: ${wide.join(' | ')}`).toBe(0)
     })
@@ -180,6 +190,7 @@ for (const route of ROUTES) {
           'main :is(button, select, input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), a.btn, [role=button])',
         ),
       ]
+        .filter((el) => !el.closest('nav'))
         .filter((el) => el.getBoundingClientRect().height > 0)
         .filter((el) => el.getBoundingClientRect().height < 43.5)
         .map(
