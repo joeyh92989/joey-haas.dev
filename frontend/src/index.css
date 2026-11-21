@@ -2151,6 +2151,12 @@ footer {
   margin: 0;
 }
 
+/* A long or unbroken name wraps inside the row instead of widening it. */
+.intake-sitting-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .intake-sitting-name {
   font-weight: 600;
 }
@@ -3169,7 +3175,7 @@ footer {
   }
 
   .intake-sitting {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .intake-strip {
@@ -5591,6 +5597,20 @@ section > .cover-key {
 .radar-cover img {
   width: 100%;
   border-radius: 4px;
+}
+
+/* A long or unbroken title wraps inside the card instead of widening it. */
+.radar-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A link inside running text is underlined: colour alone does not set it
+   apart (axe link-in-text-block). */
+.radar-stores a,
+.radar-watch-note a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .radar-body h3 {

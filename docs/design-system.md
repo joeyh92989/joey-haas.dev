@@ -379,6 +379,22 @@ client-side, as `/spine` does: `/admin/collection`, the old list, redirects
 to `/admin/shelf/games`, and a comic opened at `/admin/collection/:id` goes
 to `/admin/shelf/comics/:id` (item 5c; a game keeps its path).
 
+**Add and recommend pages** (#535, slice c): `/admin/collection/add`,
+`/admin/closet/add` and the sitting pages, Discover, Radar and the Pull list
+draw their controls and boxes from the Button, Card and Input looks through
+`components/addClasses.js` (on `closetClasses.js`): `ibtn` for the intake
+rows (44px up to 900px, the shell's phone layout), `bigBtn` and `BIG_PRESSED`
+for the Pull list (read in a store, 44px at every width), `TILE` for the
+Add page's kind tiles (a disabled tile keeps its ink and is drawn with a
+dashed border, so it is never told apart by fading alone), `BOX` for cards
+(the unfinished list, a suggestion, Rate a few, the resume line) and
+`INTAKE_FIELD` for the add bar, drawer and Details fields. The armed
+Discard is the destructive button. Discover's platform chips are the filter
+chip, pressed by weight, border and the accent bar. The legacy `.btn` and
+`.chip` classes stay for the areas not yet migrated (#536). The ten
+half-star targets of Quick rate keep their drawn width (ten 44px targets do
+not fit a phone); in Rate a few they are 44px tall on a phone.
+
 **The admin twin of a detail page** (comics 5c): the area rail, a
 breadcrumb (Shelf › Comics › the series), `AdminPageHeader` with the page's
 actions (a link to the public page when there is one), then `Panel`s in the

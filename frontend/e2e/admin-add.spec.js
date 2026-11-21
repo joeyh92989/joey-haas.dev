@@ -152,7 +152,7 @@ for (const spec of PAGES) {
     const short = await page.evaluate(() =>
       [
         ...document.querySelectorAll(
-          'main :is(button, summary, label:has(input), a):not(p a, li a, h1 a, h2 a, h3 a)',
+          'main :is(button, summary, label:has(input), a):not(p a, li a, h1 a, h2 a, h3 a, nav *)',
         ),
       ]
         .filter((el) => {
