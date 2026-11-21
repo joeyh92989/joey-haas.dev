@@ -84,6 +84,12 @@ const PROPS = [
   'animation-name',
   'page-break-inside',
   'break-inside',
+  'list-style-type',
+  'vertical-align',
+  'border-collapse',
+  'resize',
+  'text-indent',
+  'appearance',
 ]
 
 const NOW = new Date('2026-12-15T18:00:00Z')
@@ -225,6 +231,8 @@ async function dumpPage(page) {
       if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) continue
       const key = path(el)
       rows[key] = read(el)
+      if (['INPUT', 'TEXTAREA'].includes(el.tagName) && el.placeholder)
+        rows[key + '::placeholder'] = read(el, '::placeholder')
       for (const pseudo of ['::before', '::after']) {
         if (getComputedStyle(el, pseudo).content !== 'none')
           rows[key + pseudo] = read(el, pseudo)
@@ -341,13 +349,23 @@ const browser = await chromium.launch()
 const result = {}
 async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
-  const { context, page } = await open(browser, spec)
-  if (after) await after(page)
-  // Let hover, focus and state transitions settle: a half-faded colour is
-  // timing, not a style.
-  await page.waitForTimeout(500)
-  result[label] = await dumpPage(page)
-  await context.close()
+  // A busy machine can time a step out: try the scenario once more.
+  for (let attempt = 1; ; attempt++) {
+    const { context, page } = await open(browser, spec)
+    try {
+      if (after) await after(page)
+      // Let hover, focus and state transitions settle: a half-faded colour is
+      // timing, not a style.
+      await page.waitForTimeout(500)
+      result[label] = await dumpPage(page)
+      return
+    } catch (error) {
+      if (attempt === 3) throw error
+      console.error(`retrying ${label}: ${error.message.split('\n')[0]}`)
+    } finally {
+      await context.close()
+    }
+  }
 }
 
 // Slice D3's scenarios: /denver in list and map view, a selected spot at each

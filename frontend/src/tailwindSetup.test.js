@@ -7,8 +7,9 @@ import { describe, expect, it } from 'vitest'
 import { CSS_FILES, readCss } from './testing/readCss.js'
 
 // Read from disk: Vitest stubs CSS imports. Guards the coexistence setup in
-// frontend/CLAUDE.md "Design system setup": index.css sits in the lowest
-// layer, and Preflight stays off, so unmigrated pages do not shift (#526).
+// frontend/CLAUDE.md "Design system setup": the hand-written CSS sits in the
+// `legacy` layer and Preflight in its own layer below it, so unmigrated pages
+// do not shift (#526, #536).
 const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'tailwind.css'),
   'utf8',
@@ -22,8 +23,10 @@ const themeCss = readFileSync(
 const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
 describe('tailwind.css setup', () => {
-  it('declares the layer order, legacy lowest', () => {
-    expect(code).toContain('@layer legacy, theme, base, components, utilities;')
+  it('declares the layer order, preflight below legacy', () => {
+    expect(code).toContain(
+      '@layer preflight, legacy, theme, base, components, utilities;',
+    )
   })
 
   it('imports the hand-written CSS into the legacy layer, in cascade order', () => {
@@ -35,8 +38,31 @@ describe('tailwind.css setup', () => {
     expect(imports).toEqual(CSS_FILES)
   })
 
-  it('never imports Preflight', () => {
-    expect(code).not.toMatch(/preflight/)
+  // Preflight in `base` would sit above `legacy` and override every legacy
+  // rule that sets the same property. Below it, it only changes what the
+  // legacy sheet never sets, and styles/base.css hands those back with
+  // `revert`. The last #536 slice moves it to `base`.
+  it('imports Preflight into its own layer, below legacy', () => {
+    const imports = [
+      ...code.matchAll(/@import\s+['"]([^'"]+)['"]\s+layer\((\w+)\)/g),
+    ]
+    const order = imports.map((m) => `${m[2]}:${m[1]}`)
+    expect(order[0]).toBe('preflight:tailwindcss/preflight.css')
+    expect(order.filter((o) => o.startsWith('preflight:'))).toHaveLength(1)
+  })
+
+  it('restates the browser values Preflight would reset, in zero specificity', () => {
+    const base = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'styles/base.css'),
+      'utf8',
+    )
+    for (const selector of [
+      ':where(ul, ol, menu)',
+      ':where(table)',
+      ':where(html)',
+    ])
+      expect(base).toContain(selector)
+    expect(base).toMatch(/:where\(\*\)::before/)
   })
 
   it('has no unlayered tailwindcss import', () => {
