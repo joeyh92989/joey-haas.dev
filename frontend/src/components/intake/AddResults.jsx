@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import CoverImage from '../CoverImage.jsx'
 import { comicDetails, sourceWords } from '../../lib/intake.js'
+import { ibtn } from '../addClasses.js'
 
 /**
  * The add bar's answer (`GET /api/intake/search`): one row per result
@@ -65,7 +66,7 @@ export default function AddResults({
                 </span>
                 {result.owned_item_id ? (
                   <Link
-                    className="btn"
+                    className={ibtn('plain')}
                     to={`/admin/collection/${result.owned_item_id}`}
                   >
                     On shelf
@@ -74,7 +75,7 @@ export default function AddResults({
                 ) : isAdded(result) ? (
                   <button
                     type="button"
-                    className="btn"
+                    className={ibtn('plain')}
                     disabled
                     aria-label={`Added: ${result.title}`}
                   >
@@ -83,7 +84,7 @@ export default function AddResults({
                 ) : (
                   <button
                     type="button"
-                    className="btn primary"
+                    className={ibtn('primary')}
                     aria-label={`Add ${result.title}`}
                     onClick={(event) => onAdd(result, event.currentTarget)}
                   >
@@ -103,7 +104,7 @@ export default function AddResults({
           {unanswered.map(({ source, kind }) => (
             <li key={source.kind}>
               {source.state === 'not_configured' && (
-                <button type="button" className="btn sm" disabled>
+                <button type="button" className={ibtn('plain', 'sm')} disabled>
                   Search {kind.label}
                 </button>
               )}
@@ -122,7 +123,7 @@ export default function AddResults({
             <button
               key={kind.key}
               type="button"
-              className="btn sm"
+              className={ibtn('plain', 'sm')}
               aria-label={`Keep as a typed ${kind.label}`}
               onClick={(event) => onKeepTyped(kind, event.currentTarget)}
             >

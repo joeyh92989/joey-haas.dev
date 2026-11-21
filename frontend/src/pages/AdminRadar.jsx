@@ -11,6 +11,12 @@ import { dayWords, MONTH, releaseWords, utc } from '../lib/releaseWords.js'
 import { localToday } from '../lib/statusMoves.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import { adminCopy } from '../content/adminCopy.js'
+import {
+  CHECKBOX,
+  CHECK_ROW,
+  headBtn,
+  PHONE_LINK,
+} from '../components/addClasses.js'
 
 const copy = adminCopy.radar
 
@@ -271,7 +277,7 @@ export default function AdminRadar() {
       >
         <button
           type="button"
-          className="btn primary"
+          className={headBtn('primary')}
           disabled={busy}
           onClick={generate}
         >
@@ -280,8 +286,9 @@ export default function AdminRadar() {
       </AdminPageHeader>
 
       <div className="radar-header">
-        <label>
+        <label className={CHECK_ROW}>
           <input
+            className={CHECKBOX}
             type="checkbox"
             checked={keyCards}
             onChange={(event) => setKeyCards(event.target.checked)}
@@ -290,7 +297,7 @@ export default function AdminRadar() {
         </label>
         <span className="muted">
           Generated {ago(radar?.generated_at)} ·{' '}
-          <Link to="/admin/catalogue">
+          <Link to="/admin/catalogue" className={PHONE_LINK}>
             Sources refreshed {ago(radar?.catalogue?.stores_at)} →
           </Link>
         </span>

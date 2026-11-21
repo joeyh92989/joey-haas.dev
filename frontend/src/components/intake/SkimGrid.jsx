@@ -1,6 +1,7 @@
 import { WRITTEN_STATES, entryCover, entryTitle } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
+import { ibtn } from '../addClasses.js'
 
 /**
  * Whether an entry belongs in the skim grid: an exact match, a searched or
@@ -59,7 +60,7 @@ export default function SkimGrid({
             {onRemove && (
               <button
                 type="button"
-                className="btn sm ghost"
+                className={ibtn('ghost', 'sm')}
                 aria-label={`Remove ${entryTitle(entry)}`}
                 disabled={busy}
                 onClick={() => onRemove(entry)}

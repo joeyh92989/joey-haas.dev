@@ -7,6 +7,12 @@ import { apiFetch, errorMessage } from '../lib/api.js'
 import { shortDate } from '../lib/comics.js'
 import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
+import {
+  BIG_FIELD,
+  BIG_PRESSED,
+  bigBtn,
+  headBtn,
+} from '../components/addClasses.js'
 
 /** Got it and Skip take a whole issue number; "1.5" or "Annual" do not. */
 const WHOLE_NUMBER = /^\d+$/
@@ -139,11 +145,12 @@ function SeriesSearch({ onFollowChange }) {
         <label htmlFor="series-query">{adminCopy.pullList.seriesName}</label>
         <input
           id="series-query"
+          className={BIG_FIELD}
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <button type="submit" disabled={busy}>
+        <button type="submit" className={bigBtn('plain')} disabled={busy}>
           {busy ? adminCopy.pullList.searching : adminCopy.pullList.search}
         </button>
       </form>
@@ -189,6 +196,7 @@ function SeriesSearch({ onFollowChange }) {
                 <div className="next-row-actions">
                   <button
                     type="button"
+                    className={BIG_PRESSED}
                     aria-pressed={result.following}
                     aria-label={`Follow: ${result.title}`}
                     onClick={() => toggleFollow(result)}
@@ -201,6 +209,7 @@ function SeriesSearch({ onFollowChange }) {
                     ) : (
                       <button
                         type="button"
+                        className={bigBtn('plain')}
                         aria-label={`Want: ${result.title}`}
                         onClick={() => want(result)}
                       >
@@ -208,6 +217,7 @@ function SeriesSearch({ onFollowChange }) {
                       </button>
                     ))}
                   <Link
+                    className={bigBtn('plain')}
                     to={own.to}
                     state={own.state}
                     aria-label={`${own.label.replace('…', '')}: ${result.title}`}
@@ -369,7 +379,7 @@ export default function AdminPullList() {
       {state === 'ready' && (
         <button
           type="button"
-          className="btn primary"
+          className={headBtn('primary')}
           disabled={refreshing}
           onClick={refresh}
         >
@@ -477,6 +487,7 @@ export default function AdminPullList() {
                           <div className="next-row-actions">
                             <button
                               type="button"
+                              className={bigBtn('plain')}
                               aria-label={`Got it: ${name}`}
                               aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'got')}
@@ -485,6 +496,7 @@ export default function AdminPullList() {
                             </button>
                             <button
                               type="button"
+                              className={bigBtn('plain')}
                               aria-label={`Skip: ${name}`}
                               aria-disabled={answering || undefined}
                               onClick={() => answer(row, 'skip')}

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import CoverImage from '../CoverImage.jsx'
 import KindFields from './KindFields.jsx'
 import Sheet from '../Sheet.jsx'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -110,6 +111,7 @@ export default function AddDrawer({
             <label htmlFor={`${id}-typed-title`}>Title</label>
             <input
               id={`${id}-typed-title`}
+              className={INTAKE_FIELD}
               required
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -132,18 +134,18 @@ export default function AddDrawer({
           </p>
         )}
         <div className="intake-drawer-actions">
-          <button type="submit" className="btn primary" disabled={busy}>
+          <button type="submit" className={ibtn('primary')} disabled={busy}>
             {closet ? 'Add to closet' : 'Add to shelf'}
           </button>
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             disabled={busy}
             onClick={() => submit(true)}
           >
             {closet ? 'Add and type another' : 'Add and search again'}
           </button>
-          <button type="button" className="btn ghost" onClick={onClose}>
+          <button type="button" className={ibtn('ghost')} onClick={onClose}>
             Cancel
           </button>
         </div>

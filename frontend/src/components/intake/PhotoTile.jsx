@@ -7,6 +7,7 @@ import {
 import { BUDGET_WAITING } from '../../lib/intake.js'
 import { useElapsed } from '../../lib/useElapsed.js'
 import { STILL_WORKING_AFTER_S } from '../../lib/waits.js'
+import { ibtn } from '../addClasses.js'
 
 /**
  * What a photo's tile says, from its state on the server. `ahead` is how
@@ -77,7 +78,7 @@ export default function PhotoTile({
           {photo.error && <span className="muted">{photo.error}</span>}
           <button
             type="button"
-            className="btn sm"
+            className={ibtn('plain', 'sm')}
             aria-label={`Retry photo ${number}`}
             onClick={() => onRetry(photo)}
           >
@@ -88,7 +89,7 @@ export default function PhotoTile({
       {onRemove && (
         <button
           type="button"
-          className="btn sm ghost"
+          className={ibtn('ghost', 'sm')}
           aria-label={`Remove photo ${number}`}
           disabled={busy || shown.state === 'reading'}
           onClick={() => onRemove(photo)}

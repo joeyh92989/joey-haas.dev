@@ -13,6 +13,7 @@ import {
   PRODUCT_FIELD_KEYS,
 } from '../../lib/intake.js'
 import KindFields from './KindFields.jsx'
+import { ibtn } from '../addClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -262,12 +263,16 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 idPrefix={`garment-${current.garment.id}`}
               />
               <div className="intake-actions">
-                <button type="submit" className="btn primary" disabled={busy}>
+                <button
+                  type="submit"
+                  className={ibtn('primary')}
+                  disabled={busy}
+                >
                   Save and next
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className={ibtn('plain')}
                   disabled={busy}
                   onClick={tagAgain}
                 >
@@ -275,7 +280,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className={ibtn('plain')}
                   disabled={busy}
                   onClick={skip}
                 >
@@ -290,7 +295,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   </span>
                   <button
                     type="button"
-                    className="btn sm"
+                    className={ibtn('danger', 'sm')}
                     disabled={busy}
                     onClick={() => {
                       setAsking(null)
@@ -301,7 +306,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   </button>
                   <button
                     type="button"
-                    className="btn sm ghost"
+                    className={ibtn('ghost', 'sm')}
                     onClick={() => setAsking(null)}
                   >
                     Keep it
@@ -311,7 +316,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 <div className="intake-actions quiet">
                   <button
                     type="button"
-                    className="btn ghost"
+                    className={ibtn('ghost')}
                     disabled={busy}
                     onClick={() => setAsking(current.garment.id)}
                   >
@@ -347,7 +352,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                         </span>
                         <button
                           type="button"
-                          className="btn sm"
+                          className={ibtn('danger', 'sm')}
                           disabled={busy}
                           onClick={() => {
                             setAsking(null)
@@ -358,7 +363,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                         </button>
                         <button
                           type="button"
-                          className="btn sm ghost"
+                          className={ibtn('ghost', 'sm')}
                           onClick={() => setAsking(null)}
                         >
                           Keep it
@@ -367,7 +372,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                     ) : (
                       <button
                         type="button"
-                        className="btn sm ghost"
+                        className={ibtn('ghost', 'sm')}
                         aria-label={`Remove ${piece.garment.name || 'photo'}`}
                         disabled={busy}
                         onClick={() => setAsking(piece.garment.id)}

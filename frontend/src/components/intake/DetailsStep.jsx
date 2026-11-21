@@ -6,6 +6,7 @@ import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
 import { BookRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
+import { BOX, ibtn } from '../addClasses.js'
 
 /** Shelf formats that hold collected books; singles carry issues only. */
 const COLLECTED = ['trades', 'omnibus']
@@ -58,7 +59,7 @@ function SetForAll({ kind, entries, onApply, busy }) {
         />
         <button
           type="button"
-          className="btn"
+          className={ibtn('plain')}
           disabled={busy}
           onClick={() => onApply(entries, values)}
         >
@@ -258,7 +259,7 @@ export default function DetailsStep({
       )}
       {!passes.length && <p className="muted">Nothing is ready to add yet.</p>}
       {passes.map(({ kind, entries }) => (
-        <div key={kind.key} className="intake-pass panel">
+        <div key={kind.key} className={`${BOX} intake-pass`}>
           <h3>{kind.label}</h3>
           <SetForAll
             kind={kind}
@@ -351,7 +352,7 @@ export default function DetailsStep({
                     )}
                     <button
                       type="button"
-                      className="btn sm ghost"
+                      className={ibtn('ghost', 'sm')}
                       aria-label={`Remove ${title}`}
                       onClick={() => remove(entry)}
                     >
@@ -369,15 +370,15 @@ export default function DetailsStep({
           New rows are private until published. Finish later keeps the sitting.
         </p>
         <div className="intake-actions">
-          <button type="button" className="btn" onClick={onBack}>
+          <button type="button" className={ibtn('plain')} onClick={onBack}>
             <span aria-hidden="true">←</span> Back to Check
           </button>
-          <button type="button" className="btn ghost" onClick={onLater}>
+          <button type="button" className={ibtn('ghost')} onClick={onLater}>
             Finish later
           </button>
           <button
             type="button"
-            className="btn primary"
+            className={ibtn('primary')}
             disabled={committing || !written.length}
             onClick={add}
           >

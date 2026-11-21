@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { ibtn } from '../addClasses.js'
 
 // Read from disk: Vitest stubs CSS imports, `?raw` included.
 const css = readFileSync(
@@ -52,15 +53,11 @@ describe('intake styles', () => {
   })
 
   it('gives the add bar, drawer and Clothes Check 44px targets on a phone', () => {
+    // The buttons say it themselves (ibtn, #535); the rule is not in the CSS.
     const phone = intakeBlock().split('@media (max-width: 900px)')[1]
-    for (const selector of [
-      '.intake-addbar .btn',
-      '.intake-drawer .btn',
-      '.intake-waiting .btn',
-      '.intake-result .btn',
-    ]) {
-      expect(phone, selector).toContain(selector)
-    }
+    expect(phone).not.toContain('.intake-addbar .btn')
+    expect(phone).not.toContain('.intake-result .btn')
+    expect(ibtn('plain')).toContain('max-[900px]:min-h-11')
   })
 
   it('keeps a file-picker label focusable and pointable (.btn-file)', () => {

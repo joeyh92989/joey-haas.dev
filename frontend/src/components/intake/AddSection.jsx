@@ -22,6 +22,7 @@ import AddBar from './AddBar.jsx'
 import AddDrawer from './AddDrawer.jsx'
 import AddResults from './AddResults.jsx'
 import { sittingName } from './UnfinishedList.jsx'
+import { BOX, ibtn, INTAKE_TEXTAREA } from '../addClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -50,11 +51,11 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
   const [newest, ...rest] = sittings
   if (rest.length > 0) {
     return (
-      <p className="intake-resume">
+      <p className={`${BOX} intake-resume`}>
         <span>
           <b>{sittings.length} sittings</b> are unfinished
         </span>
-        <Link className="btn" to={addPath(area)}>
+        <Link className={ibtn('plain')} to={addPath(area)}>
           See them on the Add page <span aria-hidden="true">→</span>
         </Link>
       </p>
@@ -64,11 +65,15 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
   const label = sittingName(newest)
   if (asking) {
     return (
-      <p className="intake-resume" role="group" aria-label={`Discard ${label}`}>
+      <p
+        className={`${BOX} intake-resume`}
+        role="group"
+        aria-label={`Discard ${label}`}
+      >
         <span>{discardAsk(label, newest)}</span>
         <button
           type="button"
-          className="btn"
+          className={ibtn('danger')}
           disabled={busy}
           onClick={async () => {
             setBusy(true)
@@ -83,7 +88,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
         <button
           type="button"
           ref={keepRef}
-          className="btn ghost"
+          className={ibtn('ghost')}
           disabled={busy}
           onClick={() => {
             refocus.current = true
@@ -96,13 +101,13 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
     )
   }
   return (
-    <p className="intake-resume">
+    <p className={`${BOX} intake-resume`}>
       <span>
         <b>{label}</b> is unfinished · {counts.check} to check, {counts.ready}{' '}
         ready
       </span>
       <Link
-        className="btn"
+        className={ibtn('plain')}
         to={`${addPath(area)}/${newest.id}`}
         aria-label={`Resume ${label}`}
       >
@@ -111,7 +116,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
       <button
         type="button"
         ref={discardRef}
-        className="btn ghost"
+        className={ibtn('ghost')}
         aria-label={`Discard ${label}`}
         onClick={() => setAsking(true)}
       >
@@ -528,6 +533,7 @@ export default function AddSection({ area, onAdded, children }) {
           <label htmlFor="intake-links-text">{linkIntake.fieldLabel}</label>
           <textarea
             id="intake-links-text"
+            className={INTAKE_TEXTAREA}
             rows={4}
             placeholder={linkIntake.placeholder}
             value={linksText}
@@ -537,14 +543,14 @@ export default function AddSection({ area, onAdded, children }) {
           <div className="intake-drawer-actions">
             <button
               type="submit"
-              className="btn primary"
+              className={ibtn('primary')}
               disabled={busy || linesOf(linksText).length === 0}
             >
               {busy ? linkIntake.reading : linkIntake.read}
             </button>
             <button
               type="button"
-              className="btn ghost"
+              className={ibtn('ghost')}
               onClick={() => setLinksOpen(false)}
             >
               {linkIntake.cancel}

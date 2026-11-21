@@ -1,4 +1,5 @@
 import { optionLabel } from '../../lib/intake.js'
+import { INTAKE_FIELD } from '../addClasses.js'
 
 /** The input type for each `FieldSpec.control` that is not a select. */
 const INPUT_TYPES = { text: 'text', number: 'number', date: 'date' }
@@ -54,7 +55,7 @@ export default function KindFields({
       <div key={field.key} className="intake-field">
         <label htmlFor={id}>{field.label}</label>
         {field.control === 'select' ? (
-          <select {...shared}>
+          <select className={INTAKE_FIELD} {...shared}>
             <option value="">—</option>
             {field.options.map((option) => (
               <option key={option} value={option}>
@@ -63,7 +64,11 @@ export default function KindFields({
             ))}
           </select>
         ) : (
-          <input type={INPUT_TYPES[field.control] ?? 'text'} {...shared} />
+          <input
+            className={INTAKE_FIELD}
+            type={INPUT_TYPES[field.control] ?? 'text'}
+            {...shared}
+          />
         )}
         {refusal && (
           <p id={`${id}-refusal`} className="intake-refusal">

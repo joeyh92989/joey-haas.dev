@@ -1,3 +1,5 @@
+import { TILE } from '../addClasses.js'
+
 /**
  * One kind on the Add page: its name, why its source is off when it is,
  * and the ways in it declared. Pressing it starts a photo sitting of that
@@ -23,7 +25,7 @@ export default function KindTile({ kind, onStart, busy = false }) {
   return (
     <button
       type="button"
-      className="intake-kind"
+      className={`${TILE} intake-kind`}
       disabled={!photos || busy || Boolean(sourceOff)}
       onClick={() => onStart(kind)}
     >

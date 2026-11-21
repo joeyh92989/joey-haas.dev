@@ -1,3 +1,5 @@
+import { BOX } from './addClasses.js'
+import { btn } from './closetClasses.js'
 import CoverImage from './CoverImage.jsx'
 import { dayWords } from '../lib/releaseWords.js'
 import { storeLabel } from '../lib/storeLines.js'
@@ -61,7 +63,7 @@ export default function RecommendationCard({
   const basedOn = row.based_on_titles ?? []
   const genres = row.genres ?? []
   return (
-    <article className="radar-card">
+    <article className={`${BOX} radar-card`}>
       <span className="radar-cover">
         <CoverImage src={row.cover_url} type="game" alt="" />
       </span>
@@ -103,6 +105,7 @@ export default function RecommendationCard({
             <button
               key={action}
               type="button"
+              className={btn('plain', 'sm')}
               disabled={busy}
               aria-label={ACTION_WORDS[action].named(row.title)}
               onClick={() => onAnswer(row, action)}

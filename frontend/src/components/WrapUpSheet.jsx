@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import CoverImage from './CoverImage.jsx'
 import QuickRate from './QuickRate.jsx'
+import { btn } from './closetClasses.js'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -185,7 +186,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
         </div>
         <button
           type="button"
-          className="btn ghost sm"
+          className={`${btn('ghost', 'sm')} max-[900px]:min-h-11`}
           aria-label={copy.close}
           disabled={busy}
           onClick={onClose}
@@ -265,7 +266,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
         <span className="wrap-sheet-acts">
           <button
             type="button"
-            className="btn ghost"
+            className={`${btn('ghost')} max-[900px]:min-h-11`}
             disabled={busy}
             onClick={() => save(false)}
           >
@@ -273,7 +274,7 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
           </button>
           <button
             type="button"
-            className="btn primary"
+            className={`${btn('primary')} max-[900px]:min-h-11`}
             disabled={busy}
             onClick={() => save(true)}
           >

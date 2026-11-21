@@ -9,6 +9,7 @@ import { shelfPath } from '../../lib/intake.js'
 import { itemPath } from '../../lib/spinePaths.js'
 import StatTile, { StatTiles } from '../StatTile.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
+import { ibtn } from '../addClasses.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -288,7 +289,7 @@ export default function DoneStep({
       <div className="intake-actions">
         <button
           type="button"
-          className="btn primary"
+          className={ibtn('primary')}
           disabled={startingNext}
           onClick={onNextBox}
         >
@@ -297,7 +298,7 @@ export default function DoneStep({
         {!closet && created.length > 0 && !published && (
           <button
             type="button"
-            className="btn"
+            className={ibtn('plain')}
             disabled={publishing}
             onClick={publish}
           >
@@ -305,7 +306,7 @@ export default function DoneStep({
           </button>
         )}
         <Link
-          className="btn"
+          className={ibtn('plain')}
           to={shelfPath(sitting.area, sitting.kind)}
           state={closet ? { closetStatus: 'untagged' } : undefined}
         >

@@ -2095,12 +2095,9 @@ footer {
   margin-bottom: var(--space-5);
 }
 
+/* The tile's card surface, ring and hover come from TILE (addClasses.js). */
 .intake-kind {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   color: var(--text);
-  cursor: pointer;
   display: grid;
   font: inherit;
   gap: 0.15rem; /* space-exception: hairline, optical offset */
@@ -2113,20 +2110,6 @@ footer {
 .intake-kind > span {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.intake-kind:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.intake-kind:focus-visible,
-.intake-file:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.intake-kind:disabled {
-  cursor: not-allowed;
 }
 
 .intake-kind-name {
@@ -2144,10 +2127,8 @@ footer {
   margin-top: var(--space-1);
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .intake-unfinished {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   list-style: none;
   margin: 0;
   padding: 0 var(--space-4);
@@ -2168,6 +2149,12 @@ footer {
 
 .intake-sitting p {
   margin: 0;
+}
+
+/* A long or unbroken name wraps inside the row instead of widening it. */
+.intake-sitting-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .intake-sitting-name {
@@ -2353,6 +2340,16 @@ footer {
   gap: var(--space-2);
 }
 
+/* A long or unbroken title wraps inside its column instead of widening it
+   (grid items default to min-width: auto). */
+.intake-checkone > div,
+.intake-checkone-source,
+.intake-option > span,
+.intake-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .intake-checkone-source p {
   margin: 0;
 }
@@ -2371,6 +2368,7 @@ footer {
 }
 
 .intake-readline {
+  overflow-wrap: anywhere;
   background: var(--sunken);
   border-radius: var(--radius);
   font-family: var(--font-mono);
@@ -2569,10 +2567,6 @@ footer {
 }
 
 .intake-grow-adds .mono,
-.intake-grow-form input {
-  font-family: var(--font-mono);
-}
-
 .intake-grow-strip {
   margin-top: var(--space-2);
   max-width: 26rem;
@@ -2783,19 +2777,7 @@ footer {
   font: 500 var(--fs-14) var(--font-mono);
 }
 
-.intake-book-num input {
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  color: var(--text);
-  font: 500 var(--fs-16) var(--font-mono);
-  padding: var(--space-1) var(--space-2);
-  width: 4.5rem;
-}
-
-.intake-book-num input[aria-invalid='true'] {
-  border-color: var(--badge);
-}
+/* The numbers' look is NUM_FIELD (addClasses.js). */
 
 .intake-book-mark {
   color: var(--text-3);
@@ -2833,6 +2815,7 @@ footer {
 }
 
 .intake-adds-title {
+  overflow-wrap: anywhere;
   color: var(--text);
   font-weight: 600;
   margin: 0;
@@ -2925,9 +2908,8 @@ footer {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
+/* The field's look and 44px come from INTAKE_FIELD (addClasses.js). */
 .intake-addbar input {
-  font-size: var(--fs-16);
-  min-height: 2.75rem;
   min-width: 0;
 }
 
@@ -3004,11 +2986,10 @@ footer {
   gap: var(--space-2);
 }
 
+/* .intake-resume takes its surface from BOX (addClasses.js). */
 .intake-resume,
 .intake-waiting {
   align-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
   font-size: var(--fs-14);
@@ -3018,12 +2999,10 @@ footer {
   padding: var(--space-2) var(--space-4);
 }
 
-.intake-resume {
-  background: var(--surface);
-}
-
 .intake-waiting {
   background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   margin-bottom: var(--space-4);
 }
 
@@ -3164,19 +3143,7 @@ footer {
 
 /* The shell's phone layout (PHONE_QUERY in AdminShell.jsx). */
 @media (max-width: 900px) {
-  .intake-addbar .btn,
-  .intake-drawer .btn,
-  .intake-waiting .btn,
-  .intake-resume .btn,
-  .intake-result .btn,
-  .intake-typed .btn,
-  .intake-garment-check .btn {
-    align-items: center;
-    display: inline-flex;
-    justify-content: center;
-    min-height: 2.75rem;
-  }
-
+  /* The intake buttons say their own 44px (ibtn in addClasses.js). */
   .intake-result {
     grid-template-columns: 1.9rem minmax(0, 1fr) auto;
   }
@@ -3190,7 +3157,7 @@ footer {
     grid-row: 2;
   }
 
-  .intake-result > .btn {
+  .intake-result > :is(button, a) {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
@@ -3204,7 +3171,7 @@ footer {
   }
 
   .intake-sitting {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .intake-strip {
@@ -3240,17 +3207,8 @@ footer {
   }
 
   /* Touch targets of at least 44px. */
-  .intake-step .btn,
-  .intake-kind,
-  .intake-sitting-actions .btn,
   .intake-option {
     min-height: 2.75rem;
-  }
-
-  .intake-step .btn {
-    align-items: center;
-    display: inline-flex;
-    justify-content: center;
   }
 }
 
@@ -3266,21 +3224,8 @@ footer {
 }
 
 .intake-shootsearch input {
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  color: var(--text);
   flex: 1;
-  min-height: 2.25rem;
   min-width: 0;
-  padding: var(--space-1) var(--space-2);
-}
-
-@media (max-width: 900px) {
-  .intake-shootsearch .btn,
-  .intake-shootsearch input {
-    min-height: 2.75rem;
-  }
 }
 
 /* Public intake demo (/shelf/intake). A drawn shelf, the four stages and
@@ -4628,6 +4573,20 @@ a.month-bar::before {
   outline-offset: 1px;
 }
 
+/* The targets are at least 44px tall on a phone (ten half stars are 9px
+   wide each, so the width stays as drawn). */
+@media (max-width: 700px) {
+  .quick-rate-target {
+    min-height: 2.75rem;
+  }
+
+  /* Centred in the taller box; where the box is already taller (the shelf's
+     phone sheet draws the stars at 3rem), the star keeps its own top. */
+  .quick-rate-target span {
+    top: max(0.05em, calc((2.75rem - 1.2em) / 2 + 0.05em));
+  }
+}
+
 @media (hover: hover) {
   /* Previews the rating a click would set: every target up to the hovered
      one fills, the rest empty. */
@@ -5614,24 +5573,6 @@ section > .cover-key {
   margin: var(--space-4) 0 var(--space-2);
 }
 
-.radar-header button,
-.radar-actions button {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-2) var(--space-3);
-}
-
-.radar-header button:disabled,
-.radar-actions button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .radar-month {
   font-size: var(--fs-16);
   margin: var(--space-4) 0 var(--space-2);
@@ -5643,19 +5584,31 @@ section > .cover-key {
   gap: var(--grid-gap);
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .radar-card {
   display: grid;
-  grid-template-columns: 5.5rem 1fr;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
   gap: var(--space-3);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
 }
 
 .radar-cover img {
   width: 100%;
   border-radius: 4px;
+}
+
+/* A long or unbroken title wraps inside the card instead of widening it. */
+.radar-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A link inside running text is underlined: colour alone does not set it
+   apart (axe link-in-text-block). */
+.radar-stores a,
+.radar-watch-note a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .radar-body h3 {
@@ -5687,6 +5640,13 @@ section > .cover-key {
 .radar-digital summary {
   cursor: pointer;
   font-weight: 600;
+}
+
+/* A target on a phone: 44px. */
+@media (max-width: 700px) {
+  .radar-digital summary {
+    padding-block: var(--space-3);
+  }
 }
 
 .radar-digital summary .radar-summary-title {
@@ -5732,12 +5692,10 @@ section > .cover-key {
   margin: var(--space-2) 0 0;
 }
 
+/* The card surface comes from BOX (addClasses.js). */
 .rate-a-few {
   margin: var(--space-5) 0;
   padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
 }
 
 .rate-a-few h2 {
@@ -5788,6 +5746,35 @@ section > .cover-key {
   background: var(--sunken);
 }
 
+/* On a phone each game is its own block: the title gets the full width, the
+   stars and the saved score sit under it. */
+@media (max-width: 700px) {
+  .rate-a-few-table thead {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+  }
+
+  .rate-a-few-table,
+  .rate-a-few-table tbody,
+  .rate-a-few-table tr,
+  .rate-a-few-table th,
+  .rate-a-few-table td {
+    display: block;
+  }
+
+  .rate-a-few-table tr {
+    padding: var(--space-2) 0;
+  }
+
+  .rate-a-few-table td {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
 .rate-a-few-platform,
 .rate-a-few-score {
   color: var(--text-2);
@@ -5796,18 +5783,8 @@ section > .cover-key {
 
 .rate-a-few-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-}
-
-.rate-a-few-actions button {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-2) var(--space-3);
 }
 
 /* Store list: read on a phone in a store. One column at every width, tap
@@ -8382,33 +8359,8 @@ a.cover-tile-cap:focus-visible span {
   margin: var(--space-5) 0 0;
 }
 
-/* Pull list (/admin/pull-list): What's next's rows, with the store list's
-   buttons. An answered issue stays in place, struck through. */
-.pull-list .next-row-actions button,
-.pull-list .next-row-actions a,
-.pull-list-search-form button {
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: var(--fs-16);
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--space-2) var(--space-4);
-  text-decoration: none;
-}
-
-.pull-list .next-row-actions button[aria-pressed='true'] {
-  border-color: var(--accent);
-}
-
-.pull-list .next-row-actions button:focus-visible,
-.pull-list .next-row-actions a:focus-visible,
-.pull-list-search-form button:focus-visible,
+/* Pull list (/admin/pull-list): What's next's rows. The buttons are drawn by
+   bigBtn (addClasses.js). An answered issue stays in place, struck through. */
 .pull-list .catalogue-progress:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -8441,7 +8393,6 @@ a.cover-tile-cap:focus-visible span {
 
 .pull-list-search-form input {
   flex: 1 1 14rem;
-  min-height: 44px;
 }
 
 /* The comic fields replace the copy fields in both item forms. */

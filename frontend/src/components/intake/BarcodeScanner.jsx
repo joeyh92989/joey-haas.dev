@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { isbnIntake as words } from '../../content/isbnIntake.js'
 import { toIsbn13 } from '../../lib/isbn.js'
 import Sheet from '../Sheet.jsx'
+import { ibtn } from '../addClasses.js'
 
 function ScannerBody({ onClose, onScan }) {
   const video = useRef(null)
@@ -89,7 +90,12 @@ function ScannerBody({ onClose, onScan }) {
         {state === 'failed' && words.scannerFailed}
         {state === 'scanning' && ignored && words.scannerNotIsbn}
       </p>
-      <button type="button" className="btn" data-autofocus onClick={onClose}>
+      <button
+        type="button"
+        className={ibtn('plain')}
+        data-autofocus
+        onClick={onClose}
+      >
         {words.scannerClose}
       </button>
     </div>
