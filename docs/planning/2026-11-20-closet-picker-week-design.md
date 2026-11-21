@@ -103,32 +103,31 @@ parallel with S12 (see Decisions: one story at a time, so in sequence).
 
 ## Stories
 
-Parent: #539, prefix `Closet picker:`. Issue numbers are in the table at the end
-(filled in after filing).
+Parent: #539, prefix `Closet picker:`. Issue numbers are in the Key column.
 
 | Key | Story | Depends on | Notes |
 |---|---|---|---|
-| S1 | Unknown is not a pass; count of pieces needing details | none | |
-| S2 | Season becomes a score; hard cut only for clear cases | none | |
-| S3 | Minimum pool of three with a visible relaxation; alternatives differ in the top | S1, S2 | |
-| S4 | Formality scale with anchors; office is 2 to 4; re-tag model-tagged pieces | none | tag job |
-| S5 | The tagger fills blanks on hand-saved pieces | none | |
-| S6 | Graphic tops: a flag and an office penalty | none | additive migration |
-| S7 | Per-piece feedback: storage, hard exclusions, re-plan changes the piece, prompt names it | none | additive migration |
-| S8 | Per-piece feedback on the Today tiles | S7 | **design step first** |
-| S9 | Show the funnel per slot | S1 to S3 | **design step first** |
-| S10 | Seed the profile: style words and the weekly pattern | none | production data: Joey runs it |
-| S11 | Photo ranking on: admin control, switch on, record the result | none | production setting: Joey flips it |
-| S12 | Measure one week's ranking call on a full model with photos | S1 to S11, a week of use | spike label |
-| S13 | Week plan engine: day states, per-date overrides, sequential planning | phase 1 | additive migration; architecture step |
-| S14 | Planning queue | S13 | additive migration |
-| S15 | Judgement model order in `llm.py` | S12 | |
-| S16 | Weekly baseline job | S12, S13, S14, S15 | |
-| S17 | Re-plan on weather change; pinned days get a note; honest forecast coverage | S13, S16 | |
-| S18 | Week page, read only | S13 | **design step first** |
-| S19 | Week page, editing and full redo | S14, S18 | **design step first** |
-| S20 | What-if: a date, occasion and temperature, nothing stored | S19 | **design step first** |
-| S21 | Quick model path for tweaks | S19 used for a while | `deferred` |
+| S1 (#545) | Unknown is not a pass; count of pieces needing details | none | |
+| S2 (#546) | Season becomes a score; hard cut only for clear cases | none | |
+| S3 (#547) | Minimum pool of three with a visible relaxation; alternatives differ in the top | S1, S2 | |
+| S4 (#548) | Formality scale with anchors; office is 2 to 4; re-tag model-tagged pieces | none | tag job |
+| S5 (#549) | The tagger fills blanks on hand-saved pieces | none | |
+| S6 (#550) | Graphic tops: a flag and an office penalty | none | additive migration |
+| S7 (#551) | Per-piece feedback: storage, hard exclusions, re-plan changes the piece, prompt names it | none | additive migration |
+| S8 (#552) | Per-piece feedback on the Today tiles | S7 | **design step first** |
+| S9 (#553) | Show the funnel per slot | S1 to S3 | **design step first** |
+| S10 (#554) | Seed the profile: style words and the weekly pattern | none | production data: Joey runs it |
+| S11 (#555) | Photo ranking on: admin control, switch on, record the result | none | production setting: Joey flips it |
+| S12 (#556) | Measure one week's ranking call on a full model with photos | S1 to S11, a week of use | spike label |
+| S13 (#557) | Week plan engine: day states, per-date overrides, sequential planning | phase 1 | additive migration; architecture step |
+| S14 (#558) | Planning queue | S13 | additive migration |
+| S15 (#559) | Judgement model order in `llm.py` | S12 | |
+| S16 (#560) | Weekly baseline job | S12, S13, S14, S15 | |
+| S17 (#561) | Re-plan on weather change; pinned days get a note; honest forecast coverage | S13, S16 | |
+| S18 (#562) | Week page, read only | S13 | **design step first** |
+| S19 (#563) | Week page, editing and full redo | S14, S18 | **design step first** |
+| S20 (#564) | What-if: a date, occasion and temperature, nothing stored | S19 | **design step first** |
+| S21 (#565) | Quick model path for tweaks | S19 used for a while | `deferred` |
 
 Existing children of #539: #422 (link import colour) is unrelated to this work and
 stays where it is. #425 (preview tomorrow) has no parent and overlaps S18/S19; it
@@ -179,6 +178,6 @@ None: no code or output changes. The checks are `gh issue view` on each filed st
    `closet-picker`. Acceptance: each has Problem, Acceptance criteria, Out of
    scope, Notes; each dependency is named.
 3. Comment on #400 with the probe numbers; comment on #540 with what is unmet.
-4. Fill the issue numbers into the table above.
+4. Fill the issue numbers into the table above (done).
 
 Ship notes: no migration. Docs only.
