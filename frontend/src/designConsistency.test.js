@@ -200,9 +200,20 @@ describe('shared component rules', () => {
   })
 
   it('writes no coloured text with an opacity in the shell', () => {
-    const SHELL = ['components/SiteMast.jsx', 'components/MoreMenu.jsx']
-    const bad = files
-      .filter((f) => SHELL.includes(f.name))
+    const SHELL = [
+      'components/SiteMast.jsx',
+      'components/MoreMenu.jsx',
+      'components/SearchButton.jsx',
+      'components/SearchDialog.jsx',
+      'components/NavSheet.jsx',
+      'components/MobileNavSheet.jsx',
+      'components/MastNavLink.jsx',
+      'components/SiteFooter.jsx',
+      'components/ui/button-variants.js',
+    ]
+    const found = sources.filter((f) => SHELL.includes(f.name))
+    expect(found).toHaveLength(SHELL.length)
+    const bad = found
       .filter((f) => /text-[\w-]+\/\d/.test(f.text))
       .map((f) => f.name)
     expect(bad).toEqual([])

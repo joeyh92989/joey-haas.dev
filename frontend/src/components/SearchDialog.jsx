@@ -112,7 +112,7 @@ export default function SearchDialog({ open, onClose }) {
         <div className="search-head">
           <Input
             type="search"
-            className="search-input"
+            className="search-input md:text-base"
             role="combobox"
             aria-label="Search"
             aria-expanded={rows.length > 0}

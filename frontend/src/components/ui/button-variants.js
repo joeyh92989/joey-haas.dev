@@ -1,14 +1,14 @@
 import { cva } from 'class-variance-authority'
 
 // The button's look, apart from the component: the masthead takes it without
-// the Base UI runtime or `cn` (about 40KB), which are not in the entry chunk
+// the Base UI runtime or `cn` (about 35KB raw), which are not in the entry chunk
 // (#529).
 // Restyled in place for the Archive look (#528): flat, a 1px outline, no
 // shadow. `bg-primary` is the brand fill; `bg-accent` is shadcn's hover
 // background (--sunken) and is not used for fills. A link-button passes
 // `render={<Link />}` with `nativeButton={false}`.
 export const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -36,10 +36,13 @@ export const buttonVariants = cva(
         link: 'h-auto border-transparent px-0 text-accent-text underline underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-9 px-4',
-        xs: 'h-6 px-2 text-xs',
-        sm: 'h-8 px-3 text-[0.8125rem]',
-        lg: 'h-11 px-5',
+        default: 'h-9 gap-2 px-4',
+        xs: 'h-6 gap-2 px-2 text-xs',
+        sm: 'h-8 gap-2 px-3 text-[0.8125rem]',
+        lg: 'h-11 gap-2 px-5',
+        // No box of its own: the nav and link variants set their own height
+        // and padding, and a size's px-4 would beat their px-0.
+        bare: 'gap-1',
         // 4px between label and count on desktop; on a phone the legacy
         // `.chip > .chip-count` margin supplies it (adminPolish.test.js).
         chip: 'gap-1 px-3 py-1 text-[0.8125rem] leading-[1.4] max-[700px]:gap-0',
