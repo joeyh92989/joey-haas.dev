@@ -380,3 +380,62 @@ describe('FilterChips group limit', () => {
     })
   })
 })
+
+// The labelled rows (both shelves) draw underline tabs, not pills (#532).
+describe('FilterChips tab look', () => {
+  const groups = [
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'finished', label: 'Finished', count: 3 },
+        { value: 'backlog', label: 'Backlog', count: 2 },
+      ],
+    },
+  ]
+  it('draws a labelled row as tabs with an accent bar under the pressed one', () => {
+    render(
+      <FilterChips labelled groups={groups} value={{}} onChange={() => {}} />,
+    )
+    const chip = screen.getByRole('button', { name: /Finished/ })
+    expect(chip.className).toContain('rounded-none')
+    expect(chip.className).toContain('aria-pressed:after:block')
+    expect(chip.parentElement.className).toContain('border-b')
+  })
+  it('leaves an unlabelled row as the pills it was', () => {
+    render(<FilterChips groups={groups} value={{}} onChange={() => {}} />)
+    const chip = screen.getByRole('button', { name: /Finished/ })
+    expect(chip.className).not.toContain('rounded-none')
+  })
+
+  it('keeps a toggle a filled chip button, not a tab, with a strong pressed state', () => {
+    render(
+      <FilterChips
+        labelled
+        groups={groups}
+        toggles={[{ key: 'wanted', label: 'Want', count: 2 }]}
+        value={{ wanted: true }}
+        onChange={() => {}}
+      />,
+    )
+    const toggle = screen.getByRole('button', { name: /Want/ })
+    expect(toggle.className).not.toContain('rounded-none')
+    expect(toggle.className).toContain('aria-pressed:bg-foreground')
+    expect(toggle.className).toContain('aria-pressed:text-background')
+    expect(toggle.className).toContain('aria-pressed:font-semibold')
+  })
+
+  it('is single-select in a tab row: pressing one releases the other', async () => {
+    const onChange = vi.fn()
+    render(
+      <FilterChips
+        labelled
+        groups={groups}
+        value={{ status: 'finished' }}
+        onChange={onChange}
+      />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Backlog/ }))
+    expect(onChange).toHaveBeenCalledWith({ status: 'backlog' })
+  })
+})

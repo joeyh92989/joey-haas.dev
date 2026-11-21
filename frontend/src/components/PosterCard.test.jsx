@@ -202,3 +202,127 @@ describe('PosterCard copy marks', () => {
     expect(container.querySelector('.upcoming-ribbon')).toBeNull()
   })
 })
+
+// A card in a numbered collection (the public Games and Comics lists, #532):
+// a record card with a catalogue number and a status mark with its word.
+describe('PosterCard in a numbered collection', () => {
+  it('is a record card with a strip holding the number and the status word', () => {
+    const { container } = renderCard({ number: 7 })
+    const card = container.querySelector('.poster-card')
+    expect(card).toHaveAttribute('data-slot', 'card')
+    const strip = card.querySelector('[data-strip]')
+    expect(strip).toHaveTextContent('No. 007')
+    expect(strip).toHaveTextContent('Finished')
+  })
+
+  it('hides the number from assistive tech and names the card by its title', () => {
+    const { container } = renderCard({
+      number: 7,
+      item: { ...ITEM, favorite: false },
+    })
+    expect(container.querySelector('[aria-hidden="true"]')).toHaveTextContent(
+      'No. 007',
+    )
+    expect(screen.getByRole('link')).toHaveAccessibleName(/^Hades\b/)
+  })
+
+  it('says the status in words only, so the cover carries no status mark', () => {
+    const { container } = renderCard({ number: 7 })
+    expect(screen.queryByRole('img', { name: 'Finished' })).toBeNull()
+    expect(container.querySelector('.poster-art .status-mark')).toBeNull()
+  })
+
+  it('writes a backlog game as Backlog, with an unfilled mark', () => {
+    const { container } = renderCard({
+      number: 3,
+      item: { ...ITEM, status: 'backlog' },
+    })
+    expect(container.querySelector('[data-strip]')).toHaveTextContent('Backlog')
+    expect(
+      container.querySelector('[data-slot="status-mark-square"]'),
+    ).toHaveAttribute('data-filled', 'false')
+  })
+
+  it.each([
+    ['finished', 'true'],
+    ['active', 'true'],
+    ['paused', 'false'],
+    ['abandoned', 'false'],
+  ])('fills the mark for %s: %s', (status, filled) => {
+    const { container } = renderCard({ number: 1, item: { ...ITEM, status } })
+    expect(
+      container.querySelector('[data-slot="status-mark-square"]'),
+    ).toHaveAttribute('data-filled', filled)
+  })
+
+  it('uses the status names a comic passes', () => {
+    renderCard({
+      number: 1,
+      item: { ...ITEM, status: 'active' },
+      statusLabels: { active: 'Reading' },
+    })
+    expect(screen.getAllByText('Reading')).toHaveLength(2)
+  })
+
+  it('covers the card with its one link, and draws the keyboard ring inside it', () => {
+    renderCard({ number: 7 })
+    const link = screen.getByRole('link')
+    expect(link.className).toContain('after:absolute')
+    expect(link.className).toContain('after:inset-0')
+    expect(link.className).toContain('focus-visible:after:-outline-offset-2')
+  })
+
+  it('keeps the legacy hooks the tests and the admin read', () => {
+    const { container } = renderCard({ number: 7 })
+    expect(container.querySelector('.poster-link')).not.toBeNull()
+    expect(container.querySelector('.poster-art')).not.toBeNull()
+    expect(container.querySelector('.poster-title')).toHaveTextContent('Hades')
+  })
+
+  it('keeps the other marks on the cover', () => {
+    renderCard({ number: 7, item: { ...ITEM, times_completed: 2 } })
+    expect(screen.getByRole('img', { name: 'Favorite' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', { name: 'Finished 2 times' }),
+    ).toBeInTheDocument()
+  })
+
+  it('leaves a card with no number as it was', () => {
+    const { container } = renderCard()
+    expect(container.querySelector('[data-strip]')).toBeNull()
+    expect(screen.getByRole('img', { name: 'Finished' })).toHaveClass(
+      'status-mark',
+    )
+  })
+
+  it('names the card’s link by its title and then its status, said once', () => {
+    const { container } = renderCard({
+      number: 7,
+      item: { ...ITEM, favorite: false, status: 'paused' },
+    })
+    const link = screen.getByRole('link')
+    expect(link).toHaveAccessibleName(/^Hades\b.*Paused/)
+    const word = link.querySelector('.sr-only')
+    expect(word).toHaveTextContent('Paused')
+    // The strip's word is for the eye: a screen reader gets it from the link.
+    const strip = container.querySelector('[data-strip]')
+    const hidden = [...strip.querySelectorAll('[aria-hidden="true"]')].map(
+      (node) => node.textContent,
+    )
+    expect(hidden.some((text) => text.includes('Paused'))).toBe(true)
+  })
+
+  it('lets the title’s underline show: no clip, no line clamp', () => {
+    renderCard({ number: 7 })
+    const title = document.querySelector('.poster-title')
+    expect(title.className).toContain('overflow-visible')
+    expect(title.className).toContain('block')
+    expect(title.className).toContain('[-webkit-line-clamp:unset]')
+  })
+
+  it('spaces the rating under the title', () => {
+    renderCard({ number: 7 })
+    const rating = screen.getByRole('img', { name: '9 out of 10' })
+    expect(rating.parentElement.className).toContain('mt-1')
+  })
+})

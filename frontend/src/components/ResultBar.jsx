@@ -31,8 +31,8 @@ export default function ResultBar({
 }) {
   return (
     <div className="resultbar">
-      <p className="result">
-        <strong aria-live="polite">
+      <p className="result font-mono text-xs text-muted-foreground">
+        <strong aria-live="polite" className="font-semibold text-foreground">
           {filtered
             ? copy.titlesOf(shown, total, noun, plural)
             : copy.titles(total, noun, plural)}

@@ -4,6 +4,10 @@ import { localToday } from '../lib/statusMoves.js'
 import CoverImage from './CoverImage.jsx'
 import Rating from './Rating.jsx'
 import { MONTH_YEAR } from '../lib/formatDate.js'
+import { cx } from '../lib/cx.js'
+import RecordCard from './RecordCard.jsx'
+import StatusMark from './StatusMark.jsx'
+import { CARD_HOST, CARD_LINK, CARD_TITLE } from './shelf-classes.js'
 
 const SWITCH_2_ID = 508
 const SWITCH_2_NAME = 'Nintendo Switch 2'
@@ -72,6 +76,11 @@ function KeyGlyph() {
  *   title and outside the link (ComicCardRun).
  * @param {Record<string, string>} [props.statusLabels] - The status mark's
  *   names; comics pass their own (Reading, Read).
+ * @param {number} [props.number] - The card's catalogue number. With it the
+ *   card is a record card in a numbered collection (the public lists): a
+ *   strip with the catalogue number and the status mark with its word, and the whole
+ *   card is the link. Without it the card is the loose poster the admin
+ *   shelf and the other grids draw.
  */
 export default function PosterCard({
   item,
@@ -81,6 +90,7 @@ export default function PosterCard({
   stacked = false,
   run = null,
   statusLabels,
+  number,
 }) {
   const markLabel = statusLabels
     ? (item.caught_up && statusLabels.caughtUp) || statusLabels[item.status]
@@ -88,6 +98,60 @@ export default function PosterCard({
   const meta = [item.year, item.creator].filter(Boolean).join(' · ')
   const mark = formatMark(item)
   const coming = upcoming(item)
+
+  if (number != null) {
+    const art = (
+      <span className="poster-art" data-stacked={stacked || undefined}>
+        <CoverImage src={item.cover_url} type={item.type} alt="" />
+        {!coming && <ReplayMark count={item.times_completed} />}
+        {mark && (
+          <span className="format-mark" role="img" aria-label={mark}>
+            {mark === 'Format not recorded' ? '?' : <KeyGlyph />}
+          </span>
+        )}
+        {coming && <span className="upcoming-ribbon">{coming}</span>}
+        {item.favorite && (
+          <span className="poster-heart" role="img" aria-label="Favorite">
+            ♥
+          </span>
+        )}
+      </span>
+    )
+    return (
+      <RecordCard
+        className={cx('poster-card', CARD_HOST)}
+        data-dimmed={dimmed || undefined}
+        number={number}
+        label={
+          markLabel && (
+            <span aria-hidden="true">
+              <StatusMark
+                status={item.status === 'active' ? 'live' : item.status}
+              >
+                {markLabel}
+              </StatusMark>
+            </span>
+          )
+        }
+      >
+        <div className="flex flex-1 flex-col p-3">
+          <Link to={to} className={cx('poster-link', CARD_LINK)}>
+            {art}
+            <span className={cx('poster-title', CARD_TITLE)}>{item.title}</span>
+            {markLabel && ' '}
+            {markLabel && <span className="sr-only">{markLabel}</span>}
+          </Link>
+          {run}
+          {item.rating ? (
+            <div className="mt-1">
+              <Rating rating={item.rating} />
+            </div>
+          ) : null}
+          {meta && <p className="poster-meta muted">{meta}</p>}
+        </div>
+      </RecordCard>
+    )
+  }
 
   return (
     <div className="poster-card" data-dimmed={dimmed || undefined}>

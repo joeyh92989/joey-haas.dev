@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { cx } from '../lib/cx.js'
 import ShowMore from './ShowMore.jsx'
+import { RECORD_GRID, SPINE_GRID } from './shelf-classes.js'
 
 const NARROW = '(max-width: 34rem)'
 /** Rows in a page: four on a desktop, six on a phone (three covers a row). */
@@ -36,6 +38,9 @@ function columnsOf(grid) {
  * @param {boolean} [props.paged] - Page the grid. Off by default.
  * @param {string} [props.resetKey] - Changing it returns a paged grid to its
  *   first page.
+ * @param {'posters'|'records'|'spines'} [props.layout] - Loose posters (the
+ *   default, the admin shelf), numbered record cards with wider columns, or
+ *   the spine rail's 4, 6 and 12 columns.
  */
 export default function PosterGrid({
   items,
@@ -43,6 +48,7 @@ export default function PosterGrid({
   renderCard,
   paged = false,
   resetKey = '',
+  layout = 'posters',
 }) {
   const narrow = useMediaQuery(NARROW)
   const gridRef = useRef(null)
@@ -89,7 +95,16 @@ export default function PosterGrid({
 
   return (
     <>
-      <ul className="poster-grid" data-size={size} ref={gridRef}>
+      <ul
+        className={cx(
+          'poster-grid',
+          layout === 'records' && RECORD_GRID,
+          layout === 'spines' && SPINE_GRID,
+        )}
+        data-size={size}
+        data-layout={layout === 'posters' ? undefined : layout}
+        ref={gridRef}
+      >
         {list.map((item) => (
           <li key={item.finish_key ?? item.id}>{renderCard(item)}</li>
         ))}

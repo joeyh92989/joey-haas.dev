@@ -1,6 +1,10 @@
 import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { cn } from '../lib/utils.js'
+import { Button } from './ui/button.jsx'
 import FilterChips from './FilterChips.jsx'
+import LayoutToggle from './LayoutToggle.jsx'
+import { PRESSED_FILL } from './shelf-classes.js'
 import SortControl from './SortControl.jsx'
 
 const copy = spine.shelf
@@ -27,6 +31,10 @@ const NARROW = '(max-width: 34rem)'
  * @param {(next: 'comfortable'|'compact') => void} props.onSizeChange
  * @param {boolean} props.dim - Whether finished and abandoned are dimmed.
  * @param {(next: boolean) => void} props.onDimChange
+ * @param {'cards'|'spines'} [props.layout] - The public lists' layout. With
+ *   `onLayoutChange` the toolbar offers Cards and Spines; the spine layout
+ *   has no poster size or dimming, so those controls are left out of it.
+ * @param {(next: 'cards'|'spines') => void} [props.onLayoutChange]
  * @param {boolean} [props.labelled] - The public shelf's layout: a visible
  *   label per row (the groups' own labels, Sort), and View on the Sort row,
  *   without Comfortable and Compact on a phone where both are 6rem. Off for
@@ -46,6 +54,8 @@ export default function ShelfToolbar({
   dim,
   onDimChange,
   labelled = false,
+  layout = 'cards',
+  onLayoutChange,
 }) {
   const narrow = useMediaQuery(NARROW)
 
@@ -55,28 +65,35 @@ export default function ShelfToolbar({
         ['comfortable', 'Comfortable'],
         ['compact', 'Compact'],
       ].map(([value, label]) => (
-        <button
+        <Button
           key={value}
-          type="button"
-          className="chip"
+          variant="chip"
+          size="chip"
+          className={cn('chip', labelled && PRESSED_FILL)}
           aria-pressed={size === value}
           onClick={() => onSizeChange(value)}
           data-size={value}
         >
           {label}
-        </button>
+        </Button>
       ))}
     </div>
   )
   const dimmer = (
-    <button
-      type="button"
-      className="chip"
+    <Button
+      variant="chip"
+      size="chip"
+      className={cn('chip', labelled && PRESSED_FILL)}
       aria-pressed={dim}
       onClick={() => onDimChange(!dim)}
     >
       Dim finished
-    </button>
+    </Button>
+  )
+
+  const spines = layout === 'spines'
+  const layouts = onLayoutChange && (
+    <LayoutToggle layout={layout} onChange={onLayoutChange} />
   )
 
   if (labelled) {
@@ -111,8 +128,9 @@ export default function ShelfToolbar({
               <span className="view-lab" aria-hidden="true">
                 {copy.view}
               </span>
-              {!narrow && sizes}
-              {dimmer}
+              {layouts}
+              {!spines && !narrow && sizes}
+              {!spines && dimmer}
             </div>
           </div>
         </div>

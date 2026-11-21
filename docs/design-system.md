@@ -67,10 +67,52 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Card | `Card` (`components/ui/card.jsx`) | A box on the card colour: 1px `--line` outline, 6px radius, no shadow. Rules inside it use `--line-card`. |
 | Record card | `RecordCard` | One record in a **numbered collection**: a mono label strip (catalogue number left, type or status right), a 3px accent left edge, the body below. A card that is not part of a collection is a `Card`. It takes Card's shell from `ui/card-classes.js` (the same string `Card` uses), with no padding of its own, and joins classes with `lib/cx.js`, so it is safe in the entry chunk. |
 | Catalogue number | `CatalogueNumber` | "No. 007": decorative (`aria-hidden`), mono, on a record card's strip, **collections only**. It never stands in for a title or an id, and no page draws one by hand. |
-| Status mark | `StatusMark` | A small outlined square, filled `--highlight` only when `live` or `finished`, **always with its word beside it**: colour never carries the meaning alone. The word's text colour is `--text-2`, never `--accent`. It is for a record card's status; the words and colours of a thing's state on the shelf (owned, read, missing) stay with `StatePill` until the shelf's cards move to `RecordCard` (#532), and then the one state pill is chosen. |
+| Status mark | `StatusMark` | A small outlined square, filled `--highlight` only when `live` or `finished`, **always with its word beside it**: colour never carries the meaning alone. The word's text colour is `--text-2`, never `--accent`. It is for a record card's status; the words and colours of a thing's state on the shelf (owned, read, missing) stay with `StatePill` on the detail pages; the public Games and Comics cards are `RecordCard`s whose strip holds the number and a `StatusMark` (`active` draws as `live`). |
 | Account menu | `AccountMenu` | The admin's one place for who is signed in, View site and Sign out (#503). The `jh` mark at the head of the rail is its button (labelled Account) on a desktop; on a phone it is a 44px rounded-square quiet button, the mark and a caret, at the left of the segment row, with the panel below. A real `button` with `aria-expanded`, `aria-controls` and the name "Account, <email>"; the panel is a plain list, never `role="menu"`. Escape, a press outside and tabbing out close it; Sign out has no confirm, reads "Signing out…" and ignores a second press, and a failure is a `role="alert"` line in the open panel. No page adds its own sign-out or View site link, and the sidebar and phone foot are gone. Words in `adminCopy.shell`. |
 | Dialog | `Sheet` | The one modal (CLAUDE.md), and the only `role="dialog"`: the card action sheet on touch renders through it. A non-modal panel, such as the inline add drawer, is a labelled `aside`, not a dialog. |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
+
+## Shelf lists
+
+(#532, slice a.) The public Games and Comics lists draw each title as a
+numbered `RecordCard` (`PosterCard` with a `number`). The number ("No. 007")
+is a position label: the title's place on the whole shelf, oldest first
+(`lib/catalogue.js`), stable across filtering, sorting and search, but it
+shifts when a title is deleted or made private, so it is never an id. The
+status is a `StatusMark` with its word on the strip beside the number; the
+strip's word is hidden from assistive tech and the card's link carries the
+status as a visually hidden word after the title, so it is read once. The
+card's one link covers it, with an inset keyboard ring (`CARD_LINK`); the
+title is underlined in the accent, unclipped.
+
+**Deviation from the mockup (3b1):** the mockup keeps only the number on the
+strip and puts status and year at the foot. Here the status sits on the strip
+with the number and the card keeps its cover, year and rating; at 320px the
+grid is one column because a strip's number and word do not fit two across.
+
+**Pressed state.** A filter row that picks one value is underline tabs
+(`FilterChips labelled`: a 3px accent bar and weight). Anything that toggles
+or sits beside the rows (a `FilterChips` toggle, Comfortable, Dim finished,
+Cards and Spines) is a chip button whose pressed state is the ink as a fill
+with the page colour on it and weight (`PRESSED_FILL`, measured in
+`contrast.test.js`), never a thin rule or colour alone. Search is `Input`, and
+the Overview figures on the public Games and Comics pages are boxed
+(`STAT_CARD`).
+
+**Spines** is an alternative layout, never the default, kept only in the URL
+(`?view=spines`, set with `replace: true`, so toggling adds no history
+entry): upright labels on a rail (`SpineCard`), each a link named by its
+title with the status as a visually hidden word, a key to the mark over them
+(`SpineKey`), and a title that wraps rather than clips (a spine stays under
+about 24rem tall; the rail is three columns on a small phone, then 4, 6 and
+12).
+
+**What the shared pieces reach.** The loose `PosterCard` (no number) stays on
+the admin shelf until its twin moves (slice b). The admin games shelf
+(`/admin/shelf/games`) takes the new look early through the pieces it shares:
+`FilterChips labelled` and the `ShelfToolbar` chip buttons, and `ResultBar`'s
+count line (the admin comics shelf takes `ResultBar` too). `STAT_CARD` is used
+by the public Games and Comics pages only; `/shelf/next` does not draw it.
 
 ## Prose pages
 

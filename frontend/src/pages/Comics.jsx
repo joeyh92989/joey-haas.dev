@@ -1,5 +1,6 @@
+import { STAT_CARD } from '../components/shelf-classes.js'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import BarList from '../components/BarList.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
 import ComicFigures from '../components/ComicFigures.jsx'
@@ -8,7 +9,12 @@ import FilterChips from '../components/FilterChips.jsx'
 import LoadState from '../components/LoadState.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import PosterCard from '../components/PosterCard.jsx'
+import LayoutToggle from '../components/LayoutToggle.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import SpineCard from '../components/SpineCard.jsx'
+import SpineKey from '../components/SpineKey.jsx'
+import { Input } from '../components/ui/input.jsx'
+import { SECTION_HEAD } from '../components/prose-classes.js'
 import ResultBar from '../components/ResultBar.jsx'
 import { RunKey } from '../components/RunLanes.jsx'
 import { StatusBar } from '../components/ShelfOverview.jsx'
@@ -24,6 +30,7 @@ import {
   searchComics,
   sortComics,
 } from '../lib/comics.js'
+import { catalogueNumbers } from '../lib/catalogue.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import {
   filterByTags,
@@ -74,7 +81,10 @@ const RUN_ORDER = [
 function RunsCard({ runs, missing }) {
   const present = RUN_ORDER.filter(({ key }) => runs[key] > 0)
   return (
-    <section className="stat-card stat-runs" aria-label={copy.cards.runs}>
+    <section
+      className={`stat-card stat-runs ${STAT_CARD}`}
+      aria-label={copy.cards.runs}
+    >
       <h3>
         {copy.cards.runs}{' '}
         <span className="stat-count">{copy.cards.runsMissing(missing)}</span>
@@ -110,7 +120,10 @@ function RunsCard({ runs, missing }) {
 
 function PublishersCard({ publishers }) {
   return (
-    <section className="stat-card" aria-label={copy.cards.publishers}>
+    <section
+      className={`stat-card ${STAT_CARD}`}
+      aria-label={copy.cards.publishers}
+    >
       <h3>{copy.cards.publishers}</h3>
       <BarList
         label={copy.cards.publishers}
@@ -127,7 +140,10 @@ function PublishersCard({ publishers }) {
 function AddedCard({ months }) {
   const most = Math.max(...months.map((month) => month.count), 1)
   return (
-    <section className="stat-card stat-finishes" aria-label={copy.cards.added}>
+    <section
+      className={`stat-card stat-finishes ${STAT_CARD}`}
+      aria-label={copy.cards.added}
+    >
       <h3>{copy.cards.added}</h3>
       <div className="bar-column">
         <div className="month-bars">
@@ -208,6 +224,21 @@ export default function Comics() {
   const [publisher, setPublisher] = useState(null)
   const [picked, setPicked] = useState(() => noTags('comic'))
   const [query, setQuery] = useState('')
+  // The spine view lives only in the URL (?view=spines), never stored.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const layout = searchParams.get('view') === 'spines' ? 'spines' : 'cards'
+
+  function changeLayout(next) {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current)
+        if (next === 'spines') params.set('view', 'spines')
+        else params.delete('view')
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   function changeFilters(next) {
     const show = next.show ?? 'all'
@@ -239,6 +270,8 @@ export default function Comics() {
     chip !== 'all' ||
     publisher !== null ||
     hasTagFilter('comic', picked)
+  // Numbered over the whole shelf, so filtering never renumbers a card.
+  const numbers = catalogueNumbers(series, (row) => row.item_id)
   const counts = chipCounts(series)
   const publishers = publishersByCount(series)
   // A pressed publisher the rows no longer hold (live data replaced the
@@ -299,7 +332,7 @@ export default function Comics() {
           <div className="shelf-top">
             <label className="shelf-search">
               <span className="visually-hidden">{copy.search}</span>
-              <input
+              <Input
                 type="search"
                 placeholder={copy.search}
                 value={query}
@@ -326,17 +359,29 @@ export default function Comics() {
               <span className="ctl-label" aria-hidden="true">
                 {spine.shelf.sort}
               </span>
-              <SortControl
-                value={sort}
-                direction="asc"
-                seed={0}
-                onChange={changeSort}
-                onShuffle={() => {}}
-                sorts={SORTS}
-                directional={false}
-                select
-                hideLabel
-              />
+              <div className="ctl-split">
+                <SortControl
+                  value={sort}
+                  direction="asc"
+                  seed={0}
+                  onChange={changeSort}
+                  onShuffle={() => {}}
+                  sorts={SORTS}
+                  directional={false}
+                  select
+                  hideLabel
+                />
+                <div
+                  className="shelf-view-controls"
+                  role="group"
+                  aria-label={spine.shelf.view}
+                >
+                  <span className="view-lab" aria-hidden="true">
+                    {spine.shelf.view}
+                  </span>
+                  <LayoutToggle layout={layout} onChange={changeLayout} />
+                </div>
+              </div>
             </div>
           </section>
 
@@ -348,7 +393,7 @@ export default function Comics() {
             plural={copy.nounPlural}
             onClear={clearAll}
           >
-            <RunKey />
+            {layout === 'spines' ? <SpineKey /> : <RunKey />}
           </ResultBar>
 
           {visible.length === 0 ? (
@@ -357,15 +402,26 @@ export default function Comics() {
             <PosterGrid
               items={visible.map(asPoster)}
               size="comfortable"
-              renderCard={(item) => (
-                <PosterCard
-                  item={item}
-                  to={itemPath(item.id)}
-                  stacked
-                  run={<ComicCardRun row={item.row} />}
-                  statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
-                />
-              )}
+              layout={layout === 'spines' ? 'spines' : 'records'}
+              renderCard={(item) =>
+                layout === 'spines' ? (
+                  <SpineCard
+                    item={item}
+                    to={itemPath(item.id)}
+                    number={numbers.get(item.id)}
+                    statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
+                  />
+                ) : (
+                  <PosterCard
+                    item={item}
+                    to={itemPath(item.id)}
+                    number={numbers.get(item.id)}
+                    stacked
+                    run={<ComicCardRun row={item.row} />}
+                    statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
+                  />
+                )
+              }
             />
           )}
 
@@ -374,7 +430,9 @@ export default function Comics() {
             id="overview"
             aria-labelledby="overview-title"
           >
-            <h2 id="overview-title">{spine.shelf.overview}</h2>
+            <h2 id="overview-title" className={SECTION_HEAD}>
+              {spine.shelf.overview}
+            </h2>
             <div className="shelf-stats">
               <RunsCard runs={stats.runs} missing={stats.missing} />
               <StatusBar

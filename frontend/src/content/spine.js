@@ -534,6 +534,14 @@ export const spine = {
     groupStatus: 'Status',
     sort: 'Sort',
     view: 'View',
+    layout: 'Layout',
+    layouts: { cards: 'Cards', spines: 'Spines' },
+    spineKey: {
+      label: 'Key',
+      aria: 'Key to the marks on spines',
+      filled: 'Playing, reading or finished',
+      outlined: 'Any other status',
+    },
     key: {
       label: 'Key',
       aria: 'Key to the marks on covers',

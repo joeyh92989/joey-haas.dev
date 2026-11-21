@@ -7,6 +7,10 @@ import NowPlaying from '../components/NowPlaying.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
+import SpineCard from '../components/SpineCard.jsx'
+import SpineKey from '../components/SpineKey.jsx'
+import { Input } from '../components/ui/input.jsx'
+import { SECTION_HEAD } from '../components/prose-classes.js'
 import ResultBar from '../components/ResultBar.jsx'
 import ShelfToolbar from '../components/ShelfToolbar.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
@@ -22,6 +26,7 @@ import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { daily } from '../content/daily.js'
 import { spine } from '../content/spine.js'
 import { tagMoreLabels } from '../content/tags.js'
+import { catalogueNumbers } from '../lib/catalogue.js'
 import { dailyPool } from '../lib/daily.js'
 import { formatDate, ownerYear } from '../lib/formatDate.js'
 import { STALE_HOURS } from '../lib/nightly.js'
@@ -131,8 +136,22 @@ export default function Games() {
   // /shelf/games?q=…), also from the page itself, where it stays mounted: a
   // new q replaces the query. Never written back, so typing does not rewrite
   // the URL.
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const urlQuery = searchParams.get('q')
+  // The spine view lives only in the URL (?view=spines): never the default,
+  // never stored, so a share and the prerendered page agree.
+  const layout = searchParams.get('view') === 'spines' ? 'spines' : 'cards'
+  function changeLayout(next) {
+    setSearchParams(
+      (current) => {
+        const params = new URLSearchParams(current)
+        if (next === 'spines') params.set('view', 'spines')
+        else params.delete('view')
+        return params
+      },
+      { replace: true },
+    )
+  }
   const [query, setQuery] = useState(() => urlQuery ?? '')
   const [seenUrlQuery, setSeenUrlQuery] = useState(urlQuery)
   if (urlQuery !== seenUrlQuery) {
@@ -191,6 +210,8 @@ export default function Games() {
   }
 
   const statusCounts = countBy(items, 'status')
+  // Numbered over the whole shelf, so filtering never renumbers a card.
+  const numbers = catalogueNumbers(items)
   const groups = [
     {
       key: 'status',
@@ -274,7 +295,7 @@ export default function Games() {
             </p>
             <label className="shelf-search">
               <span className="visually-hidden">{games.search}</span>
-              <input
+              <Input
                 ref={searchField}
                 id="shelf-search"
                 type="search"
@@ -301,6 +322,8 @@ export default function Games() {
             onSizeChange={changeSize}
             dim={dim}
             onDimChange={changeDim}
+            layout={layout}
+            onLayoutChange={changeLayout}
           />
 
           <ResultBar
@@ -310,7 +333,7 @@ export default function Games() {
             noun={games.noun}
             onClear={clearAll}
           >
-            <CoverKey />
+            {layout === 'spines' ? <SpineKey /> : <CoverKey statuses={false} />}
           </ResultBar>
 
           {visible.length === 0 ? (
@@ -323,15 +346,25 @@ export default function Games() {
             <PosterGrid
               items={visible}
               size={size}
+              layout={layout === 'spines' ? 'spines' : 'records'}
               paged
               resetKey={pagingKey}
-              renderCard={(item) => (
-                <PosterCard
-                  item={item}
-                  to={itemPath(item.id)}
-                  dimmed={dim && isDimmable(item)}
-                />
-              )}
+              renderCard={(item) =>
+                layout === 'spines' ? (
+                  <SpineCard
+                    item={item}
+                    to={itemPath(item.id)}
+                    number={numbers.get(item.id)}
+                  />
+                ) : (
+                  <PosterCard
+                    item={item}
+                    to={itemPath(item.id)}
+                    number={numbers.get(item.id)}
+                    dimmed={dim && isDimmable(item)}
+                  />
+                )
+              }
             />
           )}
 
@@ -340,7 +373,9 @@ export default function Games() {
             id="overview"
             aria-labelledby="overview-title"
           >
-            <h2 id="overview-title">{copy.overview}</h2>
+            <h2 id="overview-title" className={SECTION_HEAD}>
+              {copy.overview}
+            </h2>
             <FavoritesRow
               items={items}
               linkFor={(item) => itemPath(item.id)}

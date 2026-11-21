@@ -40,4 +40,17 @@ describe('CoverKey', () => {
     ))
       expect(mark).toHaveAttribute('aria-hidden', 'true')
   })
+
+  // Numbered cards (#532) say the status in words on their strip, so the key
+  // keeps only the marks that are still on the cover.
+  it('leaves the status marks out when the cards say them in words', () => {
+    render(<CoverKey statuses={false} />)
+    const key = screen.getByRole('list', { name: 'Key to the marks on covers' })
+    expect(
+      within(key)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Key', '×2Finished twice', '♥Favorite'])
+    expect(document.querySelector('.status-mark')).toBeNull()
+  })
 })

@@ -20,6 +20,7 @@ export default defineConfig({
     'more-menu.spec.js',
     'home.spec.js',
     'prose.spec.js',
+    'shelf-lists.spec.js',
     'tour-overflow.spec.js',
     'tools-data.spec.js',
   ],
