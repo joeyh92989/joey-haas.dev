@@ -8,9 +8,11 @@ import { mastButton } from './ui/button-variants.js'
  *
  * @param {object} props
  * @param {() => void} props.onOpen Opens the search dialog.
+ * @param {() => void} [props.onPreload] Called on pointer or focus, to fetch
+ *   the dialog's code before the press.
  * @param {boolean} props.open Whether it is open, for `aria-expanded`.
  */
-export default function SearchButton({ onOpen, open }) {
+export default function SearchButton({ onOpen, onPreload, open }) {
   return (
     <button
       type="button"
@@ -18,6 +20,8 @@ export default function SearchButton({ onOpen, open }) {
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-keyshortcuts={isMac() ? 'Meta+K /' : 'Control+K /'}
+      onPointerEnter={onPreload}
+      onFocus={onPreload}
       onClick={onOpen}
     >
       Search

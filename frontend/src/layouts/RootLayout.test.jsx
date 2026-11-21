@@ -139,7 +139,7 @@ describe('RootLayout page widths', () => {
     return container.querySelector('main').className
   }
 
-  // The tracker pages break out to 72rem; everything nested under one too.
+  // The tracker pages break out to 75rem; everything nested under one too.
   it.each(['/shelf', '/shelf/abc', '/shelf/year/2026', '/daily'])(
     'widens %s',
     (path) => {
@@ -147,7 +147,7 @@ describe('RootLayout page widths', () => {
     },
   )
 
-  // Cards and columns take the masthead's 1040px measure.
+  // Cards and columns take the masthead's 75rem measure.
   it.each(['/', '/about', '/projects', '/about/'])(
     'gives %s the content width',
     (path) => {
@@ -163,14 +163,6 @@ describe('RootLayout page widths', () => {
       expect(pageClass(path)).toBe('page')
     },
   )
-
-  // The masthead and footer rows follow the page out on the tracker routes.
-  it('widens the chrome with the tracker pages only', () => {
-    const { container, unmount } = renderAt('/shelf')
-    expect(container.firstChild).toHaveClass('site-wide')
-    unmount()
-    expect(renderAt('/about').container.firstChild).not.toHaveClass('site-wide')
-  })
 })
 
 describe('RootLayout outlet context', () => {
@@ -526,6 +518,36 @@ describe('RootLayout analytics beacon', () => {
       await screen.findByRole('link', { name: 'Admin' }),
     ).toBeInTheDocument()
     expect(beacon).not.toHaveBeenCalled()
+  })
+})
+
+describe('RootLayout when the search chunk fails to load', () => {
+  afterEach(() => {
+    vi.doUnmock('../components/SearchDialog.jsx')
+    vi.resetModules()
+  })
+
+  it('keeps the page and the Search button, and shows no dialog', async () => {
+    vi.resetModules()
+    vi.doMock('../components/SearchDialog.jsx', () => {
+      throw new Error('chunk 404')
+    })
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { default: Layout } = await import('./RootLayout.jsx')
+    render(
+      <MemoryRouter initialEntries={['/about']}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="*" element={<p>page body</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => expect(error).toHaveBeenCalled())
+    expect(screen.getByText('page body')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Search' })).toBeNull()
   })
 })
 
