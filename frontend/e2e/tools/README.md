@@ -42,14 +42,6 @@ both ranges, `/admin/analytics` in both ranges, `/admin/catalogue` and
 `/admin/closet/review`. A scenario whose element the page does not draw logs
 `absent: <selector>` and is dumped as it stands, the same on both sides.
 
-Slice D4b (#536) added the shelf overview, charts and stat tiles (`ONLY=d4b`):
-the public and admin Games and Comics overviews (closed, open, a rating or
-month bar hovered and focused, a favourite and a Now playing card focused,
-reduced motion, empty), an item and a series page, the year page, `/stats` in
-both ranges, `/admin/analytics` in both ranges, `/admin/catalogue` and
-`/admin/closet/review`. A scenario whose element the page does not draw logs
-`absent: <selector>` and is dumped as it stands, the same on both sides.
-
 Run one at a time: it opens one browser and loads about 120 pages in series.
 
 `ONLY='<regex>'` records only the scenarios whose label matches (for example
