@@ -1,10 +1,12 @@
-/* Tailwind v4 without Preflight (#526): theme + utilities only, so pages not
-   yet migrated keep their hand-written resets. See frontend/CLAUDE.md
-   "Design system setup".
+/* Tailwind v4 with Preflight in its own layer BELOW legacy (#536 slice C): it
+   only changes properties the hand-written sheet never sets, and base.css
+   restates what pages relied on. The last #536 slice moves it to `base`. See
+   frontend/CLAUDE.md "Design system setup".
    (shadcn's check looks for the plain import: @import "tailwindcss";) */
-@layer legacy, theme, base, components, utilities;
+@layer preflight, legacy, theme, base, components, utilities;
 /* The hand-written stylesheet moves into the lowest layer: it has an unlayered
    `* { padding: 0 }` reset that would otherwise beat every Tailwind utility. */
+@import 'tailwindcss/preflight.css' layer(preflight);
 @import './styles/tokens.css' layer(legacy);
 @import './styles/base.css' layer(legacy);
 @import './index.css' layer(legacy);
