@@ -2095,81 +2095,6 @@ footer {
 /* Analytics (/admin/analytics). The day bars and the list fills use
    --chart, measured on --surface above; the list fills sit on a --sunken track, where --chart measures
    5.53 dark and 4.77 light. */
-.range-control {
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-  display: inline-flex;
-}
-
-.range-control button {
-  background: var(--surface);
-  border: 0;
-  color: var(--text-2);
-  cursor: pointer;
-  font: 500 var(--fs-12) var(--font-sans);
-  padding: var(--space-1) var(--space-3);
-}
-
-.range-control button + button {
-  border-left: 1px solid var(--line);
-}
-
-.range-control button:first-child {
-  border-radius: 5px 0 0 5px;
-}
-
-.range-control button:last-child {
-  border-radius: 0 5px 5px 0;
-}
-
-/* Raised so the next button's background cannot paint over the outline. */
-.range-control button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  position: relative;
-  z-index: 1;
-}
-
-.range-control button[aria-pressed='true'] {
-  background: var(--text);
-  color: var(--bg);
-}
-
-.analytics > .panel {
-  margin-bottom: var(--space-4);
-}
-
-.analytics-two {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.analytics-two .panel + .panel {
-  margin-top: var(--space-4);
-}
-
-.analytics-empty {
-  padding: var(--space-6) 0;
-  text-align: center;
-}
-
-.analytics-empty p {
-  margin: 0;
-}
-
-.analytics-empty p + p {
-  font-size: var(--fs-13);
-  margin-top: var(--space-2);
-}
-
-.analytics-note {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-  margin-top: var(--space-4);
-  max-width: 45rem;
-}
-
 .day-bars-chart {
   align-items: flex-end;
   display: flex;
@@ -2248,12 +2173,6 @@ footer {
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
   text-align: right;
-}
-
-@media (max-width: 900px) {
-  .analytics-two {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* Intake (/admin/collection/add, /admin/closet/add and their sittings).
@@ -9481,9 +9400,9 @@ a.cover-tile-cap:focus-visible span {
   }
 }
 
-/* Denver spots (/admin/spots): the spots table and the spot form. The
-   table reuses .item-table and the form .item-detail-form; only what
-   differs is here. */
+/* Denver spots (/admin/spots): the table, the form and the cards draw from
+   the Button, Badge, Card and Input looks (denverSiteClasses.js, #535); the
+   notice and the finder's layout are here. */
 .spots-notice:empty {
   display: none;
 }
@@ -9492,165 +9411,6 @@ a.cover-tile-cap:focus-visible span {
   color: var(--text-2);
   font-size: var(--fs-14);
   margin: 0 0 var(--space-4);
-}
-
-.spot-form-wrap {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  margin-bottom: var(--space-5);
-  padding: var(--space-4) var(--space-4);
-}
-
-.spot-form-title,
-.spot-form-error {
-  grid-column: 1 / -1;
-}
-
-.spot-form-title {
-  font-size: var(--fs-16);
-  margin: 0;
-}
-
-.spot-form-label {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-}
-
-.spot-form-hint {
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin: var(--space-1) 0 0;
-}
-
-.spot-form-check {
-  align-items: center;
-  display: flex;
-  gap: var(--space-2);
-}
-
-.spot-form-check .spot-form-hint {
-  margin: 0;
-}
-
-.spots-toolbar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-.spots-search {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  flex: 1 1 14rem;
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-2) var(--space-2);
-}
-
-.spots-search:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.spots-counts {
-  display: flex;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.spots-pill {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  font: 500 var(--fs-12) var(--font-mono);
-  padding: 0.15rem var(--space-2); /* space-exception: hairline, optical offset */
-}
-
-/* The row header is the spot's name, not a column label: undo
-   .item-table th's small caps, as the catalogue table does. */
-.spots-table th[scope='row'] {
-  color: var(--text);
-  font-size: var(--fs-14);
-  font-weight: 500;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.spots-name > span:first-child {
-  margin-right: var(--space-2);
-}
-
-.spots-hood {
-  color: var(--text-3);
-  display: block;
-  font-size: var(--fs-13);
-  font-weight: 400;
-}
-
-.spots-anchor {
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--text-2);
-  font: 500 var(--fs-12) var(--font-mono);
-  padding: 0 var(--space-2);
-}
-
-.spots-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-2);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.spots-tags li {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-}
-
-.spots-visit {
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  white-space: nowrap;
-}
-
-.spots-actions {
-  white-space: nowrap;
-}
-
-.spots-actions button + button {
-  margin-left: var(--space-2);
-}
-
-/* The phone drops Last visit; the rest fits 400px without scrolling. */
-@media (max-width: 700px) {
-  .spots-table {
-    min-width: 0;
-  }
-
-  .spots-table th,
-  .spots-table td {
-    padding-inline: var(--space-2);
-  }
-
-  .spots-actions {
-    white-space: normal;
-  }
-
-  .spots-actions button {
-    margin: var(--space-1) 0;
-  }
-
-  .spot-form-wrap .item-detail-form {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* The spot finder: its queue left of the table, first on a phone. */
@@ -9685,15 +9445,6 @@ a.cover-tile-cap:focus-visible span {
   padding: 0;
 }
 
-.cand {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-}
-
 .cand-h {
   align-items: start;
   display: flex;
@@ -9718,18 +9469,6 @@ a.cover-tile-cap:focus-visible span {
 }
 
 /* The word carries the source; the colour is decoration. */
-.cand-src {
-  border: 1px solid var(--chart-2);
-  border-radius: 4px;
-  color: var(--text-2);
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  letter-spacing: 0.04em;
-  padding: 0.1rem var(--space-1); /* space-exception: hairline, optical offset */
-  text-transform: uppercase;
-}
-
 .cand-why {
   color: var(--text-2);
   font-size: var(--fs-14);
@@ -9760,36 +9499,6 @@ a.cover-tile-cap:focus-visible span {
   list-style: none;
   margin: 0 0 0 auto;
   padding: 0;
-}
-
-.minitag {
-  background: transparent;
-  border: 1px dashed var(--line-strong);
-  border-radius: 999px;
-  color: var(--text-3);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-12);
-  padding: 0.1rem var(--space-2); /* space-exception: hairline, optical offset */
-}
-
-.minitag[aria-pressed='true'] {
-  border: 1px solid var(--text);
-  color: var(--text);
-}
-
-.minitag:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.finder-empty {
-  border: 1px dashed var(--line-strong);
-  border-radius: 10px;
-  color: var(--text-2);
-  margin: 0;
-  padding: var(--space-5);
-  text-align: center;
 }
 
 @media (max-width: 700px) {
@@ -9828,14 +9537,6 @@ a.cover-tile-cap:focus-visible span {
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.wk-pills li {
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  padding: 0.15rem var(--space-3); /* space-exception: hairline, optical offset */
 }
 
 .wk-none {
@@ -9930,15 +9631,6 @@ a.cover-tile-cap:focus-visible span {
   padding: 0;
 }
 
-.sug {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-4);
-}
-
 .sug.lead {
   border-color: var(--line-strong);
 }
@@ -9989,14 +9681,6 @@ a.cover-tile-cap:focus-visible span {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-}
-
-.sug-tag {
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: var(--fs-12);
-  padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
 }
 
 .sug-why {
@@ -10075,6 +9759,10 @@ a.cover-tile-cap:focus-visible span {
 
 .wk-field input {
   width: 6rem;
+}
+
+.wk-field select {
+  width: auto;
 }
 
 .wk-form-acts {

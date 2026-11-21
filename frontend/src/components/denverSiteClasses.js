@@ -52,3 +52,6 @@ export const checkbox =
  */
 export const box =
   'rounded-md border border-border bg-card text-card-foreground'
+
+/** A tag toggle on a card: the chip look, small. */
+export const tagBtn = buttonVariants({ variant: 'chip', size: 'xs' })

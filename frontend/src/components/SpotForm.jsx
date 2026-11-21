@@ -1,6 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { TAGS, denver, tagLabel } from '../content/denver.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { btn, checkbox, chipBtn, field, textarea } from './denverSiteClasses.js'
+
+const LABEL = 'text-[0.8125rem] text-(color:--text-3)'
+const HINT = 'spot-form-hint m-0 text-xs text-(color:--text-3)'
 
 /** The form's fields for a spot, or blank ones for a new spot. */
 function startingFields(spot) {
@@ -122,30 +126,40 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
   const title = spot ? denver.form.editTitle : denver.form.addTitle
   return (
     <form
-      className="item-detail-form spot-form"
+      className="spot-form grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-2 max-[700px]:grid-cols-[minmax(0,1fr)]"
       onSubmit={save}
       aria-label={title}
     >
-      <h2 className="spot-form-title" ref={heading} tabIndex={-1}>
+      <h2
+        className="spot-form-title col-span-full m-0 text-base font-medium"
+        ref={heading}
+        tabIndex={-1}
+      >
         {title}
       </h2>
       {error && (
-        <p className="admin-error spot-form-error" role="alert">
+        <p className="admin-error spot-form-error col-span-full" role="alert">
           {error}
         </p>
       )}
-      <label htmlFor={`${id}-name`}>Name</label>
+      <label className={LABEL} htmlFor={`${id}-name`}>
+        Name
+      </label>
       <input
         id={`${id}-name`}
+        className={field}
         value={name}
         onChange={(event) => setName(event.target.value)}
         required
         maxLength={200}
       />
-      <label htmlFor={`${id}-coords`}>Coordinates</label>
+      <label className={LABEL} htmlFor={`${id}-coords`}>
+        Coordinates
+      </label>
       <div>
         <input
           id={`${id}-coords`}
+          className={field}
           value={coords}
           onChange={(event) => setCoords(event.target.value)}
           required
@@ -153,26 +167,33 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
           inputMode="text"
           autoComplete="off"
         />
-        <p className="spot-form-hint coords-tip" id={`${id}-coords-hint`}>
+        <p className={`${HINT} coords-tip mt-1`} id={`${id}-coords-hint`}>
           {denver.form.coordsHint}
         </p>
       </div>
-      <label htmlFor={`${id}-hood`}>Neighborhood</label>
+      <label className={LABEL} htmlFor={`${id}-hood`}>
+        Neighborhood
+      </label>
       <input
         id={`${id}-hood`}
+        className={field}
         value={neighbourhood}
         onChange={(event) => setNeighbourhood(event.target.value)}
         maxLength={100}
       />
-      <span className="spot-form-label" id={`${id}-tags`}>
+      <span className={LABEL} id={`${id}-tags`}>
         Tags
       </span>
-      <div className="chip-row" role="group" aria-labelledby={`${id}-tags`}>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-labelledby={`${id}-tags`}
+      >
         {TAGS.map((tag) => (
           <button
             key={tag}
             type="button"
-            className="chip"
+            className={chipBtn}
             aria-pressed={tags.includes(tag)}
             onClick={() => toggleTag(tag)}
           >
@@ -180,45 +201,54 @@ export default function SpotForm({ spot, onSaved, onCancel }) {
           </button>
         ))}
       </div>
-      <label htmlFor={`${id}-blurb`}>Blurb</label>
+      <label className={LABEL} htmlFor={`${id}-blurb`}>
+        Blurb
+      </label>
       <textarea
         id={`${id}-blurb`}
+        className={textarea}
         value={blurb}
         onChange={(event) => setBlurb(event.target.value)}
         maxLength={500}
         rows={3}
       />
-      <label htmlFor={`${id}-anchor`}>Anchor</label>
-      <span className="spot-form-check">
+      <label className={LABEL} htmlFor={`${id}-anchor`}>
+        Anchor
+      </label>
+      <span className="spot-form-check flex items-center gap-2">
         <input
           id={`${id}-anchor`}
+          className={checkbox}
           type="checkbox"
           checked={anchor}
           onChange={(event) => setAnchor(event.target.checked)}
           aria-describedby={`${id}-anchor-hint`}
         />
-        <span className="spot-form-hint" id={`${id}-anchor-hint`}>
+        <span className={HINT} id={`${id}-anchor-hint`}>
           {denver.form.anchorHint}
         </span>
       </span>
-      <label htmlFor={`${id}-public`}>Public</label>
-      <span className="spot-form-check">
+      <label className={LABEL} htmlFor={`${id}-public`}>
+        Public
+      </label>
+      <span className="spot-form-check flex items-center gap-2">
         <input
           id={`${id}-public`}
+          className={checkbox}
           type="checkbox"
           checked={isPublic}
           onChange={(event) => setIsPublic(event.target.checked)}
           aria-describedby={`${id}-public-hint`}
         />
-        <span className="spot-form-hint" id={`${id}-public-hint`}>
+        <span className={HINT} id={`${id}-public-hint`}>
           {denver.form.publicHint}
         </span>
       </span>
-      <div className="item-detail-actions">
-        <button type="submit" disabled={saving}>
+      <div className="col-span-full mt-2 flex flex-wrap gap-2">
+        <button type="submit" className={btn('primary')} disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
         </button>
-        <button type="button" onClick={onCancel}>
+        <button type="button" className={btn()} onClick={onCancel}>
           Cancel
         </button>
       </div>

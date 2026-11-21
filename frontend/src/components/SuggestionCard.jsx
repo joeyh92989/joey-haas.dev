@@ -1,5 +1,7 @@
 import { useId } from 'react'
 import { denver, tagLabel } from '../content/denver.js'
+import { cx } from '../lib/cx.js'
+import { box, btn, pill } from './denverSiteClasses.js'
 
 /**
  * One of the weekend's three suggestions, in the Play next card shape: the
@@ -32,9 +34,12 @@ export default function SuggestionCard({
   const s = suggestion
   const copy = denver.weekend
   const name = <span className="visually-hidden">: {s.name}</span>
-  const classes = ['sug', lead && 'lead', s.saved && 'saved']
-    .filter(Boolean)
-    .join(' ')
+  const classes = cx(
+    box,
+    'sug grid gap-2 p-4',
+    lead && 'lead',
+    s.saved && 'saved',
+  )
 
   return (
     <li className={classes} aria-labelledby={id}>
@@ -49,7 +54,7 @@ export default function SuggestionCard({
         {s.tags.length > 0 && (
           <span className="sug-tags">
             {s.tags.map((tag) => (
-              <span key={tag} className="sug-tag">
+              <span key={tag} className={pill}>
                 {tagLabel(tag)}
               </span>
             ))}
@@ -72,7 +77,7 @@ export default function SuggestionCard({
             </span>
             <button
               type="button"
-              className="btn ghost"
+              className={btn('ghost')}
               onClick={() => onUnsave(s)}
               disabled={busy}
             >
@@ -83,7 +88,7 @@ export default function SuggestionCard({
         ) : (
           <button
             type="button"
-            className="btn primary"
+            className={btn('primary')}
             onClick={() => onSave(s)}
             disabled={busy}
           >
@@ -96,7 +101,7 @@ export default function SuggestionCard({
         ) : (
           <button
             type="button"
-            className="btn ghost"
+            className={btn('ghost')}
             onClick={() => onBeen(s)}
             disabled={busy}
           >
@@ -107,7 +112,7 @@ export default function SuggestionCard({
         {!s.saved && (
           <button
             type="button"
-            className="btn ghost"
+            className={btn('ghost')}
             onClick={() => onSkip(s)}
             disabled={busy}
           >
