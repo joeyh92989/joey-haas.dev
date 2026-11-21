@@ -10,9 +10,20 @@ import {
   toggleMood,
 } from '../lib/pickForMe.js'
 import EmptyState from './EmptyState.jsx'
+import { Button } from './ui/button.jsx'
+import { buttonVariants } from './ui/button-variants.js'
 
 const copy = spine.next.pickForMe
 const SHOWN = 3
+
+// A result is a record card's look: the card outline and a 3px accent edge.
+const RESULT = 'rounded-md border-line-card border-l-[3px] border-l-primary p-4'
+
+// A length radio is a label drawn as a chip: the chip button's look, with the
+// pressed look (darker outline, heavier word, the 3px bar) keyed on
+// `data-checked` instead of `aria-pressed`, and the focus ring on the label
+// while the hidden input has keyboard focus.
+const RADIO_CHIP = `chip pick-radio ${buttonVariants({ variant: 'chip', size: 'chip' })} data-[checked=true]:border-foreground data-[checked=true]:bg-card data-[checked=true]:font-medium data-[checked=true]:text-foreground data-[checked=true]:after:block has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring`
 const TERMS = ['affinity', 'similarity', 'quality', 'length_fit']
 
 /**
@@ -154,7 +165,7 @@ export default function PickForMe({ table, lead = null }) {
           {PICK_SIZES.map((value) => (
             <label
               key={value}
-              className="chip pick-radio"
+              className={RADIO_CHIP}
               data-checked={size === value}
             >
               <input
@@ -164,10 +175,12 @@ export default function PickForMe({ table, lead = null }) {
                 checked={size === value}
                 onChange={() => pickSize(value)}
               />
-              {copy.sizes[value]}
-              {copy.sizeHints[value] && (
-                <span className="pick-hint"> · {copy.sizeHints[value]}</span>
-              )}
+              <span>
+                {copy.sizes[value]}
+                {copy.sizeHints[value] && (
+                  <span className="pick-hint"> · {copy.sizeHints[value]}</span>
+                )}
+              </span>
             </label>
           ))}
         </div>
@@ -176,15 +189,16 @@ export default function PickForMe({ table, lead = null }) {
         <legend>{copy.moodLegend}</legend>
         <div className="chip-row">
           {PICK_MOODS.map((mood) => (
-            <button
+            <Button
               key={mood}
-              type="button"
+              variant="chip"
+              size="chip"
               className="chip"
               aria-pressed={moods.includes(mood)}
               onClick={() => pressMood(mood)}
             >
               {copy.moods[mood]}
-            </button>
+            </Button>
           ))}
         </div>
       </fieldset>
@@ -203,6 +217,7 @@ export default function PickForMe({ table, lead = null }) {
               key={pick.item_id}
               pick={{ ...card, type: 'game' }}
               label={null}
+              className={RESULT}
             >
               <ScoreBreakdown pick={pick} weights={table.weights} />
             </TonightAlt>

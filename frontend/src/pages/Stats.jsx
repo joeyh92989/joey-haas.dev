@@ -18,6 +18,11 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { DAY_YEAR as CHANGE_DATE, TIME } from '../lib/formatDate.js'
 import PageHeader from '../components/PageHeader.jsx'
+import { buttonVariants } from '../components/ui/button-variants.js'
+import { Card } from '../components/ui/card.jsx'
+
+/** A chart's card: flat, the bars inside with their own rules. */
+const LIST_CARD = 'gap-0 px-4 py-2'
 
 const figure = (count) => count.toLocaleString('en')
 
@@ -95,9 +100,11 @@ export default function Stats() {
 
           <h2>Views per day</h2>
           {thirty.views ? (
-            <div className="site-stats-days">
+            /* The thirty bars flex to the card's width (.day-bar has min-width 0), so
+               the chart cannot overflow it; e2e checks it at 320px. */
+            <Card className="site-stats-days gap-0 px-4 py-4">
               <DayBars series={thirty.series} />
-            </div>
+            </Card>
           ) : (
             <p className="muted">No views in the last 30 days.</p>
           )}
@@ -106,29 +113,35 @@ export default function Stats() {
             <section aria-labelledby="stats-pages">
               <h2 id="stats-pages">Pages</h2>
               <span className="kicker">views, last 30 days</span>
-              <BarList
-                label="Pages by views"
-                rows={thirty.pages}
-                name={(path) => pageName(titles, path)}
-              />
+              <Card className={LIST_CARD}>
+                <BarList
+                  label="Pages by views"
+                  rows={thirty.pages}
+                  name={(path) => pageName(titles, path)}
+                />
+              </Card>
             </section>
             <section aria-labelledby="stats-referrers">
               <h2 id="stats-referrers">Referrers</h2>
               <span className="kicker">visitors, last 30 days</span>
-              <BarList
-                label="Referrers by visitors"
-                rows={referrerRows(thirty)}
-                name={referrerLabel}
-              />
+              <Card className={LIST_CARD}>
+                <BarList
+                  label="Referrers by visitors"
+                  rows={referrerRows(thirty)}
+                  name={referrerLabel}
+                />
+              </Card>
             </section>
             <section aria-labelledby="stats-devices">
               <h2 id="stats-devices">Devices</h2>
               <span className="kicker">views, last 30 days</span>
-              <BarList
-                label="Devices by views"
-                rows={thirty.devices}
-                name={deviceName}
-              />
+              <Card className={LIST_CARD}>
+                <BarList
+                  label="Devices by views"
+                  rows={thirty.devices}
+                  name={deviceName}
+                />
+              </Card>
             </section>
           </div>
         </>
@@ -141,20 +154,27 @@ export default function Stats() {
 
       <section id="changes" aria-labelledby="changes-title">
         <h2 id="changes-title">Changes</h2>
-        <p className="prose muted changes-feed">
-          <a href="/changelog.xml">RSS</a>
+        <p className="changes-feed">
+          <a
+            href="/changelog.xml"
+            className={buttonVariants({ variant: 'outline', size: 'xs' })}
+          >
+            RSS
+          </a>
         </p>
         <ol className="changelog" role="list">
           {CHANGELOG.map((entry) => (
             <li key={entry.date}>
-              <time dateTime={entry.date}>
-                {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
-              </time>
-              <ul>
-                {entry.lines.map((line, index) => (
-                  <li key={index}>{renderLine(line)}</li>
-                ))}
-              </ul>
+              <Card className="gap-2 px-4 py-3 text-[1rem]">
+                <time dateTime={entry.date}>
+                  {CHANGE_DATE.format(new Date(`${entry.date}T00:00:00Z`))}
+                </time>
+                <ul>
+                  {entry.lines.map((line, index) => (
+                    <li key={index}>{renderLine(line)}</li>
+                  ))}
+                </ul>
+              </Card>
             </li>
           ))}
         </ol>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -11,6 +11,7 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import PageHeader from '../components/PageHeader.jsx'
+import { Button } from '../components/ui/button.jsx'
 
 const copy = denver.page
 
@@ -62,6 +63,7 @@ export function tagCounts(spots) {
  * `FilterChips` rule). All is pressed when no tag is, and clears the rest.
  */
 function TagChips({ counts, total, pressed, onChange }) {
+  const labelId = useId()
   const shown = counts.filter(
     ({ tag, count }) => count > 0 || pressed.includes(tag),
   )
@@ -73,30 +75,37 @@ function TagChips({ counts, total, pressed, onChange }) {
         : TAGS.filter((t) => t === tag || pressed.includes(t)),
     )
   return (
-    <div
-      className="chip-row denver-chips"
-      role="group"
-      aria-label={copy.tagsLabel}
-    >
-      <button
-        type="button"
-        className="chip"
-        aria-pressed={pressed.length === 0}
-        onClick={() => onChange([])}
+    <div className="denver-filter">
+      <span className="ctl-label" id={labelId}>
+        {copy.tagsLabel}
+      </span>
+      <div
+        className="chip-row denver-chips"
+        role="group"
+        aria-labelledby={labelId}
       >
-        {copy.all} <span className="chip-count">{total}</span>
-      </button>
-      {shown.map(({ tag, count }) => (
-        <button
-          key={tag}
-          type="button"
+        <Button
+          variant="chip"
+          size="chip"
           className="chip"
-          aria-pressed={pressed.includes(tag)}
-          onClick={() => toggle(tag)}
+          aria-pressed={pressed.length === 0}
+          onClick={() => onChange([])}
         >
-          {tagLabel(tag)} <span className="chip-count">{count}</span>
-        </button>
-      ))}
+          {copy.all} <span className="chip-count">{total}</span>
+        </Button>
+        {shown.map(({ tag, count }) => (
+          <Button
+            key={tag}
+            variant="chip"
+            size="chip"
+            className="chip"
+            aria-pressed={pressed.includes(tag)}
+            onClick={() => toggle(tag)}
+          >
+            {tagLabel(tag)} <span className="chip-count">{count}</span>
+          </Button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -215,18 +224,28 @@ export default function Denver() {
         onChange={changeTags}
       />
       {phone ? (
-        <div className="denver-view" role="group" aria-label={copy.viewLabel}>
-          {['list', 'map'].map((value) => (
-            <button
-              key={value}
-              type="button"
-              className="chip"
-              aria-pressed={view === value}
-              onClick={() => setView(value)}
-            >
-              {copy.views[value]}
-            </button>
-          ))}
+        <div className="denver-filter">
+          <span className="ctl-label" id="denver-view-label">
+            {copy.viewLabel}
+          </span>
+          <div
+            className="denver-view"
+            role="group"
+            aria-labelledby="denver-view-label"
+          >
+            {['list', 'map'].map((value) => (
+              <Button
+                key={value}
+                variant="chip"
+                size="chip"
+                className="chip"
+                aria-pressed={view === value}
+                onClick={() => setView(value)}
+              >
+                {copy.views[value]}
+              </Button>
+            ))}
+          </div>
         </div>
       ) : null}
       <div className="denver-layout">

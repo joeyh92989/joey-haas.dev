@@ -60,7 +60,6 @@ const H1_ALLOWED = new Set([
   // Not yet migrated
   'pages/Next.jsx',
   'pages/YearInReview.jsx',
-  'pages/Daily.jsx',
   'pages/HowItWorks.jsx',
   'pages/Item.jsx',
   'pages/ComicIssue.jsx',

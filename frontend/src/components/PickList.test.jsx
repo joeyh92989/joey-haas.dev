@@ -98,4 +98,14 @@ describe('PickList', () => {
     )
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('draws the owner buttons as design-system buttons', () => {
+    renderList({ onPlay: vi.fn(), onSkip: vi.fn(), onUndo: vi.fn() })
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.length).toBeGreaterThan(0)
+    for (const button of buttons) {
+      expect(button).toHaveAttribute('data-slot', 'button')
+    }
+    expect(document.querySelector('.btn')).toBeNull()
+  })
 })

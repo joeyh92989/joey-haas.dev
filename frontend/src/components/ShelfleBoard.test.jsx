@@ -26,14 +26,32 @@ describe('ShelfleBoard', () => {
   it('is a table with column headers and six rows', async () => {
     const { container } = render(<ShelfleBoard rows={[]} />)
     const table = screen.getByRole('table', { name: '0 of 6 guesses' })
+    // The accessible name is the full word; a phone-width short form is
+    // aria-hidden and adds nothing to it.
     expect(
       within(table)
         .getAllByRole('columnheader')
-        .map((th) => th.textContent),
+        .map((th) => th.textContent.replace('Plat.', '')),
     ).toEqual(['Guess', 'Platform', 'Year', 'Genre', 'Size'])
+    for (const name of ['Guess', 'Platform', 'Year', 'Genre', 'Size']) {
+      expect(
+        within(table).getByRole('columnheader', { name }),
+      ).toBeInTheDocument()
+    }
     expect(within(table).getAllByRole('row')).toHaveLength(7)
     expect(within(table).getAllByText('Empty')).toHaveLength(6)
     expect(await axeViolations(container)).toEqual([])
+  })
+
+  it('gives the Platform header a short form for a phone, hidden from a screen reader', () => {
+    render(<ShelfleBoard rows={[]} />)
+    const th = screen.getByRole('columnheader', { name: 'Platform' })
+    const full = th.querySelector('.th-full')
+    const short = th.querySelector('.th-short')
+    expect(full).toHaveTextContent('Platform')
+    expect(short).toHaveTextContent('Plat.')
+    expect(short).toHaveAttribute('aria-hidden', 'true')
+    expect(full).not.toHaveAttribute('aria-hidden')
   })
 
   it('writes each graded cell with its state in text', async () => {

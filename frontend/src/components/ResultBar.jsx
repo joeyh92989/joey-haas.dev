@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { Button } from './ui/button.jsx'
 
 const copy = spine.shelf
 
@@ -39,9 +40,13 @@ export default function ResultBar({
         {filtered && (
           <>
             {' '}
-            <button type="button" className="linkbtn" onClick={onClear}>
+            <Button
+              variant="link"
+              className="ml-2 font-normal"
+              onClick={onClear}
+            >
               {copy.clear}
-            </button>
+            </Button>
           </>
         )}
       </p>

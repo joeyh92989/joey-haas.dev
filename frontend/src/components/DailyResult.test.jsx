@@ -51,4 +51,16 @@ describe('DailyResult', () => {
       'Not today. It was Sea of Stars.',
     )
   })
+
+  it('draws Share and the item link as design-system buttons', () => {
+    renderResult({ won: true, guesses: 3 })
+    const share = screen.getByRole('button', { name: 'Share' })
+    expect(share).toHaveAttribute('data-slot', 'button')
+    expect(share.className).toMatch(/\bbg-primary\b/)
+    const link = screen.getByRole('link', { name: 'See it on the shelf' })
+    expect(link).toHaveAttribute('data-slot', 'button')
+    expect(link.className).toMatch(/\bborder-foreground\b/)
+    expect(link.className).not.toMatch(/\bbg-primary\b/)
+    expect(document.querySelector('.btn')).toBeNull()
+  })
 })

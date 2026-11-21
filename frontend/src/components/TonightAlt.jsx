@@ -19,14 +19,23 @@ const copy = spine.next.tonight
  *   (the tour's "Up next").
  * @param {(pick: object) => void} [props.onPlay]
  * @param {(pick: object) => void} [props.onSkip]
+ * @param {string} [props.className] - Added to the card, for a page that
+ *   restyles it (Pick for me's record-card edge).
  * @param {import('react').ReactNode} [props.children] - Drawn last, under
  *   the reason (Pick for me's score breakdown).
  */
-export default function TonightAlt({ pick, label, onPlay, onSkip, children }) {
+export default function TonightAlt({
+  pick,
+  label,
+  onPlay,
+  onSkip,
+  className,
+  children,
+}) {
   const slot = label === undefined ? pick.slot_label : label
   const reason = pick.reasons?.[0]
   return (
-    <li className="tonight-alt">
+    <li className={className ? `tonight-alt ${className}` : 'tonight-alt'}>
       <span className="tonight-alt-cover">
         <CoverImage src={pick.cover_url} type={pick.type} alt="" />
       </span>

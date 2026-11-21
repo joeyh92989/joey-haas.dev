@@ -69,4 +69,15 @@ describe('ResultBar', () => {
     )
     expect(screen.getByText('beside')).toBeInTheDocument()
   })
+
+  it('draws Clear filters as the link button', () => {
+    render(<ResultBar shown={1} total={2} filtered onClear={vi.fn()} />)
+    const clear = screen.getByRole('button', { name: 'Clear filters' })
+    expect(clear).toHaveAttribute('data-slot', 'button')
+    expect(clear.className).toMatch(/\btext-accent-text\b/)
+    expect(clear.className).not.toContain('linkbtn')
+    // As it was: regular weight, 8px off the count.
+    expect(clear.className).toMatch(/\bfont-normal\b/)
+    expect(clear.className).toMatch(/\bml-2\b/)
+  })
 })

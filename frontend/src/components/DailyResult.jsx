@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
+import { Button } from './ui/button.jsx'
 import { daily } from '../content/daily.js'
 import { shortGenre, shortPlatform, yearOf } from '../lib/daily.js'
 import { sizeLabel } from '../lib/sizeBand.js'
@@ -54,12 +55,14 @@ export default function DailyResult({
         </p>
         <p className="daily-result-facts muted">{facts.join(' · ')}</p>
         <div className="daily-result-acts">
-          <button type="button" className="btn primary" onClick={onShare}>
-            {copy.share}
-          </button>
-          <Link className="btn" to={itemPath(answer.id)}>
+          <Button onClick={onShare}>{copy.share}</Button>
+          <Button
+            variant="outline"
+            render={<Link to={itemPath(answer.id)} />}
+            nativeButton={false}
+          >
             {copy.onShelf}
-          </Link>
+          </Button>
         </div>
       </div>
     </section>

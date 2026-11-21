@@ -1,4 +1,15 @@
 import { denver, tagLabel } from '../content/denver.js'
+import { Badge } from './ui/badge.jsx'
+import { CARD_SHELL } from './ui/card-classes.js'
+import { cn } from '../lib/utils.js'
+
+// The Card's shell (ui/card-classes.js) with its own padding; a selected spot
+// takes a 3px accent edge and an inset ring besides the `selected` class, so
+// the choice is not colour alone. No `gap`: the parts carry their own margins.
+const CARD = `${CARD_SHELL} px-4 py-3 scroll-mt-4`
+// An inset shadow, not a wider border: the content does not move on select.
+const SELECTED =
+  'border-primary shadow-[inset_3px_0_0_var(--accent),inset_0_0_0_1px_var(--accent)]'
 
 /** A spot's tags as small pills, in the order the API gave them. */
 export function SpotTags({ tags }) {
@@ -6,7 +17,9 @@ export function SpotTags({ tags }) {
   return (
     <ul className="spot-tags">
       {tags.map((tag) => (
-        <li key={tag}>{tagLabel(tag)}</li>
+        <Badge key={tag} render={<li />} variant="outline">
+          {tagLabel(tag)}
+        </Badge>
       ))}
     </ul>
   )
@@ -39,7 +52,12 @@ export default function SpotCard({
   return (
     <article
       ref={ref}
-      className={selected ? 'spot-card selected' : 'spot-card'}
+      className={cn(
+        'spot-card',
+        selected && 'selected',
+        CARD,
+        selected && SELECTED,
+      )}
     >
       {offMap ? <p className="spot-card-kicker">{denver.page.offMap}</p> : null}
       <div className="spot-card-head">
