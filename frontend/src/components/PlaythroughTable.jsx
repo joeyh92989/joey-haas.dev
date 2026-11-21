@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { runWords, statusLabel } from '../lib/shelf.js'
 import { DAY_YEAR as DAY } from '../lib/formatDate.js'
+import {
+  DANGER,
+  FIELD_AUTO,
+  FIELD_CELL,
+  GHOST,
+  LINK_BTN,
+  PLAIN,
+  SMALL,
+} from './adminDataClasses.js'
 
 /**
  * One item's playthroughs, oldest first: number, started, finished,
@@ -100,6 +109,7 @@ function EditableRow({ run, type, busy, onEdit, onDelete }) {
       <td className="mono">{run.number}</td>
       <td>
         <input
+          className={FIELD_CELL}
           type="date"
           aria-label={`Started, ${words.run} ${run.number}`}
           value={started}
@@ -111,6 +121,7 @@ function EditableRow({ run, type, busy, onEdit, onDelete }) {
           '—'
         ) : (
           <input
+            className={FIELD_CELL}
             type="date"
             aria-label={`Finished, ${words.run} ${run.number}`}
             value={finished}
@@ -124,6 +135,7 @@ function EditableRow({ run, type, busy, onEdit, onDelete }) {
         {dirty && (
           <button
             type="button"
+            className={SMALL}
             disabled={busy}
             aria-label={`Save ${words.run} ${run.number}`}
             onClick={() => onEdit(run.number, changes)}
@@ -135,7 +147,7 @@ function EditableRow({ run, type, busy, onEdit, onDelete }) {
         {!open && (
           <button
             type="button"
-            className="danger"
+            className={DANGER}
             disabled={busy}
             aria-label={`Delete ${words.run} ${run.number}`}
             onClick={() => onDelete(run.number)}
@@ -158,7 +170,7 @@ function AddPast({ busy, onAdd, type }) {
       <p className="playthroughs-add">
         <button
           type="button"
-          className="link-button"
+          className={LINK_BTN}
           onClick={() => setAdding(true)}
         >
           {words.addPast}
@@ -175,6 +187,7 @@ function AddPast({ busy, onAdd, type }) {
       <label>
         Started
         <input
+          className={FIELD_AUTO}
           type="date"
           value={started}
           onChange={(event) => setStarted(event.target.value)}
@@ -183,6 +196,7 @@ function AddPast({ busy, onAdd, type }) {
       <label>
         Finished
         <input
+          className={FIELD_AUTO}
           type="date"
           value={finished}
           onChange={(event) => setFinished(event.target.value)}
@@ -190,6 +204,7 @@ function AddPast({ busy, onAdd, type }) {
       </label>
       <button
         type="button"
+        className={PLAIN}
         disabled={busy}
         onClick={async () => {
           const saved = await onAdd({
@@ -206,7 +221,7 @@ function AddPast({ busy, onAdd, type }) {
       >
         Add
       </button>
-      <button type="button" onClick={() => setAdding(false)}>
+      <button type="button" className={GHOST} onClick={() => setAdding(false)}>
         Cancel
       </button>
     </div>

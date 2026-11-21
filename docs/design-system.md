@@ -123,7 +123,22 @@ with the same ring, and the armed Delete/Redo buttons through
 since the Button look has no phone target of its own. Finished and abandoned
 titles fade only their cover on the admin lists (`.collection-list`), so the
 replay and heart marks keep their contrast. The List view's table keeps the
-shared `.item-table` look (Spots and Catalogue read it) until a later slice.
+shared `.item-table` look (Spots reads it; Sources has its own table now) until a later slice.
+
+**Admin data and edit pages (#535).** Sources, the Store list, the item and
+comic edit pages and a book's page, with the components only they use
+(`BooksPanel`, `CollectsEditor`, `MetronFind`, `EditionLinkPicker`,
+`PlayJournal`, `TagPicker` and the editable playthrough controls), are the
+Button, Card and Input looks through `components/adminDataClasses.js`: a form
+is `FORM_GRID` (one column on a phone, label and field from 560px) with
+`LABEL`, `FIELD`, `CHECKBOX` and `FORM_ACTIONS`; a titled panel is `Panel` (the
+Home slice's, one admin panel look); a wide table sits in `TABLE_WRAP`, which scrolls
+inside itself and keeps room for a ring at its edge. A text button in a
+sentence (Undo, Cancel) is `LINK_BTN`. Each button, select and text field
+carries its own 44px phone target; a checkbox is 24px and its label, a
+separate element, is the 44px one, and the pressed Owned and Read marks are the chip look (outline,
+weight and bar, never colour alone). `adminDataStyle.test.js` pins the legacy
+`btn`, `chip`, `panel` and `link-button` classes off these files.
 
 **What the shared pieces reach.** `STAT_CARD` is used by the public Games and
 Comics pages only; `/shelf/next` does not draw it. `ResultBar`'s count line,

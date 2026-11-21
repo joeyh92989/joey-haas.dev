@@ -27,7 +27,8 @@ export const HEAD_TITLE =
   'font-heading text-2xl leading-tight font-medium tracking-tight [overflow-wrap:anywhere]'
 
 /** One muted line under the title. */
-export const HEAD_DESC = 'mt-1 text-sm text-muted-foreground'
+export const HEAD_DESC =
+  'mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]'
 
 /** The right-hand slot: it drops under the title when it does not fit. */
 export const HEAD_END = 'ml-auto flex flex-wrap items-center gap-x-3 gap-y-2'

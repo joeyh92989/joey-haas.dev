@@ -10,6 +10,10 @@ import * as detail from './components/detail-classes.js'
 import * as prose from './components/prose-classes.js'
 import * as denverSite from './components/denverSiteClasses.js'
 import * as home from './components/adminHomeClasses.js'
+import * as adminData from './components/adminDataClasses.js'
+import * as adminShelf from './components/adminShelfClasses.js'
+import * as adminShell from './components/adminShellClasses.js'
+import * as closet from './components/closetClasses.js'
 
 // A class string joined with `cx` or a template has no merge, so two utilities
 // of one family under one variant (`aria-pressed:bg-card` and
@@ -65,9 +69,54 @@ export function collisions(classString) {
 
 const CONSTANTS = { ...shelf, ...detail, ...prose, ...home }
 
+// A class module's own constants win inside it (PANEL, TH and PRIMARY are
+// named in several), so a statement in one resolves against that module.
+const OWN = {
+  'adminDataClasses.js': adminData,
+  'adminShelfClasses.js': adminShelf,
+  'adminShellClasses.js': adminShell,
+  'closetClasses.js': closet,
+  'adminHomeClasses.js': home,
+  'denverSiteClasses.js': denverSite,
+}
+
+// Families a variant's own string and a literal joined to it can both set:
+// padding, gap and font size. Colours are checked on the whole string above.
+const SPACING = /^(p|px|py|pt|pr|pb|pl|gap|gap-x|gap-y)-/
+const FONT_SIZE = /^text-(xs|sm|base|lg|xl|[2-9]xl|\[[\d.]+(rem|px|em)\])$/
+
+/** The family a token sets, keyed with its variant prefix, or null. */
+function sizeKey(token) {
+  const [prefix, utility] = split(token)
+  if (utility.startsWith('!') || utility.endsWith('!')) return null
+  const group =
+    SPACING.exec(utility)?.[1] ?? (FONT_SIZE.test(utility) && 'text')
+  return group ? `${prefix}|${group}` : null
+}
+
+/** Padding, gap and font-size utilities set again by a later part: a part's
+ *  own string (a variant's size and its base) is its business, but a literal
+ *  joined to it is not merged, so the sheet's order picks the winner. */
+export function sizeClashes(parts) {
+  const seen = new Map()
+  const found = []
+  for (const part of parts) {
+    const own = new Map()
+    for (const token of part.split(/\s+/).filter(Boolean)) {
+      const key = sizeKey(token)
+      if (!key) continue
+      if (seen.has(key) && seen.get(key) !== token)
+        found.push(`${seen.get(key)} / ${token}`)
+      own.set(key, token)
+    }
+    for (const [key, token] of own) seen.set(key, token)
+  }
+  return found
+}
+
 /** The class strings a statement builds: its literals and known constants,
  *  with `buttonVariants(...)` and friends evaluated. */
-function evaluate(statement) {
+function evaluate(statement, own = {}) {
   const parts = []
   for (const m of statement.matchAll(
     /(buttonVariants|badgeVariants)\(\{([^}]*)\}\)/g,
@@ -86,12 +135,14 @@ function evaluate(statement) {
   // The Denver and Site helpers (#535): a constant spliced into a template,
   // `${box} text-sm ...`.
   for (const m of statement.matchAll(/\$\{(\w+)\}/g)) {
-    if (typeof denverSite[m[1]] === 'string') parts.push(denverSite[m[1]])
+    if (typeof own[m[1]] === 'string') parts.push(own[m[1]])
+    else if (typeof denverSite[m[1]] === 'string') parts.push(denverSite[m[1]])
   }
   for (const m of statement.matchAll(/\b([A-Z][A-Z_]{3,})\b/g)) {
-    if (typeof CONSTANTS[m[1]] === 'string') parts.push(CONSTANTS[m[1]])
+    if (typeof own[m[1]] === 'string') parts.push(own[m[1]])
+    else if (typeof CONSTANTS[m[1]] === 'string') parts.push(CONSTANTS[m[1]])
   }
-  return parts.join(' ')
+  return parts
 }
 
 function walk(dir) {
@@ -168,6 +219,20 @@ describe('class strings joined without a merge', () => {
     }
   })
 
+  it('finds a padding or font-size clash between a variant and a literal', () => {
+    expect(
+      sizeClashes([
+        buttonVariants({ variant: 'outline', size: 'lg' }),
+        'min-w-11 px-4',
+      ]),
+    ).toEqual(['px-5 / px-4'])
+    // One part's own base and size are not a join; an `!` is deliberate.
+    expect(sizeClashes([buttonVariants({ size: 'sm' }), 'min-w-11'])).toEqual(
+      [],
+    )
+    expect(sizeClashes(['h-9 px-4', 'text-base!', 'text-sm'])).toEqual([])
+  })
+
   it('keeps the admin Home and Jobs strings free of clashes (#535)', () => {
     for (const [name, value] of Object.entries(home)) {
       expect(collisions(value), name).toEqual([])
@@ -178,7 +243,16 @@ describe('class strings joined without a merge', () => {
     const bad = []
     for (const path of walk(SRC)) {
       for (const { line, statement } of joined(readFileSync(path, 'utf8'))) {
-        const clash = collisions(evaluate(statement))
+        const parts = evaluate(statement, OWN[path.split('/').pop()])
+        // The size check reads the statement alone, up to the next element.
+        const alone = evaluate(
+          statement.split(/\n(?=\s*[<)])/)[0],
+          OWN[path.split('/').pop()],
+        )
+        const clash = [
+          ...collisions(parts.join(' ')),
+          ...new Set(sizeClashes(alone)),
+        ]
         if (clash.length) bad.push(`${relative(SRC, path)}:${line} ${clash}`)
       }
     }
