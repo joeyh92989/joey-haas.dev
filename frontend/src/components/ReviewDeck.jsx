@@ -2,6 +2,25 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { garmentTitle, ownerDay, shortDate } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
 import { btn, closetCard } from './closetClasses.js'
+import {
+  EVIDENCE,
+  EVIDENCE_FLAG,
+  EVIDENCE_OPINION,
+  OUTCOME,
+  OUTCOME_HINT,
+  OUTCOME_LABEL,
+  OUTCOME_ROW,
+  PACK_INPUT,
+  PACK_MONTH,
+  REVIEW_BAR,
+  REVIEW_CARD,
+  REVIEW_DECK,
+  REVIEW_NAME,
+  REVIEW_PROGRESS,
+  REVIEW_SKIP,
+  REVIEW_STAT,
+  REVIEW_THUMB,
+} from './closetReviewClasses.js'
 
 /** The four outcomes, in order, with the sub-label under each. */
 export const OUTCOMES = [
@@ -32,14 +51,14 @@ export function deckStat(card) {
  */
 export function EvidenceList({ flags, opinion }) {
   return (
-    <ul className="evidence">
+    <ul className={`evidence ${EVIDENCE}`}>
       {flags.map((flag) => (
-        <li key={flag.kind} className="evidence-flag">
+        <li key={flag.kind} className={`evidence-flag ${EVIDENCE_FLAG}`}>
           {flag.sentence}
         </li>
       ))}
       {opinion && (
-        <li className="evidence-opinion">
+        <li className={`evidence-opinion ${EVIDENCE_OPINION}`}>
           <strong>Opinion:</strong> {opinion}
         </li>
       )}
@@ -54,7 +73,7 @@ export function EvidenceList({ flags, opinion }) {
  */
 export function OutcomeRow({ suggested, busy, onChoose, packRef }) {
   return (
-    <div className="outcomes" role="group" aria-label="Decide">
+    <div className={`outcomes ${OUTCOME_ROW}`} role="group" aria-label="Decide">
       {OUTCOMES.map((outcome) => {
         const pick = outcome.value === suggested
         return (
@@ -62,14 +81,18 @@ export function OutcomeRow({ suggested, busy, onChoose, packRef }) {
             key={outcome.value}
             ref={outcome.value === 'pack' ? packRef : undefined}
             type="button"
-            className="outcome"
+            className={`outcome ${OUTCOME}`}
             data-suggested={pick ? 'true' : undefined}
             aria-label={`${outcome.label}, ${outcome.hint}${pick ? ', suggested' : ''}`}
             disabled={busy}
             onClick={() => onChoose(outcome.value)}
           >
-            <span className="outcome-label">{outcome.label}</span>
-            <span className="outcome-hint">{outcome.hint}</span>
+            <span className={`outcome-label ${OUTCOME_LABEL}`}>
+              {outcome.label}
+            </span>
+            <span className={`outcome-hint ${OUTCOME_HINT}`}>
+              {outcome.hint}
+            </span>
           </button>
         )
       })}
@@ -106,10 +129,11 @@ function PackMonth({ card, day, busy, onPack, onCancel }) {
   }
 
   return (
-    <form className="pack-month" onSubmit={submit}>
+    <form className={`pack-month ${PACK_MONTH}`} onSubmit={submit}>
       <label htmlFor={id}>Back in</label>
       <input
         id={id}
+        className={PACK_INPUT}
         ref={inputRef}
         type="month"
         min={min}
@@ -188,20 +212,30 @@ export default function ReviewDeck({
   }
 
   return (
-    <section className="review-deck" aria-label="Flagged pieces">
-      <p className="review-progress">
+    <section
+      className={`review-deck ${REVIEW_DECK}`}
+      aria-label="Flagged pieces"
+    >
+      <p className={`review-progress ${REVIEW_PROGRESS}`}>
         {position} of {total} flagged
       </p>
-      <div className="review-bar" aria-hidden="true">
+      <div className={`review-bar ${REVIEW_BAR}`} aria-hidden="true">
         <span style={{ width: `${percent}%` }} />
       </div>
-      <article className={`${closetCard} review-card`}>
-        <Swatch garment={card.garment} className="review-thumb" />
+      <article className={`${closetCard} review-card ${REVIEW_CARD}`}>
+        <Swatch
+          garment={card.garment}
+          className={`review-thumb ${REVIEW_THUMB}`}
+        />
         <div className="review-text">
-          <h2 className="review-name" tabIndex={-1} ref={headingRef}>
+          <h2
+            className={`review-name ${REVIEW_NAME}`}
+            tabIndex={-1}
+            ref={headingRef}
+          >
             {garmentTitle(card.garment)}
           </h2>
-          <p className="review-stat">{deckStat(card)}</p>
+          <p className={`review-stat ${REVIEW_STAT}`}>{deckStat(card)}</p>
           <EvidenceList flags={card.flags} opinion={card.opinion} />
         </div>
       </article>
@@ -223,7 +257,7 @@ export default function ReviewDeck({
       )}
       <button
         type="button"
-        className={`${btn('ghost')} review-skip`}
+        className={`${btn('ghost')} review-skip ${REVIEW_SKIP}`}
         disabled={busy}
         onClick={onSkip}
       >

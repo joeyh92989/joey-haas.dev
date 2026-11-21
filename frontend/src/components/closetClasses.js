@@ -189,3 +189,31 @@ export const PIECE_IMG = 'block h-full w-full object-contain'
 export const PIECE_NAME = 'text-[0.875rem] [overflow-wrap:anywhere]'
 export const PIECE_COLOR = 'text-[0.8125rem] text-muted-foreground'
 export const PIECE_ACTS = 'flex flex-wrap gap-1'
+
+// ---- The list view and the toolbar (#536, slice D5) -----------------------
+
+/** The Closet's toolbar: filters at the start, view and add at the end. */
+export const CLOSET_TOOLBAR =
+  'mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-3 [&>*]:max-w-full [&>*]:min-w-0'
+export const CLOSET_TOOLBAR_END = 'flex flex-wrap items-center gap-x-3 gap-y-2'
+
+/** The list view's table, scrolling inside its own box. */
+export const GARMENT_TABLE_WRAP =
+  'overflow-x-auto rounded-md border border-border bg-card px-3 py-1'
+export const GARMENT_TABLE =
+  'w-full border-collapse text-[0.875rem] [&_tbody>tr:last-child>td]:[border-bottom:0]'
+export const GARMENT_TH =
+  'border-b border-b-border p-2 text-left text-[0.75rem] font-medium text-muted-foreground'
+export const GARMENT_TD = 'border-b border-b-border p-2 align-middle'
+/** Type, Last worn and Season drop out on a phone. */
+export const HIDE_PHONE = 'max-[640px]:hidden'
+export const GARMENT_ROW_NAME =
+  'inline-flex items-center gap-2 text-foreground [overflow-wrap:anywhere]'
+export const GARMENT_THUMB =
+  'aspect-[4/5] w-8 flex-none overflow-hidden rounded-[3px] bg-muted [&_img]:block [&_img]:h-full [&_img]:w-full [&_img]:object-cover'
+export const GARMENT_WEARS = 'inline-flex items-center gap-2'
+/** The wear meter: --accent on a --sunken track, 4.77:1 dark and 5.23:1
+ *  light (a non-text mark; the number beside it carries the value). */
+export const GARMENT_METER =
+  'block h-1 w-16 overflow-hidden rounded-[2px] bg-muted [&_i]:block [&_i]:h-full [&_i]:bg-primary'
+export const GARMENT_TRAIL_CELL = 'text-right whitespace-nowrap'

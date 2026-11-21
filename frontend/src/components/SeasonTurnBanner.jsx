@@ -1,4 +1,5 @@
 import { btn } from './closetClasses.js'
+import { REVIEW_BANNER, REVIEW_BANNER_ACTS } from './closetReviewClasses.js'
 
 /**
  * The season turn: "It's the autumn turn. 12 summer pieces close their
@@ -22,12 +23,15 @@ export default function SeasonTurnBanner({
 }) {
   const pieces = banner.count === 1 ? 'piece closes its' : 'pieces close their'
   return (
-    <section className="review-banner" aria-label="Season turn">
+    <section
+      className={`review-banner ${REVIEW_BANNER}`}
+      aria-label="Season turn"
+    >
       <p>
         It’s the {banner.turn} turn. {banner.count} {banner.season} {pieces}{' '}
         season until {banner.until}.
       </p>
-      <div className="review-banner-acts">
+      <div className={`review-banner-acts ${REVIEW_BANNER_ACTS}`}>
         <button
           type="button"
           className={btn('primary', 'sm')}
