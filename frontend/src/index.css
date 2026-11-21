@@ -7812,8 +7812,6 @@ a.cover-tile-cap:focus-visible span {
   }
 }
 
-}
-
 /* The Closet (/admin/closet), its garment page and the closet profile.
    Tokens only; a garment's own colour (primary_hex) is data, set inline
    as the photo's ground until the photo loads. */
