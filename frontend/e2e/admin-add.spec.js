@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from './fixtures.js'
 import { unringed } from './closet-ring.js'
+import { tabRings } from './denver-site-ring.js'
+import { GAMES, serveAdmin } from './admin-shelf.fixtures.js'
 import { serveAdminAdd } from './admin-add.fixtures.js'
 
 // The admin Shelf add and recommend pages (#535, slice c), with realistic
@@ -15,6 +17,27 @@ const PAGES = [
   { name: 'add', path: '/admin/collection/add', ready: 'Start a sitting' },
   { name: 'closet add', path: '/admin/closet/add', ready: 'Start a sitting' },
   { name: 'sitting', path: '/admin/collection/add/s1', ready: 'Take photos' },
+  {
+    name: 'sitting check',
+    path: '/admin/collection/add/chk',
+    ready: 'Which one is it?',
+  },
+  {
+    name: 'sitting details',
+    path: '/admin/collection/add/det',
+    ready: 'Back to Check',
+  },
+  {
+    name: 'sitting done',
+    path: '/admin/collection/add/det',
+    ready: 'Back to Check',
+    // Adds the sitting: the commit answer is served, and Done opens.
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Add \d+ to/ }).click()
+      await expect(page.getByRole('heading', { name: 'Done' })).toBeVisible()
+    },
+    tap: ['main'],
+  },
   { name: 'discover', path: '/admin/discover', ready: 'Rate a few' },
   { name: 'radar', path: '/admin/radar', ready: 'Suggested' },
   { name: 'pull list', path: '/admin/pull-list', ready: 'Week of' },
@@ -28,6 +51,7 @@ const PAGES = [
   },
 ]
 const THEMES = ['light', 'dark']
+const byName = (name) => PAGES.find((entry) => entry.name === name)
 
 async function open(page, openRoute, spec, theme, size) {
   await serveAdminAdd(page)
@@ -35,6 +59,7 @@ async function open(page, openRoute, spec, theme, size) {
   await openRoute(spec.path, theme)
   await expect(page.locator('main h1').first()).toBeVisible()
   await expect(page.getByText(spec.ready).first()).toBeVisible()
+  if (spec.prep) await spec.prep(page)
   await page.waitForLoadState('networkidle')
   await page.mouse.move(1, 1)
   // The theme fades colours (transition-colors): let it finish.
@@ -75,7 +100,7 @@ async function wideElements(page) {
 const STATES = [
   {
     name: 'Discard asked',
-    spec: PAGES[0],
+    spec: byName('add'),
     scope: 'main',
     prep: async (page) => {
       await page
@@ -89,7 +114,7 @@ const STATES = [
   },
   {
     name: 'Radar digital open',
-    spec: PAGES[4],
+    spec: byName('radar'),
     scope: 'main',
     prep: async (page) => {
       await page.locator('.radar-digital summary').click()
@@ -98,7 +123,7 @@ const STATES = [
   },
   {
     name: 'Pull list search results',
-    spec: PAGES[5],
+    spec: byName('pull list'),
     scope: 'main',
     prep: async (page) => {
       await page.getByRole('searchbox').fill('Saga')
@@ -108,7 +133,7 @@ const STATES = [
   },
   {
     name: 'Add bar results',
-    spec: PAGES[6],
+    spec: byName('games'),
     scope: 'main',
     prep: async (page) => {
       await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
@@ -120,7 +145,7 @@ const STATES = [
   },
   {
     name: 'Wrap up sheet',
-    spec: PAGES[6],
+    spec: byName('games'),
     scope: 'dialog[open]',
     prep: async (page) => {
       await page
@@ -135,7 +160,7 @@ const STATES = [
 for (const spec of PAGES) {
   for (const width of [320, 390, 1280, 1440]) {
     for (const theme of THEMES) {
-      test(`${spec.path} does not scroll sideways at ${width}px (${theme})`, async ({
+      test(`${spec.name} does not scroll sideways at ${width}px (${theme})`, async ({
         page,
         openRoute,
       }, testInfo) => {
@@ -150,7 +175,7 @@ for (const spec of PAGES) {
 }
 
 for (const spec of PAGES) {
-  test(`${spec.path} controls are 44px tall on a phone`, async ({
+  test(`${spec.name} controls are 44px tall on a phone`, async ({
     page,
     openRoute,
   }, testInfo) => {
@@ -160,7 +185,7 @@ for (const spec of PAGES) {
       (roots) => {
         const found = roots.flatMap((root) => [
           ...document.querySelectorAll(
-            `${root} :is(button, summary, label:has(input), a):not(p a, li a, h1 a, h2 a, h3 a, nav *)`,
+            `${root} :is(button, summary, label:has(input), a):not(h1 a, h2 a, h3 a, nav *)`,
           ),
         ])
         return [...new Set(found)]
@@ -206,7 +231,7 @@ for (const [name, roots] of [
         list
           .flatMap((root) => [
             ...document.querySelectorAll(
-              `${root} :is(button, summary, label:has(input), a, input):not(p a, li a)`,
+              `${root} :is(button, summary, label:has(input), a, input, select)`,
             ),
           ])
           .filter((el) => {
@@ -231,7 +256,7 @@ for (const [name, roots] of [
 for (const width of [390, 1280]) {
   for (const spec of PAGES) {
     for (const theme of THEMES) {
-      test(`focus rings paint on every control of ${spec.path} at ${width}px, ${theme}`, async ({
+      test(`focus rings paint on every control of ${spec.name} at ${width}px, ${theme}`, async ({
         page,
         openRoute,
       }, testInfo) => {
@@ -260,7 +285,8 @@ for (const width of [390, 1280]) {
           `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled):not(.poster-card, .poster-card *):visible`,
         )
         expect(await controls.count()).toBeGreaterThan(0)
-        expect(await unringed(page, controls)).toEqual([])
+        // Real Tab presses, geometry and pixels (denver-site-ring.js).
+        expect(await tabRings(page, controls)).toEqual([])
       })
     }
   }
@@ -320,24 +346,24 @@ async function ratios(page, selector) {
 const CONTRAST = [
   {
     name: 'Add page tiles (enabled and disabled), Resume, Discard',
-    spec: PAGES[0],
+    spec: byName('add'),
     selector:
       'main button, main a.btn, main [class*="inline-flex"], main .intake-kind, main .intake-sitting-name, main .muted',
   },
   {
     name: 'Add page armed Discard',
-    spec: PAGES[0],
+    spec: byName('add'),
     prep: STATES[0].prep,
     selector: 'main .intake-sitting-actions button, main .intake-sitting span',
   },
   {
     name: 'Discover chips and controls',
-    spec: PAGES[3],
+    spec: byName('discover'),
     selector: 'main button, main .muted, main legend, main label',
   },
   {
     name: 'Discover chip pressed once more',
-    spec: PAGES[3],
+    spec: byName('discover'),
     prep: async (page) => {
       await page
         .getByRole('button', { name: 'Switch', exact: false })
@@ -348,28 +374,28 @@ const CONTRAST = [
   },
   {
     name: 'Radar',
-    spec: PAGES[4],
+    spec: byName('radar'),
     selector: 'main button, main .muted, main a',
   },
   {
     name: 'Pull list',
-    spec: PAGES[5],
+    spec: byName('pull list'),
     selector: 'main button, main .muted, main .next-badge',
   },
   {
     name: 'Games Now playing',
-    spec: PAGES[6],
+    spec: byName('games'),
     selector: 'main .now-playing *',
   },
   {
     name: 'Add bar results (Add, Added, On shelf)',
-    spec: PAGES[6],
+    spec: byName('games'),
     prep: STATES.find((s) => s.name === 'Add bar results').prep,
     selector: 'main .intake-results *',
   },
   {
     name: 'Radar and Discover answers',
-    spec: PAGES[3],
+    spec: byName('discover'),
     selector: 'main .radar-card *, main .rate-a-few *',
   },
 ]
@@ -402,7 +428,10 @@ test('a pressed platform chip differs by more than colour', async ({
   openRoute,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
-  await open(page, openRoute, PAGES[3], 'light', { width: 1280, height: 900 })
+  await open(page, openRoute, byName('discover'), 'light', {
+    width: 1280,
+    height: 900,
+  })
   const chips = page.locator('main button[aria-pressed]')
   await chips.first().click()
   await page.mouse.move(1, 1)
@@ -428,7 +457,7 @@ test('a pressed platform chip differs by more than colour', async ({
 
 for (const spec of PAGES) {
   for (const theme of THEMES) {
-    test(`${spec.path} has no serious axe violations (${theme})`, async ({
+    test(`${spec.name} has no serious axe violations (${theme})`, async ({
       page,
       openRoute,
     }, testInfo) => {
@@ -477,4 +506,49 @@ test('add pages review shots', async ({ page, openRoute }, testInfo) => {
       })
     }
   }
+})
+
+// The admin shelf's phone sheet draws the stars at 3rem: the 44px floor of
+// the inline rows must not shrink or clip them.
+test('the shelf sheet keeps its stars whole and 44px tall', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'phone', 'phone project only')
+  await serveAdmin(page, GAMES)
+  await openRoute('/admin/shelf/games', 'light')
+  await expect(page.locator('.poster-card').first()).toBeVisible()
+  const card = page.locator('.poster-card').filter({ hasText: 'Star Fox' })
+  const toggle = card.getByRole('button', { name: 'Actions for Star Fox' })
+  await toggle.scrollIntoViewIfNeeded()
+  await toggle.click()
+  const sheet = page.locator('dialog[open]')
+  await expect(sheet).toBeVisible()
+  const targets = sheet.locator('.quick-rate-target')
+  await expect(targets).toHaveCount(10)
+  const geometry = await targets.evaluateAll((all) =>
+    all.map((el) => {
+      const star = el.querySelector('span').getBoundingClientRect()
+      const box = el.getBoundingClientRect()
+      return {
+        height: Math.round(box.height),
+        // The star's own box sits inside the target: nothing cut off.
+        topCut: Math.round((box.top - star.top) * 10) / 10,
+        clipped: el.scrollHeight > el.clientHeight + 1,
+      }
+    }),
+  )
+  for (const target of geometry) {
+    expect(target.height).toBeGreaterThanOrEqual(44)
+    expect(target.topCut).toBeLessThanOrEqual(0.5)
+    expect(target.clipped).toBe(false)
+  }
+  // Pixels: the top row of a target is as empty as the row just above it.
+  await sheet.locator('.quick-rate').scrollIntoViewIfNeeded()
+  const box = await targets.nth(4).boundingBox()
+  const row = (y) =>
+    page.screenshot({
+      clip: { x: box.x, y, width: box.width, height: 1 },
+    })
+  expect((await row(box.y)).equals(await row(box.y - 3))).toBe(true)
 })

@@ -141,7 +141,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
             <span>{words.dontOwnAsk(title)}</span>
             <button
               type="button"
-              className={ibtn('plain', 'sm')}
+              className={ibtn('danger', 'sm')}
               disabled={busy}
               onClick={notOwned}
             >

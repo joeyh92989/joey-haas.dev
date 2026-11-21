@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { spine } from '../../content/spine.js'
 import { countText, nearCells } from '../../lib/comicRun.js'
 import CoverImage from '../CoverImage.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, MONO_FIELD } from '../addClasses.js'
 
 const PILL = spine.comics.series.pill
 
@@ -29,7 +29,7 @@ function Sentence({ growth, typed }) {
     return (
       <p className="intake-grow-adds">
         adds <b>{numbers(added)}</b> ·{' '}
-        <span className="mono">{count(before)}</span> →{' '}
+        <span className={MONO_FIELD}>{count(before)}</span> →{' '}
         <span className="mono">{count(after)}</span> <StatePill model={after} />
         {already.length > 0 && (
           <span className="muted">

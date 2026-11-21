@@ -10,7 +10,7 @@ import {
 } from '../../lib/intake.js'
 import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 /** The fields a link piece's card edits; size is a choice when the store lists sizes. */
 const LINK_FIELD_KEYS = [
@@ -210,6 +210,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
               <div className="intake-field">
                 <label htmlFor={`link-${entry.id}-size`}>{words.size}</label>
                 <select
+                  className={INTAKE_FIELD}
                   id={`link-${entry.id}-size`}
                   value={values.size ?? ''}
                   onChange={(event) => save({ size: event.target.value })}
@@ -242,7 +243,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             <span>{words.removeAsk(title)}</span>
             <button
               type="button"
-              className={ibtn('plain', 'sm')}
+              className={ibtn('danger', 'sm')}
               disabled={busy}
               onClick={remove}
             >

@@ -2556,10 +2556,6 @@ footer {
 }
 
 .intake-grow-adds .mono,
-.intake-grow-form input {
-  font-family: var(--font-mono);
-}
-
 .intake-grow-strip {
   margin-top: var(--space-2);
   max-width: 26rem;
@@ -2770,19 +2766,7 @@ footer {
   font: 500 var(--fs-14) var(--font-mono);
 }
 
-.intake-book-num input {
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  color: var(--text);
-  font: 500 var(--fs-16) var(--font-mono);
-  padding: var(--space-1) var(--space-2);
-  width: 4.5rem;
-}
-
-.intake-book-num input[aria-invalid='true'] {
-  border-color: var(--badge);
-}
+/* The numbers' look is NUM_FIELD (addClasses.js). */
 
 .intake-book-mark {
   color: var(--text-3);
@@ -4577,15 +4561,17 @@ a.month-bar::before {
   outline-offset: 1px;
 }
 
-/* The targets are 44px tall on a phone (ten half
-   stars are 9px wide each, so the width stays as drawn). */
+/* The targets are at least 44px tall on a phone (ten half stars are 9px
+   wide each, so the width stays as drawn). */
 @media (max-width: 700px) {
   .quick-rate-target {
-    height: 2.75rem;
+    min-height: 2.75rem;
   }
 
+  /* Centred in the taller box; where the box is already taller (the shelf's
+     phone sheet draws the stars at 3rem), the star keeps its own top. */
   .quick-rate-target span {
-    top: calc((2.75rem - 1.2em) / 2 + 0.05em);
+    top: max(0.05em, calc((2.75rem - 1.2em) / 2 + 0.05em));
   }
 }
 

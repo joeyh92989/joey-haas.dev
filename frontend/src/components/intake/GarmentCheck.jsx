@@ -295,7 +295,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   </span>
                   <button
                     type="button"
-                    className={ibtn('plain', 'sm')}
+                    className={ibtn('danger', 'sm')}
                     disabled={busy}
                     onClick={() => {
                       setAsking(null)
@@ -352,7 +352,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                         </span>
                         <button
                           type="button"
-                          className={ibtn('plain', 'sm')}
+                          className={ibtn('danger', 'sm')}
                           disabled={busy}
                           onClick={() => {
                             setAsking(null)

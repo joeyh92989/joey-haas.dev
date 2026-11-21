@@ -126,6 +126,12 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   44px phone targets, a disabled button in the page colours with a dashed
   outline (`CALM`, never the look's 55% opacity), and a stacked Jobs table on a
   phone. `SwapSheet` is shared with Closet Today.
+  The Shelf add and recommend pages (#535, slice c: Add, sittings, Discover,
+  Radar, Pull list) take theirs from `components/addClasses.js` (`ibtn()` for
+  intake rows, 44px up to 900px; `bigBtn()`, `BIG_PRESSED`, `headBtn()`,
+  `TILE`, `BOX`, `INTAKE_FIELD`, `NUM_FIELD`): a destructive confirm is
+  `ibtn('danger')` everywhere, and the legacy `.btn` and `.chip` are gone from
+  these pages. `adminShelfClasses.js` holds the admin shelf twins' strings.
   The Denver and Site pages (#535, slice 3: Weekend, Spots, Analytics) take them
   from `components/denverSiteClasses.js` (`btn()`, `chipBtn`, `tagBtn`, `pill`,
   `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px

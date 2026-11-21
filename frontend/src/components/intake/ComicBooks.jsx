@@ -11,6 +11,7 @@ import {
 } from '../../lib/comicBooks.js'
 import { entryTitle } from '../../lib/intake.js'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
+import { INTAKE_FIELD, NUM_FIELD } from '../addClasses.js'
 
 /**
  * The mark under a number: where it came from and whether it fits the
@@ -54,6 +55,7 @@ function NumberField({ entry, onSave, markId, error }) {
       <span className="intake-book-num">
         <span aria-hidden="true">#</span>
         <input
+          className={NUM_FIELD}
           id={id}
           inputMode="numeric"
           autoComplete="off"
@@ -119,6 +121,7 @@ function CollectsField({ entry, onSave, error }) {
       >
         <span aria-hidden="true">#</span>
         <input
+          className={NUM_FIELD}
           inputMode="numeric"
           autoComplete="off"
           aria-label={words.collectsFrom}
@@ -131,6 +134,7 @@ function CollectsField({ entry, onSave, error }) {
         />
         <span aria-hidden="true">to #</span>
         <input
+          className={NUM_FIELD}
           inputMode="numeric"
           autoComplete="off"
           aria-label={words.collectsTo}
@@ -173,6 +177,7 @@ function LineField({ entry, onSave, error }) {
       <span className="intake-book-num">
         <span aria-hidden="true">#</span>
         <input
+          className={NUM_FIELD}
           id={id}
           inputMode="numeric"
           autoComplete="off"
@@ -332,6 +337,7 @@ function BookRow({
         <div className="intake-book-field">
           <label htmlFor={`${markId}-format`}>{words.formatLabel}</label>
           <select
+            className={INTAKE_FIELD}
             id={`${markId}-format`}
             value={collected ? 'collected' : 'single'}
             aria-invalid={error?.field === 'format' || undefined}
@@ -368,6 +374,7 @@ function BookRow({
             <div className="intake-book-field">
               <label htmlFor={`${markId}-kind`}>{words.editionKindLabel}</label>
               <select
+                className={INTAKE_FIELD}
                 id={`${markId}-kind`}
                 value={entry.payload?.edition_kind ?? 'trade'}
                 aria-invalid={error?.field === 'edition_kind' || undefined}

@@ -6,7 +6,7 @@ import { removeEntry } from '../../lib/intakeRemove.js'
 import CoverImage from '../CoverImage.jsx'
 import { BookRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
-import { ibtn } from '../addClasses.js'
+import { BOX, ibtn } from '../addClasses.js'
 
 /** Shelf formats that hold collected books; singles carry issues only. */
 const COLLECTED = ['trades', 'omnibus']
@@ -259,7 +259,7 @@ export default function DetailsStep({
       )}
       {!passes.length && <p className="muted">Nothing is ready to add yet.</p>}
       {passes.map(({ kind, entries }) => (
-        <div key={kind.key} className="intake-pass panel">
+        <div key={kind.key} className={`${BOX} intake-pass`}>
           <h3>{kind.label}</h3>
           <SetForAll
             kind={kind}

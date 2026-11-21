@@ -141,6 +141,68 @@ export const SITTING = {
   updated_at: '2026-11-10T19:42:00Z',
 }
 
+const candidate = (id, title, extra = {}) => ({
+  external_source: 'igdb',
+  external_id: String(id),
+  title,
+  year: 2023,
+  thumbnail_url: null,
+  ...extra,
+})
+
+const CANDIDATES = [
+  candidate(1, UNBROKEN),
+  candidate(2, LONG),
+  candidate(3, 'Hades', { year: 2020 }),
+]
+
+const gameEntry = (id, photo, state, extra = {}) => ({
+  id,
+  photo_id: photo,
+  kind: 'game',
+  state,
+  payload: { detected_title: UNBROKEN, detected_year: 2023 },
+  candidates: CANDIDATES,
+  chosen: null,
+  garment_id: null,
+  ...extra,
+})
+
+/** A sitting on Check: three titles to ask about, the first with a 60-char name. */
+export const CHECK_SITTING = {
+  ...SITTING,
+  id: 'chk',
+  step: 'check',
+  photos: [photo('p1', 'read'), photo('p2', 'read')],
+  photos_waiting: 0,
+  entries: [
+    gameEntry('c1', 'p1', 'check'),
+    gameEntry('c2', 'p2', 'probable', {
+      payload: { detected_title: LONG, detected_year: 2023 },
+    }),
+    gameEntry('c3', 'p2', 'check', {
+      candidates: [],
+      payload: { detected_title: 'Hades', reason: 'No candidates came back.' },
+    }),
+  ],
+}
+
+/** A sitting on Details: matched titles, one with a 60-char name. */
+export const DETAILS_SITTING = {
+  ...SITTING,
+  id: 'det',
+  step: 'details',
+  photos: [photo('p1', 'read'), photo('p2', 'read')],
+  photos_waiting: 0,
+  entries: [
+    gameEntry('d1', 'p1', 'ready', { chosen: CANDIDATES[0] }),
+    gameEntry('d2', 'p2', 'ready', { chosen: CANDIDATES[1] }),
+    gameEntry('d3', 'p2', 'exact', { chosen: CANDIDATES[2] }),
+  ],
+}
+
+const SITTING_BY_ID = { s1: SITTING, chk: CHECK_SITTING, det: DETAILS_SITTING }
+
 const GENRES = ['Adventure', 'Roguelike', 'Action RPG', 'Puzzle', 'Platformer']
 
 const preorder = (n) => ({
@@ -389,6 +451,31 @@ export async function serveAdminAdd(page) {
         ],
         sources: [{ kind: 'game', state: 'ok' }],
       })
+    if (/^\/api\/intake\/entries\/[\w-]+$/.test(path)) {
+      const id = path.split('/').pop()
+      const found = [CHECK_SITTING, DETAILS_SITTING]
+        .flatMap((sitting) => sitting.entries)
+        .find((entry) => entry.id === id)
+      let body = {}
+      try {
+        body = JSON.parse(request.postData() ?? '{}')
+      } catch {
+        // an empty body
+      }
+      return json({ ...found, ...body })
+    }
+    if (/^\/api\/intake\/sittings\/[\w-]+\/commit$/.test(path))
+      return json({
+        added: 3,
+        already_owned: 101,
+        issues_added: 0,
+        skipped_kept: 0,
+        photos_empty: 0,
+        photos_waiting: 0,
+        refused: [],
+        created: ['i1', 'i2', 'i3'],
+        titles_created: [UNBROKEN, LONG],
+      })
     if (path === '/api/intake/budget')
       return json({ remaining: 30, enforced: true })
     if (path === '/api/intake/sittings' && method === 'GET')
@@ -396,7 +483,8 @@ export async function serveAdminAdd(page) {
     if (path === '/api/intake/sittings' && method === 'POST')
       return json({ ...SITTING, id: 'new' }, 201)
     if (/^\/api\/intake\/sittings\/[\w-]+$/.test(path)) {
-      if (method === 'GET') return json(SITTING)
+      if (method === 'GET')
+        return json(SITTING_BY_ID[path.split('/').pop()] ?? SITTING)
       return json({}, method === 'DELETE' ? 204 : 200)
     }
     if (path === '/api/recommendations/watching') return json(WATCHING)

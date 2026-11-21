@@ -8,7 +8,16 @@ import { describe, expect, it } from 'vitest'
 import KindTile from './components/intake/KindTile.jsx'
 import UnfinishedList from './components/intake/UnfinishedList.jsx'
 import RecommendationCard from './components/RecommendationCard.jsx'
-import { bigBtn, ibtn, TILE } from './components/addClasses.js'
+import { field, textarea } from './components/closetClasses.js'
+import {
+  BIG_FIELD,
+  bigBtn,
+  ibtn,
+  INTAKE_FIELD,
+  PHONE_ROW,
+  TILE,
+} from './components/addClasses.js'
+import { PHONE_ROW as CLOSET_PHONE_ROW } from './components/closetClasses.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages (#535, slice c) are
 // drawn from the Button and Card looks. These tests pin what the look must
@@ -22,6 +31,7 @@ const read = (path) => readFileSync(join(here, path), 'utf8')
 const css = read('index.css')
 
 const OWNED = [
+  'components/WrapUpSheet.jsx',
   'components/intake',
   'components/NowPlaying.jsx',
   'components/RateAFew.jsx',
@@ -144,9 +154,47 @@ describe('Add and recommend pages, on the Button and Card looks', () => {
       expect(rule, selector).not.toBeNull()
       expect(rule, selector).not.toMatch(/background:|border:|border-radius:/)
     }
-    expect(css).not.toContain('.radar-actions button')
-    expect(css).not.toContain('.rate-a-few-actions button')
     expect(css).not.toContain('.pull-list .next-row-actions button')
     expect(css).not.toContain('.pull-list-search-form button')
+  })
+
+  it('derives its field sizes from the field look, and the swap took effect', () => {
+    // A reorder of FIELD_LOOK would leave `replace` a no-op: say so here.
+    expect(field).toContain('h-10 ')
+    expect(BIG_FIELD).toContain('h-11 ')
+    expect(BIG_FIELD).not.toContain('h-10 ')
+    expect(INTAKE_FIELD).toContain('max-[900px]:h-11')
+    expect(textarea).toContain('min-h-16 ')
+    expect(textarea).not.toContain('h-10 ')
+  })
+
+  it('has one PHONE_ROW', () => {
+    expect(PHONE_ROW).toBe(CLOSET_PHONE_ROW)
+  })
+
+  it('draws every armed destructive confirm as the destructive button', () => {
+    const confirms = [
+      ['components/intake/UnfinishedList.jsx', 'Yes, discard', 1],
+      ['components/intake/AddSection.jsx', 'Yes, discard', 1],
+      ['components/intake/GarmentCheck.jsx', 'Yes, remove', 2],
+      ['components/intake/LinkCheck.jsx', '{words.removeYes}', 1],
+      ['components/intake/SeedCheck.jsx', '{words.dontOwnYes}', 1],
+    ]
+    for (const [file, text, count] of confirms) {
+      const source = read(file)
+      let found = 0
+      for (
+        let at = source.indexOf(text);
+        at >= 0;
+        at = source.indexOf(text, at + 1)
+      ) {
+        const open = source.lastIndexOf('<button', at)
+        expect(source.slice(open, at), `${file}: ${text}`).toContain(
+          "ibtn('danger'",
+        )
+        found++
+      }
+      expect(found, `${file}: ${text}`).toBe(count)
+    }
   })
 })

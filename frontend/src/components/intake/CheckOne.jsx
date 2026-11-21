@@ -3,7 +3,7 @@ import { API_URL, apiFetch, errorMessage } from '../../lib/api.js'
 import { comicDetails } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
-import { ibtn } from '../addClasses.js'
+import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 
 const sameCandidate = (a, b) =>
   Boolean(a && b) &&
@@ -172,6 +172,7 @@ export default function CheckOne({
             }}
           >
             <input
+              className={INTAKE_FIELD}
               type="search"
               aria-label="Search for this title"
               value={query}

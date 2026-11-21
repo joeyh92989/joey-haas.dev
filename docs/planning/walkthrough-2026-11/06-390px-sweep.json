@@ -1,349 +1,349 @@
 [
- {
-  "route": "/",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Joey Haas · Senior software engineer, Denver",
-  "h1": "Shipping software since 2012, from roadmap to prod",
-  "over": [],
-  "smallCount": 15,
-  "smallSample": [
-   "Nov 19 45x17",
-   "josephthaas@gmail.com 185x20",
-   "LinkedIn 64x20",
-   "PDF 31x20",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/about",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "About · Joey Haas",
-  "h1": "About",
-  "over": [],
-  "smallCount": 16,
-  "smallSample": [
-   "PDF ↓ 43x17",
-   "Download the full resume 240x20",
-   "josephthaas@gmail.com 185x20",
-   "LinkedIn 64x20",
-   "PDF 31x20",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/projects",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Projects · Joey Haas",
-  "h1": "Projects",
-  "over": [],
-  "smallCount": 13,
-  "smallSample": [
-   "My Shelf 77x21",
-   "This site 73x21",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16",
-   "Stats 31x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/now",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Now · Joey Haas",
-  "h1": "Now",
-  "over": [],
-  "smallCount": 22,
-  "smallSample": [
-   "My Shelf 67x20",
-   "About 45x20",
-   "Yooka-Replaylee 127x20",
-   "Deadly Premonition Origi 206x20",
-   "Bubsy 4D 74x20",
-   "Hades II 62x20",
-   "Balan Wonderworld 148x20",
-   "Dredge 56x20"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/colophon",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Colophon · Joey Haas",
-  "h1": "Colophon",
-  "over": [],
-  "smallCount": 18,
-  "smallSample": [
-   "the source is on GitHub 177x20",
-   "TIL 24x20",
-   "My Shelf 67x20",
-   "josephthaas@gmail.com 185x20",
-   "Design system 111x20",
-   "Learnings 75x20",
-   "Specs and plans 125x20",
-   "Source 44x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/stats",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Stats · Joey Haas",
-  "h1": "Stats",
-  "over": [],
-  "smallCount": 71,
-  "smallSample": [
-   "RSS 31x20",
-   "comics shelf 96x20",
-   "comics shelf 96x20",
-   "comics shelf 96x20",
-   "comics shelf 96x20",
-   "resume 56x20",
-   "About 45x20",
-   "Projects 61x20"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/denver",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Denver, the short list · Joey Haas",
-  "h1": "Denver, the short list",
-  "over": [],
-  "smallCount": 11,
-  "smallSample": [
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16",
-   "Stats 31x16",
-   "RSS 25x16",
-   "josephthaas@gmail.com 150x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/daily",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Daily game · My Shelf",
-  "h1": "Daily game",
-  "over": [],
-  "smallCount": 12,
-  "smallSample": [
-   "Mario Kart 8 Deluxe 135x17",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16",
-   "Stats 31x16",
-   "RSS 25x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/games",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Games · My Shelf",
-  "h1": "Games",
-  "over": [],
-  "smallCount": 14,
-  "smallSample": [
-   "Recently added\nRecently  148x29",
-   "Tour 28x44",
-   "IGDB 29x15",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/comics",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Comics · My Shelf",
-  "h1": "Comics",
-  "over": [],
-  "smallCount": 13,
-  "smallSample": [
-   "Next issue\nTitle\nPublish 132x29",
-   "Comic Vine 65x15",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16",
-   "Stats 31x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/next",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "What’s next · My Shelf",
-  "h1": "What’s next",
-  "over": [],
-  "smallCount": 22,
-  "smallSample": [
-   "Hades II 270x21",
-   "Mario Kart World 270x21",
-   "Resident Evil: Origins C 270x21",
-   "Mad Max: Fury Road 270x21",
-   "Hello Darkness 270x21",
-   "INPUT 1x1",
-   "INPUT 1x1",
-   "INPUT 1x1"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/how",
-  "scrollW": 393,
-  "clientW": 390,
-  "title": "Tour · My Shelf",
-  "h1": "A tour of My Shelf, in nine stops",
-  "over": [
-   "div.tour-stop-col right=393",
-   "h3. right=393",
-   "div.tour-live right=393",
-   "div.tour-stop-col right=393",
-   "h3. right=393",
-   "figure.tour-capture right=393"
-  ],
-  "smallCount": 29,
-  "smallSample": [
-   "Try the intake 90x17",
-   "</> backend/intake/kinds 211x21",
-   "</> backend/intake/reade 218x21",
-   "</> backend/matching.py 179x21",
-   "</> backend/physical_sou 312x21",
-   "</> backend/formats.py 172x21",
-   "Hades II 238x21",
-   "Try Pick for me with a l 261x17"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/year",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "2026 in review · My Shelf",
-  "h1": "2026 in review",
-  "over": [],
-  "smallCount": 33,
-  "smallSample": [
-   "2025 39x26",
-   "2024 40x26",
-   "2023 40x26",
-   "2022 39x26",
-   "2021 36x26",
-   "2020 40x26",
-   "1999 36x26",
-   "1996 36x26"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/shelf/intake",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Try the intake · My Shelf",
-  "h1": "Try the intake",
-  "over": [],
-  "smallCount": 12,
-  "smallSample": [
-   "How it is built → 98x16",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16",
-   "Stats 31x16",
-   "RSS 25x16"
-  ],
-  "tinyTextEls": 26
- },
- {
-  "route": "/blog",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "Blog · Joey Haas",
-  "h1": "Blog",
-  "over": [],
-  "smallCount": 14,
-  "smallSample": [
-   "RSS 31x20",
-   "TIL 24x20",
-   "How My Shelf works 177x21",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/blog/how-spine-works",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "How My Shelf works · Joey Haas",
-  "h1": "How My Shelf works",
-  "over": [],
-  "smallCount": 15,
-  "smallSample": [
-   "Blog 27x16",
-   "What’s next 88x20",
-   "year in review 105x20",
-   "tour 30x20",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16"
-  ],
-  "tinyTextEls": 0
- },
- {
-  "route": "/til",
-  "scrollW": 390,
-  "clientW": 390,
-  "title": "TIL · Joey Haas",
-  "h1": "TIL",
-  "over": [],
-  "smallCount": 14,
-  "smallSample": [
-   "blog 33x20",
-   "RSS 31x20",
-   "Profile before paralleli 248x21",
-   "Source 44x16",
-   "Now 28x16",
-   "Daily game 68x16",
-   "TIL 19x16",
-   "Colophon 59x16"
-  ],
-  "tinyTextEls": 0
- }
+  {
+    "route": "/",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Joey Haas · Senior software engineer, Denver",
+    "h1": "Shipping software since 2012, from roadmap to prod",
+    "over": [],
+    "smallCount": 15,
+    "smallSample": [
+      "Nov 19 45x17",
+      "josephthaas@gmail.com 185x20",
+      "LinkedIn 64x20",
+      "PDF 31x20",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/about",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "About · Joey Haas",
+    "h1": "About",
+    "over": [],
+    "smallCount": 16,
+    "smallSample": [
+      "PDF ↓ 43x17",
+      "Download the full resume 240x20",
+      "josephthaas@gmail.com 185x20",
+      "LinkedIn 64x20",
+      "PDF 31x20",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/projects",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Projects · Joey Haas",
+    "h1": "Projects",
+    "over": [],
+    "smallCount": 13,
+    "smallSample": [
+      "My Shelf 77x21",
+      "This site 73x21",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16",
+      "Stats 31x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/now",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Now · Joey Haas",
+    "h1": "Now",
+    "over": [],
+    "smallCount": 22,
+    "smallSample": [
+      "My Shelf 67x20",
+      "About 45x20",
+      "Yooka-Replaylee 127x20",
+      "Deadly Premonition Origi 206x20",
+      "Bubsy 4D 74x20",
+      "Hades II 62x20",
+      "Balan Wonderworld 148x20",
+      "Dredge 56x20"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/colophon",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Colophon · Joey Haas",
+    "h1": "Colophon",
+    "over": [],
+    "smallCount": 18,
+    "smallSample": [
+      "the source is on GitHub 177x20",
+      "TIL 24x20",
+      "My Shelf 67x20",
+      "josephthaas@gmail.com 185x20",
+      "Design system 111x20",
+      "Learnings 75x20",
+      "Specs and plans 125x20",
+      "Source 44x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/stats",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Stats · Joey Haas",
+    "h1": "Stats",
+    "over": [],
+    "smallCount": 71,
+    "smallSample": [
+      "RSS 31x20",
+      "comics shelf 96x20",
+      "comics shelf 96x20",
+      "comics shelf 96x20",
+      "comics shelf 96x20",
+      "resume 56x20",
+      "About 45x20",
+      "Projects 61x20"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/denver",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Denver, the short list · Joey Haas",
+    "h1": "Denver, the short list",
+    "over": [],
+    "smallCount": 11,
+    "smallSample": [
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16",
+      "Stats 31x16",
+      "RSS 25x16",
+      "josephthaas@gmail.com 150x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/daily",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Daily game · My Shelf",
+    "h1": "Daily game",
+    "over": [],
+    "smallCount": 12,
+    "smallSample": [
+      "Mario Kart 8 Deluxe 135x17",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16",
+      "Stats 31x16",
+      "RSS 25x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/games",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Games · My Shelf",
+    "h1": "Games",
+    "over": [],
+    "smallCount": 14,
+    "smallSample": [
+      "Recently added\nRecently  148x29",
+      "Tour 28x44",
+      "IGDB 29x15",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/comics",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Comics · My Shelf",
+    "h1": "Comics",
+    "over": [],
+    "smallCount": 13,
+    "smallSample": [
+      "Next issue\nTitle\nPublish 132x29",
+      "Comic Vine 65x15",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16",
+      "Stats 31x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/next",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "What’s next · My Shelf",
+    "h1": "What’s next",
+    "over": [],
+    "smallCount": 22,
+    "smallSample": [
+      "Hades II 270x21",
+      "Mario Kart World 270x21",
+      "Resident Evil: Origins C 270x21",
+      "Mad Max: Fury Road 270x21",
+      "Hello Darkness 270x21",
+      "INPUT 1x1",
+      "INPUT 1x1",
+      "INPUT 1x1"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/how",
+    "scrollW": 393,
+    "clientW": 390,
+    "title": "Tour · My Shelf",
+    "h1": "A tour of My Shelf, in nine stops",
+    "over": [
+      "div.tour-stop-col right=393",
+      "h3. right=393",
+      "div.tour-live right=393",
+      "div.tour-stop-col right=393",
+      "h3. right=393",
+      "figure.tour-capture right=393"
+    ],
+    "smallCount": 29,
+    "smallSample": [
+      "Try the intake 90x17",
+      "</> backend/intake/kinds 211x21",
+      "</> backend/intake/reade 218x21",
+      "</> backend/matching.py 179x21",
+      "</> backend/physical_sou 312x21",
+      "</> backend/formats.py 172x21",
+      "Hades II 238x21",
+      "Try Pick for me with a l 261x17"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/year",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "2026 in review · My Shelf",
+    "h1": "2026 in review",
+    "over": [],
+    "smallCount": 33,
+    "smallSample": [
+      "2025 39x26",
+      "2024 40x26",
+      "2023 40x26",
+      "2022 39x26",
+      "2021 36x26",
+      "2020 40x26",
+      "1999 36x26",
+      "1996 36x26"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/shelf/intake",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Try the intake · My Shelf",
+    "h1": "Try the intake",
+    "over": [],
+    "smallCount": 12,
+    "smallSample": [
+      "How it is built → 98x16",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16",
+      "Stats 31x16",
+      "RSS 25x16"
+    ],
+    "tinyTextEls": 26
+  },
+  {
+    "route": "/blog",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "Blog · Joey Haas",
+    "h1": "Blog",
+    "over": [],
+    "smallCount": 14,
+    "smallSample": [
+      "RSS 31x20",
+      "TIL 24x20",
+      "How My Shelf works 177x21",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/blog/how-spine-works",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "How My Shelf works · Joey Haas",
+    "h1": "How My Shelf works",
+    "over": [],
+    "smallCount": 15,
+    "smallSample": [
+      "Blog 27x16",
+      "What’s next 88x20",
+      "year in review 105x20",
+      "tour 30x20",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16"
+    ],
+    "tinyTextEls": 0
+  },
+  {
+    "route": "/til",
+    "scrollW": 390,
+    "clientW": 390,
+    "title": "TIL · Joey Haas",
+    "h1": "TIL",
+    "over": [],
+    "smallCount": 14,
+    "smallSample": [
+      "blog 33x20",
+      "RSS 31x20",
+      "Profile before paralleli 248x21",
+      "Source 44x16",
+      "Now 28x16",
+      "Daily game 68x16",
+      "TIL 19x16",
+      "Colophon 59x16"
+    ],
+    "tinyTextEls": 0
+  }
 ]

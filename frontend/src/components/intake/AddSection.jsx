@@ -73,7 +73,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
         <span>{discardAsk(label, newest)}</span>
         <button
           type="button"
-          className={ibtn('plain')}
+          className={ibtn('danger')}
           disabled={busy}
           onClick={async () => {
             setBusy(true)
