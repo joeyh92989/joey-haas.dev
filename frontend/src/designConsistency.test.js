@@ -186,7 +186,7 @@ describe('shared component rules', () => {
       .filter((f) => EAGER.includes(f.name))
       .filter(
         (f) =>
-          !/buttonVariants/.test(f.text) ||
+          !/buttonVariants|mastButton/.test(f.text) ||
           /ui\/button\.jsx/.test(f.text) ||
           /className="btn[ "]/.test(f.text),
       )
