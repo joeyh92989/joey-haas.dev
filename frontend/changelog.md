@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-20
 
+- Home follows the new look: the headline reads plain “Building software since 2012.” (no italic phrase), the facts sit in an At a glance index card, Work is numbered record cards (My Shelf marked live), and Experience is a dated list under serif headings, at every width from 320px up.
 - The masthead, menus, search and footer follow the new look: outlined monogram, an accent bar under the current page, flat menus, and a 1200px page width on Home, About, Projects and the shelf. Buttons, filter chips and "Try again" now show their outline. On a phone the theme toggle reads Light or Dark so the masthead still fits at 320px. Link previews and the browser icon use the paper and ink colours.
 - The site has a new look: warm paper in the light theme, graphite in the dark one, a rust accent in light and a red-pencil accent in dark, and serif headings. Text and marks were measured for contrast in both themes.
 - The [tour](/shelf/how) no longer scrolls sideways on narrow phones: the masthead fits at 320px, and the drawn tables wrap their columns instead of cutting them off.

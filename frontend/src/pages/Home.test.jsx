@@ -41,7 +41,7 @@ function renderHome() {
 
 function facts() {
   return Object.fromEntries(
-    [...document.querySelectorAll('.facts > div')].map((row) => [
+    [...document.querySelectorAll('.glance-facts > div')].map((row) => [
       row.querySelector('dt').textContent,
       row.querySelector('dd').textContent,
     ]),
@@ -64,6 +64,67 @@ describe('Home', () => {
         name: 'Building software since 2012.',
       }),
     ).toBeInTheDocument()
+  })
+
+  it('sets the headline as plain text: no italic phrase, no hidden duplicate', () => {
+    renderHome()
+    expect(typeof profile.headline).toBe('string')
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveTextContent(/^Building software since 2012\.$/)
+    expect(h1.querySelector('em')).toBeNull()
+    expect(h1.querySelector('.visually-hidden')).toBeNull()
+    expect(h1.children).toHaveLength(0)
+  })
+
+  it('draws the hero actions as design-system buttons, not .btn', () => {
+    renderHome()
+    const actions = document.querySelector('.hero-actions')
+    expect(actions.querySelector('.btn')).toBeNull()
+    expect(
+      within(actions).getByRole('link', { name: 'About me' }).className,
+    ).toMatch(/\bbg-primary!/)
+    expect(
+      within(actions).getByRole('link', { name: 'Resume (PDF)' }).className,
+    ).toMatch(/\bborder-foreground\b/)
+    for (const link of within(actions).getAllByRole('link')) {
+      expect(link.className).toMatch(/focus-visible:outline-solid/)
+    }
+  })
+
+  it('shows At a glance as a record card with its own heading', () => {
+    renderHome()
+    const glance = screen.getByRole('complementary', { name: 'At a glance' })
+    expect(
+      within(glance).getByRole('heading', { level: 2, name: 'At a glance' }),
+    ).toBeInTheDocument()
+    expect(glance.querySelector('[data-strip]')).not.toBeNull()
+    expect(glance.querySelector('dl.glance-facts')).not.toBeNull()
+  })
+
+  it('numbers the Work records, decoratively, in order', () => {
+    content.posts.push(POST)
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const items = within(work).getAllByRole('listitem')
+    expect(items).toHaveLength(3)
+    items.forEach((item, i) => {
+      const number = item.querySelector('[data-strip] [aria-hidden="true"]')
+      expect(number).toHaveTextContent(`No. 00${i + 1}`)
+    })
+  })
+
+  it('marks the shelf record live, with the word beside the mark', () => {
+    renderHome()
+    const work = screen.getByRole('region', { name: 'Work' })
+    const [shelf] = within(work).getAllByRole('listitem')
+    expect(shelf.querySelector('[data-filled="true"]')).not.toBeNull()
+    expect(within(shelf).getByText('live')).toBeInTheDocument()
+  })
+
+  it('lists experience as an ordered list of dated rows', () => {
+    renderHome()
+    const experience = screen.getByRole('region', { name: 'Experience' })
+    expect(experience.querySelector('ol')).not.toBeNull()
   })
 
   it('offers About, My Shelf, and GitHub', () => {
@@ -152,7 +213,7 @@ describe('Home', () => {
       '/colophon',
       '/blog/how-my-shelf-works',
     ])
-    for (const card of document.querySelectorAll('.card')) {
+    for (const card of document.querySelectorAll('[data-slot="card"]')) {
       expect(card.querySelector('[class*="accent"]')).toBeNull()
     }
     expect(
@@ -178,12 +239,15 @@ describe('Home', () => {
     expect(facts()['Latest trip']).toBe('Croatia & Greece · Sept 2026')
     const card = screen.getByRole('link', { name: /Croatia & Greece/ })
     expect(card).toHaveAttribute('href', '/travel/croatia-greece-2026')
-    expect(within(card).getByText('Twelve days, three places.')).toBeVisible()
+    expect(
+      within(card.closest('li')).getByText('Twelve days, three places.'),
+    ).toBeVisible()
   })
 
   it('has no writing card while nothing is published', () => {
     renderHome()
-    expect(document.querySelectorAll('.card')).toHaveLength(2)
+    const work = screen.getByRole('region', { name: 'Work' })
+    expect(within(work).getAllByRole('listitem')).toHaveLength(2)
   })
 
   it('folds the roles before Guild into one experience row', () => {
