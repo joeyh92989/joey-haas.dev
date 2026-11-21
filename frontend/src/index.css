@@ -5748,6 +5748,35 @@ section > .cover-key {
   background: var(--sunken);
 }
 
+/* On a phone each game is its own block: the title gets the full width, the
+   stars and the saved score sit under it. */
+@media (max-width: 700px) {
+  .rate-a-few-table thead {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+  }
+
+  .rate-a-few-table,
+  .rate-a-few-table tbody,
+  .rate-a-few-table tr,
+  .rate-a-few-table th,
+  .rate-a-few-table td {
+    display: block;
+  }
+
+  .rate-a-few-table tr {
+    padding: var(--space-2) 0;
+  }
+
+  .rate-a-few-table td {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
 .rate-a-few-platform,
 .rate-a-few-score {
   color: var(--text-2);

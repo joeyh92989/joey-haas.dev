@@ -4,6 +4,9 @@
 // three-digit counts. Nothing is written: every POST, PATCH and DELETE
 // answers with a plausible body.
 
+const PIXEL =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg=='
+
 const UNBROKEN = 'Supercalifragilisticexpialidocious_Unbreakable_Name_Of_60Ch'
 const LONG =
   'The Legend of Zelda: Tears of the Kingdom – Collector’s Edition Deluxe Anniversary Remaster'
@@ -344,6 +347,11 @@ export async function serveAdminAdd(page) {
       })
     const path = url.pathname
     const area = url.searchParams.get('area')
+    if (/^\/api\/intake\/photos\/[\w-]+\/image$/.test(path))
+      return route.fulfill({
+        body: Buffer.from(PIXEL, 'base64'),
+        contentType: 'image/png',
+      })
     if (path === '/api/auth/me') return json({ email: 'admin@example.com' })
     if (path === '/api/track') return route.abort()
     if (path === '/api/intake/counts') return json({ shelf: 3, closet: 1 })

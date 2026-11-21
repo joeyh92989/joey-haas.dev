@@ -24,7 +24,7 @@ const PAGES = [
     ready: 'Now playing',
     // The games page is the shelf slice's; these are this slice's parts. Its
     // poster cards (inside rings, #532) are measured by that slice's spec.
-    tap: ['.now-playing', '.intake-add', '.quick-rate'],
+    tap: ['.now-playing', '.intake-addbar', '.intake-resume', '.quick-rate'],
   },
 ]
 const THEMES = ['light', 'dark']
@@ -179,6 +179,50 @@ for (const spec of PAGES) {
           )
       },
       spec.tap ?? ['main'],
+    )
+    expect(short).toEqual([])
+  })
+}
+
+// The opened states' controls are 44px tall on a phone as well.
+for (const [name, roots] of [
+  ['Discard asked', ['.intake-sitting-actions']],
+  ['Add bar results', ['.intake-results']],
+  ['Pull list search results', ['.pull-list-search']],
+]) {
+  test(`${name} controls are 44px tall on a phone`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    const state = STATES.find((entry) => entry.name === name)
+    await open(page, openRoute, state.spec, 'light', {
+      width: 390,
+      height: 900,
+    })
+    await state.prep(page)
+    const short = await page.evaluate(
+      (list) =>
+        list
+          .flatMap((root) => [
+            ...document.querySelectorAll(
+              `${root} :is(button, summary, label:has(input), a, input):not(p a, li a)`,
+            ),
+          ])
+          .filter((el) => {
+            const box = el.getBoundingClientRect()
+            return (
+              box.height > 0 &&
+              getComputedStyle(el).display !== 'inline' &&
+              !el.matches('.visually-hidden, [type=hidden]') &&
+              box.height < 43.5
+            )
+          })
+          .map(
+            (el) =>
+              `${el.tagName}.${String(el.className).slice(0, 40)} "${el.textContent.trim().slice(0, 16)}" ${Math.round(el.getBoundingClientRect().height)}px`,
+          ),
+      roots,
     )
     expect(short).toEqual([])
   })
