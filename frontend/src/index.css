@@ -2227,7 +2227,7 @@ footer {
 
 .bar-list li {
   align-items: center;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-card);
   display: grid;
   font-size: var(--fs-14);
   gap: var(--space-3);
@@ -2246,10 +2246,14 @@ footer {
   white-space: nowrap;
 }
 
+/* A bar's track is --sunken with a --line-card outline (the outline is a 3:1
+   mark on the card, contrast.test.js) and the fill is --chart, 3:1 or better
+   on the track in both themes. */
 .bar-list-track {
   background: var(--sunken);
-  border-radius: 3px;
-  height: 6px;
+  border: 1px solid var(--line-card);
+  border-radius: 4px;
+  height: 10px;
   overflow: hidden;
 }
 
@@ -5877,23 +5881,6 @@ dialog.shelf-sheet {
   font-weight: 600;
 }
 
-.linkbtn {
-  background: none;
-  border: 0;
-  color: var(--accent-text);
-  cursor: pointer;
-  font: inherit;
-  margin-left: var(--space-2);
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.linkbtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 /* The key to the cover marks: the marks themselves, static, with names. */
 .cover-key {
   align-items: center;
@@ -6788,8 +6775,8 @@ section > .cover-key {
 }
 .picklist {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--line-card);
+  border-radius: 6px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -6802,7 +6789,7 @@ section > .cover-key {
   padding: var(--space-3) var(--space-4);
 }
 .picklist > li + li {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-card);
 }
 .picklist > li.tonight-toast {
   border-radius: 0;
@@ -7460,28 +7447,31 @@ main h1[tabindex='-1']:focus,
 }
 
 .changelog {
+  display: grid;
+  gap: var(--space-3);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.changelog > li {
-  border-top: 1px solid var(--line);
-  padding: var(--space-3) 0;
-}
-
+/* One card per day (the Card's own outline and padding); the date is its
+   mono label. */
 .changelog time {
   color: var(--text-2);
   font: var(--fs-13) var(--font-mono);
 }
 
 .changelog ul {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   padding-left: var(--space-4);
 }
 
-.changelog li + li {
+.changelog ul li + li {
   margin-top: var(--space-1);
+}
+
+.changes-feed {
+  margin: 0 0 var(--space-3);
 }
 
 @media (max-width: 700px) {
@@ -7872,15 +7862,16 @@ main h1[tabindex='-1']:focus,
 }
 
 .tour-bar {
-  background: var(--chart-2);
-  border-radius: 2px;
-  height: 8px;
+  background: var(--sunken);
+  border: 1px solid var(--line-card);
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
   position: relative;
 }
 
 .tour-bar-fill {
   background: var(--chart);
-  border-radius: 2px;
   inset: 0 auto 0 0;
   position: absolute;
 }
@@ -9393,17 +9384,6 @@ a.cover-tile-cap:focus-visible span {
   width: 1px;
 }
 
-.pick-radio[data-checked='true'] {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
-}
-
-.pick-radio:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 /* No opacity: it blended --text-2 under 4.5:1 on --surface in dark (4.89
    solid). */
 .pick-hint {
@@ -9452,9 +9432,10 @@ a.cover-tile-cap:focus-visible span {
 
 .pick-term-bar {
   background: var(--sunken);
-  border-radius: 2px;
+  border: 1px solid var(--line-card);
+  border-radius: 4px;
   display: inline-block;
-  height: 4px;
+  height: 10px;
   overflow: hidden;
   width: 3rem;
 }
@@ -10579,23 +10560,10 @@ a.cover-tile-cap:focus-visible span {
   max-width: 45rem;
   min-width: 0;
 }
-.daily-head {
-  align-items: baseline;
-  display: flex;
-  gap: var(--space-2);
-  justify-content: space-between;
-  margin: 0;
-}
-.daily-head h1 {
-  margin: 0;
-}
 .daily-lede {
   color: var(--text-2);
   margin: 0;
   max-width: min(45rem, 68ch);
-}
-.daily-head .kicker {
-  letter-spacing: 0.04em;
 }
 .daily-stats {
   color: var(--text-3);
@@ -10608,14 +10576,6 @@ a.cover-tile-cap:focus-visible span {
 .daily-stats b {
   color: var(--text);
   font-weight: 600;
-}
-.daily-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
 }
 .daily-hint {
   font-size: var(--fs-14);
@@ -10643,8 +10603,8 @@ a.cover-tile-cap:focus-visible span {
 }
 .shelfle td {
   background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1px solid var(--line-card);
+  border-radius: 4px;
   color: var(--text);
   font-size: var(--fs-13);
   height: 2.6rem;
@@ -10695,8 +10655,8 @@ a.cover-tile-cap:focus-visible span {
 }
 .shelfle-empty-cells span {
   background: var(--sunken);
-  border: 1px dashed var(--line);
-  border-radius: 6px;
+  border: 1px dashed var(--line-card);
+  border-radius: 4px;
   display: block;
   height: 2.6rem;
 }
@@ -10711,7 +10671,7 @@ a.cover-tile-cap:focus-visible span {
 }
 .daily-legend i {
   background: var(--sunken);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-card);
   border-radius: 3px;
   display: inline-block;
   height: 0.8rem;
@@ -10797,7 +10757,7 @@ a.cover-tile-cap:focus-visible span {
 
 /* The result card. */
 .daily-result {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-card);
   display: grid;
   gap: var(--space-4);
   grid-template-columns: 5.5rem minmax(0, 1fr);
@@ -10824,7 +10784,7 @@ a.cover-tile-cap:focus-visible span {
 }
 
 .daily-yesterday {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-card);
   color: var(--text-2);
   font-size: var(--fs-14);
   margin: 0;
@@ -11116,8 +11076,24 @@ a.cover-tile-cap:focus-visible span {
   max-width: min(45rem, 68ch);
 }
 
-.denver-chips {
+.denver-filter {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.denver-chips {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 34rem) {
+  /* The label sits over the scrolling row, not beside a squeezed one. */
+  .denver-chips {
+    flex-basis: 100%;
+  }
 }
 
 .denver-view {
@@ -11166,18 +11142,6 @@ a.cover-tile-cap:focus-visible span {
   .denver-map {
     position: static;
   }
-}
-
-.spot-card {
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  scroll-margin: 1rem;
-}
-
-.spot-card.selected {
-  border-color: var(--accent);
 }
 
 .spot-card-kicker {
@@ -11240,14 +11204,6 @@ a.cover-tile-cap:focus-visible span {
   margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
-}
-
-.spot-tags li {
-  padding: 0.05rem var(--space-2); /* space-exception: hairline, optical offset */
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: var(--fs-12);
 }
 
 .spot-popover-name {

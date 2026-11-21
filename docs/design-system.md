@@ -366,7 +366,7 @@ names and the admin list paths.
 
 | Gap | Where | Closed by |
 |---|---|---|
-| Hand-rolled `h1` under the area band | `Next.jsx`, `YearInReview.jsx`, `Daily.jsx`, `HowItWorks.jsx` | when touched |
+| Hand-rolled `h1` under the area band | `Next.jsx`, `YearInReview.jsx`, `HowItWorks.jsx` | when touched |
 | Hand-rolled `h1` on a detail or sub-detail head | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` (and their fallback heads) | next games detail change |
 | Hand-rolled `h1` on a shell or error page | `AdminLayout.jsx` (the signed-out gate), `RouteErrorBoundary.jsx` | when touched |
 | Detail heads hand-rolled beside the cover | `Item.jsx`, `ComicIssue.jsx`, `ComicEdition.jsx` | next games detail change |

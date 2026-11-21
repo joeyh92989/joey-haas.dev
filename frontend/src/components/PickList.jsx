@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import SkippedToast from './SkippedToast.jsx'
+import { Button } from './ui/button.jsx'
 import { spine } from '../content/spine.js'
 import { itemPath } from '../lib/spinePaths.js'
 
@@ -82,22 +83,22 @@ export default function PickList({
               </div>
               {onPlay && (
                 <div className="tonight-acts">
-                  <button
-                    type="button"
-                    className="btn sm"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => onPlay(pick)}
                   >
                     {verb}
                     <span className="visually-hidden">: {pick.title}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost sm"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onSkip(pick)}
                   >
                     {copy.skip}
                     <span className="visually-hidden">: {pick.title}</span>
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>

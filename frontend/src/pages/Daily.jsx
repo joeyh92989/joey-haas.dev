@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import DailyResult from '../components/DailyResult.jsx'
 import GuessCombobox from '../components/GuessCombobox.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import ShareSheet from '../components/ShareSheet.jsx'
 import ShelfleBoard from '../components/ShelfleBoard.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
+import { Badge } from '../components/ui/badge.jsx'
+import { Card } from '../components/ui/card.jsx'
 import { daily } from '../content/daily.js'
 import {
   DAILY_EPOCH,
@@ -140,13 +143,12 @@ export default function Daily() {
   return (
     <section className="daily">
       <SpineHeader />
-      <div className="daily-head">
-        <h1>{copy.name}</h1>
-        {pick && (
-          <span className="kicker">{dayKicker(pick.day, pick.isoDay)}</span>
-        )}
-      </div>
-      <p className="daily-lede">{copy.lede}</p>
+      <PageHeader
+        title={copy.name}
+        kicker={pick && dayKicker(pick.day, pick.isoDay)}
+        lede={copy.lede}
+        ledeClassName="daily-lede"
+      />
 
       {items === undefined ? null : dayNumber(today) < 1 ? (
         <p className="muted">{copy.soon(formatDate(DAILY_EPOCH))}</p>
@@ -156,19 +158,19 @@ export default function Daily() {
         <>
           {stats && (
             <p className="daily-stats">
-              <span>
+              <Badge variant="outline">
                 {copy.stats.streak} <b>{stats.streak}</b>
-              </span>
-              <span>
+              </Badge>
+              <Badge variant="outline">
                 {copy.stats.played} <b>{stats.played}</b>
-              </span>
-              <span>
+              </Badge>
+              <Badge variant="outline">
                 {copy.stats.average} <b>{stats.average ?? '—'}</b>
-              </span>
+              </Badge>
             </p>
           )}
 
-          <div className="daily-card">
+          <Card className="daily-card gap-4 p-4">
             {rows.length === 0 && (
               <p id="daily-hint" className="daily-hint muted">
                 {copy.hint}
@@ -225,7 +227,7 @@ export default function Daily() {
                 </b>
               </p>
             )}
-          </div>
+          </Card>
 
           <ShareSheet
             open={sharing}
