@@ -7,13 +7,13 @@
 // reduced-motion passes) and records getComputedStyle of a stable property
 // subset for every element and its ::before/::after.
 import { chromium } from '@playwright/test'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { GARMENTS, mockCloset } from '../closet-mocks.js'
 import { serveHome } from '../admin-home.fixtures.js'
 import { COMICS, GAMES, serveAdmin } from '../admin-shelf.fixtures.js'
 import { serveAdminAdd } from '../admin-add.fixtures.js'
 import { mockDenverSite } from '../denver-site-mocks.js'
-import { NEXT, SPOTS, PICK_TABLE } from '../tools-data.fixtures.js'
+import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
 const [base, out] = process.argv.slice(2)
 if (!base || !out) {
@@ -91,6 +91,46 @@ const PROPS = [
   'text-indent',
   'appearance',
 ]
+
+const PLAY_CARD = {
+  item_id: 'p1',
+  type: 'game',
+  title: 'Pinned Game',
+  cover_url: null,
+  platform: 'Nintendo Switch 2',
+  time_to_beat_hours: 30,
+  playthrough: 1,
+  playing_since: '2026-10-24',
+  last_played_on: '2026-11-07',
+  journal_hours: 31,
+  sessions: 9,
+  stale: false,
+}
+const playPick = (id, title, slot, slotLabel) => ({
+  slot,
+  slot_label: slotLabel,
+  score: 80,
+  reasons: [`Reason for ${title}`],
+  item: {
+    id,
+    title,
+    year: 2020,
+    cover_url: null,
+    type: 'game',
+    platform: 'Nintendo Switch',
+    genres: ['Indie', 'Platform', 'Action', 'Extra'],
+    time_to_beat_hours: 8,
+  },
+})
+const PLAY_PICKS = {
+  picks: [
+    playPick('a', 'Dead Cells', 'best_fit', 'Best fit'),
+    playPick('b', 'Slay the Spire', 'short_and_sweet', 'Short and sweet'),
+    playPick('c', 'Old Puzzle', 'overdue_classic', 'Overdue classic'),
+  ],
+  candidate_count: 12,
+  profile_size: 9,
+}
 
 const NOW = new Date('2026-12-15T18:00:00Z')
 const SERIES = '/shelf/22222222-bbbb-4bbb-8bbb-000000000002/'
@@ -262,7 +302,7 @@ async function openMore(page) {
 
 async function open(
   browser,
-  { path, theme, vp, kind, media, reduce, noIndex, touch },
+  { path, theme, vp, kind, media, reduce, noIndex, serve: served, touch },
 ) {
   const context = await browser.newContext({
     viewport: VIEWPORTS[vp],
@@ -280,6 +320,20 @@ async function open(
   if (noIndex) await page.route('**/search-index.json', (r) => r.abort())
   if (kind === 'home') await serveHome(page)
   if (kind === 'shelf') await serveAdmin(page, GAMES)
+  if (kind === 'shelf-comics') await serveAdmin(page, COMICS)
+  if (kind === 'play-next') {
+    await serveAdmin(page, GAMES)
+    await page.route('**/api/picker/**', (route) => {
+      const path = new URL(route.request().url()).pathname
+      const json = (body) =>
+        route.fulfill({ contentType: 'application/json', json: body })
+      if (path.endsWith('/continuing')) return json({ cards: [PLAY_CARD] })
+      if (path.endsWith('/skipped-today')) return json({ item_ids: [] })
+      if (path.endsWith('/next')) return json(PLAY_PICKS)
+      return json({})
+    })
+  }
+  if (served) await serve(page, served)
   if (kind === 'denver' || kind === 'next') {
     const json = (body) => (route) =>
       route.fulfill({
@@ -358,7 +412,10 @@ async function record(label, spec, after) {
   for (let attempt = 1; ; attempt++) {
     const { context, page } = await open(browser, spec)
     try {
-      if (after) await after(page)
+      if (after)
+        await after(page).catch((error) =>
+          console.error(`${label}: ${String(error).split('\n')[0]}`),
+        )
       // Let hover, focus and state transitions settle: a half-faded colour is
       // timing, not a style.
       await page.waitForTimeout(500)
@@ -550,8 +607,220 @@ async function denverScenarios(theme, vp) {
   )
 }
 
+// Slice D4 (#536): the shelf lists, tools and charts. Fixture titles for the
+// Daily game's guesses.
+const FIXTURE_GAMES = JSON.parse(
+  readFileSync(
+    new URL('../fixtures/snapshot/items.json', import.meta.url),
+    'utf8',
+  ),
+)
+  .filter((item) => item.type === 'game')
+  .map((item) => item.title)
+
+async function guess(page, titles) {
+  const box = page.getByRole('combobox', { name: 'Your guess' })
+  for (const title of titles) {
+    if (await page.locator('.daily-result').count()) return
+    await box.fill(title)
+    await box.press('Enter')
+    await page.waitForTimeout(150)
+  }
+}
+
+async function press(page, name) {
+  const button = page.getByRole('button', { name, exact: false }).first()
+  if (await button.isVisible()) await button.click()
+  await page.waitForTimeout(250)
+}
+
+async function d4(theme, vp) {
+  const shelf = ['/shelf/games', '/shelf/comics']
+  for (const path of shelf) {
+    const at = (name) => `screen ${theme} ${vp} d4 ${path} ${name}`
+    await record(at('spines'), { path: path + '?view=spines', theme, vp })
+    await record(at('search'), { path: path + '?q=a', theme, vp })
+    await record(at('empty'), { path: path + '?q=zzqqxx', theme, vp })
+    await record(at('filtered'), { path, theme, vp }, async (page) => {
+      await page.locator('.chip-rows .chip, .chip-row .chip').nth(2).click()
+      await page.waitForTimeout(300)
+    })
+    await record(at('sorted'), { path, theme, vp }, async (page) => {
+      const select = page.locator('.sort-select select')
+      if (await select.count()) await select.selectOption({ index: 1 })
+      await press(page, 'Order:')
+    })
+    await record(at('dim'), { path, theme, vp }, (page) =>
+      press(page, 'Dim finished'),
+    )
+    await record(at('dim-hover'), { path, theme, vp }, async (page) => {
+      await press(page, 'Dim finished')
+      await page.locator('.poster-card[data-dimmed]').first().hover()
+      await page.waitForTimeout(300)
+    })
+    await record(at('compact'), { path, theme, vp }, (page) =>
+      press(page, 'Compact'),
+    )
+    await record(at('show-all'), { path, theme, vp }, (page) =>
+      press(page, 'Show all'),
+    )
+    await record(at('overview-open'), { path, theme, vp }, async (page) => {
+      await press(page, 'charts')
+      await page.locator('#overview').scrollIntoViewIfNeeded()
+    })
+    await record(at('card-hover'), { path, theme, vp }, async (page) => {
+      await page.locator('.poster-card').nth(1).hover()
+      await page.waitForTimeout(300)
+    })
+    await record(at('tab-focus'), { path, theme, vp }, async (page) => {
+      await page.getByRole('searchbox').first().focus()
+      for (let i = 0; i < 40; i += 1) {
+        await page.keyboard.press('Tab')
+        if (
+          await page.evaluate(
+            () => !!document.activeElement.closest('.poster-card'),
+          )
+        )
+          break
+      }
+    })
+    await record(at('reduce'), { path, theme, vp, reduce: true }, (page) =>
+      page.locator('.poster-card').nth(1).hover(),
+    )
+  }
+  for (const path of [
+    '/shelf/journal/2025-03',
+    '/shelf/year/2025/',
+    '/shelf/year',
+  ])
+    await record(`screen ${theme} ${vp} d4 ${path}`, { path, theme, vp })
+  await record(
+    `screen ${theme} ${vp} d4 /stats data`,
+    { path: '/stats', theme, vp, serve: ['site-stats'] },
+    async (page) => {
+      await page.locator('.day-bars').waitFor()
+      await page.locator('.day-bar').nth(8).hover()
+    },
+  )
+  await record(`screen ${theme} ${vp} d4 /daily empty`, {
+    path: '/daily',
+    theme,
+    vp,
+  })
+  await record(
+    `screen ${theme} ${vp} d4 /daily mid`,
+    { path: '/daily', theme, vp },
+    (page) => guess(page, FIXTURE_GAMES.slice(1, 3)),
+  )
+  await record(
+    `screen ${theme} ${vp} d4 /daily open-list`,
+    { path: '/daily', theme, vp },
+    async (page) => {
+      await page.getByRole('combobox', { name: 'Your guess' }).fill('Fixture')
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(
+    `screen ${theme} ${vp} d4 /daily done`,
+    { path: '/daily', theme, vp },
+    (page) => guess(page, FIXTURE_GAMES.slice(1, 14)),
+  )
+  await record(
+    `screen ${theme} ${vp} d4 /daily share`,
+    { path: '/daily', theme, vp },
+    async (page) => {
+      await guess(page, FIXTURE_GAMES.slice(1, 14))
+      await press(page, 'Share')
+      await page.waitForTimeout(400)
+    },
+  )
+  const next = {
+    path: '/shelf/next',
+    theme,
+    vp,
+    serve: ['next', 'pick-for-me'],
+  }
+  await record(`screen ${theme} ${vp} d4 /shelf/next`, next)
+  await record(
+    `screen ${theme} ${vp} d4 /shelf/next pick`,
+    next,
+    async (page) => {
+      await page.locator('#pick-for-me').waitFor()
+      await page
+        .getByRole('radio', { name: /Any length/ })
+        .check({ force: true })
+      await page.getByRole('button', { name: 'Cozy' }).click()
+      await page.locator('.pick-cards > li').first().waitFor()
+    },
+  )
+  await record(
+    `screen ${theme} ${vp} d4 /shelf/next pick-tab`,
+    next,
+    async (page) => {
+      await page.locator('#pick-for-me').waitFor()
+      await page.getByRole('radio', { name: /Any length/ }).focus()
+      for (let i = 0; i < 3; i += 1) await page.keyboard.press('Tab')
+    },
+  )
+  for (const [path, kind] of [
+    ['/admin/shelf/games', 'shelf'],
+    ['/admin/shelf/comics', 'shelf-comics'],
+  ]) {
+    const at = (name) => `screen ${theme} ${vp} d4 ${path} ${name}`
+    await record(at('hover'), { path, theme, vp, kind }, async (page) => {
+      await page.locator('.poster-card').nth(1).hover()
+      await page.waitForTimeout(300)
+    })
+    await record(at('tab-focus'), { path, theme, vp, kind }, async (page) => {
+      await page.getByRole('searchbox').first().focus()
+      for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
+    })
+    await record(at('dim'), { path, theme, vp, kind }, (page) =>
+      press(page, 'Dim finished'),
+    )
+    // The admin lists start dimmed; Dim finished above turns it off.
+    await record(at('dim-hover'), { path, theme, vp, kind }, async (page) => {
+      await page.locator('.poster-card[data-dimmed]').first().hover()
+      await page.waitForTimeout(300)
+    })
+    await record(at('star-hover'), { path, theme, vp, kind }, async (page) => {
+      const card = page.locator('.poster-card').nth(1)
+      await card.hover()
+      await page.waitForTimeout(300)
+      await card.locator('.quick-rate-target').nth(5).hover()
+      await page.waitForTimeout(200)
+    })
+    await record(at('empty'), { path: path + '?q=zzqqxx', theme, vp, kind })
+    await record(at('spines'), { path: path + '?view=spines', theme, vp, kind })
+    if (vp === 'phone') {
+      await record(
+        at('sheet-open'),
+        { path, theme, vp, kind, touch: true },
+        async (page) => {
+          await page
+            .getByRole('button', { name: /^Actions for / })
+            .nth(1)
+            .click()
+          await page.locator('dialog.shelf-sheet[open]').waitFor()
+          await page.waitForTimeout(300)
+        },
+      )
+      await record(at('touch'), { path, theme, vp, kind, touch: true })
+    }
+    if (path.endsWith('comics'))
+      await record(at('plain'), { path, theme, vp, kind })
+  }
+  await record(`screen ${theme} ${vp} d4 /admin/play-next`, {
+    path: '/admin/play-next',
+    theme,
+    vp,
+    kind: 'play-next',
+  })
+}
+
 for (const theme of ['dark', 'light']) {
   for (const vp of ['desktop', 'phone']) {
+    await d4(theme, vp)
     for (const path of PUBLIC)
       await record(`screen ${theme} ${vp} ${path}`, { path, theme, vp })
     for (const [path, kind] of ADMIN)
