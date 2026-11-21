@@ -5,7 +5,8 @@ import { cx } from '../lib/cx.js'
 /**
  * A titled card for the Denver and Site admin pages: the Card look, a header
  * with the heading and an optional action beside it, then the body. The
- * heading names the region. It never clips (no `overflow`), so a ring on a
+ * heading names the region. `mt-0!` is important because the global
+ * `section + section` rule would add a gap the page's own grid already makes. It never clips (no `overflow`), so a ring on a
  * control at its edge is not cut off.
  *
  * @param {object} props
@@ -17,7 +18,7 @@ import { cx } from '../lib/cx.js'
 export default function SectionCard({ title, action, className, children }) {
   const id = useId()
   return (
-    <section className={cx(box, 'min-w-0')} aria-labelledby={id}>
+    <section className={cx(box, 'mt-0! min-w-0')} aria-labelledby={id}>
       <header className="flex items-center justify-between gap-3 border-b border-line-card px-4 py-3">
         <h2 id={id} className="m-0 text-sm font-medium">
           {title}

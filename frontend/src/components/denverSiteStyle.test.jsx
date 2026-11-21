@@ -96,7 +96,7 @@ describe('Denver and Site pages and the legacy look', () => {
   it('every grid these pages lay out lets its columns shrink', () => {
     for (const selector of ['.finder-layout', '.wx-days', '.wk-foot']) {
       const block = css.match(new RegExp(`\\n\\${selector}[^{]*\\{[^}]*\\}`))
-      expect(block?.[0], selector).toMatch(/minmax\(0, 1fr\)/)
+      expect(block?.[0], selector).toMatch(/minmax\(0, \d+fr\)/)
     }
   })
 })
@@ -169,6 +169,15 @@ describe('SectionCard', () => {
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Pages')
     expect(screen.getByText('views')).toBeInTheDocument()
     expect(screen.getByText('body').parentElement).toHaveClass('x')
+  })
+
+  it('ignores the global sibling-section margin', () => {
+    render(
+      <SectionCard title="T">
+        <p>b</p>
+      </SectionCard>,
+    )
+    expect(screen.getByRole('region').className).toContain('mt-0!')
   })
 
   it('does not clip a ring at its edge', () => {
