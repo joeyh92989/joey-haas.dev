@@ -86,11 +86,17 @@ export default function Projects() {
                   {project.links.map((link) =>
                     link.to ? (
                       <Link key={link.label} to={link.to}>
-                        {link.label} <span aria-hidden="true">&rarr;</span>
+                        {link.label}{' '}
+                        <span aria-hidden="true" className="max-[700px]:ml-1">
+                          &rarr;
+                        </span>
                       </Link>
                     ) : (
                       <a key={link.label} href={link.href}>
-                        {link.label} <span aria-hidden="true">&rarr;</span>
+                        {link.label}{' '}
+                        <span aria-hidden="true" className="max-[700px]:ml-1">
+                          &rarr;
+                        </span>
                       </a>
                     ),
                   )}

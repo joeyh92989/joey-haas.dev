@@ -11,7 +11,11 @@ import { cx } from '../lib/cx.js'
  */
 export default function CatalogueNumber({ n, className, ...rest }) {
   return (
-    <span aria-hidden="true" className={cx('font-mono', className)} {...rest}>
+    <span
+      aria-hidden="true"
+      className={cx('font-mono whitespace-nowrap', className)}
+      {...rest}
+    >
       No. {String(n).padStart(3, '0')}
     </span>
   )

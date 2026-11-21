@@ -129,6 +129,20 @@ describe('Projects on the design system', () => {
   })
 })
 
+describe('Narrow-screen details', () => {
+  it('keeps the catalogue number on one line so a long tagline wraps beside it', () => {
+    const { container } = inRouter(<Projects />)
+    const no = container.querySelector('[data-strip] [aria-hidden="true"]')
+    expect(no.className).toMatch(/\bwhitespace-nowrap\b/)
+  })
+
+  it('keeps a space before a project link arrow where the link is inline-flex', () => {
+    const { container } = inRouter(<Projects />)
+    const arrow = container.querySelector('.project-links a span')
+    expect(arrow.className).toMatch(/max-\[700px\]:ml-1/)
+  })
+})
+
 describe('About on the design system', () => {
   it('holds the facts in a record card beside the title', () => {
     const { container } = inRouter(<About />)

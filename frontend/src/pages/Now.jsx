@@ -76,7 +76,7 @@ export default function Now() {
         and it covers games only. My work is on the{' '}
         <Link to="/about">About</Link> page.
       </p>
-      {asOf && <p className="muted">As of {DAY.format(utc(asOf))}.</p>}
+      {asOf && <p className="muted mt-2">As of {DAY.format(utc(asOf))}.</p>}
 
       {items === null && (
         <p className="muted" role="status">

@@ -34,8 +34,20 @@ for (const path of ROUTES) {
         await expect(page.locator('h1').first()).toBeVisible()
         const { scroll, inner, wide } = await page.evaluate(() => {
           const inner = window.innerWidth
+          // A code block scrolls inside its own `pre`: what it holds may run
+          // past the edge without widening the page.
+          const clipped = (el) => {
+            for (let up = el.parentElement; up; up = up.parentElement) {
+              const x = getComputedStyle(up).overflowX
+              if (x === 'auto' || x === 'scroll') return true
+            }
+            return false
+          }
           const wide = [...document.querySelectorAll('body *')]
-            .filter((el) => el.getBoundingClientRect().right > inner + 0.5)
+            .filter(
+              (el) =>
+                el.getBoundingClientRect().right > inner + 0.5 && !clipped(el),
+            )
             .slice(0, 5)
             .map((el) => `${el.tagName.toLowerCase()}.${el.className}`)
           return { scroll: document.documentElement.scrollWidth, inner, wide }
