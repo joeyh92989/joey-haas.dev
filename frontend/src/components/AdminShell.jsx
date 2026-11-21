@@ -6,6 +6,12 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 import { ADMIN_AREAS, areaFor, currentPage, segmentsFor } from './adminAreas.js'
 import { adminCopy } from '../content/adminCopy.js'
+import {
+  pageLink,
+  railLink,
+  segmentLink,
+  tabLink,
+} from './adminShellClasses.js'
 
 /** Below this width the rail and page list give way to tabs and segments. */
 export const PHONE_QUERY = '(max-width: 900px)'
@@ -55,11 +61,11 @@ function PageBadge({ page, badges }) {
  * NavLink without `end` would also mark a parent page (Closet) on its
  * child's path (/admin/closet/profile). Only the longest match is current.
  */
-function PageLink({ page, current, children, onClick }) {
+function PageLink({ page, current, className, children, onClick }) {
   return (
     <Link
       to={page.to}
-      className={current ? 'active' : undefined}
+      className={className}
       aria-current={current ? 'page' : undefined}
       onClick={onClick}
     >
@@ -72,14 +78,14 @@ function PageLink({ page, current, children, onClick }) {
  * One link per area, landing on its home. The rail (desktop) and the tab
  * bar (phone) differ only in their class and layout.
  */
-function AreaLinks({ current, badges, iconClass }) {
+function AreaLinks({ current, badges, iconClass, className }) {
   return ADMIN_AREAS.map((area) => {
     const active = area.key === current.key
     return (
       <Link
         key={area.key}
         to={area.home}
-        className={active ? 'active' : undefined}
+        className={className}
         aria-current={active ? 'true' : undefined}
       >
         <span className={iconClass} aria-hidden="true">
@@ -102,6 +108,7 @@ function AreaRail({ current, badges, account }) {
           current={current}
           badges={badges}
           iconClass="admin-rail-icon"
+          className={railLink}
         />
       </nav>
     </div>
@@ -143,7 +150,11 @@ function AreaPages({ area, pathname, ownedCount, pageBadges }) {
             >
               {run.pages.map((page) => (
                 <li key={page.to}>
-                  <PageLink page={page} current={page === here}>
+                  <PageLink
+                    page={page}
+                    current={page === here}
+                    className={pageLink}
+                  >
                     {page.label}
                     {page.count && <OwnedCount value={ownedCount} />}
                     <PageBadge page={page} badges={pageBadges} />
@@ -217,6 +228,7 @@ function AreaSubnav({
                   key={segment.to}
                   page={segment}
                   current={here?.to === segment.to}
+                  className={segmentLink}
                 >
                   {segment.label}
                   <PageBadge page={segment} badges={pageBadges} />
@@ -229,7 +241,7 @@ function AreaSubnav({
                 key={segment.label}
                 type="button"
                 ref={refFor(segment.label)}
-                className={current ? 'active' : undefined}
+                className={segmentLink}
                 aria-current={current ? 'true' : undefined}
                 aria-haspopup="dialog"
                 aria-expanded={sheet === segment.label}
@@ -341,6 +353,7 @@ export default function AdminShell({
             current={area}
             badges={badges}
             iconClass="admin-tabs-icon"
+            className={tabLink}
           />
         </nav>
       )}

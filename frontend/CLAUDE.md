@@ -102,6 +102,16 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   (`components/adminAreas.js`) and in `ADMIN_ROUTES` (`prerender-lib.mjs`),
   and titles itself through `AdminPageHeader`. Admin pages build from
   `StatTile`, `Panel` and `JobStatusRow`; Home is one `AreaCard` per area.
+  The shell's controls (rail and tab-bar area links, page links, segments, the
+  account trigger and its rows, the sign-in link) are the Button look from
+  `components/adminShellClasses.js`, built on `ui/button-variants.js`: that
+  file carries the focus ring and marks the current area or page through
+  `aria-current` (a foreground border and a card fill, never color alone).
+  Eager shell files import only the variants, not Base UI or `cn` (#535). The
+  shell keeps its native `<dialog>` sheet and the account disclosure as plain
+  markup, and does not adopt shadcn's Sidebar or a Data Table: both would
+  change behaviour (focus targets, `aria-current`, the disclosure's Escape and
+  Tab-out rules) that the tests pin, for no change a visitor sees.
   Home, About and Projects take the 75rem `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (75rem).

@@ -1686,21 +1686,6 @@ footer {
   padding: var(--space-3) var(--space-4);
 }
 
-.admin-signin {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  display: inline-block;
-  font-size: var(--fs-13);
-  font-weight: 500;
-  padding: var(--space-2) var(--space-4);
-}
-
-.admin-signin:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  text-decoration: none;
-}
-
 /* The admin shell: on a desktop, a rail of areas, the current area's
    232px page list, then the page; on a phone, the area's segmented
    control over the page and a tab bar of areas. It replaces the public
@@ -1793,11 +1778,16 @@ footer {
   outline-offset: 2px;
 }
 
-/* The rail: --text-3 labels on --sunken measure 6.69 dark, 5.98 light. */
+/* The rail and the area's page list (#535). Their links, the account trigger
+   and the phone's segments are drawn from the Button look
+   (adminShellClasses.js), which carries the focus ring and the current mark
+   (`aria-current`); the rules below are layout, the surfaces and the type of
+   the labels inside. The rail is --sunken and the page list --bg: --text-2
+   and --text-3 clear 4.5:1 on both (token block). */
 .admin-rail {
   align-items: center;
   background: var(--sunken);
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--line-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1809,15 +1799,16 @@ footer {
   z-index: 5;
 }
 
-/* --bg on --text measures 7.57 dark, 14.03 light (the token block). */
+/* The monogram, as the public masthead draws it: an outlined square, mono 500
+   (the 600 cut is not loaded). --text on --bg and --sunken clears 6. */
 .admin-rail-mark {
-  background: var(--text);
-  border-radius: 8px;
-  color: var(--bg);
+  background: transparent;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  color: var(--text);
   display: grid;
-  font: 600 var(--fs-13) var(--font-mono);
+  font: 500 var(--fs-12) var(--font-mono);
   height: 32px;
-  margin-bottom: var(--space-3);
   place-items: center;
   width: 32px;
 }
@@ -1828,26 +1819,9 @@ footer {
   justify-items: center;
 }
 
-.admin-rail-nav a {
-  border-radius: 8px;
-  color: var(--text-3);
-  display: grid;
-  gap: 2px; /* space-exception: hairline, optical offset */
-  justify-items: center;
-  min-height: 48px;
-  padding: var(--space-2) 2px var(--space-1); /* space-exception: hairline, optical offset */
+.admin-rail-nav a,
+.admin-tabs a {
   position: relative;
-  width: 54px;
-}
-
-.admin-rail-nav a:hover {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.admin-rail-nav a.active {
-  background: var(--accent-soft);
-  color: var(--text);
 }
 
 .admin-rail-icon,
@@ -1856,9 +1830,8 @@ footer {
   line-height: 1.2;
 }
 
-.admin-rail-nav .admin-area-label {
-  font-size: var(--fs-12);
-  line-height: 1.1;
+.admin-area-label {
+  font: var(--fs-12) / 1.1 var(--font-sans);
 }
 
 /* An area's pending count. See --badge for its measured contrast. */
@@ -1886,16 +1859,15 @@ footer {
 }
 
 .admin-side-title {
-  font-size: var(--fs-16);
-  font-weight: 600;
+  font: 500 var(--fs-20) / 1.2 var(--font-display);
   padding: var(--space-2) var(--space-3) var(--space-2);
 }
 
 .admin-side-title small {
   color: var(--text-3);
   display: block;
-  font-size: var(--fs-12);
-  font-weight: 400;
+  font: 400 var(--fs-12) var(--font-sans);
+  margin-top: var(--space-1);
 }
 
 .admin-app-phone {
@@ -1903,8 +1875,8 @@ footer {
 }
 
 .admin-side {
-  background: var(--surface);
-  border-right: 1px solid var(--line);
+  background: var(--bg);
+  border-right: 1px solid var(--line-card);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -1926,29 +1898,6 @@ footer {
   list-style: none;
 }
 
-.admin-side-nav a {
-  align-items: center;
-  border-radius: var(--radius);
-  color: var(--text-2);
-  display: flex;
-  font-size: var(--fs-14);
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-}
-
-.admin-side-nav a:hover {
-  color: var(--text);
-  text-decoration: none;
-}
-
-/* --accent-soft is one of the backgrounds the text tokens are measured on
-   (see the token block). */
-.admin-side-nav a.active {
-  background: var(--accent-soft);
-  color: var(--text);
-  font-weight: 500;
-}
-
 .admin-side-count {
   color: var(--text-3);
   font-size: var(--fs-12);
@@ -1964,19 +1913,6 @@ footer {
   padding-block: var(--space-1);
 }
 
-.admin-rail a:focus-visible,
-.admin-subnav a:focus-visible,
-.admin-subnav button:focus-visible,
-.admin-side-nav a:focus-visible,
-.acct-mark-btn:focus-visible,
-.acct-btn:focus-visible,
-.acct-list a:focus-visible,
-.acct-list button:focus-visible,
-.admin-tabs a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .admin-main {
   min-width: 0;
   padding: var(--space-5) var(--space-6) var(--space-6);
@@ -1986,157 +1922,56 @@ footer {
   outline: none;
 }
 
-/* The phone tab bar: fixed to the bottom, one equal 44px+ target per area. */
+/* The phone tab bar: fixed to the bottom, one equal target per area. */
 .admin-tabs {
-  background: var(--surface);
-  border-top: 1px solid var(--line);
+  background: var(--bg);
+  border-top: 1px solid var(--line-card);
   bottom: 0;
   display: grid;
+  gap: var(--space-1);
   grid-auto-columns: 1fr;
   grid-auto-flow: column;
   left: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding: var(--space-1) var(--space-1)
+    calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
   position: fixed;
   right: 0;
   z-index: 30;
 }
 
-.admin-tabs a {
-  color: var(--text-3);
-  display: grid;
-  font: 500 var(--fs-12) var(--font-sans);
-  gap: 2px; /* space-exception: hairline, optical offset */
-  justify-items: center;
-  min-height: 3.25rem;
-  padding: var(--space-2) 2px var(--space-3); /* space-exception: hairline, optical offset */
-  position: relative;
-  text-align: center;
-}
-
-.admin-tabs a:hover {
-  text-decoration: none;
-}
-
-.admin-tabs a.active {
-  color: var(--accent-text);
-}
-
-/* The phone's segmented control: the area's pages. The current segment
-   is --text on --surface (6.28 dark, 15.83 light); the rest --text-2 on
-   --sunken (6.69 dark, 5.98 light). */
-.admin-subnav {
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  display: flex;
-  gap: var(--space-1);
-  margin: 0 0 var(--space-4);
-  padding: var(--space-1);
-}
-
-.admin-subnav a,
-.admin-subnav button {
-  background: none;
-  border: 0;
-  border-radius: 999px;
-  color: var(--text-2);
-  cursor: pointer;
-  flex: 1 0 auto;
-  font: var(--fs-13) var(--font-sans);
-  min-height: 2.25rem;
-  padding: var(--space-1);
-  text-align: center;
-  white-space: nowrap;
-}
-
-.admin-subnav a {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-}
-
-.admin-subnav a:hover {
-  text-decoration: none;
-}
-
-.admin-subnav a.active,
-.admin-subnav button.active {
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line);
-  color: var(--text);
+.admin-tabs .admin-area-label {
   font-weight: 500;
 }
 
-/* The account menu (#503): the rail's mark on a desktop, a pill at the left
-   of the segment row on a phone. The panel is --surface on --line-strong
-   with the --overlay shadow, as the shelf's card menu is. */
+/* The phone's segmented control: the area's pages, a hairline box like the
+   masthead's controls. The current segment takes the link's own current
+   mark (a border and --card). */
+.admin-subnav {
+  background: var(--sunken);
+  border: 1px solid var(--line-card);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 2px; /* space-exception: hairline between segments */
+  margin: 0 0 var(--space-4);
+  /* A safety net, not the layout: a badge on a segment must never widen the
+     page (the focus ring still fits in the 4px padding). */
+  overflow-x: auto;
+  padding: var(--space-1);
+}
+
+.admin-subnav > * {
+  flex: 1 0 auto;
+}
+
+/* The account menu (#503): the rail's mark on a desktop, a button at the
+   left of the segment row on a phone. The panel is --surface on
+   --line-card, as the More panel is. */
 .acct {
   position: relative;
 }
 
-.acct-mark-btn {
-  background: none;
-  border: 0;
-  border-radius: 8px;
-  color: var(--text-3);
-  cursor: pointer;
-  display: grid;
-  gap: var(--space-1);
-  justify-items: center;
-  min-height: 48px;
-  padding: var(--space-1) 2px; /* space-exception: hairline, optical offset */
-  width: 54px;
-}
-
-.acct-mark-btn .admin-rail-mark {
-  margin: 0;
-}
-
-.acct-mark-btn:hover,
-.acct-mark-btn[aria-expanded='true'] {
-  color: var(--text);
-}
-
-.acct-mark-btn[aria-expanded='true'] {
-  background: var(--accent-soft);
-}
-
-.acct-mark-btn .admin-area-label {
-  font: var(--fs-12) / 1.1 var(--font-sans);
-}
-
 .admin-rail .acct {
   margin-bottom: var(--space-2);
-}
-
-.acct-btn {
-  align-items: center;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  cursor: pointer;
-  display: inline-flex;
-  gap: var(--space-1);
-  min-height: 2.75rem;
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
-}
-
-.acct-btn:hover,
-.acct-btn[aria-expanded='true'] {
-  border-color: var(--line-strong);
-  color: var(--text);
-}
-
-.acct-btn[aria-expanded='true'] {
-  background: var(--sunken);
-}
-
-.acct-btn .admin-rail-mark {
-  border-radius: 999px;
-  height: 34px;
-  margin: 0;
-  width: 34px;
 }
 
 .acct-caret {
@@ -2150,9 +1985,8 @@ footer {
 
 .acct-panel {
   background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px var(--overlay);
+  border: 1px solid var(--line-card);
+  border-radius: var(--radius);
   color: var(--text-2);
   padding: var(--space-2);
   position: absolute;
@@ -2177,7 +2011,7 @@ footer {
 }
 
 .acct-who {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-card);
   display: grid;
   line-height: 1.4;
   margin: 0 0 var(--space-2);
@@ -2203,39 +2037,6 @@ footer {
   padding: 0;
 }
 
-.acct-list a,
-.acct-list button {
-  align-items: center;
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  font: var(--fs-14) var(--font-sans);
-  gap: var(--space-2);
-  justify-content: space-between;
-  min-height: 2.25rem;
-  padding: var(--space-2) var(--space-3);
-  text-align: left;
-  width: 100%;
-}
-
-.acct-list a:hover,
-.acct-list button:hover {
-  background: var(--sunken);
-  text-decoration: none;
-}
-
-.acct-list [aria-disabled='true'] {
-  color: var(--text-3);
-  cursor: default;
-}
-
-.acct-list [aria-disabled='true']:hover {
-  background: none;
-}
-
 .acct-arrow {
   color: var(--text-3);
 }
@@ -2258,22 +2059,18 @@ footer {
   width: 8px;
 }
 
-/* 44px rows on a phone. */
-.admin-phone-top .acct-list a,
-.admin-phone-top .acct-list button {
-  font-size: var(--fs-16);
-  min-height: 2.75rem;
-}
-
 .admin-phone-top {
   align-items: center;
   display: flex;
+  /* A row that does not fit beside the account button (Closet's five
+     segments at 320px) drops under it, so nothing is clipped. */
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
 }
 
 .admin-phone-top .admin-subnav {
-  flex: 1;
+  flex: 1 1 auto;
   margin: 0;
   min-width: 0;
 }
@@ -2316,8 +2113,8 @@ footer {
 
 .admin-gate-panel {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid var(--line-card);
+  border-radius: var(--radius);
   max-width: 26rem;
   padding: var(--space-5);
   width: 100%;
@@ -2335,10 +2132,12 @@ footer {
 /* Every admin page's header: title and description, then its controls. */
 .admin-head {
   align-items: center;
+  border-bottom: 1px solid var(--line-card);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3) var(--space-4);
   margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
 }
 
 .admin-head h1 {
@@ -2761,7 +2560,7 @@ footer {
 }
 
 .admin-subnav .admin-badge {
-  margin-left: var(--space-2);
+  margin-left: var(--space-1);
   vertical-align: middle;
 }
 
