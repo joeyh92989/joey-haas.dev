@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import DraftBadge from '../components/DraftBadge.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import PostMeta from '../components/PostMeta.jsx'
+import RecordCard from '../components/RecordCard.jsx'
 import { BLOG_PAGE } from '../content/pages.js'
 import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
@@ -61,7 +63,11 @@ export default function BlogPost() {
         lede={post.frontmatter.summary}
         ledeClassName="post-summary"
       />
-      {post.frontmatter.draft && <span className="draft-badge">Draft</span>}
+      {post.frontmatter.draft && (
+        <div className="mt-3">
+          <DraftBadge />
+        </div>
+      )}
       <PostMeta
         date={post.frontmatter.date}
         updated={post.frontmatter.updated}
@@ -70,18 +76,25 @@ export default function BlogPost() {
       />
 
       {headings.length > MAX_HEADINGS_WITHOUT_CONTENTS && (
-        <nav className="post-toc" aria-labelledby="post-toc-label">
-          <p className="post-toc-label" id="post-toc-label">
-            On this page
-          </p>
-          <ol>
-            {headings.map((heading) => (
-              <li key={heading.id}>
-                <Link to={{ hash: heading.id }}>{heading.text}</Link>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <RecordCard
+          className="post-toc mt-6"
+          label={<span id="post-toc-label">On this page</span>}
+        >
+          <nav aria-labelledby="post-toc-label" className="px-4 py-2">
+            <ol className="m-0 list-none p-0">
+              {headings.map((heading) => (
+                <li key={heading.id}>
+                  <Link
+                    to={{ hash: heading.id }}
+                    className="block py-1 text-foreground"
+                  >
+                    {heading.text}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </RecordCard>
       )}
 
       <div

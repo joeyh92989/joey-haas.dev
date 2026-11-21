@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import RecordCard from '../components/RecordCard.jsx'
+import { PROSE_H1, SECTION_HEAD } from '../components/prose-classes.js'
 import PosterCard from '../components/PosterCard.jsx'
 import PosterGrid from '../components/PosterGrid.jsx'
 import AgainTag from '../components/AgainTag.jsx'
@@ -11,6 +13,9 @@ import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { MONTH_YEAR as MONTH, DAY_YEAR as DAY } from '../lib/formatDate.js'
+
+/** A dated row: a hairline under each, so a list reads as a ledger. */
+const ROW = 'border-b border-line-card py-3 first:border-t'
 
 function utc(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)
@@ -65,8 +70,8 @@ export default function Now() {
 
   return (
     <section className="now">
-      <h1>Now</h1>
-      <p className="prose">
+      <h1 className={PROSE_H1}>Now</h1>
+      <p className="prose mt-4">
         <Link to={spine.path}>{spine.name}</Link> writes this page every night,
         and it covers games only. My work is on the{' '}
         <Link to="/about">About</Link> page.
@@ -86,8 +91,10 @@ export default function Now() {
       )}
 
       {playing.length > 0 && (
-        <section aria-labelledby="now-playing">
-          <h2 id="now-playing">Playing</h2>
+        <section className="mt-10" aria-labelledby="now-playing">
+          <h2 id="now-playing" className={SECTION_HEAD}>
+            Playing
+          </h2>
           <PosterGrid
             items={playing}
             size="compact"
@@ -101,11 +108,13 @@ export default function Now() {
       {/* The snapshot carries no journal, so a paused row has its date and
           no hours. */}
       {paused.length > 0 && (
-        <section aria-labelledby="now-paused">
-          <h2 id="now-paused">Paused</h2>
-          <ul className="now-finished">
+        <section className="mt-10" aria-labelledby="now-paused">
+          <h2 id="now-paused" className={SECTION_HEAD}>
+            Paused
+          </h2>
+          <ul className="now-finished m-0 grid list-none gap-0 p-0">
             {paused.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className={ROW}>
                 <Link to={itemPath(item.id)}>{item.title}</Link>
                 {item.paused_on && (
                   <span className="muted">
@@ -120,25 +129,34 @@ export default function Now() {
       )}
 
       {upNext && (
-        <section aria-labelledby="now-up-next">
-          <h2 id="now-up-next">
+        <section className="mt-10" aria-labelledby="now-up-next">
+          <h2 id="now-up-next" className={SECTION_HEAD}>
             {isPick ? spine.next.sections.tonight : 'Up next'}
           </h2>
-          <p>
-            <Link to={itemPath(upNext.item_id)}>{upNext.title}</Link>
-            {upNext.platform && (
-              <span className="muted"> · {upNext.platform}</span>
-            )}
-          </p>
+          <RecordCard className="max-w-[45rem]">
+            <p className="p-4">
+              <Link
+                to={itemPath(upNext.item_id)}
+                className="font-heading text-xl font-medium text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4"
+              >
+                {upNext.title}
+              </Link>
+              {upNext.platform && (
+                <span className="muted"> · {upNext.platform}</span>
+              )}
+            </p>
+          </RecordCard>
         </section>
       )}
 
       {finished.length > 0 && (
-        <section aria-labelledby="now-finished">
-          <h2 id="now-finished">Recently finished</h2>
-          <ul className="now-finished">
+        <section className="mt-10" aria-labelledby="now-finished">
+          <h2 id="now-finished" className={SECTION_HEAD}>
+            Recently finished
+          </h2>
+          <ul className="now-finished m-0 grid list-none gap-0 p-0">
             {finished.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className={ROW}>
                 <Link to={itemPath(item.id)}>{item.title}</Link>
                 {item.again && <AgainTag />}
                 <span className="muted">

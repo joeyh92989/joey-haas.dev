@@ -1004,39 +1004,6 @@ p.muted a,
   margin-top: var(--space-4);
 }
 
-/* Dated rows: the date in mono on the left, a title and one line beside it.
-   Home's work history and the blog index. */
-.row-list {
-  list-style: none;
-}
-
-.row-list > li {
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: 140px minmax(0, 1fr);
-  padding: var(--space-4) 0;
-}
-
-.row-list > li:first-child {
-  border-top: 0;
-}
-
-.row-list .kicker {
-  padding-top: 0.125rem; /* space-exception: hairline, optical offset */
-}
-
-.row-list h3 {
-  font-size: var(--fs-16);
-  font-weight: 500;
-}
-
-.row-list p {
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  margin-top: var(--space-1);
-}
-
 @media (max-width: 700px) {
   .hero {
     gap: var(--space-5);
@@ -1049,11 +1016,6 @@ p.muted a,
 
   .hero-lede {
     font-size: var(--fs-16);
-  }
-
-  .row-list > li {
-    gap: var(--space-1);
-    grid-template-columns: 1fr;
   }
 }
 
@@ -1097,45 +1059,7 @@ section + section {
   width: 96px;
 }
 
-.about-title {
-  margin-bottom: var(--space-2);
-}
-
-.about-aside .kicker {
-  margin-bottom: var(--space-4);
-}
-
-.about-facts {
-  font-size: var(--fs-14);
-}
-
-.about-facts > div {
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
-  padding: var(--space-2) 0;
-}
-
-.about-facts dt {
-  color: var(--text-2);
-}
-
-.about-facts dd {
-  color: var(--text);
-  font-weight: 500;
-  text-align: right;
-}
-
 /* Section labels: headings by structure, set as kickers. */
-.about-label {
-  color: var(--text-3);
-  font: 500 var(--fs-12) var(--font-mono);
-  letter-spacing: 0.02em;
-  margin-bottom: var(--space-4);
-  text-transform: uppercase;
-}
-
 .about-body .prose {
   max-width: 64ch;
 }
@@ -1295,177 +1219,18 @@ section + section {
 }
 
 /* About's chips are mono labels, squared off; the shelf keeps its pills. */
-.about .chip-list li {
-  background: var(--sunken);
-  border-radius: 4px;
-  font: 500 var(--fs-12) var(--font-mono);
-  padding: var(--space-1) var(--space-2);
-}
-
-/* Grid rather than CSS multi-column: multicol needs break-inside: avoid on
-   every item to stop an entry splitting across the column boundary, and it
-   does not collapse to a single column on a narrow screen without a media
-   query. auto-fit does both for free. */
-.expertise-list {
-  display: grid;
-  gap: var(--space-2) var(--space-5);
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  list-style: none;
-  margin-top: var(--space-4);
-}
-
-.expertise-list li {
-  border-left: 2px solid var(--line);
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  padding-left: var(--space-3);
-}
-
 /* ---------- Projects ---------- */
 
-.project-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-/* Home's Work card at full width: the same surface, hairline and radius,
-   but an article rather than a link, so there is no hover state. */
-.project-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: var(--space-4);
-}
-
-/* An h2 by document structure, but on the card's scale, not the page's. */
-.project-card h2 {
-  font-size: var(--fs-18);
-  font-weight: 500;
-}
-
-.project-card p {
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  margin-top: var(--space-2);
-}
-
+/* Project cards are record cards (Tailwind, Projects.jsx); only the cover
+   strip's spacing inside one is plain CSS. */
 .project-card .cover-strip {
   margin: var(--space-4) 0 var(--space-3);
 }
 
-.project-card .project-tagline {
-  display: block;
-  margin-bottom: var(--space-3);
-}
-
-.project-card .project-line {
-  color: var(--text);
-  margin-top: var(--space-4);
-}
-
-.project-highlights {
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  margin: var(--space-3) 0 0;
-  padding-left: var(--space-4);
-}
-
-.project-highlights li + li {
-  margin-top: var(--space-1);
-}
-
-.project-card .project-links {
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-14);
-  gap: var(--space-1) var(--space-4);
-  margin: var(--space-3) 0 0;
-}
-
-/* Tech and tag chips: squared and mono, like About's toolbox, so they read
-   as metadata rather than as another link. */
-.tech-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  list-style: none;
-  margin-top: var(--space-4);
-}
-
-.tech-list li {
-  background: var(--sunken);
-  border-radius: 4px;
-  color: var(--text-2);
-  font: 500 var(--fs-12) var(--font-mono);
-  padding: var(--space-1) var(--space-2);
-}
-
 /* ---------- Blog ---------- */
 
-/* The index's rows are .row-list; only the title's scale is the blog's own.
-   An h2 here, since the page's h1 sits above it. */
-.post-rows {
-  margin-top: var(--space-4);
-}
-
-.post-rows h2 {
-  font-size: var(--fs-18);
-  font-weight: 500;
-}
-
-.post-rows h2 a {
-  color: var(--text);
-}
-
-.post-rows h2 a:hover {
-  color: var(--accent-text);
-  text-decoration: none;
-}
-
-/* TIL: whole notes, divided by the same rule as the blog index's rows. */
-.note-list {
-  margin-top: var(--space-4);
-}
-
-.note-list > article {
-  border-top: 1px solid var(--line);
-  padding: var(--space-5) 0;
-}
-
-.note-list > article:first-child {
-  border-top: 0;
-}
-
-.note-title {
-  font-size: var(--fs-18);
-  font-weight: 500;
-}
-
-.note-title a {
-  color: var(--text);
-}
-
-.note-title a:hover {
-  color: var(--accent-text);
-  text-decoration: none;
-}
-
-.post-meta {
-  align-items: center;
-  color: var(--text-3);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-13);
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-
-.post-meta .tech-list {
-  margin-top: 0;
-}
-
+/* Posts, notes and the contents list are record cards and badges (Tailwind);
+   what stays here is the post body and Trip's draft mark. */
 .draft-badge {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1482,35 +1247,6 @@ section + section {
   color: var(--text-2);
   font-size: var(--fs-18);
   margin-top: var(--space-2);
-}
-
-.post-toc {
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  margin-top: var(--space-5);
-  padding: var(--space-3) 0;
-}
-
-.post-toc-label {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-12);
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-2);
-  text-transform: uppercase;
-}
-
-.post-toc ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.post-toc a {
-  color: var(--text);
-  display: block;
-  font-size: var(--fs-16);
-  padding: var(--space-1) 0;
 }
 
 .post-body {
@@ -7668,10 +7404,8 @@ main h1[tabindex='-1']:focus,
   outline-offset: 2px;
 }
 
-/* ---------- Now, Colophon and Stats ---------- */
+/* ---------- Stats ---------- */
 
-.now h2,
-.colophon h2,
 .site-stats h2 {
   font-size: var(--fs-18);
   margin: var(--space-6) 0 var(--space-3);
@@ -13321,10 +13055,6 @@ a.btn.sm {
 
 [data-theme='light'] .project-hero__img--light {
   display: block;
-}
-
-.project-card .project-differently {
-  color: var(--text);
 }
 
 .arch {

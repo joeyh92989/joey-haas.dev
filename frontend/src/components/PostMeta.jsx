@@ -1,3 +1,4 @@
+import TagList from './TagList.jsx'
 import { formatDate } from '../lib/formatDate.js'
 
 /**
@@ -12,7 +13,7 @@ import { formatDate } from '../lib/formatDate.js'
  */
 export default function PostMeta({ date, updated, readingMinutes, tags }) {
   return (
-    <div className="post-meta">
+    <div className="post-meta mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-muted-foreground">
       <time dateTime={date}>{formatDate(date)}</time>
       {updated && updated !== date && (
         <span>
@@ -20,13 +21,7 @@ export default function PostMeta({ date, updated, readingMinutes, tags }) {
         </span>
       )}
       {readingMinutes > 0 && <span>{readingMinutes} min read</span>}
-      {tags.length > 0 && (
-        <ul className="tech-list">
-          {tags.map((tag) => (
-            <li key={tag}>{tag}</li>
-          ))}
-        </ul>
-      )}
+      {tags.length > 0 && <TagList items={tags} className="tech-list" />}
     </div>
   )
 }
