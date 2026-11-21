@@ -42,7 +42,7 @@ export default function SiteMast({
   const target = theme === 'dark' ? 'light' : 'dark'
 
   return (
-    <header className="mast relative z-2 border-b border-border bg-background">
+    <header className="mast relative z-2 border-b border-b-border bg-background">
       <div className="wrap mast-row flex h-[60px] items-center gap-6 max-[700px]:h-[54px] max-[700px]:gap-3 max-[384px]:gap-2">
         <Link
           to="/"

@@ -31,7 +31,7 @@ export default function SiteFooter({
   hasSpots = true,
 }) {
   return (
-    <footer className="site-footer mt-12 border-t border-border pt-6 pb-8 text-[0.8125rem]">
+    <footer className="site-footer mt-12 border-t border-t-border pt-6 pb-8 text-[0.8125rem]">
       <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-2 max-[700px]:flex-col max-[700px]:gap-2">
         <p className={cx('footer-credit', FOOTER_P)}>
           &copy; {new Date().getFullYear()} {profile.name} &middot;{' '}

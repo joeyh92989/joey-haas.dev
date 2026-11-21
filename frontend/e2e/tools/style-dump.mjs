@@ -279,7 +279,7 @@ for (const theme of ['dark', 'light']) {
       { path: '/', theme, vp },
       async (page) => {
         await openMore(page)
-        const link = page.locator('.more-panel a').nth(1)
+        const link = page.locator('.more-btn + div a').nth(1)
         if (await link.isVisible()) await link.hover()
       },
     )

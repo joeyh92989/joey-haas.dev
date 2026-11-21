@@ -14,7 +14,7 @@ const PAGE_ENTRIES = searchPages(posts.length > 0)
   .filter((entry) => !hiddenPaths.includes(entry.path))
   .map(pageEntry)
 
-const NOTE = 'm-0 border-t border-border px-4 py-3 [&_a]:text-accent-text'
+const NOTE = 'm-0 border-t border-t-border px-4 py-3 [&_a]:text-accent-text'
 
 /**
  * The site search: a native modal <dialog> holding a combobox and its
@@ -112,7 +112,7 @@ export default function SearchDialog({ open, onClose }) {
       initialFocus=".search-input"
     >
       <div className="flex min-h-0 flex-col">
-        <div className="flex items-center gap-2 border-b border-border p-3">
+        <div className="flex items-center gap-2 border-b border-b-border p-3">
           <Input
             type="search"
             className="search-input min-h-11 min-w-0 flex-1 md:text-base"
@@ -173,7 +173,7 @@ export default function SearchDialog({ open, onClose }) {
                     id={optionId(mine)}
                     role="option"
                     aria-selected={mine === current}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2 aria-selected:bg-(--search-active) aria-selected:shadow-[inset_3px_0_0_var(--accent)]"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2 aria-selected:bg-(--search-active) aria-selected:[box-shadow:inset_3px_0_0_var(--accent)]"
                     onClick={() => go(row)}
                     onMouseMove={() => mine !== current && setActive(mine)}
                   >

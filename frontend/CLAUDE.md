@@ -438,9 +438,15 @@ a value on one side only (this is why `border-transparent` sits on `ghost` and
 idle and on pointer or focus of the Search button, mounted on first open, and a
 failed fetch is caught by `SearchBoundary`, which renders nothing, resets the
 lazy import and lets the next open fetch again. It takes `Button` and `Input`
-(16px, `md:text-base`). A legacy `display` rule loses to a component's own, so
-Menu hides at 961px and up with `min-[961px]:hidden`, and Resume under 1101px
-with `max-[1100px]:hidden`, not `.mast-menu` CSS; the 44px phone target is
+(16px, `md:text-base`). The shell's own look (masthead, nav links, More, the
+nav sheet, the search dialog, the footer) is utilities on the components, with
+no rule in `index.css` (#536, slice D1): `.mast`, `.brand`, `.mast-row`,
+`.mast-menu`, `.more-btn`, `.nav-sheet`, `.search-dialog`, `.search-input`,
+`.site-footer` and `.footer-credit` stay as names tests, print and e2e read.
+`NavSheet` styles every link inside its `<nav>` (the admin shell's too), so a
+sheet's links need no class. Menu hides at 961px and up with
+`min-[961px]:hidden`, and Resume under 1101px with `max-[1100px]:hidden`; the
+44px phone target is
 `max-[700px]:min-h-11`, and on a phone the theme toggle reads Light or Dark
 (its `aria-label` stays whole) so the bar fits 320px with equal gutters.
 

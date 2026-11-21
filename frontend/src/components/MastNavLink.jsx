@@ -7,7 +7,7 @@ import { cx } from '../lib/cx.js'
  * a heavier word and the accent bar, so colour never carries it alone.
  */
 const BAR =
-  'flex items-center whitespace-nowrap border-y-2 border-transparent text-foreground hover:underline hover:decoration-primary hover:underline-offset-[0.2em] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
+  'flex items-center whitespace-nowrap border-y-2 border-y-transparent text-foreground hover:underline hover:decoration-primary hover:underline-offset-[0.2em] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
 const BAR_CURRENT = 'border-b-primary font-semibold'
 
 /**

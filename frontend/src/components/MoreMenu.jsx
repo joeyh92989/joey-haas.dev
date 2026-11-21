@@ -7,7 +7,7 @@ import { buttonVariants } from './ui/button-variants.js'
 const LINK =
   'group grid items-center whitespace-nowrap rounded-[4px] px-3 py-2 text-foreground hover:bg-secondary hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
 const LINK_CURRENT =
-  'border-b-primary bg-secondary font-semibold shadow-[inset_2px_0_0_var(--accent)]'
+  'bg-secondary font-semibold [box-shadow:inset_2px_0_0_var(--accent)]'
 const LABEL =
   "text-[0.875rem] font-medium text-foreground group-aria-[current=page]:font-semibold group-aria-[current=page]:after:ml-2 group-aria-[current=page]:after:font-mono group-aria-[current=page]:after:text-[0.75rem] group-aria-[current=page]:after:leading-[normal] group-aria-[current=page]:after:font-normal group-aria-[current=page]:after:text-(--text-3) group-aria-[current=page]:after:content-['This_page']"
 

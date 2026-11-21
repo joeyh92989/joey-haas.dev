@@ -8,9 +8,9 @@ import { buttonVariants } from './ui/button-variants.js'
  * NavLink), and `.active` is the current one.
  */
 const SHEET =
-  'm-0 max-h-dvh w-full max-w-none overflow-y-auto [border:0] [border-bottom:1px_solid_var(--line)] bg-card p-0 text-foreground backdrop:bg-(--overlay)'
+  'm-0 max-h-dvh w-full max-w-none overflow-y-auto [border-style:none_none_solid] [border-width:0_0_1px] border-b-border bg-card p-0 text-foreground backdrop:bg-(--overlay)'
 const SHEET_LINKS =
-  'grid [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:border-b [&_a]:border-border [&_a]:py-3 [&_a]:text-[1rem] [&_a]:text-foreground [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-solid [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-ring [&_a.active]:pl-3 [&_a.active]:font-semibold [&_a.active]:shadow-[inset_3px_0_0_var(--accent)]'
+  'grid [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:border-b [&_a]:border-b-border [&_a]:py-3 [&_a]:text-[1rem] [&_a]:text-foreground [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-solid [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-ring [&_a.active]:pl-3 [&_a.active]:font-semibold [&_a.active]:[box-shadow:inset_3px_0_0_var(--accent)]'
 
 /**
  * A phone's nav as a sheet: a Menu or a segment's pages, under a kicker and
