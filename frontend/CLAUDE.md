@@ -8,7 +8,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   the public/admin twin rule and the feature status list. Any design step
   reads it before drawing; a design that needs a rule it lacks adds the
   rule there in the same PR, and a parked feature gets no design changes.
-- Plain CSS in `frontend/src/index.css`. No CSS framework unless deliberately
+- Plain CSS in `frontend/src/index.css` and `frontend/src/styles/`. No CSS framework unless deliberately
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
@@ -90,7 +90,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   3:1 against `--surface` in both themes (they are non-text marks, and the
   stacked bar's 2px gaps are `--surface`), and `--status-backlog` also clears
   3:1 against `--line`. Changing one means measuring again; the ratios are
-  recorded beside the tokens in `index.css`.
+  recorded beside the tokens in `src/styles/tokens.css`.
 - Tracker pages break out of the 45rem prose column via `page-wide` (75rem, 1200px),
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
   under one. Add a new public tracker route there, not in a page's own CSS.
@@ -240,7 +240,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `lib/dailyStorage.js` (`daily:v1`), which survives a throwing
   `localStorage`. The match cell (`--accent-ink` on `--status-active`) and
   the close ring (`--warn` on `--surface`) were chosen on measured
-  contrast, recorded beside the rules in `index.css`.
+  contrast, recorded beside the rules in `styles/tokens.css`.
 - **Closet admin (epic #392).** Admin copy lives in `content/` (`seedIntake.js`,
   `linkIntake.js`, `closetProduct.js`, `adminCopy.js`), never inline in an
   `Admin*.jsx` file (`adminCopyScan.test.js`). Check has one card per way in:
@@ -341,15 +341,22 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 ## Design system setup (#526)
 
 Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
-hand-written `src/index.css`. `main.jsx` imports `src/tailwind.css`, which pulls
-everything in. No page should change until it is migrated (epic #519).
+hand-written CSS: `src/styles/tokens.css` (the two palettes), `src/styles/base.css`
+(element rules, the page frame, `.skip-link`, `.visually-hidden`, reduced motion,
+the search dialog's keyframes), `src/index.css` (the remaining class rules; being
+removed, #536) and `src/styles/print.css` (`@page` and `@media print`). `main.jsx`
+imports `src/tailwind.css`, which pulls everything in. Tests that read the CSS as
+text go through `src/testing/readCss.js`, which concatenates those files in cascade
+order. `e2e/tools/` holds the computed-style dump and diff that prove a CSS move
+changed nothing. No page should change until it is migrated (epic #519).
 `src/tailwindSetup.test.js` guards the points below. Verified against `main` by
 comparing computed styles of 8 routes in both themes: the only difference is
 `background-position` on elements with no background image.
 
 **Layers.** `@layer legacy, theme, base, components, utilities;` and
-`@import './index.css' layer(legacy);`. Unlayered CSS always beats layered CSS,
-and `index.css` has an unlayered `* { padding: 0 }`; unlayered it would beat
+the four legacy files imported `layer(legacy)` in the order tokens, base, index,
+print. Unlayered CSS always beats layered CSS, and `base.css` has an unlayered
+`* { padding: 0 }`; unlayered it would beat
 every Tailwind utility (cards and buttons lost their padding in the spike).
 Layered into `legacy`, the lowest layer, every utility wins and old pages still
 render from their own rules. Delete the layer when the last page moves.
@@ -365,7 +372,7 @@ refuses to run without it.
 **A legacy token with a Tailwind theme name gets replaced.** Tailwind writes
 its default theme variable into the `theme` layer, above `legacy`, the moment
 any CSS uses it. `--font-sans`, `--font-mono` and `--radius` collide with
-`index.css` `:root`: unfixed, every page lost Inter and JetBrains Mono. They
+`tokens.css` `:root`: unfixed, every page lost Inter and JetBrains Mono. They
 are redeclared in the `@theme` block in `tailwind.css` with the site's values
 (keep the two in step). `tailwindSetup.test.js` fails on any new collision.
 
@@ -446,7 +453,7 @@ a dependency without improving any of them. For the same reason the nav sheets
 stay native and More stays a disclosure (no `Dialog` or `DropdownMenu`). The
 link-preview card (`scripts/og-card.mjs`), the favicon and the opaque
 `apple-touch-icon.png` are the light tokens; `og-card.test.mjs` reads them from
-`index.css`.
+`src/styles/tokens.css` (through `readCss`).
 
 **`cn`.** The class-name helper is shadcn's own `cn` package
 (github.com/shadcn-ui/cn, maintainer shadcn, a clsx + tailwind-merge drop-in,
@@ -470,7 +477,7 @@ entry chunk contains the tailwind-merge tables.
 
 The look is "Archive catalogue" (`docs/planning/2026-11-20-design-system-spike-design.md`):
 warm paper in light, graphite in dark, one accent, serif headings. The legacy
-tokens in `index.css` were repointed, not renamed, so every old page changed at
+tokens in `src/styles/tokens.css` were repointed, not renamed, so every old page changed at
 once (`--bg` is the page, `--surface` the card, `--text` ink).
 
 | Token | Light | Dark |
@@ -492,7 +499,7 @@ once (`--bg` is the page, `--surface` the card, `--text` ink).
   components land (#528). `--line` is a mid grey now: never put text on it, and
   meter tracks are `--sunken`.
 - **Three places.** The palette is written in `:root` (dark), `[data-theme='light']`
-  and the `@media print` copy near the end of `index.css` (print is light). Change
+  and the `@media print` copy in `src/styles/print.css` (print is light). Change
   all three; `src/contrast.test.js` asserts that print equals light for every
   token both declare, and checks every text, mark and line pair in both themes
   at WCAG 4.5 (text) and 3 (marks). Data colours were moved in lightness only.

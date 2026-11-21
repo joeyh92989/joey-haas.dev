@@ -23,7 +23,7 @@
  * table's #f7a391 is only 3.49 on its own card. --ok-text and --warn-text do
  * the same for --ok and --warn. The ratios are recorded beside each token. The
  * palette is written three times (:root, [data-theme='light'] and the print
- * block near the end): change all three together.
+ * block in styles/print.css): change all three together.
  */
 :root {
   /* The opaque stop of a mask-image gradient: only its alpha is read, so it
