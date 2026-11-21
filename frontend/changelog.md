@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-20
 
+- The Games and Comics lists follow the new look: each title is a numbered record card with its status in words, filter rows are underline tabs, and a new Spines view (Layout: Spines, or `?view=spines`) shows the shelf as upright spines on a rail.
 - About, Projects, Now, Colophon, Blog and TIL follow the new look: projects, posts and notes are numbered record cards, tags and tech are outlined badges, and section headings are serif with a rule under them.
 - [Stats](/stats), [Denver](/denver), the [Daily game](/daily) and Pick for me follow the new look: charts in cards on measured colours, filter chips, outlined buttons and spot cards with their tags as badges. The game's header now matches the other pages.
 - Home follows the new look: a plain headline, the facts in an At a glance card, Work as numbered record cards and Experience as a dated list.

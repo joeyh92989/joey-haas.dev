@@ -81,3 +81,18 @@ describe('ResultBar', () => {
     expect(clear.className).toMatch(/\bml-2\b/)
   })
 })
+
+// The catalogue's "showing" line (#532): mono and muted, the count in ink.
+describe('ResultBar look', () => {
+  it('sets the count in the mono label style, the number in ink', () => {
+    const { container } = render(
+      <ResultBar shown={3} total={9} filtered={false} onClear={() => {}} />,
+    )
+    const line = container.querySelector('.result')
+    expect(line.className).toContain('font-mono')
+    expect(line.className).toContain('text-muted-foreground')
+    expect(container.querySelector('strong').className).toContain(
+      'text-foreground',
+    )
+  })
+})

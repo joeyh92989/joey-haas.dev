@@ -1,5 +1,5 @@
 /**
- * Catalogue numbers for a collection's cards ("No. 007").
+ * Catalogue numbers for a collection's cards (the "No." label on a record card).
  *
  * The number is the row's place in the whole shelf, oldest first, so it does
  * not change when a filter, search or sort narrows or reorders the list.

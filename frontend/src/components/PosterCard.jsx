@@ -78,7 +78,7 @@ function KeyGlyph() {
  *   names; comics pass their own (Reading, Read).
  * @param {number} [props.number] - The card's catalogue number. With it the
  *   card is a record card in a numbered collection (the public lists): a
- *   strip with "No. 007" and the status mark with its word, and the whole
+ *   strip with the catalogue number and the status mark with its word, and the whole
  *   card is the link. Without it the card is the loose poster the admin
  *   shelf and the other grids draw.
  */

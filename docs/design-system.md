@@ -67,10 +67,26 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Card | `Card` (`components/ui/card.jsx`) | A box on the card colour: 1px `--line` outline, 6px radius, no shadow. Rules inside it use `--line-card`. |
 | Record card | `RecordCard` | One record in a **numbered collection**: a mono label strip (catalogue number left, type or status right), a 3px accent left edge, the body below. A card that is not part of a collection is a `Card`. It takes Card's shell from `ui/card-classes.js` (the same string `Card` uses), with no padding of its own, and joins classes with `lib/cx.js`, so it is safe in the entry chunk. |
 | Catalogue number | `CatalogueNumber` | "No. 007": decorative (`aria-hidden`), mono, on a record card's strip, **collections only**. It never stands in for a title or an id, and no page draws one by hand. |
-| Status mark | `StatusMark` | A small outlined square, filled `--highlight` only when `live` or `finished`, **always with its word beside it**: colour never carries the meaning alone. The word's text colour is `--text-2`, never `--accent`. It is for a record card's status; the words and colours of a thing's state on the shelf (owned, read, missing) stay with `StatePill` until the shelf's cards move to `RecordCard` (#532), and then the one state pill is chosen. |
+| Status mark | `StatusMark` | A small outlined square, filled `--highlight` only when `live` or `finished`, **always with its word beside it**: colour never carries the meaning alone. The word's text colour is `--text-2`, never `--accent`. It is for a record card's status; the words and colours of a thing's state on the shelf (owned, read, missing) stay with `StatePill` on the detail pages; the public Games and Comics cards are `RecordCard`s whose strip holds the number and a `StatusMark` (`active` draws as `live`). |
 | Account menu | `AccountMenu` | The admin's one place for who is signed in, View site and Sign out (#503). The `jh` mark at the head of the rail is its button (labelled Account) on a desktop; on a phone it is a 44px rounded-square quiet button, the mark and a caret, at the left of the segment row, with the panel below. A real `button` with `aria-expanded`, `aria-controls` and the name "Account, <email>"; the panel is a plain list, never `role="menu"`. Escape, a press outside and tabbing out close it; Sign out has no confirm, reads "Signing out…" and ignores a second press, and a failure is a `role="alert"` line in the open panel. No page adds its own sign-out or View site link, and the sidebar and phone foot are gone. Words in `adminCopy.shell`. |
 | Dialog | `Sheet` | The one modal (CLAUDE.md), and the only `role="dialog"`: the card action sheet on touch renders through it. A non-modal panel, such as the inline add drawer, is a labelled `aside`, not a dialog. |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
+
+## Shelf lists
+
+(#532, slice a.) The public Games and Comics lists draw each title as a
+numbered `RecordCard` (`PosterCard` with a `number`): "No. 007" on the strip
+is the title's place on the whole shelf, oldest first (`lib/catalogue.js`), so
+filtering never renumbers it. The status is a `StatusMark` with its word on
+the strip, not a mark on the cover. The card's one link covers it, with an
+inset keyboard ring (`CARD_LINK`). Filter rows are underline tabs
+(`FilterChips labelled`), search is `Input`, and Overview figures are boxed
+(`STAT_CARD`). **Spines** is an alternative layout, never the default, kept
+only in the URL (`?view=spines`): upright labels on a rail (`SpineCard`),
+each a link named by its title with the status as a visually hidden word, a
+mark key over them (`SpineKey`), and a title that wraps rather than clips.
+The loose `PosterCard` (no number) stays on the admin shelf until its twin
+moves (slice b).
 
 ## Prose pages
 
