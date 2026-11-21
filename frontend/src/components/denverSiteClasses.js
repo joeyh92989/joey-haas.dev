@@ -36,6 +36,9 @@ export const chipBtn = `${buttonVariants({ variant: 'chip', size: 'chip' })} ${T
 /** A tag toggle on a card: the chip look, small, 44px tall on a phone. */
 export const tagBtn = `${buttonVariants({ variant: 'chip', size: 'xs' })} ${TAP}`
 
+/** A link in the accent, 44px tall on a phone. */
+export const linkBtn = `${buttonVariants({ variant: 'link', size: 'bare' })} ${TAP}`
+
 /** A small outlined word: a tag, a count, a constraint. */
 export const pill = badgeVariants({ variant: 'outline' })
 

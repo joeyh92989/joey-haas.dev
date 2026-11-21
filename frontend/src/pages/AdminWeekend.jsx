@@ -4,7 +4,13 @@ import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import LoadState from '../components/LoadState.jsx'
 import SectionCard from '../components/SectionCard.jsx'
-import { btn, checkbox, field, pill } from '../components/denverSiteClasses.js'
+import {
+  btn,
+  checkbox,
+  field,
+  linkBtn,
+  pill,
+} from '../components/denverSiteClasses.js'
 import SuggestionCard from '../components/SuggestionCard.jsx'
 import WeatherPanel from '../components/WeatherPanel.jsx'
 import { denver } from '../content/denver.js'
@@ -486,7 +492,11 @@ export default function AdminWeekend() {
       <div className="wk-foot">
         <SectionCard
           title={copy.visitsTitle}
-          action={<Link to="/admin/spots">{copy.logVisit}</Link>}
+          action={
+            <Link to="/admin/spots" className={linkBtn}>
+              {copy.logVisit}
+            </Link>
+          }
         >
           {plan.recent_visits.length ? (
             <ul className="wk-visits">

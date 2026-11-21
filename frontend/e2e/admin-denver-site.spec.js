@@ -114,6 +114,27 @@ for (const size of WIDTHS) {
   })
 }
 
+// Every action in the spots table is reached by real Tab presses, whole, with
+// its ring painted, at the widths the half-width column is tightest. At 1280
+// and above the table needs no sideways scroll at all.
+for (const width of [1440, 1280, 1100, 900, 390, 320]) {
+  test(`spots table actions are whole under Tab at ${width}px`, async ({
+    page,
+  }) => {
+    test.setTimeout(240_000)
+    await open(page, STATES[2], { width, height: 800 })
+    const fits = await page.evaluate(() => {
+      const wrap = document.querySelector('table').parentElement
+      return wrap.scrollWidth - wrap.clientWidth
+    })
+    if (width >= 1280) expect(fits, 'the table scrolls sideways').toBe(0)
+    const controls = page.locator(
+      'main table :is(button, input):not(:disabled)',
+    )
+    expect(await tabRings(page, controls)).toEqual([])
+  })
+}
+
 for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
   for (const state of STATES) {
     for (const theme of THEMES) {
@@ -229,5 +250,33 @@ test('denver and site review shots', async ({ page }) => {
         })
       }
     }
+  }
+})
+
+// Review shots of the keyboard state: Tab to an action far down the spots
+// table (the viewport as the browser scrolled it) and the saved suggestion.
+test('denver and site focus shots', async ({ page }) => {
+  test.skip(!process.env.E2E_SHOT_DIR, 'set E2E_SHOT_DIR to save the shots')
+  test.setTimeout(300_000)
+  for (const theme of THEMES) {
+    for (const size of [WIDTHS[1], WIDTHS[2]]) {
+      await open(page, STATES[2], size, theme)
+      await page.locator('main h1').focus()
+      for (let i = 0; i < 120; i++) {
+        await page.keyboard.press('Tab')
+        const label = await page.evaluate(
+          () => document.activeElement?.getAttribute('aria-label') ?? '',
+        )
+        if (label.startsWith('Log a visit to Great Divide')) break
+      }
+      await page.waitForTimeout(300)
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/focus-spots-${size.width}-${theme}.png`,
+      })
+    }
+    await open(page, STATES[0], WIDTHS[2], theme)
+    await page.locator('.sug.saved').screenshot({
+      path: `${process.env.E2E_SHOT_DIR}/focus-saved-${theme}.png`,
+    })
   }
 })

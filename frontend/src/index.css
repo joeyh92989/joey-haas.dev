@@ -1654,6 +1654,14 @@ footer {
   z-index: 30;
 }
 
+/* The tab bar is fixed over the bottom of the page, so a control Tab scrolls
+   to the bottom edge would sit under it: keep the focused one above it. */
+@media (max-width: 900px) {
+  html:has(.admin-tabs) {
+    scroll-padding-bottom: 5rem;
+  }
+}
+
 .admin-tabs .admin-area-label {
   font-weight: 500;
 }
@@ -9501,11 +9509,14 @@ a.cover-tile-cap:focus-visible span {
   padding: 0;
 }
 
-@media (max-width: 700px) {
+/* One column up to 1279px: the table beside the queue is too tight below it. */
+@media (max-width: 1279px) {
   .finder-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
+@media (max-width: 700px) {
   .cand-tags {
     margin-left: 0;
     width: 100%;
