@@ -122,7 +122,20 @@ export const PICK_TABLE = {
 
 export const NEXT = {
   generated_at: '2026-11-08T12:00:00Z',
-  tonight: { picks: [] },
+  tonight: {
+    picks: [
+      {
+        item_id: 'a',
+        type: 'game',
+        title: 'Alpha Quest',
+        cover_url: null,
+        platform: 'Nintendo Switch',
+        slot_label: 'Best fit',
+        time_to_beat_hours: 6,
+        reasons: ['Alpha Quest matches games you finished.'],
+      },
+    ],
+  },
   comics_this_week: [],
   wanted: [],
   buy_now: [],

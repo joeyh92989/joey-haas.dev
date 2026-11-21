@@ -175,10 +175,12 @@ export default function PickForMe({ table, lead = null }) {
                 checked={size === value}
                 onChange={() => pickSize(value)}
               />
-              {copy.sizes[value]}
-              {copy.sizeHints[value] && (
-                <span className="pick-hint"> · {copy.sizeHints[value]}</span>
-              )}
+              <span>
+                {copy.sizes[value]}
+                {copy.sizeHints[value] && (
+                  <span className="pick-hint"> · {copy.sizeHints[value]}</span>
+                )}
+              </span>
             </label>
           ))}
         </div>

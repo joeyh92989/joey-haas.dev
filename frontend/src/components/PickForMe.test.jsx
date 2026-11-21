@@ -237,6 +237,11 @@ describe('PickForMe', () => {
     const label = radio.closest('label')
     expect(label.className).toMatch(/\bborder-line-card\b/)
     expect(label.className).toMatch(/data-\[checked=true\]:border-foreground/)
+    // The chip is a flex box, which drops the space that leads a child
+    // element: the word and its hint share one inline span, so the space
+    // before the dot survives ("Short· up to 6 h" on a phone).
+    const short = screen.getByRole('radio', { name: /Short/ }).closest('label')
+    expect(short.querySelector(':scope > span > .pick-hint')).not.toBeNull()
     await userEvent.click(radio)
     expect(label).toHaveAttribute('data-checked', 'true')
   })

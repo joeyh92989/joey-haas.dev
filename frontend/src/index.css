@@ -10597,6 +10597,20 @@ a.cover-tile-cap:focus-visible span {
 .shelfle th .kicker {
   font-size: var(--fs-12);
 }
+/* At 320px "PLATFORM" (8 mono characters at the 12px floor) is wider than its
+   column and ran into "YEAR": clip it with an ellipsis instead. The cells
+   below say the same, and the column's name is still in the header's text. */
+@media (max-width: 24rem) {
+  .shelfle th {
+    overflow: hidden;
+  }
+  .shelfle th .kicker {
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 .shelfle th.shelfle-title {
   text-align: left;
   width: 32%;
