@@ -56,9 +56,7 @@ export default function MoreMenu({ items }) {
         type="button"
         ref={buttonRef}
         className={`${buttonVariants({ variant: 'nav' })} more-btn ${
-          underlined
-            ? 'active border-b-primary font-semibold'
-            : 'text-muted-foreground aria-expanded:text-foreground'
+          underlined ? 'active border-b-primary font-semibold' : ''
         } gap-1`}
         aria-expanded={open}
         aria-controls={panelId}

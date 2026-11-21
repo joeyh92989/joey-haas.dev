@@ -385,6 +385,23 @@ test.describe('site shell frame and focus (#529)', () => {
     }
   })
 
+  // Tailwind sorts `border-transparent` after every named border colour, so a
+  // base class of it would hide each variant's outline.
+  test('masthead buttons draw their outline, not a transparent border', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    const toggle = page.getByRole('button', { name: /^Switch to dark/ })
+    const color = await toggle.evaluate(
+      (el) => getComputedStyle(el).borderTopColor,
+    )
+    expect(color).not.toBe('rgba(0, 0, 0, 0)')
+    expect(
+      await toggle.evaluate((el) => getComputedStyle(el).borderTopWidth),
+    ).toBe('1px')
+  })
+
   test('the search field and its Close button draw a ring', async ({
     page,
     openRoute,

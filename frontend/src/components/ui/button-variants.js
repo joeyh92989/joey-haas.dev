@@ -8,7 +8,7 @@ import { cva } from 'class-variance-authority'
 // background (--sunken) and is not used for fills. A link-button passes
 // `render={<Link />}` with `nativeButton={false}`.
 export const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border bg-transparent font-sans text-sm font-medium whitespace-nowrap no-underline transition-colors outline-none select-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -19,7 +19,7 @@ export const buttonVariants = cva(
         secondary:
           'border-border bg-secondary text-secondary-foreground hover:border-foreground',
         ghost:
-          'bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
+          'border-transparent bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
         destructive:
           'border-destructive bg-transparent text-destructive hover:bg-accent',
         // A filter chip: weight 400 in --text-2 until pressed; pressed shows a
@@ -33,7 +33,7 @@ export const buttonVariants = cva(
         // A nav trigger that reads like the links beside it (More): no box,
         // the 2px top and bottom borders keep its label level with them.
         nav: 'h-auto rounded-none border-x-0 border-y-2 border-transparent px-0 font-normal text-foreground hover:underline',
-        link: 'h-auto px-0 text-accent-text underline underline-offset-4 hover:underline',
+        link: 'h-auto border-transparent px-0 text-accent-text underline underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-9 px-4',
