@@ -537,6 +537,8 @@ async function d5(theme, vp) {
     closet('/admin/closet/today'),
     async (page) => {
       for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
+      // The focus ring's colour fades in (a transition): let it settle.
+      await page.waitForTimeout(500)
     },
   )
   await record(at('/admin/closet'), closet('/admin/closet'))
@@ -610,9 +612,11 @@ async function d5(theme, vp) {
       await click(page, /^Add (The Legend|Super)/)
     },
   )
-  await record(at('games scanner'), add('/admin/shelf/games'), (page) =>
-    click(page, /^Scan a barcode/),
-  )
+  await record(at('games scanner'), add('/admin/shelf/games'), async (page) => {
+    await click(page, /^Scan a barcode/)
+    // The camera is refused after a moment: wait for that state.
+    await page.waitForTimeout(1500)
+  })
   await record(at('games wrap-up sheet'), add('/admin/shelf/games'), (page) =>
     click(page, /^Wrap up/),
   )
