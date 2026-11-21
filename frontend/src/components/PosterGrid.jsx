@@ -2,7 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { cx } from '../lib/cx.js'
 import ShowMore from './ShowMore.jsx'
-import { RECORD_GRID, SPINE_GRID } from './shelf-classes.js'
+import {
+  POSTER_GRID,
+  POSTER_MIN,
+  RECORD_GRID,
+  SPINE_GRID,
+} from './shelf-classes.js'
 
 const NARROW = '(max-width: 34rem)'
 /** Rows in a page: four on a desktop, six on a phone (three covers a row). */
@@ -98,6 +103,8 @@ export default function PosterGrid({
       <ul
         className={cx(
           'poster-grid',
+          POSTER_GRID,
+          layout === 'posters' && POSTER_MIN,
           layout === 'records' && RECORD_GRID,
           layout === 'spines' && SPINE_GRID,
         )}

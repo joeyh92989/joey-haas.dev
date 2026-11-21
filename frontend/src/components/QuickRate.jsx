@@ -1,4 +1,10 @@
 import { useRef, useState } from 'react'
+import { cx } from '../lib/cx.js'
+import {
+  QUICK_RATE,
+  QUICK_RATE_STAR,
+  QUICK_RATE_TARGET,
+} from './shelf-classes.js'
 
 const TARGETS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -45,7 +51,7 @@ export default function QuickRate({ value, onChange }) {
 
   return (
     <div
-      className="quick-rate"
+      className={cx('quick-rate', QUICK_RATE)}
       role="radiogroup"
       aria-label="Rating"
       onKeyDown={onKeyDown}
@@ -60,7 +66,7 @@ export default function QuickRate({ value, onChange }) {
             }}
             type="button"
             role="radio"
-            className="quick-rate-target"
+            className={cx('quick-rate-target', QUICK_RATE_TARGET)}
             data-half={rating % 2 === 1 ? 'left' : 'right'}
             data-filled={(value ?? 0) >= rating || undefined}
             aria-checked={current}
@@ -69,7 +75,9 @@ export default function QuickRate({ value, onChange }) {
             onFocus={() => setMovedTo(index)}
             onClick={() => onChange(current ? null : rating)}
           >
-            <span aria-hidden="true">★</span>
+            <span aria-hidden="true" className={QUICK_RATE_STAR}>
+              ★
+            </span>
           </button>
         )
       })}

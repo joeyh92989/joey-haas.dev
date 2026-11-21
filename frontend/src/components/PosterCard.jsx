@@ -7,7 +7,25 @@ import { MONTH_YEAR } from '../lib/formatDate.js'
 import { cx } from '../lib/cx.js'
 import RecordCard from './RecordCard.jsx'
 import StatusMark from './StatusMark.jsx'
-import { CARD_HOST, CARD_LINK, CARD_TITLE } from './shelf-classes.js'
+import {
+  CARD_HOST,
+  CARD_LINK,
+  CARD_TITLE,
+  FORMAT_MARK,
+  POSTER_ART,
+  POSTER_CARD,
+  POSTER_DIMMED,
+  POSTER_DIMMED_COVER,
+  POSTER_HEART,
+  POSTER_LIFT,
+  POSTER_LINK,
+  POSTER_META,
+  POSTER_PRIVATE,
+  POSTER_TITLE,
+  REPLAY_MARK,
+  STATUS_MARK,
+  UPCOMING_RIBBON,
+} from './shelf-classes.js'
 
 const SWITCH_2_ID = 508
 const SWITCH_2_NAME = 'Nintendo Switch 2'
@@ -103,25 +121,46 @@ export default function PosterCard({
 
   if (number != null) {
     const art = (
-      <span className="poster-art" data-stacked={stacked || undefined}>
+      <span
+        className={cx('poster-art', POSTER_ART)}
+        data-stacked={stacked || undefined}
+      >
         <CoverImage src={item.cover_url} type={item.type} alt="" />
         {!coming && <ReplayMark count={item.times_completed} />}
         {mark && (
-          <span className="format-mark" role="img" aria-label={mark}>
+          <span
+            className={cx('format-mark', FORMAT_MARK)}
+            role="img"
+            aria-label={mark}
+          >
             {mark === 'Format not recorded' ? '?' : <KeyGlyph />}
           </span>
         )}
-        {coming && <span className="upcoming-ribbon">{coming}</span>}
+        {coming && (
+          <span className={cx('upcoming-ribbon', UPCOMING_RIBBON)}>
+            {coming}
+          </span>
+        )}
         {item.favorite && (
-          <span className="poster-heart" role="img" aria-label="Favorite">
+          <span
+            className={cx(
+              'poster-heart',
+              POSTER_HEART,
+              'absolute [text-shadow:0_0_3px_var(--bg)]',
+            )}
+            role="img"
+            aria-label="Favorite"
+          >
             ♥
           </span>
         )}
       </span>
     )
+    // The admin lists (an actions panel under the card) fade only the cover.
+    const dimClass = actions ? POSTER_DIMMED_COVER : POSTER_DIMMED
     return (
       <RecordCard
-        className={cx('poster-card', CARD_HOST)}
+        className={cx('poster-card', POSTER_CARD, CARD_HOST, dimClass)}
         data-dimmed={dimmed || undefined}
         number={number}
         label={
@@ -149,10 +188,12 @@ export default function PosterCard({
               <Rating rating={item.rating} />
             </div>
           ) : null}
-          {meta && <p className="poster-meta muted">{meta}</p>}
+          {meta && (
+            <p className={cx('poster-meta muted', POSTER_META)}>{meta}</p>
+          )}
           {/* Admin rows only: a public row has no is_public at all. */}
           {item.is_public === false && (
-            <p className="poster-private">Private</p>
+            <p className={cx('poster-private', POSTER_PRIVATE)}>Private</p>
           )}
           {actions && <div className="mt-auto">{actions(item)}</div>}
         </div>
@@ -161,14 +202,20 @@ export default function PosterCard({
   }
 
   return (
-    <div className="poster-card" data-dimmed={dimmed || undefined}>
-      <Link to={to} className="poster-link">
-        <span className="poster-art" data-stacked={stacked || undefined}>
+    <div
+      className={cx('poster-card', POSTER_CARD, POSTER_LIFT, POSTER_DIMMED)}
+      data-dimmed={dimmed || undefined}
+    >
+      <Link to={to} className={cx('poster-link', POSTER_LINK)}>
+        <span
+          className={cx('poster-art', POSTER_ART)}
+          data-stacked={stacked || undefined}
+        >
           <CoverImage src={item.cover_url} type={item.type} alt="" />
           {/* Backlog gets no mark: its absence is the signal. */}
           {item.status !== 'backlog' && markLabel && (
             <span
-              className="status-mark"
+              className={cx('status-mark', STATUS_MARK, 'absolute')}
               data-status={item.status}
               role="img"
               aria-label={markLabel}
@@ -177,25 +224,43 @@ export default function PosterCard({
           {/* Bottom-left, unless the ribbon holds it. */}
           {!coming && <ReplayMark count={item.times_completed} />}
           {mark && (
-            <span className="format-mark" role="img" aria-label={mark}>
+            <span
+              className={cx('format-mark', FORMAT_MARK)}
+              role="img"
+              aria-label={mark}
+            >
               {mark === 'Format not recorded' ? '?' : <KeyGlyph />}
             </span>
           )}
-          {coming && <span className="upcoming-ribbon">{coming}</span>}
+          {coming && (
+            <span className={cx('upcoming-ribbon', UPCOMING_RIBBON)}>
+              {coming}
+            </span>
+          )}
           {item.favorite && (
-            <span className="poster-heart" role="img" aria-label="Favorite">
+            <span
+              className={cx(
+                'poster-heart',
+                POSTER_HEART,
+                'absolute [text-shadow:0_0_3px_var(--bg)]',
+              )}
+              role="img"
+              aria-label="Favorite"
+            >
               ♥
             </span>
           )}
         </span>
-        <span className="poster-title">{item.title}</span>
+        <span className={cx('poster-title', POSTER_TITLE)}>{item.title}</span>
       </Link>
       {run}
-      <Rating rating={item.rating} />
-      {meta && <p className="poster-meta muted">{meta}</p>}
+      <Rating rating={item.rating} className="block mt-[0.15rem] w-max" />
+      {meta && <p className={cx('poster-meta muted', POSTER_META)}>{meta}</p>}
       {/* Only an admin row says it is private; a public row has no
           is_public at all. Never hover-only: it is the state, not a control. */}
-      {item.is_public === false && <p className="poster-private">Private</p>}
+      {item.is_public === false && (
+        <p className={cx('poster-private', POSTER_PRIVATE)}>Private</p>
+      )}
       {actions && <div className="poster-actions">{actions(item)}</div>}
     </div>
   )
@@ -211,7 +276,7 @@ export function ReplayMark({ count }) {
   if (!(count > 1)) return null
   return (
     <span
-      className="replay-mark"
+      className={cx('replay-mark', REPLAY_MARK, 'absolute bg-(--overlay)')}
       role="img"
       aria-label={`Finished ${count} times`}
     >

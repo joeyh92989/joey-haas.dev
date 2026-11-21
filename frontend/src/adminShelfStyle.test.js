@@ -1,37 +1,42 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { readCss } from './testing/readCss.js'
+import {
+  SHELF_ACTIONS_HOVER,
+  SHELF_ACTIONS_SHEET,
+} from './components/shelf-classes.js'
 
-// Read from disk (testing/readCss.js): Vitest stubs CSS imports.
-const css = readCss()
-
-/** The body of the first rule that opens with exactly `selector`. */
-function body(selector) {
-  const at = css.indexOf(`\n${selector} {`)
-  expect(at, selector).toBeGreaterThan(-1)
-  return css.slice(css.indexOf('{', at) + 1, css.indexOf('\n}', at))
-}
-
+// The admin card's panel is utilities on CardActionsShell (#536, slice D4);
+// these pin what the old rules in index.css guarded.
 describe('the admin card panel on a pointer device (#532 b)', () => {
   // In flow at opacity 0 it left 250px of empty card: it is taken out of the
   // flow, kept reachable by opacity (never display or visibility), and drawn
   // on a solid surface so the text under it does not show through.
-  const panel = body(".collection-list .shelf-actions[data-mode='hover']")
+  const panel = SHELF_ACTIONS_HOVER.split(' ')
 
   it('is out of the flow, anchored to the card foot', () => {
-    expect(panel).toMatch(/position:\s*absolute/)
-    expect(panel).toMatch(/bottom:\s*0/)
+    expect(panel).toContain('absolute')
+    expect(panel).toContain('bottom-0')
   })
 
   it('has a solid surface and is never hidden with display or visibility', () => {
-    expect(panel).toMatch(/background:\s*var\(--surface\)/)
-    expect(panel).not.toMatch(/display:\s*none|visibility:\s*hidden/)
+    expect(panel).toContain('bg-(--surface)')
+    expect(panel).not.toContain('hidden')
+    expect(panel).not.toContain('invisible')
+    expect(panel).not.toContain('collapse')
+    expect(panel.some((name) => /^(?:max-)?[a-z]+:hidden$/.test(name))).toBe(
+      false,
+    )
   })
 
   it('is revealed on hover and on focus within, without moving anything', () => {
-    expect(css).toMatch(
-      /\.collection-list \.poster-card:hover \.shelf-actions\[data-mode='hover'\]/,
+    expect(panel).toContain('opacity-0')
+    expect(panel).toContain('[.poster-card:hover_&]:opacity-100')
+    expect(panel).toContain('focus-within:opacity-100')
+  })
+
+  it('keeps the touch form in the flow, above the card link', () => {
+    expect(SHELF_ACTIONS_SHEET.split(' ')).toEqual(
+      expect.arrayContaining(['relative', 'z-10']),
     )
-    expect(css).toMatch(/\.shelf-actions\[data-mode='hover'\]:focus-within/)
   })
 })

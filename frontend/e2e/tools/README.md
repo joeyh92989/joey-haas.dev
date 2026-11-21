@@ -22,6 +22,18 @@ node e2e/tools/style-dump.mjs http://localhost:4180 /tmp/before.json
 node e2e/tools/style-diff.mjs /tmp/before.json /tmp/after.json
 ```
 
+Slice D4 (#536) added the shelf lists, tools and charts: `/shelf/games` and
+`/shelf/comics` in cards and spines, searched, filtered, sorted, empty, with
+Dim finished and Compact, the overview open, a card hovered and tabbed to;
+`/stats` with data, the Daily game empty, mid-game, open list, finished and
+the share sheet, `/shelf/next` with Pick for me before and after a choice, a
+month and a year page, and the admin Games and Comics lists (mocks from
+`admin-shelf.fixtures.js`) hovered, tabbed, dimmed, with a hovered star, and on
+touch with the card's sheet open, plus `/admin/play-next`. `ONLY=d4` (a
+regular expression on the scenario label) runs just those. A scenario that
+fails to set up logs its label and is dumped as it stands, the same on both
+sides.
+
 Run one at a time: it opens one browser and loads about 120 pages in series.
 
 `ONLY='<regex>'` records only the scenarios whose label matches (for example
