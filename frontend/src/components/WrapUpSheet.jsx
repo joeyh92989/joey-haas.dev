@@ -3,6 +3,26 @@ import Sheet from './Sheet.jsx'
 import CoverImage from './CoverImage.jsx'
 import QuickRate from './QuickRate.jsx'
 import { btn } from './closetClasses.js'
+import {
+  WRAP_ACTS,
+  WRAP_BODY,
+  WRAP_CHOICE,
+  WRAP_CHOICE_HINT,
+  WRAP_CHOICE_WORD,
+  WRAP_DATE,
+  WRAP_FIELD,
+  WRAP_FOOT,
+  WRAP_FOOT_NOTE,
+  WRAP_FRESH,
+  WRAP_FRESH_TITLE,
+  WRAP_HEAD,
+  WRAP_HEADING,
+  WRAP_HINT,
+  WRAP_LABEL,
+  WRAP_OUTCOME,
+  WRAP_SWATCH,
+  WRAP_TEXTAREA,
+} from './wrapUpClasses.js'
 import { ACTION_ERROR } from '../content/status.js'
 import { spine } from '../content/spine.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -175,12 +195,12 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
   }
 
   return (
-    <div className="wrap-sheet-body">
-      <header className="wrap-sheet-head">
+    <div className={`wrap-sheet-body ${WRAP_BODY}`}>
+      <header className={`wrap-sheet-head ${WRAP_HEAD}`}>
         <span className="wrap-sheet-cover" aria-hidden="true">
           <CoverImage src={item.cover_url} type={item.type} alt="" />
         </span>
-        <div className="wrap-sheet-heading">
+        <div className={`wrap-sheet-heading ${WRAP_HEADING}`}>
           <h2 id={TITLE_ID}>{copy.title(item.title)}</h2>
           <p className="muted">{headerLine(detail, item.type)}</p>
         </div>
@@ -194,44 +214,50 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
           ✕
         </button>
       </header>
-      <div className="wrap-outcome" role="group" aria-label={copy.outcomeGroup}>
+      <div
+        className={`wrap-outcome ${WRAP_OUTCOME}`}
+        role="group"
+        aria-label={copy.outcomeGroup}
+      >
         {OUTCOMES.map((key) => {
           const { label, hint } = copy.outcomes[key]
           return (
             <button
               key={key}
               type="button"
+              className={WRAP_CHOICE}
               aria-pressed={outcome === key}
               aria-label={`${label}, ${hint}`}
               onClick={() => setOutcome(key)}
             >
-              <b>
+              <b className={WRAP_CHOICE_WORD}>
                 <span
-                  className="status-swatch"
+                  className={`status-swatch ${WRAP_SWATCH}`}
                   data-status={key}
                   aria-hidden="true"
                 />
                 {label}
               </b>
-              <small>{hint}</small>
+              <small className={WRAP_CHOICE_HINT}>{hint}</small>
             </button>
           )
         })}
       </div>
-      <div className="wrap-fresh">
-        <h3>{copy.fresh}</h3>
-        <div className="wrap-field">
-          <span className="wrap-label" id="wrap-up-rating">
+      <div className={`wrap-fresh ${WRAP_FRESH}`}>
+        <h3 className={WRAP_FRESH_TITLE}>{copy.fresh}</h3>
+        <div className={`wrap-field ${WRAP_FIELD}`}>
+          <span className={`wrap-label ${WRAP_LABEL}`} id="wrap-up-rating">
             {copy.rating}
           </span>
           <QuickRate value={rating} onChange={setPicked} />
         </div>
-        <div className="wrap-field">
-          <label className="wrap-label" htmlFor="wrap-up-note">
+        <div className={`wrap-field ${WRAP_FIELD}`}>
+          <label className={`wrap-label ${WRAP_LABEL}`} htmlFor="wrap-up-note">
             {copy.line}
           </label>
           <textarea
             id="wrap-up-note"
+            className={WRAP_TEXTAREA}
             rows={2}
             maxLength={NOTE_MAX}
             placeholder={copy.placeholder}
@@ -239,19 +265,20 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
             onChange={(event) => setNote(event.target.value)}
           />
         </div>
-        <div className="wrap-field">
-          <label className="wrap-label" htmlFor="wrap-up-date">
+        <div className={`wrap-field ${WRAP_FIELD}`}>
+          <label className={`wrap-label ${WRAP_LABEL}`} htmlFor="wrap-up-date">
             {copy.dateLabel[outcome]}
           </label>
           <input
             id="wrap-up-date"
+            className={WRAP_DATE}
             type="date"
             max={localToday()}
             value={on}
             aria-describedby={HINT_ID}
             onChange={(event) => setOn(event.target.value)}
           />
-          <span className="wrap-hint" id={HINT_ID}>
+          <span className={`wrap-hint ${WRAP_HINT}`} id={HINT_ID}>
             {copy.dateHint}
           </span>
         </div>
@@ -261,9 +288,9 @@ function WrapUpForm({ subject, onClose, onBusy, onDone }) {
           {error}
         </p>
       )}
-      <footer className="wrap-sheet-foot">
-        <span className="muted">{copy.twoTaps}</span>
-        <span className="wrap-sheet-acts">
+      <footer className={`wrap-sheet-foot ${WRAP_FOOT}`}>
+        <span className={`muted ${WRAP_FOOT_NOTE}`}>{copy.twoTaps}</span>
+        <span className={`wrap-sheet-acts ${WRAP_ACTS}`}>
           <button
             type="button"
             className={`${btn('ghost')} max-[900px]:min-h-11`}

@@ -39,6 +39,8 @@ import {
 import {
   btn,
   chipBtn,
+  CLOSET_TOOLBAR,
+  CLOSET_TOOLBAR_END,
   GARMENT_GRID,
   PHONE_ROW,
 } from '../components/closetClasses.js'
@@ -261,7 +263,7 @@ export default function AdminCloset() {
             </span>
           </div>
         )}
-        <div className="closet-toolbar">
+        <div className={`closet-toolbar ${CLOSET_TOOLBAR}`}>
           <FilterChips
             groups={[
               {
@@ -289,7 +291,7 @@ export default function AdminCloset() {
             value={filter}
             onChange={(next) => setFilter((prev) => settleFilter(prev, next))}
           />
-          <div className="closet-toolbar-end">
+          <div className={`closet-toolbar-end ${CLOSET_TOOLBAR_END}`}>
             <div
               className="flex flex-wrap gap-2"
               role="group"

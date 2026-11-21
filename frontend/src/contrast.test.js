@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { REVIEW_BAR } from './components/closetReviewClasses.js'
 import { readCss } from './testing/readCss.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
@@ -95,8 +96,8 @@ const PAIRS = [
   ['--accent', '--bg', 3],
   ['--accent', '--surface', 3],
   ['--accent', '--accent-soft', 3],
-  // Meter fills on their --sunken tracks (.pick-term-bar, .review-bar,
-  // .progress i).
+  // Meter fills on their --sunken tracks (.pick-term-bar, the review
+  // deck's bar, .progress i).
   ['--accent', '--sunken', 3],
   ['--status-active', '--sunken', 3],
   // Chart marks (#534): every bar fill on the --sunken track it grows from.
@@ -202,7 +203,9 @@ describe('theme blocks', () => {
   })
 
   it('draws meter tracks on --sunken, so the fill is a 3:1 mark on it', () => {
-    for (const sel of ['.pick-term-bar', '.review-bar', '.progress i']) {
+    // The review deck's bar is utilities now: bg-muted is --sunken.
+    expect(REVIEW_BAR).toMatch(/(^| )bg-muted( |$)/)
+    for (const sel of ['.pick-term-bar', '.progress i']) {
       const at = css.indexOf(`\n${sel} {`)
       expect(at, sel).toBeGreaterThan(-1)
       const body = css.slice(at, css.indexOf('}', at))
