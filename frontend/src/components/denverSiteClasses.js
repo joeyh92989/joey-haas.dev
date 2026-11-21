@@ -58,3 +58,6 @@ export const checkbox =
  * ring. The page says the layout and the padding. The Closet's string.
  */
 export const box = closetCard
+
+/** A card's row of actions: buttons, then a note or a tag list. */
+export const ACTS = 'flex flex-wrap items-center gap-2'

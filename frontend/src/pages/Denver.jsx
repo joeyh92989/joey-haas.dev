@@ -15,6 +15,27 @@ import { Button } from '../components/ui/button.jsx'
 
 const copy = denver.page
 
+// The page's look, from utilities (#536). Below 760px (PHONE) the map and
+// list stack under a Map / List toggle; the media variants say the same
+// bound, inclusive, as the `PHONE` query.
+const LEDE =
+  'mx-0 mt-2 mb-4 max-w-[min(45rem,68ch)] text-[1.125rem] text-muted-foreground'
+const FILTER = 'mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-2'
+// The label sits over the scrolling row, not beside a squeezed one.
+const CHIPS =
+  'denver-chips min-w-0 flex-[1_1_0] [@media(max-width:34rem)]:basis-full'
+const VIEW = 'mb-4 flex gap-2'
+const LAYOUT =
+  'grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] items-start gap-(--grid-gap) [@media(max-width:760px)]:grid-cols-[minmax(0,1fr)]'
+// The map stays in view while a long list scrolls beside it.
+const MAP = 'sticky top-4 [@media(max-width:760px)]:static'
+const LIST_HEAD = 'mx-0 mt-0 mb-2 text-[0.8125rem]'
+const LIST_COUNT =
+  'font-mono text-[0.75rem] tracking-[0.08em] text-(color:--text-3) uppercase'
+const CARDS = 'flex flex-col gap-2'
+const POPOVER_NAME = 'block'
+const POPOVER_AREA = 'text-(color:--text-3)'
+
 /** Below this width the map and list stack under a Map / List toggle. */
 export const PHONE = '(max-width: 760px)'
 
@@ -75,12 +96,12 @@ function TagChips({ counts, total, pressed, onChange }) {
         : TAGS.filter((t) => t === tag || pressed.includes(t)),
     )
   return (
-    <div className="denver-filter">
+    <div className={FILTER}>
       <span className="ctl-label" id={labelId}>
         {copy.tagsLabel}
       </span>
       <div
-        className="chip-row denver-chips"
+        className={`chip-row ${CHIPS}`}
         role="group"
         aria-labelledby={labelId}
       >
@@ -114,9 +135,9 @@ function TagChips({ counts, total, pressed, onChange }) {
 function Popover({ spot }) {
   return (
     <>
-      <b className="spot-popover-name">{spot.name}</b>
+      <b className={POPOVER_NAME}>{spot.name}</b>
       {spot.neighbourhood ? (
-        <span className="spot-popover-area">{spot.neighbourhood}</span>
+        <span className={POPOVER_AREA}>{spot.neighbourhood}</span>
       ) : null}
       <SpotTags tags={spot.tags} />
     </>
@@ -196,11 +217,7 @@ export default function Denver() {
   if (!data) {
     return (
       <section className="denver-page">
-        <PageHeader
-          title={copy.title}
-          lede={copy.lede}
-          ledeClassName="denver-lede"
-        />
+        <PageHeader title={copy.title} lede={copy.lede} ledeClassName={LEDE} />
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </section>
     )
@@ -211,11 +228,7 @@ export default function Denver() {
 
   return (
     <section className="denver-page">
-      <PageHeader
-        title={copy.title}
-        lede={copy.lede}
-        ledeClassName="denver-lede"
-      />
+      <PageHeader title={copy.title} lede={copy.lede} ledeClassName={LEDE} />
       <LoadState failed={failed} stale live={live} onRetry={retry} />
       <TagChips
         counts={tagCounts(spots)}
@@ -224,12 +237,12 @@ export default function Denver() {
         onChange={changeTags}
       />
       {phone ? (
-        <div className="denver-filter">
+        <div className={FILTER}>
           <span className="ctl-label" id="denver-view-label">
             {copy.viewLabel}
           </span>
           <div
-            className="denver-view"
+            className={VIEW}
             role="group"
             aria-labelledby="denver-view-label"
           >
@@ -248,9 +261,9 @@ export default function Denver() {
           </div>
         </div>
       ) : null}
-      <div className="denver-layout">
+      <div className={LAYOUT}>
         {showMap ? (
-          <div className="denver-map">
+          <div className={MAP}>
             <SpotMap
               drawing={denverMap}
               spots={visible}
@@ -266,10 +279,8 @@ export default function Denver() {
         ) : null}
         {showList ? (
           <div className="denver-list">
-            <p className="denver-list-head">
-              <span className="denver-list-count">
-                {copy.count(visible.length)}
-              </span>{' '}
+            <p className={LIST_HEAD}>
+              <span className={LIST_COUNT}>{copy.count(visible.length)}</span>{' '}
               <span className="muted">· {copy.sorted}</span>
             </p>
             {spots.length === 0 ? (
@@ -277,7 +288,7 @@ export default function Denver() {
             ) : visible.length === 0 ? (
               <p className="muted">{copy.noMatch}</p>
             ) : (
-              <div className="denver-cards">
+              <div className={CARDS}>
                 {visible.map((spot) => (
                   <SpotCard
                     key={spot.key}

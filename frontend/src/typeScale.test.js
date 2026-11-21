@@ -21,8 +21,6 @@ const EXEMPT = {
   ".run-cell[data-k='read']::after": 'font-size: 0.5rem;',
   ".run-cell[data-k='skip']::after": 'font-size: 0.5625rem;',
   '.drawn-map__sea-label': 'font: italic 400 11px var(--font-display);',
-  '.spot-map-label': 'font: 500 11px var(--font-mono);',
-  '.spot-map-north text': 'font: 500 10px var(--font-mono);',
 }
 
 /** Sizes in em or %, which follow the text around them. Selector -> value. */

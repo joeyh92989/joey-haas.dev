@@ -1,5 +1,40 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { placeSpots } from '../lib/mapFit.js'
+import { cx } from '../lib/cx.js'
+
+// The map's look, from utilities (#536). Every colour is a token, so one
+// drawing is right in both themes. The pins are HTML buttons over the SVG;
+// their --surface halo is the contrast guarantee, so a pin never depends on
+// the ground under it.
+const MAP =
+  'spot-map relative overflow-hidden rounded-[10px] border border-border bg-card'
+const GROUND = 'spot-map-ground block h-full w-full'
+const STROKE =
+  'fill-none [stroke-linecap:round] [stroke-linejoin:round] [vector-effect:non-scaling-stroke]'
+const PARK = `${STROKE} fill-[color-mix(in_srgb,var(--ok)_18%,var(--surface))] stroke-none`
+const WATER_EDGE = `${STROKE} [stroke:var(--chart-2)] [stroke-width:7]`
+const WATER = `${STROKE} [stroke:var(--accent-soft)] [stroke-width:4]`
+const STREET = `${STROKE} [stroke:var(--line-strong)] [stroke-width:0.75]`
+const ARTERIAL = `${STROKE} [stroke:var(--text-3)] [stroke-width:1.75]`
+// Text on the drawing gets a --surface halo so it reads over any line.
+const HALO =
+  '[paint-order:stroke] [stroke:var(--surface)] [stroke-width:3px] [stroke-linejoin:round]'
+const LABEL = `${HALO} [font:500_11px_var(--font-mono)] [fill:var(--text-2)] tracking-[0.06em] uppercase [text-anchor:middle]`
+const WATER_LABEL = `${HALO} [font:400_11px_var(--font-mono)] [fill:var(--text-3)] tracking-[0.06em] normal-case [text-anchor:middle]`
+const TITLE = `${HALO} [font:500_var(--fs-20)_var(--font-display)] [fill:var(--text)]`
+const NORTH_ARROW = '[fill:var(--text-3)]'
+const NORTH_TEXT = `${HALO} [font:500_10px_var(--font-mono)] [fill:var(--text-3)] [text-anchor:middle]`
+const PINS = 'absolute inset-0 pointer-events-none'
+// The mark is 14px; with 4px of padding the button is a 22px square.
+const PIN =
+  'spot-map-pin group pointer-events-auto absolute cursor-pointer bg-transparent p-1 [border:0] [transform:translate(-50%,-100%)] focus-visible:[outline:none] aria-pressed:z-1'
+const PIN_MARK =
+  'block size-[14px] [transform:rotate(-45deg)] rounded-[50%_50%_50%_0] bg-primary [box-shadow:0_0_0_2px_var(--surface)] group-focus-visible:outline-2 group-focus-visible:outline-solid group-focus-visible:outline-offset-3 group-focus-visible:outline-ring group-aria-pressed:size-5 group-aria-pressed:bg-foreground group-aria-pressed:[box-shadow:0_0_0_2px_var(--surface),0_0_0_4px_var(--accent)] motion-safe:[transition:width_120ms_ease,height_120ms_ease]'
+const POPOVER =
+  'absolute z-2 min-w-44 max-w-60 rounded-[8px] border border-border bg-card px-3 py-2 text-[0.8125rem] [box-shadow:0_6px_18px_var(--overlay)] [transform:translate(-50%,calc(-100%_-_30px))] [&.below]:[transform:translate(-50%,12px)] [&.start]:[transform:translate(-1.25rem,calc(-100%_-_30px))] [&.end]:[transform:translate(calc(-100%_+_1.25rem),calc(-100%_-_30px))] [&.below.start]:[transform:translate(-1.25rem,12px)] [&.below.end]:[transform:translate(calc(-100%_+_1.25rem),12px)]'
+const CLEAR = 'absolute top-2 left-2'
+const ATTRIBUTION =
+  'absolute right-0 bottom-0 m-0 rounded-tl-[4px] bg-[color-mix(in_srgb,var(--surface)_85%,transparent)] px-2 py-px text-[0.75rem] text-(color:--text-3) [&_a]:text-muted-foreground'
 
 /**
  * A drawn poster map with a pin per spot (spec: Denver spots, SpotMap).
@@ -69,25 +104,25 @@ export default function SpotMap({
   return (
     <div
       ref={frame}
-      className="spot-map"
+      className={MAP}
       style={{ aspectRatio: `${width} / ${height}` }}
       onKeyDown={onKeyDown}
     >
       <svg
-        className="spot-map-ground"
+        className={GROUND}
         viewBox={drawing.viewBox.join(' ')}
         role="img"
         aria-label={label}
       >
-        <path className="spot-map-park" d={drawing.parks} />
-        <path className="spot-map-water-edge" d={drawing.water} />
-        <path className="spot-map-water" d={drawing.water} />
-        <path className="spot-map-street" d={drawing.streets} />
-        <path className="spot-map-arterial" d={drawing.arterials} />
+        <path className={PARK} d={drawing.parks} />
+        <path className={WATER_EDGE} d={drawing.water} />
+        <path className={WATER} d={drawing.water} />
+        <path className={STREET} d={drawing.streets} />
+        <path className={ARTERIAL} d={drawing.arterials} />
         {drawing.labels.map((l) => (
           <text
             key={l.text}
-            className={`spot-map-label ${l.kind}`}
+            className={l.kind === 'water' ? WATER_LABEL : LABEL}
             x={l.x}
             y={l.y}
             transform={l.rotate ? `rotate(${l.rotate} ${l.x} ${l.y})` : null}
@@ -96,37 +131,37 @@ export default function SpotMap({
           </text>
         ))}
         {title ? (
-          <text className="spot-map-title" x={16} y={height - 16}>
+          <text className={TITLE} x={16} y={height - 16}>
             {title}
           </text>
         ) : null}
-        <g className="spot-map-north" transform={`translate(${width - 24} 32)`}>
-          <path d="M0 -14 L5 0 L0 -3 L-5 0 Z" />
-          <text y={14}>N</text>
+        <g transform={`translate(${width - 24} 32)`}>
+          <path className={NORTH_ARROW} d="M0 -14 L5 0 L0 -3 L-5 0 Z" />
+          <text className={NORTH_TEXT} y={14}>
+            N
+          </text>
         </g>
       </svg>
-      <div className="spot-map-pins">
+      <div className={PINS}>
         {onMap.map((spot) => (
           <button
             key={spot.key}
             type="button"
-            className="spot-map-pin"
+            className={PIN}
             style={at(spot.key)}
             aria-label={spot.pinLabel ?? spot.name}
             aria-pressed={spot.key === selected}
             onClick={() => onSelect(spot.key === selected ? null : spot.key)}
           >
-            <span aria-hidden="true" />
+            <span className={PIN_MARK} aria-hidden="true" />
           </button>
         ))}
       </div>
       {chosen && renderPopover ? (
         <div
-          className={popoverClass(
-            placed.get(chosen.key),
-            width,
-            height,
-            rendered,
+          className={cx(
+            POPOVER,
+            popoverClass(placed.get(chosen.key), width, height, rendered),
           )}
           style={at(chosen.key)}
         >
@@ -136,14 +171,14 @@ export default function SpotMap({
       {selected != null ? (
         <button
           type="button"
-          className="btn sm spot-map-clear"
+          className={cx('btn sm', CLEAR)}
           onClick={() => onSelect(null)}
         >
           Clear selection
         </button>
       ) : null}
       {drawing.attribution ? (
-        <p className="spot-map-attribution">
+        <p className={ATTRIBUTION}>
           <a href={drawing.attribution.href}>{drawing.attribution.text}</a>
         </p>
       ) : null}

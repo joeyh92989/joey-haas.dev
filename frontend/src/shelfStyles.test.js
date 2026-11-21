@@ -11,9 +11,9 @@ const css = readCss()
  * A media override is a rule of its own, so a test on the base rule cannot be
  * satisfied, or broken, by it.
  */
-const rules = []
-{
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
+function parseRules(source) {
+  const rules = []
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, '')
   const stack = []
   let start = 0
   for (let i = 0; i < text.length; i++) {
@@ -39,11 +39,13 @@ const rules = []
       start = i + 1
     }
   }
+  return rules
 }
+const rules = parseRules(css)
 
 /** The declarations of every base rule naming this selector; fails if none. */
-function rule(selector) {
-  const bodies = rules
+function rule(selector, from = rules) {
+  const bodies = from
     .filter((r) => r.selector === selector && r.media === null)
     .map((r) => r.body)
   expect(bodies.length, `a base rule for ${selector}`).toBeGreaterThan(0)
@@ -51,8 +53,8 @@ function rule(selector) {
 }
 
 /** The declarations of this selector's rules inside @media; fails if none. */
-function mediaRule(selector) {
-  const bodies = rules
+function mediaRule(selector, from = rules) {
+  const bodies = from
     .filter((r) => r.selector === selector && r.media?.startsWith('@media'))
     .map((r) => r.body)
   expect(bodies.length, `a media rule for ${selector}`).toBeGreaterThan(0)
@@ -124,13 +126,13 @@ describe('two widths (#188)', () => {
 
 describe('media-query rules are kept apart from base rules', () => {
   it('reads a media override as its own rule', () => {
-    // .jump-nav ul has padding in its base rule and a phone override.
-    expect(rule('.jump-nav ul')).toContain(
-      'padding: var(--space-2) var(--space-1);',
-    )
-    expect(rule('.jump-nav ul')).not.toContain('padding-right: var(--space-6);')
-    expect(mediaRule('.jump-nav ul')).toContain(
-      'padding-right: var(--space-6);',
-    )
+    // The sample has padding in its base rule and a phone override.
+    const sample = parseRules(`
+      .list { padding: 8px 4px; }
+      @media (max-width: 700px) { .list { padding-right: 32px; } }
+    `)
+    expect(rule('.list', sample)).toContain('padding: 8px 4px;')
+    expect(rule('.list', sample)).not.toContain('padding-right: 32px;')
+    expect(mediaRule('.list', sample)).toContain('padding-right: 32px;')
   })
 })

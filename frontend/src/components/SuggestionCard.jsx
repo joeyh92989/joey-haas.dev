@@ -1,7 +1,18 @@
 import { useId } from 'react'
 import { denver, tagLabel } from '../content/denver.js'
 import { cx } from '../lib/cx.js'
-import { box, btn, pill } from './denverSiteClasses.js'
+import { ACTS, box, btn, pill } from './denverSiteClasses.js'
+
+const KICKER =
+  'm-0 flex flex-wrap gap-x-3 gap-y-1 [font:var(--fs-12)_var(--font-mono)] text-(color:--text-3)'
+const SLOT = 'font-semibold tracking-[0.04em] text-foreground uppercase'
+const NAME = 'm-0 text-[1.125rem] font-medium'
+const NAME_LEAD = 'm-0 text-[1.25rem] font-medium'
+const META =
+  'm-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-(color:--text-3)'
+const TAGS = 'inline-flex flex-wrap gap-1'
+const WHY = 'm-0 grid gap-1 pl-4 text-[0.875rem] text-muted-foreground'
+const NOTE = '[font:500_var(--fs-13)_var(--font-mono)] text-foreground'
 
 /**
  * One of the weekend's three suggestions, in the Play next card shape: the
@@ -38,23 +49,23 @@ export default function SuggestionCard({
     box,
     'sug grid gap-2 p-4',
     lead && 'lead',
-    s.saved && 'saved',
-    // The Card look's border colour would beat the sheet's: say these here.
+    s.saved && 'saved [box-shadow:inset_3px_0_0_var(--ok)]',
+    // The Card look's border colour would beat a plain one: say these here.
     s.saved ? 'border-(color:--ok)!' : lead && 'border-(color:--line-strong)!',
   )
 
   return (
     <li className={classes} aria-labelledby={id}>
-      <p className="sug-kicker">
-        <span className="sug-slot">{s.slot}</span>
+      <p className={KICKER}>
+        <span className={SLOT}>{s.slot}</span>
         <span className="sug-when">{s.when}</span>
       </p>
-      <h3 id={id} className="sug-name">
+      <h3 id={id} className={lead ? NAME_LEAD : NAME}>
         {s.name}
       </h3>
-      <p className="sug-meta">
+      <p className={META}>
         {s.tags.length > 0 && (
-          <span className="sug-tags">
+          <span className={TAGS}>
             {s.tags.map((tag) => (
               <span key={tag} className={pill}>
                 {tagLabel(tag)}
@@ -65,16 +76,16 @@ export default function SuggestionCard({
         {s.distance && <span className="sug-dist">{s.distance}</span>}
       </p>
       {s.reasons.length > 0 && (
-        <ul className="sug-why">
+        <ul className={WHY}>
           {s.reasons.map((reason) => (
             <li key={reason}>{reason}</li>
           ))}
         </ul>
       )}
-      <div className="cand-acts">
+      <div className={ACTS}>
         {s.saved ? (
           <>
-            <span className="savedtag">
+            <span className={NOTE}>
               {copy.savedFor} {s.when}
             </span>
             <button
@@ -99,7 +110,7 @@ export default function SuggestionCard({
           </button>
         )}
         {visited ? (
-          <span className="sug-visited">{copy.visited}</span>
+          <span className={NOTE}>{copy.visited}</span>
         ) : (
           <button
             type="button"

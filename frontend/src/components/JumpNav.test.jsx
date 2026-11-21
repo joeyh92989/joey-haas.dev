@@ -33,4 +33,16 @@ describe('JumpNav', () => {
     const { container } = render(<JumpNav items={ITEMS.slice(0, 1)} />)
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('sticks under the page top and gives each link a 44px phone target and a ring', () => {
+    // The rules moved from index.css to utilities (#536); the pixels are
+    // measured in the style dump and the e2e specs.
+    render(<JumpNav items={ITEMS} />)
+    const nav = screen.getByRole('navigation', { name: 'On this page' })
+    expect(nav.className).toContain('sticky')
+    for (const link of nav.querySelectorAll('a')) {
+      expect(link.className).toContain('min-h-11')
+      expect(link.className).toContain('focus-visible:outline-ring')
+    }
+  })
 })

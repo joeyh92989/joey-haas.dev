@@ -79,9 +79,11 @@ describe('Denver and Site pages and the legacy look', () => {
   })
 
   it('cards and suggestions take their surface from the Card look', () => {
-    for (const selector of ['.sug', '.cand']) {
-      const block = css.match(new RegExp(`\\n\\${selector} \\{[^}]*\\}`))?.[0]
-      expect(block ?? '', selector).not.toMatch(/background|border/)
+    for (const file of [
+      'components/SuggestionCard.jsx',
+      'components/CandidateCard.jsx',
+    ]) {
+      expect(read(file), file).toMatch(/\bbox\b/)
     }
   })
 
@@ -95,10 +97,22 @@ describe('Denver and Site pages and the legacy look', () => {
   })
 
   it('every grid these pages lay out lets its columns shrink', () => {
-    for (const selector of ['.finder-layout', '.wx-days', '.wk-foot']) {
-      const block = css.match(new RegExp(`\\n\\${selector}[^{]*\\{[^}]*\\}`))
-      expect(block?.[0], selector).toMatch(/minmax\(0, \d+fr\)/)
+    // A track is `minmax(0, Nfr)`, so a long name cannot widen the page.
+    const track = /^(minmax\(0,\d+fr\)|repeat\(\d+,minmax\(0,1fr\)\))$/
+    let seen = 0
+    for (const file of [
+      'pages/AdminSpots.jsx',
+      'pages/AdminWeekend.jsx',
+      'components/WeatherPanel.jsx',
+    ]) {
+      for (const [, columns] of read(file).matchAll(
+        /grid-cols-\[([^\]]*)\]/g,
+      )) {
+        seen += 1
+        for (const part of columns.split('_')) expect(part, file).toMatch(track)
+      }
     }
+    expect(seen).toBeGreaterThanOrEqual(5)
   })
 })
 

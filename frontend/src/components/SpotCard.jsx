@@ -11,11 +11,21 @@ const CARD = `${CARD_SHELL} px-4 py-3 scroll-mt-4`
 const SELECTED =
   'border-primary shadow-[inset_3px_0_0_var(--accent),inset_0_0_0_1px_var(--accent)]'
 
+const KICKER =
+  'mx-0 mt-0 mb-1 font-mono text-[0.75rem] tracking-[0.08em] text-(color:--text-3) uppercase'
+const HEAD = 'flex items-baseline justify-between gap-3'
+const NAME = 'spot-card-name m-0 text-[1rem] font-medium'
+const NAME_BUTTON =
+  'cursor-pointer bg-transparent text-start text-foreground [border:0] [font:inherit] [padding:0] hover:text-accent-text focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring'
+const AREA = 'text-[0.8125rem] whitespace-nowrap text-(color:--text-3)'
+const BLURB = 'mx-0 mt-2 mb-0 text-[0.875rem] text-muted-foreground'
+const TAGS = 'mx-0 mt-2 mb-0 flex list-none flex-wrap gap-1 p-0'
+
 /** A spot's tags as small pills, in the order the API gave them. */
 export function SpotTags({ tags }) {
   if (tags.length === 0) return null
   return (
-    <ul className="spot-tags">
+    <ul className={TAGS}>
       {tags.map((tag) => (
         <Badge key={tag} render={<li />} variant="outline">
           {tagLabel(tag)}
@@ -59,11 +69,16 @@ export default function SpotCard({
         selected && SELECTED,
       )}
     >
-      {offMap ? <p className="spot-card-kicker">{denver.page.offMap}</p> : null}
-      <div className="spot-card-head">
-        <h2 className="spot-card-name">
+      {offMap ? <p className={KICKER}>{denver.page.offMap}</p> : null}
+      <div className={HEAD}>
+        <h2 className={NAME}>
           {onSelect ? (
-            <button type="button" aria-pressed={selected} onClick={onSelect}>
+            <button
+              type="button"
+              className={NAME_BUTTON}
+              aria-pressed={selected}
+              onClick={onSelect}
+            >
               {spot.name}
             </button>
           ) : (
@@ -71,11 +86,11 @@ export default function SpotCard({
           )}
         </h2>
         {spot.neighbourhood ? (
-          <span className="spot-card-area">{spot.neighbourhood}</span>
+          <span className={AREA}>{spot.neighbourhood}</span>
         ) : null}
       </div>
       <SpotTags tags={spot.tags} />
-      {spot.blurb ? <p className="spot-card-blurb">{spot.blurb}</p> : null}
+      {spot.blurb ? <p className={BLURB}>{spot.blurb}</p> : null}
     </article>
   )
 }
