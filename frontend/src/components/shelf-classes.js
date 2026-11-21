@@ -250,9 +250,11 @@ export const QUICK_RATE =
 
 /** One half-star target. The targets are at least 44px tall on a phone (ten
  *  half stars are 9px wide each, so the width stays as drawn). Hovering a star
- *  fills every target up to it and empties the rest, previewing the click. */
+ *  fills every target up to it and empties the rest, previewing the click
+ *  (the empty rule is `!` because it must beat the fill, as it did by
+ *  coming later). */
 export const QUICK_RATE_TARGET =
-  'group/target relative h-[1.2em] w-[0.5em] cursor-pointer overflow-hidden border-0 bg-none p-0 text-(--text-3) [font:inherit] data-filled:text-(--rating) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-foreground max-[700px]:min-h-11 [@media(hover:hover)]:[.quick-rate:hover_&]:text-(--rating) [@media(hover:hover)]:[.quick-rate-target:hover~&]:text-(--text-3)'
+  'group/target relative h-[1.2em] w-[0.5em] cursor-pointer overflow-hidden p-0 [background:none] [border:0] text-(--text-3) [font:inherit] data-filled:text-(--rating) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-foreground max-[700px]:min-h-11 [@media(hover:hover)]:[.quick-rate:hover_&]:text-(--rating) [@media(hover:hover)]:[.quick-rate-target:hover~&]:text-(--text-3)!'
 
 /** The star inside a target: a full star, shifted so each target shows one
  *  half. Centred in the taller phone box; where the box is already taller
