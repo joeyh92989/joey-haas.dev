@@ -53,7 +53,7 @@ export const PANEL_TITLE =
   'font-heading text-lg leading-tight font-medium text-foreground'
 
 /** A link in the header bar. */
-export const PANEL_ACTION = `[&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:text-sm [&_a]:text-accent-text [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:no-underline max-[700px]:[&_a]:min-h-11`
+export const PANEL_ACTION = `[&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:gap-1 [&_a]:text-sm [&_a]:text-accent-text [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:no-underline max-[700px]:[&_a]:min-h-11`
 
 /** A panel's body. */
 export const PANEL_BODY = 'p-4'
@@ -138,13 +138,26 @@ export const JOB_RESULT_FAILED = 'text-[0.8125rem] text-foreground'
 /** The Jobs table: three short columns on the automatic layout, so spare
  *  width goes to each in proportion to its words and none is left empty.
  *  Words wrap, and a long one breaks, so it fits 320px without a scroller. */
-export const TABLE = 'w-full border-collapse text-sm'
+export const TABLE = 'w-full border-collapse text-sm max-[700px]:block'
+
+/** On a phone the table is stacked: the item over the change and the time, so
+ *  no column is squeezed to a few letters. The head is read by assistive tech
+ *  only (the cells keep their roles). */
+export const THEAD = 'max-[700px]:sr-only'
+
+export const TBODY = 'max-[700px]:block'
+
+export const TR =
+  'group/row max-[700px]:grid max-[700px]:grid-cols-[minmax(0,1fr)_auto] max-[700px]:gap-x-3 max-[700px]:border-b max-[700px]:border-line-card max-[700px]:py-2 max-[700px]:last:border-b-0'
 
 export const TH =
   'border-b border-line-card px-3 py-2 text-left font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase'
 
 export const TD =
-  'border-b border-line-card px-3 py-2 text-left align-top [overflow-wrap:anywhere] group-last/row:border-b-0'
+  'border-b border-line-card px-3 py-2 text-left [overflow-wrap:anywhere] group-last/row:border-b-0 max-[700px]:border-b-0 max-[700px]:px-0 max-[700px]:py-1'
+
+/** The item cell takes the whole row on a phone. */
+export const TD_ITEM = `${TD} max-[700px]:col-span-full`
 
 /** A link in a table cell: the item's name, underlined in the accent. */
 export const TEXT_LINK =

@@ -132,7 +132,9 @@ for (const path of ROUTES) {
     await open(page, openRoute, path, 'light', 390)
     const short = await page.evaluate(() =>
       [...document.querySelectorAll('main a[href], main button')]
-        .filter((el) => !el.closest('.job-summary'))
+        // The shell's page links (nav) are the shell's; inline links in a
+        // sentence are exempt.
+        .filter((el) => !el.closest('.job-summary, nav'))
         .filter((el) => el.getBoundingClientRect().height > 0)
         .filter((el) => el.getBoundingClientRect().height < 43.5)
         .map(
@@ -299,7 +301,7 @@ for (const theme of THEMES) {
     await page.mouse.move(1, 1)
     await page.waitForTimeout(300)
     const weak = (
-      await contrasts(page, 'dialog[open] :is(h2, p, button, span)')
+      await contrasts(page, 'dialog[open] :is(h2, p, button, span:not(:empty))')
     ).filter((c) => c.ratio < 4.5)
     expect(weak).toEqual([])
     // Not by colour alone: the pressed chip differs in weight.
