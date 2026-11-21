@@ -4,7 +4,17 @@ import { cn } from '../lib/utils.js'
 import { Button } from './ui/button.jsx'
 import FilterChips from './FilterChips.jsx'
 import LayoutToggle from './LayoutToggle.jsx'
-import { PRESSED_FILL } from './shelf-classes.js'
+import {
+  CTL_LABEL,
+  CTL_ROW,
+  CTL_SPLIT,
+  PRESSED_FILL,
+  SHELF_CONTROLS,
+  SHELF_TOOLBAR,
+  SHELF_TOOLBAR_ROW,
+  SHELF_VIEW_CONTROLS,
+  VIEW_LAB,
+} from './shelf-classes.js'
 import SortControl from './SortControl.jsx'
 
 const copy = spine.shelf
@@ -98,7 +108,10 @@ export default function ShelfToolbar({
 
   if (labelled) {
     return (
-      <section className="shelf-toolbar controls" aria-label="Filter and sort">
+      <section
+        className={`shelf-toolbar controls ${SHELF_CONTROLS}`}
+        aria-label="Filter and sort"
+      >
         <FilterChips
           groups={groups}
           toggles={toggles}
@@ -106,11 +119,11 @@ export default function ShelfToolbar({
           onChange={onFiltersChange}
           labelled
         />
-        <div className="ctl-row">
-          <span className="ctl-label" aria-hidden="true">
+        <div className={`ctl-row ${CTL_ROW}`}>
+          <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
             {copy.sort}
           </span>
-          <div className="ctl-split">
+          <div className={`ctl-split ${CTL_SPLIT}`}>
             <SortControl
               value={sort.value}
               direction={sort.direction}
@@ -121,11 +134,11 @@ export default function ShelfToolbar({
               hideLabel
             />
             <div
-              className="shelf-view-controls"
+              className={`shelf-view-controls ${SHELF_VIEW_CONTROLS}`}
               role="group"
               aria-label={copy.view}
             >
-              <span className="view-lab" aria-hidden="true">
+              <span className={`view-lab ${VIEW_LAB}`} aria-hidden="true">
                 {copy.view}
               </span>
               {layouts}
@@ -139,14 +152,14 @@ export default function ShelfToolbar({
   }
 
   return (
-    <div className="shelf-toolbar">
+    <div className={`shelf-toolbar ${SHELF_TOOLBAR}`}>
       <FilterChips
         groups={groups}
         toggles={toggles}
         value={filters}
         onChange={onFiltersChange}
       />
-      <div className="shelf-toolbar-row">
+      <div className={`shelf-toolbar-row ${SHELF_TOOLBAR_ROW}`}>
         <SortControl
           value={sort.value}
           direction={sort.direction}
@@ -154,7 +167,7 @@ export default function ShelfToolbar({
           onChange={onSortChange}
           onShuffle={onShuffle}
         />
-        <div className="shelf-view-controls">
+        <div className={`shelf-view-controls ${SHELF_VIEW_CONTROLS}`}>
           {sizes}
           {dimmer}
         </div>

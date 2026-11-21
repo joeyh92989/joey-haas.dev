@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router'
+import { SHELF_SEARCH, SHELF_TOP } from '../components/shelf-classes.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import { HEAD_LINK } from '../components/adminHomeClasses.js'
 import CoverImage from '../components/CoverImage.jsx'
@@ -818,8 +819,8 @@ export default function AdminCollection() {
       <>
         <HeroTiles {...heroFigures(rows)} />
 
-        <div className="shelf-top">
-          <label className="shelf-search">
+        <div className={`shelf-top ${SHELF_TOP}`}>
+          <label className={`shelf-search ${SHELF_SEARCH}`}>
             <span className="visually-hidden">{spine.games.search}</span>
             <Input
               ref={searchField}

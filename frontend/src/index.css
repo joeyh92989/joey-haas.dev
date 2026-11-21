@@ -2643,8 +2643,7 @@ p.muted a,
 }
 
 .favourites,
-.shelf-stats,
-.shelf-toolbar {
+.shelf-stats {
   margin: 0 0 var(--space-5);
 }
 
@@ -2956,56 +2955,6 @@ a.month-bar::before {
   color: var(--text-3);
   font-size: var(--fs-12);
   white-space: nowrap;
-}
-
-/* Loading: the grid's shape in --skeleton while the backend wakes. */
-.skeleton-grid {
-  --poster-min: 8.5rem;
-  display: grid;
-  gap: var(--grid-gap);
-  grid-template-columns: repeat(auto-fill, minmax(var(--poster-min), 1fr));
-  list-style: none;
-  margin-top: var(--space-5);
-}
-
-.skeleton-cover,
-.skeleton-line {
-  background: var(--skeleton);
-  border-radius: 4px;
-  display: block;
-}
-
-.skeleton-cover {
-  aspect-ratio: 3 / 4;
-}
-
-.skeleton-line {
-  height: 0.7rem;
-  margin-top: var(--space-2);
-}
-
-.skeleton-line-short {
-  width: 60%;
-}
-
-.shelf-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.shelf-toolbar-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-5);
-  justify-content: space-between;
-}
-
-.shelf-view-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
 }
 
 /* Public item page: the breadcrumb, then the cover beside the title. */
@@ -3356,14 +3305,7 @@ dialog.shelf-sheet {
 
 /* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
    state inverts like the nav pills. */
-.chip-rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.chip-row,
-.sort-options {
+.chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -3399,31 +3341,6 @@ dialog.shelf-sheet {
 
 .chip-count {
   font-variant-numeric: tabular-nums;
-}
-
-.sort-control {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.sort-select {
-  align-items: center;
-  color: var(--text-3);
-  display: flex;
-  font-size: var(--fs-13);
-  gap: var(--space-2);
-}
-
-.sort-select select {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-14);
-  padding: var(--space-1) var(--space-2);
 }
 
 /* The shelf grid. --poster-min is declared here so markup without a data-size
@@ -3754,80 +3671,6 @@ dialog.shelf-sheet {
   }
 }
 
-/* ---------- Collection: totals line, labelled controls, result bar ---------- */
-
-.shelf-top {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  margin: 0 0 var(--space-4);
-}
-
-.shelf-links {
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-14);
-  gap: 0.1rem var(--space-4); /* space-exception: hairline, optical offset */
-  margin: 0;
-}
-
-.shelf-top .shelf-search {
-  margin: 0 0 0 auto;
-  max-width: none;
-  width: 16rem;
-}
-
-.shelf-toolbar.controls {
-  border-block: 1px solid var(--line);
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: var(--space-3) 0;
-}
-
-.chip-rows-labelled {
-  gap: var(--space-2);
-}
-
-.ctl-row {
-  align-items: baseline;
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: 4.25rem minmax(0, 1fr);
-}
-
-.ctl-label {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-}
-
-.ctl-split {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  justify-content: space-between;
-}
-
-.shelf-view-controls {
-  align-items: center;
-}
-
-.view-lab {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-}
-
-.resultbar {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  justify-content: space-between;
-  margin: var(--space-3) 0 var(--space-4);
-}
-
 .result {
   color: var(--text-2);
   font-size: var(--fs-14);
@@ -3880,30 +3723,6 @@ section > .cover-key {
   background: var(--sunken);
 }
 
-.pager {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  font-size: var(--fs-14);
-  gap: var(--space-2) var(--space-4);
-  justify-content: center;
-  margin-top: var(--space-5);
-}
-
-.shelf-overview {
-  border-top: 1px solid var(--line);
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
-}
-
-.shelf-overview > h2 {
-  margin: 0 0 var(--space-4);
-}
-
-.shelf-overview .favourites {
-  margin-bottom: var(--space-5);
-}
-
 .disclosure {
   align-items: center;
   background: none;
@@ -3933,28 +3752,7 @@ section > .cover-key {
   outline-offset: 2px;
 }
 
-.shelf-behind {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-  margin: var(--space-5) 0 0;
-}
-
-/* A link inside a sentence is told apart by more than its colour. */
-.shelf-behind a {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 @media (max-width: 34rem) {
-  .shelf-top .shelf-search {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .ctl-row {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-  }
-
   /* The labelled rows wrap, as the mockup's do: the label column makes a
      scrolling row hard to read, and four rows is all it costs. */
   .ctl-row .chip-row {
@@ -3965,11 +3763,6 @@ section > .cover-key {
     overflow-x: visible;
     margin-inline-start: 0;
     padding: 0;
-  }
-
-  /* Both sizes are 6rem on a phone, so the toggle is not offered there. */
-  .view-lab {
-    display: none;
   }
 }
 
@@ -4012,7 +3805,6 @@ section > .cover-key {
   /* The cover shrinks so the title still fits beside it. */
 
   /* 375px leaves about 21.4rem inside the gutters: three 6rem columns. */
-  .skeleton-grid,
   .poster-grid,
   .poster-grid[data-size='compact'] {
     --poster-min: 6rem;
@@ -4301,10 +4093,6 @@ section > .cover-key {
 }
 
 .next-section-head h2 {
-  margin: 0;
-}
-
-.next-section-head .sort-control {
   margin: 0;
 }
 
@@ -5150,10 +4938,6 @@ section > .cover-key {
   grid-row: 1 / 3;
 }
 
-.next-section .sort-control {
-  margin: var(--space-1) 0 var(--space-1);
-}
-
 /* Not on cartridge stays closed by default. The summary is the native
    disclosure control, so it is focusable without a tabindex. */
 .next-skip {
@@ -5192,29 +4976,6 @@ section > .cover-key {
   display: grid;
   gap: var(--space-3);
   padding-block: var(--space-6);
-}
-
-/* ---------- Shelf search ---------- */
-
-.shelf-search {
-  display: block;
-  margin: 0 0 var(--space-4);
-  max-width: 24rem;
-}
-
-.shelf-search input {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font: inherit;
-  padding: var(--space-2) var(--space-3);
-  width: 100%;
-}
-
-.shelf-search input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 /* ---------- Stats ---------- */
@@ -6841,10 +6602,6 @@ a.cover-tile-cap:focus-visible span {
 .tag-picker .comic-hint {
   grid-column: 1 / -1;
   margin: 0;
-}
-
-.tag-picker .ctl-row {
-  grid-template-columns: 6rem minmax(0, 1fr);
 }
 
 .tag-picker .chip-row {
@@ -8980,19 +8737,6 @@ a.btn.sm {
   font-weight: 600;
 }
 
-/* ---------- LoadState ---------- */
-
-/* Item page, before the snapshot or API has the item: the head's shape. */
-.item-skeleton .skeleton-line {
-  height: 0.9rem;
-  margin-top: var(--space-3);
-}
-
-.item-skeleton .item-skeleton-title {
-  height: 1.6rem;
-  width: 70%;
-}
-
 .load-state {
   align-items: center;
   display: flex;
@@ -9227,8 +8971,6 @@ a.btn.sm {
   .disclosure,
   .spine-tabs a,
   .spine-name a,
-  .shelf-links a,
-  .shelf-behind a,
   .section-head a,
   .project-links a,
   .spine-project a,

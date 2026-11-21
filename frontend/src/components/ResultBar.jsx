@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { RESULTBAR } from './shelf-classes.js'
 import { Button } from './ui/button.jsx'
 
 const copy = spine.shelf
@@ -30,7 +31,7 @@ export default function ResultBar({
   children,
 }) {
   return (
-    <div className="resultbar">
+    <div className={`resultbar ${RESULTBAR}`}>
       <p className="result font-mono text-xs text-muted-foreground">
         <strong aria-live="polite" className="font-semibold text-foreground">
           {filtered

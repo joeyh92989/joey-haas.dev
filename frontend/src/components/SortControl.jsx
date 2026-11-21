@@ -1,5 +1,11 @@
 import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import {
+  SORT_CONTROL,
+  SORT_OPTIONS,
+  SORT_SELECT,
+  SORT_SELECT_FIELD,
+} from './shelf-classes.js'
 
 const copy = spine.shelf
 const NARROW = '(max-width: 34rem)'
@@ -47,6 +53,7 @@ const SORTS = [
  * @param {boolean} [props.hideLabel] - With `select`, keep the name for
  *   assistive tech but draw no text, for a toolbar that shows its own row
  *   label.
+ * @param {string} [props.className] - Classes added to the control's root.
  */
 export default function SortControl({
   value,
@@ -59,6 +66,7 @@ export default function SortControl({
   label = 'Sort',
   select = false,
   hideLabel = false,
+  className,
 }) {
   const phone = useMediaQuery(NARROW)
   const asSelect = select || phone
@@ -77,11 +85,15 @@ export default function SortControl({
   }
 
   const chooser = asSelect ? (
-    <label className="sort-select">
+    <label className={`sort-select ${SORT_SELECT}`}>
       <span className={select && hideLabel ? 'visually-hidden' : undefined}>
         {label}
       </span>
-      <select value={value} onChange={(event) => choose(event.target.value)}>
+      <select
+        className={SORT_SELECT_FIELD}
+        value={value}
+        onChange={(event) => choose(event.target.value)}
+      >
         {sorts.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -90,7 +102,11 @@ export default function SortControl({
       </select>
     </label>
   ) : (
-    <div className="sort-options" role="group" aria-label={label}>
+    <div
+      className={`sort-options ${SORT_OPTIONS}`}
+      role="group"
+      aria-label={label}
+    >
       {sorts.map((option) => (
         <button
           key={option.value}
@@ -110,7 +126,10 @@ export default function SortControl({
   }
 
   return (
-    <div className="sort-control" data-seed={seed}>
+    <div
+      className={`sort-control ${SORT_CONTROL}${className ? ` ${className}` : ''}`}
+      data-seed={seed}
+    >
       {chooser}
       {isRandom ? (
         <button type="button" className="chip" onClick={onShuffle}>

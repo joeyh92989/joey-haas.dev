@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { PAGER } from './shelf-classes.js'
 
 const copy = spine.shelf
 
@@ -18,7 +19,7 @@ const copy = spine.shelf
 export default function ShowMore({ shown, total, step, onMore, onAll }) {
   if (shown >= total) return null
   return (
-    <div className="pager">
+    <div className={`pager ${PAGER}`}>
       <span>{copy.showing(shown, total)}</span>
       <button type="button" className="chip" onClick={onMore}>
         {copy.showMore(Math.min(step, total - shown))}

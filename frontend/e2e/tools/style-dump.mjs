@@ -314,6 +314,11 @@ async function open(
         : r.fallback(),
     )
   }
+  if (kind === 'admin-comics') await serveAdmin(page, COMICS)
+  if (kind === 'skeleton') {
+    await page.route('**/snapshot/**', (r) => r.abort())
+    await page.route('**/api/**', () => {})
+  }
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -333,7 +338,7 @@ async function open(
     .first()
     .waitFor({ timeout: 15000 })
     .catch(() => {})
-  await page.waitForLoadState('networkidle')
+  if (kind !== 'skeleton') await page.waitForLoadState('networkidle')
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => {
     for (const img of document.querySelectorAll('img[loading="lazy"]'))
@@ -751,6 +756,152 @@ for (const theme of ['dark', 'light']) {
     theme,
     vp: 'phone',
     reduce: true,
+  })
+}
+
+// Shelf toolbar, chips, sort and results (slice D4c of #536).
+const pressFirst = async (page, sel) => {
+  const el = page.locator(sel).first()
+  if (await el.isVisible().catch(() => false)) await el.click()
+  await page.waitForTimeout(300)
+}
+for (const theme of ['dark', 'light']) {
+  for (const vp of ['desktop', 'phone']) {
+    const spec = { theme, vp }
+    const tag = `d4c ${theme} ${vp}`
+    for (const path of ['/shelf/games', '/shelf/comics'])
+      await record(`${tag} ${path}`, { ...spec, path })
+    await record(`${tag} /shelf/next`, {
+      ...spec,
+      path: '/shelf/next',
+      kind: 'next',
+    })
+    await record(
+      `${tag} games-pressed`,
+      { ...spec, path: '/shelf/games' },
+      async (page) => {
+        await pressFirst(page, '.shelf-toolbar .chip[aria-pressed="false"]')
+        await pressFirst(page, '.shelf-toolbar .chip[aria-pressed="false"]')
+      },
+    )
+    await record(
+      `${tag} games-search-focus`,
+      { ...spec, path: '/shelf/games' },
+      async (page) => {
+        await page.locator('.shelf-search input').focus()
+        await page.keyboard.type('zzqq')
+        await page.waitForTimeout(500)
+      },
+    )
+    await record(
+      `${tag} games-hover-chip`,
+      { ...spec, path: '/shelf/games' },
+      async (page) => {
+        const el = page.locator('.shelf-toolbar .chip').nth(2)
+        if (await el.isVisible()) await el.hover()
+      },
+    )
+    await record(
+      `${tag} games-tab-focus`,
+      { ...spec, path: '/shelf/games' },
+      async (page) => {
+        await page.locator('.shelf-search input').focus()
+        for (let i = 0; i < 4; i += 1) await page.keyboard.press('Tab')
+      },
+    )
+    await record(
+      `${tag} games-disclosure`,
+      { ...spec, path: '/shelf/games' },
+      async (page) => {
+        await pressFirst(page, '.disclosure')
+      },
+    )
+    await record(
+      `${tag} games-skeleton`,
+      { ...spec, path: '/shelf/games', kind: 'skeleton' },
+      (page) => page.waitForTimeout(4500),
+    )
+    await record(
+      `${tag} item-skeleton`,
+      { ...spec, path: ITEM, kind: 'skeleton' },
+      (page) => page.waitForTimeout(4500),
+    )
+    await record(
+      `${tag} comics-pressed`,
+      { ...spec, path: '/shelf/comics' },
+      async (page) => {
+        await pressFirst(page, '.shelf-toolbar .chip[aria-pressed="false"]')
+      },
+    )
+    await record(
+      `${tag} comics-spines`,
+      { ...spec, path: '/shelf/comics' },
+      async (page) => {
+        const el = page.getByRole('button', { name: /spines/i }).first()
+        if (await el.isVisible()) await el.click()
+        await page.waitForTimeout(400)
+      },
+    )
+    await record(
+      `${tag} comics-search-none`,
+      { ...spec, path: '/shelf/comics' },
+      async (page) => {
+        await page.locator('.shelf-search input').fill('zzqqxx')
+        await page.waitForTimeout(500)
+      },
+    )
+    await record(
+      `${tag} admin-games-pressed`,
+      { ...spec, path: '/admin/shelf/games', kind: 'shelf' },
+      async (page) => {
+        await pressFirst(page, '.shelf-toolbar .chip[aria-pressed="false"]')
+      },
+    )
+    await record(
+      `${tag} admin-games-focus`,
+      { ...spec, path: '/admin/shelf/games', kind: 'shelf' },
+      async (page) => {
+        await page.locator('.shelf-search input').focus()
+        for (let i = 0; i < 3; i += 1) await page.keyboard.press('Tab')
+      },
+    )
+    await record(`${tag} admin-comics`, {
+      ...spec,
+      path: '/admin/shelf/comics',
+      kind: 'admin-comics',
+    })
+    await record(
+      `${tag} admin-comics-pressed`,
+      { ...spec, path: '/admin/shelf/comics', kind: 'admin-comics' },
+      async (page) => {
+        await pressFirst(page, '.shelf-toolbar .chip[aria-pressed="false"]')
+      },
+    )
+    for (const path of [
+      '/admin/closet/review',
+      '/admin/closet/profile',
+      '/admin/closet',
+    ])
+      await record(`${tag} ${path}`, { ...spec, path, kind: 'closet' })
+    await record(
+      `${tag} denver-chip`,
+      { ...spec, path: '/denver', kind: 'denver' },
+      async (page) => {
+        await pressFirst(page, '.chip[aria-pressed="false"]')
+      },
+    )
+  }
+  await record(`d4c ${theme} reduce games`, {
+    path: '/shelf/games',
+    theme,
+    vp: 'desktop',
+    reduce: true,
+  })
+  await record(`d4c ${theme} print games`, {
+    path: '/shelf/games',
+    theme,
+    vp: 'desktop',
+    media: 'print',
   })
 }
 await browser.close()

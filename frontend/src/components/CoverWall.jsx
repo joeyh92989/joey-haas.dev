@@ -9,6 +9,7 @@ import CoverImage from './CoverImage.jsx'
 import CoverTile from './CoverTile.jsx'
 import EmptyState from './EmptyState.jsx'
 import StatePill from './StatePill.jsx'
+import { CTL_LABEL, CTL_ROW } from './shelf-classes.js'
 
 const RUN = spine.comics.run
 const WALL = spine.comics.wall
@@ -336,8 +337,8 @@ export default function CoverWall({
         {title}
       </h2>
       <div className="wall-bar">
-        <div className="ctl-row">
-          <span className="ctl-label" id="wall-show">
+        <div className={`ctl-row ${CTL_ROW}`}>
+          <span className={`ctl-label ${CTL_LABEL}`} id="wall-show">
             {WALL.show.label}
           </span>
           <div className="chip-row" role="group" aria-labelledby="wall-show">
