@@ -6014,6 +6014,10 @@ section > .cover-key {
   .chip-row {
     flex-wrap: nowrap;
     overflow-x: auto;
+    /* The scroller clips on the left too: 4px (outline plus offset) of
+       padding, cancelled by margin, keeps the first chip's ring whole. */
+    margin-inline-start: -4px;
+    padding-inline-start: 4px;
     margin-top: -0.25rem;
     padding-bottom: var(--space-1);
     padding-right: var(--space-6);
@@ -11348,6 +11352,11 @@ a.cover-tile-cap:focus-visible span {
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: var(--space-4);
+}
+
+.closet-toolbar > * {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .closet-toolbar-end {

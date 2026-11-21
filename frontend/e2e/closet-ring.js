@@ -35,9 +35,16 @@ export async function unringed(page, locator) {
   for (let i = 0; i < count; i++) {
     const control = locator.nth(i)
     if (!(await control.isVisible())) continue
-    await control.scrollIntoViewIfNeeded()
+    // Centred, so the phone's fixed tab bar never sits over it.
+    await control.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    // Focus once first and let any scroll it causes (a sticky bar, a control
+    // near an edge) settle, so the band is measured where the control stays.
+    await page.keyboard.press('Shift')
+    await control.focus()
+    await page.waitForTimeout(150)
     await control.evaluate((el) => el.blur())
     await page.mouse.move(1, 1)
+    await page.waitForTimeout(150)
     let box = await control.boundingBox()
     // A hidden radio or checkbox: its label draws the ring.
     const hidden = box.width <= 2 || box.height <= 2
@@ -51,6 +58,13 @@ export async function unringed(page, locator) {
     const before = await bands(page, box)
     await page.keyboard.press('Shift')
     await control.focus()
+    // The ring's colour transition (transition-colors) has to finish.
+    await page.waitForTimeout(150)
+    const moved = await control.boundingBox()
+    if (!hidden && Math.abs(moved.y - box.y) > 0.5) {
+      missing.push(`${await control.textContent()}: moved on focus`)
+      continue
+    }
     const after = await bands(page, box)
     const label = (
       (await control.textContent()) ||

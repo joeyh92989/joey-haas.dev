@@ -57,3 +57,8 @@ export const CHECKED_CHIP =
 /** Swap and Build around under a piece of an outfit: small, and marked when
  *  pressed (the locked piece). */
 export const pieceBtn = `${btn('plain', 'xs')} ${PRESSED}`
+
+/** A label that opens a visually hidden file input: it draws the ring when
+ *  the input is focused by keyboard. */
+export const FILE_PICK =
+  'cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring'

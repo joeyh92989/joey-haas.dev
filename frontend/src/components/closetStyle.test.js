@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 
 // The Closet pages draw from the Button, Card and Input looks (#535). The
@@ -24,13 +25,13 @@ const LEGACY = /className="[^"]*\b(btn|chip|panel|outfit-piece-btn)\b[^"]*"/
 describe('Closet pages and the legacy look', () => {
   for (const file of FILES) {
     it(`${file} has no legacy btn, chip or panel class`, () => {
-      const text = readFileSync(resolve(process.cwd(), 'src', file), 'utf8')
+      const text = readFileSync(resolve(cwd(), 'src', file), 'utf8')
       expect(text.match(LEGACY)?.[0]).toBeUndefined()
     })
   }
 
   it('the Today grid column may shrink', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+    const css = readFileSync(resolve(cwd(), 'src/index.css'), 'utf8')
     expect(css).toMatch(
       /\.today \{[^}]*grid-template-columns: minmax\(0, 1fr\)/,
     )

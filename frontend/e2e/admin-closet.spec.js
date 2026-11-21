@@ -88,9 +88,10 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
       test(`focus rings paint on every control at ${size.width}px, ${theme}, ${route}`, async ({
         page,
       }) => {
+        test.setTimeout(180_000)
         await open(page, route, size, theme)
         const controls = page.locator(
-          'main :is(a[href], button, input:not([type=hidden]), select, textarea):visible',
+          'main :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible',
         )
         expect(await unringed(page, controls)).toEqual([])
       })
@@ -122,6 +123,7 @@ for (const route of ROUTES) {
 // widths in both themes.
 test('closet review shots', async ({ page }) => {
   test.skip(!process.env.E2E_SHOT_DIR, 'set E2E_SHOT_DIR to save the shots')
+  test.setTimeout(600_000)
   for (const theme of THEMES) {
     for (const size of WIDTHS) {
       for (const route of ROUTES) {

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { productCopy as copy } from '../content/closetProduct.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { btn, field } from './closetClasses.js'
+import { btn, field, FILE_PICK } from './closetClasses.js'
 
 /** Dollars as the store gave them, or nothing. */
 function priceText(price) {
@@ -166,7 +166,9 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       </h2>
 
       <div className="garment-attach-row">
-        <label className={`${btn('plain', 'sm')} garment-photo-pick`}>
+        <label
+          className={`${btn('plain', 'sm')} ${FILE_PICK} garment-photo-pick`}
+        >
           {garment.image ? copy.replacePhoto : copy.addPhoto}
           <input
             type="file"
