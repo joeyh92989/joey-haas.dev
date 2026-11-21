@@ -11,6 +11,7 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import PageHeader from '../components/PageHeader.jsx'
+import { CTL_LABEL } from '../components/shelf-classes.js'
 import { Button } from '../components/ui/button.jsx'
 
 const copy = denver.page
@@ -97,7 +98,7 @@ function TagChips({ counts, total, pressed, onChange }) {
     )
   return (
     <div className={FILTER}>
-      <span className="ctl-label" id={labelId}>
+      <span className={`ctl-label ${CTL_LABEL}`} id={labelId}>
         {copy.tagsLabel}
       </span>
       <div
@@ -238,7 +239,7 @@ export default function Denver() {
       />
       {phone ? (
         <div className={FILTER}>
-          <span className="ctl-label" id="denver-view-label">
+          <span className={`ctl-label ${CTL_LABEL}`} id="denver-view-label">
             {copy.viewLabel}
           </span>
           <div

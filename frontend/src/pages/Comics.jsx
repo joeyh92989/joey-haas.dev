@@ -1,4 +1,6 @@
 import {
+  CTL_LABEL,
+  CTL_ROW,
   CTL_SPLIT,
   SHELF_CONTROLS,
   SHELF_OVERVIEW,
@@ -364,8 +366,8 @@ export default function Comics() {
               }}
               onChange={changeFilters}
             />
-            <div className="ctl-row">
-              <span className="ctl-label" aria-hidden="true">
+            <div className={`ctl-row ${CTL_ROW}`}>
+              <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
                 {spine.shelf.sort}
               </span>
               <div className={`ctl-split ${CTL_SPLIT}`}>

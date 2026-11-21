@@ -5,6 +5,8 @@ import { Button } from './ui/button.jsx'
 import FilterChips from './FilterChips.jsx'
 import LayoutToggle from './LayoutToggle.jsx'
 import {
+  CTL_LABEL,
+  CTL_ROW,
   CTL_SPLIT,
   PRESSED_FILL,
   SHELF_CONTROLS,
@@ -117,8 +119,8 @@ export default function ShelfToolbar({
           onChange={onFiltersChange}
           labelled
         />
-        <div className="ctl-row">
-          <span className="ctl-label" aria-hidden="true">
+        <div className={`ctl-row ${CTL_ROW}`}>
+          <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
             {copy.sort}
           </span>
           <div className={`ctl-split ${CTL_SPLIT}`}>

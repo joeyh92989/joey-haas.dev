@@ -1,8 +1,7 @@
 import { useId, useState } from 'react'
 import { Button } from './ui/button.jsx'
 import { cn } from '../lib/utils.js'
-import { CHIP_ROWS } from './shelf-classes.js'
-import { PRESSED_FILL } from './shelf-classes.js'
+import { CHIP_ROWS, CTL_LABEL, CTL_ROW, PRESSED_FILL } from './shelf-classes.js'
 
 // A labelled single-select row's chips are underline tabs (#532): no pill, the
 // pressed one bold with the chip variant's 3px accent bar under it (its
@@ -188,8 +187,8 @@ export default function FilterChips({
     return (
       <div className={`chip-rows chip-rows-labelled ${CHIP_ROWS}`}>
         {rows.map((row) => (
-          <div key={row.key} className="ctl-row">
-            <span className="ctl-label" id={`${id}-${row.key}`}>
+          <div key={row.key} className={`ctl-row ${CTL_ROW}`}>
+            <span className={`ctl-label ${CTL_LABEL}`} id={`${id}-${row.key}`}>
               {row.label}
             </span>
             <div

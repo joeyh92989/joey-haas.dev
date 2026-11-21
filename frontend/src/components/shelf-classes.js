@@ -93,15 +93,22 @@ export const SHELF_TOOLBAR = 'mb-6 flex flex-col gap-3'
 
 /** The labelled toolbar: rows between two rules. */
 export const SHELF_CONTROLS =
-  'm-0 grid flex-col gap-2 border-y border-border py-3'
+  'm-0 grid flex-col gap-2 border-y border-y-border py-3'
 
 /** The unlabelled toolbar's second row: sort left, view right. */
 export const SHELF_TOOLBAR_ROW =
   'flex flex-wrap items-center justify-between gap-x-6 gap-y-3'
 
 /** The View group: Cards and Spines, size, dim. */
-export const SHELF_VIEW_CONTROLS =
-  'flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.75rem] text-muted-foreground'
+export const SHELF_VIEW_CONTROLS = 'flex flex-wrap items-center gap-x-3 gap-y-2'
+
+/** A labelled row: the label on the left (4.25rem, 3.5rem on a phone), the
+ *  controls on the right. The tag picker's labels are wider. */
+export const CTL_ROW =
+  'grid grid-cols-[4.25rem_minmax(0,1fr)] items-baseline gap-3 max-[34rem]:grid-cols-[3.5rem_minmax(0,1fr)]'
+export const CTL_ROW_WIDE =
+  'grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-3'
+export const CTL_LABEL = 'text-[0.8125rem] text-muted-foreground'
 
 /** The Sort row's split: the select left, the View group right. */
 export const CTL_SPLIT =
@@ -120,7 +127,7 @@ export const PAGER =
   'mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[0.875rem]'
 
 /** The Overview section under a list. */
-export const SHELF_OVERVIEW = 'mt-8 border-t border-border pt-6'
+export const SHELF_OVERVIEW = 'mt-8 border-t border-t-border pt-6'
 
 /** The line under the Overview; its links are underlined and, on a phone,
  *  44px high. */

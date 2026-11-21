@@ -3671,20 +3671,6 @@ dialog.shelf-sheet {
   }
 }
 
-/* ---------- Collection: labelled controls ---------- */
-
-.ctl-row {
-  align-items: baseline;
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: 4.25rem minmax(0, 1fr);
-}
-
-.ctl-label {
-  color: var(--text-3);
-  font-size: var(--fs-13);
-}
-
 .result {
   color: var(--text-2);
   font-size: var(--fs-14);
@@ -3767,10 +3753,6 @@ section > .cover-key {
 }
 
 @media (max-width: 34rem) {
-  .ctl-row {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-  }
-
   /* The labelled rows wrap, as the mockup's do: the label column makes a
      scrolling row hard to read, and four rows is all it costs. */
   .ctl-row .chip-row {
@@ -6620,10 +6602,6 @@ a.cover-tile-cap:focus-visible span {
 .tag-picker .comic-hint {
   grid-column: 1 / -1;
   margin: 0;
-}
-
-.tag-picker .ctl-row {
-  grid-template-columns: 6rem minmax(0, 1fr);
 }
 
 .tag-picker .chip-row {

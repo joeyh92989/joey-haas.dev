@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, useNavigate } from 'react-router'
 import {
+  CTL_LABEL,
+  CTL_ROW,
   SHELF_CONTROLS,
   SHELF_SEARCH,
   SHELF_TOP,
@@ -658,8 +660,8 @@ export default function AdminComics() {
           value={{ show: chip === 'all' ? null : chip, publisher, ...picked }}
           onChange={changeFilters}
         />
-        <div className="ctl-row">
-          <span className="ctl-label" aria-hidden="true">
+        <div className={`ctl-row ${CTL_ROW}`}>
+          <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
             {spine.shelf.sort}
           </span>
           <SortControl
