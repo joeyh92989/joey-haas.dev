@@ -145,7 +145,28 @@ async function dumpPage(page) {
   }, PROPS)
 }
 
-async function open(browser, { path, theme, vp, kind, media, reduce }) {
+async function openSearch(page, query) {
+  await page.keyboard.press('Control+k')
+  if (!(await page.locator('.search-dialog[open]').count()))
+    await page
+      .getByRole('button', { name: /search/i })
+      .first()
+      .click()
+  await page.locator('.search-dialog[open]').waitFor()
+  if (query) await page.locator('.search-input').fill(query)
+  await page.waitForTimeout(400)
+}
+
+async function openMore(page) {
+  const button = page.locator('.more-btn')
+  if (await button.isVisible()) await button.click()
+  await page.waitForTimeout(300)
+}
+
+async function open(
+  browser,
+  { path, theme, vp, kind, media, reduce, noIndex },
+) {
   const context = await browser.newContext({
     viewport: VIEWPORTS[vp],
     reducedMotion: reduce ? 'reduce' : 'no-preference',
@@ -154,6 +175,11 @@ async function open(browser, { path, theme, vp, kind, media, reduce }) {
   const page = await context.newPage()
   await page.clock.setFixedTime(NOW)
   await page.route('**/api/**', (r) => r.abort())
+  if (kind === 'signed-in')
+    await page.route('**/api/auth/me', (r) =>
+      r.fulfill({ json: { email: 'a@example.com' } }),
+    )
+  if (noIndex) await page.route('**/search-index.json', (r) => r.abort())
   if (kind === 'home') await serveHome(page)
   if (kind === 'shelf') await serveAdmin(page, GAMES)
   if (kind === 'closet') {
@@ -206,15 +232,75 @@ for (const theme of ['dark', 'light']) {
     await record(
       `screen ${theme} ${vp} search-open`,
       { path: '/', theme, vp },
+      (page) => openSearch(page),
+    )
+    await record(
+      `screen ${theme} ${vp} search-results`,
+      { path: '/', theme, vp },
+      (page) => openSearch(page, 'shelf'),
+    )
+    await record(
+      `screen ${theme} ${vp} search-none`,
+      { path: '/', theme, vp },
+      (page) => openSearch(page, 'zzqqxx'),
+    )
+    await record(
+      `screen ${theme} ${vp} search-unavailable`,
+      { path: '/', theme, vp, noIndex: true },
+      (page) => openSearch(page),
+    )
+    await record(
+      `screen ${theme} ${vp} nav-sheet`,
+      { path: '/now', theme, vp },
       async (page) => {
-        await page.keyboard.press('Control+k')
-        if (!(await page.locator('.search-dialog[open]').count()))
-          await page
-            .getByRole('button', { name: /search/i })
-            .first()
-            .click()
-        await page.locator('.search-dialog[open]').waitFor()
-        await page.waitForTimeout(400)
+        await page.getByRole('button', { name: 'Menu' }).click()
+        await page.locator('dialog.nav-sheet[open]').waitFor()
+        await page.waitForTimeout(300)
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} nav-sheet-about`,
+      { path: '/about', theme, vp },
+      async (page) => {
+        await page.getByRole('button', { name: 'Menu' }).click()
+        await page.locator('dialog.nav-sheet[open]').waitFor()
+        await page.waitForTimeout(300)
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} more-open-now`,
+      { path: '/now', theme, vp },
+      (page) => openMore(page),
+    )
+    await record(
+      `screen ${theme} ${vp} more-open-hover`,
+      { path: '/', theme, vp },
+      async (page) => {
+        await openMore(page)
+        const link = page.locator('.more-panel a').nth(1)
+        if (await link.isVisible()) await link.hover()
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} nav-hover`,
+      { path: '/about', theme, vp },
+      async (page) => {
+        const link = page.locator('.site-nav > a').nth(1)
+        if (await link.isVisible()) await link.hover()
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} tab-focus`,
+      { path: '/about', theme, vp },
+      async (page) => {
+        for (let i = 0; i < 5; i += 1) await page.keyboard.press('Tab')
+      },
+    )
+    await record(
+      `screen ${theme} ${vp} footer-signed-in`,
+      { path: '/about', theme, vp, kind: 'signed-in' },
+      async (page) => {
+        await page.locator('footer').scrollIntoViewIfNeeded()
       },
     )
   }
@@ -226,6 +312,11 @@ for (const theme of ['dark', 'light']) {
       media: 'print',
     })
   }
+  await record(
+    `reduce ${theme} search-open`,
+    { path: '/', theme, vp: 'desktop', reduce: true },
+    (page) => openSearch(page, 'shelf'),
+  )
   await record(`reduce ${theme} /`, {
     path: '/',
     theme,
