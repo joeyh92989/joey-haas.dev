@@ -190,6 +190,7 @@ async function open(browser, { path, theme, vp, kind, media, reduce }) {
 const browser = await chromium.launch()
 const result = {}
 async function record(label, spec, after) {
+  if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
   const { context, page } = await open(browser, spec)
   if (after) await after(page)
   result[label] = await dumpPage(page)
