@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { adminCopy } from '../content/adminCopy.js'
+import { accountPill, accountRail, accountRow } from './adminShellClasses.js'
 
 /**
  * The admin account menu: a disclosure button and a plain panel of the
@@ -69,7 +70,7 @@ export default function AccountMenu({
       <button
         type="button"
         ref={buttonRef}
-        className={rail ? 'acct-mark-btn' : 'acct-btn'}
+        className={rail ? accountRail : accountPill}
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={`${adminCopy.shell.account}, ${email}`}
@@ -106,7 +107,7 @@ export default function AccountMenu({
         </p>
         <ul className="acct-list">
           <li>
-            <Link to="/">
+            <Link to="/" className={accountRow}>
               {adminCopy.shell.viewSite}{' '}
               <span className="acct-arrow" aria-hidden="true">
                 ↗
@@ -116,6 +117,7 @@ export default function AccountMenu({
           <li>
             <button
               type="button"
+              className={accountRow}
               aria-disabled={pending ? 'true' : undefined}
               onClick={signOut}
             >

@@ -9,6 +9,7 @@ import {
 import AdminShell from '../components/AdminShell.jsx'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
 import { adminCopy } from '../content/adminCopy.js'
+import { signInLink } from '../components/adminShellClasses.js'
 import { WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
 import { apiFetch, loginUrl } from '../lib/api.js'
@@ -361,7 +362,7 @@ export default function AdminLayout() {
           <>
             <p>{adminCopy.gate.signedOut}</p>
             <p>
-              <a className="admin-signin" href={loginUrl}>
+              <a className={signInLink} href={loginUrl}>
                 Sign in with Google
               </a>
             </p>
