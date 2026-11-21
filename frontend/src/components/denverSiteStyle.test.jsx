@@ -8,6 +8,7 @@ import CandidateCard from './CandidateCard.jsx'
 import RangeControl from './RangeControl.jsx'
 import SectionCard from './SectionCard.jsx'
 import SuggestionCard from './SuggestionCard.jsx'
+import { readCss } from '../testing/readCss.js'
 
 // The Denver and Site admin pages (#535, slice 3) draw from the Button, Card
 // and Input looks. The legacy `.btn`, `.chip`, `.panel` and the old table and
@@ -18,7 +19,7 @@ import SuggestionCard from './SuggestionCard.jsx'
 const here = dirname(fileURLToPath(import.meta.url))
 const read = (path) => readFileSync(join(here, '..', path), 'utf8')
 // Read from disk: Vitest stubs CSS imports.
-const css = read('index.css')
+const css = readCss()
 
 const FILES = [
   'pages/AdminWeekend.jsx',

@@ -18,6 +18,7 @@ import {
   TILE,
 } from './components/addClasses.js'
 import { PHONE_ROW as CLOSET_PHONE_ROW } from './components/closetClasses.js'
+import { readCss } from './testing/readCss.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages (#535, slice c) are
 // drawn from the Button and Card looks. These tests pin what the look must
@@ -28,7 +29,7 @@ import { PHONE_ROW as CLOSET_PHONE_ROW } from './components/closetClasses.js'
 const here = dirname(fileURLToPath(import.meta.url))
 // Read from disk: Vitest stubs CSS imports.
 const read = (path) => readFileSync(join(here, path), 'utf8')
-const css = read('index.css')
+const css = readCss()
 
 const OWNED = [
   'components/WrapUpSheet.jsx',

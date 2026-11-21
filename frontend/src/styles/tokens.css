@@ -1,0 +1,249 @@
+/*
+ * Ledger theme (site refresh, 2026-10-19): one neutral scale, one cool
+ * accent, hairline rules, a mono face for metadata.
+ *
+ * Dark is the brand default and lives on :root; [data-theme='light'] on <html>
+ * overrides it. index.html ships data-theme="dark" in the markup so the dark
+ * palette survives a JavaScript failure, and its inline script only ever
+ * switches to a stored preference.
+ *
+ * Handoff sizes are given in px; they are expressed here in rem against the
+ * 16px browser default (identical rendering, but text still scales for readers
+ * who raise their browser font size).
+ *
+ * Palette (#527): warm paper in light, graphite in dark, one accent. The
+ * values come from the design table in
+ * docs/planning/2026-11-20-design-system-spike-design.md; the tokens the table
+ * leaves out (--sunken, --accent-soft, the data colours) keep their hue and
+ * move in lightness only as far as src/contrast.test.js needs. Text tokens
+ * clear 4.5:1 on --bg, --surface, --sunken and --accent-soft and non-text
+ * marks 3:1 against --surface (WCAG 1.4.11). The accent has two roles:
+ * --accent (the table's colour) is the fill, edge and underline, a mark;
+ * --accent-text is the same hue raised in lightness in dark, because the
+ * table's #f7a391 is only 3.49 on its own card. --ok-text and --warn-text do
+ * the same for --ok and --warn. The ratios are recorded beside each token. The
+ * palette is written three times (:root, [data-theme='light'] and the print
+ * block near the end): change all three together.
+ */
+:root {
+  /* The opaque stop of a mask-image gradient: only its alpha is read, so it
+     is the same in both themes and is the one raw hex outside a palette. */
+  --mask-opaque: #000;
+  --bg: #4e4e4d;
+  --surface: #5a5a59;
+  --sunken: #464645;
+  --line: #a6a5a2;
+  /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+     wired by the card components (#528). */
+  --line-card: #b0afac;
+  /* Decorative only (button borders, the timeline rail), so not held to
+     3:1: every control it outlines carries its own label. */
+  --line-strong: #a6a5a2;
+  /* Measured, dark, lowest of --bg / --surface / --sunken / --accent-soft:
+     text 6.28, text-2 4.89, text-3 4.89 (the designer's muted colour for
+     both); --accent as a mark is 3.49 on --surface, 4.21 on --bg, 4.77 on
+     --sunken and --accent-soft (use --accent-text for text). */
+  --text: #f5f4f1;
+  --text-2: #dad9d5;
+  --text-3: #dad9d5;
+  --accent: #f7a391;
+  /* --accent-ink on --accent 7.16; --bg on --text (pressed chips, the
+     monogram) 7.57. */
+  --accent-ink: #2b2b2a;
+  /* The accent as TEXT (links, labels): --accent itself is only a fill, edge
+     or underline here. 4.52 on --surface, 5.46 on --bg, 6.19 on --sunken,
+     6.18 on --accent-soft. */
+  --accent-text: #fac5b9;
+  /* --ok and --warn as text; their marks stay on --ok and --warn. --ok-text
+     4.53 on --surface, 5.47 on --bg, 6.20 on --sunken; --warn-text is the
+     badge colour. */
+  --ok-text: #a4debf;
+  --warn-text: var(--badge);
+  /* The highlighter: a status mark's fill, with its own text colour. */
+  --highlight: #ffd84a;
+  --highlight-ink: #2b2b2a;
+  --accent-soft: #4a4543;
+  /* The highlighter's text on its fill, 10.24; the fill on --surface 4.99.
+     Marks on --surface: ok 3.21, warn 3.30, chart 4.04, chart-2 3.02. The
+     old chart #6ea0ef and chart-2 #4a6896 reached 2.61 and 1.22 on the
+     lighter card, so both moved up in lightness; chart went further than
+     3:1 to stay a step brighter than chart-2. */
+  --ok: #5ec48d;
+  --warn: #e3a94a;
+  /* The admin area badge (9px numerals): --badge-ink on --badge 9.24. The
+     colour is also text on the page, the card and the rail: --badge on --bg
+     5.43, --surface 4.50, --sunken 6.16. --warn (3.30 on --surface) is a
+     mark only, so the badge is its own lighter value. */
+  --badge: #eecc93;
+  --badge-ink: #2b2b2a;
+  --chart: #a9c8f7;
+  --chart-2: #98adcc;
+  /* The tour's redaction stripe. On the mid-grey card the lighter stripe is
+     the mark (a darker one cannot reach 3:1 there): 3.01 on --surface. Tour
+     pill borders use ok 3.21, warn 3.30, accent 3.49 above; the New badge,
+     --accent-text on --bg, is 5.46. */
+  --redact: repeating-linear-gradient(135deg, #a5acb5 0 6px, #464645 6px 12px);
+  /* Comic runs. Missing issues are non-text marks on --surface, built on the
+     redaction stripe's mark colour: 3.01. The lanes' hollow missing outline
+     also sits on --bg on a shelf card: 3.64. The not-out-yet hatch has its
+     own stripe, below. */
+  --run-missing: #a5acb5;
+  /* The hatch's own stripe, so numerals over it can be read: black is 3.04 on
+     --surface as a mark and --text on it is 19.09. */
+  --hatch-stripe: #000000;
+  --hatch: repeating-linear-gradient(
+    135deg,
+    var(--hatch-stripe) 0 2px,
+    transparent 2px 6px
+  );
+  /* Code blocks get their own token because the syntax colors do not clear AA
+     on every surface: measured across fifteen languages, every dark-plus
+     color reaches 4.89:1 here (worst: the grey used for JSX and HTML angle
+     brackets). On --surface that grey drops to 4.51, on --sunken to 4.19. */
+  --code-bg: #0c0e11;
+  /* The tracker shelf. Status marks are non-text marks, so each clears 3:1
+     (WCAG 1.4.11) against --surface, the colour of the 2px gaps between
+     stacked-bar segments. On the mid-grey card the three greys cannot sit
+     as far apart as before (finished to backlog 1.34, backlog to abandoned
+     1.36) and active is the only green. Measured, dark: finished 5.51,
+     backlog 4.11, abandoned 3.02, active 3.21; rating 3.30. --line is no
+     longer a target: it is now a mid grey. */
+  --rating: var(--warn);
+  --status-active: var(--ok);
+  --status-finished: #e3e6ea;
+  --status-backlog: #c4c8cd;
+  --status-abandoned: #a6acb3;
+  /* Garment colour families (closet_colors.FAMILIES): the swatch a piece
+     without a photo or hex is drawn in. Data colours, one set for both
+     themes (a navy shirt is navy in either); the swatch's --line border
+     keeps black and white visible on either ground. */
+  --gc-black: #1c1c1e;
+  --gc-white: #f4f4f0;
+  --gc-grey: #8a8d91;
+  --gc-navy: #1f2f4f;
+  --gc-blue: #3f6fb5;
+  --gc-green: #4a7a4f;
+  --gc-red: #b03a3a;
+  --gc-orange: #d9822b;
+  --gc-yellow: #e3c443;
+  --gc-pink: #e08aa6;
+  --gc-purple: #7a4e9a;
+  --gc-brown: #6b4a2e;
+  --gc-beige: #d8c8a8;
+  --gc-tan: #b89468;
+  --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+  --skeleton: var(--sunken);
+  /* The search dialog's highlighted row, under an --accent inset bar.
+     Computed from the tokens, dark: row title 8.59, sub line 6.69, accent
+     bar 4.77 on it; group label 4.89 on --surface. */
+  --search-active: var(--sunken);
+  --grid-gap: 1rem;
+  --radius: 6px;
+  /* The type scale, in px at the default root size. Nothing reading is
+     smaller than --fs-12. Theme-independent, like --font-*: declared here
+     only. */
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-28: 1.75rem;
+  --fs-32: 2rem;
+  --fs-40: 2.5rem;
+  --fs-48: 3rem;
+  /* Display only: the Home hero title. */
+  --fs-56: 3.5rem;
+  /* The spacing scale, in rem. Padding, margin and gap use a step when the
+     value is exactly one; off-scale values stay literal. Theme-independent. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Headings (h1 to h3) and the display titles: see main.jsx. */
+  --font-display: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f1ede6;
+  --surface: #fcfbf9;
+  --sunken: #e8e3da;
+  --line: #8c8579;
+  /* Rules and outlines inside cards. Not used by the legacy sheet: it is
+     wired by the card components (#528). */
+  --line-card: #8c8579;
+  --line-strong: #8c8579;
+  /* Measured, light, lowest of --bg / --surface / --sunken / --accent-soft:
+     text 12.81, text-2 5.98, text-3 5.98, accent 5.23. */
+  --text: #231f1a;
+  --text-2: #57534d;
+  --text-3: #57534d;
+  --accent: #a8321f;
+  /* --accent-ink on --accent 6.69; --bg on --text 14.03. */
+  --accent-ink: #ffffff;
+  /* The accent as TEXT: the same colour, 6.46 on --surface, 5.73 on --bg,
+     5.23 on --sunken, 5.71 on --accent-soft. --ok-text 5.57 on --surface,
+     4.94 on --bg, 4.51 on --sunken (the --ok mark is 4.16 there);
+     --warn-text is the badge colour. */
+  --accent-text: var(--accent);
+  --ok-text: #1d7449;
+  --warn-text: var(--badge);
+  --accent-soft: #f5ebe8;
+  --highlight: #f3dc6b;
+  --highlight-ink: #231f1a;
+  /* The highlighter: a status mark's fill, with its own text colour. Its
+     text is 11.90 on it; the fill is only 1.33 on --surface, so it always
+     sits in an outline beside a word. Marks on --surface: ok 5.14, warn
+     4.10, chart 5.89, chart-2 3.73 (3.02 on --sunken). */
+  --ok: #1f7a4d;
+  --warn: #b26a00;
+  /* --bg on --warn reaches only 3.63, short of 4.5 for 9px numerals, so the
+     badge darkens: white on --badge 6.11; the colour as text on --bg 5.24,
+     --surface 5.91, --sunken 4.78. */
+  --badge: #8f5400;
+  --badge-ink: #ffffff;
+  --chart: #1f5fbf;
+  --chart-2: #5d82c3;
+  /* Redaction stripe 3.40 on --surface. Pill borders ok 5.14, warn 4.10,
+     accent 6.46; the New badge on --bg 5.73. */
+  --redact: repeating-linear-gradient(135deg, #848993 0 6px, #e8e3da 6px 12px);
+  /* Comic runs on --surface: 3.40; the lanes' missing outline on --bg 3.01;
+     --text over the hatch 4.66. */
+  --run-missing: #848993;
+  /* The hatch's own stripe: 3.40 on --surface, --text over it 4.66. */
+  --hatch-stripe: #848993;
+  --hatch: repeating-linear-gradient(
+    135deg,
+    var(--hatch-stripe) 0 2px,
+    transparent 2px 6px
+  );
+  /* Every light-plus color reaches 4.53:1 on white (worst: the red used for
+     string escapes); on --bg it drops to 4.41. */
+  --code-bg: #ffffff;
+  /* Measured, light, on --surface: finished 13.01, backlog 6.04, active
+     4.43, abandoned 3.11; rating 4.10. Darkest first: finished, backlog,
+     active, abandoned; no two closer than 1.36:1, and active is the only
+     green. */
+  --rating: var(--warn);
+  --status-active: #2a8556;
+  --status-finished: #2b2f35;
+  --status-backlog: #5b616a;
+  --status-abandoned: #8a9099;
+  --overlay: color-mix(in srgb, var(--bg) 60%, transparent);
+  /* Computed from the tokens, light: row title 12.81, sub line 5.98, accent
+     bar 5.23 on --search-active; group label 7.38 on --surface. */
+  --search-active: var(--sunken);
+  --skeleton: #e0dbd1;
+  --grid-gap: 1rem;
+  color-scheme: light;
+}

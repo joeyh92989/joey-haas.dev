@@ -1,15 +1,9 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readCss } from './testing/readCss.js'
 
 // Read from disk: Vitest stubs CSS imports, `?raw` included.
-const here = dirname(fileURLToPath(import.meta.url))
-const css = readFileSync(join(here, 'index.css'), 'utf8').replace(
-  /\/\*[\s\S]*?\*\//g,
-  '',
-)
+const css = readCss().replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** Every selector in the sheet, split out of its rule's selector list. */
 const selectors = new Set(

@@ -9,6 +9,7 @@ import AccountMenu from './AccountMenu.jsx'
 import AdminShell from './AdminShell.jsx'
 import { signInLink } from './adminShellClasses.js'
 import { buttonVariants } from './ui/button-variants.js'
+import { readCss } from '../testing/readCss.js'
 
 // The admin shell (#535, slice 1) is drawn from the Button look
 // (`ui/button-variants.js`), like the public shell (#529). These tests pin
@@ -24,7 +25,7 @@ vi.mock('../lib/useMediaQuery.js', () => ({
 const here = dirname(fileURLToPath(import.meta.url))
 const read = (path) => readFileSync(join(here, '..', path), 'utf8')
 // Read from disk: Vitest stubs CSS imports.
-const css = read('index.css')
+const css = readCss()
 
 function renderAt(path = '/admin/shelf/games') {
   return render(

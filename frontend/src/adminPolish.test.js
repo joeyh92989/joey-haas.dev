@@ -3,10 +3,11 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readCss } from './testing/readCss.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read from disk: Vitest stubs CSS imports, `?raw` included.
-const css = readFileSync(join(here, 'index.css'), 'utf8')
+const css = readCss()
 
 /** Every `selectors { body }` pair with the @media prelude it sits in, or null. */
 const rules = []

@@ -1,14 +1,9 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { readCss } from './testing/readCss.js'
 
-// Read from disk: Vitest stubs CSS imports.
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), 'index.css'),
-  'utf8',
-)
+// Read from disk (testing/readCss.js): Vitest stubs CSS imports.
+const css = readCss()
 
 const STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
 

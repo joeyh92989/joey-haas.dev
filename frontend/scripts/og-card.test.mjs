@@ -10,6 +10,7 @@ import {
   renderCardPng,
   wrapTitle,
 } from './og-card.mjs'
+import { readCss } from '../src/testing/readCss.js'
 
 // Ten units a character: 1,040 wide fits 104 characters, so tests are
 // independent of the real font.
@@ -124,7 +125,7 @@ describe('renderCardPng', () => {
 // light tokens of index.css, so a link preview matches the site it links to.
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 function lightToken(name) {
-  const css = readFileSync(path.join(root, 'src/index.css'), 'utf8')
+  const css = readCss()
   const block = css.match(/\[data-theme='light'\] \{([\s\S]*?)\n\}/)[1]
   return block.match(new RegExp(`--${name}: (#[0-9a-f]{6})`))[1]
 }
