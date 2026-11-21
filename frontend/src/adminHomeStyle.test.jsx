@@ -73,6 +73,17 @@ describe('the strings', () => {
     expect(home.SWAP_CHOICE).toContain('min-h-11')
   })
 
+  it('draws the design ring on panel and table links', () => {
+    expect(home.PANEL_ACTION).toContain('[&_a]:focus-visible:outline-solid')
+    expect(home.TEXT_LINK).toContain('focus-visible:outline-solid')
+  })
+
+  it('marks a disabled button by more than colour', () => {
+    expect(home.PRIMARY).toContain('disabled:border-dashed')
+    expect(home.PRIMARY).toContain('disabled:cursor-not-allowed')
+    expect(home.LINK_BUTTON).toContain('disabled:aria-busy:cursor-progress!')
+  })
+
   it('shows a disabled button in the page colours, not dimmed', () => {
     for (const name of ['PRIMARY', 'PLAIN', 'LINK_BUTTON']) {
       expect(home[name], name).toContain('disabled:opacity-100!')

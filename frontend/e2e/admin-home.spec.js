@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { mkdirSync } from 'node:fs'
 import { test, expect } from './fixtures.js'
 import { unringed } from './closet-ring.js'
+import { tabRings } from './denver-site-ring.js'
 import { serveHome } from './admin-home.fixtures.js'
 
 // Admin Home and Jobs (#535, Home and Jobs slice), with realistic mocked
@@ -181,7 +182,7 @@ for (const path of ROUTES) {
         await open(page, openRoute, path, theme, width)
         const controls = page.locator(`main ${CONTROLS}`)
         expect(await controls.count()).toBeGreaterThan(0)
-        expect(await unringed(page, controls)).toEqual([])
+        expect(await tabRings(page, controls)).toEqual([])
       })
     }
   }
@@ -326,6 +327,9 @@ for (const theme of THEMES) {
       name: /^Running…\s*: Weekend forecast/,
     })
     await expect(busy).toBeDisabled()
+    expect(await busy.evaluate((el) => getComputedStyle(el).cursor)).toBe(
+      'progress',
+    )
     await page.mouse.move(1, 1)
     await page.waitForTimeout(300)
     const weak = (await contrasts(page, 'main :is(button, a)')).filter(
@@ -369,9 +373,79 @@ for (const theme of THEMES) {
     await page.waitForLoadState('networkidle')
     await page.mouse.move(1, 1)
     await page.waitForTimeout(300)
+    // A disabled button is marked by more than its colour: a dashed outline
+    // and the not-allowed cursor.
+    const cue = await page
+      .getByRole('button', { name: 'Logged tonight' })
+      .evaluate((el) => {
+        const s = getComputedStyle(el)
+        return `${s.borderStyle} ${s.cursor}`
+      })
+    expect(cue).toBe('dashed not-allowed')
     const found = await contrasts(page, 'main button')
     expect(found.length).toBeGreaterThan(3)
     expect(found.filter((c) => c.ratio < 4.5)).toEqual([])
+  })
+}
+
+// The panel header links and the table's item links draw the design ring (2px,
+// solid, the ring colour), not the browser's blue default.
+for (const theme of THEMES) {
+  test(`panel and table links draw the design ring (${theme})`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+    await open(page, openRoute, '/admin/jobs', theme, 1280)
+    await page.keyboard.press('Shift')
+    const links = page.locator('main .panel-head a, main table a')
+    expect(await links.count()).toBeGreaterThan(2)
+    for (let i = 0; i < (await links.count()); i++) {
+      await links.nth(i).focus()
+      const ring = await links.nth(i).evaluate((el) => {
+        const s = getComputedStyle(el)
+        return `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor}`
+      })
+      expect(ring).toMatch(/^solid 2px /)
+      expect(ring).not.toContain('rgb(0, 95, 204)')
+    }
+  })
+}
+
+// The table keeps its roles whole on every cell, for VoiceOver.
+test('every table cell has its role', async ({ page, openRoute }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+  await open(page, openRoute, '/admin/jobs', 'light', 390)
+  const bad = await page.evaluate(() => [
+    ...[...document.querySelectorAll('main th')]
+      .filter((el) => el.getAttribute('role') !== 'columnheader')
+      .map(() => 'th'),
+    ...[...document.querySelectorAll('main td')]
+      .filter((el) => el.getAttribute('role') !== 'cell')
+      .map(() => 'td'),
+  ])
+  expect(bad).toEqual([])
+})
+
+// The When column stays on one line where there is room.
+for (const width of [1280, 1440]) {
+  test(`the When column is one line at ${width}px`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await open(page, openRoute, '/admin/jobs', 'light', width)
+    const lines = await page.evaluate(() =>
+      [...document.querySelectorAll('main td.job-when')].map((td) => {
+        const range = document.createRange()
+        range.selectNodeContents(td)
+        return new Set(
+          [...range.getClientRects()].map((r) => Math.round(r.top)),
+        ).size
+      }),
+    )
+    expect(lines.length).toBeGreaterThan(3)
+    expect(lines.filter((n) => n !== 1)).toEqual([])
   })
 }
 

@@ -53,7 +53,7 @@ export const PANEL_TITLE =
   'font-heading text-lg leading-tight font-medium text-foreground'
 
 /** A link in the header bar. */
-export const PANEL_ACTION = `[&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:gap-1 [&_a]:text-sm [&_a]:text-accent-text [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:no-underline max-[700px]:[&_a]:min-h-11`
+export const PANEL_ACTION = `[&_a]:inline-flex [&_a]:min-h-6 [&_a]:items-center [&_a]:gap-1 [&_a]:text-sm [&_a]:text-accent-text [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:no-underline [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-solid [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-ring max-[700px]:[&_a]:min-h-11`
 
 /** A panel's body. */
 export const PANEL_BODY = 'p-4'
@@ -93,14 +93,14 @@ export const AREA_ACTIONS = 'flex flex-wrap items-center gap-2'
  *  colours, not the look dimmed to 55% (a dimmed accent fill measured under
  *  4.5:1). `!` because the look sets the opacity and the fill itself. */
 export const CALM =
-  'disabled:border-border! disabled:bg-secondary! disabled:text-muted-foreground! disabled:opacity-100!'
+  'disabled:pointer-events-auto! disabled:cursor-not-allowed disabled:border-dashed disabled:border-border! disabled:bg-secondary! disabled:text-muted-foreground! disabled:opacity-100! disabled:hover:brightness-100'
 
 /** Home's primary and plain small buttons. */
 export const PRIMARY = `${btn('primary', 'sm')} ${CALM}`
 export const PLAIN = `${btn('plain', 'sm')} ${CALM}`
 
 /** A button that looks like its neighbour link ("Change", "Run now"). */
-export const LINK_BUTTON = `${LINK} disabled:text-muted-foreground! disabled:no-underline disabled:opacity-100!`
+export const LINK_BUTTON = `${LINK} disabled:pointer-events-auto! disabled:cursor-not-allowed disabled:aria-busy:cursor-progress! disabled:text-muted-foreground! disabled:no-underline disabled:opacity-100! disabled:hover:no-underline`
 
 /** The jobs list: no bullets. */
 export const JOB_LIST = 'm-0 list-none p-0'
@@ -154,14 +154,20 @@ export const TH =
   'border-b border-line-card px-3 py-2 text-left font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase'
 
 export const TD =
-  'border-b border-line-card px-3 py-2 text-left [overflow-wrap:anywhere] group-last/row:border-b-0 max-[700px]:border-b-0 max-[700px]:px-0 max-[700px]:py-1'
+  'border-b border-line-card px-3 py-2 text-left group-last/row:border-b-0 max-[700px]:border-b-0 max-[700px]:px-0 max-[700px]:py-1'
 
 /** The item cell takes the whole row on a phone. */
-export const TD_ITEM = `${TD} max-[700px]:col-span-full`
+/** Item and change words may break anywhere, so a long one cannot widen the table. */
+export const TD_WORDS = `${TD} [overflow-wrap:anywhere]`
+
+export const TD_ITEM = `${TD_WORDS} max-[700px]:col-span-full`
+
+/** The time stays on one line where there is room. */
+export const TD_WHEN = `${TD} font-mono text-xs text-muted-foreground min-[701px]:whitespace-nowrap`
 
 /** A link in a table cell: the item's name, underlined in the accent. */
 export const TEXT_LINK =
-  'inline-block py-1 text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 hover:no-underline max-[700px]:min-h-11 max-[700px]:py-3'
+  'inline-block py-1 text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4 outline-none hover:no-underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring max-[700px]:min-h-11 max-[700px]:py-3'
 
 /** The swap sheet. */
 export const SWAP_BODY = 'grid gap-3 p-4'

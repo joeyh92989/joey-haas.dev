@@ -4,8 +4,9 @@ import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
 import {
   TABLE,
   TBODY,
-  TD,
   TD_ITEM,
+  TD_WHEN,
+  TD_WORDS,
   TEXT_LINK,
   TH,
   THEAD,
@@ -47,13 +48,13 @@ export default function AdminJobs() {
             <table role="table" className={`recent-table ${TABLE}`}>
               <thead role="rowgroup" className={THEAD}>
                 <tr role="row">
-                  <th scope="col" className={`${TH}`}>
+                  <th scope="col" role="columnheader" className={TH}>
                     {adminCopy.jobs.item}
                   </th>
-                  <th scope="col" className={`${TH}`}>
+                  <th scope="col" role="columnheader" className={TH}>
                     {adminCopy.jobs.change}
                   </th>
-                  <th scope="col" className={TH}>
+                  <th scope="col" role="columnheader" className={TH}>
                     {adminCopy.jobs.when}
                   </th>
                 </tr>
@@ -66,12 +67,10 @@ export default function AdminJobs() {
                         {change.title}
                       </Link>
                     </td>
-                    <td role="cell" className={TD}>
+                    <td role="cell" className={TD_WORDS}>
                       {change.change}
                     </td>
-                    <td
-                      className={`job-when ${TD} font-mono text-xs text-muted-foreground`}
-                    >
+                    <td role="cell" className={`job-when ${TD_WHEN}`}>
                       {whenWords(change.at)}
                     </td>
                   </tr>
