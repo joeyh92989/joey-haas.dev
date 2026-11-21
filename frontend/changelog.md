@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-20
 
+- About, Projects, Now, Colophon, Blog and TIL follow the new look: projects, posts and notes are numbered record cards, tags and tech are outlined badges, and section headings are serif with a rule under them.
 - Home follows the new look: a plain headline, the facts in an At a glance card, Work as numbered record cards and Experience as a dated list.
 - The masthead, menus, search and footer follow the new look: outlined monogram, an accent bar under the current page, flat menus, and a 1200px page width on Home, About, Projects and the shelf. Buttons, filter chips and "Try again" now show their outline. On a phone the theme toggle reads Light or Dark so the masthead still fits at 320px. Link previews and the browser icon use the paper and ink colours.
 - The site has a new look: warm paper in the light theme, graphite in the dark one, a rust accent in light and a red-pencil accent in dark, and serif headings. Text and marks were measured for contrast in both themes.
