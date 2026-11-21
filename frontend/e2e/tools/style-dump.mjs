@@ -769,8 +769,13 @@ for (const theme of ['dark', 'light']) {
   for (const vp of ['desktop', 'phone']) {
     const spec = { theme, vp }
     const tag = `d4c ${theme} ${vp}`
-    for (const path of ['/shelf/games', '/shelf/comics', '/shelf/next'])
+    for (const path of ['/shelf/games', '/shelf/comics'])
       await record(`${tag} ${path}`, { ...spec, path })
+    await record(`${tag} /shelf/next`, {
+      ...spec,
+      path: '/shelf/next',
+      kind: 'next',
+    })
     await record(
       `${tag} games-pressed`,
       { ...spec, path: '/shelf/games' },
@@ -880,7 +885,7 @@ for (const theme of ['dark', 'light']) {
       await record(`${tag} ${path}`, { ...spec, path, kind: 'closet' })
     await record(
       `${tag} denver-chip`,
-      { ...spec, path: '/denver' },
+      { ...spec, path: '/denver', kind: 'denver' },
       async (page) => {
         await pressFirst(page, '.chip[aria-pressed="false"]')
       },
