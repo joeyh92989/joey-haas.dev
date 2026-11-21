@@ -41,6 +41,7 @@ import {
   btn,
   chipBtn,
   closetCard,
+  FILE_PICK,
   PRESSED,
 } from '../components/closetClasses.js'
 
@@ -163,7 +164,7 @@ function MatchBody({ titleId, onClose, onGarment, onPhoto }) {
         >
           {adminCopy.closetToday.fromCloset}
         </button>
-        <label className={`${btn()} btn-file`}>
+        <label className={`${btn()} ${FILE_PICK}`}>
           {adminCopy.closetToday.fromPhoto}
           <input
             type="file"

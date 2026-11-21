@@ -614,10 +614,13 @@ describe('AdminClosetToday', () => {
     )
     const sheet = await screen.findByRole('dialog')
     const file = new File(['x'], 'shirt.jpg', { type: 'image/jpeg' })
-    // The input is visually hidden: its label carries the focus ring.
+    // The input is visually hidden: its label carries the focus ring, as a
+    // class that paints on focus-visible (the legacy .btn-file rule sits in
+    // a lower layer than the button look's outline-none).
     expect(
-      within(sheet).getByText(adminCopy.closetToday.fromPhoto).closest('label'),
-    ).toHaveClass('btn-file')
+      within(sheet).getByText(adminCopy.closetToday.fromPhoto).closest('label')
+        .className,
+    ).toMatch(/has-focus-visible:outline-ring/)
     await userEvent.upload(
       within(sheet).getByLabelText(adminCopy.closetToday.fromPhoto),
       file,

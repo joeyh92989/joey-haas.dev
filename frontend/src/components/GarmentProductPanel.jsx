@@ -166,9 +166,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       </h2>
 
       <div className="garment-attach-row">
-        <label
-          className={`${btn('plain', 'sm')} ${FILE_PICK} garment-photo-pick`}
-        >
+        <label className={`${btn('plain', 'sm')} ${FILE_PICK}`}>
           {garment.image ? copy.replacePhoto : copy.addPhoto}
           <input
             type="file"

@@ -47,6 +47,14 @@ export const GARMENTS = [
     status: 'packed',
     back_on: '2027-05-01',
   }),
+  // An unbroken name: it must wrap or break, never widen the page.
+  garment(
+    'e',
+    'Averyveryveryverylongunbrokengarmentnamewithoutanyspaces12345678',
+    {
+      category: 'bottom',
+    },
+  ),
   garment('d', null, {
     category: null,
     status: 'untagged',
@@ -146,8 +154,14 @@ export const REVIEW = {
     ]),
     rev('g2', 'linen shirt', [['out_of_season', 'Out of season until May.']]),
   ],
-  due_back: [],
-  listed: [],
+  due_back: [garment('due1', 'Linen shirt', { status: 'packed' })],
+  listed: [
+    garment(
+      'l1',
+      'Averyveryveryverylongunbrokengarmentnamewithoutanyspaces12345678',
+      { status: 'listed' },
+    ),
+  ],
 }
 
 export const PROFILE = {

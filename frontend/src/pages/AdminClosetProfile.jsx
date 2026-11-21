@@ -169,7 +169,7 @@ export default function AdminClosetProfile() {
           </span>
           <textarea
             className={textarea}
-            rows={2}
+            rows={3}
             maxLength={500}
             value={form.build_fit}
             onChange={(e) => set('build_fit')(e.target.value)}

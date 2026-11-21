@@ -101,6 +101,135 @@ for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
   }
 }
 
+// Sheets and revealed controls, opened first, then every control in them is
+// ringed. A sheet is the only thing on screen that takes focus, so it is the
+// scope; the revealed rows are in the page.
+const STATES = [
+  {
+    name: 'Match sheet',
+    route: '/admin/closet/today',
+    scope: 'dialog[open]',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Match this/ }).click()
+      const sheet = page.getByRole('dialog')
+      await sheet
+        .getByRole('button', { name: /closet/i })
+        .first()
+        .click()
+      await expect(sheet.locator('.today-pick').first()).toBeVisible()
+    },
+  },
+  {
+    name: 'Not this reasons',
+    route: '/admin/closet/today',
+    scope: 'main',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Not this/ }).click()
+    },
+  },
+  {
+    name: 'Sell sheet',
+    route: '/admin/closet/review',
+    scope: 'dialog[open]',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Sell/ }).click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+    },
+  },
+  {
+    name: 'Pack month',
+    route: '/admin/closet/review',
+    scope: 'main',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /^Pack away/ }).click()
+      await expect(page.locator('.pack-month')).toBeVisible()
+    },
+  },
+  {
+    name: 'Delete confirm',
+    route: '/admin/closet/a',
+    scope: 'main',
+    prep: async (page) => {
+      await page.getByRole('button', { name: 'Delete', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Keep it' })).toBeVisible()
+    },
+  },
+]
+
+for (const size of WIDTHS.filter((s) => [390, 1280].includes(s.width))) {
+  for (const state of STATES) {
+    for (const theme of THEMES) {
+      test(`focus rings paint in ${state.name} at ${size.width}px, ${theme}`, async ({
+        page,
+      }) => {
+        test.setTimeout(180_000)
+        await open(page, state.route, size, theme)
+        await state.prep(page)
+        await page.mouse.move(1, 1)
+        const controls = page.locator(
+          `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea):not(:disabled):visible`,
+        )
+        expect(await controls.count()).toBeGreaterThan(0)
+        expect(await unringed(page, controls)).toEqual([])
+      })
+    }
+  }
+}
+
+// #276: on a phone a control is 44px tall. The classes that say so are on
+// every chip and small button, and the intake row's buttons; here the height
+// is measured, so a rule that loses to another is caught.
+for (const route of ROUTES) {
+  test(`phone tap targets are 44px on ${route}`, async ({ page }) => {
+    await open(page, route, WIDTHS[1])
+    const short = await page.evaluate(() => {
+      const small = [
+        ...document.querySelectorAll(
+          'main button.h-8, main a.h-8, main label.h-8',
+        ),
+      ]
+      const chips = [
+        ...document.querySelectorAll(
+          'main button[aria-pressed]:not(.h-6), main label:has(input[type=radio]), main .intake-waiting button',
+        ),
+      ]
+      return [...new Set([...small, ...chips])]
+        .filter((el) => el.getBoundingClientRect().height > 0)
+        .filter((el) => el.getBoundingClientRect().height < 43.5)
+        .map(
+          (el) =>
+            `${el.tagName}.${String(el.className).slice(0, 30)} "${el.textContent.trim().slice(0, 16)}" ${Math.round(el.getBoundingClientRect().height)}px`,
+        )
+    })
+    expect(short).toEqual([])
+  })
+}
+
+// The ring's room in a narrow chip row (the first chip's left ring) must not
+// move rows that reset their padding: a public row's start margin is 0.
+test('public chip rows keep their start margin at 390px', async ({ page }) => {
+  await open(page, '/admin/closet', WIDTHS[1])
+  const margins = await page.evaluate(() => {
+    const out = {}
+    for (const parent of ['ctl-row', 'tag-picker', 'pick-choices']) {
+      const wrap = document.createElement('div')
+      wrap.className = parent
+      const row = document.createElement('div')
+      row.className = 'chip-row'
+      wrap.append(row)
+      document.body.append(wrap)
+      out[parent] = getComputedStyle(row).marginInlineStart
+      wrap.remove()
+    }
+    return out
+  })
+  expect(margins).toEqual({
+    'ctl-row': '0px',
+    'tag-picker': '0px',
+    'pick-choices': '0px',
+  })
+})
+
 for (const route of ROUTES) {
   for (const theme of THEMES) {
     test(`axe finds no serious violation on ${route}, ${theme}`, async ({
@@ -136,6 +265,19 @@ test('closet review shots', async ({ page }) => {
           fullPage: true,
         })
       }
+    }
+  }
+  // The opened states, at the phone width.
+  for (const theme of THEMES) {
+    for (const state of STATES) {
+      await open(page, state.route, WIDTHS[1], theme)
+      await state.prep(page)
+      await page.waitForTimeout(400)
+      const name = state.name.toLowerCase().replace(/ /g, '-')
+      await page.screenshot({
+        path: `${process.env.E2E_SHOT_DIR}/closet-state-${name}-390-${theme}.png`,
+        fullPage: true,
+      })
     }
   }
 })

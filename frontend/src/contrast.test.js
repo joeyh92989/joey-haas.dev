@@ -87,6 +87,13 @@ const PAIRS = [
     b,
     4.5,
   ]),
+  // Closet marks (#535, closetClasses.js): PRESSED is --accent-text (4.5) with
+  // an --accent border (3, a mark) on the card; CHECKED_CHIP is --text (4.5)
+  // with a --text border on the card. Both also carry a heavier word, so
+  // colour never carries the state alone.
+  ['--accent-text', '--surface', 4.5],
+  ['--accent', '--surface', 3],
+  ['--text', '--surface', 4.5],
   ['--accent', '--bg', 3],
   ['--accent', '--surface', 3],
   ['--accent', '--accent-soft', 3],
