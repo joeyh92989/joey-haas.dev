@@ -86,6 +86,64 @@ test('signing out returns to the signed-out admin page', async ({ page }) => {
   await expect(page.getByText('Sign in with Google')).toBeVisible()
 })
 
+// The shell's look (#535): a visible focus ring on the account trigger, the
+// area links and the page links (rail and page list on a desktop; tab bar,
+// segments and account button on a phone), and no sideways scroll at any
+// width. `outline-2` alone leaves the style `none`, so the ring is read from
+// the computed outline style, not assumed from a class.
+const SHELL_WIDTHS = [
+  { width: 320, height: 700, phone: true },
+  { width: 390, height: 800, phone: true },
+  { width: 1280, height: 800, phone: false },
+  { width: 1440, height: 900, phone: false },
+]
+const SHELL_ROUTES = ['/admin', '/admin/jobs', '/admin/shelf/games']
+
+for (const { width, height, phone } of SHELL_WIDTHS) {
+  for (const route of SHELL_ROUTES) {
+    test(`shell at ${width}px on ${route}: focus rings, no sideways scroll`, async ({
+      page,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
+      await page.setViewportSize({ width, height })
+      await page.goto(route)
+      await expect(page.locator('main h1').first()).toBeVisible()
+      await page.waitForLoadState('networkidle')
+
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      )
+      expect(overflow, 'horizontal overflow in px').toBeLessThanOrEqual(0)
+
+      const targets = {
+        account: page
+          .getByRole('button', { name: /^Account, / })
+          .and(page.locator(':visible'))
+          .first(),
+        area: page.locator('nav[aria-label="Areas"]:visible a').first(),
+        page: phone
+          ? page
+              .locator('.admin-subnav:visible a, .admin-subnav:visible button')
+              .first()
+          : page.locator('.admin-side-nav:visible a').first(),
+      }
+      for (const [name, target] of Object.entries(targets)) {
+        await expect(target, name).toBeVisible()
+        // A key press first, so the browser treats focus as keyboard focus
+        // (:focus-visible) when the script moves it.
+        await page.keyboard.press('Shift')
+        await target.focus()
+        const style = await target.evaluate(
+          (el) => getComputedStyle(el).outlineStyle,
+        )
+        expect(style, `${name} focus ring`).not.toBe('none')
+      }
+    })
+  }
+}
+
 test('every known a11y entry on an admin page still applies', async ({
   page,
 }, testInfo) => {
