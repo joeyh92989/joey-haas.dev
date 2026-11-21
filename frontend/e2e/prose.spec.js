@@ -91,7 +91,9 @@ for (const theme of ['light', 'dark']) {
   })
 }
 
-test('prose page links draw a focus ring', async ({
+// A pixel diff, not a computed style: the first link on each page, with a
+// margin around it for a ring drawn outside the box, focused and not.
+test('prose page links paint a focus ring', async ({
   page,
   openRoute,
 }, testInfo) => {
@@ -99,14 +101,21 @@ test('prose page links draw a focus ring', async ({
   for (const path of ['/projects', '/about', '/blog']) {
     await openRoute(path, 'light')
     const target = page.locator('main a').first()
+    await page.mouse.move(0, 0)
+    await target.scrollIntoViewIfNeeded()
+    const box = await target.boundingBox()
+    const clip = {
+      x: Math.max(box.x - 6, 0),
+      y: Math.max(box.y - 6, 0),
+      width: box.width + 12,
+      height: box.height + 12,
+    }
+    const before = await page.screenshot({ clip })
     await target.focus()
     await page.keyboard.press('Shift+Tab')
     await page.keyboard.press('Tab')
-    const style = await target.evaluate((el) => {
-      const own = getComputedStyle(el).outlineStyle
-      const after = getComputedStyle(el, '::after').outlineStyle
-      return own !== 'none' ? own : after
-    })
-    expect(style, path).not.toBe('none')
+    await expect(target).toBeFocused()
+    const after = await page.screenshot({ clip })
+    expect(Buffer.compare(before, after), path).not.toBe(0)
   }
 })

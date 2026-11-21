@@ -15,7 +15,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { MONTH_YEAR as MONTH, DAY_YEAR as DAY } from '../lib/formatDate.js'
 
 /** A dated row: a hairline under each, so a list reads as a ledger. */
-const ROW = 'border-b border-line-card py-3 first:border-t'
+const ROW = 'border-b border-line-card py-3'
 
 function utc(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)

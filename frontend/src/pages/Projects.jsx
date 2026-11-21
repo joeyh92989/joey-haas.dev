@@ -33,12 +33,22 @@ export default function Projects() {
             number={index + 1}
             label={
               project.tagline && (
-                <span className="project-tagline">{project.tagline}</span>
+                <span
+                  className="project-tagline"
+                  id={`project-${index + 1}-tagline`}
+                >
+                  {project.tagline}
+                </span>
               )
             }
             className="project-card"
           >
-            <article className="p-4 pb-5">
+            <article
+              className="p-4 pb-5"
+              aria-describedby={
+                project.tagline ? `project-${index + 1}-tagline` : undefined
+              }
+            >
               <h2 className={RECORD_TITLE}>
                 {project.to ? (
                   <Link to={project.to} className={TITLE_LINK}>

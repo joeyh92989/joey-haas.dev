@@ -108,7 +108,7 @@ describe('Projects on the design system', () => {
     expect(tagline.closest('[data-strip]')).not.toBeNull()
   })
 
-  it('draws tech as badges and keeps the legacy chip list out of it', () => {
+  it('draws each tech entry in the badge look (squared, 1px card-line outline)', () => {
     const { container } = inRouter(<Projects />)
     const chips = container.querySelectorAll('.tech-list li')
     expect(chips.length).toBeGreaterThan(0)
@@ -126,6 +126,53 @@ describe('Projects on the design system', () => {
     for (const h2 of container.querySelectorAll('h2')) {
       expect(h2.className).toMatch(/\bfont-heading\b/)
     }
+  })
+})
+
+describe('Review fixes', () => {
+  it('ties a project\u2019s tagline to its article, which the strip sits outside', () => {
+    const { container } = inRouter(<Projects />)
+    const article = container.querySelector('.project-card article')
+    const id = article.getAttribute('aria-describedby')
+    expect(id).toBeTruthy()
+    const tagline = container.querySelector('.project-tagline')
+    expect(tagline.id).toBe(id)
+    expect(tagline.closest('[data-strip]')).not.toBeNull()
+  })
+
+  it('says what the site is styled with, without the old no-framework line', () => {
+    inRouter(<Colophon />)
+    expect(screen.queryByText(/no CSS framework/)).toBeNull()
+    expect(screen.getByText(/Tailwind/)).toBeInTheDocument()
+  })
+
+  it('rules Now\u2019s lists once: the heading has the rule, the first row has none above it', async () => {
+    snapshots.items = [
+      {
+        id: '2',
+        type: 'game',
+        title: 'Game 2',
+        wanted: false,
+        status: 'paused',
+        paused_on: '2026-10-01',
+        finished_at: null,
+      },
+      {
+        id: '3',
+        type: 'game',
+        title: 'Game 3',
+        wanted: false,
+        status: 'finished',
+        finished_at: '2026-11-01',
+      },
+    ]
+    inRouter(<Now />)
+    for (const name of ['Game 2', 'Game 3']) {
+      const row = (await screen.findByRole('link', { name })).closest('li')
+      expect(row.className).not.toMatch(/first:border-t|\bborder-t\b/)
+      expect(row.className).toMatch(/\bborder-b\b/)
+    }
+    snapshots.items = null
   })
 })
 

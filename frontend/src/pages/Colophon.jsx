@@ -28,8 +28,8 @@ export default function Colophon() {
       <h2 className={PROSE_H2}>Frontend</h2>
       <ul className="prose-list">
         <li>
-          React 19 and Vite, routed with React Router. Plain CSS with design
-          tokens; no CSS framework.
+          React 19 and Vite, routed with React Router. Styled with Tailwind and
+          shadcn/ui on design tokens; some older pages still use plain CSS.
         </li>
         <li>
           Set in Inter for text, JetBrains Mono for labels, and Source Serif 4

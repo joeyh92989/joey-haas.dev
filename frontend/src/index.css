@@ -1059,7 +1059,6 @@ section + section {
   width: 96px;
 }
 
-/* Section labels: headings by structure, set as kickers. */
 .about-body .prose {
   max-width: 64ch;
 }
@@ -1218,7 +1217,6 @@ section + section {
   padding: var(--space-1) var(--space-3);
 }
 
-/* About's chips are mono labels, squared off; the shelf keeps its pills. */
 /* ---------- Projects ---------- */
 
 /* Project cards are record cards (Tailwind, Projects.jsx); only the cover
