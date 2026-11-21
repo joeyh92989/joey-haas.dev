@@ -267,12 +267,13 @@ body {
 }
 
 /* The outer measure every full-width band shares: the masthead and footer
-   rows, and the content pages (.page-content). 1040px with 24px gutters, 16px on
-   a phone. */
+   rows, the content pages (.page-content) and the tracker pages (.page-wide).
+   1200px with 32px gutters, 16px on a phone (#529). Prose pages keep their
+   45rem column inside it. */
 .wrap {
   margin: 0 auto;
-  max-width: 1040px;
-  padding-inline: var(--space-5);
+  max-width: 75rem;
+  padding-inline: var(--space-6);
 }
 
 /* The public shell is a full-height column, so the footer sits at the bottom
@@ -299,15 +300,10 @@ body {
 }
 
 /* Home, About and Projects: cards and columns on the masthead's measure. */
-.page.page-content {
-  max-width: 1040px;
-}
-
-/* The tracker pages: a grid of covers wants the width a prose column does
-   not. Same gutters; only the limit moves. */
-.page.page-wide,
-.site-wide .wrap {
-  max-width: 72rem;
+.page.page-content,
+.page.page-wide {
+  max-width: 75rem;
+  padding-inline: var(--space-6);
 }
 
 /* The breadcrumb every detail page opens with (components/Breadcrumb). */
@@ -465,7 +461,7 @@ p.muted a,
   color: var(--text);
   display: flex;
   flex: none;
-  font-weight: 600;
+  font-weight: 700;
   gap: var(--space-3);
 }
 
@@ -475,14 +471,15 @@ p.muted a,
 
 /* Mono 500: the 600 cut of JetBrains Mono is not loaded (main.jsx). */
 .brand .mark {
-  background: var(--text);
-  border-radius: 6px;
-  color: var(--bg);
+  background: transparent;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  color: var(--text);
   display: grid;
   font: 500 var(--fs-12) var(--font-mono);
-  height: 26px;
+  height: 32px;
   place-items: center;
-  width: 26px;
+  width: 32px;
 }
 
 /* The links are the full height of the bar, so the 2px underline sits on
@@ -499,19 +496,22 @@ p.muted a,
   align-items: center;
   border-bottom: 2px solid transparent;
   border-top: 2px solid transparent;
-  color: var(--text-2);
+  color: var(--text);
   display: flex;
   white-space: nowrap;
 }
 
 .site-nav a:hover {
-  color: var(--text);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.2em;
 }
 
+/* The current page: heavier word and the accent bar, so colour never
+   carries it alone. */
 .site-nav a.active {
-  border-bottom-color: var(--text);
-  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
 }
 
 /* More: a disclosure button that sits in the nav row and reads like its
@@ -522,30 +522,6 @@ p.muted a,
   position: relative;
 }
 
-.more-btn {
-  align-items: center;
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-top: 2px solid transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  gap: var(--space-1);
-  white-space: nowrap;
-}
-
-.more-btn:hover,
-.more-btn[aria-expanded='true'] {
-  color: var(--text);
-}
-
-.more-btn.active {
-  border-bottom-color: var(--text);
-  color: var(--text);
-}
-
 .more-btn svg {
   transition: transform 0.12s;
 }
@@ -554,7 +530,6 @@ p.muted a,
   transform: rotate(180deg);
 }
 
-.more-btn:focus-visible,
 .more-panel a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -564,8 +539,6 @@ p.muted a,
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  box-shadow: 0 12px 28px
-    color-mix(in srgb, var(--mask-opaque) 28%, transparent);
   left: calc(-1 * var(--space-3));
   padding: var(--space-2);
   position: absolute;
@@ -588,6 +561,7 @@ p.muted a,
 
 .more-panel a:hover {
   background: var(--sunken);
+  text-decoration: none;
 }
 
 .more-panel .t {
@@ -623,11 +597,6 @@ p.muted a,
   display: flex;
   gap: var(--space-3);
   margin-left: auto;
-}
-
-/* Shown only on a phone, where it stands in for the nav. */
-.mast-menu {
-  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -673,7 +642,7 @@ p.muted a,
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
-  color: var(--text-2);
+  color: var(--text);
   font-size: var(--fs-16);
   /* A 44px tap target. */
   min-height: 2.75rem;
@@ -681,8 +650,9 @@ p.muted a,
 }
 
 .nav-sheet nav a.active {
-  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--accent);
   font-weight: 600;
+  padding-left: var(--space-3);
 }
 
 /* The sheet's second group: two columns, so six more rows cost three. */
@@ -725,19 +695,16 @@ p.muted a,
    both showing (measured at 761 to 1040px, #471); below 960px the bar hands
    over to Menu, whose sheet carries the same links. */
 @media (max-width: 960px) {
-  .site-nav,
-  .mast-resume {
+  .site-nav {
     display: none;
-  }
-
-  .mast-menu {
-    display: inline-flex;
   }
 }
 
 @media (max-width: 700px) {
   .wrap,
-  .page {
+  .page,
+  .page.page-content,
+  .page.page-wide {
     padding-inline: var(--space-4);
   }
 
@@ -746,8 +713,8 @@ p.muted a,
     height: 54px;
   }
 
-  /* 44px tap targets for the bar's controls (#276); the bar is 54px. */
-  .mast .btn,
+  /* 44px tap targets for the bar's controls (#276); the bar is 54px. The
+     controls are Buttons and carry their own min-h-11. */
   .brand,
   .hero-actions .btn {
     min-height: 2.75rem;
@@ -768,10 +735,6 @@ p.muted a,
   .mast-end,
   .brand {
     gap: var(--space-2);
-  }
-
-  .mast .btn.sm {
-    padding-inline: var(--space-1);
   }
 }
 
@@ -1748,6 +1711,7 @@ footer {
    at the two ends of the row, stacked on a phone. Scoped by class so the
    shelf's attribution footer keeps the generic rule above. */
 .site-footer {
+  border-top: 1px solid var(--line);
   font-size: var(--fs-13);
   margin-top: var(--space-7);
   padding: var(--space-5) 0 var(--space-6);
@@ -1761,7 +1725,8 @@ footer {
 }
 
 .site-footer a {
-  color: var(--text-2);
+  color: var(--text);
+  text-decoration-color: var(--accent);
   /* The links sit in a row, not a sentence, so WCAG 2.5.8 applies: 24px high
      (#477). The line box carries it, so the separators stay where they are. */
   display: inline-block;

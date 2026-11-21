@@ -331,3 +331,79 @@ test.describe('keyboard focus ring (#528)', () => {
     }
   }
 })
+
+test.describe('site shell frame and focus (#529)', () => {
+  // Content and tracker pages share the 1200px measure; prose keeps its
+  // 45rem reading column.
+  for (const [path, width] of [
+    ['/', 1200],
+    ['/projects', 1200],
+    ['/shelf/games', 1200],
+    ['/blog/how-my-shelf-works', 720],
+  ]) {
+    test(`${path}: main is ${width}px wide at 1440px`, async ({
+      page,
+      openRoute,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await openRoute(path, 'light')
+      const box = await page.locator('main#main').boundingBox()
+      expect(Math.round(box.width)).toBe(width)
+    })
+  }
+
+  test('the masthead row sits on the same 1200px measure', async ({
+    page,
+    openRoute,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openRoute('/blog/how-my-shelf-works', 'light')
+    const box = await page.locator('.mast-row').boundingBox()
+    expect(Math.round(box.width)).toBe(1200)
+  })
+
+  // A focus ring that is `outline-style: none` is invisible: Tailwind's
+  // outline-2 sets only the width, so each new control needs outline-solid.
+  test('keyboard focus draws a ring on every masthead control', async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    await openRoute('/', 'light')
+    const phone = testInfo.project.name === 'phone'
+    const names = phone
+      ? ['Search', 'Switch to dark theme', 'Menu']
+      : ['More', 'Search', 'Switch to dark theme']
+    for (const name of names) {
+      const control = page.getByRole('button', { name: new RegExp(name) })
+      await control.first().focus()
+      await page.keyboard.press('Shift+Tab')
+      await page.keyboard.press('Tab')
+      const style = await control
+        .first()
+        .evaluate((el) => getComputedStyle(el).outlineStyle)
+      expect(style, name).not.toBe('none')
+    }
+  })
+
+  test('the search field and its Close button draw a ring', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    const input = page.getByRole('combobox', { name: 'Search' })
+    await expect(input).toBeFocused()
+    expect(
+      await input.evaluate((el) => getComputedStyle(el).outlineStyle),
+    ).not.toBe('none')
+    await page.keyboard.press('Tab')
+    const close = page.getByRole('button', { name: 'Close' })
+    await expect(close).toBeFocused()
+    expect(
+      await close.evaluate((el) => getComputedStyle(el).outlineStyle),
+    ).not.toBe('none')
+  })
+})

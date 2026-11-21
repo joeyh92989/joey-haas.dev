@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import RouteErrorBoundary from '../components/RouteErrorBoundary.jsx'
-import SearchDialog from '../components/SearchDialog.jsx'
 import SiteFooter from '../components/SiteFooter.jsx'
 import SiteMast from '../components/SiteMast.jsx'
 import { notes } from '../content/notes.js'
@@ -16,6 +15,10 @@ import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 const STORAGE_KEY = 'theme'
+
+// The dialog and its Base UI field load on first open, so a visitor who never
+// searches never downloads them (the entry chunk, #529).
+const SearchDialog = lazy(() => import('../components/SearchDialog.jsx'))
 
 /**
  * Routes that break out of the 45rem reading column: the tracker's shelves
@@ -118,6 +121,9 @@ export default function RootLayout() {
   const { pathname } = useLocation()
   const mainRef = useRouteFocus()
   const [searchOpen, setSearchOpen] = useState(false)
+  // Once opened it stays mounted, closed, so it keeps its own state and exit.
+  const [searchUsed, setSearchUsed] = useState(false)
+  if (searchOpen && !searchUsed) setSearchUsed(true)
   // Any route change closes search (Back, a link behind the dialog), so it
   // never stays open over a page it was not opened on, or reopens later.
   const [searchPath, setSearchPath] = useState(pathname)
@@ -237,7 +243,14 @@ export default function RootLayout() {
         onOpenSearch={() => setSearchOpen(true)}
         searchOpen={searchOpen}
       />
-      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {searchUsed && (
+        <Suspense fallback={null}>
+          <SearchDialog
+            open={searchOpen}
+            onClose={() => setSearchOpen(false)}
+          />
+        </Suspense>
+      )}
 
       <main id="main" ref={mainRef} tabIndex={-1} className={pageClass}>
         <RouteErrorBoundary key={pathname}>

@@ -1,3 +1,5 @@
+import { buttonVariants } from './ui/button-variants.js'
+
 /**
  * The masthead's Search button, with the keyboard shortcut as a hint
  * (⌘K on a Mac, Ctrl K elsewhere). The hint is hidden on a phone by CSS,
@@ -12,7 +14,7 @@ export default function SearchButton({ onOpen, open }) {
   return (
     <button
       type="button"
-      className="btn sm mast-search"
+      className={`${buttonVariants({ variant: 'quiet', size: 'sm' })} mast-search max-[700px]:min-h-11 max-[24rem]:px-1`}
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-keyshortcuts={isMac() ? 'Meta+K /' : 'Control+K /'}

@@ -169,4 +169,42 @@ describe('shared component rules', () => {
         .map((f) => f.name),
     ).toEqual([])
   })
+
+  // The site shell (#529) is built from the shadcn button's look, not from
+  // hand-dressed `.btn` elements. The masthead and nav load with the page, so
+  // they take `buttonVariants` from `ui/button-variants.js` and not the Base UI
+  // `Button` component or `cn`, which add ~40KB to the entry chunk; the search dialog
+  // loads on first open and uses both primitives.
+  it('draws the eager shell controls with buttonVariants, not the Base UI Button', () => {
+    const EAGER = [
+      'components/SiteMast.jsx',
+      'components/SearchButton.jsx',
+      'components/NavSheet.jsx',
+      'components/MoreMenu.jsx',
+    ]
+    const wrong = files
+      .filter((f) => EAGER.includes(f.name))
+      .filter(
+        (f) =>
+          !/buttonVariants/.test(f.text) ||
+          /ui\/button\.jsx/.test(f.text) ||
+          /className="btn[ "]/.test(f.text),
+      )
+      .map((f) => f.name)
+    expect(wrong).toEqual([])
+  })
+
+  it('draws the search dialog with Button and Input, not bare elements', () => {
+    const search = files.find((f) => f.name === 'components/SearchDialog.jsx')
+    expect(search.text).not.toMatch(/<button[\s>]|<input[\s>]/)
+  })
+
+  it('writes no coloured text with an opacity in the shell', () => {
+    const SHELL = ['components/SiteMast.jsx', 'components/MoreMenu.jsx']
+    const bad = files
+      .filter((f) => SHELL.includes(f.name))
+      .filter((f) => /text-[\w-]+\/\d/.test(f.text))
+      .map((f) => f.name)
+    expect(bad).toEqual([])
+  })
 })

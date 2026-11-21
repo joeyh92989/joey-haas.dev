@@ -568,7 +568,7 @@ describe('RootLayout site search', () => {
     ['⌘K', { key: 'k', metaKey: true }],
     ['Ctrl+K', { key: 'k', ctrlKey: true }],
     ['/', { key: '/' }],
-  ])('opens on %s', (_, init) => {
+  ])('opens on %s', async (_, init) => {
     renderWithField()
     const event = new KeyboardEvent('keydown', {
       ...init,
@@ -579,13 +579,15 @@ describe('RootLayout site search', () => {
       document.body.dispatchEvent(event)
     })
     expect(event.defaultPrevented).toBe(true)
-    expect(searchBox()).toBeInTheDocument()
+    expect(
+      await screen.findByRole('combobox', { name: 'Search' }),
+    ).toBeInTheDocument()
   })
 
-  it('opens from the masthead button', () => {
+  it('opens from the masthead button', async () => {
     renderWithField()
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-    expect(searchBox()).toHaveFocus()
+    await waitFor(() => expect(searchBox()).toHaveFocus())
   })
 
   it('leaves / to a text field', () => {
@@ -606,7 +608,7 @@ describe('RootLayout site search', () => {
 
   // Back or forward while the dialog is open lands on a new page; the
   // dialog must not stay over it, nor hand focus to a removed element.
-  it('closes when the route changes under it', () => {
+  it('closes when the route changes under it', async () => {
     function GoButton() {
       const navigate = useNavigate()
       return (
@@ -626,7 +628,9 @@ describe('RootLayout site search', () => {
       </MemoryRouter>,
     )
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-    expect(searchBox()).toBeInTheDocument()
+    expect(
+      await screen.findByRole('combobox', { name: 'Search' }),
+    ).toBeInTheDocument()
     fireEvent.click(
       within(go.container).getByRole('button', { name: 'Go', hidden: true }),
     )

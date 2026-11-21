@@ -32,6 +32,7 @@ describe('Button', () => {
     ['outline', 'border-foreground'],
     ['secondary', 'bg-secondary'],
     ['ghost', 'text-muted-foreground'],
+    ['quiet', 'border-muted-foreground'],
     ['destructive', 'text-destructive'],
     ['link', 'text-accent-text'],
   ])('%s variant carries %s', (variant, cls) => {

@@ -1,4 +1,5 @@
 import Sheet from './Sheet.jsx'
+import { buttonVariants } from './ui/button-variants.js'
 
 /**
  * A phone's nav as a sheet: a Menu or a segment's pages, under a kicker and
@@ -37,7 +38,11 @@ export default function NavSheet({
       <div className="nav-sheet-body">
         <div className="nav-sheet-head">
           <span className="kicker">{label}</span>
-          <button type="button" className="btn sm" onClick={onClose}>
+          <button
+            type="button"
+            className={`${buttonVariants({ variant: 'quiet', size: 'sm' })} max-[700px]:min-h-11`}
+            onClick={onClose}
+          >
             Close
           </button>
         </div>

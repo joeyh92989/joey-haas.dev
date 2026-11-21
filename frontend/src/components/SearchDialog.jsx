@@ -4,6 +4,8 @@ import { posts } from '../content/posts.js'
 import { searchPages } from '../content/pages.js'
 import { hiddenPaths } from '../lib/snapshotPresence.js'
 import Sheet from './Sheet.jsx'
+import { Button } from './ui/button.jsx'
+import { Input } from './ui/input.jsx'
 import { loadIndex, pageEntry, search } from '../lib/searchIndex.js'
 
 /** The bundled Pages group, there before (and without) the index. */
@@ -108,7 +110,7 @@ export default function SearchDialog({ open, onClose }) {
     >
       <div className="search-body">
         <div className="search-head">
-          <input
+          <Input
             type="search"
             className="search-input"
             role="combobox"
@@ -127,9 +129,15 @@ export default function SearchDialog({ open, onClose }) {
             }}
             onKeyDown={handleKeyDown}
           />
-          <button type="button" className="btn sm" onClick={close}>
+          <Button
+            type="button"
+            variant="quiet"
+            size="sm"
+            className="max-[700px]:min-h-11"
+            onClick={close}
+          >
             Close
-          </button>
+          </Button>
         </div>
 
         <div
