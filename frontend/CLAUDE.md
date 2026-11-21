@@ -91,7 +91,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   stacked bar's 2px gaps are `--surface`), and `--status-backlog` also clears
   3:1 against `--line`. Changing one means measuring again; the ratios are
   recorded beside the tokens in `index.css`.
-- Tracker pages break out of the 45rem prose column via `page-wide` (72rem),
+- Tracker pages break out of the 45rem prose column via `page-wide` (75rem, 1200px),
   which `RootLayout` applies to any path in its `WIDE_ROUTES` list or nested
   under one. Add a new public tracker route there, not in a page's own CSS.
   `/admin*` is not in it: `SHELL_ROUTES` drops the public masthead, footer
@@ -102,9 +102,9 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   (`components/adminAreas.js`) and in `ADMIN_ROUTES` (`prerender-lib.mjs`),
   and titles itself through `AdminPageHeader`. Admin pages build from
   `StatTile`, `Panel` and `JobStatusRow`; Home is one `AreaCard` per area.
-  Home, About and Projects take the 1040px `page-content` measure through
+  Home, About and Projects take the 75rem `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
-  column unless it is in `WIDE_ROUTES` (72rem).
+  column unless it is in `WIDE_ROUTES` (75rem).
   `RootLayout` also passes `{ signedIn }` as outlet context, so a routed page
   reads the session instead of calling `/api/auth/me` again.
 - Shelf components live in `frontend/src/components/`: `PosterCard`,
@@ -375,6 +375,23 @@ layer, so a rebuilt component keeps its legacy class names (tests and other
 CSS read them) and sets only the properties it means to change: leave
 `min-height` to the legacy phone rules. A component sets its own `display`
 (`Button` is `inline-flex`), so a legacy `display` rule on that element loses.
+
+**The shell (#529).** The masthead, More, the phone sheet and Search use the
+shadcn button's look but not its component: they import `buttonVariants` from
+`components/ui/button-variants.js` (cva only) and put the classes on a plain
+`<button>` or `<a>`, because the Base UI `Button` and `cn` add about 40KB to
+the entry chunk, which loads on every page (`designConsistency.test.js` holds
+the four eager shell files to it). `Button` keeps `variant="quiet"` (the
+masthead control) and `nav` (a nav trigger). Search is `React.lazy` in
+`RootLayout`, mounted on first open, and takes `Button` and `Input`. A
+legacy `display` rule loses to a component's own, so Menu and Resume hide
+with `min-[961px]:hidden` and `max-[960px]:hidden` utilities, not `.mast-menu`
+CSS; the 44px phone target is `max-[700px]:min-h-11` on each control. The
+dialogs stay native (`Sheet`, `NavSheet`) and More stays a disclosure: Command,
+Dialog and DropdownMenu were not adopted, since each would change roles, ids
+or focus behaviour that tests and the a11y run pin. The link-preview card
+(`scripts/og-card.mjs`) and favicon are the light tokens; `og-card.test.mjs`
+reads them from `index.css`.
 
 **`cn`.** The class-name helper is shadcn's own `cn` package
 (github.com/shadcn-ui/cn, maintainer shadcn, a clsx + tailwind-merge drop-in,

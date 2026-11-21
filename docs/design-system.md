@@ -172,13 +172,17 @@ description still credits it ("Cover from Comic Vine"). The page-end credit
 
 Two widths on shelf pages, set by `RootLayout`, never by a page's own CSS:
 
-- **Full**: 72rem (`page-wide`, `WIDE_ROUTES`). Every shelf route.
+- **Full**: 75rem, 1200px, the masthead's own measure (`page-wide`, `WIDE_ROUTES`). Every shelf route.
 - **Reading**: 45rem. Long text inside a full-width page (descriptions,
   the About panel, notes) is capped at the reading measure; prose pages
   are reading width throughout.
 
-Home, About and Projects keep the 1040px `page-content` measure until a
-landing-page rule is written; no new page uses it.
+Home, About and Projects take the same 75rem through `page-content`
+(`CONTENT_ROUTES`) until a landing-page rule is written; no new page uses it.
+The masthead and footer rows (`.wrap`) are 75rem on every route, so the
+bars line up with a full page and a prose page keeps its 45rem column under
+them. Gutters are 2rem, 1rem on a phone; a prose page keeps 1.5rem so its
+line length is unchanged.
 
 ## Masthead
 
