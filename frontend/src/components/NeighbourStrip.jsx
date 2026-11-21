@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { spine } from '../content/spine.js'
 import CoverTile from './CoverTile.jsx'
+import { cx } from '../lib/cx.js'
+import { NEIGHBOUR_RING } from './detail-classes.js'
 
 const COPY = spine.comics.issue
 
@@ -28,7 +30,7 @@ export default function NeighbourStrip({ list, current, series, labelledBy }) {
 
   return (
     <ol
-      className="neighbour-strip"
+      className={cx('neighbour-strip', NEIGHBOUR_RING)}
       aria-label={labelledBy ? undefined : COPY.neighbours}
       aria-labelledby={labelledBy}
     >

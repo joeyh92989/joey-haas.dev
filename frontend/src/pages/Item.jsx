@@ -5,6 +5,26 @@ import { platformsLabel } from '../content/tags.js'
 import { itemTagGroups } from '../lib/tags.js'
 import LoadState from '../components/LoadState.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
+import PageHeader from '../components/PageHeader.jsx'
+import RecordCard from '../components/RecordCard.jsx'
+import StatusMark from '../components/StatusMark.jsx'
+import { badgeVariants } from '../components/ui/badge-variants.js'
+import { buttonVariants } from '../components/ui/button-variants.js'
+import {
+  CAPTION,
+  CHIP_GROUPS,
+  CHIP_GROW,
+  DETAIL_BELOW,
+  DETAIL_COVER,
+  DETAIL_HEAD,
+  DETAIL_HEADING,
+  PANEL,
+  PANEL_HEAD,
+  PHONE_TARGET,
+  SECTION_H2,
+  SOURCE_LINE,
+} from '../components/detail-classes.js'
+import { cx } from '../lib/cx.js'
 import CoverImage from '../components/CoverImage.jsx'
 import BookWall from '../components/BookWall.jsx'
 import CoverWall from '../components/CoverWall.jsx'
@@ -322,7 +342,7 @@ function ComicSummary({ comic, model, issues }) {
   // With nothing recorded there is no count to give, only the notes.
   if (!held && notes.length === 0) return null
   return (
-    <p className="comic-sum">
+    <p className="comic-sum mt-3 mb-0 text-[1rem] text-foreground [&_b]:font-semibold [&_b]:tabular-nums">
       {held && (
         <>
           <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
@@ -335,7 +355,7 @@ function ComicSummary({ comic, model, issues }) {
         </>
       )}
       {notes.length > 0 && (
-        <span className="muted">
+        <span className="muted text-muted-foreground">
           {held ? ' · ' : ''}
           {notes.join(' · ')}
         </span>
@@ -352,14 +372,14 @@ function ComicSummary({ comic, model, issues }) {
 function WhatsNext({ model }) {
   if (model.state === 'want') {
     return (
-      <div className="comic-hero-next">
+      <div className={cx('comic-hero-next', DETAIL_BELOW)}>
         <EmptyState title={SERIES.empty.want(model.released, model.ongoing)} />
       </div>
     )
   }
   if (model.state === 'unrecorded') {
     return (
-      <div className="comic-hero-next">
+      <div className={cx('comic-hero-next', DETAIL_BELOW)}>
         <EmptyState title={SERIES.empty.unrecorded} />
       </div>
     )
@@ -398,13 +418,26 @@ function WhatsNext({ model }) {
     ])
   }
   return (
-    <section className="comic-hero-next comic-next" aria-label={N.label}>
+    <section
+      className={cx(
+        'comic-hero-next comic-next grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-2 max-[700px]:grid-cols-1',
+        DETAIL_BELOW,
+      )}
+      aria-label={N.label}
+    >
       {tiles.map(([label, value, note]) => (
-        <div key={label}>
-          <span>{label}</span>
-          <b>{value}</b>
-          {note && <small>{note}</small>}
-        </div>
+        <RecordCard key={label} label={label}>
+          <div className="px-3 py-2">
+            <b className="block text-[1rem] font-semibold text-foreground">
+              {value}
+            </b>
+            {note && (
+              <small className="block text-xs text-muted-foreground">
+                {note}
+              </small>
+            )}
+          </div>
+        </RecordCard>
       ))}
     </section>
   )
@@ -451,15 +484,22 @@ function ComicCards({
       )}
 
       {withIssues && model.held > 0 && (
-        <section className="item-card" aria-labelledby="item-run">
-          <h2 id="item-run">
+        <section className={cx('item-card', PANEL)} aria-labelledby="item-run">
+          <h2 id="item-run" className={PANEL_HEAD}>
             {kind === 'both' ? BOOKS.issues : SERIES.runCard}
           </h2>
           {!spans.short && (
             <>
               <RunLanes spans={spans} label={lanesLabel(model)} />
               {!hasWall && (
-                <p className="comic-box-kicker">{SERIES.inTheBox}</p>
+                <p
+                  className={cx(
+                    'comic-box-kicker mt-4 mb-2 uppercase',
+                    CAPTION,
+                  )}
+                >
+                  {SERIES.inTheBox}
+                </p>
               )}
             </>
           )}
@@ -469,7 +509,9 @@ function ComicCards({
               <RunKey variant="box" />
             </>
           )}
-          <p className="comic-sentence muted">{runSentence(model)}</p>
+          <p className="comic-sentence muted mt-3 mb-0 text-sm text-muted-foreground">
+            {runSentence(model)}
+          </p>
         </section>
       )}
 
@@ -485,16 +527,24 @@ function ComicCards({
       )}
 
       {!withBooks && comic.editions.length > 0 && (
-        <section className="item-card" aria-labelledby="item-editions">
-          <h2 id="item-editions">{SERIES.editions}</h2>
-          <ul className="item-editions">
+        <section
+          className={cx('item-card', PANEL)}
+          aria-labelledby="item-editions"
+        >
+          <h2 id="item-editions" className={PANEL_HEAD}>
+            {SERIES.editions}
+          </h2>
+          <ul className="item-editions m-0 grid list-none gap-2 p-0">
             {comic.editions.map((edition) => (
               <li
                 key={`${edition.kind}-${edition.label}-${edition.from_issue}`}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
               >
-                <span className="item-edition-kind">{edition.kind}</span>
+                <span className={cx('item-edition-kind', CAPTION)}>
+                  {edition.kind}
+                </span>
                 <b>{edition.label}</b>
-                <span className="muted">
+                <span className="muted text-muted-foreground">
                   {SERIES.collects(edition.from_issue, edition.to_issue)}
                 </span>
               </li>
@@ -504,16 +554,23 @@ function ComicCards({
       )}
 
       {description && (
-        <section className="item-card" aria-labelledby="item-about">
-          <h2 id="item-about">{SERIES.about}</h2>
-          <p className="item-description">{description}</p>
-          <p className="item-card-source muted">
+        <section
+          className={cx('item-card', PANEL)}
+          aria-labelledby="item-about"
+        >
+          <h2 id="item-about" className={PANEL_HEAD}>
+            {SERIES.about}
+          </h2>
+          <p className="item-description m-0 mb-1 max-w-[min(45rem,68ch)]">
+            {description}
+          </p>
+          <p className={cx('item-card-source muted mt-3 mb-0', SOURCE_LINE)}>
             {SERIES.from} <a href={COMIC_VINE}>{COMICS.attribution.label}</a>
           </p>
         </section>
       )}
 
-      <p className="item-attribution muted">
+      <p className={cx('item-attribution muted mt-5 mb-0', SOURCE_LINE)}>
         {COMICS.attribution.before}{' '}
         <a href={COMIC_VINE}>{COMICS.attribution.label}</a>
         {COMICS.attribution.after}
@@ -717,7 +774,7 @@ function ItemPage({ id }) {
   return (
     <article className="item-page">
       <Breadcrumb trail={itemTrail(null, false)} />
-      <h1 className="visually-hidden">{spine.name}</h1>
+      <PageHeader className="visually-hidden" title={spine.name} />
       {!failed && <ItemSkeleton />}
       <LoadState loading={!failed} failed={failed} onRetry={retry} />
     </article>
@@ -745,11 +802,14 @@ function DetailWait() {
  */
 function ItemSkeleton() {
   return (
-    <div className="item-head item-skeleton" aria-hidden="true">
-      <div className="item-cover">
+    <div
+      className={cx('item-head item-skeleton', DETAIL_HEAD)}
+      aria-hidden="true"
+    >
+      <div className={cx('item-cover', DETAIL_COVER)}>
         <span className="skeleton-cover" />
       </div>
-      <div className="item-heading">
+      <div className={cx('item-heading', DETAIL_HEADING)}>
         <span className="skeleton-line item-skeleton-title" />
         <span className="skeleton-line skeleton-line-short" />
       </div>
@@ -814,43 +874,68 @@ function ItemView({
     <article className="item-page">
       <Breadcrumb trail={itemTrail(item.title, isComic)} />
 
-      <header className="item-head">
-        <div className="item-cover">
+      <div className={cx('item-head', DETAIL_HEAD)}>
+        <div className={cx('item-cover', DETAIL_COVER)}>
           <CoverImage src={item.cover_url} type={item.type} alt="" priority />
         </div>
-        <div className="item-heading">
-          {isComic && <p className="item-kicker">{comicKicker(item)}</p>}
-          <h1>{item.title}</h1>
-          {meta && <p className="muted">{meta}</p>}
-          <p className="item-status" data-status={item.status}>
-            {statusInWords(item)}
+        <div className={cx('item-heading', DETAIL_HEADING)}>
+          <PageHeader
+            kicker={isComic ? comicKicker(item) : null}
+            title={item.title}
+            lede={meta || null}
+            ledeClassName="muted m-0 text-muted-foreground"
+            className="[&_h1]:m-0 [&_h1]:mb-1 [&_.kicker]:mb-1"
+          />
+          <p className="item-status mt-1 mb-0" data-status={item.status}>
+            <StatusMark
+              status={item.status === 'active' ? 'live' : item.status}
+              className="text-sm!"
+            >
+              {statusInWords(item)}
+            </StatusMark>
           </p>
-          {copy && <p className="item-copy">{copy}</p>}
+          {copy && (
+            <p className="item-copy mt-1 mb-0 text-[1rem] text-muted-foreground">
+              {copy}
+            </p>
+          )}
           {comic && (
             <ComicSummary comic={comic} model={run} issues={withIssues} />
           )}
           {signedIn && (
-            <Link to={adminItemPath(item)} className="item-edit">
+            <Link
+              to={adminItemPath(item)}
+              className={cx(
+                'item-edit mt-2',
+                buttonVariants({ variant: 'outline', size: 'sm' }),
+                PHONE_TARGET,
+              )}
+            >
               Edit
             </Link>
           )}
         </div>
         {comic && withIssues && <WhatsNext model={run} />}
-      </header>
+      </div>
 
       {chipGroups.length > 0 && (
-        <dl className="item-groups">
+        <dl className={cx('item-groups', CHIP_GROUPS)}>
           {chipGroups.map(([key, label, chips]) => (
             <div key={key}>
               <dt>{label}</dt>
               <dd>
-                <ul className="item-chips">
+                <ul className="item-chips m-0 flex list-none flex-wrap gap-2 p-0">
                   {chips.map(([chipKey, chipLabel, muted]) => (
                     <li
                       key={chipKey}
-                      className={
-                        muted ? 'item-chip item-chip-muted' : 'item-chip'
-                      }
+                      className={cx(
+                        'item-chip',
+                        muted && 'item-chip-muted',
+                        badgeVariants({
+                          variant: muted ? 'outline' : 'default',
+                        }),
+                        CHIP_GROW,
+                      )}
                     >
                       {chipLabel}
                     </li>
@@ -863,10 +948,12 @@ function ItemView({
       )}
 
       {description && !comic && (
-        <div className="item-description-wrap">
+        <div className="item-description-wrap mb-5 max-w-[min(45rem,68ch)]">
           <p
             className={
-              expanded ? 'item-description' : 'item-description clamp-6'
+              expanded
+                ? 'item-description m-0 mb-1'
+                : 'item-description clamp-6 m-0 mb-1'
             }
           >
             {description}
@@ -875,7 +962,7 @@ function ItemView({
               button that changes nothing on a short text is harmless. */}
           <button
             type="button"
-            className="link-button"
+            className={buttonVariants({ variant: 'link', size: 'bare' })}
             aria-expanded={expanded}
             onClick={onToggleDescription}
           >
@@ -916,7 +1003,7 @@ function ItemView({
 
       {similar.length > 0 && (
         <section className="item-similar" aria-label="More from this shelf">
-          <h2>More from this shelf</h2>
+          <h2 className={SECTION_H2}>More from this shelf</h2>
           <PosterGrid
             items={similar}
             size="compact"

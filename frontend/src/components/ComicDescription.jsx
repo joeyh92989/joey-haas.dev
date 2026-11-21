@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { spine } from '../content/spine.js'
+import { buttonVariants } from './ui/button-variants.js'
+import { cx } from '../lib/cx.js'
+import { DESCRIPTION, SOURCE_LINE } from './detail-classes.js'
 
 const COPY = spine.comics.issue
 const COMIC_VINE_HOME = 'https://comicvine.gamespot.com/'
@@ -22,7 +25,7 @@ export default function ComicDescription({
 }) {
   const [open, setOpen] = useState(false)
   const source = (before) => (
-    <p className="desc-source">
+    <p className={cx('desc-source mt-1 mb-0', SOURCE_LINE)}>
       {before}{' '}
       <a href={sourceUrl} rel="noreferrer noopener">
         {COPY.attribution.label}
@@ -32,14 +35,16 @@ export default function ComicDescription({
   if (!paragraphs.length)
     return (
       <>
-        <p className="comic-issue-desc muted">{COPY.noDescription}</p>
+        <p className={cx('comic-issue-desc muted italic', DESCRIPTION)}>
+          {COPY.noDescription}
+        </p>
         {cover && source(COPY.coverFrom)}
       </>
     )
   const [first, ...rest] = paragraphs
   return (
     <>
-      <div className="comic-issue-desc">
+      <div className={cx('comic-issue-desc', DESCRIPTION)}>
         <p>{first}</p>
         {rest.length > 0 && (
           <>
@@ -50,7 +55,7 @@ export default function ComicDescription({
             </div>
             <button
               type="button"
-              className="link-button"
+              className={buttonVariants({ variant: 'link', size: 'bare' })}
               aria-expanded={open}
               aria-controls="issue-more"
               onClick={() => setOpen((current) => !current)}

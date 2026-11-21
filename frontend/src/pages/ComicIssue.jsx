@@ -6,7 +6,15 @@ import Breadcrumb from '../components/Breadcrumb.jsx'
 import LoadState from '../components/LoadState.jsx'
 import NeighbourStrip from '../components/NeighbourStrip.jsx'
 import OwnerControls from '../components/OwnerControls.jsx'
+import PageHeader from '../components/PageHeader.jsx'
 import StatePill from '../components/StatePill.jsx'
+import { buttonVariants } from '../components/ui/button-variants.js'
+import {
+  FACTS,
+  PHONE_TARGET,
+  SOURCE_LINE,
+} from '../components/detail-classes.js'
+import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges } from '../lib/comics.js'
@@ -40,7 +48,12 @@ function storedView(row) {
 function AlsoIn({ single, books = [] }) {
   if (!single && books.length === 0) return null
   return (
-    <p className="comic-issue-held">
+    <p
+      className={cx(
+        'comic-issue-held mt-3 mb-0 text-sm [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-[1.5px] [&_a]:underline-offset-4',
+        '[&_a]:text-foreground',
+      )}
+    >
       {single && books.length === 0 && COPY.alsoIn.single}
       {single && books.length > 0 && COPY.alsoIn.both}
       {!single && books.length > 0 && COPY.alsoIn.volumes}
@@ -140,7 +153,7 @@ export default function ComicIssue({ id, n }) {
             { label: `#${n}` },
           ]}
         />
-        <h1>{COPY.fallbackTitle(n)}</h1>
+        <PageHeader title={COPY.fallbackTitle(n)} />
         <LoadState loading={!failed} failed={failed} onRetry={retry} />
       </article>
     )
@@ -176,7 +189,11 @@ export default function ComicIssue({ id, n }) {
         end={
           signedIn && (
             <Link
-              className="crumb-edit"
+              className={cx(
+                'crumb-edit',
+                buttonVariants({ variant: 'outline', size: 'sm' }),
+                PHONE_TARGET,
+              )}
               to={`/admin/shelf/comics/${encodeURIComponent(page.series_id)}`}
             >
               {COPY.edit}
@@ -193,8 +210,8 @@ export default function ComicIssue({ id, n }) {
         onRetry={tryAgain}
       />
 
-      <div className="comic-issue-main">
-        <div className="comic-issue-cover">
+      <div className="comic-issue-main grid grid-cols-[300px_minmax(0,1fr)] items-start gap-5 max-[640px]:grid-cols-[minmax(0,1fr)]">
+        <div className="comic-issue-cover max-[640px]:mx-auto max-[640px]:w-[62%]">
           <CoverImage
             src={page.large_url || page.cover_url}
             type="comic"
@@ -204,21 +221,23 @@ export default function ComicIssue({ id, n }) {
             number={page.number}
           />
           {!held && !upcoming && (
-            <p className="comic-issue-cover-caption">{COPY.notOwned}</p>
+            <p className="comic-issue-cover-caption mt-2 mb-0 text-xs text-muted-foreground">
+              {COPY.notOwned}
+            </p>
           )}
         </div>
         <div className="comic-issue-text">
-          {kicker && <p className="item-kicker">{kicker}</p>}
-          <h1>
-            {page.series_title} #{page.number}
-            {page.name ? ` · ${page.name}` : ''}
-          </h1>
-          <p className="comic-issue-pills">
+          <PageHeader
+            kicker={kicker || null}
+            title={`${page.series_title} #${page.number}${page.name ? ` · ${page.name}` : ''}`}
+            className="[&_h1]:mb-2 [&_.kicker]:mb-1"
+          />
+          <p className="comic-issue-pills m-0 flex flex-wrap gap-2">
             <StatePill state={pill} />
           </p>
           <AlsoIn single={page.held_single} books={page.also_in} />
 
-          <dl className="comic-issue-facts">
+          <dl className={cx('comic-issue-facts', FACTS)}>
             <dt>{COPY.facts.issue}</dt>
             <dd>{COPY.of(page.number, page.released, page.ongoing)}</dd>
             {page.store_date && (
@@ -248,7 +267,7 @@ export default function ComicIssue({ id, n }) {
             />
           )}
 
-          <p className="comic-issue-attribution">
+          <p className={cx('comic-issue-attribution mt-4 mb-0', SOURCE_LINE)}>
             {COPY.attribution.before}{' '}
             <a href={page.source_url} rel="noreferrer noopener">
               {COPY.attribution.label}
@@ -258,8 +277,16 @@ export default function ComicIssue({ id, n }) {
         </div>
       </div>
 
-      <section className="issue-neighbours" aria-labelledby="issue-neighbours">
-        <h2 id="issue-neighbours">{COPY.neighbours}</h2>
+      <section
+        className="issue-neighbours mt-8 border-t border-line-card pt-4"
+        aria-labelledby="issue-neighbours"
+      >
+        <h2
+          id="issue-neighbours"
+          className="mb-2 font-heading text-lg leading-tight font-medium"
+        >
+          {COPY.neighbours}
+        </h2>
         <NeighbourStrip
           list={page.neighbours}
           current={page.number}

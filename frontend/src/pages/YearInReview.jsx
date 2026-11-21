@@ -8,6 +8,18 @@ import BarList from '../components/BarList.jsx'
 import AgainTag from '../components/AgainTag.jsx'
 import Rating from '../components/Rating.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
+import PageHeader from '../components/PageHeader.jsx'
+import StatTile, { StatTiles } from '../components/StatTile.jsx'
+import { buttonVariants } from '../components/ui/button-variants.js'
+import {
+  DIARY,
+  DIARY_ROW,
+  PHONE_TARGET,
+  SECTION_H2,
+  YEAR_CHIP,
+  YEAR_COLUMNS,
+} from '../components/detail-classes.js'
+import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
@@ -33,6 +45,9 @@ const MONTHS = [
   'Nov',
   'Dec',
 ]
+
+// A year in the nav is a chip, 44px tall on a phone.
+const chip = cx(buttonVariants({ variant: 'chip', size: 'chip' }), PHONE_TARGET)
 
 function shortDate(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)
@@ -78,19 +93,23 @@ export default function YearInReview() {
   return (
     <section className="year-review">
       <SpineHeader />
-      <h1>{year} in review</h1>
+      <PageHeader title={`${year} in review`} className="mt-5" />
 
       {/* Shown whenever another year has finishes: in January the redirect
           lands on a year with none yet, and the way back is this nav. */}
       {years.some((other) => other !== year) && (
-        <nav className="year-nav" aria-label="Years">
+        <nav className="year-nav mt-2 flex flex-wrap gap-2" aria-label="Years">
           {years.map((other) =>
             other === year ? (
-              <span key={other} aria-current="page">
+              <span
+                key={other}
+                aria-current="page"
+                className={cx(chip, YEAR_CHIP)}
+              >
                 {other}
               </span>
             ) : (
-              <Link key={other} to={yearPath(other)}>
+              <Link key={other} to={yearPath(other)} className={chip}>
                 {other}
               </Link>
             ),
@@ -106,7 +125,7 @@ export default function YearInReview() {
       />
 
       {data && review.count === 0 && (
-        <p className="muted">
+        <p className="muted text-muted-foreground">
           No finishes recorded in {year} yet.{' '}
           {years.length > 0 ? (
             <Link to={yearPath(years[0])}>See {years[0]}</Link>
@@ -119,49 +138,42 @@ export default function YearInReview() {
 
       {review.count > 0 && (
         <>
-          <dl className="year-numbers">
-            <div>
-              <dt>Finished</dt>
-              <dd>{review.count}</dd>
-            </div>
-            {review.averageRating != null && (
-              <div>
-                <dt>Average rating</dt>
-                <dd>
-                  <Rating rating={review.averageRating} size="large" />
-                </dd>
-              </div>
-            )}
-            {review.timedCount > 0 && (
-              <div>
-                <dt>
-                  Hours to beat
-                  {review.timedCount < review.count &&
-                    ` (${review.timedCount} of ${review.count})`}
-                </dt>
-                <dd>{review.hours}</dd>
-              </div>
-            )}
-            {daysPlayed > 0 && (
-              <div>
-                <dt>Days played</dt>
-                <dd>{daysPlayed}</dd>
-              </div>
-            )}
-            {review.favourites.length > 0 && (
-              <div>
-                <dt>Favorites</dt>
-                <dd>{review.favourites.length}</dd>
-              </div>
-            )}
-          </dl>
+          <div className="year-numbers mt-5">
+            <StatTiles>
+              <StatTile label="Finished" value={review.count} />
+              {review.averageRating != null && (
+                <StatTile
+                  label="Average rating"
+                  value={<Rating rating={review.averageRating} size="large" />}
+                />
+              )}
+              {review.timedCount > 0 && (
+                <StatTile
+                  label={`Hours to beat${
+                    review.timedCount < review.count
+                      ? ` (${review.timedCount} of ${review.count})`
+                      : ''
+                  }`}
+                  value={review.hours}
+                />
+              )}
+              {daysPlayed > 0 && (
+                <StatTile label="Days played" value={daysPlayed} />
+              )}
+              {review.favourites.length > 0 && (
+                <StatTile label="Favorites" value={review.favourites.length} />
+              )}
+            </StatTiles>
+          </div>
 
           {/* Two columns at desktop widths: the months and the finishes
               beside the genres and the crowd; one column below that. */}
-          <div className="year-columns">
+          <div className={cx('year-columns', YEAR_COLUMNS)}>
             <div>
               <section aria-labelledby="year-months">
-                <h2 id="year-months">By month</h2>
+                <h2 id="year-months" className={SECTION_H2}>
+                  By month
+                </h2>
                 <div className="bar-column year-months">
                   <div className="month-bars">
                     {review.byMonth.map((count, index) => {
@@ -200,15 +212,17 @@ export default function YearInReview() {
               </section>
 
               <section aria-labelledby="year-diary">
-                <h2 id="year-diary">Finishes</h2>
-                <ol className="year-diary">
+                <h2 id="year-diary" className={SECTION_H2}>
+                  Finishes
+                </h2>
+                <ol className={cx('year-diary', DIARY)}>
                   {[...review.finished].reverse().map((item) => (
-                    <li key={item.finish_key ?? item.id}>
+                    <li key={item.finish_key ?? item.id} className={DIARY_ROW}>
                       <time dateTime={item.finished_at}>
                         {shortDate(item.finished_at)}
                       </time>
-                      <span className="year-diary-title">
-                        <span className="year-diary-cover">
+                      <span className="year-diary-title flex items-center gap-3">
+                        <span className="year-diary-cover w-9 flex-none">
                           <CoverImage src={item.cover_url} type={item.type} />
                         </span>
                         <span>
@@ -226,7 +240,9 @@ export default function YearInReview() {
               <div>
                 {review.topGenres.length > 0 && (
                   <section aria-labelledby="year-genres">
-                    <h2 id="year-genres">Most played genres</h2>
+                    <h2 id="year-genres" className={SECTION_H2}>
+                      Most played genres
+                    </h2>
                     <BarList
                       label="Most played genres"
                       rows={review.topGenres.map(({ genre, count }) => ({
@@ -239,7 +255,9 @@ export default function YearInReview() {
 
                 {versus.compared > 0 && (
                   <section aria-labelledby="year-versus">
-                    <h2 id="year-versus">Against the crowd</h2>
+                    <h2 id="year-versus" className={SECTION_H2}>
+                      Against the crowd
+                    </h2>
                     <p className="prose">
                       Of{' '}
                       {plural(
@@ -259,7 +277,7 @@ export default function YearInReview() {
                           . I gave it{' '}
                           <Rating rating={versus.furthest.item.rating} />; the
                           community gave it{' '}
-                          <span className="year-community">
+                          <span className="year-community whitespace-nowrap text-foreground">
                             {Math.round(versus.furthest.item.community_score)} /
                             100
                           </span>
@@ -275,7 +293,9 @@ export default function YearInReview() {
 
           {review.favourites.length > 0 && (
             <section aria-labelledby="year-favourites">
-              <h2 id="year-favourites">Favorites</h2>
+              <h2 id="year-favourites" className={SECTION_H2}>
+                Favorites
+              </h2>
               <PosterGrid
                 items={review.favourites}
                 size="compact"
@@ -294,14 +314,19 @@ export default function YearInReview() {
 
       {played.length > 0 && (
         <section aria-labelledby="year-played">
-          <h2 id="year-played">Played</h2>
-          <p className="muted">
+          <h2 id="year-played" className={SECTION_H2}>
+            Played
+          </h2>
+          <p className="muted text-muted-foreground">
             {daysPlayed} {daysPlayed === 1 ? 'day' : 'days'} with a session
             logged.
           </p>
-          <ol className="year-diary">
+          <ol className={cx('year-diary', DIARY)}>
             {played.map((row, index) => (
-              <li key={`${row.item_id}-${row.played_on}-${index}`}>
+              <li
+                key={`${row.item_id}-${row.played_on}-${index}`}
+                className={DIARY_ROW}
+              >
                 <time dateTime={row.played_on}>{shortDate(row.played_on)}</time>
                 <Link to={itemPath(row.item_id)}>{row.title}</Link>
                 {row.minutes != null && (
