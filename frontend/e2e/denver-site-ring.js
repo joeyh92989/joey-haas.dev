@@ -88,6 +88,9 @@ export async function tabRings(page, locator) {
     if (await locator.nth(i).isVisible()) handles.push(locator.nth(i))
   if (!handles.length) return ['no controls found']
   await handles[0].evaluate((el) => el.scrollIntoView({ block: 'center' }))
+  // After a mouse click, a script's focus() does not match :focus-visible
+  // until the keyboard has been used.
+  await page.keyboard.press('Shift')
   await handles[0].focus()
   for (let i = 0; i < handles.length; i++) {
     if (i > 0) {
