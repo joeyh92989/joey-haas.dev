@@ -1,6 +1,7 @@
 import { REENABLE_URL } from '../lib/adminJobs.js'
 import { JOB_RUNS } from '../lib/nightly.js'
 import JobStatusRow, { StatusText } from './JobStatusRow.jsx'
+import { HEAD_STATUS, JOB_LIST } from './adminHomeClasses.js'
 import Panel from './Panel.jsx'
 
 /**
@@ -13,7 +14,7 @@ import Panel from './Panel.jsx'
 export function NightlyStatus({ nightly }) {
   const { api, headline } = nightly
   return (
-    <span role="status" className="admin-head-status">
+    <span role="status" className={`admin-head-status ${HEAD_STATUS}`}>
       <StatusText state={api.state}>{api.words}</StatusText>
       {headline && (
         <StatusText state={headline.state}>{headline.words}</StatusText>
@@ -35,7 +36,7 @@ export default function JobsList({ nightly, action }) {
   return (
     <Panel title="Nightly jobs" action={action}>
       {jobs ? (
-        <ul className="job-list">
+        <ul className={`job-list ${JOB_LIST}`}>
           {jobs.map((job) => (
             <JobStatusRow
               key={job.key}

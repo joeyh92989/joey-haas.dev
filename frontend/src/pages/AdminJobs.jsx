@@ -1,6 +1,7 @@
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
+import { TEXT_LINK, TABLE, TD, TH } from '../components/adminHomeClasses.js'
 import Panel from '../components/Panel.jsx'
 import { useNightly } from '../lib/adminJobs.js'
 import { recentChanges } from '../lib/dashboard.js'
@@ -33,23 +34,35 @@ export default function AdminJobs() {
         }
       >
         {changes.length ? (
-          <div className="item-table-wrap">
-            <table className="item-table recent-table">
+          <div className="min-w-0">
+            <table className={`recent-table ${TABLE}`}>
               <thead>
                 <tr>
-                  <th scope="col">{adminCopy.jobs.item}</th>
-                  <th scope="col">{adminCopy.jobs.change}</th>
-                  <th scope="col">{adminCopy.jobs.when}</th>
+                  <th scope="col" className={`${TH} w-[44%]`}>
+                    {adminCopy.jobs.item}
+                  </th>
+                  <th scope="col" className={`${TH} w-[26%]`}>
+                    {adminCopy.jobs.change}
+                  </th>
+                  <th scope="col" className={TH}>
+                    {adminCopy.jobs.when}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {changes.map((change) => (
-                  <tr key={change.key}>
-                    <td>
-                      <Link to={change.to}>{change.title}</Link>
+                  <tr key={change.key} className="group/row">
+                    <td className={TD}>
+                      <Link to={change.to} className={TEXT_LINK}>
+                        {change.title}
+                      </Link>
                     </td>
-                    <td>{change.change}</td>
-                    <td className="job-when">{whenWords(change.at)}</td>
+                    <td className={TD}>{change.change}</td>
+                    <td
+                      className={`job-when ${TD} font-mono text-xs text-muted-foreground`}
+                    >
+                      {whenWords(change.at)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

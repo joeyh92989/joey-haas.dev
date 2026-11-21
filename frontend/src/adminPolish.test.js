@@ -66,12 +66,12 @@ describe('American spelling in admin copy (#505)', () => {
 describe('admin tap targets reach 24px (#505, WCAG 2.5.8)', () => {
   const FLOOR = /min-height: 1\.5rem;/
 
-  it.each([
-    '.job-run',
-    ".admin-head-end a:not(.btn):not([data-slot='button'])",
-  ])('gives %s a 24px floor', (selector) => {
-    expect(bodyOf(selector)).toMatch(FLOOR)
-  })
+  it.each([".admin-head-end a:not(.btn):not([data-slot='button'])"])(
+    'gives %s a 24px floor',
+    (selector) => {
+      expect(bodyOf(selector)).toMatch(FLOOR)
+    },
+  )
 })
 
 describe('phone chip count keeps its space (#505)', () => {

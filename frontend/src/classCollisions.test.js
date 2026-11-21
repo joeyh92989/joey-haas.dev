@@ -9,6 +9,7 @@ import * as shelf from './components/shelf-classes.js'
 import * as detail from './components/detail-classes.js'
 import * as prose from './components/prose-classes.js'
 import * as denverSite from './components/denverSiteClasses.js'
+import * as home from './components/adminHomeClasses.js'
 
 // A class string joined with `cx` or a template has no merge, so two utilities
 // of one family under one variant (`aria-pressed:bg-card` and
@@ -62,7 +63,7 @@ export function collisions(classString) {
   return found
 }
 
-const CONSTANTS = { ...shelf, ...detail, ...prose }
+const CONSTANTS = { ...shelf, ...detail, ...prose, ...home }
 
 /** The class strings a statement builds: its literals and known constants,
  *  with `buttonVariants(...)` and friends evaluated. */
@@ -164,6 +165,12 @@ describe('class strings joined without a merge', () => {
     }
     for (const variant of ['default', 'outline', 'accent']) {
       expect(collisions(badgeVariants({ variant })), variant).toEqual([])
+    }
+  })
+
+  it('keeps the admin Home and Jobs strings free of clashes (#535)', () => {
+    for (const [name, value] of Object.entries(home)) {
+      expect(collisions(value), name).toEqual([])
     }
   })
 

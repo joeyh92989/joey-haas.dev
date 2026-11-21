@@ -1,4 +1,11 @@
 import { useId } from 'react'
+import {
+  PANEL,
+  PANEL_ACTION,
+  PANEL_BODY,
+  PANEL_HEAD,
+  PANEL_TITLE,
+} from './adminHomeClasses.js'
 
 /**
  * A bordered surface with a titled header bar: the Dashboard's jobs, quick
@@ -14,12 +21,20 @@ import { useId } from 'react'
 export default function Panel({ title, action, className, children }) {
   const id = useId()
   return (
-    <section className="panel" aria-labelledby={id}>
-      <header className="panel-head">
-        <h2 id={id}>{title}</h2>
+    <section className={`panel ${PANEL}`} aria-labelledby={id}>
+      <header className={`panel-head ${PANEL_HEAD} ${PANEL_ACTION}`}>
+        <h2 id={id} className={PANEL_TITLE}>
+          {title}
+        </h2>
         {action}
       </header>
-      <div className={className ? `panel-body ${className}` : 'panel-body'}>
+      <div
+        className={
+          className
+            ? `panel-body ${PANEL_BODY} ${className}`
+            : `panel-body ${PANEL_BODY}`
+        }
+      >
         {children}
       </div>
     </section>

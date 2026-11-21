@@ -2,6 +2,17 @@ import { useEffect, useId, useState } from 'react'
 import { LOAD_ERROR } from '../content/status.js'
 import { apiFetch } from '../lib/api.js'
 import { categoryLabel } from '../lib/closet.js'
+import {
+  SWAP_ACTIONS,
+  SWAP_BODY,
+  SWAP_CANCEL,
+  SWAP_CHOICE,
+  SWAP_CHOICE_TEXT,
+  SWAP_LIST,
+  SWAP_SLOTS,
+  SWAP_TITLE,
+} from './adminHomeClasses.js'
+import { chipBtn } from './closetClasses.js'
 import { Swatch } from './OutfitSwatches.jsx'
 import Sheet from './Sheet.jsx'
 
@@ -93,14 +104,16 @@ function SwapBody({
   const others = (loaded?.candidates ?? []).filter((c) => c.id !== current?.id)
 
   return (
-    <div className="sheet-body">
-      <h2 id={titleId}>Swap a piece</h2>
-      <div className="chip-row" role="group" aria-label="Slot">
+    <div className={`sheet-body ${SWAP_BODY}`}>
+      <h2 id={titleId} className={SWAP_TITLE}>
+        Swap a piece
+      </h2>
+      <div className={SWAP_SLOTS} role="group" aria-label="Slot">
         {outfit.garments.map((g) => (
           <button
             key={g.slot}
             type="button"
-            className="chip"
+            className={chipBtn}
             aria-pressed={g.slot === slot}
             onClick={() => setSlot(g.slot)}
           >
@@ -118,16 +131,16 @@ function SwapBody({
         <p className="muted">Nothing else fits this slot today.</p>
       )}
       {others.length > 0 && (
-        <ul className="swap-list">
+        <ul className={`swap-list ${SWAP_LIST}`}>
           {others.map((tile) => (
             <li key={tile.id}>
               <button
                 type="button"
-                className="swap-choice"
+                className={`swap-choice ${SWAP_CHOICE}`}
                 onClick={() => onChoose(tile)}
               >
                 <Swatch garment={tile} />
-                <span className="swap-choice-text">
+                <span className={`swap-choice-text ${SWAP_CHOICE_TEXT}`}>
                   <span className="garment-name">{tile.name}</span>
                   <span className="garment-stat">{tile.qualifier}</span>
                 </span>
@@ -136,8 +149,8 @@ function SwapBody({
           ))}
         </ul>
       )}
-      <div className="sheet-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+      <div className={`sheet-actions ${SWAP_ACTIONS}`}>
+        <button type="button" className={SWAP_CANCEL} onClick={onClose}>
           Cancel
         </button>
       </div>

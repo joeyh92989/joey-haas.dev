@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
+import {
+  AREA_CARDS,
+  AREA_META,
+  LINK_BUTTON,
+  PLAIN,
+  PRIMARY,
+} from '../components/adminHomeClasses.js'
 import AreaCard, { AreaLead } from '../components/AreaCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -209,7 +216,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
               <span className="muted">{done}</span>
               <button
                 type="button"
-                className="link-button"
+                className={LINK_BUTTON}
                 onClick={() => setChanging(true)}
               >
                 {adminCopy.dashboard.change}
@@ -219,7 +226,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
             <>
               <button
                 type="button"
-                className="btn primary sm"
+                className={PRIMARY}
                 disabled={busy}
                 onClick={wore}
               >
@@ -227,7 +234,7 @@ function ClosetCard({ review, untagged, round, onFailure }) {
               </button>
               <button
                 type="button"
-                className="btn sm"
+                className={PLAIN}
                 disabled={busy}
                 onClick={() => setSwapOpen(true)}
               >
@@ -331,7 +338,7 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
       <>
         <button
           type="button"
-          className="btn primary sm"
+          className={PRIMARY}
           disabled={logged || loggingId === card.item_id}
           onClick={logTonight}
         >
@@ -339,7 +346,7 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={PLAIN}
           onClick={() =>
             setWrap({
               item: {
@@ -456,7 +463,7 @@ function DenverCard({ round, onFailure }) {
       ]}
       actions={
         queued ? (
-          <Link className="btn sm" to="/admin/spots">
+          <Link className={PLAIN} to="/admin/spots">
             {adminCopy.dashboard.reviewCandidates}
           </Link>
         ) : null
@@ -481,7 +488,7 @@ function SiteCard({ nightly, round, onFailure }) {
       linkLabel="Analytics"
       lead={
         summary ? (
-          <p className="area-card-meta">
+          <p className={`area-card-meta ${AREA_META}`}>
             <StatusText state={summary.state}>{summary.words}</StatusText>
           </p>
         ) : null
@@ -492,7 +499,7 @@ function SiteCard({ nightly, round, onFailure }) {
         ...(top ? [{ label: 'Top page', value: top }] : []),
       ]}
       actions={
-        <Link className="btn sm" to="/admin/jobs">
+        <Link className={PLAIN} to="/admin/jobs">
           {adminCopy.dashboard.jobs}
         </Link>
       }
@@ -543,7 +550,7 @@ export default function Admin() {
         />
       )}
 
-      <div className="area-cards">
+      <div className={`area-cards ${AREA_CARDS}`}>
         <ClosetCard
           review={closetReview}
           untagged={closetUntagged}
