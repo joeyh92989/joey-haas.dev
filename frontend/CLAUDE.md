@@ -112,6 +112,14 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   markup, and does not adopt shadcn's Sidebar or a Data Table: both would
   change behaviour (focus targets, `aria-current`, the disclosure's Escape and
   Tab-out rules) that the tests pin, for no change a visitor sees.
+  The Closet pages (#535, slice 2) take the same looks from
+  `components/closetClasses.js` (`btn()`, `chipBtn`, `closetCard`, `field`,
+  `textarea`, the ring and pressed marks) and a text field's look from
+  `ui/field-classes.js`, which `ui/input.jsx` shares. They carry the phone's 44px
+  targets (#276) as `max-[700px]:min-h-11` themselves, since the legacy `.chip`
+  and `.btn.sm` media rule no longer reaches them, and a label over a hidden file
+  input takes `FILE_PICK` for its ring (the legacy `.btn-file:focus-within` sits
+  in a lower layer than the button look's `outline-none`).
   Home, About and Projects take the 75rem `page-content` measure through
   `CONTENT_ROUTES` (exact paths, a trailing slash ignored); every other page keeps the 45rem
   column unless it is in `WIDE_ROUTES` (75rem).
