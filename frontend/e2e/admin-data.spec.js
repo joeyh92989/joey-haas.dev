@@ -310,24 +310,26 @@ for (const theme of THEMES) {
     page,
   }) => {
     test.setTimeout(240_000)
-    for (const route of [
-      `/admin/collection/${GAME_ID}`,
-      `/admin/shelf/comics/${COMIC_ID}`,
-      `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`,
+    for (const [route, name] of [
+      [`/admin/collection/${GAME_ID}`, /^Delete Star Fox/],
+      [`/admin/shelf/comics/${COMIC_ID}`, /^Delete Saga/],
+      [`/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`, /^Delete Saga/],
     ]) {
       await open(page, route, WIDTHS[2], theme)
-      await page
-        .getByRole('button', { name: /^Delete / })
-        .first()
-        .click()
-      for (const name of [/for good/, /^Keep /]) {
+      await page.getByRole('button', { name }).first().click()
+      for (const armed of [/for good/, /^Keep /]) {
         expect(
-          await textContrast(page.getByRole('button', { name })),
-          `armed ${name} on ${route}`,
+          await textContrast(page.getByRole('button', { name: armed })),
+          `armed ${armed} on ${route}`,
         ).toBeGreaterThan(4.5)
       }
     }
-    await open(page, `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`, WIDTHS[2], theme)
+    await open(
+      page,
+      `/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`,
+      WIDTHS[2],
+      theme,
+    )
     for (const pressed of await page
       .locator('main button[aria-pressed=true]')
       .all())

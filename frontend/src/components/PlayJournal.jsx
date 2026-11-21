@@ -4,6 +4,7 @@ import { ACTION_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { localToday } from '../lib/statusMoves.js'
 import { DAY_YEAR as DAY } from '../lib/formatDate.js'
+import { FIELD, LABEL, LINK_BTN, MUTED, PRIMARY } from './adminDataClasses.js'
 
 function shown(isoDate) {
   const [year, month, day] = isoDate.split('-').map(Number)
@@ -95,8 +96,11 @@ export default function PlayJournal({ itemId, type }) {
     <div className="play-journal">
       <h2>Journal</h2>
       <form className="play-journal-form" onSubmit={log}>
-        <label htmlFor="journal-played-on">{runWords(type).journalOn}</label>
+        <label htmlFor="journal-played-on" className={LABEL}>
+          {runWords(type).journalOn}
+        </label>
         <input
+          className={FIELD}
           id="journal-played-on"
           type="date"
           value={playedOn}
@@ -104,8 +108,11 @@ export default function PlayJournal({ itemId, type }) {
           onChange={(event) => setPlayedOn(event.target.value)}
           required
         />
-        <label htmlFor="journal-minutes">Minutes</label>
+        <label htmlFor="journal-minutes" className={LABEL}>
+          Minutes
+        </label>
         <input
+          className={FIELD}
           id="journal-minutes"
           type="number"
           min="1"
@@ -114,14 +121,17 @@ export default function PlayJournal({ itemId, type }) {
           value={minutes}
           onChange={(event) => setMinutes(event.target.value)}
         />
-        <label htmlFor="journal-note">Note (private)</label>
+        <label htmlFor="journal-note" className={LABEL}>
+          Note (private)
+        </label>
         <input
+          className={FIELD}
           id="journal-note"
           value={note}
           maxLength={2000}
           onChange={(event) => setNote(event.target.value)}
         />
-        <button type="submit" disabled={saving}>
+        <button type="submit" className={PRIMARY} disabled={saving}>
           {saving ? 'Logging…' : 'Log a session'}
         </button>
       </form>
@@ -130,9 +140,9 @@ export default function PlayJournal({ itemId, type }) {
           {error}
         </p>
       )}
-      {sessions === null && <p className="muted">Loading the journal…</p>}
+      {sessions === null && <p className={MUTED}>Loading the journal…</p>}
       {sessions?.length === 0 && (
-        <p className="muted">No sessions logged yet.</p>
+        <p className={MUTED}>No sessions logged yet.</p>
       )}
       {sessions?.length > 0 && (
         <ul className="play-journal-list">
@@ -141,11 +151,11 @@ export default function PlayJournal({ itemId, type }) {
               <time dateTime={row.played_on}>{shown(row.played_on)}</time>
               <span>
                 {row.minutes != null && `${row.minutes} min`}
-                {row.note && <span className="muted"> · {row.note}</span>}
+                {row.note && <span className={MUTED}> · {row.note}</span>}
               </span>
               <button
                 type="button"
-                className="link-button"
+                className={LINK_BTN}
                 onClick={() => remove(row.id)}
                 aria-label={`Delete the session on ${shown(row.played_on)}`}
               >

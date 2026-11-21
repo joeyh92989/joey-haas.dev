@@ -323,8 +323,7 @@ export async function mockAdminData(page) {
     const url = new URL(request.url())
     const path = url.pathname
     const method = request.method()
-    const json = (body, status = 200) =>
-      route.fulfill({ status, json: body })
+    const json = (body, status = 200) => route.fulfill({ status, json: body })
     if (path === '/api/track') return route.abort()
     if (path === '/api/auth/me')
       return json({ signed_in: true, email: 'admin@example.com' })
@@ -359,7 +358,11 @@ export async function mockAdminData(page) {
     if (path === `/api/comics/${COMIC_ID}/volumes`) return json(volumesFixture)
     if (path.startsWith('/api/comics/volumes/')) return json(VOLUME)
     if (path === '/api/items') return json(TITLES)
-    if (path.endsWith('.png')) return route.fulfill({ body: Buffer.from(PNG, 'base64'), contentType: 'image/png' })
+    if (path.endsWith('.png'))
+      return route.fulfill({
+        body: Buffer.from(PNG, 'base64'),
+        contentType: 'image/png',
+      })
     return json({}, 404)
   })
 }

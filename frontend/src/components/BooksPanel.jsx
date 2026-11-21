@@ -9,8 +9,9 @@ import {
 } from '../lib/volumeEdits.js'
 import CoverImage from './CoverImage.jsx'
 import LoadState from './LoadState.jsx'
-import Panel from './Panel.jsx'
+import DataPanel from './DataPanel.jsx'
 import StatePill from './StatePill.jsx'
+import { FIELD, LABEL, MUTED, PLAIN } from './adminDataClasses.js'
 
 const KINDS = spine.comics.volume.kinds
 
@@ -23,7 +24,7 @@ function BookRow({ itemId, book }) {
       </span>
       <span className="admin-book-text">
         <Link to={adminVolumePath(itemId, book.slug)}>{book.label}</Link>
-        <span className="muted admin-book-facts">
+        <span className={`${MUTED} admin-book-facts`}>
           {[
             book.line_number != null
               ? spine.comics.volume.number(book.line_number)
@@ -35,7 +36,7 @@ function BookRow({ itemId, book }) {
             .join(' · ')}
         </span>
         {book.collects_count === 0 && (
-          <span className="muted admin-book-facts">
+          <span className={`${MUTED} admin-book-facts`}>
             {COPY.noContents}
             {' · '}
             <Link to={adminVolumePath(itemId, book.slug)}>
@@ -120,12 +121,12 @@ export default function BooksPanel({ itemId }) {
   const general = error && Object.keys(error.fields ?? {}).length === 0
 
   return (
-    <Panel title={COPY.title}>
+    <DataPanel title={COPY.title}>
       {state.status === 'loading' && <LoadState loading />}
       {state.status === 'error' && <LoadState failed onRetry={retry} />}
       {state.status === 'ready' &&
         (state.books.length === 0 ? (
-          <p className="muted">{COPY.empty}</p>
+          <p className={MUTED}>{COPY.empty}</p>
         ) : (
           <ul className="admin-books" aria-label={COPY.list}>
             {state.books.map((book) => (
@@ -138,8 +139,11 @@ export default function BooksPanel({ itemId }) {
         <h3>{COPY.add.heading}</h3>
         <div className="admin-book-add-fields">
           <div>
-            <label htmlFor={`${ids}-label`}>{COPY.add.label}</label>
+            <label htmlFor={`${ids}-label`} className={LABEL}>
+              {COPY.add.label}
+            </label>
             <input
+              className={FIELD}
               id={`${ids}-label`}
               value={label}
               placeholder={COPY.add.labelHint}
@@ -156,8 +160,11 @@ export default function BooksPanel({ itemId }) {
             )}
           </div>
           <div>
-            <label htmlFor={`${ids}-kind`}>{COPY.add.kind}</label>
+            <label htmlFor={`${ids}-kind`} className={LABEL}>
+              {COPY.add.kind}
+            </label>
             <select
+              className={FIELD}
               id={`${ids}-kind`}
               value={kind}
               onChange={(event) => setKind(event.target.value)}
@@ -170,8 +177,11 @@ export default function BooksPanel({ itemId }) {
             </select>
           </div>
           <div>
-            <label htmlFor={`${ids}-number`}>{COPY.add.number}</label>
+            <label htmlFor={`${ids}-number`} className={LABEL}>
+              {COPY.add.number}
+            </label>
             <input
+              className={FIELD}
               id={`${ids}-number`}
               type="number"
               min="1"
@@ -194,7 +204,7 @@ export default function BooksPanel({ itemId }) {
             )}
           </div>
         </div>
-        <button type="submit" disabled={adding}>
+        <button type="submit" className={PLAIN} disabled={adding}>
           {adding ? COPY.add.adding : COPY.add.submit}
         </button>
         {general && (
@@ -203,6 +213,6 @@ export default function BooksPanel({ itemId }) {
           </p>
         )}
       </form>
-    </Panel>
+    </DataPanel>
   )
 }

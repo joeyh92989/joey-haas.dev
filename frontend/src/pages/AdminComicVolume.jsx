@@ -6,7 +6,22 @@ import CollectsEditor from '../components/CollectsEditor.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import EditionLinkPicker from '../components/EditionLinkPicker.jsx'
 import LoadState from '../components/LoadState.jsx'
-import Panel from '../components/Panel.jsx'
+import {
+  ARMED,
+  DANGER,
+  FIELD,
+  FIELD_AUTO,
+  FORM_ACTIONS,
+  FORM_GRID,
+  LABEL,
+  LINK_BTN,
+  MUTED,
+  PLAIN,
+  PRIMARY,
+  chipBtn,
+  TEXTAREA,
+} from '../components/adminDataClasses.js'
+import DataPanel from '../components/DataPanel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import { KIND_ORDER, volume as COPY } from '../content/adminVolume.js'
 import { spine } from '../content/spine.js'
@@ -70,7 +85,7 @@ function StatusLine({ line, area, error }) {
           {line.undo && (
             <>
               {' '}
-              <button type="button" className="link-button" onClick={line.undo}>
+              <button type="button" className={LINK_BTN} onClick={line.undo}>
                 {COPY.status.undo}
               </button>
             </>
@@ -409,7 +424,7 @@ export default function AdminComicVolume() {
       </div>
 
       <div className="admin-volume-body">
-        <Panel title={COPY.status.heading}>
+        <DataPanel title={COPY.status.heading}>
           <div
             className="chip-row"
             role="group"
@@ -419,7 +434,7 @@ export default function AdminComicVolume() {
               <button
                 key={field}
                 type="button"
-                className="chip"
+                className={chipBtn}
                 aria-pressed={volume[field]}
                 disabled={busy}
                 onClick={() => toggle(field, word)}
@@ -428,14 +443,15 @@ export default function AdminComicVolume() {
               </button>
             ))}
           </div>
-          <p className="muted comic-hint">{COPY.status.hint}</p>
+          <p className={`${MUTED} comic-hint`}>{COPY.status.hint}</p>
           <StatusLine line={line} area="shelf" error={error} />
-        </Panel>
+        </DataPanel>
 
-        <Panel title={COPY.facts.heading}>
-          <form className="item-detail-form" onSubmit={saveFacts} noValidate>
+        <DataPanel title={COPY.facts.heading}>
+          <form className={FORM_GRID} onSubmit={saveFacts} noValidate>
             <label htmlFor={`${ids}-label`}>{COPY.facts.label}</label>
             <input
+              className={FIELD}
               id={`${ids}-label`}
               value={facts.label}
               onChange={set('label')}
@@ -445,6 +461,7 @@ export default function AdminComicVolume() {
 
             <label htmlFor={`${ids}-kind`}>{COPY.facts.kind}</label>
             <select
+              className={FIELD}
               id={`${ids}-kind`}
               value={facts.kind}
               onChange={set('kind')}
@@ -460,6 +477,7 @@ export default function AdminComicVolume() {
 
             <label htmlFor={`${ids}-line_number`}>{COPY.facts.number}</label>
             <input
+              className={FIELD}
               id={`${ids}-line_number`}
               type="number"
               min="1"
@@ -472,6 +490,7 @@ export default function AdminComicVolume() {
 
             <label htmlFor={`${ids}-pages`}>{COPY.facts.pages}</label>
             <input
+              className={FIELD}
               id={`${ids}-pages`}
               type="number"
               min="1"
@@ -484,6 +503,7 @@ export default function AdminComicVolume() {
 
             <label htmlFor={`${ids}-isbn`}>{COPY.facts.isbn}</label>
             <input
+              className={FIELD}
               id={`${ids}-isbn`}
               value={facts.isbn}
               onChange={set('isbn')}
@@ -495,6 +515,7 @@ export default function AdminComicVolume() {
               {COPY.facts.description}
             </label>
             <textarea
+              className={TEXTAREA}
               id={`${ids}-description`}
               rows="5"
               value={facts.description}
@@ -503,12 +524,12 @@ export default function AdminComicVolume() {
             />
             {errorFor('description')}
 
-            <div className="item-detail-actions">
-              <button type="submit" disabled={savingFacts}>
+            <div className={FORM_ACTIONS}>
+              <button type="submit" className={PRIMARY} disabled={savingFacts}>
                 {savingFacts ? COPY.facts.saving : COPY.facts.save}
               </button>
               {factsSaved && (
-                <span className="muted" role="status">
+                <span className={MUTED} role="status">
                   {COPY.facts.saved}
                 </span>
               )}
@@ -519,9 +540,9 @@ export default function AdminComicVolume() {
               </p>
             )}
           </form>
-        </Panel>
+        </DataPanel>
 
-        <Panel title={COPY.collects.heading}>
+        <DataPanel title={COPY.collects.heading}>
           <CollectsEditor
             entries={volume.collects}
             titles={titles}
@@ -531,7 +552,7 @@ export default function AdminComicVolume() {
             volumeId={volume.id}
           />
           <StatusLine line={line} area="collects" error={error} />
-        </Panel>
+        </DataPanel>
 
         <nav aria-label={COPY.neighbours.label} className="edition-neighbours">
           {volume.prev ? (
@@ -546,15 +567,18 @@ export default function AdminComicVolume() {
           )}
         </nav>
 
-        <Panel title={COPY.move.heading}>
-          <p className="muted">{COPY.move.line}</p>
+        <DataPanel title={COPY.move.heading}>
+          <p className={MUTED}>{COPY.move.line}</p>
           {titles.status === 'ready' && others.length === 0 && (
-            <p className="muted">{COPY.move.none}</p>
+            <p className={MUTED}>{COPY.move.none}</p>
           )}
           {titles.status === 'ready' && others.length > 0 && (
             <form className="admin-volume-move" onSubmit={moveTo}>
-              <label htmlFor={`${ids}-move`}>{COPY.move.select}</label>
+              <label htmlFor={`${ids}-move`} className={LABEL}>
+                {COPY.move.select}
+              </label>
               <select
+                className={FIELD_AUTO}
                 id={`${ids}-move`}
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
@@ -566,20 +590,25 @@ export default function AdminComicVolume() {
                   </option>
                 ))}
               </select>
-              <button type="submit" disabled={busy || target === ''}>
+              <button
+                type="submit"
+                className={PLAIN}
+                disabled={busy || target === ''}
+              >
                 {busy ? COPY.move.moving : COPY.move.submit}
               </button>
             </form>
           )}
           <StatusLine line={line} area="move" error={error} />
-        </Panel>
+        </DataPanel>
 
-        <Panel title={COPY.delete.heading}>
-          <p className="muted">{COPY.delete.line}</p>
+        <DataPanel title={COPY.delete.heading}>
+          <p className={MUTED}>{COPY.delete.line}</p>
           <ShelfConfirm
             ids={[volume.id]}
             title={volume.label}
-            className="btn danger"
+            className={DANGER}
+            armedClassName={ARMED}
             source={{
               load: () => deletePreviewResponse(volume.id),
               describe: COPY.delete.detail,
@@ -587,11 +616,14 @@ export default function AdminComicVolume() {
             onConfirm={remove}
           />
           <StatusLine line={line} area="delete" error={error} />
-        </Panel>
+        </DataPanel>
 
         {volume.owned && volume.title.is_public && (
           <p>
-            <Link className="btn" to={volumePath(volume.item_id, volume.slug)}>
+            <Link
+              className={PLAIN}
+              to={volumePath(volume.item_id, volume.slug)}
+            >
               {COPY.viewPublic}
             </Link>
           </p>

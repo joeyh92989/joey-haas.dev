@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
+import { FIELD_AUTO, HIT, LINK_BTN, MUTED } from './adminDataClasses.js'
 
 const DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
@@ -115,7 +116,7 @@ export default function EditionLinkPicker({
           <span>Linked to Comic Vine (issue {cvId})</span>
           <button
             type="button"
-            className="link-button"
+            className={LINK_BTN}
             aria-label={`Unlink ${name} from Comic Vine`}
             disabled={busy || unavailable}
             onClick={() => put(null)}
@@ -126,7 +127,7 @@ export default function EditionLinkPicker({
       ) : null}
       <button
         type="button"
-        className="link-button"
+        className={LINK_BTN}
         aria-label={`Link to Comic Vine, ${name}`}
         aria-expanded={open}
         disabled={busy || unavailable}
@@ -134,13 +135,14 @@ export default function EditionLinkPicker({
       >
         {cvId ? 'Change link' : 'Link to Comic Vine'}
       </button>
-      {unavailable && <span className="muted">{disabledReason}</span>}
+      {unavailable && <span className={MUTED}>{disabledReason}</span>}
       {open && !unavailable && (
         <>
           <label htmlFor={fieldId} className="visually-hidden">
             Search Comic Vine
           </label>
           <input
+            className={FIELD_AUTO}
             id={fieldId}
             type="search"
             placeholder="Saga 1"
@@ -149,7 +151,7 @@ export default function EditionLinkPicker({
             onChange={(event) => setQuery(event.target.value)}
           />
           {searching && (
-            <span className="muted" role="status">
+            <span className={MUTED} role="status">
               Searching…
             </span>
           )}
@@ -159,7 +161,7 @@ export default function EditionLinkPicker({
                 <li key={hit.cv_id}>
                   <button
                     type="button"
-                    className="edition-link-hit"
+                    className={`edition-link-hit ${HIT}`}
                     disabled={busy}
                     onClick={() => put(hit.cv_id)}
                   >

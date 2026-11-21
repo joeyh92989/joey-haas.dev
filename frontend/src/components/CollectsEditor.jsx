@@ -3,6 +3,17 @@ import { Link } from 'react-router'
 import { volume as COPY } from '../content/adminVolume.js'
 import { collectBody, draftBody } from '../lib/volumeEdits.js'
 import ConfirmDelete from './ConfirmDelete.jsx'
+import { TEXT_LINK } from './detail-classes.js'
+import {
+  FIELD,
+  GHOST,
+  LABEL,
+  LINK_BTN,
+  MUTED,
+  PRIMARY,
+  SMALL,
+  TEXTAREA,
+} from './adminDataClasses.js'
 import MetronFind from './MetronFind.jsx'
 
 const C = COPY.collects
@@ -26,7 +37,9 @@ function draftOf(entry) {
 function Field({ id, label, error, children }) {
   return (
     <div className="admin-collect-field">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} className={LABEL}>
+        {label}
+      </label>
       {children({
         id,
         'aria-invalid': error ? true : undefined,
@@ -84,6 +97,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
       <Field id={`${ids}-series`} label={C.series} error={fields.series_name}>
         {(props) => (
           <input
+            className={FIELD}
             {...props}
             value={draft.series_name}
             onChange={set('series_name')}
@@ -93,6 +107,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
       <Field id={`${ids}-issues`} label={C.issues} error={fields.issue_text}>
         {(props) => (
           <input
+            className={FIELD}
             {...props}
             placeholder={C.issuesHint}
             value={draft.issue_text}
@@ -101,7 +116,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
         )}
       </Field>
       {titles.status === 'loading' && (
-        <p className="muted">{C.loadingTitles}</p>
+        <p className={MUTED}>{C.loadingTitles}</p>
       )}
       {titles.status === 'error' && (
         <p className="admin-error" role="alert">
@@ -115,7 +130,12 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
           error={fields['link.item_id']}
         >
           {(props) => (
-            <select {...props} value={draft.item_id} onChange={set('item_id')}>
+            <select
+              className={FIELD}
+              {...props}
+              value={draft.item_id}
+              onChange={set('item_id')}
+            >
               <option value="">{C.noLink}</option>
               {titles.list.map((title) => (
                 <option key={title.id} value={title.id}>
@@ -137,6 +157,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
           >
             {(props) => (
               <input
+                className={FIELD}
                 {...props}
                 type="number"
                 min="1"
@@ -153,6 +174,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
           >
             {(props) => (
               <input
+                className={FIELD}
                 {...props}
                 type="number"
                 min="1"
@@ -170,10 +192,10 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
         </p>
       )}
       <div className="admin-collect-actions">
-        <button type="submit" disabled={busy}>
+        <button type="submit" className={PRIMARY} disabled={busy}>
           {busy ? C.saving : C.save}
         </button>
-        <button type="button" className="btn ghost" onClick={onCancel}>
+        <button type="button" className={GHOST} onClick={onCancel}>
           {C.cancel}
         </button>
       </div>
@@ -195,6 +217,7 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
           <span className="admin-collect-link">
             {C.linkedTo}{' '}
             <Link
+              className={TEXT_LINK}
               to={`/admin/shelf/comics/${encodeURIComponent(link.item_id)}`}
             >
               {link.title}
@@ -207,14 +230,14 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
             )}
           </span>
         )}
-        <span className="muted admin-collect-source">
+        <span className={`${MUTED} admin-collect-source`}>
           {C.sourceLabel}: {C.source[entry.source] ?? entry.source}
         </span>
       </div>
       <div className="admin-collect-actions">
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           aria-label={C.editName(name)}
           disabled={busy}
           onClick={onEdit}
@@ -223,7 +246,7 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           aria-label={C.moveUpName(name)}
           disabled={busy || index === 0}
           onClick={() => onMove(-1)}
@@ -232,7 +255,7 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           aria-label={C.moveDownName(name)}
           disabled={busy || last}
           onClick={() => onMove(1)}
@@ -241,7 +264,7 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
         </button>
         <ConfirmDelete
           subject={name}
-          className="btn sm"
+          className={SMALL}
           label={C.remove}
           intro={C.removeIntro(name)}
           confirmLabel={C.removeFor}
@@ -312,6 +335,7 @@ export default function CollectsEditor({
           <div className="admin-collect-actions">
             <button
               type="button"
+              className={SMALL}
               disabled={busy}
               onClick={() => onParse(noting ? note : '')}
             >
@@ -319,18 +343,21 @@ export default function CollectsEditor({
             </button>
             <button
               type="button"
-              className="link-button"
+              className={LINK_BTN}
               aria-expanded={noting}
               onClick={() => setNoting((on) => !on)}
             >
               {noting ? C.read.noteHide : C.read.noteToggle}
             </button>
           </div>
-          <p className="muted comic-hint">{C.read.hint}</p>
+          <p className={`${MUTED} comic-hint`}>{C.read.hint}</p>
           {noting && (
             <div className="admin-collect-field">
-              <label htmlFor={noteId}>{C.read.noteLabel}</label>
+              <label htmlFor={noteId} className={LABEL}>
+                {C.read.noteLabel}
+              </label>
               <textarea
+                className={TEXTAREA}
                 id={noteId}
                 rows={3}
                 maxLength={2000}
@@ -338,7 +365,7 @@ export default function CollectsEditor({
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
               />
-              <p id={`${noteId}-hint`} className="muted comic-hint">
+              <p id={`${noteId}-hint`} className={`${MUTED} comic-hint`}>
                 {C.read.noteHint}
               </p>
             </div>
@@ -354,7 +381,7 @@ export default function CollectsEditor({
         />
       )}
       {entries.length === 0 ? (
-        <p className="muted">{C.empty}</p>
+        <p className={MUTED}>{C.empty}</p>
       ) : (
         <ol className="admin-collects" aria-label={C.list}>
           {entries.map((entry, index) =>
@@ -401,6 +428,7 @@ export default function CollectsEditor({
       ) : (
         <button
           type="button"
+          className={SMALL}
           disabled={busy || editing !== null}
           onClick={() => setEditing('new')}
         >

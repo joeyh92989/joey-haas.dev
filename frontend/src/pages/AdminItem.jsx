@@ -23,6 +23,20 @@ import {
 } from '../lib/statusMoves.js'
 import { ACTION_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
+import {
+  ARMED,
+  CHECKBOX,
+  DANGER,
+  FIELD,
+  FIELD_AUTO,
+  FORM_ACTIONS,
+  FORM_GRID,
+  LABEL,
+  MUTED,
+  PRIMARY,
+  SMALL,
+  TEXTAREA,
+} from '../components/adminDataClasses.js'
 
 // A comic has its own page (`AdminComic`), so it is not offered here.
 const TYPES = ['game', 'movie', 'boardgame']
@@ -182,9 +196,9 @@ function RegistryLine({ item, onAdopted }) {
   if (!note?.note) return null
   return (
     <div className="registry-line">
-      <p className={note.agrees === false ? undefined : 'muted'}>{note.note}</p>
+      <p className={note.agrees === false ? undefined : MUTED}>{note.note}</p>
       {note.agrees === false && (
-        <button type="button" disabled={busy} onClick={adopt}>
+        <button type="button" className={SMALL} disabled={busy} onClick={adopt}>
           {adminCopy.item.useRegistryValue}
         </button>
       )}
@@ -510,7 +524,7 @@ export default function AdminItem() {
     return (
       <section>
         {header}
-        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
+        <p className={MUTED}>{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
   }
@@ -561,27 +575,35 @@ export default function AdminItem() {
           {error}
         </p>
       )}
-      {savedAt && <p className="muted">{adminCopy.item.saved}</p>}
+      {savedAt && <p className={MUTED}>{adminCopy.item.saved}</p>}
 
-      <div className="play-next-status">
+      <div className="mb-4 grid justify-items-start gap-2 [&_p]:m-0">
         {item.pinned_at ? (
           <p>
             Up next.{' '}
-            <button type="button" onClick={() => setPinned('DELETE')}>
+            <button
+              type="button"
+              className={SMALL}
+              onClick={() => setPinned('DELETE')}
+            >
               {adminCopy.item.unpin}
             </button>
           </p>
         ) : (
           <p>
-            <button type="button" onClick={() => setPinned('POST')}>
+            <button
+              type="button"
+              className={SMALL}
+              onClick={() => setPinned('POST')}
+            >
               {adminCopy.item.pinAsUpNext}
             </button>
           </p>
         )}
         {item.play_next_excluded && (
           <p>
-            <span className="muted">{adminCopy.item.excludedFromPlayNext}</span>{' '}
-            <button type="button" onClick={restoreToPlayNext}>
+            <span className={MUTED}>{adminCopy.item.excludedFromPlayNext}</span>{' '}
+            <button type="button" className={SMALL} onClick={restoreToPlayNext}>
               {adminCopy.item.restore}
             </button>
           </p>
@@ -591,7 +613,7 @@ export default function AdminItem() {
       <div className="item-detail">
         <div className="item-detail-cover">
           <CoverImage src={item.cover_url} type={item.type} alt="" />
-          <p className="muted item-detail-link">
+          <p className={`${MUTED} item-detail-link`}>
             {item.external_source ? (
               <>
                 Linked to {item.external_source} #{item.external_id}
@@ -600,12 +622,12 @@ export default function AdminItem() {
               'Not linked to a source'
             )}
           </p>
-          {item.creator && <p className="muted">{item.creator}</p>}
+          {item.creator && <p className={MUTED}>{item.creator}</p>}
 
           <div className="item-relink">
             <h2>{adminCopy.item.relink}</h2>
-            <p className="muted">{adminCopy.item.relinkHelp}</p>
-            {relinking && <p className="muted">{adminCopy.item.relinking}</p>}
+            <p className={MUTED}>{adminCopy.item.relinkHelp}</p>
+            {relinking && <p className={MUTED}>{adminCopy.item.relinking}</p>}
             <MetadataPicker type={form.type} onSelect={relink} />
           </div>
 
@@ -613,17 +635,27 @@ export default function AdminItem() {
         </div>
 
         <div className="item-detail-main">
-          <form className="item-detail-form" onSubmit={save}>
-            <label htmlFor="title">{adminCopy.item.title}</label>
+          <form className={FORM_GRID} onSubmit={save}>
+            <label htmlFor="title" className={LABEL}>
+              {adminCopy.item.title}
+            </label>
             <input
+              className={FIELD}
               id="title"
               value={form.title}
               onChange={set('title')}
               required
             />
 
-            <label htmlFor="type">{adminCopy.item.type}</label>
-            <select id="type" value={form.type} onChange={set('type')}>
+            <label htmlFor="type" className={LABEL}>
+              {adminCopy.item.type}
+            </label>
+            <select
+              className={FIELD}
+              id="type"
+              value={form.type}
+              onChange={set('type')}
+            >
               {TYPES.map((value) => (
                 <option key={value} value={value}>
                   {value}
@@ -631,8 +663,11 @@ export default function AdminItem() {
               ))}
             </select>
 
-            <label htmlFor="year">{adminCopy.item.year}</label>
+            <label htmlFor="year" className={LABEL}>
+              {adminCopy.item.year}
+            </label>
             <input
+              className={FIELD}
               id="year"
               type="number"
               min="1880"
@@ -641,8 +676,11 @@ export default function AdminItem() {
               onChange={set('year')}
             />
 
-            <label htmlFor="owned_format">{adminCopy.item.format}</label>
+            <label htmlFor="owned_format" className={LABEL}>
+              {adminCopy.item.format}
+            </label>
             <select
+              className={FIELD}
               id="owned_format"
               value={form.owned_format}
               onChange={set('owned_format')}
@@ -656,8 +694,11 @@ export default function AdminItem() {
             </select>
 
             <>
-              <label htmlFor="platform_id">{adminCopy.item.platform}</label>
+              <label htmlFor="platform_id" className={LABEL}>
+                {adminCopy.item.platform}
+              </label>
               <select
+                className={FIELD}
                 id="platform_id"
                 value={form.platform_id}
                 onChange={set('platform_id')}
@@ -670,10 +711,11 @@ export default function AdminItem() {
                 ))}
               </select>
 
-              <label htmlFor="physical_format">
+              <label htmlFor="physical_format" className={LABEL}>
                 {adminCopy.item.copyFormat}
               </label>
               <select
+                className={FIELD}
                 id="physical_format"
                 value={form.physical_format}
                 onChange={set('physical_format')}
@@ -691,16 +733,22 @@ export default function AdminItem() {
 
               {/* The code on a Switch 2 label decides the format; the server
                     refuses one that contradicts it. */}
-              <label htmlFor="cart_id">{adminCopy.item.cartId}</label>
+              <label htmlFor="cart_id" className={LABEL}>
+                {adminCopy.item.cartId}
+              </label>
               <input
+                className={FIELD}
                 id="cart_id"
                 placeholder={adminCopy.item.cartIdPlaceholder}
                 value={form.cart_id}
                 onChange={set('cart_id')}
               />
 
-              <label htmlFor="region">{adminCopy.item.region}</label>
+              <label htmlFor="region" className={LABEL}>
+                {adminCopy.item.region}
+              </label>
               <input
+                className={FIELD}
                 id="region"
                 placeholder={adminCopy.item.regionPlaceholder}
                 maxLength={4}
@@ -710,10 +758,11 @@ export default function AdminItem() {
 
               {CARTRIDGE_ERA_PLATFORMS.includes(Number(form.platform_id)) && (
                 <>
-                  <label htmlFor="completeness">
+                  <label htmlFor="completeness" className={LABEL}>
                     {adminCopy.item.completeness}
                   </label>
                   <select
+                    className={FIELD}
                     id="completeness"
                     value={form.completeness}
                     onChange={set('completeness')}
@@ -729,8 +778,11 @@ export default function AdminItem() {
               )}
             </>
 
-            <label htmlFor="acquired_at">{adminCopy.item.acquired}</label>
+            <label htmlFor="acquired_at" className={LABEL}>
+              {adminCopy.item.acquired}
+            </label>
             <input
+              className={FIELD}
               id="acquired_at"
               type="date"
               value={form.acquired_at}
@@ -739,16 +791,22 @@ export default function AdminItem() {
 
             {/* On a linked item a metadata refresh overwrites this: the source
               is the truth for a release date, since announced dates move. */}
-            <label htmlFor="release_date">{adminCopy.item.releaseDate}</label>
+            <label htmlFor="release_date" className={LABEL}>
+              {adminCopy.item.releaseDate}
+            </label>
             <input
+              className={FIELD}
               id="release_date"
               type="date"
               value={form.release_date}
               onChange={set('release_date')}
             />
 
-            <label htmlFor="rating">{adminCopy.item.rating}</label>
+            <label htmlFor="rating" className={LABEL}>
+              {adminCopy.item.rating}
+            </label>
             <input
+              className={FIELD}
               id="rating"
               type="number"
               min="1"
@@ -757,24 +815,33 @@ export default function AdminItem() {
               onChange={set('rating')}
             />
 
-            <label htmlFor="notes">{adminCopy.item.notes}</label>
+            <label htmlFor="notes" className={LABEL}>
+              {adminCopy.item.notes}
+            </label>
             <textarea
+              className={TEXTAREA}
               id="notes"
               rows="3"
               value={form.notes}
               onChange={set('notes')}
             />
 
-            <label htmlFor="favorite">{adminCopy.item.favorite}</label>
+            <label htmlFor="favorite" className={LABEL}>
+              {adminCopy.item.favorite}
+            </label>
             <input
+              className={CHECKBOX}
               id="favorite"
               type="checkbox"
               checked={form.favorite}
               onChange={set('favorite')}
             />
 
-            <label htmlFor="is_public">{adminCopy.item.isPublic}</label>
+            <label htmlFor="is_public" className={LABEL}>
+              {adminCopy.item.isPublic}
+            </label>
             <input
+              className={CHECKBOX}
               id="is_public"
               type="checkbox"
               checked={form.is_public}
@@ -791,14 +858,15 @@ export default function AdminItem() {
               />
             )}
 
-            <div className="item-detail-actions">
-              <button type="submit" disabled={saving}>
+            <div className={FORM_ACTIONS}>
+              <button type="submit" className={PRIMARY} disabled={saving}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
               <ShelfConfirm
                 ids={[id]}
                 title={item.title}
-                className="danger"
+                className={DANGER}
+                armedClassName={ARMED}
                 onConfirm={remove}
               />
             </div>
@@ -810,8 +878,11 @@ export default function AdminItem() {
           >
             <h2 id="playthroughs-heading">{runWords(item.type).runs}</h2>
             <p className="item-status-control">
-              <label htmlFor="status">{adminCopy.item.status}</label>
+              <label htmlFor="status" className={LABEL}>
+                {adminCopy.item.status}
+              </label>
               <select
+                className={FIELD_AUTO}
                 id="status"
                 value={item.status}
                 disabled={runBusy}

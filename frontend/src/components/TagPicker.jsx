@@ -1,5 +1,6 @@
 import { tagGroupsOf, tagPicker } from '../content/tags.js'
 import { toggleTag } from '../lib/tags.js'
+import { MUTED, chipBtn } from './adminDataClasses.js'
 
 /**
  * The edit pages' tag picker: each group of the type's vocabulary as a
@@ -18,7 +19,7 @@ export default function TagPicker({ type, value, onChange }) {
   return (
     <fieldset className="tag-picker">
       <legend>{tagPicker.title}</legend>
-      <p className="muted comic-hint">{tagPicker.hint}</p>
+      <p className={`${MUTED} comic-hint`}>{tagPicker.hint}</p>
       {groups.map((group) => (
         <div key={group.key} className="ctl-row">
           <span className="ctl-label" id={`tags-${group.key}`}>
@@ -37,7 +38,7 @@ export default function TagPicker({ type, value, onChange }) {
                 <button
                   key={tag.key}
                   type="button"
-                  className="chip"
+                  className={chipBtn}
                   aria-pressed={on}
                   onClick={() =>
                     onChange(toggleTag(type, value, group.key, tag.key))

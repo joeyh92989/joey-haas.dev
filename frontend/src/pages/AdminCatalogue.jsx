@@ -10,8 +10,22 @@ import { useLiveRead } from '../lib/useLiveRead.js'
 import { READ_DEADLINE_MS, withDeadline } from '../lib/waits.js'
 import { DAY_YEAR_TIME } from '../lib/formatDate.js'
 import { adminCopy } from '../content/adminCopy.js'
+import {
+  ATTENTION,
+  FIELD_AUTO,
+  MUTED,
+  SMALL,
+  TABLE,
+  TABLE_WRAP,
+  TD,
+  TH,
+  TH_ROW,
+} from '../components/adminDataClasses.js'
 
 const copy = adminCopy.catalogue
+
+// A candidate's button wraps: a title can be longer than the screen.
+const CANDIDATE = `${SMALL} h-auto! max-w-full py-1 text-left whitespace-normal! [overflow-wrap:anywhere]`
 
 const KIND_ORDER = ['registry', 'store', 'platform', 'resolve']
 
@@ -84,11 +98,11 @@ function SourceRow({ source, busy, onRefreshStore }) {
   const run = source.last_run
   return (
     <tr>
-      <th scope="row">
+      <th scope="row" className={TH_ROW}>
         {source.name}
         {source.needs_attention && (
           <span
-            className="needs-attention"
+            className={ATTENTION}
             role="img"
             aria-label={`Needs attention: ${source.consecutive_failures} failed runs in a row`}
           >
@@ -96,14 +110,14 @@ function SourceRow({ source, busy, onRefreshStore }) {
           </span>
         )}
       </th>
-      <td>{when(run?.finished_at ?? run?.started_at)}</td>
-      <td>{run ? run.rows_seen : '—'}</td>
-      <td>
+      <td className={TD}>{when(run?.finished_at ?? run?.started_at)}</td>
+      <td className={TD}>{run ? run.rows_seen : '—'}</td>
+      <td className={TD}>
         {runState(run)}
         {source.needs_attention &&
           ` — ${source.consecutive_failures} failed runs in a row`}
         {run?.errors?.length > 0 && (
-          <ul className="run-errors">
+          <ul className="m-0 mt-1 list-none p-0 text-[0.8125rem] text-muted-foreground [overflow-wrap:anywhere]">
             {run.errors.map((entry, index) => (
               <li key={index}>
                 <code>{entry.code}</code> {entry.detail}
@@ -112,10 +126,11 @@ function SourceRow({ source, busy, onRefreshStore }) {
           </ul>
         )}
       </td>
-      <td>
+      <td className={TD}>
         {source.kind === 'store' && (
           <button
             type="button"
+            className={SMALL}
             disabled={busy}
             onClick={() => onRefreshStore(source.source)}
             aria-label={`Refresh ${source.name}`}
@@ -153,18 +168,19 @@ function NeedsMatchRow({ entry, onDecide }) {
 
   return (
     <li className="needs-match-row">
-      <p>
+      <p className="m-0">
         <strong>{entry.title}</strong>{' '}
-        <span className="muted">
+        <span className={MUTED}>
           {where} · {entry.sources.join(', ')} · {entry.rows}{' '}
           {entry.rows === 1 ? 'row' : 'rows'}
         </span>
       </p>
       {entry.platform_id === 0 ? (
-        <p className="needs-match-controls">
-          <label>
+        <p className="my-2 flex flex-wrap items-center gap-2">
+          <label className="flex flex-wrap items-center gap-2 text-sm">
             Platform{' '}
             <select
+              className={FIELD_AUTO}
               value={platform}
               onChange={(event) => setPlatform(event.target.value)}
               aria-label={`Platform for ${entry.title}`}
@@ -179,6 +195,7 @@ function NeedsMatchRow({ entry, onDecide }) {
           </label>
           <button
             type="button"
+            className={SMALL}
             disabled={busy || !platform}
             onClick={() => decide({ new_platform_id: Number(platform) })}
           >
@@ -188,11 +205,12 @@ function NeedsMatchRow({ entry, onDecide }) {
       ) : (
         <>
           {entry.candidates.length > 0 && (
-            <ul className="needs-match-candidates">
+            <ul className="m-0 my-2 flex list-none flex-wrap gap-2 p-0">
               {entry.candidates.map((candidate) => (
                 <li key={candidate.external_id}>
                   <button
                     type="button"
+                    className={CANDIDATE}
                     disabled={busy}
                     onClick={() =>
                       decide({ igdb_id: Number(candidate.external_id) })
@@ -212,9 +230,10 @@ function NeedsMatchRow({ entry, onDecide }) {
           />
         </>
       )}
-      <p>
+      <p className="my-2">
         <button
           type="button"
+          className={SMALL}
           disabled={busy}
           onClick={() => decide({ ignored: true })}
           aria-label={`Ignore ${entry.title}`}
@@ -278,16 +297,16 @@ function NeedsMatch({ onChange, noPlatform = 0 }) {
   }
 
   return (
-    <section className="needs-match" aria-labelledby="needs-match-heading">
+    <section className="mt-8" aria-labelledby="needs-match-heading">
       <h2 id="needs-match-heading">{copy.needsMatch}</h2>
       <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
       {data && keys.length === 0 && (
-        <p className="muted">{copy.nothingNeedsMatch}</p>
+        <p className={MUTED}>{copy.nothingNeedsMatch}</p>
       )}
       {data && total > keys.length && (
-        <p className="muted">{showingWords(keys.length, total, noPlatform)}</p>
+        <p className={MUTED}>{showingWords(keys.length, total, noPlatform)}</p>
       )}
-      <ul className="needs-match-list">
+      <ul className="m-0 list-none p-0">
         {keys.map((entry) => (
           <NeedsMatchRow
             key={`${entry.title_normalized}:${entry.platform_id}`}
@@ -306,18 +325,21 @@ function Disagreements() {
   const items = data?.items ?? []
 
   return (
-    <section className="disagreements" aria-labelledby="disagreements-heading">
+    <section className="mt-8" aria-labelledby="disagreements-heading">
       <h2 id="disagreements-heading">{copy.disagreements}</h2>
       <LoadState loading={!data && !failed} failed={failed} onRetry={retry} />
       {data && items.length === 0 && (
-        <p className="muted">{copy.noDisagreements}</p>
+        <p className={MUTED}>{copy.noDisagreements}</p>
       )}
-      <ul className="disagreement-list">
+      <ul className="m-0 list-none p-0">
         {items.map((item) => (
-          <li key={item.item_id}>
+          <li
+            key={item.item_id}
+            className="border-b border-border py-3 [overflow-wrap:anywhere]"
+          >
             <Link to={`/admin/collection/${item.item_id}`}>{item.title}</Link>{' '}
-            <span className="muted">({item.region})</span>
-            <p>
+            <span className={MUTED}>({item.region})</span>
+            <p className="m-0">
               Yours: {FORMAT_WORDS[item.yours] ?? 'not recorded'}
               {item.yours_source && ` (${item.yours_source})`} · Registry:{' '}
               {FORMAT_WORDS[item.registry] ?? item.registry}
@@ -504,14 +526,14 @@ export default function AdminCatalogue() {
     : []
 
   return (
-    <section className="catalogue">
+    <section>
       <AdminPageHeader
         title={copy.sources}
         description="What exists physically, and in which format: the r/NSCollectors registries for Switch 2 and Switch 1, the boutique stores, and IGDB’s N64 list."
       >
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           disabled={busy}
           onClick={() => refreshStores()}
         >
@@ -519,7 +541,7 @@ export default function AdminCatalogue() {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           disabled={busy}
           onClick={refreshRegistry}
         >
@@ -527,7 +549,7 @@ export default function AdminCatalogue() {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           disabled={busy}
           onClick={refreshN64}
         >
@@ -535,7 +557,7 @@ export default function AdminCatalogue() {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           disabled={busy}
           onClick={refreshSwitch1}
         >
@@ -543,7 +565,7 @@ export default function AdminCatalogue() {
         </button>
         <button
           type="button"
-          className="btn sm"
+          className={SMALL}
           disabled={busy}
           onClick={resolveAll}
         >
@@ -551,7 +573,11 @@ export default function AdminCatalogue() {
         </button>
       </AdminPageHeader>
 
-      <p className="catalogue-progress" role="status" aria-live="polite">
+      <p
+        className="min-h-6 text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
         {running ?? message ?? ''}
       </p>
       {error && (
@@ -579,21 +605,29 @@ export default function AdminCatalogue() {
             ))}
           </StatTiles>
           {status.totals.switch1_unmatched > 0 && (
-            <p className="muted">
+            <p className={MUTED}>
               {unmatchedWords(status.totals.switch1_unmatched)}
             </p>
           )}
 
-          <div className="item-table-wrap">
-            <table className="item-table catalogue-table">
+          <div className={TABLE_WRAP}>
+            <table className={TABLE}>
               <caption className="visually-hidden">{copy.sources}</caption>
               <thead>
                 <tr>
-                  <th scope="col">{copy.source}</th>
-                  <th scope="col">{copy.lastRefreshed}</th>
-                  <th scope="col">{copy.rows}</th>
-                  <th scope="col">{copy.state}</th>
-                  <th scope="col">
+                  <th scope="col" className={TH}>
+                    {copy.source}
+                  </th>
+                  <th scope="col" className={TH}>
+                    {copy.lastRefreshed}
+                  </th>
+                  <th scope="col" className={TH}>
+                    {copy.rows}
+                  </th>
+                  <th scope="col" className={TH}>
+                    {copy.state}
+                  </th>
+                  <th scope="col" className={TH}>
                     <span className="visually-hidden">{copy.actions}</span>
                   </th>
                 </tr>

@@ -8,6 +8,12 @@ import { groupByPlatform } from '../lib/next.js'
 import { ACTION_ERROR, LOAD_ERROR } from '../content/status.js'
 import { storeLabel } from '../lib/storeLines.js'
 import { adminCopy } from '../content/adminCopy.js'
+import {
+  ANSWER,
+  MUTED,
+  NOTE_BOX,
+  STATUS_LINE,
+} from '../components/adminDataClasses.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
@@ -179,6 +185,7 @@ export default function AdminStoreList() {
         <button
           key={action}
           type="button"
+          className={ANSWER}
           onClick={(event) => answer(entry, action, event.currentTarget)}
           aria-label={`${label}: ${entry.title}`}
         >
@@ -230,13 +237,8 @@ export default function AdminStoreList() {
   return (
     <section className="store-list">
       <AdminPageHeader title={copy.title} />
-      {!empty && <p className="store-list-note">{copy.note}</p>}
-      <p
-        className="catalogue-progress"
-        role="status"
-        aria-live="polite"
-        tabIndex={-1}
-      >
+      {!empty && <p className={NOTE_BOX}>{copy.note}</p>}
+      <p className={STATUS_LINE} role="status" aria-live="polite" tabIndex={-1}>
         {message ?? ''}
       </p>
       {error && (
@@ -244,9 +246,9 @@ export default function AdminStoreList() {
           {error}
         </p>
       )}
-      {state === 'loading' && <p className="muted">{copy.loading}</p>}
+      {state === 'loading' && <p className={MUTED}>{copy.loading}</p>}
       {empty && (
-        <p className="muted">
+        <p className={MUTED}>
           {copy.empty.before}{' '}
           <Link to="/admin/discover">{pageCopy.discover}</Link> {copy.empty.and}{' '}
           <Link to="/admin/radar">{pageCopy.radar}</Link> {copy.empty.after}

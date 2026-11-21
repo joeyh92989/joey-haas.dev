@@ -7,12 +7,27 @@ import CoverImage from '../components/CoverImage.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import BooksPanel from '../components/BooksPanel.jsx'
 import MetadataPicker from '../components/MetadataPicker.jsx'
-import Panel from '../components/Panel.jsx'
+import DataPanel from '../components/DataPanel.jsx'
 import ShelfConfirm from '../components/ShelfConfirm.jsx'
 import TagPicker from '../components/TagPicker.jsx'
 import { spine } from '../content/spine.js'
 import { ACTION_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
+import {
+  ARMED,
+  CHECKBOX,
+  DANGER,
+  FIELD,
+  FIELD_AUTO,
+  FORM_ACTIONS,
+  FORM_GRID,
+  LABEL,
+  MUTED,
+  PLAIN,
+  PRIMARY,
+  SMALL,
+  TEXTAREA,
+} from '../components/adminDataClasses.js'
 import { apiFetch } from '../lib/api.js'
 import { restoreSeries, setMark, toggleSkip } from '../lib/comicEdits.js'
 import { expandRanges } from '../lib/comics.js'
@@ -335,7 +350,7 @@ export default function AdminComic() {
   ]
   const ready = state === 'ready' && item
   const viewOnSite = ready && item.is_public && (
-    <Link className="btn" to={itemPath(item.id)}>
+    <Link className={PLAIN} to={itemPath(item.id)}>
       {COPY.viewOnSite}
     </Link>
   )
@@ -350,7 +365,7 @@ export default function AdminComic() {
     return (
       <section>
         {header}
-        <p className="muted">{slow ? WAKING : 'Loading…'}</p>
+        <p className={MUTED}>{slow ? WAKING : 'Loading…'}</p>
       </section>
     )
   }
@@ -394,15 +409,16 @@ export default function AdminComic() {
   const comic = wall?.comic
   const run = item.comic_run
   const deletePanel = (
-    <Panel title={COPY.delete}>
-      <p className="muted">{COPY.deleteLine}</p>
+    <DataPanel title={COPY.delete}>
+      <p className={MUTED}>{COPY.deleteLine}</p>
       <ShelfConfirm
         ids={[id]}
         title={item.title}
-        className="btn danger"
+        className={DANGER}
+        armedClassName={ARMED}
         onConfirm={remove}
       />
-    </Panel>
+    </DataPanel>
   )
 
   return (
@@ -437,18 +453,24 @@ export default function AdminComic() {
 
       <div className="admin-comic-cols">
         <div>
-          <Panel title={COPY.series}>
-            <form className="item-detail-form" onSubmit={save}>
-              <label htmlFor="title">{adminCopy.comic.title}</label>
+          <DataPanel title={COPY.series}>
+            <form className={FORM_GRID} onSubmit={save}>
+              <label htmlFor="title" className={LABEL}>
+                {adminCopy.comic.title}
+              </label>
               <input
+                className={FIELD}
                 id="title"
                 value={form.title}
                 onChange={set('title')}
                 required
               />
 
-              <label htmlFor="status">{adminCopy.comic.status}</label>
+              <label htmlFor="status" className={LABEL}>
+                {adminCopy.comic.status}
+              </label>
               <select
+                className={FIELD}
                 id="status"
                 value={item.status}
                 disabled={runBusy}
@@ -461,20 +483,23 @@ export default function AdminComic() {
                 ))}
               </select>
               {comic && comic.status !== item.status && (
-                <p className="muted">
+                <p className={MUTED}>
                   The public page shows {spine.comics.status[comic.status]}:
                   every issue I own is read.
                 </p>
               )}
               {comic && comic.caught_up && (
-                <p className="muted">
+                <p className={MUTED}>
                   The public page shows {spine.comics.caughtUp}: every issue I
                   own is read, and the run is not complete.
                 </p>
               )}
 
-              <label htmlFor="rating">{adminCopy.comic.rating}</label>
+              <label htmlFor="rating" className={LABEL}>
+                {adminCopy.comic.rating}
+              </label>
               <input
+                className={FIELD}
                 id="rating"
                 type="number"
                 min="1"
@@ -483,35 +508,45 @@ export default function AdminComic() {
                 onChange={set('rating')}
               />
 
-              <label htmlFor="favorite">{adminCopy.comic.favorite}</label>
+              <label htmlFor="favorite" className={LABEL}>
+                {adminCopy.comic.favorite}
+              </label>
               <input
+                className={CHECKBOX}
                 id="favorite"
                 type="checkbox"
                 checked={form.favorite}
                 onChange={set('favorite')}
               />
 
-              <label htmlFor="following">{adminCopy.comic.following}</label>
+              <label htmlFor="following" className={LABEL}>
+                {adminCopy.comic.following}
+              </label>
               <input
+                className={CHECKBOX}
                 id="following"
                 type="checkbox"
                 checked={form.following}
                 onChange={set('following')}
               />
 
-              <label htmlFor="is_public">{adminCopy.comic.isPublic}</label>
+              <label htmlFor="is_public" className={LABEL}>
+                {adminCopy.comic.isPublic}
+              </label>
               <input
+                className={CHECKBOX}
                 id="is_public"
                 type="checkbox"
                 checked={form.is_public}
                 onChange={set('is_public')}
               />
 
-              <label htmlFor="notes">
+              <label htmlFor="notes" className={LABEL}>
                 {adminCopy.comic.notes}{' '}
                 <span className="comic-private">{COPY.privateTag}</span>
               </label>
               <textarea
+                className={TEXTAREA}
                 id="notes"
                 rows="3"
                 value={form.notes}
@@ -526,24 +561,24 @@ export default function AdminComic() {
                 }
               />
 
-              <div className="item-detail-actions">
-                <button type="submit" disabled={saving}>
+              <div className={FORM_ACTIONS}>
+                <button type="submit" className={PRIMARY} disabled={saving}>
                   {saving ? 'Saving…' : COPY.save}
                 </button>
                 {savedAt && (
-                  <span className="muted" role="status">
+                  <span className={MUTED} role="status">
                     {COPY.saved}
                   </span>
                 )}
               </div>
             </form>
-          </Panel>
+          </DataPanel>
 
           {!single && deletePanel}
         </div>
 
         <div>
-          <Panel title={COPY.issues}>
+          <DataPanel title={COPY.issues}>
             {run && (
               <p className="admin-comic-sum">
                 {COPY.issuesLine(
@@ -555,8 +590,11 @@ export default function AdminComic() {
               </p>
             )}
             <form className="admin-comic-add" onSubmit={addIssue} noValidate>
-              <label htmlFor="add-issue">{COPY.addLabel}</label>
+              <label htmlFor="add-issue" className={LABEL}>
+                {COPY.addLabel}
+              </label>
               <input
+                className={FIELD_AUTO}
                 id="add-issue"
                 type="number"
                 min="1"
@@ -566,11 +604,15 @@ export default function AdminComic() {
                 value={addNumber}
                 onChange={(event) => setAddNumber(event.target.value)}
               />
-              <button type="submit" disabled={adding || addNumber === ''}>
+              <button
+                type="submit"
+                className={PLAIN}
+                disabled={adding || addNumber === ''}
+              >
                 {COPY.add}
               </button>
             </form>
-            <p id="add-issue-hint" className="muted comic-hint">
+            <p id="add-issue-hint" className={`${MUTED} comic-hint`}>
               {COPY.addHint}
             </p>
             {addError && (
@@ -578,8 +620,8 @@ export default function AdminComic() {
                 {addError}
               </p>
             )}
-            <p className="muted comic-hint">{COPY.issuesHint}</p>
-          </Panel>
+            <p className={`${MUTED} comic-hint`}>{COPY.issuesHint}</p>
+          </DataPanel>
           {comic &&
             (wall.wall.issues.length > 0 ||
               comic.released > 0 ||
@@ -596,11 +638,11 @@ export default function AdminComic() {
 
           <BooksPanel itemId={id} />
 
-          <Panel title={COPY.match}>
+          <DataPanel title={COPY.match}>
             {linked ? (
               <>
                 <p className="match-line">{item.title}</p>
-                <p className="muted">
+                <p className={MUTED}>
                   {[
                     meta.publisher,
                     item.year,
@@ -615,6 +657,7 @@ export default function AdminComic() {
                 <p>
                   <button
                     type="button"
+                    className={SMALL}
                     disabled={refreshing}
                     onClick={refreshComic}
                   >
@@ -623,16 +666,16 @@ export default function AdminComic() {
                 </p>
               </>
             ) : (
-              <p className="muted">{COPY.unlinked}</p>
+              <p className={MUTED}>{COPY.unlinked}</p>
             )}
             <div className="item-relink">
-              <p className="muted">{COPY.relinkLine}</p>
+              <p className={MUTED}>{COPY.relinkLine}</p>
               {relinking && (
-                <p className="muted">{adminCopy.comic.relinking}</p>
+                <p className={MUTED}>{adminCopy.comic.relinking}</p>
               )}
               <MetadataPicker type="comic" onSelect={relink} />
             </div>
-          </Panel>
+          </DataPanel>
           {single && deletePanel}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { volume as COPY } from '../content/adminVolume.js'
 import { collectBody, findMetronContents } from '../lib/volumeEdits.js'
+import { LINK_BTN, MUTED, SMALL } from './adminDataClasses.js'
 
 const M = COPY.collects.metron
 
@@ -58,18 +59,23 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
   return (
     <div className="admin-collect-read">
       <div className="admin-collect-actions">
-        <button type="button" disabled={busy || finding} onClick={find}>
+        <button
+          type="button"
+          className={SMALL}
+          disabled={busy || finding}
+          onClick={find}
+        >
           {finding ? M.finding : M.button}
         </button>
       </div>
-      <p className="muted comic-hint">{M.hint}</p>
+      <p className={`${MUTED} comic-hint`}>{M.hint}</p>
       {error && (
         <p className="admin-error" role="alert">
           {error}
         </p>
       )}
       {result && result.candidates.length === 0 && (
-        <p className="muted" role="status">
+        <p className={MUTED} role="status">
           {result.message}
         </p>
       )}
@@ -83,7 +89,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
             {candidate.series_name}
             {candidate.title ? `: ${candidate.title}` : ''}
           </strong>
-          <p className="muted">
+          <p className={MUTED}>
             {candidate.strong ? M.strong : M.possible} {M.isbn(candidate.isbn)}
             {candidate.pages ? `, ${M.pages(candidate.pages)}` : ''}
             {candidate.resource_url && (
@@ -107,17 +113,18 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
               </ul>
             </>
           ) : (
-            <p className="muted">{M.nothingNew}</p>
+            <p className={MUTED}>{M.nothingNew}</p>
           )}
           {candidate.skipped > 0 && (
-            <p className="muted">{M.alreadyHeld(candidate.skipped)}</p>
+            <p className={MUTED}>{M.alreadyHeld(candidate.skipped)}</p>
           )}
           {result.replaces > 0 && (
-            <p className="muted">{M.replaces(result.replaces)}</p>
+            <p className={MUTED}>{M.replaces(result.replaces)}</p>
           )}
           <div className="admin-collect-actions">
             <button
               type="button"
+              className={SMALL}
               disabled={busy || candidate.entries.length === 0}
               onClick={() => accept(candidate)}
             >
@@ -125,7 +132,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
             </button>
             <button
               type="button"
-              className="link-button"
+              className={LINK_BTN}
               onClick={() => setResult(null)}
             >
               {M.dismiss}
