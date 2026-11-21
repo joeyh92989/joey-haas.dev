@@ -292,7 +292,7 @@ body {
 }
 
 /* The routed region. A 45rem reading column by default; the tracker pages
-   widen it, and the masthead and footer rows follow them out. */
+   widen it to the same 75rem as the masthead and footer rows (`.wrap`). */
 .page {
   margin: 0 auto;
   max-width: 45rem;
@@ -691,9 +691,11 @@ p.muted a,
   outline-offset: 2px;
 }
 
-/* The nav, More and Resume need about 930px of bar with Travel and Blog
-   both showing (measured at 761 to 1040px, #471); below 960px the bar hands
-   over to Menu, whose sheet carries the same links. */
+/* The nav, More, Search and the theme toggle need about 860px of bar with
+   Travel and Blog both showing (measured at 961 to 1100px, #471, #529); below
+   961px the bar hands over to Menu, whose sheet carries the same links. The
+   Resume link is the first to go, under 1101px: it is in the sheet, on Home
+   and in search. */
 @media (max-width: 960px) {
   .site-nav {
     display: none;
@@ -798,27 +800,12 @@ p.muted a,
   padding: var(--space-3) var(--space-3);
 }
 
+/* The field is the Input primitive (border, ring, 16px type); this keeps it
+   filling the row and a 44px target. */
 .search-input {
-  background: transparent;
-  border: 0;
-  color: var(--text);
   flex: 1;
-  font: inherit;
-  font-size: var(--fs-16);
   min-height: 2.75rem;
   min-width: 0;
-  padding: 0 var(--space-1);
-}
-
-.search-input::placeholder {
-  color: var(--text-3);
-}
-
-/* Focus never leaves the input, so its ring is the dialog's. */
-.search-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .search-list {
@@ -4833,7 +4820,7 @@ footer {
 /* Public collection showcase. */
 
 /* /spine: the header block above the hero numbers. Capped at the prose
-   width so the lede does not run the full 72rem of the wide page. */
+   width so the lede does not run the full 75rem of the wide page. */
 .spine-lede {
   color: var(--text-2);
   font-size: var(--fs-18);

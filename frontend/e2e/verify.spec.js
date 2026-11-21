@@ -424,3 +424,137 @@ test.describe('site shell frame and focus (#529)', () => {
     ).not.toBe('none')
   })
 })
+
+test.describe('masthead fit and search loading (#529 review)', () => {
+  // A real phone widens the layout viewport to fit content, so these use
+  // isMobile like tour-overflow.spec.js.
+  for (const width of [320, 360, 390]) {
+    test.describe(`${width}px phone`, () => {
+      test.use({
+        viewport: { width, height: 800 },
+        isMobile: true,
+        hasTouch: true,
+      })
+      test('the page does not scroll sideways and the bar gutters are equal', async ({
+        page,
+        openRoute,
+      }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+        await openRoute('/', 'light')
+        const m = await page.evaluate(() => ({
+          scroll: document.documentElement.scrollWidth,
+          inner: window.innerWidth,
+          left: document.querySelector('.brand').getBoundingClientRect().left,
+          right: document.querySelector('.mast-menu').getBoundingClientRect()
+            .right,
+        }))
+        expect(m.scroll).toBe(m.inner)
+        expect(Math.round(m.inner - m.right)).toBe(Math.round(m.left))
+      })
+    })
+  }
+
+  for (const width of [961, 1000, 1035, 1100]) {
+    test(`no sideways scroll at ${width}px`, async ({
+      page,
+      openRoute,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+      await page.setViewportSize({ width, height: 800 })
+      await openRoute('/', 'light')
+      const m = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        inner: window.innerWidth,
+      }))
+      expect(m.scroll).toBe(m.inner)
+    })
+  }
+
+  test('More has the padding and gap of the other links', async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'the phone uses Menu')
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await openRoute('/', 'light')
+    const m = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('.site-nav > a')]
+      const last = links[links.length - 1].getBoundingClientRect()
+      const btn = document.querySelector('.more-btn')
+      const b = btn.getBoundingClientRect()
+      const cs = getComputedStyle(btn)
+      const a = links[links.length - 1].getBoundingClientRect()
+      const prev = links[links.length - 2].getBoundingClientRect()
+      return {
+        gapToMore: b.left - last.right,
+        gapBetween: a.left - prev.right,
+        padL: cs.paddingLeft,
+        padR: cs.paddingRight,
+        gap: cs.columnGap,
+      }
+    })
+    expect(Math.round(m.gapToMore)).toBe(Math.round(m.gapBetween))
+    expect(m.padL).toBe('0px')
+    expect(m.padR).toBe('0px')
+    expect(m.gap).toBe('4px')
+  })
+
+  test('a failed search chunk leaves the page up and the next click retries', async ({
+    page,
+    openRoute,
+  }) => {
+    let failed = 0
+    await page.route('**/assets/SearchDialog-*.js', (route) => {
+      if (failed++ < 3) return route.abort()
+      return route.continue()
+    })
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    await page.waitForTimeout(500)
+    await expect(page.locator('#root > *').first()).toBeVisible()
+    await expect(page.locator('main#main')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Search' })).toHaveCount(0)
+    failed = 3
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    await expect(page.getByRole('combobox', { name: 'Search' })).toBeFocused()
+  })
+
+  test('keys pressed while the search chunk loads still open it', async ({
+    page,
+    openRoute,
+  }) => {
+    await page.route('**/assets/SearchDialog-*.js', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      await route.continue()
+    })
+    await openRoute('/', 'light')
+    // Wait for the app to mount: its key handler is attached by an effect.
+    await expect(
+      page.getByRole('button', { name: /^Search/ }).first(),
+    ).toBeVisible()
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(page.getByRole('combobox', { name: 'Search' })).toBeFocused()
+  })
+
+  test('the search field is 16px and rings on its own control', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'light')
+    await page
+      .getByRole('button', { name: /^Search/ })
+      .first()
+      .click()
+    const input = page.getByRole('combobox', { name: 'Search' })
+    await expect(input).toBeFocused()
+    expect(await input.evaluate((el) => getComputedStyle(el).fontSize)).toBe(
+      '16px',
+    )
+  })
+})
