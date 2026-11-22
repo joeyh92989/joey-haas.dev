@@ -12,6 +12,7 @@ import { GARMENTS, mockCloset } from '../closet-mocks.js'
 import { serveHome } from '../admin-home.fixtures.js'
 import { COMICS, GAMES, serveAdmin } from '../admin-shelf.fixtures.js'
 import { serveAdminAdd } from '../admin-add.fixtures.js'
+import { d5b } from './scenarios/d5b.mjs'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
@@ -1267,6 +1268,7 @@ for (const theme of ['dark', 'light']) {
         },
       )
     await d5(theme, vp)
+    await d5b({ record, click }, theme, vp)
   }
   for (const path of [
     '/about',
