@@ -34,11 +34,6 @@ export const CHIP_BASE = [
  *  44px target. */
 export const CHIP = `${CHIP_BASE} ${PHONE}inline-flex`
 
-/** The Bike-style modifier: pressed, it takes the accent-soft look instead of
- *  the ink fill. */
-export const CHIP_MODIFIER =
-  'aria-pressed:border-(--accent) aria-pressed:bg-(--accent-soft) aria-pressed:text-(--accent-text)'
-
 /**
  * The count inside a chip. A chip is inline-flex on a phone, and a flex
  * container drops the whitespace between the label and the count, so the
