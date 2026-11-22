@@ -12,7 +12,10 @@ cascade, so do not reorder them:
    are not one component's (the form-control defaults under `.admin-main`, the
    tab bar's `html:has(.admin-tabs)` scroll padding).
 3. `../index.css`: the remaining per-page class rules, being removed.
-4. `print.css`: `@page` and `@media print`, last so paper wins.
+4. `post-body.css`: the rules for `.post-body` and the Shiki spans in it
+   (#536 G1): markdown and the highlighter write that markup, so it cannot
+   take utilities. It sits after `index.css`, where those rules were.
+5. `print.css`: `@page` and `@media print`, last so paper wins.
 
 Tailwind's Preflight sits in a `preflight` layer below all of these; the block
 at the top of `base.css` hands its resets back with `revert` (a shim, removed
