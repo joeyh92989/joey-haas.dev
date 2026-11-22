@@ -8,6 +8,16 @@ import {
   suggest,
   yearOf,
 } from '../lib/daily.js'
+import {
+  GUESS_BOX,
+  GUESS_COUNT,
+  GUESS_INPUT,
+  GUESS_LIST,
+  GUESS_OPTION,
+  GUESS_SUB,
+  GUESS_THUMB,
+  GUESS_TITLE,
+} from './dailyClasses.js'
 
 const copy = daily.input
 
@@ -89,14 +99,14 @@ export default function GuessCombobox({
   }
 
   return (
-    <div className="guess-box">
+    <div className={`guess-box ${GUESS_BOX}`}>
       <label className="visually-hidden" htmlFor={`${id}-input`}>
         {copy.label}
       </label>
       <input
         id={`${id}-input`}
         type="text"
-        className="guess-input"
+        className={`guess-input ${GUESS_INPUT}`}
         role="combobox"
         aria-expanded={rows.length > 0}
         aria-controls={listId}
@@ -119,19 +129,20 @@ export default function GuessCombobox({
         onBlur={() => setClosed(true)}
         onFocus={() => setClosed(false)}
       />
-      <span id={`${id}-count`} className="guess-count muted">
+      <span id={`${id}-count`} className={`guess-count muted ${GUESS_COUNT}`}>
         {copy.count(guessNumber, MAX_GUESSES)}
       </span>
       <ul
         id={listId}
         role="listbox"
         aria-label={copy.suggestions}
-        className="guess-list"
+        className={`guess-list ${GUESS_LIST}`}
         hidden={rows.length === 0}
       >
         {rows.map((item, index) => (
           <li
             key={item.id}
+            className={GUESS_OPTION}
             id={optionId(index)}
             role="option"
             aria-selected={index === current}
@@ -140,11 +151,11 @@ export default function GuessCombobox({
             onClick={() => choose(item)}
             onMouseMove={() => setActive(index)}
           >
-            <span className="guess-thumb">
+            <span className={`guess-thumb ${GUESS_THUMB}`}>
               <CoverImage src={item.cover_url} type="game" />
             </span>
-            <span className="guess-title">{item.title}</span>
-            <span className="guess-sub muted">
+            <span className={`guess-title ${GUESS_TITLE}`}>{item.title}</span>
+            <span className={`guess-sub muted ${GUESS_SUB}`}>
               {shortPlatform(item.platform)} · {yearOf(item)}
             </span>
           </li>

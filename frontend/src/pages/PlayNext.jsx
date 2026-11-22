@@ -19,6 +19,8 @@ import {
   PICK_CARD,
   PICK_CARD_H2,
   PICK_COVER,
+  ITEM_CHIP,
+  ITEM_CHIPS,
   PICK_GRID,
   PICK_META,
   PICK_PLAY,
@@ -126,9 +128,9 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
             <SizePill hours={item.time_to_beat_hours} />
           </p>
           {item.genres.length > 0 && (
-            <ul className="item-chips">
+            <ul className={`item-chips ${ITEM_CHIPS}`}>
               {item.genres.slice(0, GENRES_SHOWN).map((genre) => (
-                <li key={genre} className="item-chip">
+                <li key={genre} className={`item-chip ${ITEM_CHIP}`}>
                   {genre}
                 </li>
               ))}

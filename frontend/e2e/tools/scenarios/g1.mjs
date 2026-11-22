@@ -4,6 +4,7 @@
 // list), `g1b` (the Daily game and the rest of the shelf) and `g1c` (the static
 // pages). A scenario whose element the page does not draw logs
 // `absent: <selector>` and is dumped as it stands, the same on both sides.
+import { readFileSync } from 'node:fs'
 import { GAMES } from '../../admin-shelf.fixtures.js'
 import { PICK_TABLE } from '../../tools-data.fixtures.js'
 
@@ -519,5 +520,92 @@ export async function g1({ record }, theme, vp) {
       await page.locator('h1').first().waitFor({ timeout: 15000 })
       await settle(page)
     },
+  )
+
+  await g1b(record, at, spec, on)
+}
+
+const FIXTURE_GAMES = JSON.parse(
+  readFileSync(
+    new URL('../../fixtures/snapshot/items.json', import.meta.url),
+    'utf8',
+  ),
+)
+  .filter((item) => item.type === 'game')
+  .map((item) => item.title)
+
+async function guess(page, titles) {
+  const box = page.getByRole('combobox', { name: 'Your guess' })
+  for (const title of titles) {
+    if (await page.locator('.daily-result').count()) return
+    await box.fill(title)
+    await box.press('Enter')
+    await page.waitForTimeout(150)
+  }
+}
+
+// ---------- g1b: the Daily game and the rest of the shelf ----------
+async function g1b(record, at, spec, on) {
+  for (const touch of [false, true]) {
+    const mode = touch ? 'touch ' : ''
+    const daily = spec('/daily', undefined, touch)
+    await record(at('b', `${mode}daily option hover`), daily, async (page) => {
+      await page.getByRole('combobox', { name: 'Your guess' }).fill('Fixture')
+      await page.waitForTimeout(300)
+      await on('.guess-list li', 'hover', 1)(page)
+    })
+    await record(at('b', `${mode}daily mid hover`), daily, async (page) => {
+      await guess(page, FIXTURE_GAMES.slice(1, 4))
+      await on('.shelfle-cell', 'hover', 2)(page)
+    })
+  }
+  const daily = spec('/daily')
+  await record(at('b', 'daily option selected'), daily, async (page) => {
+    const box = page.getByRole('combobox', { name: 'Your guess' })
+    await box.fill('Fixture')
+    await box.press('ArrowDown')
+    await page.waitForTimeout(300)
+  })
+  await record(at('b', 'daily input focus'), daily, async (page) => {
+    await page.getByRole('combobox', { name: 'Your guess' }).focus()
+    await page.waitForTimeout(300)
+  })
+  await record(at('b', 'daily full board'), daily, async (page) => {
+    await guess(page, FIXTURE_GAMES.slice(1, 7))
+  })
+  await record(at('b', 'daily disabled input'), daily, async (page) => {
+    await guess(page, FIXTURE_GAMES.slice(1, 14))
+    await on('.daily-result a', 'focus', 0)(page)
+  })
+  await record(at('b', 'daily share copy'), daily, async (page) => {
+    await guess(page, FIXTURE_GAMES.slice(1, 14))
+    await page.getByRole('button', { name: 'Share' }).first().click()
+    await page.waitForTimeout(400)
+    await page.getByRole('button', { name: 'Copy' }).click()
+    await page.waitForTimeout(400)
+  })
+  await record(
+    at('b', 'month link hover'),
+    spec('/shelf/year/2025/'),
+    on('.month-index a', 'hover', 0),
+  )
+  await record(
+    at('b', 'month link focus'),
+    spec('/shelf/year/2025/'),
+    on('.month-index a', 'focus', 0),
+  )
+  await record(
+    at('b', 'games footer link hover'),
+    spec('/shelf/games'),
+    on('.spine-project a', 'hover', 0),
+  )
+  await record(
+    at('b', 'comics footer'),
+    spec('/shelf/comics'),
+    on('.spine-project a', 'focus', 0),
+  )
+  await record(
+    at('b', 'play next genre chips'),
+    spec('/admin/play-next', 'play-next'),
   )
 }

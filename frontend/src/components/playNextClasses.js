@@ -93,3 +93,8 @@ export const RATE_A_FEW_TABLE = [
 ].join(' ')
 export const RATE_A_FEW_NOTE = 'text-muted-foreground [font-size:var(--fs-14)]'
 export const RATE_A_FEW_ACTIONS = 'flex flex-wrap gap-2'
+
+/** A genre under a pick: a plain outlined pill in a wrapping row. */
+export const ITEM_CHIPS = 'm-0 flex list-none flex-wrap gap-2 p-0'
+export const ITEM_CHIP =
+  'rounded-[999px] border border-border px-3 py-[0.15rem] text-muted-foreground [font-size:var(--fs-13)]'

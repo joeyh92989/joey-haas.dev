@@ -7,6 +7,7 @@ import { REVIEW_BAR } from './components/closetReviewClasses.js'
 import { readCss } from './testing/readCss.js'
 import { BAR_FILL, BAR_TRACK, DAY_BAR } from './components/overview-classes.js'
 import { PICK_TERM_BAR } from './components/tonightClasses.js'
+import { SHELFLE_CELL } from './components/dailyClasses.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -193,14 +194,13 @@ describe('theme blocks', () => {
 
   // #534: the Daily game's rules, re-measured on the Archive tokens above.
   it('keeps the match cell as --accent-ink on --status-active and the close ring as --warn on --surface', () => {
-    const match = rule(".shelfle-cell[data-state='match']")
-    expect(match).toMatch(/background:\s*var\(--status-active\)/)
-    expect(match).toMatch(/color:\s*var\(--accent-ink\)/)
-    const close = rule(".shelfle-cell[data-state='close']")
-    expect(close).toMatch(/background:\s*var\(--surface\)/)
-    expect(close).toMatch(/border-color:\s*var\(--warn\)/)
-    const no = rule(".shelfle-cell[data-state='no']")
-    expect(no).toMatch(/color:\s*var\(--text-2\)/)
+    // The cell is a class string now (dailyClasses.js).
+    const cell = SHELFLE_CELL.split(' ')
+    expect(cell).toContain('data-[state=match]:bg-(--status-active)')
+    expect(cell).toContain('data-[state=match]:text-(--accent-ink)')
+    expect(cell).toContain('data-[state=close]:bg-(--surface)')
+    expect(cell).toContain('data-[state=close]:border-(--warn)')
+    expect(cell).toContain('data-[state=no]:text-muted-foreground')
   })
 
   it('the light block declares its own highlighter, not dark’s', () => {

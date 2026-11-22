@@ -70,6 +70,7 @@ import {
 } from '../lib/tags.js'
 import { bandCounts } from '../lib/next.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { SPINE_PROJECT } from '../components/dailyClasses.js'
 
 const NARROW = '(max-width: 34rem)'
 const COUNT = new Intl.NumberFormat('en')
@@ -458,7 +459,7 @@ export default function Games() {
       )}
 
       <footer className={`attribution ${ATTRIBUTION}`}>
-        <p className="spine-project">
+        <p className={`spine-project ${SPINE_PROJECT}`}>
           {spine.projectLine}{' '}
           <Link to={spine.links.post.to}>
             {spine.links.post.label} <span aria-hidden="true">&rarr;</span>

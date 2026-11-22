@@ -1,5 +1,17 @@
 import { daily } from '../content/daily.js'
 import { GRADE_KEYS, MAX_GUESSES } from '../lib/daily.js'
+import {
+  SHELFLE,
+  SHELFLE_CELL,
+  SHELFLE_EMPTY_CELLS,
+  SHELFLE_EMPTY_TD,
+  SHELFLE_HINT,
+  SHELFLE_TD_TITLE,
+  SHELFLE_TH_CENTER,
+  SHELFLE_TH_TITLE,
+  TH_FULL_HIDDEN,
+  TH_SHORT,
+} from './dailyClasses.js'
 
 const copy = daily
 
@@ -14,10 +26,10 @@ const SHORT = { platform: 'Plat.' }
  */
 function GradedCell({ cell }) {
   return (
-    <td className="shelfle-cell" data-state={cell.state}>
+    <td className={`shelfle-cell ${SHELFLE_CELL}`} data-state={cell.state}>
       <span className="shelfle-value">{cell.value}</span>
       {cell.arrow && (
-        <small className="shelfle-hint" aria-hidden="true">
+        <small className={`shelfle-hint ${SHELFLE_HINT}`} aria-hidden="true">
           {cell.arrow} {cell.word}
         </small>
       )}
@@ -42,20 +54,27 @@ function GradedCell({ cell }) {
 export default function ShelfleBoard({ rows }) {
   const empty = Math.max(0, MAX_GUESSES - rows.length)
   return (
-    <table className="shelfle">
+    <table className={`shelfle ${SHELFLE}`}>
       <caption className="visually-hidden">
         {copy.board.caption(rows.length, MAX_GUESSES)}
       </caption>
       <thead>
         <tr>
-          <th scope="col" className="shelfle-title">
+          <th scope="col" className={`shelfle-title ${SHELFLE_TH_TITLE}`}>
             <span className="kicker">{copy.columns.title}</span>
           </th>
           {GRADE_KEYS.map((key) => (
-            <th scope="col" key={key}>
-              <span className="kicker th-full">{copy.columns[key]}</span>
+            <th scope="col" key={key} className={SHELFLE_TH_CENTER}>
+              <span
+                className={`kicker th-full ${SHORT[key] ? TH_FULL_HIDDEN : ''}`}
+              >
+                {copy.columns[key]}
+              </span>
               {SHORT[key] && (
-                <span className="kicker th-short" aria-hidden="true">
+                <span
+                  className={`kicker th-short ${TH_SHORT}`}
+                  aria-hidden="true"
+                >
                   {SHORT[key]}
                 </span>
               )}
@@ -66,7 +85,7 @@ export default function ShelfleBoard({ rows }) {
       <tbody>
         {rows.map((row, index) => (
           <tr key={index}>
-            <td className="shelfle-title">{row.title}</td>
+            <td className={`shelfle-title ${SHELFLE_TD_TITLE}`}>{row.title}</td>
             {GRADE_KEYS.map((key) => (
               <GradedCell key={key} cell={row.grades[key]} />
             ))}
@@ -74,9 +93,12 @@ export default function ShelfleBoard({ rows }) {
         ))}
         {Array.from({ length: empty }, (_, index) => (
           <tr key={`empty-${index}`} className="shelfle-empty">
-            <td colSpan={GRADE_KEYS.length + 1}>
+            <td colSpan={GRADE_KEYS.length + 1} className={SHELFLE_EMPTY_TD}>
               <span className="visually-hidden">{copy.board.emptyRow}</span>
-              <span className="shelfle-empty-cells" aria-hidden="true">
+              <span
+                className={`shelfle-empty-cells ${SHELFLE_EMPTY_CELLS}`}
+                aria-hidden="true"
+              >
                 <span />
                 <span />
                 <span />

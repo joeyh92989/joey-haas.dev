@@ -33,6 +33,14 @@ import { formatDate, ownerDay } from '../lib/formatDate.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import {
+  DAILY,
+  DAILY_HINT,
+  DAILY_LEDE,
+  DAILY_LEGEND,
+  DAILY_STATS,
+  DAILY_YESTERDAY,
+} from '../components/dailyClasses.js'
 
 const copy = daily
 const LEGEND_STATES = ['match', 'close', 'no']
@@ -141,13 +149,13 @@ export default function Daily() {
   const grades = rows.map((row) => row.grades)
 
   return (
-    <section className="daily">
+    <section className={`daily ${DAILY}`}>
       <SpineHeader />
       <PageHeader
         title={copy.name}
         kicker={pick && dayKicker(pick.day, pick.isoDay)}
         lede={copy.lede}
-        ledeClassName="daily-lede"
+        ledeClassName={`daily-lede ${DAILY_LEDE}`}
       />
 
       {items === undefined ? null : dayNumber(today) < 1 ? (
@@ -157,7 +165,7 @@ export default function Daily() {
       ) : (
         <>
           {stats && (
-            <p className="daily-stats">
+            <p className={`daily-stats ${DAILY_STATS}`}>
               <Badge variant="outline">
                 {copy.stats.streak} <b>{stats.streak}</b>
               </Badge>
@@ -174,7 +182,7 @@ export default function Daily() {
               be clipped by the card. Body size: a Card sets 14px. */}
           <Card className="daily-card gap-4 overflow-visible p-4 text-[1rem]">
             {rows.length === 0 && (
-              <p id="daily-hint" className="daily-hint muted">
+              <p id="daily-hint" className={`daily-hint muted ${DAILY_HINT}`}>
                 {copy.hint}
               </p>
             )}
@@ -197,7 +205,7 @@ export default function Daily() {
                 }
               />
             )}
-            <p id="daily-legend" className="daily-legend">
+            <p id="daily-legend" className={`daily-legend ${DAILY_LEGEND}`}>
               {LEGEND_STATES.map((state) => (
                 <span key={state}>
                   <i data-state={state} aria-hidden="true" />
@@ -220,7 +228,7 @@ export default function Daily() {
               />
             )}
             {yesterday && (
-              <p className="daily-yesterday">
+              <p className={`daily-yesterday ${DAILY_YESTERDAY}`}>
                 {copy.yesterday}{' '}
                 <b>
                   <Link to={itemPath(yesterday.item.id)}>
