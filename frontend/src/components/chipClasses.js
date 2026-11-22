@@ -6,11 +6,12 @@
 //
 // The phone step is written as a media query, not `max-[700px]:`: the legacy
 // rule was `max-width: 700px` (inclusive) and Tailwind's `max-[700px]` is
-// strictly below.
-const PHONE = '[@media(max-width:700px)]:'
+// strictly below. Every utility is written out whole: Tailwind finds classes by
+// scanning source text, so a prefix held in a constant (`${PHONE}min-h-11`)
+// is never emitted.
 
 /** A chip on a phone is 44px high (#276). */
-export const CHIP_TAP = `${PHONE}min-h-11`
+export const CHIP_TAP = '[@media(max-width:700px)]:min-h-11'
 
 /**
  * A chip that is a plain button or link, with no Button variant under it: the
@@ -27,19 +28,20 @@ export const CHIP_BASE = [
   'focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--accent)',
   'aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background',
   'aria-[current]:border-foreground aria-[current]:text-foreground',
-  `${CHIP_TAP} ${PHONE}items-center`,
+  CHIP_TAP,
+  '[@media(max-width:700px)]:items-center',
 ].join(' ')
 
 /** The chip as a button: inline-flex on a phone, so its label centres in the
  *  44px target. */
-export const CHIP = `${CHIP_BASE} ${PHONE}inline-flex`
+export const CHIP = `${CHIP_BASE} [@media(max-width:700px)]:inline-flex`
 
 /**
  * The count inside a chip. A chip is inline-flex on a phone, and a flex
  * container drops the whitespace between the label and the count, so the
  * margin spaces them there instead (#505).
  */
-export const CHIP_COUNT = `tabular-nums ${PHONE}ms-1`
+export const CHIP_COUNT = 'tabular-nums [@media(max-width:700px)]:ms-1'
 
 /** A read-only pill in a list (Discover's genres): the chip's shape without
  *  its states. */
