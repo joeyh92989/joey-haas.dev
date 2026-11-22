@@ -6,6 +6,7 @@
 // the page does not draw logs `absent: <selector>` and is dumped as it
 // stands, the same on both sides.
 import { serveIntakeD5b } from '../../admin-intake.fixtures.js'
+import { GAMES } from '../../admin-shelf.fixtures.js'
 
 /**
  * @param {{record: Function, click: Function}} tools style-dump's own helpers.
@@ -79,7 +80,20 @@ export async function d5b({ record, click }, theme, vp) {
   await sitting('comic details', '/admin/collection/add/cd', add, [
     '.intake-row',
     '.intake-pass',
+    '.intake-editions',
+    '.comic-edition-isbn',
   ])
+  await sitting(
+    'comic details scan',
+    '/admin/collection/add/cd',
+    add,
+    ['.isbn-scanner'],
+    async (page) => {
+      await page.getByRole('button', { name: /^Scan/ }).first().click()
+      // The camera is refused after a moment: wait for that state.
+      await page.waitForTimeout(1500)
+    },
+  )
   await sitting('shoot all', '/admin/collection/add/sh', add, [
     '.intake-shot-reading',
     '.intake-shot-uploaded',
@@ -173,6 +187,77 @@ export async function d5b({ record, click }, theme, vp) {
     async (page) => {
       for (let i = 0; i < 4; i += 1) await page.keyboard.press('Tab')
       await page.waitForTimeout(500)
+    },
+  )
+
+  // The item page's relink picker (MetadataPicker), the comic page's edition
+  // ISBN field and its scanner, and the games page's full add form.
+  const item = {
+    path: `/admin/collection/${GAMES[2].id}`,
+    theme,
+    vp,
+    kind: 'item',
+  }
+  const found = (page) =>
+    page.route('**/api/items/search-metadata*', (route) =>
+      route.fulfill({
+        json: [
+          {
+            external_source: 'igdb',
+            external_id: '1',
+            title: 'Hades',
+            year: 2020,
+            thumbnail_url: null,
+          },
+          {
+            external_source: 'igdb',
+            external_id: '2',
+            title: 'Hades II',
+            year: 2025,
+            thumbnail_url: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+          },
+        ],
+      }),
+    )
+  const lookup = async (page) => {
+    await found(page)
+    await page.locator('#metadata-query').fill('hades')
+    await page.locator('.candidate-list').waitFor({ timeout: 5000 })
+  }
+  await record(at('item relink results'), item, async (page) => {
+    await lookup(page)
+    await page.waitForTimeout(300)
+    if (!(await page.locator('.candidate-list button').count()))
+      console.error(`absent: .candidate-list button (${at('item relink')})`)
+  })
+  await record(at('item relink hover'), item, async (page) => {
+    await lookup(page)
+    await page.locator('.candidate-list button').first().hover()
+    await page.waitForTimeout(300)
+  })
+  await record(at('item relink focus'), item, async (page) => {
+    await lookup(page)
+    await page.locator('.candidate-list button').first().focus()
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Shift+Tab')
+    await page.waitForTimeout(500)
+  })
+  await record(at('item relink input focus'), item, async (page) => {
+    await page.locator('#metadata-query').focus()
+    await page.waitForTimeout(500)
+  })
+  await record(
+    at('games full form'),
+    { path: '/admin/shelf/games', theme, vp, kind: 'shelf' },
+    async (page) => {
+      await page
+        .locator('summary')
+        .filter({ hasText: /full form/i })
+        .first()
+        .click()
+      await page.waitForTimeout(400)
+      if (!(await page.locator('.metadata-picker').count()))
+        console.error(`absent: .metadata-picker (${at('games full form')})`)
     },
   )
   await record(at('add reduce'), {

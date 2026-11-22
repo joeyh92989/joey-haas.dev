@@ -172,7 +172,16 @@ export const INTAKE_BOOK_READ =
   'bg-(--sunken) rounded-(--radius) text-(--text-2) inline-block [font:var(--fs-12)_/_1.5_var(--font-mono)] mt-2 max-w-full [overflow-wrap:anywhere] py-[0.15rem] px-2'
 
 export const INTAKE_BOOK_MARK =
-  "[&_a]:text-inherit [&_a]:underline text-(--text-3) text-[0.75rem] leading-[1.4] [&[data-state='in\\_run']]:text-(--ok-text) [&[data-state='none']]:text-(--badge) [&[data-state='bad']]:text-(--badge) [&[data-state='out\\_of\\_run']]:text-(--badge)"
+  '[&_a]:text-inherit [&_a]:underline text-[0.75rem] leading-[1.4]'
+
+/** A mark's ink by its state (`data-state`); the words carry the meaning. */
+export const MARK_INK = {
+  default: 'text-(--text-3)',
+  in_run: 'text-(--ok-text)',
+  out_of_run: 'text-(--badge)',
+  none: 'text-(--badge)',
+  bad: 'text-(--badge)',
+}
 
 export const INTAKE_BOOK_ADDS = 'text-(--text-2) text-[0.8125rem] mt-1'
 

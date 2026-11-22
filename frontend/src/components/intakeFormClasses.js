@@ -66,7 +66,7 @@ export const GARMENT_ATTACH_CHOICE =
 /** A fieldset the garment form draws as a row of choices (segments, months):
  *  it beats the form's boxed fieldset, and its legend takes the whole row. */
 export const GARMENT_CHOICES =
-  'flex flex-wrap gap-2 [border:0] p-0 [&_legend]:mb-1 [&_legend]:w-full [&_legend]:p-0'
+  'flex flex-wrap gap-2 [border:0] rounded-(--radius) p-0 [&_legend]:mb-1 [&_legend]:w-full [&_legend]:p-0'
 
 /** The form's labels and boxed fieldsets are grids. They are set on each one,
  *  not on the form's descendants: the chip labels are flex, and a descendant

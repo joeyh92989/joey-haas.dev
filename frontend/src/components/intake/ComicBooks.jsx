@@ -25,6 +25,7 @@ import {
   INTAKE_BOOK_LIMIT,
   INTAKE_BOOK_LINKS,
   INTAKE_BOOK_MARK,
+  MARK_INK,
   INTAKE_BOOK_MATCH,
   INTAKE_BOOK_META,
   INTAKE_BOOK_NUM,
@@ -48,7 +49,7 @@ function NumberMark({ id, entry }) {
   return (
     <p
       id={id}
-      className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+      className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK[state] ?? MARK_INK.default}`}
       data-state={state}
       role="status"
     >
@@ -100,7 +101,7 @@ function NumberField({ entry, onSave, markId, error }) {
       {shown && (
         <p
           id={`${id}-bad`}
-          className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
           data-state="bad"
         >
           {message}
@@ -181,7 +182,7 @@ function CollectsField({ entry, onSave, error }) {
       {shown && (
         <p
           id={`${id}-bad`}
-          className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
           data-state="bad"
         >
           {message}
@@ -229,14 +230,14 @@ function LineField({ entry, onSave, error }) {
       </span>
       <p
         id={`${id}-hint`}
-        className={`intake-book-mark ${INTAKE_BOOK_MARK} muted`}
+        className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default} muted`}
       >
         {words.lineHint}
       </p>
       {shown && (
         <p
           id={`${id}-bad`}
-          className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
           data-state="bad"
         >
           {message}
@@ -261,7 +262,9 @@ function addsLine(entry, title) {
 function Contents({ lines, id }) {
   if (!lines?.length)
     return (
-      <p className={`intake-book-mark ${INTAKE_BOOK_MARK} muted`}>
+      <p
+        className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default} muted`}
+      >
         {words.contentsEmpty}
       </p>
     )
@@ -291,7 +294,10 @@ function Contents({ lines, id }) {
 function HeldWarning({ held, titleId }) {
   const text = words.alreadyHave(held.label)
   return (
-    <p className={`intake-book-mark ${INTAKE_BOOK_MARK}`} data-state="bad">
+    <p
+      className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+      data-state="bad"
+    >
       {text.before}
       {titleId && held.slug ? (
         <Link to={`/admin/shelf/comics/${titleId}/${held.slug}`}>
@@ -410,7 +416,7 @@ function BookRow({
         {error && !NUMBER_FIELDS.includes(error.field) && (
           <p
             id={`${markId}-err`}
-            className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+            className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
             data-state="bad"
           >
             {error.message}
@@ -457,7 +463,7 @@ function BookRow({
               error={error?.field === 'line_number' ? error.message : null}
             />
             <p
-              className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+              className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default}`}
               data-state="typed"
             >
               {words.collectedNote}
@@ -485,7 +491,7 @@ function BookRow({
             <NumberMark id={markId} entry={entry} />
             {repeated && (
               <p
-                className={`intake-book-mark ${INTAKE_BOOK_MARK}`}
+                className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
                 data-state="bad"
               >
                 {words.duplicate}

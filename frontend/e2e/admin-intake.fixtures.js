@@ -253,7 +253,19 @@ export const COMIC_DETAILS = base(
       'd2',
       'p2',
       'exact',
-      { detected_title: 'Descender' },
+      {
+        detected_title: 'Descender',
+        shelf_format: 'trades',
+        books: [
+          {
+            edition_kind: 'Trade',
+            label: 'Volume 1',
+            from: 1,
+            to: 6,
+            isbn: '',
+          },
+        ],
+      },
       { chosen: chosen(10, 'Descender') },
     ),
   ],
