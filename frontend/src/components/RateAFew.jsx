@@ -5,6 +5,12 @@ import { BOX } from './addClasses.js'
 import { btn } from './closetClasses.js'
 import QuickRate from './QuickRate.jsx'
 import { ACTION_ERROR } from '../content/status.js'
+import {
+  RATE_A_FEW,
+  RATE_A_FEW_ACTIONS,
+  RATE_A_FEW_NOTE,
+  RATE_A_FEW_TABLE,
+} from './playNextClasses.js'
 
 const PREF = 'discover.rate-a-few'
 const LIMIT = 6
@@ -99,14 +105,17 @@ export default function RateAFew({ items, onRated }) {
   }
 
   return (
-    <section className={`${BOX} rate-a-few`} aria-labelledby="rate-a-few-title">
+    <section
+      className={`${BOX} rate-a-few ${RATE_A_FEW}`}
+      aria-labelledby="rate-a-few-title"
+    >
       <h2 id="rate-a-few-title">Rate a few</h2>
       <p className="muted">
         You finished these but never rated them. Each rating sharpens what
         Discover and Play next suggest.
       </p>
       {error && <p role="alert">{error}</p>}
-      <table className="rate-a-few-table" ref={table}>
+      <table className={`rate-a-few-table ${RATE_A_FEW_TABLE}`} ref={table}>
         <thead>
           <tr>
             <th scope="col">Game</th>
@@ -122,7 +131,7 @@ export default function RateAFew({ items, onRated }) {
                 <th scope="row">
                   {item.title}
                   {item.platform && (
-                    <span className="rate-a-few-platform">
+                    <span className={`rate-a-few-platform ${RATE_A_FEW_NOTE}`}>
                       {' '}
                       · {item.platform}
                     </span>
@@ -136,7 +145,7 @@ export default function RateAFew({ items, onRated }) {
                     />
                   </div>
                 </td>
-                <td className="rate-a-few-score">
+                <td className={`rate-a-few-score ${RATE_A_FEW_NOTE}`}>
                   {score == null ? '—' : `${score}/10 saved`}
                 </td>
               </tr>
@@ -144,7 +153,7 @@ export default function RateAFew({ items, onRated }) {
           })}
         </tbody>
       </table>
-      <div className="rate-a-few-actions">
+      <div className={`rate-a-few-actions ${RATE_A_FEW_ACTIONS}`}>
         {more && (
           <button
             type="button"

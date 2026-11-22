@@ -4,6 +4,18 @@ import SizePill from './SizePill.jsx'
 import { spine } from '../content/spine.js'
 import { dayWords } from '../lib/releaseWords.js'
 import { daysAgo } from '../lib/relativeDay.js'
+import {
+  LEAD_CONTINUE,
+  LEAD_COVER,
+  LEAD_TEXT,
+  LEAD_TITLE,
+  TONIGHT_ACTS_ASK,
+  TONIGHT_ASK,
+  TONIGHT_BTN,
+  TONIGHT_META,
+  TONIGHT_PLAYING,
+  TONIGHT_SESSIONS,
+} from './tonightClasses.js'
 
 const copy = spine.next.tonight
 
@@ -76,29 +88,33 @@ export default function ContinueCard({
     <li>
       <article
         className={
-          card.stale ? 'tonight-lead continue stale' : 'tonight-lead continue'
+          card.stale
+            ? `tonight-lead continue stale ${LEAD_CONTINUE}`
+            : `tonight-lead continue ${LEAD_CONTINUE}`
         }
         aria-labelledby={titleId}
       >
-        <span className="tonight-lead-cover">
+        <span className={`tonight-lead-cover ${LEAD_COVER}`}>
           <CoverImage src={card.cover_url} type={card.type} alt="" />
         </span>
-        <div className="tonight-lead-text">
-          <span className="tonight-playing">{copy.continue}</span>
+        <div className={`tonight-lead-text ${LEAD_TEXT}`}>
+          <span className={`tonight-playing ${TONIGHT_PLAYING}`}>
+            {copy.continue}
+          </span>
           <Link
             to={to}
             id={titleId}
-            className="tonight-title"
+            className={`tonight-title ${LEAD_TITLE}`}
             data-tonight-title={card.item_id}
           >
             {card.title}
           </Link>
-          <span className="tonight-meta">
+          <span className={`tonight-meta ${TONIGHT_META}`}>
             {card.platform && <span>{card.platform}</span>}
             <SizePill hours={card.time_to_beat_hours} />
           </span>
           {line.length > 0 && (
-            <p className="tonight-sessions">
+            <p className={`tonight-sessions ${TONIGHT_SESSIONS}`}>
               {line.map((part, index) => (
                 <span key={part.key}>
                   {index > 0 && ' · '}
@@ -109,15 +125,15 @@ export default function ContinueCard({
           )}
         </div>
         {signedIn && (
-          <div className="tonight-acts ask">
-            <span className="tonight-ask">
+          <div className={`tonight-acts ask ${TONIGHT_ACTS_ASK}`}>
+            <span className={`tonight-ask ${TONIGHT_ASK}`}>
               {card.stale ? copy.stillPlaying : copy.sittingDown}
             </span>
             {card.stale ? (
               <>
                 <button
                   type="button"
-                  className="btn primary"
+                  className={`btn primary ${TONIGHT_BTN}`}
                   onClick={() => onWrapUp(card, 'finished')}
                 >
                   {copy.finishedIt}
@@ -125,7 +141,7 @@ export default function ContinueCard({
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className={`btn ${TONIGHT_BTN}`}
                   onClick={() => onWrapUp(card, 'paused')}
                 >
                   {copy.pause}
@@ -136,7 +152,7 @@ export default function ContinueCard({
               <>
                 <button
                   type="button"
-                  className="btn primary"
+                  className={`btn primary ${TONIGHT_BTN}`}
                   onClick={() => onWrapUp(card, 'finished')}
                 >
                   {copy.wrapUp}
@@ -144,7 +160,7 @@ export default function ContinueCard({
                 </button>
                 <button
                   type="button"
-                  className="btn"
+                  className={`btn ${TONIGHT_BTN}`}
                   disabled={loggedToday}
                   onClick={() => onLogTonight(card)}
                 >
@@ -155,7 +171,7 @@ export default function ContinueCard({
             )}
             <button
               type="button"
-              className="btn ghost"
+              className={`btn ghost ${TONIGHT_BTN}`}
               onClick={() => onSkip(card)}
             >
               {copy.skip}

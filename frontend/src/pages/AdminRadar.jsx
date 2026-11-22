@@ -17,6 +17,14 @@ import {
   headBtn,
   PHONE_LINK,
 } from '../components/addClasses.js'
+import {
+  RADAR_CARDS,
+  RADAR_DIGITAL,
+  RADAR_HEADER,
+  RADAR_MONTH,
+  RADAR_SUMMARY_TITLE,
+  RADAR_WATCH_NOTE,
+} from '../components/playNextClasses.js'
 
 const copy = adminCopy.radar
 
@@ -116,7 +124,7 @@ function WantNote({ preorder }) {
     ? `closes ${dayWords(preorder.closes_at)}`
     : 'open'
   return (
-    <p className="radar-watch-note">
+    <p className={`radar-watch-note ${RADAR_WATCH_NOTE}`}>
       <a href={preorder.url} target="_blank" rel="noreferrer">
         Pre-order at {preorder.store}
       </a>
@@ -128,7 +136,7 @@ function WantNote({ preorder }) {
 
 function Cards({ rows, busy, onAnswer, level }) {
   return (
-    <div className="radar-cards">
+    <div className={`radar-cards ${RADAR_CARDS}`}>
       {rows.map((row) => (
         <RecommendationCard
           key={row.id}
@@ -285,7 +293,7 @@ export default function AdminRadar() {
         </button>
       </AdminPageHeader>
 
-      <div className="radar-header">
+      <div className={`radar-header ${RADAR_HEADER}`}>
         <label className={CHECK_ROW}>
           <input
             className={CHECKBOX}
@@ -344,7 +352,7 @@ export default function AdminRadar() {
       {nothing && <p className="muted">{copy.nothingYet}</p>}
       {byMonth(sections.suggested, localToday()).map(([group, rows]) => (
         <section key={group} aria-label={group}>
-          <h3 className="radar-month">{group}</h3>
+          <h3 className={`radar-month ${RADAR_MONTH}`}>{group}</h3>
           <Cards rows={rows} busy={busy} onAnswer={answer} level={4} />
         </section>
       ))}
@@ -356,9 +364,9 @@ export default function AdminRadar() {
         <p className="muted">{copy.nothingDatedLater}</p>
       )}
 
-      <details className="radar-digital">
+      <details className={`radar-digital ${RADAR_DIGITAL}`}>
         <summary>
-          <h2 className="radar-summary-title">
+          <h2 className={`radar-summary-title ${RADAR_SUMMARY_TITLE}`}>
             Digital so far ({sections.digital.length})
           </h2>
         </summary>

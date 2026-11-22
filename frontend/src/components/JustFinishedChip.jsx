@@ -2,6 +2,11 @@ import CoverImage from './CoverImage.jsx'
 import Rating from './Rating.jsx'
 import { spine } from '../content/spine.js'
 import { weekdayWords } from '../lib/next.js'
+import {
+  TONIGHT_JUST,
+  TONIGHT_JUST_B,
+  TONIGHT_JUST_THUMB,
+} from './tonightClasses.js'
 
 const copy = spine.next.tonight
 
@@ -23,14 +28,17 @@ export default function JustFinishedChip({ finish }) {
   }
   const when = parts.filter(Boolean).join(' · ')
   return (
-    <p className="tonight-just">
-      <span className="tonight-just-thumb" aria-hidden="true">
+    <p className={`tonight-just ${TONIGHT_JUST}`}>
+      <span
+        className={`tonight-just-thumb ${TONIGHT_JUST_THUMB}`}
+        aria-hidden="true"
+      >
         <CoverImage src={finish.cover_url} type="game" alt="" />
       </span>
       <span className="tj-a">
         {copy.justFinished} <b>{finish.title}</b>
       </span>
-      <span className="tj-b">
+      <span className={`tj-b ${TONIGHT_JUST_B}`}>
         {when}
         {finish.rating ? (
           <>

@@ -4,6 +4,15 @@ import CoverImage from './CoverImage.jsx'
 import { dayWords } from '../lib/releaseWords.js'
 import { storeLabel } from '../lib/storeLines.js'
 import { CHIP_LIST, CHIP_LIST_ITEM } from './chipClasses.js'
+import {
+  RADAR_BODY,
+  RADAR_BUTTONS,
+  RADAR_CARD,
+  RADAR_COVER,
+  RADAR_LIST,
+  RADAR_STORES,
+  REC_GENRES,
+} from './playNextClasses.js'
 
 // Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
 const FORMAT_WORDS = {
@@ -64,17 +73,17 @@ export default function RecommendationCard({
   const basedOn = row.based_on_titles ?? []
   const genres = row.genres ?? []
   return (
-    <article className={`${BOX} radar-card`}>
-      <span className="radar-cover">
+    <article className={`${BOX} radar-card ${RADAR_CARD}`}>
+      <span className={`radar-cover ${RADAR_COVER}`}>
         <CoverImage src={row.cover_url} type="game" alt="" />
       </span>
-      <div className="radar-body">
+      <div className={`radar-body ${RADAR_BODY}`}>
         <Title>{row.title}</Title>
         <p className="muted">
           {[when, row.platform, format].filter(Boolean).join(' · ')}
         </p>
         {row.reasons.length > 0 && (
-          <ul className="radar-reasons">
+          <ul className={`radar-reasons ${RADAR_LIST}`}>
             {row.reasons.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
@@ -85,7 +94,7 @@ export default function RecommendationCard({
         )}
         {genres.length > 0 && (
           <ul
-            className={`chip-list rec-genres ${CHIP_LIST}`}
+            className={`chip-list rec-genres ${CHIP_LIST} ${REC_GENRES}`}
             aria-label="Genres"
           >
             {genres.map((genre) => (
@@ -96,7 +105,7 @@ export default function RecommendationCard({
           </ul>
         )}
         {row.store_lines.length > 0 && (
-          <ul className="radar-stores">
+          <ul className={`radar-stores ${RADAR_STORES}`}>
             {row.store_lines.map((line, index) => (
               <StoreLine
                 key={`${line.url}-${index}`}
@@ -106,7 +115,7 @@ export default function RecommendationCard({
             ))}
           </ul>
         )}
-        <div className="radar-actions">
+        <div className={`radar-actions ${RADAR_BUTTONS}`}>
           {actions.map((action) => (
             <button
               key={action}

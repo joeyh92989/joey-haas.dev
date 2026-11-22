@@ -3,6 +3,16 @@ import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import { spine } from '../content/spine.js'
 import { itemPath } from '../lib/spinePaths.js'
+import {
+  PICK_SLOT,
+  TONIGHT_ACTS,
+  TONIGHT_ALT_COVER,
+  TONIGHT_BTN,
+  TONIGHT_META,
+  TONIGHT_REASONS_ALT,
+  TONIGHT_TITLE,
+  tonightAlt,
+} from './tonightClasses.js'
 
 const copy = spine.next.tonight
 
@@ -35,37 +45,41 @@ export default function TonightAlt({
   const slot = label === undefined ? pick.slot_label : label
   const reason = pick.reasons?.[0]
   return (
-    <li className={className ? `tonight-alt ${className}` : 'tonight-alt'}>
-      <span className="tonight-alt-cover">
+    <li className={`tonight-alt ${tonightAlt(className)}`}>
+      <span className={`tonight-alt-cover ${TONIGHT_ALT_COVER}`}>
         <CoverImage src={pick.cover_url} type={pick.type} alt="" />
       </span>
-      {slot && <span className="pick-slot">{slot}</span>}
+      {slot && <span className={`pick-slot ${PICK_SLOT}`}>{slot}</span>}
       <Link
         to={itemPath(pick.item_id)}
-        className="tonight-title"
+        className={`tonight-title ${TONIGHT_TITLE}`}
         data-tonight-title={pick.item_id}
       >
         {pick.title}
       </Link>
       {(pick.size ?? pick.time_to_beat_hours) != null && (
-        <span className="tonight-meta">
+        <span className={`tonight-meta ${TONIGHT_META}`}>
           <SizePill size={pick.size} hours={pick.time_to_beat_hours} />
         </span>
       )}
       {reason && (
-        <ul className="tonight-reasons">
+        <ul className={`tonight-reasons ${TONIGHT_REASONS_ALT}`}>
           <li>{reason}</li>
         </ul>
       )}
       {onPlay && (
-        <div className="tonight-acts">
-          <button type="button" className="btn" onClick={() => onPlay(pick)}>
+        <div className={`tonight-acts ${TONIGHT_ACTS}`}>
+          <button
+            type="button"
+            className={`btn ${TONIGHT_BTN}`}
+            onClick={() => onPlay(pick)}
+          >
             {copy.playInstead}
             <span className="visually-hidden">: {pick.title}</span>
           </button>
           <button
             type="button"
-            className="btn ghost"
+            className={`btn ghost ${TONIGHT_BTN}`}
             onClick={() => onSkip(pick)}
           >
             {copy.skip}

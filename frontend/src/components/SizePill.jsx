@@ -1,4 +1,5 @@
 import { sizeLabel } from '../lib/sizeBand.js'
+import { SIZE_PILL } from './tonightClasses.js'
 
 export { sizeLabel }
 
@@ -27,7 +28,7 @@ export default function SizePill({ size = null, hours = null }) {
   if (!label) return null
   return (
     <>
-      <span className="size-pill">{label}</span>
+      <span className={`size-pill ${SIZE_PILL}`}>{label}</span>
       <span>{sizeWords(value, unit)}</span>
     </>
   )

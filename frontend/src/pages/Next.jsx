@@ -29,6 +29,29 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { ATTRIBUTION } from '../components/shelf-classes.js'
+import {
+  NEXT_FRESH,
+  NEXT_H2,
+  NEXT_ROW,
+  NEXT_ROW_COVER,
+  NEXT_ROW_LINK,
+  NEXT_ROW_TEXT,
+  NEXT_ROW_TITLE,
+  NEXT_ROWS,
+  NEXT_ROWS_COLS,
+  NEXT_SECTION,
+  NEXT_SECTION_HEAD,
+  NEXT_SKIP,
+  NEXT_SKIP_P,
+  NEXT_SKIP_SUMMARY,
+  NEXT_TITLE,
+  TONIGHT_ALTS,
+  TONIGHT_ALTS_H,
+  TONIGHT_CONTINUING,
+  TONIGHT_OWNER_NOTE,
+  TONIGHT_SECTION,
+  TONIGHT_SPLIT,
+} from '../components/tonightClasses.js'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
@@ -124,16 +147,21 @@ function Freshness({ generated }) {
     .filter(([, words]) => words)
     .map(([label, words]) => `${label} ${words}`)
   const parts = [copy.fresh.picksLive, ...dated]
-  return <p className="muted next-fresh">{parts.join(' · ')}</p>
+  return <p className={`muted next-fresh ${NEXT_FRESH}`}>{parts.join(' · ')}</p>
 }
 
 /** A section with something in it; one with nothing is left out whole. */
 function Section({ id, children, count, head }) {
   if (count === 0) return null
   return (
-    <section className="next-section" aria-labelledby={`next-${id}`}>
-      <div className="next-section-head">
-        <h2 id={`next-${id}`}>{copy.sections[id]}</h2>
+    <section
+      className={`next-section ${NEXT_SECTION}`}
+      aria-labelledby={`next-${id}`}
+    >
+      <div className={`next-section-head ${NEXT_SECTION_HEAD}`}>
+        <h2 id={`next-${id}`} className={NEXT_H2}>
+          {copy.sections[id]}
+        </h2>
         {head}
       </div>
       {children}
@@ -158,7 +186,7 @@ function Rows({ rows, section, topPicks = 0, label }) {
   return (
     <CappedList
       items={rows}
-      className="next-rows next-rows-cols"
+      className={`next-rows next-rows-cols ${NEXT_ROWS} ${NEXT_ROWS_COLS}`}
       label={label}
       resetKey={rows.map(rowKey).join('|')}
     >
@@ -182,18 +210,31 @@ function Rows({ rows, section, topPicks = 0, label }) {
 function ComicsThisWeek({ rows }) {
   if (!rows.length) return null
   return (
-    <section className="next-section" aria-labelledby="next-comics">
-      <h2 id="next-comics">{copy.sections.comics}</h2>
-      <ul className="next-rows">
+    <section
+      className={`next-section ${NEXT_SECTION}`}
+      aria-labelledby="next-comics"
+    >
+      <h2 id="next-comics" className={NEXT_H2}>
+        {copy.sections.comics}
+      </h2>
+      <ul className={`next-rows ${NEXT_ROWS}`}>
         {rows.map((row) => (
-          <li key={`${row.item_id}-${row.number}`} className="next-row">
-            <Link to={itemPath(row.item_id)} className="next-row-link">
-              <span className="next-row-cover">
+          <li
+            key={`${row.item_id}-${row.number}`}
+            className={`next-row ${NEXT_ROW}`}
+          >
+            <Link
+              to={itemPath(row.item_id)}
+              className={`next-row-link ${NEXT_ROW_LINK}`}
+            >
+              <span className={`next-row-cover ${NEXT_ROW_COVER}`}>
                 <CoverImage src={row.cover_url} type="comic" alt="" />
               </span>
-              <span className="next-row-title">{`${row.title} #${row.number}`}</span>
+              <span className={`next-row-title ${NEXT_ROW_TITLE}`}>
+                {`${row.title} #${row.number}`}
+              </span>
             </Link>
-            <div className="next-row-text">
+            <div className={`next-row-text ${NEXT_ROW_TEXT}`}>
               <span className="muted">
                 {[row.publisher, shortDate(row.store_date)]
                   .filter(Boolean)
@@ -530,11 +571,11 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
     : {}
   return (
     <section
-      className={`next-section tonight${split ? ' tonight-split' : ''}`}
+      className={`next-section tonight ${NEXT_SECTION} ${TONIGHT_SECTION}${split ? ` tonight-split ${TONIGHT_SPLIT}` : ''}`}
       aria-labelledby="next-tonight"
       ref={section}
     >
-      <h2 id="next-tonight" tabIndex={-1}>
+      <h2 id="next-tonight" className={NEXT_H2} tabIndex={-1}>
         {copy.sections.tonight}
       </h2>
       {!leading && tonight.last_finish && (
@@ -542,7 +583,7 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
       )}
       {leading ? (
         <>
-          <ul className="tonight-continuing">
+          <ul className={`tonight-continuing ${TONIGHT_CONTINUING}`}>
             {cards.map((card) =>
               skipped.includes(card.item_id) ? (
                 <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
@@ -569,7 +610,7 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
         <>
           <div className="tonight-main">
             {cards.length > 0 && (
-              <ul className="tonight-continuing">
+              <ul className={`tonight-continuing ${TONIGHT_CONTINUING}`}>
                 {cards.map((card) => (
                   <SkippedToast key={card.item_id} pick={card} onUndo={undo} />
                 ))}
@@ -602,14 +643,14 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
           {alts.length > 0 && (
             <div className="tonight-more">
               {alts.some((pick) => !skipped.includes(pick.item_id)) && (
-                <p className="tonight-alts-h">
+                <p className={`tonight-alts-h ${TONIGHT_ALTS_H}`}>
                   <span>
                     {upNext ? copy.tonight.otherPicks : copy.tonight.orInstead}
                   </span>
                   <span className="muted">{copy.tonight.pickedLive}</span>
                 </p>
               )}
-              <ul className="tonight-alts">
+              <ul className={`tonight-alts ${TONIGHT_ALTS}`}>
                 {alts.map((pick) =>
                   skipped.includes(pick.item_id) ? (
                     <SkippedToast
@@ -649,7 +690,9 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
       )}
       {signedIn && (
         <>
-          <p className="tonight-owner-note">{copy.tonight.ownerNote}</p>
+          <p className={`tonight-owner-note ${TONIGHT_OWNER_NOTE}`}>
+            {copy.tonight.ownerNote}
+          </p>
           <p className="visually-hidden" role="status">
             {announcement}
           </p>
@@ -739,7 +782,7 @@ export default function Next() {
   return (
     <section className="next-page">
       <SpineHeader />
-      <h1 className="next-title">{copy.title}</h1>
+      <h1 className={`next-title ${NEXT_TITLE}`}>{copy.title}</h1>
       <p className="spine-lede">{copy.lede}</p>
       {data && <Freshness generated={data.generated_at} />}
 
@@ -804,16 +847,16 @@ export default function Next() {
           </Section>
           {data.not_on_cartridge.length > 0 && (
             <details
-              className="next-skip"
+              className={`next-skip ${NEXT_SKIP}`}
               id="next-not_on_cartridge"
               open={skipOpen}
               onToggle={(event) => setSkipOpen(event.currentTarget.open)}
             >
-              <summary>
+              <summary className={NEXT_SKIP_SUMMARY}>
                 {copy.sections.not_on_cartridge} ({data.not_on_cartridge.length}
                 )
               </summary>
-              <p className="muted">{copy.notOnCartridge}</p>
+              <p className={`muted ${NEXT_SKIP_P}`}>{copy.notOnCartridge}</p>
               <Rows
                 rows={data.not_on_cartridge}
                 section="not_on_cartridge"

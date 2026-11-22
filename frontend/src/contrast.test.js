@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { REVIEW_BAR } from './components/closetReviewClasses.js'
 import { readCss } from './testing/readCss.js'
 import { BAR_FILL, BAR_TRACK, DAY_BAR } from './components/overview-classes.js'
+import { PICK_TERM_BAR } from './components/tonightClasses.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -175,19 +176,19 @@ describe('theme blocks', () => {
     expect(BAR_TRACK.split(' ')).toContain('bg-(--sunken)')
     expect(BAR_TRACK.split(' ')).toContain('border')
     expect(BAR_TRACK.split(' ')).toContain('border-line-card')
-    for (const sel of ['.tour-bar', '.pick-term-bar']) {
-      expect(rule(sel), sel).toMatch(/background:\s*var\(--sunken\)/)
-      expect(rule(sel), sel).toMatch(/border:\s*1px solid var\(--line-card\)/)
-    }
+    // Pick for me's track is a class string too (tonightClasses.js).
+    expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
+    expect(PICK_TERM_BAR.split(' ')).toContain('border')
+    expect(PICK_TERM_BAR.split(' ')).toContain('border-line-card')
+    expect(rule('.tour-bar')).toMatch(/background:\s*var\(--sunken\)/)
+    expect(rule('.tour-bar')).toMatch(/border:\s*1px solid var\(--line-card\)/)
   })
 
   it('fills bars with --chart, and the score meter with --accent', () => {
     expect(BAR_FILL.split(' ')).toContain('bg-chart-1')
     expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
     expect(DAY_BAR.split(' ')).toContain('bg-chart-1')
-    expect(rule('.pick-term-bar > span')).toMatch(
-      /background:\s*var\(--accent\)/,
-    )
+    expect(PICK_TERM_BAR.split(' ')).toContain('[&>span]:bg-(--accent)')
   })
 
   // #534: the Daily game's rules, re-measured on the Archive tokens above.
@@ -210,12 +211,12 @@ describe('theme blocks', () => {
   it('draws meter tracks on --sunken, so the fill is a 3:1 mark on it', () => {
     // The review deck's bar is utilities now: bg-muted is --sunken.
     expect(REVIEW_BAR).toMatch(/(^| )bg-muted( |$)/)
-    for (const sel of ['.pick-term-bar', '.progress i']) {
-      const at = css.indexOf(`\n${sel} {`)
-      expect(at, sel).toBeGreaterThan(-1)
-      const body = css.slice(at, css.indexOf('}', at))
-      expect(body, sel).toMatch(/background:\s*var\(--sunken\)/)
-    }
+    expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
+    const at = css.indexOf('\n.progress i {')
+    expect(at, '.progress i').toBeGreaterThan(-1)
+    expect(css.slice(at, css.indexOf('}', at))).toMatch(
+      /background:\s*var\(--sunken\)/,
+    )
   })
 
   // The paper is light whatever theme is browsed (index.css, Print): the
