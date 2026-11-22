@@ -9,6 +9,24 @@ import { awards, certifications, education } from '../content/education.js'
 import { experience } from '../content/experience.js'
 import { profile } from '../content/profile.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import {
+  ABOUT,
+  ABOUT_ASIDE,
+  ABOUT_PHOTO,
+  ABOUT_BODY,
+  TIMELINE,
+  TIMELINE_COMPANY,
+  TIMELINE_EMPLOYER,
+  TIMELINE_EMPLOYER_NAME,
+  TIMELINE_META,
+  TIMELINE_POINTS,
+  TIMELINE_ROLE,
+  TIMELINE_ROLES,
+  TIMELINE_STEP_TITLE,
+  TIMELINE_SUMMARY,
+  timelineEntry,
+  timelineStep,
+} from '../components/aboutClasses.js'
 
 /**
  * About page: an aside with the photo, the serif title and the facts in a
@@ -28,10 +46,10 @@ export default function About() {
   const paragraphs = profile.bio.split('\n\n').filter(Boolean)
 
   return (
-    <div className="about">
-      <aside className="about-aside">
+    <div className={`about ${ABOUT}`}>
+      <aside className={`about-aside ${ABOUT_ASIDE}`}>
         <img
-          className="about-photo"
+          className={`about-photo ${ABOUT_PHOTO}`}
           src={joeyPhoto}
           alt=""
           width="96"
@@ -64,7 +82,7 @@ export default function About() {
         </RecordCard>
       </aside>
 
-      <div className="about-body">
+      <div className={`about-body ${ABOUT_BODY}`}>
         <section aria-labelledby="about-summary">
           <h2 className={SECTION_HEAD} id="about-summary">
             Summary
@@ -82,31 +100,44 @@ export default function About() {
           <h2 className={SECTION_HEAD} id="about-experience">
             Experience
           </h2>
-          <ol className="timeline" role="list">
+          <ol className={`timeline ${TIMELINE}`} role="list">
             {experience.map((entry) =>
               entry.roles ? (
                 <li
-                  className="timeline-entry timeline-employer"
+                  className={`timeline-entry timeline-employer ${TIMELINE_EMPLOYER}`}
                   key={entry.company}
                 >
-                  <h3 className="timeline-role timeline-employer-name">
+                  <h3
+                    className={`timeline-role timeline-employer-name ${TIMELINE_EMPLOYER_NAME}`}
+                  >
                     {entry.company}
                   </h3>
-                  <Kicker className="timeline-meta">{entry.meta}</Kicker>
-                  <p className="timeline-summary">{entry.blurb}</p>
-                  <ol className="timeline-roles" role="list">
+                  <Kicker className={`timeline-meta ${TIMELINE_META}`}>
+                    {entry.meta}
+                  </Kicker>
+                  <p className={`timeline-summary ${TIMELINE_SUMMARY}`}>
+                    {entry.blurb}
+                  </p>
+                  <ol
+                    className={`timeline-roles ${TIMELINE_ROLES}`}
+                    role="list"
+                  >
                     {entry.roles.map((role) => (
                       <li
                         className={
                           role.current
-                            ? 'timeline-step current'
-                            : 'timeline-step'
+                            ? `timeline-step current ${timelineStep(true)}`
+                            : `timeline-step ${timelineStep(false)}`
                         }
                         key={role.title}
                       >
-                        <h4 className="timeline-step-title">{role.title}</h4>
+                        <h4
+                          className={`timeline-step-title ${TIMELINE_STEP_TITLE}`}
+                        >
+                          {role.title}
+                        </h4>
                         <Kicker>{role.dates}</Kicker>
-                        <ul className="timeline-points">
+                        <ul className={`timeline-points ${TIMELINE_POINTS}`}>
                           {role.bullets.map((bullet, index) => (
                             <li key={index}>{bullet}</li>
                           ))}
@@ -118,16 +149,22 @@ export default function About() {
               ) : (
                 <li
                   className={
-                    entry.current ? 'timeline-entry current' : 'timeline-entry'
+                    entry.current
+                      ? `timeline-entry current ${timelineEntry(true)}`
+                      : `timeline-entry ${timelineEntry(false)}`
                   }
                   key={`${entry.company}-${entry.role}`}
                 >
-                  <h3 className="timeline-role">
-                    <span className="timeline-company">{entry.company}</span> —{' '}
-                    <span>{entry.role}</span>
+                  <h3 className={`timeline-role ${TIMELINE_ROLE}`}>
+                    <span className={`timeline-company ${TIMELINE_COMPANY}`}>
+                      {entry.company}
+                    </span>{' '}
+                    — <span>{entry.role}</span>
                   </h3>
-                  <Kicker className="timeline-meta">{entry.meta}</Kicker>
-                  <ul className="timeline-points">
+                  <Kicker className={`timeline-meta ${TIMELINE_META}`}>
+                    {entry.meta}
+                  </Kicker>
+                  <ul className={`timeline-points ${TIMELINE_POINTS}`}>
                     {entry.bullets.map((bullet, index) => (
                       <li key={index}>{bullet}</li>
                     ))}
@@ -151,14 +188,21 @@ export default function About() {
           <h2 className={SECTION_HEAD} id="about-education">
             Education
           </h2>
-          <ol className="timeline" role="list">
+          <ol className={`timeline ${TIMELINE}`} role="list">
             {education.map((entry) => (
-              <li className="timeline-entry" key={entry.credential}>
-                <h3 className="timeline-role">
+              <li
+                className={`timeline-entry ${timelineEntry(false)}`}
+                key={entry.credential}
+              >
+                <h3 className={`timeline-role ${TIMELINE_ROLE}`}>
                   <span>{entry.credential}</span> ·{' '}
-                  <span className="timeline-company">{entry.school}</span>
+                  <span className={`timeline-company ${TIMELINE_COMPANY}`}>
+                    {entry.school}
+                  </span>
                 </h3>
-                <Kicker className="timeline-meta">{entry.meta}</Kicker>
+                <Kicker className={`timeline-meta ${TIMELINE_META}`}>
+                  {entry.meta}
+                </Kicker>
               </li>
             ))}
           </ol>

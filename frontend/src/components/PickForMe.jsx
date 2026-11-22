@@ -13,6 +13,22 @@ import EmptyState from './EmptyState.jsx'
 import { Button } from './ui/button.jsx'
 import { buttonVariants } from './ui/button-variants.js'
 import { CHIP_TAP } from './chipClasses.js'
+import {
+  PICK_CARDS,
+  PICK_CHIP_ROW,
+  PICK_CHOICES,
+  PICK_FOR_ME,
+  PICK_HINT,
+  PICK_HOW,
+  PICK_NOTE,
+  PICK_RADIO,
+  PICK_SCORE,
+  PICK_SCORE_TOTAL,
+  PICK_TERM,
+  PICK_TERM_BAR,
+  PICK_TERMS,
+  TONIGHT_ALTS,
+} from './tonightClasses.js'
 
 const copy = spine.next.pickForMe
 const SHOWN = 3
@@ -24,7 +40,7 @@ const RESULT = 'rounded-md border-line-card border-l-[3px] border-l-primary p-4'
 // pressed look (darker outline, heavier word, the 3px bar) keyed on
 // `data-checked` instead of `aria-pressed`, and the focus ring on the label
 // while the hidden input has keyboard focus.
-const RADIO_CHIP = `chip pick-radio ${CHIP_TAP} ${buttonVariants({ variant: 'chip', size: 'chip' })} data-[checked=true]:border-foreground data-[checked=true]:bg-card data-[checked=true]:font-medium data-[checked=true]:text-foreground data-[checked=true]:after:block has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring`
+const RADIO_CHIP = `chip pick-radio ${PICK_RADIO} ${CHIP_TAP} ${buttonVariants({ variant: 'chip', size: 'chip' })} data-[checked=true]:border-foreground data-[checked=true]:bg-card data-[checked=true]:font-medium data-[checked=true]:text-foreground data-[checked=true]:after:block has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring`
 const TERMS = ['affinity', 'similarity', 'quality', 'length_fit']
 
 /**
@@ -56,16 +72,16 @@ function resultsFor(table, size, moods, lead) {
 /** One pick's working: its total, then each term with its weight. */
 function ScoreBreakdown({ pick, weights }) {
   return (
-    <div className="pick-score">
-      <p className="pick-score-total">
+    <div className={`pick-score ${PICK_SCORE}`}>
+      <p className={`pick-score-total ${PICK_SCORE_TOTAL}`}>
         {copy.score} <strong>{Math.round(pick.score)}</strong>{' '}
         <span className="muted">{copy.outOf}</span>
       </p>
-      <dl className="pick-terms">
+      <dl className={`pick-terms ${PICK_TERMS}`}>
         {TERMS.map((name) => {
           const value = pick.terms[name] ?? 0
           return (
-            <div key={name} className="pick-term">
+            <div key={name} className={`pick-term ${PICK_TERM}`}>
               <dt>
                 {copy.terms[name]}{' '}
                 <span className="muted">
@@ -73,7 +89,10 @@ function ScoreBreakdown({ pick, weights }) {
                 </span>
               </dt>
               <dd>
-                <span className="pick-term-bar" aria-hidden="true">
+                <span
+                  className={`pick-term-bar ${PICK_TERM_BAR}`}
+                  aria-hidden="true"
+                >
                   <span
                     style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
                   />
@@ -153,16 +172,16 @@ export default function PickForMe({ table, lead = null }) {
   return (
     <section
       id="pick-for-me"
-      className="pick-for-me"
+      className={`pick-for-me ${PICK_FOR_ME}`}
       aria-labelledby={`${name}-h`}
     >
       <h2 id={`${name}-h`} ref={heading} tabIndex={-1}>
         {copy.heading}
       </h2>
       <p className="muted">{copy.lede}</p>
-      <fieldset className="pick-choices">
+      <fieldset className={`pick-choices ${PICK_CHOICES}`}>
         <legend>{copy.sizeLegend}</legend>
-        <div className="chip-row">
+        <div className={`chip-row ${PICK_CHIP_ROW}`}>
           {PICK_SIZES.map((value) => (
             <label
               key={value}
@@ -179,16 +198,19 @@ export default function PickForMe({ table, lead = null }) {
               <span>
                 {copy.sizes[value]}
                 {copy.sizeHints[value] && (
-                  <span className="pick-hint"> · {copy.sizeHints[value]}</span>
+                  <span className={`pick-hint ${PICK_HINT}`}>
+                    {' '}
+                    · {copy.sizeHints[value]}
+                  </span>
                 )}
               </span>
             </label>
           ))}
         </div>
       </fieldset>
-      <fieldset className="pick-choices">
+      <fieldset className={`pick-choices ${PICK_CHOICES}`}>
         <legend>{copy.moodLegend}</legend>
-        <div className="chip-row">
+        <div className={`chip-row ${PICK_CHIP_ROW}`}>
           {PICK_MOODS.map((mood) => (
             <Button
               key={mood}
@@ -203,7 +225,7 @@ export default function PickForMe({ table, lead = null }) {
           ))}
         </div>
       </fieldset>
-      <p className="pick-note" role="status">
+      <p className={`pick-note ${PICK_NOTE}`} role="status">
         {refused ? copy.moodLimit : ''}
       </p>
       <p className="visually-hidden" role="status" aria-live="polite">
@@ -212,7 +234,7 @@ export default function PickForMe({ table, lead = null }) {
       {!chosen ? (
         <EmptyState title={copy.choose} />
       ) : picks.length ? (
-        <ul className="tonight-alts pick-cards">
+        <ul className={`tonight-alts pick-cards ${TONIGHT_ALTS} ${PICK_CARDS}`}>
           {picks.map(({ pick, card }) => (
             <TonightAlt
               key={pick.item_id}
@@ -228,7 +250,7 @@ export default function PickForMe({ table, lead = null }) {
         <p className="muted">{copy.empty}</p>
       )}
       {chosen && (
-        <p className="pick-how muted">
+        <p className={`pick-how muted ${PICK_HOW}`}>
           {leftOut && <>{copy.leftOut(lead.title)} </>}
           {copy.howScored}
         </p>

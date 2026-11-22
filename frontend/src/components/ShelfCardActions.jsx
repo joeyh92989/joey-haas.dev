@@ -3,7 +3,7 @@ import { cx } from '../lib/cx.js'
 import { playMove, statusMoves } from '../lib/statusMoves.js'
 import CardActionsShell from './CardActionsShell.jsx'
 import QuickRate from './QuickRate.jsx'
-import { SHELF_ACTIONS_ROW } from './shelf-classes.js'
+import { SHELF_ACTIONS_DANGER, SHELF_ACTIONS_ROW } from './shelf-classes.js'
 import ShelfConfirm from './ShelfConfirm.jsx'
 import { Button } from './ui/button.jsx'
 import {
@@ -143,6 +143,7 @@ export default function ShelfCardActions({
           className={cx(
             'shelf-actions-row shelf-actions-danger',
             SHELF_ACTIONS_ROW,
+            SHELF_ACTIONS_DANGER,
           )}
         >
           {onRedo && (

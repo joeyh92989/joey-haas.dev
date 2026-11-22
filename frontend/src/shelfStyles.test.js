@@ -4,6 +4,11 @@ import { readFileSync } from 'node:fs'
 import { readCss } from './testing/readCss.js'
 import { POSTER_HEART } from './components/shelf-classes.js'
 import { BAR, BAR_FILL, DAY_BAR } from './components/overview-classes.js'
+import {
+  DAILY_LEDE,
+  MONTH_INDEX,
+  MONTH_STEP,
+} from './components/dailyClasses.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -103,10 +108,22 @@ describe('tour on a phone (#475)', () => {
 })
 
 describe('two widths (#188)', () => {
+  // These three are class strings now (dailyClasses.js).
+  it.each([MONTH_INDEX, MONTH_STEP])(
+    'holds %s to the 45rem column',
+    (classes) => {
+      expect(classes.split(' ')).toContain('max-w-[45rem]')
+    },
+  )
+
+  it('caps running text in the Daily lede at the reading measure', () => {
+    expect(DAILY_LEDE.split(' ')).toContain('max-w-[min(45rem,68ch)]')
+  })
+
   const COLUMN = 'max-width: 45rem;'
   const TEXT = 'max-width: min(45rem, 68ch);'
 
-  it.each(['.month-index', '.month-step', '.tour-stop-cols.one'])(
+  it.each(['.tour-stop-cols.one'])(
     'holds %s to the 45rem column',
     (selector) => {
       expect(rule(selector)).toContain(COLUMN)
@@ -116,7 +133,6 @@ describe('two widths (#188)', () => {
   it.each([
     '.prose',
     '.prose-list',
-    '.daily-lede',
     '.tour-lede',
     '.tour-stop-claim',
     '.tour-stop-why',

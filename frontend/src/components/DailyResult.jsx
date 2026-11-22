@@ -6,6 +6,12 @@ import { daily } from '../content/daily.js'
 import { shortGenre, shortPlatform, yearOf } from '../lib/daily.js'
 import { sizeLabel } from '../lib/sizeBand.js'
 import { itemPath } from '../lib/spinePaths.js'
+import {
+  DAILY_RESULT,
+  DAILY_RESULT_ACTS,
+  DAILY_RESULT_BODY,
+  DAILY_RESULT_LINE,
+} from './dailyClasses.js'
 
 const copy = daily.result
 
@@ -42,19 +48,24 @@ export default function DailyResult({
     copy.hours(Math.round(answer.time_to_beat_hours)),
   ]
   return (
-    <section className="daily-result" aria-labelledby="daily-result-title">
+    <section
+      className={`daily-result ${DAILY_RESULT}`}
+      aria-labelledby="daily-result-title"
+    >
       <div className="daily-result-cover">
         <CoverImage src={answer.cover_url} type="game" />
       </div>
-      <div className="daily-result-body">
+      <div className={`daily-result-body ${DAILY_RESULT_BODY}`}>
         <h2 id="daily-result-title" ref={titleRef} tabIndex={-1}>
           {won ? copy.gotIt(guesses) : copy.notToday(answer.title)}
         </h2>
-        <p className="daily-result-name">
+        <p className={`daily-result-name ${DAILY_RESULT_LINE}`}>
           <Link to={itemPath(answer.id)}>{answer.title}</Link>
         </p>
-        <p className="daily-result-facts muted">{facts.join(' · ')}</p>
-        <div className="daily-result-acts">
+        <p className={`daily-result-facts muted ${DAILY_RESULT_LINE}`}>
+          {facts.join(' · ')}
+        </p>
+        <div className={`daily-result-acts ${DAILY_RESULT_ACTS}`}>
           <Button onClick={onShare}>{copy.share}</Button>
           <Button
             variant="outline"

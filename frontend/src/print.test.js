@@ -1,5 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import {
+  ABOUT,
+  ABOUT_ASIDE,
+  TIMELINE_EMPLOYER,
+  TIMELINE_POINTS,
+  timelineEntry,
+  timelineStep,
+} from './components/aboutClasses.js'
 import { readCss } from './testing/readCss.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
@@ -26,14 +34,19 @@ describe('print stylesheet', () => {
   })
 
   it('stacks About and lets the timeline break between roles', () => {
-    for (const rule of [
-      '.about {\n    display: block;',
-      '.about-aside {',
-      'position: static;',
-      '.timeline-entry.timeline-employer {\n    break-inside: auto;',
-      '.timeline-step,\n  .timeline-points li {\n    break-inside: avoid;',
-    ])
-      expect(print).toContain(rule)
+    // These are `print:` utilities now (aboutClasses.js).
+    expect(ABOUT.split(' ')).toContain('print:block')
+    expect(ABOUT_ASIDE.split(' ')).toEqual(
+      expect.arrayContaining(['print:static', 'print:mb-6']),
+    )
+    expect(TIMELINE_EMPLOYER.split(' ')).toContain('print:break-inside-auto')
+    expect(timelineEntry(false).split(' ')).toContain(
+      'print:break-inside-avoid',
+    )
+    expect(timelineStep(false).split(' ')).toContain('print:break-inside-avoid')
+    expect(TIMELINE_POINTS.split(' ')).toContain(
+      'print:[&>li]:break-inside-avoid',
+    )
   })
 
   it('keeps a role heading with its bullets', () => {

@@ -75,6 +75,7 @@ import {
   MONTH_YEAR_LONG as MONTH_LABEL,
   MONTH_NARROW as MONTH_INITIAL,
 } from '../lib/formatDate.js'
+import { SPINE_PROJECT } from '../components/dailyClasses.js'
 
 const copy = spine.comics
 const PUBLISHERS_SHOWN = 3
@@ -486,7 +487,7 @@ export default function Comics() {
       )}
 
       <footer className={`attribution ${ATTRIBUTION}`}>
-        <p className="spine-project">
+        <p className={`spine-project ${SPINE_PROJECT}`}>
           {spine.projectLine}{' '}
           <Link to={spine.links.post.to}>
             {spine.links.post.label} <span aria-hidden="true">&rarr;</span>

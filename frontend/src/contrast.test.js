@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { REVIEW_BAR } from './components/closetReviewClasses.js'
 import { readCss } from './testing/readCss.js'
 import { BAR_FILL, BAR_TRACK, DAY_BAR } from './components/overview-classes.js'
+import { PICK_TERM_BAR } from './components/tonightClasses.js'
+import { SHELFLE_CELL } from './components/dailyClasses.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
 const css = readCss()
@@ -175,31 +177,30 @@ describe('theme blocks', () => {
     expect(BAR_TRACK.split(' ')).toContain('bg-(--sunken)')
     expect(BAR_TRACK.split(' ')).toContain('border')
     expect(BAR_TRACK.split(' ')).toContain('border-line-card')
-    for (const sel of ['.tour-bar', '.pick-term-bar']) {
-      expect(rule(sel), sel).toMatch(/background:\s*var\(--sunken\)/)
-      expect(rule(sel), sel).toMatch(/border:\s*1px solid var\(--line-card\)/)
-    }
+    // Pick for me's track is a class string too (tonightClasses.js).
+    expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
+    expect(PICK_TERM_BAR.split(' ')).toContain('border')
+    expect(PICK_TERM_BAR.split(' ')).toContain('border-line-card')
+    expect(rule('.tour-bar')).toMatch(/background:\s*var\(--sunken\)/)
+    expect(rule('.tour-bar')).toMatch(/border:\s*1px solid var\(--line-card\)/)
   })
 
   it('fills bars with --chart, and the score meter with --accent', () => {
     expect(BAR_FILL.split(' ')).toContain('bg-chart-1')
     expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
     expect(DAY_BAR.split(' ')).toContain('bg-chart-1')
-    expect(rule('.pick-term-bar > span')).toMatch(
-      /background:\s*var\(--accent\)/,
-    )
+    expect(PICK_TERM_BAR.split(' ')).toContain('[&>span]:bg-(--accent)')
   })
 
   // #534: the Daily game's rules, re-measured on the Archive tokens above.
   it('keeps the match cell as --accent-ink on --status-active and the close ring as --warn on --surface', () => {
-    const match = rule(".shelfle-cell[data-state='match']")
-    expect(match).toMatch(/background:\s*var\(--status-active\)/)
-    expect(match).toMatch(/color:\s*var\(--accent-ink\)/)
-    const close = rule(".shelfle-cell[data-state='close']")
-    expect(close).toMatch(/background:\s*var\(--surface\)/)
-    expect(close).toMatch(/border-color:\s*var\(--warn\)/)
-    const no = rule(".shelfle-cell[data-state='no']")
-    expect(no).toMatch(/color:\s*var\(--text-2\)/)
+    // The cell is a class string now (dailyClasses.js).
+    const cell = SHELFLE_CELL.split(' ')
+    expect(cell).toContain('data-[state=match]:bg-(--status-active)')
+    expect(cell).toContain('data-[state=match]:text-(--accent-ink)')
+    expect(cell).toContain('data-[state=close]:bg-(--surface)')
+    expect(cell).toContain('data-[state=close]:border-(--warn)')
+    expect(cell).toContain('data-[state=no]:text-muted-foreground')
   })
 
   it('the light block declares its own highlighter, not dark’s', () => {
@@ -210,12 +211,12 @@ describe('theme blocks', () => {
   it('draws meter tracks on --sunken, so the fill is a 3:1 mark on it', () => {
     // The review deck's bar is utilities now: bg-muted is --sunken.
     expect(REVIEW_BAR).toMatch(/(^| )bg-muted( |$)/)
-    for (const sel of ['.pick-term-bar', '.progress i']) {
-      const at = css.indexOf(`\n${sel} {`)
-      expect(at, sel).toBeGreaterThan(-1)
-      const body = css.slice(at, css.indexOf('}', at))
-      expect(body, sel).toMatch(/background:\s*var\(--sunken\)/)
-    }
+    expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
+    const at = css.indexOf('\n.progress i {')
+    expect(at, '.progress i').toBeGreaterThan(-1)
+    expect(css.slice(at, css.indexOf('}', at))).toMatch(
+      /background:\s*var\(--sunken\)/,
+    )
   })
 
   // The paper is light whatever theme is browsed (index.css, Print): the

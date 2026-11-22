@@ -19,6 +19,7 @@ import {
 } from './components/addClasses.js'
 import { PHONE_ROW as CLOSET_PHONE_ROW } from './components/closetClasses.js'
 import { INTAKE_KIND, INTAKE_UNFINISHED } from './components/intakeClasses.js'
+import { RADAR_CARD, RATE_A_FEW } from './components/playNextClasses.js'
 import { readCss } from './testing/readCss.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages (#535, slice c) are
@@ -150,11 +151,12 @@ describe('Add and recommend pages, on the Button and Card looks', () => {
     // surface (it comes from TILE and BOX).
     for (const classes of [INTAKE_KIND, INTAKE_UNFINISHED])
       expect(classes).not.toMatch(/(^| )(bg-|border|rounded)/)
-    for (const selector of ['.radar-card', '.rate-a-few']) {
-      const rule = ruleOf(selector)
-      expect(rule, selector).not.toBeNull()
-      expect(rule, selector).not.toMatch(/background:|border:|border-radius:/)
-    }
+    // Radar's card and Rate a few are utilities now (#536 G1): their own
+    // strings carry the layout and the padding, never a surface (BOX).
+    for (const classes of [RADAR_CARD, RATE_A_FEW])
+      expect(classes).not.toMatch(/(^| )(bg-|border|rounded)/)
+    for (const selector of ['.radar-card', '.rate-a-few'])
+      expect(ruleOf(selector), selector).toBeNull()
     expect(css).not.toContain('.pull-list .next-row-actions button')
     expect(css).not.toContain('.pull-list-search-form button')
   })

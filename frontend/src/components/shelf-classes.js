@@ -292,3 +292,11 @@ export const ATTRIBUTION =
  *  turns into a dash when it is open. */
 export const DISCLOSURE =
   "flex w-full cursor-pointer items-center justify-between rounded-[var(--radius,8px)] border border-(--line-strong) [background:none] px-3 py-2 mb-4 text-foreground [font-family:inherit] [font-style:inherit] [font-weight:inherit] [font-size:var(--fs-14)] [line-height:inherit] after:content-['+'] aria-expanded:after:content-['–'] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--accent) [@media(max-width:700px)]:inline-flex [@media(max-width:700px)]:min-h-11 [@media(max-width:700px)]:items-center"
+
+/** Delete and Redo sit on their own line at the foot of a card's panel. */
+export const SHELF_ACTIONS_DANGER = '[border-top:1px_solid_var(--line)] pt-2'
+
+/** The admin comic card's controls: Follow, Public, the cover wall, Edit. In
+ *  the phone sheet they centre at the page size with room between. */
+export const COMIC_ACTIONS =
+  'mt-2 flex flex-wrap gap-x-3 gap-y-2 [font-size:var(--fs-13)] [&_label]:inline-flex [&_label]:items-center [&_label]:gap-1 [.shelf-sheet_&]:justify-center [.shelf-sheet_&]:gap-x-4 [.shelf-sheet_&]:gap-y-3 [.shelf-sheet_&]:[font-size:var(--fs-16)]'

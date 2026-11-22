@@ -13,6 +13,27 @@ import LoadState from '../components/LoadState.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { EMPTY } from '../content/emptyStates.js'
 import { CHIP, CHIP_COUNT } from '../components/chipClasses.js'
+import {
+  PICK_ACTIONS,
+  PICK_BODY,
+  PICK_CARD,
+  PICK_CARD_H2,
+  PICK_COVER,
+  ITEM_CHIP,
+  ITEM_CHIPS,
+  PICK_GRID,
+  PICK_META,
+  PICK_PLAY,
+  PICK_PLAY_HINT,
+  PICK_REASONS,
+  PLAY_BTN,
+  PLAY_NEXT_CONTROLS,
+  SHELF_NUDGE,
+  UP_NEXT,
+  UP_NEXT_COVER,
+  UP_NEXT_H2,
+} from '../components/playNextClasses.js'
+import { PICK_SLOT, TONIGHT_CONTINUING } from '../components/tonightClasses.js'
 
 const SIZES = [
   ['any', 'Any'],
@@ -94,22 +115,22 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
   // The pin route also moves the game to Playing, which the bare label hid.
   const playHintId = useId()
   return (
-    <article className="pick-card">
-      <p className="pick-slot">{pick.slot_label}</p>
-      <div className="pick-body">
-        <div className="pick-cover">
+    <article className={`pick-card ${PICK_CARD}`}>
+      <p className={`pick-slot ${PICK_SLOT}`}>{pick.slot_label}</p>
+      <div className={`pick-body ${PICK_BODY}`}>
+        <div className={`pick-cover ${PICK_COVER}`}>
           <CoverImage src={item.cover_url} type={item.type} alt="" />
         </div>
         <div>
-          <h2>{item.title}</h2>
-          <p className="muted pick-meta">
+          <h2 className={PICK_CARD_H2}>{item.title}</h2>
+          <p className={`muted pick-meta ${PICK_META}`}>
             {item.year && <span>{item.year}</span>}
             <SizePill hours={item.time_to_beat_hours} />
           </p>
           {item.genres.length > 0 && (
-            <ul className="item-chips">
+            <ul className={`item-chips ${ITEM_CHIPS}`}>
               {item.genres.slice(0, GENRES_SHOWN).map((genre) => (
-                <li key={genre} className="item-chip">
+                <li key={genre} className={`item-chip ${ITEM_CHIP}`}>
                   {genre}
                 </li>
               ))}
@@ -117,35 +138,54 @@ function PickCard({ pick, onPlay, onSkip, onNever, busy }) {
           )}
         </div>
       </div>
-      <ul className="pick-reasons">
+      <ul className={`pick-reasons ${PICK_REASONS}`}>
         {pick.reasons.map((reason) => (
           <li key={reason}>{reason}</li>
         ))}
       </ul>
-      <div className="pick-actions">
+      <div className={`pick-actions ${PICK_ACTIONS}`}>
         {startLabel ? (
-          <button type="button" disabled={busy} onClick={onPlay}>
+          <button
+            type="button"
+            className={PLAY_BTN}
+            disabled={busy}
+            onClick={onPlay}
+          >
             {startLabel}
           </button>
         ) : (
-          <span className="pick-play">
+          <span className={`pick-play ${PICK_PLAY}`}>
             <button
               type="button"
+              className={PLAY_BTN}
               disabled={busy}
               onClick={onPlay}
               aria-describedby={playHintId}
             >
               Play this
             </button>
-            <span id={playHintId} className="pick-play-hint">
+            <span
+              id={playHintId}
+              className={`pick-play-hint ${PICK_PLAY_HINT}`}
+            >
               Up next · starts playing
             </span>
           </span>
         )}
-        <button type="button" disabled={busy} onClick={onSkip}>
+        <button
+          type="button"
+          className={PLAY_BTN}
+          disabled={busy}
+          onClick={onSkip}
+        >
           Not tonight
         </button>
-        <button type="button" disabled={busy} onClick={onNever}>
+        <button
+          type="button"
+          className={PLAY_BTN}
+          disabled={busy}
+          onClick={onNever}
+        >
           Never suggest
         </button>
       </div>
@@ -457,7 +497,9 @@ export default function PlayNext() {
       )}
 
       {cards.length > 0 && (
-        <ul className="tonight-continuing play-next-continuing">
+        <ul
+          className={`tonight-continuing play-next-continuing ${TONIGHT_CONTINUING}`}
+        >
           {cards.map((card) => (
             <ContinueCard
               key={card.item_id}
@@ -490,15 +532,16 @@ export default function PlayNext() {
       />
 
       {pinned && (
-        <section className="up-next" aria-label="Up next">
-          <div className="up-next-cover">
+        <section className={`up-next ${UP_NEXT}`} aria-label="Up next">
+          <div className={`up-next-cover ${UP_NEXT_COVER}`}>
             <CoverImage src={pinned.cover_url} type={pinned.type} alt="" />
           </div>
           <div>
-            <p className="pick-slot">Up next</p>
-            <h2>{pinned.title}</h2>
+            <p className={`pick-slot ${PICK_SLOT}`}>Up next</p>
+            <h2 className={UP_NEXT_H2}>{pinned.title}</h2>
             <button
               type="button"
+              className={PLAY_BTN}
               disabled={busy}
               onClick={() => unpin(pinned.id)}
             >
@@ -508,7 +551,7 @@ export default function PlayNext() {
         </section>
       )}
 
-      <div className="play-next-controls">
+      <div className={`play-next-controls ${PLAY_NEXT_CONTROLS}`}>
         <div className="chip-row" role="group" aria-label="Type">
           {TYPES.map(([value, label]) => (
             <Chip
@@ -561,7 +604,7 @@ export default function PlayNext() {
       </div>
 
       {result && result.profile_size < PROFILE_NUDGE_BELOW && (
-        <p className="shelf-nudge">
+        <p className={`shelf-nudge ${SHELF_NUDGE}`}>
           These picks have little to go on yet.{' '}
           <Link to="/admin/shelf/games">Rate a few finished games</Link>, and
           they’ll get sharper.
@@ -582,7 +625,7 @@ export default function PlayNext() {
         )
       ) : (
         <>
-          <div className="pick-grid">
+          <div className={`pick-grid ${PICK_GRID}`}>
             {picks.map((pick) => (
               <PickCard
                 key={pick.item.id}
@@ -596,7 +639,7 @@ export default function PlayNext() {
           </div>
           {picks.length > 0 && (
             <p className="play-next-reroll">
-              <button type="button" onClick={reroll}>
+              <button type="button" className={PLAY_BTN} onClick={reroll}>
                 Reroll
               </button>
             </p>

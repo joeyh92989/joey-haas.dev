@@ -5,6 +5,13 @@ import SkippedToast from './SkippedToast.jsx'
 import { Button } from './ui/button.jsx'
 import { spine } from '../content/spine.js'
 import { itemPath } from '../lib/spinePaths.js'
+import {
+  PICK_SLOT,
+  TONIGHT_ACTS_LIST,
+  TONIGHT_META,
+  TONIGHT_REASONS,
+  TONIGHT_TITLE,
+} from './tonightClasses.js'
 
 const copy = spine.next.tonight
 
@@ -55,34 +62,41 @@ export default function PickList({
       <ul className="picklist">
         {rows.map(({ pick, label }) =>
           skipped.includes(pick.item_id) ? (
-            <SkippedToast key={pick.item_id} pick={pick} onUndo={onUndo} />
+            <SkippedToast
+              key={pick.item_id}
+              pick={pick}
+              onUndo={onUndo}
+              inList
+            />
           ) : (
             <li key={pick.item_id}>
               <span className="picklist-cover">
                 <CoverImage src={pick.cover_url} type={pick.type} alt="" />
               </span>
               <div className="picklist-text">
-                {label && <span className="pick-slot">{label}</span>}
+                {label && (
+                  <span className={`pick-slot ${PICK_SLOT}`}>{label}</span>
+                )}
                 <Link
                   to={itemPath(pick.item_id)}
-                  className="tonight-title"
+                  className={`tonight-title ${TONIGHT_TITLE}`}
                   data-tonight-title={pick.item_id}
                 >
                   {pick.title}
                 </Link>
-                <span className="tonight-meta">
+                <span className={`tonight-meta ${TONIGHT_META}`}>
                   {pick.platform && <span>{pick.platform}</span>}
                   <SizePill size={pick.size} hours={pick.time_to_beat_hours} />
                   {pick.progress && <Progress {...pick.progress} />}
                 </span>
                 {pick.reasons?.[0] && (
-                  <ul className="tonight-reasons">
+                  <ul className={`tonight-reasons ${TONIGHT_REASONS}`}>
                     <li>{pick.reasons[0]}</li>
                   </ul>
                 )}
               </div>
               {onPlay && (
-                <div className="tonight-acts">
+                <div className={`tonight-acts ${TONIGHT_ACTS_LIST}`}>
                   <Button
                     variant="outline"
                     size="sm"

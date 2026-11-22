@@ -82,3 +82,19 @@ Trip page's chips are on no published page, so they are not in the dump; compare
 them with `vite` dev servers on `/travel/croatia-greece-2026` (a draft shows in
 dev). A capped list's toggle needs more rows than the fixtures carry and logs
 `absent`.
+
+Group G1 (#536) put its scenarios in `scenarios/g1.mjs` (`ONLY=' g1a '`,
+`' g1b '`, `' g1c '`; `style-dump.mjs` has one import and one call line for
+it). `g1a`: What's next with every part drawn (a pinned lead, an unpinned one
+and the Continue card's list, each signed out and as the owner, with a card
+skipped to its toast, the capped rows opened, Not on cartridge opened, Pick
+for me chosen), Play next (a pinned game, the nudge, the Continue cards, a
+button hovered and tabbed to, on touch too), Radar's open Digital section,
+Discover's Rate a few rows hovered, tabbed to and rated, the Pull list with an
+answered issue and the store list. `g1b`: the Daily game's open list with an
+option hovered and arrowed to, the full board, the finished game, the share
+sheet's Copy, the journal's month index, the shelf footers' project line.
+`g1c`: About, a post, a note, the Colophon and the 404 on paper, About's resume
+link hovered and tabbed to. The signed-in answers are routed from the scenario
+(`/api/auth/me*`, the pattern must end in `*` or the `?quiet=1` query misses
+it); an element the page does not draw logs `absent: <selector>`.

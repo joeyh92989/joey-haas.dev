@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cx } from '../lib/cx.js'
-import { SHELF_ACTIONS_ROW } from '../components/shelf-classes.js'
+import {
+  COMIC_ACTIONS,
+  SHELF_ACTIONS_DANGER,
+  SHELF_ACTIONS_ROW,
+} from '../components/shelf-classes.js'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, useNavigate } from 'react-router'
 import {
@@ -165,7 +169,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
       focusSelector="button, a[href], input"
       className="comic-actions-shell"
     >
-      <div className="comic-actions">
+      <div className={`comic-actions ${COMIC_ACTIONS}`}>
         {row.external_source === 'comicvine' && (
           <Button
             variant="chip"
@@ -212,6 +216,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
         className={cx(
           'shelf-actions-row shelf-actions-danger',
           SHELF_ACTIONS_ROW,
+          SHELF_ACTIONS_DANGER,
         )}
       >
         <ShelfConfirm

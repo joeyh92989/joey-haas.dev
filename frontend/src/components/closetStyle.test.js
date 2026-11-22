@@ -4,6 +4,7 @@ import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { readCss } from '../testing/readCss.js'
 import { TODAY } from './closetClasses.js'
+import { PICK_CHIP_ROW } from './tonightClasses.js'
 
 // The Closet pages draw from the Button, Card and Input looks (#535). The
 // legacy `.btn`, `.chip` and `.panel` classes stay for areas not yet migrated
@@ -68,11 +69,7 @@ describe('Closet pages and the legacy look', () => {
 
   // Public rows that reset their padding must reset the start margin the
   // narrow-screen rule adds (a ring's room), or they sit 4px left (#535).
-  for (const selector of [
-    '.ctl-row .chip-row',
-    '.tag-picker .chip-row',
-    '.pick-choices .chip-row',
-  ]) {
+  for (const selector of ['.ctl-row .chip-row', '.tag-picker .chip-row']) {
     it(`${selector} resets the start margin`, () => {
       const css = readCss()
       const at = css.indexOf(`${selector} {`)
@@ -81,4 +78,9 @@ describe('Closet pages and the legacy look', () => {
       expect(body).toMatch(/margin-inline-start: 0/)
     })
   }
+
+  // Pick for me's row is a class string now (tonightClasses.js).
+  it('Pick for me’s chip row resets the start margin', () => {
+    expect(PICK_CHIP_ROW.split(' ')).toContain('ms-0')
+  })
 })

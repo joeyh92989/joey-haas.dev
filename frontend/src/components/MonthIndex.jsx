@@ -2,6 +2,15 @@ import { Link } from 'react-router'
 import { monthName } from '../lib/monthInReview.js'
 import { monthPath } from '../lib/spinePaths.js'
 import { spine } from '../content/spine.js'
+import {
+  MONTH_CELL_CURRENT,
+  MONTH_CELL_LINK,
+  MONTH_CELL_PLAIN,
+  MONTH_COUNT,
+  MONTH_INDEX,
+  MONTH_NAV,
+  MONTH_STEP,
+} from './dailyClasses.js'
 
 const COPY = spine.journal
 
@@ -42,8 +51,8 @@ export default function MonthIndex({
   known = true,
 }) {
   return (
-    <nav className="month-nav" aria-label="Months">
-      <ol className="month-index">
+    <nav className={`month-nav ${MONTH_NAV}`} aria-label="Months">
+      <ol className={`month-index ${MONTH_INDEX}`}>
         {cells.map((cell) => {
           const has = cell.finished > 0 || cell.played
           const said = words(cell, known)
@@ -51,22 +60,28 @@ export default function MonthIndex({
           const face = (
             <>
               <span aria-hidden="true">{cell.short}</span>
-              <small aria-hidden="true">{cell.finished || '·'}</small>
+              <small className={MONTH_COUNT} aria-hidden="true">
+                {cell.finished || '·'}
+              </small>
             </>
           )
           return (
             <li key={cell.month}>
               {cell.month === current ? (
-                <span aria-current="page">
+                <span aria-current="page" className={MONTH_CELL_CURRENT}>
                   {face}
                   <span className="visually-hidden">{label}</span>
                 </span>
               ) : has ? (
-                <Link to={monthPath(cell.month)} aria-label={label}>
+                <Link
+                  to={monthPath(cell.month)}
+                  aria-label={label}
+                  className={MONTH_CELL_LINK}
+                >
                   {face}
                 </Link>
               ) : (
-                <span>
+                <span className={MONTH_CELL_PLAIN}>
                   {face}
                   <span className="visually-hidden">{label}</span>
                 </span>
@@ -75,7 +90,7 @@ export default function MonthIndex({
           )
         })}
       </ol>
-      <p className="month-step">
+      <p className={`month-step ${MONTH_STEP}`}>
         {previous ? (
           <Link to={monthPath(previous)}>
             <span aria-hidden="true">&larr;</span>{' '}

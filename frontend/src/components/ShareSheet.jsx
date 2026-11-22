@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import Sheet from './Sheet.jsx'
 import { daily } from '../content/daily.js'
+import {
+  SHARE_BODY,
+  SHARE_FOOT,
+  SHARE_GRID,
+  SHARE_SHEET,
+  SHARE_STATUS,
+  SHARE_TEXT,
+  SHARE_WORDS,
+  SHARE_WORDS_LEAD,
+} from './dailyClasses.js'
 
 const copy = daily.share
 const TITLE_ID = 'share-sheet-title'
@@ -32,14 +42,14 @@ function ShareBody({ text, words, onClose, onStatus }) {
   }
 
   return (
-    <div className="share-sheet-body">
+    <div className={`share-sheet-body ${SHARE_BODY}`}>
       <h2 id={TITLE_ID}>{copy.title}</h2>
       {blocked ? (
         <>
           <p className="share-blocked muted">{copy.blocked}</p>
           <textarea
             ref={textRef}
-            className="share-text"
+            className={`share-text ${SHARE_TEXT}`}
             readOnly
             rows={words.length + 2}
             value={text}
@@ -47,22 +57,24 @@ function ShareBody({ text, words, onClose, onStatus }) {
           />
         </>
       ) : (
-        <pre className="share-grid" aria-hidden="true">
+        <pre className={`share-grid ${SHARE_GRID}`} aria-hidden="true">
           {text}
         </pre>
       )}
-      <p className="share-words-lead muted">{copy.words}</p>
-      <ul className="share-words muted">
+      <p className={`share-words-lead muted ${SHARE_WORDS_LEAD}`}>
+        {copy.words}
+      </p>
+      <ul className={`share-words muted ${SHARE_WORDS}`}>
         {words.map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>
       {/* The modal makes the page's status line inert, so the sheet says
           "Copied" itself. */}
-      <p className="share-status muted" role="status">
+      <p className={`share-status muted ${SHARE_STATUS}`} role="status">
         {copied ? copy.copied : ''}
       </p>
-      <div className="share-sheet-foot">
+      <div className={`share-sheet-foot ${SHARE_FOOT}`}>
         <button type="button" className="btn ghost" onClick={onClose}>
           {copy.close}
         </button>
@@ -101,7 +113,7 @@ export default function ShareSheet({ open, onClose, text, words, onStatus }) {
       open={open}
       onClose={onClose}
       labelledBy={TITLE_ID}
-      className="share-sheet"
+      className={`share-sheet ${SHARE_SHEET}`}
     >
       <ShareBody
         text={text}

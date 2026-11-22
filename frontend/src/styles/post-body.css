@@ -1,0 +1,111 @@
+/* The post body (#536, group G1): the rules for markup the site does not
+   write itself, so they cannot be utilities. Markdown renders every post, note
+   and trip day into `.post-body` (headings, paragraphs, lists, tables, code),
+   and Shiki writes its own spans inside the code blocks. Imported by
+   tailwind.css after index.css and before print.css, as the rules sat in
+   index.css; the link underline these pages share is still index.css's. */
+
+.post-body {
+  color: var(--text-2);
+  margin-top: var(--space-5);
+}
+
+.post-body h2,
+.post-body h3 {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.post-body h2 {
+  font-size: var(--fs-24);
+}
+
+.post-body h3 {
+  font-size: var(--fs-20);
+}
+
+.post-body p,
+.post-body ul,
+.post-body ol {
+  margin-bottom: var(--space-4);
+}
+
+.post-body ul,
+.post-body ol {
+  padding-left: var(--space-4);
+}
+
+.post-body blockquote {
+  border-left: 3px solid var(--line);
+  color: var(--text-3);
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-4);
+}
+
+.post-body :not(pre) > code {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  /* Relative to the prose around it, but never under the 12px floor. */
+  font-size: max(0.85em, var(--fs-12));
+  padding: 0.1rem var(--space-1); /* space-exception: hairline, optical offset */
+}
+
+.post-body pre {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  padding: var(--space-4);
+}
+
+.post-body table {
+  border-collapse: collapse;
+  display: block;
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  width: 100%;
+}
+
+.post-body th,
+.post-body td {
+  border: 1px solid var(--line);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+/*
+ * Shiki compiles both palettes into the markup: the light theme as inline
+ * colors, the dark theme as --shiki-dark* custom properties. Under the dark
+ * theme those variables are promoted to the real values. !important is
+ * required — it is overriding Shiki's own inline styles.
+ *
+ * If line-level transformers (line highlighting, diff marks) are ever added,
+ * narrow the span selector — as written it also matches the .line wrappers, so
+ * a transformer that colors a whole line would have that color overridden.
+ */
+/* Shiki's own block backgrounds are swapped for --code-bg, which is chosen
+   with the themes in vite-plugin-markdown.js so every syntax color clears
+   4.5:1 on it: 4.53:1 light (the red used for string escapes), 4.89:1 dark.
+   Neither palette's --bg or --surface would do: light drops to 4.41 on
+   --bg, dark to 4.51 on --surface. */
+.post-body .shiki {
+  background-color: var(--code-bg) !important;
+}
+
+/* In dual-theme output Shiki inlines only `color` for the default theme and
+   emits everything else as custom properties for both — so bold, italic and
+   strikethrough need promoting in the light theme too, not just the dark. */
+.post-body .shiki span {
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+[data-theme='dark'] .shiki,
+[data-theme='dark'] .shiki span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}

@@ -13,6 +13,11 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
 import ContinueCard from '../components/ContinueCard.jsx'
 import TonightAlt from '../components/TonightAlt.jsx'
+import {
+  NEXT_ROWS,
+  TONIGHT_ALTS,
+  TONIGHT_CONTINUING,
+} from '../components/tonightClasses.js'
 
 const copy = spine.how
 const NEWEST = 4
@@ -113,7 +118,7 @@ function NewestCovers({ games }) {
 
 function Rows({ rows }) {
   return (
-    <ul className="next-rows">
+    <ul className={`next-rows ${NEXT_ROWS}`}>
       {rows.map(({ row, section }) => (
         <NextRow key={section} row={row} section={section} />
       ))}
@@ -183,7 +188,7 @@ export default function HowItWorks() {
           }
         >
           {continuing.length > 0 && (
-            <ul className="tonight-continuing">
+            <ul className={`tonight-continuing ${TONIGHT_CONTINUING}`}>
               {continuing.map((card) => (
                 <ContinueCard
                   key={card.item_id}
@@ -193,7 +198,7 @@ export default function HowItWorks() {
               ))}
             </ul>
           )}
-          <ul className="tonight-alts">
+          <ul className={`tonight-alts ${TONIGHT_ALTS}`}>
             {upNext && <TonightAlt pick={upNext} label={spine.next.upNext} />}
             {firstPick && <TonightAlt pick={firstPick} label={null} />}
           </ul>

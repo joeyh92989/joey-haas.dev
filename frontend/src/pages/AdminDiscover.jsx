@@ -17,6 +17,12 @@ import {
   headBtn,
   PHONE_LINK,
 } from '../components/addClasses.js'
+import {
+  DISCOVER_CHOICE,
+  DISCOVER_CONTROLS,
+  RADAR_CARDS,
+  RADAR_HEADER,
+} from '../components/playNextClasses.js'
 
 const copy = adminCopy.discover
 
@@ -85,7 +91,7 @@ export function emptyWords(discover, emptyNote) {
 
 function Choice({ legend, name, options, value, onChange }) {
   return (
-    <fieldset className="discover-choice">
+    <fieldset className={`discover-choice ${DISCOVER_CHOICE}`}>
       <legend>{legend}</legend>
       {options.map(([option, label]) => (
         <label key={option} className={CHECK_ROW}>
@@ -266,7 +272,7 @@ export default function AdminDiscover() {
         </button>
       </AdminPageHeader>
 
-      <div className="discover-controls">
+      <div className={`discover-controls ${DISCOVER_CONTROLS}`}>
         <Choice
           legend="Popularity"
           name="popularity"
@@ -281,7 +287,7 @@ export default function AdminDiscover() {
           value={released}
           onChange={setReleased}
         />
-        <fieldset className="discover-choice">
+        <fieldset className={`discover-choice ${DISCOVER_CHOICE}`}>
           <legend>{copy.platforms}</legend>
           <div className="chip-row">
             {PLATFORMS.map(([id, label]) => (
@@ -300,7 +306,7 @@ export default function AdminDiscover() {
         </fieldset>
       </div>
 
-      <div className="radar-header">
+      <div className={`radar-header ${RADAR_HEADER}`}>
         <label className={CHECK_ROW}>
           <input
             className={CHECKBOX}
@@ -343,7 +349,7 @@ export default function AdminDiscover() {
       {discover && !picks.length ? (
         <p className="muted">{emptyWords(discover, emptyNote)}</p>
       ) : (
-        <div className="radar-cards">
+        <div className={`radar-cards ${RADAR_CARDS}`}>
           {picks.map((row) => (
             <RecommendationCard
               key={row.id}

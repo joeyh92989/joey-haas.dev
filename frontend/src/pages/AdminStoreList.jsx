@@ -15,6 +15,7 @@ import {
   STATUS_LINE,
 } from '../components/adminDataClasses.js'
 import { TEXT_LINK } from '../components/detail-classes.js'
+import { NEXT_GROUP_H3, NEXT_ROWS } from '../components/tonightClasses.js'
 
 /** The server's sections, in the order a store visit reads them. */
 const SECTION_ORDER = ['buy_now', 'preorders', 'later', 'not_on_cartridge']
@@ -217,7 +218,7 @@ export default function AdminStoreList() {
 
   function rows(entries, key) {
     return (
-      <ul className="next-rows">
+      <ul className={`next-rows ${NEXT_ROWS}`}>
         {entries.map((entry) => (
           <NextRow
             key={entry.id}
@@ -278,7 +279,7 @@ export default function AdminStoreList() {
               {key === 'buy_now'
                 ? groupByPlatform(entries).map((group) => (
                     <div key={group.platform} className="next-group">
-                      <h3>{group.platform}</h3>
+                      <h3 className={NEXT_GROUP_H3}>{group.platform}</h3>
                       {rows(group.rows, key)}
                     </div>
                   ))

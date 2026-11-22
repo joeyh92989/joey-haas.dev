@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { CHIP } from './chipClasses.js'
+import { NEXT_ROWS } from './tonightClasses.js'
 
 const copy = spine.next.capped
 
@@ -29,7 +30,7 @@ export const PHONE_CAP = 4
 export default function CappedList({
   items,
   children,
-  className = 'next-rows',
+  className = `next-rows ${NEXT_ROWS}`,
   label,
   resetKey = '',
 }) {
@@ -65,7 +66,7 @@ export default function CappedList({
         <button
           ref={button}
           type="button"
-          className={`chip capped-toggle ${CHIP}`}
+          className={`chip capped-toggle mt-2 ${CHIP}`}
           aria-expanded={open}
           aria-controls={listId}
           aria-label={

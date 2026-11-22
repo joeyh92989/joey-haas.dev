@@ -13,6 +13,17 @@ import {
   bigBtn,
   headBtn,
 } from '../components/addClasses.js'
+import {
+  NEXT_ROW,
+  NEXT_ROW_ACTIONS,
+  NEXT_ROW_COVER,
+  NEXT_ROW_LINK,
+  NEXT_ROW_TEXT,
+  NEXT_ROW_TITLE,
+  NEXT_ROWS,
+  PULL_ROW_DONE,
+  nextBadge,
+} from '../components/tonightClasses.js'
 
 /** Got it and Skip take a whole issue number; "1.5" or "Annual" do not. */
 const WHOLE_NUMBER = /^\d+$/
@@ -166,22 +177,24 @@ function SeriesSearch({ onFollowChange }) {
         <p className="muted">{adminCopy.pullList.noSeries}</p>
       )}
       {results?.length > 0 && (
-        <ul className="next-rows">
+        <ul className={`next-rows ${NEXT_ROWS}`}>
           {results.map((result) => {
             const own = ownLink(result)
             return (
-              <li key={result.external_id} className="next-row">
-                <span className="next-row-link">
-                  <span className="next-row-cover">
+              <li key={result.external_id} className={`next-row ${NEXT_ROW}`}>
+                <span className={`next-row-link ${NEXT_ROW_LINK}`}>
+                  <span className={`next-row-cover ${NEXT_ROW_COVER}`}>
                     <CoverImage
                       src={result.thumbnail_url}
                       type="comic"
                       alt=""
                     />
                   </span>
-                  <span className="next-row-title">{result.title}</span>
+                  <span className={`next-row-title ${NEXT_ROW_TITLE}`}>
+                    {result.title}
+                  </span>
                 </span>
-                <div className="next-row-text">
+                <div className={`next-row-text ${NEXT_ROW_TEXT}`}>
                   <span className="muted">
                     {[
                       result.publisher,
@@ -193,7 +206,7 @@ function SeriesSearch({ onFollowChange }) {
                       .join(' · ')}
                   </span>
                 </div>
-                <div className="next-row-actions">
+                <div className={`next-row-actions ${NEXT_ROW_ACTIONS}`}>
                   <button
                     type="button"
                     className={BIG_PRESSED}
@@ -439,7 +452,7 @@ export default function AdminPullList() {
               <h2 id={`week-${week.start}`}>
                 Week of {shortDate(week.start)}
                 {week.this_week && (
-                  <span className="next-badge">
+                  <span className={`next-badge ${nextBadge()}`}>
                     {adminCopy.pullList.thisWeek}
                   </span>
                 )}
@@ -447,7 +460,7 @@ export default function AdminPullList() {
               {week.rows.length === 0 ? (
                 <p className="muted">{adminCopy.pullList.nothingOut}</p>
               ) : (
-                <ul className="next-rows">
+                <ul className={`next-rows ${NEXT_ROWS}`}>
                   {week.rows.map((row) => {
                     const key = `${row.item_id}#${row.number}`
                     const name = `${row.title} #${row.number}`
@@ -456,23 +469,27 @@ export default function AdminPullList() {
                       <li
                         key={key}
                         className={
-                          answered ? 'next-row pull-row-done' : 'next-row'
+                          answered
+                            ? `next-row pull-row-done ${NEXT_ROW} ${PULL_ROW_DONE}`
+                            : `next-row ${NEXT_ROW}`
                         }
                       >
                         <Link
                           to={`/admin/shelf/comics/${row.item_id}`}
-                          className="next-row-link"
+                          className={`next-row-link ${NEXT_ROW_LINK}`}
                         >
-                          <span className="next-row-cover">
+                          <span className={`next-row-cover ${NEXT_ROW_COVER}`}>
                             <CoverImage
                               src={row.cover_url}
                               type="comic"
                               alt=""
                             />
                           </span>
-                          <span className="next-row-title">{name}</span>
+                          <span className={`next-row-title ${NEXT_ROW_TITLE}`}>
+                            {name}
+                          </span>
                         </Link>
-                        <div className="next-row-text">
+                        <div className={`next-row-text ${NEXT_ROW_TEXT}`}>
                           <span className="muted">
                             {[
                               row.publisher,
@@ -484,7 +501,9 @@ export default function AdminPullList() {
                           </span>
                         </div>
                         {!answered && WHOLE_NUMBER.test(row.number) && (
-                          <div className="next-row-actions">
+                          <div
+                            className={`next-row-actions ${NEXT_ROW_ACTIONS}`}
+                          >
                             <button
                               type="button"
                               className={bigBtn('plain')}

@@ -27,7 +27,7 @@ describe('JustFinishedChip', () => {
     const { container } = render(<JustFinishedChip finish={FINISH} />)
     const chip = container.firstChild
     expect(chip.classList.contains('tonight-just')).toBe(true)
-    expect([...chip.children].map((el) => el.className)).toEqual([
+    expect([...chip.children].map((el) => el.classList.item(0))).toEqual([
       'tonight-just-thumb',
       'tj-a',
       'tj-b',
