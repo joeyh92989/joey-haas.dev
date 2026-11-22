@@ -2,6 +2,7 @@ import { WRITTEN_STATES, entryCover, entryTitle } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 import { ibtn } from '../addClasses.js'
+import { INTAKE_SKIM, INTAKE_SKIM_NAME } from '../intakeClasses.js'
 
 /**
  * Whether an entry belongs in the skim grid: an exact match, a searched or
@@ -36,7 +37,7 @@ export default function SkimGrid({
 }) {
   if (!entries.length) return null
   return (
-    <ul className="intake-skim">
+    <ul className={`intake-skim ${INTAKE_SKIM}`}>
       {entries.map((entry) => {
         const owned = entry.state === 'owned'
         const ticked = WRITTEN_STATES.includes(entry.state)
@@ -46,7 +47,7 @@ export default function SkimGrid({
           <li key={entry.id} className={owned ? 'owned' : undefined}>
             <label>
               <CoverImage src={entryCover(entry)} type={entry.kind} />
-              <span className="intake-skim-name">
+              <span className={`intake-skim-name ${INTAKE_SKIM_NAME}`}>
                 <input
                   type="checkbox"
                   checked={ticked}

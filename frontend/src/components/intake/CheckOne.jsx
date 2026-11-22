@@ -4,6 +4,17 @@ import { comicDetails } from '../../lib/intake.js'
 import CoverImage from '../CoverImage.jsx'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_CANDIDATES,
+  INTAKE_CHECKONE,
+  INTAKE_CHECKONE_PHOTO,
+  INTAKE_CHECKONE_SOURCE,
+  INTAKE_CHECKSEARCH,
+  INTAKE_OPTION,
+  INTAKE_QUESTION,
+  INTAKE_READLINE,
+} from '../intakeClasses.js'
 
 const sameCandidate = (a, b) =>
   Boolean(a && b) &&
@@ -86,11 +97,11 @@ export default function CheckOne({
   }
 
   return (
-    <div className="intake-checkone">
-      <div className="intake-checkone-source">
+    <div className={`intake-checkone ${INTAKE_CHECKONE}`}>
+      <div className={`intake-checkone-source ${INTAKE_CHECKONE_SOURCE}`}>
         {entry.photo_id && (
           <img
-            className="intake-checkone-photo"
+            className={`intake-checkone-photo ${INTAKE_CHECKONE_PHOTO}`}
             src={`${API_URL}/api/intake/photos/${entry.photo_id}/image`}
             alt={photoNumber ? `Photo ${photoNumber}` : 'The photo'}
           />
@@ -98,7 +109,7 @@ export default function CheckOne({
         <p className="muted">
           {photoNumber ? `Photo ${photoNumber} · ` : ''}what was read:
         </p>
-        <p className="intake-readline">
+        <p className={`intake-readline ${INTAKE_READLINE}`}>
           {read}
           {year ? ` (${year})` : ''}
         </p>
@@ -110,21 +121,24 @@ export default function CheckOne({
         {entry.state === 'probable' && <ConfidenceBadge state="probable" />}
         {candidates.length ? (
           <>
-            <p id={`${name}-question`} className="intake-question">
+            <p
+              id={`${name}-question`}
+              className={`intake-question ${INTAKE_QUESTION}`}
+            >
               Which one is it?
             </p>
             <div
               role="radiogroup"
               aria-labelledby={`${name}-question`}
-              className="intake-candidates"
+              className={`intake-candidates ${INTAKE_CANDIDATES}`}
             >
               {candidates.map((candidate) => (
                 <label
                   key={candidate.external_id}
                   className={
                     candidate.external_id === picked
-                      ? 'intake-option selected'
-                      : 'intake-option'
+                      ? `intake-option selected ${INTAKE_OPTION}`
+                      : `intake-option ${INTAKE_OPTION}`
                   }
                 >
                   <input
@@ -165,7 +179,7 @@ export default function CheckOne({
           <form
             role="search"
             aria-label="Search this title"
-            className="intake-checksearch"
+            className={`intake-checksearch ${INTAKE_CHECKSEARCH}`}
             onSubmit={(event) => {
               event.preventDefault()
               search()
@@ -192,7 +206,7 @@ export default function CheckOne({
             {searchNote}
           </p>
         )}
-        <div className="intake-actions">
+        <div className={`intake-actions ${INTAKE_ACTIONS}`}>
           <button
             type="button"
             className={ibtn('primary')}
@@ -219,7 +233,7 @@ export default function CheckOne({
             Skip
           </button>
         </div>
-        <div className="intake-actions quiet">
+        <div className={`intake-actions ${INTAKE_ACTIONS} quiet`}>
           <button
             type="button"
             className={ibtn('ghost')}

@@ -11,6 +11,18 @@ import {
 import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_FIELD_CELL,
+  INTAKE_GARMENT_FIELDS,
+  INTAKE_GARMENT_MISSING,
+  INTAKE_GARMENT_PHOTO,
+  INTAKE_LINK_COLORS,
+  INTAKE_LINK_FIELDS,
+  INTAKE_SEED_CARD,
+  INTAKE_SEED_LIST,
+  INTAKE_SEED_NOPHOTO,
+} from '../intakeClasses.js'
 
 /** The fields a link piece's card edits; size is a choice when the store lists sizes. */
 const LINK_FIELD_KEYS = [
@@ -143,16 +155,18 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
   }
 
   return (
-    <li className="intake-seed-card">
+    <li className={`intake-seed-card ${INTAKE_SEED_CARD}`}>
       <div className="intake-seed-photo">
         {entry.photo_id ? (
           <img
-            className="intake-garment-photo"
+            className={`intake-garment-photo ${INTAKE_GARMENT_PHOTO}`}
             src={`${API_URL}/api/intake/photos/${entry.photo_id}/image`}
             alt={title}
           />
         ) : (
-          <p className="intake-seed-nophoto muted">{noPhotoWords(payload)}</p>
+          <p className={`intake-seed-nophoto ${INTAKE_SEED_NOPHOTO} muted`}>
+            {noPhotoWords(payload)}
+          </p>
         )}
       </div>
       <div>
@@ -163,12 +177,12 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           </a>
         </p>
         {link.state === 'kept' && (
-          <p className="intake-garment-missing">
+          <p className={`intake-garment-missing ${INTAKE_GARMENT_MISSING}`}>
             <b>{words.kept}.</b> {words.keptWhy(link.message)}
           </p>
         )}
         {candidates.length > 1 && (
-          <fieldset className="intake-link-colors">
+          <fieldset className={`intake-link-colors ${INTAKE_LINK_COLORS}`}>
             <legend>{words.color}</legend>
             {candidates.map((candidate) => (
               <label key={candidate.external_id} className="intake-link-color">
@@ -186,14 +200,17 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           </fieldset>
         )}
         <form
-          className="intake-garment-fields"
+          className={`intake-garment-fields ${INTAKE_GARMENT_FIELDS}`}
           onSubmit={(event) => {
             event.preventDefault()
             save()
           }}
         >
           {/* Disabled while a color is being chosen, so no edit can race it. */}
-          <fieldset className="intake-link-fields" disabled={busy}>
+          <fieldset
+            className={`intake-link-fields ${INTAKE_LINK_FIELDS}`}
+            disabled={busy}
+          >
             <KindFields
               kindKey="garment"
               fields={
@@ -207,7 +224,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
               idPrefix={`link-${entry.id}`}
             />
             {sizes.length > 0 && (
-              <div className="intake-field">
+              <div className={`intake-field ${INTAKE_FIELD_CELL}`}>
                 <label htmlFor={`link-${entry.id}-size`}>{words.size}</label>
                 <select
                   className={INTAKE_FIELD}
@@ -231,7 +248,9 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           </fieldset>
         </form>
         {needs.length > 0 && (
-          <p className="intake-garment-missing">{words.needs(needs)}</p>
+          <p className={`intake-garment-missing ${INTAKE_GARMENT_MISSING}`}>
+            {words.needs(needs)}
+          </p>
         )}
         {error && (
           <p className="admin-error" role="alert">
@@ -239,7 +258,10 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
           </p>
         )}
         {asking ? (
-          <div className="intake-actions quiet" role="group">
+          <div
+            className={`intake-actions ${INTAKE_ACTIONS} quiet`}
+            role="group"
+          >
             <span>{words.removeAsk(title)}</span>
             <button
               type="button"
@@ -258,7 +280,7 @@ function LinkCard({ entry, fields, sizeField, onSaved, onRemoved }) {
             </button>
           </div>
         ) : (
-          <div className="intake-actions quiet">
+          <div className={`intake-actions ${INTAKE_ACTIONS} quiet`}>
             <button
               type="button"
               className={ibtn('ghost')}
@@ -312,7 +334,7 @@ export default function LinkCheck({ sitting, kind, entries, onEntry, images }) {
           {words.photosFailed}
         </p>
       )}
-      <ul className="intake-seed-list">
+      <ul className={`intake-seed-list ${INTAKE_SEED_LIST}`}>
         {entries.map((entry) => (
           <LinkCard
             key={entry.id}

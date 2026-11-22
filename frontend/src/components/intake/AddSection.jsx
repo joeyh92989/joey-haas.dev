@@ -23,6 +23,14 @@ import AddDrawer from './AddDrawer.jsx'
 import AddResults from './AddResults.jsx'
 import { sittingName } from './UnfinishedList.jsx'
 import { BOX, ibtn, INTAKE_TEXTAREA } from '../addClasses.js'
+import {
+  INTAKE_ADD,
+  INTAKE_DRAWER_ACTIONS,
+  INTAKE_LINKS,
+  INTAKE_RESUME,
+  INTAKE_WITHDRAWER,
+  INTAKE_WITHDRAWER_MAIN,
+} from '../intakeClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -51,7 +59,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
   const [newest, ...rest] = sittings
   if (rest.length > 0) {
     return (
-      <p className={`${BOX} intake-resume`}>
+      <p className={`${BOX} intake-resume ${INTAKE_RESUME}`}>
         <span>
           <b>{sittings.length} sittings</b> are unfinished
         </span>
@@ -66,7 +74,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
   if (asking) {
     return (
       <p
-        className={`${BOX} intake-resume`}
+        className={`${BOX} intake-resume ${INTAKE_RESUME}`}
         role="group"
         aria-label={`Discard ${label}`}
       >
@@ -101,7 +109,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
     )
   }
   return (
-    <p className={`${BOX} intake-resume`}>
+    <p className={`${BOX} intake-resume ${INTAKE_RESUME}`}>
       <span>
         <b>{label}</b> is unfinished · {counts.check} to check, {counts.ready}{' '}
         ready
@@ -502,7 +510,7 @@ export default function AddSection({ area, onAdded, children }) {
   }
 
   return (
-    <div className="intake-add">
+    <div className={`intake-add ${INTAKE_ADD}`}>
       <AddBar
         searchable={searchable}
         value={query}
@@ -522,7 +530,7 @@ export default function AddSection({ area, onAdded, children }) {
       />
       {linksOpen && linkKind && (
         <form
-          className="intake-links"
+          className={`intake-links ${INTAKE_LINKS}`}
           aria-label={linkIntake.panelLabel}
           onSubmit={(event) => {
             event.preventDefault()
@@ -540,7 +548,7 @@ export default function AddSection({ area, onAdded, children }) {
             onChange={(event) => setLinksText(event.target.value)}
           />
           <p className="muted">{linkIntake.help(MAX_LINKS)}</p>
-          <div className="intake-drawer-actions">
+          <div className={`intake-drawer-actions ${INTAKE_DRAWER_ACTIONS}`}>
             <button
               type="submit"
               className={ibtn('primary')}
@@ -586,10 +594,12 @@ export default function AddSection({ area, onAdded, children }) {
       )}
       <UnfinishedLine sittings={sittings} area={area} onDiscard={discard} />
       <div
-        className="intake-withdrawer"
+        className={`intake-withdrawer ${INTAKE_WITHDRAWER}`}
         data-drawer={drawer && !sheet ? 'open' : undefined}
       >
-        <div className="intake-withdrawer-main">{children}</div>
+        <div className={`intake-withdrawer-main ${INTAKE_WITHDRAWER_MAIN}`}>
+          {children}
+        </div>
         {drawer && (
           <AddDrawer
             key={`${drawer.kind.key}:${drawer.chosen?.external_id ?? drawer.typed}`}

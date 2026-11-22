@@ -1,3 +1,4 @@
+import { INTAKE_STEPS } from '../intakeClasses.js'
 /** Each step's name, as the stepper and the step's heading say it. */
 export const STEP_LABELS = {
   shoot: 'Shoot',
@@ -20,7 +21,7 @@ export const STEP_LABELS = {
 export default function SittingStepper({ steps, current }) {
   const at = steps.indexOf(current)
   return (
-    <ol className="intake-steps" aria-label="Steps">
+    <ol className={`intake-steps ${INTAKE_STEPS}`} aria-label="Steps">
       {steps.map((step, index) => (
         <li
           key={step}

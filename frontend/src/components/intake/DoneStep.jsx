@@ -10,6 +10,16 @@ import { itemPath } from '../../lib/spinePaths.js'
 import StatTile, { StatTiles } from '../StatTile.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_ADDS,
+  INTAKE_ADDS_TITLE,
+  INTAKE_ADDS_WHAT,
+  INTAKE_DONE_MADE,
+  INTAKE_GROW_LIST,
+  INTAKE_SKIM_HEAD,
+  INTAKE_STEP,
+} from '../intakeClasses.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -138,7 +148,10 @@ export default function DoneStep({
   }
 
   return (
-    <section className="intake-step" aria-labelledby="intake-step-heading">
+    <section
+      className={`intake-step ${INTAKE_STEP}`}
+      aria-labelledby="intake-step-heading"
+    >
       <h2 id="intake-step-heading" ref={headingRef} tabIndex={-1}>
         Done
       </h2>
@@ -185,23 +198,31 @@ export default function DoneStep({
           />
         )}
       </StatTiles>
-      {madeLine && <p className="intake-done-made">{madeLine}</p>}
+      {madeLine && (
+        <p className={`intake-done-made ${INTAKE_DONE_MADE}`}>{madeLine}</p>
+      )}
       {volumes.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head" id="intake-done-books">
+          <h3
+            className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}
+            id="intake-done-books"
+          >
             {words.doneBooksHead}
           </h3>
-          <ul className="intake-adds" aria-labelledby="intake-done-books">
+          <ul
+            className={`intake-adds ${INTAKE_ADDS}`}
+            aria-labelledby="intake-done-books"
+          >
             {volumes.map((volume) => (
               <li key={volume.id}>
-                <p className="intake-adds-title">
+                <p className={`intake-adds-title ${INTAKE_ADDS_TITLE}`}>
                   <Link
                     to={`/admin/shelf/comics/${volume.title_id}/${volume.slug}`}
                   >
                     {volume.label}
                   </Link>
                 </p>
-                <p className="intake-adds-what muted">
+                <p className={`intake-adds-what ${INTAKE_ADDS_WHAT} muted`}>
                   {[
                     volume.line_number != null
                       ? words.doneLineNumber(volume.line_number)
@@ -218,13 +239,19 @@ export default function DoneStep({
       )}
       {titles.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head" id="intake-done-titles">
+          <h3
+            className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}
+            id="intake-done-titles"
+          >
             {words.doneTitlesHead}
           </h3>
-          <ul className="intake-adds" aria-labelledby="intake-done-titles">
+          <ul
+            className={`intake-adds ${INTAKE_ADDS}`}
+            aria-labelledby="intake-done-titles"
+          >
             {titles.map((title) => (
               <li key={title.id}>
-                <p className="intake-adds-title">
+                <p className={`intake-adds-title ${INTAKE_ADDS_TITLE}`}>
                   <Link to={`/admin/shelf/comics/${title.id}`}>
                     {title.title}
                   </Link>
@@ -236,8 +263,10 @@ export default function DoneStep({
       )}
       {grew.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head">Series that grew</h3>
-          <ul className="intake-grow-list">
+          <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
+            Series that grew
+          </h3>
+          <ul className={`intake-grow-list ${INTAKE_GROW_LIST}`}>
             {grew.map((series) => (
               <SeriesGrewRow
                 key={series.item_id}
@@ -256,11 +285,13 @@ export default function DoneStep({
       )}
       {addedLines.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head">{words.doneHead}</h3>
-          <ul className="intake-adds">
+          <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
+            {words.doneHead}
+          </h3>
+          <ul className={`intake-adds ${INTAKE_ADDS}`}>
             {addedLines.map((line) => (
               <li key={line.key}>
-                <p className="intake-adds-what">
+                <p className={`intake-adds-what ${INTAKE_ADDS_WHAT}`}>
                   {words.doneLine(line.title, line.parts.join(', '))}
                 </p>
               </li>
@@ -286,7 +317,7 @@ export default function DoneStep({
             : 'They show on the public shelf now.'}
         </p>
       )}
-      <div className="intake-actions">
+      <div className={`intake-actions ${INTAKE_ACTIONS}`}>
         <button
           type="button"
           className={ibtn('primary')}

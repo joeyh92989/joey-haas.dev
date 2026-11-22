@@ -7,6 +7,7 @@ import LoadState from '../components/LoadState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { addPath, areaOfPath, sittingLabel } from '../lib/intake.js'
+import { INTAKE_KINDS } from '../components/intakeClasses.js'
 
 /** The mixed shelf: one sitting, and the reader sorts each title's kind. */
 const MIXED = {
@@ -141,7 +142,7 @@ export default function AdminAdd() {
           <div
             role="group"
             aria-labelledby="intake-start"
-            className="intake-kinds"
+            className={`intake-kinds ${INTAKE_KINDS}`}
           >
             {tiles.map((kind) => (
               <KindTile

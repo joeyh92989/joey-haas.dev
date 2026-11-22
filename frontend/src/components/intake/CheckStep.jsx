@@ -23,6 +23,13 @@ import SeriesGrewRow from './SeriesGrewRow.jsx'
 import TypedBooksPreview from './TypedBooksPreview.jsx'
 import SkimGrid, { inSkim } from './SkimGrid.jsx'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_BAR,
+  INTAKE_BAR_ACTIONS,
+  INTAKE_GROW_LIST,
+  INTAKE_SKIM_HEAD,
+  INTAKE_STEP,
+} from '../intakeClasses.js'
 
 /**
  * Whether an entry adds to a comic series already on the shelf: settled
@@ -279,7 +286,10 @@ export default function CheckStep({
         'Only the uncertain ones are asked one at a time; exact matches are a grid to skim.'
 
   return (
-    <section className="intake-step" aria-labelledby="intake-step-heading">
+    <section
+      className={`intake-step ${INTAKE_STEP}`}
+      aria-labelledby="intake-step-heading"
+    >
       <h2 id="intake-step-heading" ref={headingRef} tabIndex={-1}>
         Check
       </h2>
@@ -336,10 +346,10 @@ export default function CheckStep({
 
       {grows.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head">
+          <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
             Already on the shelf · adds issues · {grows.length}
           </h3>
-          <ul className="intake-grow-list">
+          <ul className={`intake-grow-list ${INTAKE_GROW_LIST}`}>
             {grows.map((entry) => (
               <SeriesGrewRow
                 key={entry.id}
@@ -384,7 +394,7 @@ export default function CheckStep({
 
       {skim.length > 0 && (
         <>
-          <h3 className="kicker intake-skim-head">
+          <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
             Matched · {skim.length} · untick anything wrong
           </h3>
           <SkimGrid
@@ -396,9 +406,9 @@ export default function CheckStep({
         </>
       )}
 
-      <div className="intake-bar">
+      <div className={`intake-bar ${INTAKE_BAR}`}>
         {hint && <p className="muted">{hint}</p>}
-        <span className="intake-bar-actions">
+        <span className={`intake-bar-actions ${INTAKE_BAR_ACTIONS}`}>
           <button type="button" className={ibtn('plain')} onClick={onBack}>
             <span aria-hidden="true">←</span> Shoot more
           </button>

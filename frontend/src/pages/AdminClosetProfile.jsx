@@ -5,6 +5,14 @@ import { LOAD_ERROR, SESSION_ENDED, WAKING } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { CATEGORIES, profileBody, profileForm } from '../lib/closet.js'
 import { btn, field, textarea } from '../components/closetClasses.js'
+import {
+  CLOSET_WEEK_DAY,
+  GARMENT_FIELD_LABEL,
+  GARMENT_FIELDSET,
+  GARMENT_FORM,
+  GARMENT_FORM_ACTS,
+  GARMENT_LABEL,
+} from '../components/intakeFormClasses.js'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const COLORING = [
@@ -113,8 +121,10 @@ export default function AdminClosetProfile() {
   }
 
   const number = (key, label, min, max, hint) => (
-    <label>
-      <span className="garment-field-label">{label}</span>
+    <label className={GARMENT_LABEL}>
+      <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+        {label}
+      </span>
       <input
         className={field}
         type="number"
@@ -130,12 +140,14 @@ export default function AdminClosetProfile() {
   return (
     <section className="closet-profile">
       {header}
-      <form className="garment-form" onSubmit={save}>
-        <fieldset>
+      <form className={`garment-form ${GARMENT_FORM}`} onSubmit={save}>
+        <fieldset className={GARMENT_FIELDSET}>
           <legend>{adminCopy.closetProfile.sizes}</legend>
           {CATEGORIES.map((c) => (
-            <label key={c.value}>
-              <span className="garment-field-label">{c.plural}</span>
+            <label key={c.value} className={GARMENT_LABEL}>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                {c.plural}
+              </span>
               <input
                 className={field}
                 type="text"
@@ -147,11 +159,13 @@ export default function AdminClosetProfile() {
           ))}
         </fieldset>
 
-        <fieldset>
+        <fieldset className={GARMENT_FIELDSET}>
           <legend>{adminCopy.closetProfile.coloring}</legend>
           {COLORING.map(([key, label]) => (
-            <label key={key}>
-              <span className="garment-field-label">{label}</span>
+            <label key={key} className={GARMENT_LABEL}>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                {label}
+              </span>
               <input
                 className={field}
                 type="text"
@@ -163,8 +177,8 @@ export default function AdminClosetProfile() {
           ))}
         </fieldset>
 
-        <label>
-          <span className="garment-field-label">
+        <label className={GARMENT_LABEL}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
             {adminCopy.closetProfile.buildFit}
           </span>
           <textarea
@@ -175,8 +189,8 @@ export default function AdminClosetProfile() {
             onChange={(e) => set('build_fit')(e.target.value)}
           />
         </label>
-        <label>
-          <span className="garment-field-label">
+        <label className={GARMENT_LABEL}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
             {adminCopy.closetProfile.styleWords}
           </span>
           <input
@@ -190,8 +204,8 @@ export default function AdminClosetProfile() {
             {adminCopy.closetProfile.commaSeparated}
           </span>
         </label>
-        <label>
-          <span className="garment-field-label">
+        <label className={GARMENT_LABEL}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
             {adminCopy.closetProfile.dislikes}
           </span>
           <input
@@ -206,11 +220,13 @@ export default function AdminClosetProfile() {
           </span>
         </label>
 
-        <fieldset className="closet-week">
+        <fieldset className={`closet-week ${GARMENT_FIELDSET}`}>
           <legend>{adminCopy.closetProfile.usualWeek}</legend>
           {DAYS.map((day, i) => (
-            <div key={day} className="closet-week-day">
-              <span className="garment-field-label">{day}</span>
+            <div key={day} className={`closet-week-day ${CLOSET_WEEK_DAY}`}>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                {day}
+              </span>
               <select
                 className={field}
                 aria-label={`${day} occasion`}
@@ -236,14 +252,16 @@ export default function AdminClosetProfile() {
           ))}
         </fieldset>
 
-        <fieldset>
+        <fieldset className={GARMENT_FIELDSET}>
           <legend>{adminCopy.closetProfile.seasonsTurn}</legend>
           {[
             ['spring_turn', 'Spring'],
             ['autumn_turn', 'Autumn'],
           ].map(([key, label]) => (
-            <label key={key}>
-              <span className="garment-field-label">{label}</span>
+            <label key={key} className={GARMENT_LABEL}>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                {label}
+              </span>
               <input
                 className={field}
                 type="text"
@@ -257,7 +275,7 @@ export default function AdminClosetProfile() {
           ))}
         </fieldset>
 
-        <fieldset>
+        <fieldset className={GARMENT_FIELDSET}>
           <legend>{adminCopy.closetProfile.repeatsTagging}</legend>
           {number('repeat_top_days', 'Days before a top repeats', 1, 30)}
           {number(
@@ -285,7 +303,7 @@ export default function AdminClosetProfile() {
             {adminCopy.closetProfile.saved}
           </p>
         )}
-        <div className="garment-form-acts">
+        <div className={`garment-form-acts ${GARMENT_FORM_ACTS}`}>
           <button type="submit" className={btn('primary')} disabled={busy}>
             {busy ? 'Saving…' : 'Save'}
           </button>

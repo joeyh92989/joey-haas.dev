@@ -44,6 +44,10 @@ import {
   GARMENT_GRID,
   PHONE_ROW,
 } from '../components/closetClasses.js'
+import {
+  INTAKE_WAITING,
+  INTAKE_WAITING_ACTIONS,
+} from '../components/intakeClasses.js'
 
 /** `GET /api/closet/garments`, returned rather than set. */
 async function fetchCloset() {
@@ -213,7 +217,7 @@ export default function AdminCloset() {
       {header}
       <AddSection area="closet" onAdded={reread}>
         {(waiting > 0 || tagging) && (
-          <div className="intake-waiting">
+          <div className={`intake-waiting ${INTAKE_WAITING}`}>
             <span role="status">
               {tagging?.state === 'tagging' ? (
                 <>
@@ -236,7 +240,9 @@ export default function AdminCloset() {
                 {tagging.result}
               </p>
             )}
-            <span className="intake-waiting-actions">
+            <span
+              className={`intake-waiting-actions ${INTAKE_WAITING_ACTIONS}`}
+            >
               <button
                 type="button"
                 className={`${btn()} ${PHONE_ROW}`}

@@ -3,6 +3,16 @@ import CoverImage from '../CoverImage.jsx'
 import KindFields from './KindFields.jsx'
 import Sheet from '../Sheet.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import {
+  INTAKE_DRAWER,
+  INTAKE_DRAWER_BASE,
+  INTAKE_DRAWER_ACTIONS,
+  INTAKE_DRAWER_FIELDS,
+  INTAKE_DRAWER_HEAD,
+  INTAKE_DRAWER_SHEET,
+  INTAKE_DRAWER_TITLE,
+  INTAKE_FIELD_CELL,
+} from '../intakeClasses.js'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -85,7 +95,7 @@ export default function AddDrawer({
 
   const content = (
     <>
-      <div className="intake-drawer-head">
+      <div className={`intake-drawer-head ${INTAKE_DRAWER_HEAD}`}>
         {chosen && (
           <CoverImage src={chosen.thumbnail_url ?? null} type={kind.key} />
         )}
@@ -93,21 +103,24 @@ export default function AddDrawer({
           <p className="kicker">
             {kind.label} · {chosen ? chosen.external_source : 'kept as typed'}
           </p>
-          <h2 id={`${id}-title`} className="intake-drawer-title">
+          <h2
+            id={`${id}-title`}
+            className={`intake-drawer-title ${INTAKE_DRAWER_TITLE}`}
+          >
             {heading}
           </h2>
           {chosen?.year && <p className="muted">{chosen.year}</p>}
         </div>
       </div>
       <form
-        className="intake-drawer-fields"
+        className={`intake-drawer-fields ${INTAKE_DRAWER_FIELDS}`}
         onSubmit={(event) => {
           event.preventDefault()
           submit(false)
         }}
       >
         {needsTitle && (
-          <div className="intake-field">
+          <div className={`intake-field ${INTAKE_FIELD_CELL}`}>
             <label htmlFor={`${id}-typed-title`}>Title</label>
             <input
               id={`${id}-typed-title`}
@@ -133,7 +146,7 @@ export default function AddDrawer({
             {error}
           </p>
         )}
-        <div className="intake-drawer-actions">
+        <div className={`intake-drawer-actions ${INTAKE_DRAWER_ACTIONS}`}>
           <button type="submit" className={ibtn('primary')} disabled={busy}>
             {closet ? 'Add to closet' : 'Add to shelf'}
           </button>
@@ -161,7 +174,7 @@ export default function AddDrawer({
         onClose={onClose}
         labelledBy={`${id}-title`}
         variant="bare"
-        className="intake-drawer intake-drawer-sheet"
+        className={`intake-drawer ${INTAKE_DRAWER_BASE} intake-drawer-sheet ${INTAKE_DRAWER_SHEET}`}
         initialFocus={FOCUSABLE}
       >
         {content}
@@ -173,7 +186,7 @@ export default function AddDrawer({
     <aside
       ref={ref}
       aria-labelledby={`${id}-title`}
-      className="intake-drawer"
+      className={`intake-drawer ${INTAKE_DRAWER}`}
       onKeyDown={onKeyDown}
     >
       {content}

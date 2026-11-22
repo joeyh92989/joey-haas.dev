@@ -1,3 +1,5 @@
+import { CONF, CONF_STATE } from '../intakeClasses.js'
+
 /** The word for each entry state that carries a confidence. */
 const WORDS = {
   exact: 'Exact',
@@ -18,5 +20,9 @@ const WORDS = {
 export default function ConfidenceBadge({ state }) {
   const word = WORDS[state]
   if (!word) return null
-  return <span className={`conf conf-${state}`}>{word}</span>
+  return (
+    <span className={`conf conf-${state} ${CONF} ${CONF_STATE[state]}`}>
+      {word}
+    </span>
+  )
 }

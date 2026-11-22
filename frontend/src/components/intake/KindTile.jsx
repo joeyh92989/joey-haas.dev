@@ -1,4 +1,10 @@
 import { TILE } from '../addClasses.js'
+import {
+  INTAKE_KIND,
+  INTAKE_KIND_NAME,
+  INTAKE_KIND_NOTE,
+  INTAKE_KIND_WAYS,
+} from '../intakeClasses.js'
 
 /**
  * One kind on the Add page: its name, why its source is off when it is,
@@ -25,16 +31,24 @@ export default function KindTile({ kind, onStart, busy = false }) {
   return (
     <button
       type="button"
-      className={`${TILE} intake-kind`}
+      className={`${TILE} intake-kind ${INTAKE_KIND}`}
       disabled={!photos || busy || Boolean(sourceOff)}
       onClick={() => onStart(kind)}
     >
-      <span className="intake-kind-name">{kind.label}</span>
-      {note && <span className="intake-kind-note">{note}</span>}
-      {sourceOff && !photos && (
-        <span className="intake-kind-note">{sourceOff}</span>
+      <span className={`intake-kind-name ${INTAKE_KIND_NAME}`}>
+        {kind.label}
+      </span>
+      {note && (
+        <span className={`intake-kind-note ${INTAKE_KIND_NOTE}`}>{note}</span>
       )}
-      <span className="intake-kind-ways">{kind.ways_in.join(' · ')}</span>
+      {sourceOff && !photos && (
+        <span className={`intake-kind-note ${INTAKE_KIND_NOTE}`}>
+          {sourceOff}
+        </span>
+      )}
+      <span className={`intake-kind-ways ${INTAKE_KIND_WAYS}`}>
+        {kind.ways_in.join(' · ')}
+      </span>
     </button>
   )
 }

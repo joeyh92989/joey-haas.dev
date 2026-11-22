@@ -1,4 +1,5 @@
 import { comicIntake as words } from '../../content/comicIntake.js'
+import { INTAKE_SKIM_HEAD } from '../intakeClasses.js'
 
 /**
  * The collected books Details typed on comic entries, as the commit will
@@ -24,7 +25,7 @@ export default function TypedBooksPreview({ entries }) {
   if (rows.length === 0) return null
   return (
     <>
-      <h3 className="kicker intake-skim-head">
+      <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
         {words.typedBooksHead(rows.length)}
       </h3>
       <ul className="intake-typed-books">

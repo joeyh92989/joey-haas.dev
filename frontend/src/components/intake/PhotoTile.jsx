@@ -8,6 +8,7 @@ import { BUDGET_WAITING } from '../../lib/intake.js'
 import { useElapsed } from '../../lib/useElapsed.js'
 import { STILL_WORKING_AFTER_S } from '../../lib/waits.js'
 import { ibtn } from '../addClasses.js'
+import { INTAKE_SHOT, INTAKE_SHOT_BLANK, SHOT_STATE } from '../intakeClasses.js'
 
 /**
  * What a photo's tile says, from its state on the server. `ahead` is how
@@ -63,7 +64,9 @@ export default function PhotoTile({
   const shown = reading ? { ...photo, state: 'reading' } : photo
   const seconds = useElapsed(shown.state === 'reading')
   return (
-    <li className={`intake-shot intake-shot-${shown.state}`}>
+    <li
+      className={`intake-shot ${INTAKE_SHOT} intake-shot-${shown.state} ${SHOT_STATE[shown.state] ?? ''}`}
+    >
       <img
         src={`${API_URL}/api/intake/photos/${photo.id}/image`}
         alt={`Photo ${number}`}
@@ -104,8 +107,11 @@ export default function PhotoTile({
 /** A photo still uploading, or one the upload refused, before it has an id. */
 export function PendingTile({ upload }) {
   return (
-    <li className="intake-shot intake-shot-uploading">
-      <span className="intake-shot-blank" aria-hidden="true" />
+    <li className={`intake-shot ${INTAKE_SHOT} intake-shot-uploading`}>
+      <span
+        className={`intake-shot-blank ${INTAKE_SHOT_BLANK}`}
+        aria-hidden="true"
+      />
       <span>
         {upload.error ? `${upload.name}: ${upload.error}` : 'uploading…'}
       </span>

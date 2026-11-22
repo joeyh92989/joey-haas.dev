@@ -3,6 +3,11 @@ import { isbnIntake as words } from '../../content/isbnIntake.js'
 import { toIsbn13 } from '../../lib/isbn.js'
 import Sheet from '../Sheet.jsx'
 import { ibtn } from '../addClasses.js'
+import {
+  ISBN_SCANNER,
+  ISBN_SCANNER_STATUS,
+  ISBN_SCANNER_VIDEO,
+} from '../intakeFormClasses.js'
 
 function ScannerBody({ onClose, onScan }) {
   const video = useRef(null)
@@ -72,19 +77,19 @@ function ScannerBody({ onClose, onScan }) {
   }, [])
 
   return (
-    <div className="isbn-scanner">
+    <div className={`isbn-scanner ${ISBN_SCANNER}`}>
       <h2>{words.scannerTitle}</h2>
       <p className="muted">{words.scannerHelp}</p>
       {(state === 'starting' || state === 'scanning') && (
         <video
           ref={video}
-          className="isbn-scanner-video"
+          className={`isbn-scanner-video ${ISBN_SCANNER_VIDEO}`}
           muted
           playsInline
           aria-label={words.scannerTitle}
         />
       )}
-      <p className="isbn-scanner-status" role="status">
+      <p className={`isbn-scanner-status ${ISBN_SCANNER_STATUS}`} role="status">
         {state === 'starting' && words.scannerStarting}
         {state === 'denied' && words.scannerDenied}
         {state === 'failed' && words.scannerFailed}
