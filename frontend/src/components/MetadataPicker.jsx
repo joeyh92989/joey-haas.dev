@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../lib/api.js'
+import {
+  CANDIDATE_LIST,
+  CANDIDATE_THUMB_EMPTY,
+  METADATA_PICKER,
+} from './intakeFormClasses.js'
 
 const MIN_QUERY_LENGTH = 2
 const DEBOUNCE_MS = 350
@@ -71,7 +76,7 @@ export default function MetadataPicker({ type, onSelect }) {
   const candidates = current ? current.candidates : []
 
   return (
-    <div className="metadata-picker">
+    <div className={`metadata-picker ${METADATA_PICKER}`}>
       <label htmlFor="metadata-query">Look up</label>
       <input
         id="metadata-query"
@@ -98,7 +103,7 @@ export default function MetadataPicker({ type, onSelect }) {
       )}
 
       {candidates.length > 0 && (
-        <ul className="candidate-list">
+        <ul className={`candidate-list ${CANDIDATE_LIST}`}>
           {candidates.map((candidate) => (
             <li key={`${candidate.external_source}:${candidate.external_id}`}>
               <button
@@ -113,7 +118,10 @@ export default function MetadataPicker({ type, onSelect }) {
                 {candidate.thumbnail_url ? (
                   <img src={candidate.thumbnail_url} alt="" loading="lazy" />
                 ) : (
-                  <span className="candidate-thumb-empty" aria-hidden="true" />
+                  <span
+                    className={`candidate-thumb-empty ${CANDIDATE_THUMB_EMPTY}`}
+                    aria-hidden="true"
+                  />
                 )}
                 <span>
                   {candidate.title}

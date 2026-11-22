@@ -12,6 +12,30 @@ import {
 import { entryTitle } from '../../lib/intake.js'
 import ConfidenceBadge from './ConfidenceBadge.jsx'
 import { INTAKE_FIELD, NUM_FIELD } from '../addClasses.js'
+import {
+  INTAKE_ADDS,
+  INTAKE_ADDS_NEED,
+  INTAKE_ADDS_TITLE,
+  INTAKE_ADDS_WHAT,
+  INTAKE_BOOK,
+  INTAKE_BOOKS,
+  INTAKE_BOOK_ADDS,
+  INTAKE_BOOK_CONTENTS,
+  INTAKE_BOOK_FIELD,
+  INTAKE_BOOK_LIMIT,
+  INTAKE_BOOK_LINKS,
+  INTAKE_BOOK_MARK,
+  MARK_INK,
+  INTAKE_BOOK_MATCH,
+  INTAKE_BOOK_META,
+  INTAKE_BOOK_NUM,
+  INTAKE_BOOK_NUMBER,
+  INTAKE_BOOK_PHOTO,
+  INTAKE_BOOK_READ,
+  INTAKE_BOOK_TICK,
+  INTAKE_BOOK_TITLE,
+  INTAKE_SKIM_HEAD,
+} from '../intakeClasses.js'
 
 /**
  * The mark under a number: where it came from and whether it fits the
@@ -23,7 +47,12 @@ function NumberMark({ id, entry }) {
   if (!text) return null
   const state = entry.number_check?.state ?? 'none'
   return (
-    <p id={id} className="intake-book-mark" data-state={state} role="status">
+    <p
+      id={id}
+      className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK[state] ?? MARK_INK.default}`}
+      data-state={state}
+      role="status"
+    >
       {text}
     </p>
   )
@@ -50,9 +79,9 @@ function NumberField({ entry, onSave, markId, error }) {
   }
 
   return (
-    <div className="intake-book-field">
+    <div className={`intake-book-field ${INTAKE_BOOK_FIELD}`}>
       <label htmlFor={id}>{words.numberLabel}</label>
-      <span className="intake-book-num">
+      <span className={`intake-book-num ${INTAKE_BOOK_NUM}`}>
         <span aria-hidden="true">#</span>
         <input
           className={NUM_FIELD}
@@ -70,7 +99,11 @@ function NumberField({ entry, onSave, markId, error }) {
         />
       </span>
       {shown && (
-        <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
+        <p
+          id={`${id}-bad`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+          data-state="bad"
+        >
           {message}
         </p>
       )}
@@ -111,10 +144,10 @@ function CollectsField({ entry, onSave, error }) {
   }
 
   return (
-    <div className="intake-book-field">
+    <div className={`intake-book-field ${INTAKE_BOOK_FIELD}`}>
       <span id={`${id}-label`}>{words.collectsLabel}</span>
       <span
-        className="intake-book-num"
+        className={`intake-book-num ${INTAKE_BOOK_NUM}`}
         role="group"
         aria-labelledby={`${id}-label`}
         onBlur={commit}
@@ -147,7 +180,11 @@ function CollectsField({ entry, onSave, error }) {
         />
       </span>
       {shown && (
-        <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
+        <p
+          id={`${id}-bad`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+          data-state="bad"
+        >
           {message}
         </p>
       )}
@@ -172,9 +209,9 @@ function LineField({ entry, onSave, error }) {
   }
 
   return (
-    <div className="intake-book-field">
+    <div className={`intake-book-field ${INTAKE_BOOK_FIELD}`}>
       <label htmlFor={id}>{words.lineLabel}</label>
-      <span className="intake-book-num">
+      <span className={`intake-book-num ${INTAKE_BOOK_NUM}`}>
         <span aria-hidden="true">#</span>
         <input
           className={NUM_FIELD}
@@ -191,11 +228,18 @@ function LineField({ entry, onSave, error }) {
           }}
         />
       </span>
-      <p id={`${id}-hint`} className="intake-book-mark muted">
+      <p
+        id={`${id}-hint`}
+        className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default} muted`}
+      >
         {words.lineHint}
       </p>
       {shown && (
-        <p id={`${id}-bad`} className="intake-book-mark" data-state="bad">
+        <p
+          id={`${id}-bad`}
+          className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+          data-state="bad"
+        >
           {message}
         </p>
       )}
@@ -217,9 +261,15 @@ function addsLine(entry, title) {
 /** A collected book's contents as the commit will write them. */
 function Contents({ lines, id }) {
   if (!lines?.length)
-    return <p className="intake-book-mark muted">{words.contentsEmpty}</p>
+    return (
+      <p
+        className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default} muted`}
+      >
+        {words.contentsEmpty}
+      </p>
+    )
   return (
-    <div className="intake-book-contents">
+    <div className={`intake-book-contents ${INTAKE_BOOK_CONTENTS}`}>
       <p id={id} className="kicker">
         {words.contentsHead}
       </p>
@@ -244,7 +294,10 @@ function Contents({ lines, id }) {
 function HeldWarning({ held, titleId }) {
   const text = words.alreadyHave(held.label)
   return (
-    <p className="intake-book-mark" data-state="bad">
+    <p
+      className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+      data-state="bad"
+    >
       {text.before}
       {titleId && held.slug ? (
         <Link to={`/admin/shelf/comics/${titleId}/${held.slug}`}>
@@ -284,10 +337,13 @@ function BookRow({
   const shelf = entry.on_shelf
   const title = entryTitle(entry)
   return (
-    <li className="intake-book" data-off={ticked ? undefined : ''}>
+    <li
+      className={`intake-book ${INTAKE_BOOK}`}
+      data-off={ticked ? undefined : ''}
+    >
       <input
         type="checkbox"
-        className="intake-book-tick"
+        className={`intake-book-tick ${INTAKE_BOOK_TICK}`}
         checked={ticked}
         disabled={busy}
         onChange={(event) => onToggle(entry, event.target.checked)}
@@ -295,7 +351,7 @@ function BookRow({
           entry.payload?.issue_number ? ` #${entry.payload.issue_number}` : ''
         }`}
       />
-      <div className="intake-book-photo">
+      <div className={`intake-book-photo ${INTAKE_BOOK_PHOTO}`}>
         {entry.photo_id && (
           <img
             src={`${API_URL}/api/intake/photos/${entry.photo_id}/image`}
@@ -304,11 +360,11 @@ function BookRow({
         )}
         {photoNumber && <span className="muted">Photo {photoNumber}</span>}
       </div>
-      <div className="intake-book-match">
-        <p className="intake-book-title">
+      <div className={`intake-book-match ${INTAKE_BOOK_MATCH}`}>
+        <p className={`intake-book-title ${INTAKE_BOOK_TITLE}`}>
           {title} <ConfidenceBadge state={shown} />
         </p>
-        <p className="intake-book-meta muted">
+        <p className={`intake-book-meta ${INTAKE_BOOK_META} muted`}>
           {[
             entry.chosen?.year,
             entry.chosen?.publisher,
@@ -318,10 +374,14 @@ function BookRow({
             .join(' · ')}
         </p>
         {entry.payload?.detected_title && (
-          <p className="intake-book-read">{entry.payload.detected_title}</p>
+          <p className={`intake-book-read ${INTAKE_BOOK_READ}`}>
+            {entry.payload.detected_title}
+          </p>
         )}
-        <p className="intake-book-adds">{addsLine(entry, title)}</p>
-        <p className="intake-book-links">
+        <p className={`intake-book-adds ${INTAKE_BOOK_ADDS}`}>
+          {addsLine(entry, title)}
+        </p>
+        <p className={`intake-book-links ${INTAKE_BOOK_LINKS}`}>
           <button
             type="button"
             className="link-button"
@@ -333,8 +393,8 @@ function BookRow({
           </button>
         </p>
       </div>
-      <div className="intake-book-number">
-        <div className="intake-book-field">
+      <div className={`intake-book-number ${INTAKE_BOOK_NUMBER}`}>
+        <div className={`intake-book-field ${INTAKE_BOOK_FIELD}`}>
           <label htmlFor={`${markId}-format`}>{words.formatLabel}</label>
           <select
             className={INTAKE_FIELD}
@@ -354,7 +414,11 @@ function BookRow({
           </select>
         </div>
         {error && !NUMBER_FIELDS.includes(error.field) && (
-          <p id={`${markId}-err`} className="intake-book-mark" data-state="bad">
+          <p
+            id={`${markId}-err`}
+            className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+            data-state="bad"
+          >
             {error.message}
           </p>
         )}
@@ -371,7 +435,7 @@ function BookRow({
                   : null
               }
             />
-            <div className="intake-book-field">
+            <div className={`intake-book-field ${INTAKE_BOOK_FIELD}`}>
               <label htmlFor={`${markId}-kind`}>{words.editionKindLabel}</label>
               <select
                 className={INTAKE_FIELD}
@@ -398,7 +462,10 @@ function BookRow({
               onSave={onSave}
               error={error?.field === 'line_number' ? error.message : null}
             />
-            <p className="intake-book-mark" data-state="typed">
+            <p
+              className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.default}`}
+              data-state="typed"
+            >
               {words.collectedNote}
             </p>
             {entry.already_held && (
@@ -423,7 +490,10 @@ function BookRow({
             />
             <NumberMark id={markId} entry={entry} />
             {repeated && (
-              <p className="intake-book-mark" data-state="bad">
+              <p
+                className={`intake-book-mark ${INTAKE_BOOK_MARK} ${MARK_INK.bad}`}
+                data-state="bad"
+              >
                 {words.duplicate}
               </p>
             )}
@@ -468,8 +538,10 @@ export default function ComicBooks({
   return (
     <>
       <p className="intake-lede">{words.lede}</p>
-      <p className="muted intake-book-limit">{words.limit}</p>
-      <ul className="intake-books">
+      <p className={`muted intake-book-limit ${INTAKE_BOOK_LIMIT}`}>
+        {words.limit}
+      </p>
+      <ul className={`intake-books ${INTAKE_BOOKS}`}>
         {entries.map((entry) => (
           <BookRow
             key={entry.id}
@@ -484,9 +556,11 @@ export default function ComicBooks({
           />
         ))}
       </ul>
-      <h3 className="kicker intake-skim-head">{words.addsHead}</h3>
+      <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
+        {words.addsHead}
+      </h3>
       {adds.length ? (
-        <ul className="intake-adds">
+        <ul className={`intake-adds ${INTAKE_ADDS}`}>
           {adds.map((series) => {
             const parts = [
               series.added.length ? words.adds(hashRanges(series.added)) : null,
@@ -499,8 +573,10 @@ export default function ComicBooks({
             ].filter(Boolean)
             return (
               <li key={series.key}>
-                <p className="intake-adds-title">{series.title}</p>
-                <p className="intake-adds-what">
+                <p className={`intake-adds-title ${INTAKE_ADDS_TITLE}`}>
+                  {series.title}
+                </p>
+                <p className={`intake-adds-what ${INTAKE_ADDS_WHAT}`}>
                   {parts.length ? parts.join(', ') : words.addsNothing}
                   {series.already.length > 0 && (
                     <span className="muted">
@@ -509,7 +585,7 @@ export default function ComicBooks({
                     </span>
                   )}
                   {series.missing > 0 && (
-                    <span className="intake-adds-need">
+                    <span className={`intake-adds-need ${INTAKE_ADDS_NEED}`}>
                       {' · '}
                       {words.needNumber(series.missing)}
                     </span>

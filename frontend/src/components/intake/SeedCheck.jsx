@@ -10,6 +10,15 @@ import {
 import { useSeedImages } from '../../lib/useSeedImages.js'
 import KindFields from './KindFields.jsx'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_GARMENT_FIELDS,
+  INTAKE_GARMENT_MISSING,
+  INTAKE_GARMENT_PHOTO,
+  INTAKE_SEED_CARD,
+  INTAKE_SEED_LIST,
+  INTAKE_SEED_NOPHOTO,
+} from '../intakeClasses.js'
 
 /** The photo's state in words, for a piece that has none to show. */
 function noPhotoWords(payload) {
@@ -96,22 +105,24 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
   }
 
   return (
-    <li className="intake-seed-card">
+    <li className={`intake-seed-card ${INTAKE_SEED_CARD}`}>
       <div className="intake-seed-photo">
         {entry.photo_id ? (
           <img
-            className="intake-garment-photo"
+            className={`intake-garment-photo ${INTAKE_GARMENT_PHOTO}`}
             src={`${API_URL}/api/intake/photos/${entry.photo_id}/image`}
             alt={title}
           />
         ) : (
-          <p className="intake-seed-nophoto muted">{noPhotoWords(payload)}</p>
+          <p className={`intake-seed-nophoto ${INTAKE_SEED_NOPHOTO} muted`}>
+            {noPhotoWords(payload)}
+          </p>
         )}
       </div>
       <div>
         <p className="kicker">{words.from(seed.source, seed.order_id)}</p>
         <form
-          className="intake-garment-fields"
+          className={`intake-garment-fields ${INTAKE_GARMENT_FIELDS}`}
           onSubmit={(event) => {
             event.preventDefault()
             save()
@@ -129,7 +140,9 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
           />
         </form>
         {needs.length > 0 && (
-          <p className="intake-garment-missing">{words.needs(needs)}</p>
+          <p className={`intake-garment-missing ${INTAKE_GARMENT_MISSING}`}>
+            {words.needs(needs)}
+          </p>
         )}
         {error && (
           <p className="admin-error" role="alert">
@@ -137,7 +150,10 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
           </p>
         )}
         {asking ? (
-          <div className="intake-actions quiet" role="group">
+          <div
+            className={`intake-actions ${INTAKE_ACTIONS} quiet`}
+            role="group"
+          >
             <span>{words.dontOwnAsk(title)}</span>
             <button
               type="button"
@@ -156,7 +172,7 @@ function SeedCard({ entry, fields, onSaved, onNotOwned }) {
             </button>
           </div>
         ) : (
-          <div className="intake-actions quiet">
+          <div className={`intake-actions ${INTAKE_ACTIONS} quiet`}>
             <button
               type="button"
               className={ibtn('ghost')}
@@ -210,7 +226,7 @@ export default function SeedCheck({ sitting, kind, entries, onEntry, images }) {
           {words.photosFailed}
         </p>
       )}
-      <ul className="intake-seed-list">
+      <ul className={`intake-seed-list ${INTAKE_SEED_LIST}`}>
         {entries.map((entry) => (
           <SeedCard
             key={entry.id}

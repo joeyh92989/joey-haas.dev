@@ -18,7 +18,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   spines, relative units); `spaceScale.test.js` fails on any other literal, and
   `docs/planning/2026-11-15-spacing-snap-design.md` holds the snap map. Nothing renders under 12px
   except labels inside drawings that carry an accessible name elsewhere
-  (intake demo spines, run-cell marks, map labels), listed by selector in
+  (intake demo spines, run-cell marks, map labels), listed in
   `typeScale.test.js`. `typeScale.test.js` and `spaceScale.test.js` enforce it.
 - `Sheet` is the one modal dialog shell: a native `<dialog>` opened with
   `showModal()`, focus moved in and back out, Escape and a backdrop press
@@ -129,8 +129,22 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `padding: 0`, nothing is written (the base layer zeroes both); where it said
   `align-items: start` or `border: 0`, write `[align-items:start]` or
   `[border:0]` (`items-start` is `flex-start`, and `border-0` leaves the style
-  and colour a button brings). The Closet's intake rules are still in
-  `index.css`.
+  and colour a button brings). The admin intake flow and the Closet's forms
+  left `index.css` in slice D5b: `intakeClasses.js` (Add, a sitting's steps,
+  Check, Details, Done, the add bar, results and drawer, the confidence
+  badge, the meter and the photo tiles), `intakeDemoClasses.js` (the public
+  `/shelf/intake` replay) and `intakeFormClasses.js` (the garment form and
+  product panel, the metadata picker, the ISBN field, the barcode scanner).
+  The `intake-*`, `conf*`, `garment-*` and `candidate-list` names stay as
+  hooks. Three things to know when porting a rule like these: Tailwind's
+  `px`/`py` are logical (`padding-inline`/`-block`), so a vertical
+  `writing-mode` element writes `[padding:6px_3px]`; an underscore in an
+  arbitrary variant reads as a space, so a state that has one
+  (`data-state='in_run'`) is a map from the state to a class (`MARK_INK`,
+  `CONF_STATE`, `METER_PART`, `SHOT_STATE`), not a selector; and a descendant
+  rule (`.form label`) beats a utility the legacy sheet used to lose to, so set
+  the look on each element (`GARMENT_LABEL`) when a sibling kind is styled by
+  its own utilities.
   Admin Home, Jobs and the page header (#535, slice 5) take theirs from
   `components/adminHomeClasses.js` (`PRIMARY`, `PLAIN`, `LINK`, `LINK_BUTTON`,
   the panel, area card, job row and Jobs table strings, and the swap sheet's):

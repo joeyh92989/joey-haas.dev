@@ -2,6 +2,15 @@ import { useId, useState } from 'react'
 import { productCopy as copy } from '../content/closetProduct.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { btn, field, FILE_PICK } from './closetClasses.js'
+import {
+  GARMENT_ATTACH,
+  GARMENT_ATTACH_CHOICE,
+  GARMENT_ATTACH_LINK,
+  GARMENT_ATTACH_READ,
+  GARMENT_ATTACH_ROW,
+  GARMENT_ATTACH_TITLE,
+  GARMENT_FIELD_LABEL,
+} from './intakeFormClasses.js'
 
 /** Dollars as the store gave them, or nothing. */
 function priceText(price) {
@@ -160,12 +169,18 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
   const ready = Boolean(pick) && (!needsReplace || replaceProduct)
 
   return (
-    <section className="garment-attach" aria-labelledby={`${id}-h`}>
-      <h2 id={`${id}-h`} className="garment-attach-title">
+    <section
+      className={`garment-attach ${GARMENT_ATTACH}`}
+      aria-labelledby={`${id}-h`}
+    >
+      <h2
+        id={`${id}-h`}
+        className={`garment-attach-title ${GARMENT_ATTACH_TITLE}`}
+      >
         {copy.heading}
       </h2>
 
-      <div className="garment-attach-row">
+      <div className={`garment-attach-row ${GARMENT_ATTACH_ROW}`}>
         <label className={`${btn('plain', 'sm')} ${FILE_PICK}`}>
           {garment.image ? copy.replacePhoto : copy.addPhoto}
           <input
@@ -184,9 +199,14 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
         )}
       </div>
 
-      <form className="garment-attach-row" onSubmit={lookUp}>
-        <label className="garment-attach-link">
-          <span className="garment-field-label">{copy.linkLabel}</span>
+      <form
+        className={`garment-attach-row ${GARMENT_ATTACH_ROW}`}
+        onSubmit={lookUp}
+      >
+        <label className={`garment-attach-link ${GARMENT_ATTACH_LINK}`}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+            {copy.linkLabel}
+          </span>
           <input
             className={field}
             type="url"
@@ -217,15 +237,20 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
       )}
 
       {read && (
-        <div className="garment-attach-read">
+        <div className={`garment-attach-read ${GARMENT_ATTACH_READ}`}>
           <p>
             <strong>{read.title}</strong>
             {read.brand ? ` · ${read.brand}` : ''}
           </p>
           <fieldset className="garment-attach-colors">
-            <legend className="garment-field-label">{copy.colorLegend}</legend>
+            <legend className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+              {copy.colorLegend}
+            </legend>
             {read.candidates.map((c) => (
-              <label key={c.external_id} className="garment-attach-choice">
+              <label
+                key={c.external_id}
+                className={`garment-attach-choice ${GARMENT_ATTACH_CHOICE}`}
+              >
                 <input
                   type="radio"
                   name={`${id}-color`}
@@ -242,7 +267,9 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
           </fieldset>
           {sizes.length > 0 && (
             <label>
-              <span className="garment-field-label">{copy.sizeLabel}</span>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                {copy.sizeLabel}
+              </span>
               <select
                 className={field}
                 value={size}
@@ -258,7 +285,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             </label>
           )}
           {brandClash && (
-            <label className="garment-attach-choice">
+            <label className={`garment-attach-choice ${GARMENT_ATTACH_CHOICE}`}>
               <input
                 type="checkbox"
                 checked={replaceBrand}
@@ -268,7 +295,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             </label>
           )}
           {colorClash && (
-            <label className="garment-attach-choice">
+            <label className={`garment-attach-choice ${GARMENT_ATTACH_CHOICE}`}>
               <input
                 type="checkbox"
                 checked={replaceColor}
@@ -278,7 +305,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             </label>
           )}
           {sizeClash && (
-            <label className="garment-attach-choice">
+            <label className={`garment-attach-choice ${GARMENT_ATTACH_CHOICE}`}>
               <input
                 type="checkbox"
                 checked={replaceSize}
@@ -288,7 +315,7 @@ export default function GarmentProductPanel({ garment, onPhoto, onAttached }) {
             </label>
           )}
           {needsReplace && (
-            <label className="garment-attach-choice">
+            <label className={`garment-attach-choice ${GARMENT_ATTACH_CHOICE}`}>
               <input
                 type="checkbox"
                 checked={replaceProduct}

@@ -1,5 +1,6 @@
 import { optionLabel } from '../../lib/intake.js'
 import { INTAKE_FIELD } from '../addClasses.js'
+import { INTAKE_FIELD_CELL, INTAKE_REFUSAL } from '../intakeClasses.js'
 
 /** The input type for each `FieldSpec.control` that is not a select. */
 const INPUT_TYPES = { text: 'text', number: 'number', date: 'date' }
@@ -52,7 +53,7 @@ export default function KindFields({
       onBlur: onBlur ? () => onBlur(field.key) : undefined,
     }
     return (
-      <div key={field.key} className="intake-field">
+      <div key={field.key} className={`intake-field ${INTAKE_FIELD_CELL}`}>
         <label htmlFor={id}>{field.label}</label>
         {field.control === 'select' ? (
           <select className={INTAKE_FIELD} {...shared}>
@@ -71,7 +72,10 @@ export default function KindFields({
           />
         )}
         {refusal && (
-          <p id={`${id}-refusal`} className="intake-refusal">
+          <p
+            id={`${id}-refusal`}
+            className={`intake-refusal ${INTAKE_REFUSAL}`}
+          >
             {refusal}
           </p>
         )}

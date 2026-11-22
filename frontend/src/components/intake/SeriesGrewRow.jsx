@@ -4,6 +4,19 @@ import { spine } from '../../content/spine.js'
 import { countText, nearCells } from '../../lib/comicRun.js'
 import CoverImage from '../CoverImage.jsx'
 import { ibtn, MONO_FIELD } from '../addClasses.js'
+import {
+  INTAKE_GROW,
+  INTAKE_GROW_ADDS,
+  INTAKE_GROW_BODY,
+  INTAKE_GROW_COVER,
+  INTAKE_GROW_EDIT,
+  INTAKE_GROW_FORM,
+  INTAKE_GROW_FORM_ACTIONS,
+  INTAKE_GROW_READ,
+  INTAKE_GROW_STRIP,
+  INTAKE_GROW_TICK,
+  INTAKE_GROW_TITLE,
+} from '../intakeClasses.js'
 
 const PILL = spine.comics.series.pill
 
@@ -27,7 +40,7 @@ function Sentence({ growth, typed }) {
   const { before, after, added, already } = growth
   if (added.length) {
     return (
-      <p className="intake-grow-adds">
+      <p className={`intake-grow-adds ${INTAKE_GROW_ADDS}`}>
         adds <b>{numbers(added)}</b> ·{' '}
         <span className={MONO_FIELD}>{count(before)}</span> →{' '}
         <span className="mono">{count(after)}</span> <StatePill model={after} />
@@ -42,14 +55,14 @@ function Sentence({ growth, typed }) {
   }
   if (already.length) {
     return (
-      <p className="intake-grow-adds muted">
+      <p className={`intake-grow-adds ${INTAKE_GROW_ADDS} muted`}>
         {numbers(already)} {already.length === 1 ? 'is' : 'are'} already on the
         shelf · nothing to add
       </p>
     )
   }
   return (
-    <p className="intake-grow-adds muted">
+    <p className={`intake-grow-adds ${INTAKE_GROW_ADDS} muted`}>
       {typed
         ? 'nothing to add'
         : 'No issues typed yet · Edit issues to say which'}
@@ -62,7 +75,10 @@ function Strip({ growth }) {
   const tiles = nearCells(growth.after, growth.added, growth.already)
   if (!tiles.length) return null
   return (
-    <div className="run-box-frame intake-grow-strip" aria-hidden="true">
+    <div
+      className={`run-box-frame intake-grow-strip ${INTAKE_GROW_STRIP}`}
+      aria-hidden="true"
+    >
       <div className="run-box">
         {tiles.map((tile) =>
           tile.type === 'gap' ? (
@@ -146,31 +162,39 @@ export default function SeriesGrewRow({
   }
 
   return (
-    <li className="intake-grow" data-tick={tick ? '' : undefined}>
+    <li
+      className={`intake-grow ${INTAKE_GROW}`}
+      data-tick={tick ? '' : undefined}
+    >
       {tick && (
         <input
           type="checkbox"
-          className="intake-grow-tick"
+          className={`intake-grow-tick ${INTAKE_GROW_TICK}`}
           checked={tick.checked && !nothing}
           disabled={nothing}
           aria-label={`Add to ${title}`}
           onChange={(event) => tick.onChange(event.target.checked)}
         />
       )}
-      <span className="intake-grow-cover">
+      <span className={`intake-grow-cover ${INTAKE_GROW_COVER}`}>
         <CoverImage src={coverUrl} type="comic" />
       </span>
-      <div className="intake-grow-body">
-        <p className="intake-grow-title">
+      <div className={`intake-grow-body ${INTAKE_GROW_BODY}`}>
+        <p className={`intake-grow-title ${INTAKE_GROW_TITLE}`}>
           {to ? <Link to={to}>{title}</Link> : title}
         </p>
         {read && (
-          <p className="intake-grow-read">read from the photo: {read}</p>
+          <p className={`intake-grow-read ${INTAKE_GROW_READ}`}>
+            read from the photo: {read}
+          </p>
         )}
         <Sentence growth={growth} typed={typed} />
         <Strip growth={growth} />
         {editing && (
-          <form className="intake-grow-form" onSubmit={save}>
+          <form
+            className={`intake-grow-form ${INTAKE_GROW_FORM}`}
+            onSubmit={save}
+          >
             <label htmlFor={inputId}>Issues of {title} in this sitting</label>
             <input
               id={inputId}
@@ -180,7 +204,9 @@ export default function SeriesGrewRow({
               placeholder="58, 60-62"
               onChange={(event) => setDraft(event.target.value)}
             />
-            <span className="intake-grow-form-actions">
+            <span
+              className={`intake-grow-form-actions ${INTAKE_GROW_FORM_ACTIONS}`}
+            >
               <button type="submit" className={ibtn('primary')} disabled={busy}>
                 Save issues
               </button>
@@ -195,7 +221,7 @@ export default function SeriesGrewRow({
         <button
           ref={editRef}
           type="button"
-          className={`${ibtn('ghost')} intake-grow-edit`}
+          className={`${ibtn('ghost')} intake-grow-edit ${INTAKE_GROW_EDIT}`}
           aria-label={`Edit issues of ${title}`}
           onClick={open}
         >

@@ -14,6 +14,15 @@ import {
 } from '../../lib/intake.js'
 import KindFields from './KindFields.jsx'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_CHECKONE,
+  INTAKE_CHECKONE_SOURCE,
+  INTAKE_GARMENT_FIELDS,
+  INTAKE_GARMENT_MISSING,
+  INTAKE_GARMENT_OTHERS,
+  INTAKE_GARMENT_PHOTO,
+} from '../intakeClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -217,15 +226,17 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
         </p>
       )}
       {current && (
-        <div className="intake-checkone">
-          <div className="intake-checkone-source">
+        <div className={`intake-checkone ${INTAKE_CHECKONE}`}>
+          <div className={`intake-checkone-source ${INTAKE_CHECKONE_SOURCE}`}>
             <img
-              className="intake-garment-photo"
+              className={`intake-garment-photo ${INTAKE_GARMENT_PHOTO}`}
               src={imageUrl(current.garment)}
               alt={current.garment.name || 'This piece'}
             />
             <p className="muted">
-              <span className="intake-garment-missing">
+              <span
+                className={`intake-garment-missing ${INTAKE_GARMENT_MISSING}`}
+              >
                 Check ·{' '}
                 {missingFields(
                   kind.fields.filter(
@@ -244,7 +255,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
             </h3>
             <p className="kicker">What the tagger wrote</p>
             <form
-              className="intake-garment-fields"
+              className={`intake-garment-fields ${INTAKE_GARMENT_FIELDS}`}
               onSubmit={(event) => {
                 event.preventDefault()
                 save()
@@ -262,7 +273,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 }
                 idPrefix={`garment-${current.garment.id}`}
               />
-              <div className="intake-actions">
+              <div className={`intake-actions ${INTAKE_ACTIONS}`}>
                 <button
                   type="submit"
                   className={ibtn('primary')}
@@ -288,7 +299,10 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                 </button>
               </div>
               {asking === current.garment.id ? (
-                <div className="intake-actions quiet" role="group">
+                <div
+                  className={`intake-actions ${INTAKE_ACTIONS} quiet`}
+                  role="group"
+                >
                   <span>
                     Remove {current.garment.name || 'this piece'}? The photo and
                     the piece go with it.
@@ -313,7 +327,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                   </button>
                 </div>
               ) : (
-                <div className="intake-actions quiet">
+                <div className={`intake-actions ${INTAKE_ACTIONS} quiet`}>
                   <button
                     type="button"
                     className={ibtn('ghost')}
@@ -331,7 +345,10 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
       {pieces.length > (current ? 1 : 0) && (
         <>
           <h3 className="kicker">Other photos in this sitting</h3>
-          <ul className="intake-garment-others" aria-label="Other photos">
+          <ul
+            className={`intake-garment-others ${INTAKE_GARMENT_OTHERS}`}
+            aria-label="Other photos"
+          >
             {pieces
               .filter(({ garment }) => garment.id !== currentId)
               .map((piece) => {
@@ -346,7 +363,10 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
                     )}
                     <span>{piece.garment.name || 'Untitled piece'}</span>
                     {asking === piece.garment.id ? (
-                      <span className="intake-actions quiet" role="group">
+                      <span
+                        className={`intake-actions ${INTAKE_ACTIONS} quiet`}
+                        role="group"
+                      >
                         <span>
                           Remove {name}? The photo and the piece go with it.
                         </span>

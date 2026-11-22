@@ -13,6 +13,16 @@ import {
   CHECKED_CHIP,
   GARMENT_STAT,
 } from './closetClasses.js'
+import {
+  GARMENT_CHOICES,
+  GARMENT_LABEL,
+  GARMENT_COLOR,
+  GARMENT_FIELD_LABEL,
+  GARMENT_FORM,
+  GARMENT_FORM_ACTS,
+  GARMENT_FORM_PHOTO,
+  GARMENT_STEPPER,
+} from './intakeFormClasses.js'
 
 const TEXT = [
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
@@ -80,8 +90,12 @@ export function bodyFrom(form) {
 function Stepper({ label, value, onChange }) {
   const id = `garment-${label.toLowerCase()}`
   return (
-    <div className="garment-stepper" role="group" aria-labelledby={id}>
-      <span id={id} className="garment-field-label">
+    <div
+      className={`garment-stepper ${GARMENT_STEPPER}`}
+      role="group"
+      aria-labelledby={id}
+    >
+      <span id={id} className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
         {label}
       </span>
       <button
@@ -113,9 +127,11 @@ function Stepper({ label, value, onChange }) {
 function Color({ label, name, hex, onName, onHex }) {
   const slug = label.toLowerCase()
   return (
-    <div className="garment-color">
-      <label>
-        <span className="garment-field-label">{label} color</span>
+    <div className={`garment-color ${GARMENT_COLOR}`}>
+      <label className={GARMENT_LABEL}>
+        <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          {label} color
+        </span>
         <input
           className={field}
           type="text"
@@ -124,7 +140,7 @@ function Color({ label, name, hex, onName, onHex }) {
           onChange={(e) => onName(e.target.value)}
         />
       </label>
-      <label className="garment-swatch">
+      <label className={`garment-swatch ${GARMENT_LABEL}`}>
         <span className="visually-hidden">{label} swatch</span>
         <input
           type="color"
@@ -181,17 +197,19 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
   }
 
   return (
-    <form className="garment-form" onSubmit={submit}>
+    <form className={`garment-form ${GARMENT_FORM}`} onSubmit={submit}>
       {src && (
         <img
-          className="garment-form-photo"
+          className={`garment-form-photo ${GARMENT_FORM_PHOTO}`}
           src={src}
           alt={`Photo of ${garment.name ?? 'the garment'}`}
         />
       )}
 
-      <label>
-        <span className="garment-field-label">Name</span>
+      <label className={GARMENT_LABEL}>
+        <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Name
+        </span>
         <input
           className={field}
           type="text"
@@ -201,8 +219,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         />
       </label>
 
-      <fieldset className="garment-segments">
-        <legend className="garment-field-label">Slot</legend>
+      <fieldset className={`garment-segments ${GARMENT_CHOICES}`}>
+        <legend className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Slot
+        </legend>
         {CATEGORIES.map((c) => (
           <label key={c.value} className={`${chipBtn} ${CHECKED_CHIP}`}>
             <input
@@ -218,8 +238,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       </fieldset>
 
       {TEXT.map(([key, label, hint]) => (
-        <label key={key}>
-          <span className="garment-field-label">{label}</span>
+        <label key={key} className={GARMENT_LABEL}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+            {label}
+          </span>
           <input
             className={field}
             type="text"
@@ -253,8 +275,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         onChange={set('formality')}
       />
 
-      <fieldset className="garment-months">
-        <legend className="garment-field-label">Season</legend>
+      <fieldset className={`garment-months ${GARMENT_CHOICES}`}>
+        <legend className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Season
+        </legend>
         {MONTHS.map((month) => (
           <button
             key={month}
@@ -268,8 +292,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         ))}
       </fieldset>
 
-      <label>
-        <span className="garment-field-label">Notes</span>
+      <label className={GARMENT_LABEL}>
+        <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Notes
+        </span>
         <textarea
           className={textarea}
           rows={3}
@@ -279,8 +305,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         />
       </label>
 
-      <label>
-        <span className="garment-field-label">Acquired</span>
+      <label className={GARMENT_LABEL}>
+        <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Acquired
+        </span>
         <input
           className={field}
           type="date"
@@ -289,8 +317,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         />
       </label>
 
-      <label>
-        <span className="garment-field-label">Status</span>
+      <label className={GARMENT_LABEL}>
+        <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+          Status
+        </span>
         <select
           className={field}
           value={form.status}
@@ -305,8 +335,10 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       </label>
 
       {form.status === 'packed' && (
-        <label>
-          <span className="garment-field-label">Back in</span>
+        <label className={GARMENT_LABEL}>
+          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+            Back in
+          </span>
           <input
             className={field}
             type="month"
@@ -318,7 +350,7 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
         </label>
       )}
 
-      <div className="garment-form-acts">
+      <div className={`garment-form-acts ${GARMENT_FORM_ACTS}`}>
         <button type="submit" className={btn('primary')} disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>

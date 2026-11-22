@@ -4,6 +4,7 @@ import { WRITTEN_STATES } from '../../lib/intake.js'
 import { live } from '../../lib/intakeRemove.js'
 import AddResults from './AddResults.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import { INTAKE_SHOOTSEARCH } from '../intakeClasses.js'
 
 const NO_ANSWER = 'The server did not answer; try again.'
 
@@ -95,7 +96,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
   }
 
   return (
-    <div className="intake-shootsearch">
+    <div className={`intake-shootsearch ${INTAKE_SHOOTSEARCH}`}>
       <form role="search" aria-label="Search instead" onSubmit={search}>
         <input
           className={INTAKE_FIELD}

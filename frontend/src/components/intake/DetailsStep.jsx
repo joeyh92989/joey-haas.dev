@@ -7,6 +7,18 @@ import CoverImage from '../CoverImage.jsx'
 import { BookRows } from '../ItemForm.jsx'
 import KindFields from './KindFields.jsx'
 import { BOX, ibtn } from '../addClasses.js'
+import {
+  INTAKE_ACTIONS,
+  INTAKE_BAR,
+  INTAKE_EDITIONS,
+  INTAKE_PASS,
+  INTAKE_REFUSAL,
+  INTAKE_ROW,
+  INTAKE_ROWS,
+  INTAKE_ROW_TITLE,
+  INTAKE_SETALL_FIELDS,
+  INTAKE_STEP,
+} from '../intakeClasses.js'
 
 /** Shelf formats that hold collected books; singles carry issues only. */
 const COLLECTED = ['trades', 'omnibus']
@@ -46,7 +58,7 @@ function SetForAll({ kind, entries, onApply, busy }) {
   return (
     <div role="group" aria-label={name} className="intake-setall">
       <p className="kicker">{name}</p>
-      <div className="intake-setall-fields">
+      <div className={`intake-setall-fields ${INTAKE_SETALL_FIELDS}`}>
         <KindFields
           kindKey={kind.key}
           idPrefix={`all-${kind.key}`}
@@ -248,7 +260,10 @@ export default function DetailsStep({
   }
 
   return (
-    <section className="intake-step" aria-labelledby="intake-step-heading">
+    <section
+      className={`intake-step ${INTAKE_STEP}`}
+      aria-labelledby="intake-step-heading"
+    >
       <h2 id="intake-step-heading" ref={headingRef} tabIndex={-1}>
         Details
       </h2>
@@ -259,7 +274,7 @@ export default function DetailsStep({
       )}
       {!passes.length && <p className="muted">Nothing is ready to add yet.</p>}
       {passes.map(({ kind, entries }) => (
-        <div key={kind.key} className={`${BOX} intake-pass`}>
+        <div key={kind.key} className={`${BOX} intake-pass ${INTAKE_PASS}`}>
           <h3>{kind.label}</h3>
           <SetForAll
             kind={kind}
@@ -267,7 +282,7 @@ export default function DetailsStep({
             onApply={apply}
             busy={busy}
           />
-          <ul className="intake-rows">
+          <ul className={`intake-rows ${INTAKE_ROWS}`}>
             {entries.map((entry) => {
               const title = entryTitle(entry)
               const refused = refusals[entry.id] ?? {}
@@ -285,13 +300,22 @@ export default function DetailsStep({
                 .map(([, message]) => message)
               return (
                 <li key={entry.id}>
-                  <div role="group" aria-label={title} className="intake-row">
+                  <div
+                    role="group"
+                    aria-label={title}
+                    className={`intake-row ${INTAKE_ROW}`}
+                  >
                     <CoverImage src={entryCover(entry)} type={entry.kind} />
                     <div>
-                      <p className="intake-row-title">{title}</p>
+                      <p className={`intake-row-title ${INTAKE_ROW_TITLE}`}>
+                        {title}
+                      </p>
                       <p className="muted">{entry.chosen?.year ?? ''}</p>
                       {loose.map((message) => (
-                        <p key={message} className="intake-refusal">
+                        <p
+                          key={message}
+                          className={`intake-refusal ${INTAKE_REFUSAL}`}
+                        >
                           {message}
                         </p>
                       ))}
@@ -313,7 +337,7 @@ export default function DetailsStep({
                     />
                     {collected && (
                       <div
-                        className="intake-editions"
+                        className={`intake-editions ${INTAKE_EDITIONS}`}
                         ref={(node) => {
                           if (node) editors.current[entry.id] = node
                           else delete editors.current[entry.id]
@@ -365,11 +389,11 @@ export default function DetailsStep({
           </ul>
         </div>
       ))}
-      <div className="intake-bar">
+      <div className={`intake-bar ${INTAKE_BAR}`}>
         <p className="muted">
           New rows are private until published. Finish later keeps the sitting.
         </p>
-        <div className="intake-actions">
+        <div className={`intake-actions ${INTAKE_ACTIONS}`}>
           <button type="button" className={ibtn('plain')} onClick={onBack}>
             <span aria-hidden="true">←</span> Back to Check
           </button>

@@ -2,6 +2,15 @@ import { Link } from 'react-router'
 import CoverImage from '../CoverImage.jsx'
 import { comicDetails, sourceWords } from '../../lib/intake.js'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_RESULT,
+  INTAKE_RESULTS,
+  INTAKE_RESULT_KIND,
+  INTAKE_RESULT_TEXT,
+  INTAKE_RESULT_TITLE,
+  INTAKE_SOURCES,
+  INTAKE_TYPED,
+} from '../intakeClasses.js'
 
 /**
  * The add bar's answer (`GET /api/intake/search`): one row per result
@@ -39,7 +48,7 @@ export default function AddResults({
     .filter(({ source, kind }) => kind && source.state !== 'ok')
 
   return (
-    <div className="intake-results">
+    <div className={`intake-results ${INTAKE_RESULTS}`}>
       {results.length > 0 ? (
         <ul aria-label={`Results for “${query}”`}>
           {results.map((result) => {
@@ -54,14 +63,18 @@ export default function AddResults({
             return (
               <li
                 key={`${result.external_source}:${result.external_id}`}
-                className="intake-result"
+                className={`intake-result ${INTAKE_RESULT}`}
               >
                 <CoverImage src={result.thumbnail_url} type={result.kind} />
-                <span className="intake-result-text">
-                  <span className="intake-result-title">{result.title}</span>
+                <span className={`intake-result-text ${INTAKE_RESULT_TEXT}`}>
+                  <span
+                    className={`intake-result-title ${INTAKE_RESULT_TITLE}`}
+                  >
+                    {result.title}
+                  </span>
                   <span className="muted">{meta}</span>
                 </span>
-                <span className="intake-result-kind">
+                <span className={`intake-result-kind ${INTAKE_RESULT_KIND}`}>
                   {kind?.label ?? result.kind}
                 </span>
                 {result.owned_item_id ? (
@@ -100,7 +113,7 @@ export default function AddResults({
       )}
 
       {unanswered.length > 0 && (
-        <ul className="intake-sources" aria-label="Sources">
+        <ul className={`intake-sources ${INTAKE_SOURCES}`} aria-label="Sources">
           {unanswered.map(({ source, kind }) => (
             <li key={source.kind}>
               {source.state === 'not_configured' && (
@@ -115,7 +128,11 @@ export default function AddResults({
       )}
 
       {typed.length > 0 && (
-        <div className="intake-typed" role="group" aria-label="Keep as typed">
+        <div
+          className={`intake-typed ${INTAKE_TYPED}`}
+          role="group"
+          aria-label="Keep as typed"
+        >
           <span className="muted">
             {results.length > 0 ? 'No match? ' : ''}Keep “{query}” as typed:
           </span>

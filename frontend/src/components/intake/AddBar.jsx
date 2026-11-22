@@ -4,6 +4,7 @@ import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake as words } from '../../content/seedIntake.js'
 import BarcodeScanner from './BarcodeScanner.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import { INTAKE_ADDBAR } from '../intakeClasses.js'
 
 /**
  * The add bar's one row: a text field, ▤ Photos and the barcode button.
@@ -49,7 +50,7 @@ export default function AddBar({
     // Enter in the text field from submitting it.
     <>
       <form
-        className="intake-addbar"
+        className={`intake-addbar ${INTAKE_ADDBAR}`}
         role={searchable ? 'search' : undefined}
         aria-label={searchable ? 'Add to the shelf' : undefined}
         onSubmit={(event) => {

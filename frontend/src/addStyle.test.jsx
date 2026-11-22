@@ -18,6 +18,7 @@ import {
   TILE,
 } from './components/addClasses.js'
 import { PHONE_ROW as CLOSET_PHONE_ROW } from './components/closetClasses.js'
+import { INTAKE_KIND, INTAKE_UNFINISHED } from './components/intakeClasses.js'
 import { readCss } from './testing/readCss.js'
 
 // The Add, sitting, Discover, Radar and Pull list pages (#535, slice c) are
@@ -145,12 +146,11 @@ describe('Add and recommend pages, on the Button and Card looks', () => {
   })
 
   it('leaves no hand-written surface on the cards, or buttons in the CSS', () => {
-    for (const selector of [
-      '.intake-kind',
-      '.intake-unfinished',
-      '.radar-card',
-      '.rate-a-few',
-    ]) {
+    // The intake tile and list are utilities now: their own strings carry no
+    // surface (it comes from TILE and BOX).
+    for (const classes of [INTAKE_KIND, INTAKE_UNFINISHED])
+      expect(classes).not.toMatch(/(^| )(bg-|border|rounded)/)
+    for (const selector of ['.radar-card', '.rate-a-few']) {
       const rule = ruleOf(selector)
       expect(rule, selector).not.toBeNull()
       expect(rule, selector).not.toMatch(/background:|border:|border-radius:/)

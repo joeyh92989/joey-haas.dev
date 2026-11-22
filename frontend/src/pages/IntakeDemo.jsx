@@ -15,6 +15,24 @@ import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import EmptyState from '../components/EmptyState.jsx'
 import PageHeader from '../components/PageHeader.jsx'
+import {
+  INTAKE_DEMO,
+  INTAKE_DEMO_LEDE,
+  INTAKE_DEMO_ACTIONS,
+  INTAKE_DEMO_FINE,
+  INTAKE_DEMO_FOOT,
+  INTAKE_DEMO_GRID,
+  INTAKE_DEMO_META,
+  INTAKE_DEMO_NOTE,
+  INTAKE_DEMO_OUT,
+  INTAKE_DEMO_ROW,
+  INTAKE_DEMO_ROWS,
+  INTAKE_DEMO_SHELF,
+  INTAKE_DEMO_SPINE,
+  INTAKE_DEMO_SPINES,
+  INTAKE_DEMO_STAGES,
+  INTAKE_DEMO_TITLE,
+} from '../components/intakeDemoClasses.js'
 
 /** The replay's steps, in order; each names the stage that is lit. */
 const STEPS = ['idle', 'read', 'match', 'review', 'add']
@@ -35,7 +53,7 @@ function DrawnShelf({ titles }) {
   const reads = titles.map((row) => row.read)
   return (
     <div
-      className="intake-demo-spines"
+      className={`intake-demo-spines ${INTAKE_DEMO_SPINES}`}
       role="img"
       aria-label={copy.shelfLabel(reads)}
     >
@@ -45,7 +63,7 @@ function DrawnShelf({ titles }) {
         return (
           <span
             key={`${row.read}-${index}`}
-            className="intake-demo-spine"
+            className={`intake-demo-spine ${INTAKE_DEMO_SPINE}`}
             data-tone={index % 2 ? 'soft' : undefined}
             data-size={size}
             // Heights vary so it reads as a shelf, deterministically; a long
@@ -65,7 +83,10 @@ function DrawnShelf({ titles }) {
 /** The four stages, lit as the replay reaches them. */
 function StageStrip({ step }) {
   return (
-    <ol className="intake-demo-stages" aria-label={copy.stagesLabel}>
+    <ol
+      className={`intake-demo-stages ${INTAKE_DEMO_STAGES}`}
+      aria-label={copy.stagesLabel}
+    >
       {copy.stages(recording.sources).map((stage) => {
         const state = stageState(stage.key, step)
         return (
@@ -91,10 +112,15 @@ function StageStrip({ step }) {
 function CheckRow({ row }) {
   const meta = rowMeta(row)
   return (
-    <li className="intake-demo-row" aria-label={`${rowTitle(row)}, ${meta}`}>
+    <li
+      className={`intake-demo-row ${INTAKE_DEMO_ROW}`}
+      aria-label={`${rowTitle(row)}, ${meta}`}
+    >
       <span>
-        <span className="intake-demo-title">{rowTitle(row)}</span>
-        <span className="intake-demo-meta">{meta}</span>
+        <span className={`intake-demo-title ${INTAKE_DEMO_TITLE}`}>
+          {rowTitle(row)}
+        </span>
+        <span className={`intake-demo-meta ${INTAKE_DEMO_META}`}>{meta}</span>
       </span>
       <ConfidenceBadge state={row.confidence} />
     </li>
@@ -134,11 +160,11 @@ export default function IntakeDemo() {
 
   if (!recording) {
     return (
-      <article className="intake-demo">
+      <article className={`intake-demo ${INTAKE_DEMO}`}>
         <PageHeader
           title={copy.title}
           lede={copy.lede}
-          ledeClassName="intake-demo-lede"
+          ledeClassName={`intake-demo-lede ${INTAKE_DEMO_LEDE}`}
         />
         <EmptyState title={copy.notRecorded} />
       </article>
@@ -163,16 +189,16 @@ export default function IntakeDemo() {
     step === 'read' ? copy.reading : step === 'match' ? copy.matching : null
 
   return (
-    <article className="intake-demo">
+    <article className={`intake-demo ${INTAKE_DEMO}`}>
       <PageHeader
         title={copy.title}
         lede={copy.lede}
-        ledeClassName="intake-demo-lede"
+        ledeClassName={`intake-demo-lede ${INTAKE_DEMO_LEDE}`}
       />
-      <div className="intake-demo-grid">
-        <div className="intake-demo-shelf">
+      <div className={`intake-demo-grid ${INTAKE_DEMO_GRID}`}>
+        <div className={`intake-demo-shelf ${INTAKE_DEMO_SHELF}`}>
           <DrawnShelf titles={recording.titles} />
-          <div className="intake-demo-actions">
+          <div className={`intake-demo-actions ${INTAKE_DEMO_ACTIONS}`}>
             {step === 'idle' ? (
               <>
                 <button
@@ -202,15 +228,15 @@ export default function IntakeDemo() {
               </button>
             )}
           </div>
-          <p className="intake-demo-fine">
+          <p className={`intake-demo-fine ${INTAKE_DEMO_FINE}`}>
             {copy.rack} <Link to={copy.how.to}>{copy.how.label} →</Link>
           </p>
         </div>
         <div>
           <StageStrip step={step} />
-          <div className="intake-demo-out">
+          <div className={`intake-demo-out ${INTAKE_DEMO_OUT}`}>
             {shown ? (
-              <ul className="intake-demo-rows">
+              <ul className={`intake-demo-rows ${INTAKE_DEMO_ROWS}`}>
                 {recording.titles.map((row, index) => (
                   <CheckRow key={`${row.read}-${index}`} row={row} />
                 ))}
@@ -224,7 +250,7 @@ export default function IntakeDemo() {
           </div>
           {shown && (
             <>
-              <div className="intake-demo-foot">
+              <div className={`intake-demo-foot ${INTAKE_DEMO_FOOT}`}>
                 <span>{copy.counts(counts)}</span>
                 <button
                   type="button"
@@ -238,18 +264,18 @@ export default function IntakeDemo() {
                   {copy.buttons.add(counts.adds)}
                 </button>
               </div>
-              <p className="intake-demo-fine">
+              <p className={`intake-demo-fine ${INTAKE_DEMO_FINE}`}>
                 {copy.timing(recording.stages, recording.recorded_on)}
               </p>
             </>
           )}
-          <p className="intake-demo-note" role="status">
+          <p className={`intake-demo-note ${INTAKE_DEMO_NOTE}`} role="status">
             {note ??
               (stageNote && (
                 <span className="visually-hidden">{stageNote}</span>
               ))}
           </p>
-          <p className="intake-demo-fine">{copy.fine}</p>
+          <p className={`intake-demo-fine ${INTAKE_DEMO_FINE}`}>{copy.fine}</p>
         </div>
       </div>
     </article>

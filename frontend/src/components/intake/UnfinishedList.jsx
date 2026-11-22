@@ -3,6 +3,15 @@ import { Link } from 'react-router'
 import { discardAsk } from '../../content/shelfDelete.js'
 import { meterCounts, startedAt } from '../../lib/intake.js'
 import { BOX, ibtn } from '../addClasses.js'
+import {
+  INTAKE_METER,
+  INTAKE_SITTING,
+  INTAKE_SITTING_ACTIONS,
+  INTAKE_SITTING_NAME,
+  INTAKE_SITTING_TEXT,
+  INTAKE_UNFINISHED,
+  METER_PART,
+} from '../intakeClasses.js'
 
 /** A sitting's name on the page; one left unnamed still has one. */
 export function sittingName(sitting) {
@@ -23,7 +32,7 @@ function Meter({ name, counts }) {
   ]
   return (
     <span
-      className="intake-meter"
+      className={`intake-meter ${INTAKE_METER}`}
       role="group"
       aria-label={`Progress of ${name}`}
     >
@@ -32,7 +41,7 @@ function Meter({ name, counts }) {
           key={key}
           role="img"
           aria-label={`${value} ${words}`}
-          className={`intake-meter-${key}`}
+          className={`intake-meter-${key} ${METER_PART[key]}`}
           // No `hidden`: `.intake-meter i { display: block }` always beat it,
           // so an empty part drew as a zero-width segment with its gap, and
           // Preflight's `[hidden]` would now remove it and shift the rest.
@@ -58,7 +67,7 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
   const [asking, setAsking] = useState(null)
   if (!sittings.length) return <p className="muted">Nothing unfinished</p>
   return (
-    <ul className={`${BOX} intake-unfinished`}>
+    <ul className={`${BOX} intake-unfinished ${INTAKE_UNFINISHED}`}>
       {sittings.map((sitting) => {
         const name = sittingName(sitting)
         const counts = meterCounts(sitting)
@@ -67,9 +76,9 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
           : 'Mixed shelf'
         const photos = `${sitting.photos} photo${sitting.photos === 1 ? '' : 's'}`
         return (
-          <li key={sitting.id} className="intake-sitting">
-            <div className="intake-sitting-text">
-              <p className="intake-sitting-name">
+          <li key={sitting.id} className={`intake-sitting ${INTAKE_SITTING}`}>
+            <div className={`intake-sitting-text ${INTAKE_SITTING_TEXT}`}>
+              <p className={`intake-sitting-name ${INTAKE_SITTING_NAME}`}>
                 {name} <span className="muted">· {kind}</span>
               </p>
               <p className="muted">
@@ -82,7 +91,10 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
             </div>
             <Meter name={name} counts={counts} />
             {asking === sitting.id ? (
-              <div className="intake-sitting-actions" role="group">
+              <div
+                className={`intake-sitting-actions ${INTAKE_SITTING_ACTIONS}`}
+                role="group"
+              >
                 <span>{discardAsk(name, sitting)}</span>
                 <button
                   type="button"
@@ -103,7 +115,9 @@ export default function UnfinishedList({ sittings, kinds, base, onDiscard }) {
                 </button>
               </div>
             ) : (
-              <div className="intake-sitting-actions">
+              <div
+                className={`intake-sitting-actions ${INTAKE_SITTING_ACTIONS}`}
+              >
                 <Link
                   className={ibtn('primary', 'sm')}
                   to={`${base}/${sitting.id}`}

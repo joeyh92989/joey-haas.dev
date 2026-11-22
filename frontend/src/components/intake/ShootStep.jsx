@@ -16,6 +16,16 @@ import PhotoTile, { PendingTile } from './PhotoTile.jsx'
 import ShootSearch from './ShootSearch.jsx'
 import { FILE_PICK } from '../closetClasses.js'
 import { ibtn } from '../addClasses.js'
+import {
+  INTAKE_BAR,
+  INTAKE_DROP,
+  INTAKE_DROP_ACTIONS,
+  INTAKE_DROP_TITLE,
+  INTAKE_FILE,
+  INTAKE_STEP,
+  INTAKE_STRIP,
+  INTAKE_TYPED,
+} from '../intakeClasses.js'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -234,12 +244,15 @@ export default function ShootStep({
     (!closet && sitting.photos.some((p) => p.state === 'read'))
 
   return (
-    <section className="intake-step" aria-labelledby="intake-step-heading">
+    <section
+      className={`intake-step ${INTAKE_STEP}`}
+      aria-labelledby="intake-step-heading"
+    >
       <h2 id="intake-step-heading" ref={headingRef} tabIndex={-1}>
         Shoot
       </h2>
-      <div className="intake-drop">
-        <p className="intake-drop-title">
+      <div className={`intake-drop ${INTAKE_DROP}`}>
+        <p className={`intake-drop-title ${INTAKE_DROP_TITLE}`}>
           {closet
             ? 'Photograph each piece on its own'
             : 'Photograph the shelf, spines or covers facing you'}
@@ -256,8 +269,10 @@ export default function ShootStep({
               : 'About 1 model call per photo.'}
           </p>
         )}
-        <div className="intake-drop-actions">
-          <label className={`${ibtn('primary')} ${FILE_PICK} intake-file`}>
+        <div className={`intake-drop-actions ${INTAKE_DROP_ACTIONS}`}>
+          <label
+            className={`${ibtn('primary')} ${FILE_PICK} intake-file ${INTAKE_FILE}`}
+          >
             Take photos
             <input
               type="file"
@@ -268,7 +283,9 @@ export default function ShootStep({
               onChange={picked}
             />
           </label>
-          <label className={`${ibtn('plain')} ${FILE_PICK} intake-file`}>
+          <label
+            className={`${ibtn('plain')} ${FILE_PICK} intake-file ${INTAKE_FILE}`}
+          >
             Choose files
             <input
               type="file"
@@ -325,7 +342,7 @@ export default function ShootStep({
       )}
 
       {(sitting.photos.length > 0 || uploads.length > 0) && (
-        <ul className="intake-strip" aria-label="Photos">
+        <ul className={`intake-strip ${INTAKE_STRIP}`} aria-label="Photos">
           {sitting.photos.map((photo, index) => (
             <PhotoTile
               key={photo.id}
@@ -348,7 +365,7 @@ export default function ShootStep({
 
       {typed.length > 0 && (
         <ul
-          className="intake-typed"
+          className={`intake-typed ${INTAKE_TYPED}`}
           aria-label="Titles added by search or typing"
         >
           {typed.map((entry) => (
@@ -368,7 +385,7 @@ export default function ShootStep({
         </ul>
       )}
 
-      <div className="intake-bar">
+      <div className={`intake-bar ${INTAKE_BAR}`}>
         <p>
           <strong>{line}</strong>
         </p>

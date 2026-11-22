@@ -5,6 +5,11 @@ import { apiFetch } from '../../lib/api.js'
 import { fillRow, foundLine, toIsbn13 } from '../../lib/isbn.js'
 import BarcodeScanner from './BarcodeScanner.jsx'
 import { ibtn, INTAKE_FIELD } from '../addClasses.js'
+import {
+  COMIC_EDITION_ISBN,
+  COMIC_EDITION_ISBN_COVER,
+  COMIC_EDITION_ISBN_NOTE,
+} from '../intakeFormClasses.js'
 
 const REASONS = {
   not_found: words.notFound,
@@ -74,7 +79,7 @@ export default function IsbnField({ row, name, onChange }) {
   }
 
   return (
-    <div className="comic-edition-isbn">
+    <div className={`comic-edition-isbn ${COMIC_EDITION_ISBN}`}>
       <label htmlFor={`${id}-isbn`}>{words.label}</label>
       <input
         id={`${id}-isbn`}
@@ -126,14 +131,14 @@ export default function IsbnField({ row, name, onChange }) {
       {note && (
         <div
           id={`${id}-note`}
-          className="comic-edition-isbn-note"
+          className={`comic-edition-isbn-note ${COMIC_EDITION_ISBN_NOTE}`}
           role="status"
         >
           {note.found && (
             <p>
               {note.cover && (
                 <img
-                  className="comic-edition-isbn-cover"
+                  className={`comic-edition-isbn-cover ${COMIC_EDITION_ISBN_COVER}`}
                   src={note.cover}
                   alt=""
                   referrerPolicy="no-referrer"
