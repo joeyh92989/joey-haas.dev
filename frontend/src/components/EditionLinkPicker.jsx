@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import { FIELD_AUTO, HIT, LINK_BTN, MUTED } from './adminDataClasses.js'
+import {
+  COMIC_EDITION_LINK,
+  EDITION_LINK_HIT,
+  EDITION_LINK_HITS,
+} from './comicAdminClasses.js'
 
 const DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
@@ -110,7 +115,7 @@ export default function EditionLinkPicker({
   const fieldId = `volume-link-${volumeId}`
 
   return (
-    <div className="comic-edition-link">
+    <div className={`comic-edition-link ${COMIC_EDITION_LINK}`}>
       {cvId ? (
         <>
           <span>Linked to Comic Vine (issue {cvId})</span>
@@ -156,12 +161,12 @@ export default function EditionLinkPicker({
             </span>
           )}
           {hits.length > 0 && (
-            <ul className="edition-link-hits">
+            <ul className={`edition-link-hits ${EDITION_LINK_HITS}`}>
               {hits.map((hit) => (
                 <li key={hit.cv_id}>
                   <button
                     type="button"
-                    className={`edition-link-hit ${HIT}`}
+                    className={`edition-link-hit ${EDITION_LINK_HIT} ${HIT}`}
                     disabled={busy}
                     onClick={() => put(hit.cv_id)}
                   >

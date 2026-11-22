@@ -80,6 +80,11 @@ import {
   deletedLine,
   deletedManyLine,
 } from '../content/shelfDelete.js'
+import {
+  FULL_ADD_FORM,
+  ITEM_TABLE,
+  ITEM_TABLE_WRAP,
+} from '../components/adminFormClasses.js'
 
 /** The empty selection: the shelf's filters and one null per tag group. */
 // The bulk bar's labels: the words beside their selects.
@@ -1128,7 +1133,7 @@ export default function AdminCollection() {
         />
 
         <details
-          className="full-add-form"
+          className={`full-add-form ${FULL_ADD_FORM}`}
           ref={fullFormRef}
           open={fullOpen}
           onToggle={(event) => setFullOpen(event.currentTarget.open)}
@@ -1161,7 +1166,7 @@ export default function AdminCollection() {
               {view === 'shelf' ? (
                 renderShelf()
               ) : (
-                <div className="item-table-wrap">
+                <div className={`item-table-wrap ${ITEM_TABLE_WRAP}`}>
                   {selected.size > 0 && (
                     <div
                       className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-border bg-card px-4 py-2"
@@ -1230,7 +1235,7 @@ export default function AdminCollection() {
                       />
                     </div>
                   )}
-                  <table className="item-table">
+                  <table className={`item-table ${ITEM_TABLE}`}>
                     <thead>
                       <tr>
                         <th>

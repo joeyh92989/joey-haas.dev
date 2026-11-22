@@ -347,7 +347,7 @@ async function openMore(page) {
 
 async function open(
   browser,
-  { path, theme, vp, kind, media, reduce, noIndex, serve: served, touch },
+  { path, theme, vp, kind, media, reduce, noIndex, serve: served, touch, mock },
 ) {
   const context = await browser.newContext({
     viewport: VIEWPORTS[vp],
@@ -379,6 +379,7 @@ async function open(
     })
   }
   if (served) await serve(page, served)
+  if (mock) await mock(page)
   if (kind === 'denver' || kind === 'next') {
     const json = (body) => (route) =>
       route.fulfill({

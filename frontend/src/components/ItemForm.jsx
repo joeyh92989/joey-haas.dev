@@ -4,6 +4,21 @@ import { adminCopy } from '../content/adminCopy.js'
 import { spine } from '../content/spine.js'
 import { EMPTY_BOOK, SHELF_FORMATS } from '../lib/comics.js'
 import { STATUS_ORDER, statusLabel } from '../lib/shelf.js'
+import {
+  ITEM_FORM,
+  ITEM_FORM_ERROR,
+  ITEM_FORM_FIELD,
+  ITEM_FORM_LABEL_ROW,
+  ITEM_FORM_REQUIRED,
+  LINKED_SOURCE,
+} from './adminFormClasses.js'
+import {
+  COMIC_EDITIONS,
+  COMIC_EDITION_ROW,
+  COMIC_FIELDS,
+  COMIC_FIELD_ERROR,
+  COMIC_HINT,
+} from './comicAdminClasses.js'
 
 const TYPES = ['game', 'movie', 'comic', 'boardgame']
 const OWNED_FORMATS = [
@@ -66,7 +81,11 @@ const EDITION_KINDS = ['Trade', 'Omnibus', 'Hardcover', 'Compendium', 'Deluxe']
 function FieldError({ id, message }) {
   if (!message) return null
   return (
-    <p id={id} className="admin-error comic-field-error" role="alert">
+    <p
+      id={id}
+      className={`admin-error comic-field-error ${COMIC_FIELD_ERROR}`}
+      role="alert"
+    >
       {message}
     </p>
   )
@@ -89,7 +108,7 @@ export function BookRows({ rows, onChange, error, idPrefix = 'comic' }) {
     )
   return (
     <fieldset
-      className="comic-editions"
+      className={`comic-editions ${COMIC_EDITIONS}`}
       aria-describedby={error ? `${idPrefix}-books-error` : undefined}
     >
       <legend>Collected books</legend>
@@ -102,7 +121,7 @@ export function BookRows({ rows, onChange, error, idPrefix = 'comic' }) {
         const name = row.label || `book ${index + 1}`
         return (
           <div className="comic-edition" key={index}>
-            <div className="comic-edition-row">
+            <div className={`comic-edition-row ${COMIC_EDITION_ROW}`}>
               <input
                 aria-label={`Kind, ${name}`}
                 list={`${idPrefix}-book-kinds`}
@@ -208,7 +227,7 @@ export function ComicFields({ value, onChange, released = null, errors = {} }) {
         value={value.issues_owned}
         onChange={set('issues_owned')}
       />
-      <p id="comic-issues-hint" className="muted comic-hint">
+      <p id="comic-issues-hint" className={`muted comic-hint ${COMIC_HINT}`}>
         Numbers and ranges, separated by commas. Collected books are added on
         the comic's page, and their issues count there.
         {released ? ` Comic Vine lists ${released} out.` : ''}
@@ -325,19 +344,21 @@ export default function ItemForm({
     errors[field] && (
       <p
         id={`${id}-${field}-error`}
-        className="admin-error item-form-error"
+        className={`admin-error item-form-error ${ITEM_FORM_ERROR}`}
         role="alert"
       >
         {errors[field]}
       </p>
     )
   const requiredMark = (
-    <span className="item-form-required">{adminCopy.collection.required}</span>
+    <span className={`item-form-required ${ITEM_FORM_REQUIRED}`}>
+      {adminCopy.collection.required}
+    </span>
   )
 
   return (
-    <form className="item-form" onSubmit={submit} noValidate>
-      <div className="item-form-field">
+    <form className={`item-form ${ITEM_FORM}`} onSubmit={submit} noValidate>
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
         <label htmlFor={`${id}-type`}>Type</label>
         <select id={`${id}-type`} value={value.type} onChange={set('type')}>
           {TYPES.map((type) => (
@@ -348,8 +369,8 @@ export default function ItemForm({
         </select>
       </div>
 
-      <div className="item-form-field">
-        <div className="item-form-label-row">
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
+        <div className={`item-form-label-row ${ITEM_FORM_LABEL_ROW}`}>
           <label htmlFor={`${id}-title`}>Title</label>
           {requiredMark}
         </div>
@@ -366,7 +387,7 @@ export default function ItemForm({
         {error('title')}
       </div>
 
-      <div className="item-form-field">
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
         <label htmlFor={`${id}-year`}>Year</label>
         <input
           id={`${id}-year`}
@@ -379,7 +400,7 @@ export default function ItemForm({
         />
       </div>
 
-      <div className="item-form-field">
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
         <label htmlFor={`${id}-status`}>Status</label>
         <select
           id={`${id}-status`}
@@ -394,8 +415,8 @@ export default function ItemForm({
         </select>
       </div>
 
-      <div className="item-form-field">
-        <div className="item-form-label-row">
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
+        <div className={`item-form-label-row ${ITEM_FORM_LABEL_ROW}`}>
           <label htmlFor={`${id}-owned`}>Owned format</label>
           {requiredMark}
         </div>
@@ -419,12 +440,12 @@ export default function ItemForm({
       </div>
 
       {value.type === 'comic' ? (
-        <div className="comic-fields">
+        <div className={`comic-fields ${COMIC_FIELDS}`}>
           <ComicFields value={value} onChange={onChange} />
         </div>
       ) : (
         <>
-          <div className="item-form-field">
+          <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
             <label htmlFor={`${id}-platform`}>Platform</label>
             <select
               id={`${id}-platform`}
@@ -440,7 +461,7 @@ export default function ItemForm({
             </select>
           </div>
 
-          <div className="item-form-field">
+          <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
             <label htmlFor={`${id}-copy`}>Copy format</label>
             <select
               id={`${id}-copy`}
@@ -458,7 +479,7 @@ export default function ItemForm({
         </>
       )}
 
-      <div className="item-form-field">
+      <div className={`item-form-field ${ITEM_FORM_FIELD}`}>
         <label htmlFor={`${id}-rating`}>Rating</label>
         <input
           id={`${id}-rating`}
@@ -476,7 +497,7 @@ export default function ItemForm({
       </button>
 
       {linkedSource && (
-        <p className="muted linked-source">
+        <p className={`muted linked-source ${LINKED_SOURCE}`}>
           Linked to {linkedSource}.{' '}
           <button type="button" className="link-button" onClick={onClearLink}>
             Unlink

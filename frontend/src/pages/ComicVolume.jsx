@@ -17,6 +17,10 @@ import {
   SUB_HEAD,
   PAGE_WRAP,
 } from '../components/detail-classes.js'
+import {
+  COMIC_VOLUME,
+  EDITION_NEIGHBOUR_HOVER,
+} from '../components/comicAdminClasses.js'
 import { cx } from '../lib/cx.js'
 import { spine } from '../content/spine.js'
 import { SAVED_NOT_REFRESHED } from '../content/status.js'
@@ -100,6 +104,7 @@ function Neighbour({ side, id, book }) {
         'edition-neighbour',
         side,
         SIBLING_LINK,
+        EDITION_NEIGHBOUR_HOVER,
         side === 'next' && 'ml-auto text-right',
       )}
       to={volumePath(id, book.slug)}
@@ -175,7 +180,9 @@ export default function ComicVolume({ id, slug }) {
 
   if (!page) {
     return (
-      <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
+      <article
+        className={cx('comic-issue comic-volume', COMIC_VOLUME, PAGE_WRAP)}
+      >
         <Breadcrumb
           label={ISSUE.breadcrumb}
           trail={[
@@ -198,7 +205,9 @@ export default function ComicVolume({ id, slug }) {
     collects.find((entry) => entry.link?.item_id === title.id)?.link ?? null
 
   return (
-    <article className={cx('comic-issue comic-volume', PAGE_WRAP)}>
+    <article
+      className={cx('comic-issue comic-volume', COMIC_VOLUME, PAGE_WRAP)}
+    >
       <Breadcrumb
         label={ISSUE.breadcrumb}
         trail={[

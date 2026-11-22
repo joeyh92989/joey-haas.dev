@@ -19,6 +19,7 @@ import {
   TONIGHT_CONTINUING,
 } from '../components/tonightClasses.js'
 import {
+  HOW_TRY,
   TOUR_CLOSING,
   TOUR_COVERS,
   TOUR_LEDE,
@@ -167,7 +168,7 @@ export default function HowItWorks() {
         >
           <NewestCovers games={games} />
         </Live>
-        <p className="how-try">
+        <p className={`how-try ${HOW_TRY}`}>
           <Link to={intake.path}>{intake.title}</Link>
         </p>
       </>
@@ -214,7 +215,7 @@ export default function HowItWorks() {
             />
           )}
         </Live>
-        <p className="how-try">
+        <p className={`how-try ${HOW_TRY}`}>
           <Link to={`${spine.tabs.next.to}#pick-for-me`}>
             {copy.tryPickForMe}
           </Link>

@@ -193,6 +193,32 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   that must stay inclusive is `[@media(max-width:760px)]:`, since `max-[760px]:`
   is a strict `<`. A `font:` shorthand in the old sheet also reset the line
   height, so its port is `[font:...]`, not `font-mono text-[..]`.
+  The Tour (`/shelf/how`), the Colophon's architecture figure, Projects' hero
+  images and Travel left `index.css` in #536 group G2: `tourClasses.js` (Capture,
+  Stop, StopIndex, LiveBox, Redacted, BarRow), `archClasses.js` (the figure and
+  the hero images) and `travelClasses.js` (the trip index and page, the drawn
+  map, photos, postcards, the lightbox). The `tour-*`, `arch*`, `project-hero*`,
+  `trip-*`, `drawn-map__*`, `lightbox*`, `postcard*` and `photo-group*` names
+  stay as hooks (tests, e2e, print read them). Things to know when porting
+  rules like these: a `background: var(--redact)` is a gradient, so it is
+  `[background:var(--redact)]`, never `bg-(--redact)` (that sets only the colour;
+  `--hatch` is the same); two modifiers that set one property on one element
+  (a pin's `transform` on the left and right) are a map from the modifier to a
+  class (`DRAWN_MAP_PIN_SIDE`, `PILL_TONE`), not two classes that tie; a state
+  of a parent that a child reads is `group/pin` and `group-focus-visible/pin:`
+  (an arbitrary variant with a `__` in a class name does not survive Tailwind's
+  source scan); a hover that also applied on touch is `group-[:hover]/pin:`.
+  Travel is shipped dark: its pages exist only in `vite` dev, so a port is
+  proved with two dev servers (README → `e2e/tools`).
+  The comic admin pages (the comic edit page, a book's page and their Books,
+  Collects, tag picker and edition link picker), the add form and collection
+  table (`ItemForm`, `AdminCollection`), `LoadState`, `ConfirmDelete`'s detail
+  line and the single-book card left in the same group: `comicAdminClasses.js`
+  and `adminFormClasses.js`, hooks kept (`admin-book*`, `admin-collect*`,
+  `comic-hint`, `tag-picker`, `item-form*`, `load-state` ...). Before deleting
+  a rule as dead, look for a name built at run time: `cover-${type}` is the
+  only thing that uses `.cover-movie`, `.cover-game` and `.cover-boardgame`,
+  and a search for the literal finds nothing.
   The admin Shelf data and edit pages (Sources, Store list, item and comic edit,
   a book's page; #535) take the same looks from `components/adminDataClasses.js`
   (`FIELD`, `FORM_GRID`, `LABEL`, `CHECKBOX`, the table strings, `LINK_BTN`,

@@ -2,6 +2,7 @@ import { tagGroupsOf, tagPicker } from '../content/tags.js'
 import { toggleTag } from '../lib/tags.js'
 import { MUTED, chipBtn } from './adminDataClasses.js'
 import { CTL_LABEL, CTL_ROW_WIDE } from './shelf-classes.js'
+import { COMIC_HINT, TAG_PICKER } from './comicAdminClasses.js'
 
 /**
  * The edit pages' tag picker: each group of the type's vocabulary as a
@@ -18,9 +19,9 @@ export default function TagPicker({ type, value, onChange }) {
   const groups = tagGroupsOf(type)
   if (groups.length === 0) return null
   return (
-    <fieldset className="tag-picker">
+    <fieldset className={`tag-picker ${TAG_PICKER}`}>
       <legend>{tagPicker.title}</legend>
-      <p className={`${MUTED} comic-hint`}>{tagPicker.hint}</p>
+      <p className={`${MUTED} comic-hint ${COMIC_HINT}`}>{tagPicker.hint}</p>
       {groups.map((group) => (
         <div key={group.key} className={`ctl-row ${CTL_ROW_WIDE}`}>
           <span className={`ctl-label ${CTL_LABEL}`} id={`tags-${group.key}`}>

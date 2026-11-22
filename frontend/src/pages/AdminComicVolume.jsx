@@ -44,6 +44,15 @@ import {
   toFacts,
 } from '../lib/volumeEdits.js'
 import { TEXT_LINK } from '../components/detail-classes.js'
+import {
+  ADMIN_COMIC_HEAD,
+  ADMIN_VOLUME_BODY,
+  ADMIN_VOLUME_MOVE,
+  COMIC_FIELD_ERROR,
+  COMIC_HINT,
+  EDITION_NEIGHBOUR,
+  EDITION_NEIGHBOURS,
+} from '../components/comicAdminClasses.js'
 
 const KINDS = spine.comics.volume.kinds
 const MARKS = [
@@ -101,7 +110,7 @@ function StatusLine({ line, area, error }) {
 function Neighbour({ side, itemId, book }) {
   return (
     <Link
-      className={`edition-neighbour ${side}`}
+      className={`edition-neighbour ${EDITION_NEIGHBOUR} ${side}`}
       to={adminVolumePath(itemId, book.slug)}
     >
       <span className="tiny">
@@ -367,7 +376,7 @@ export default function AdminComicVolume() {
     fieldError(name) && (
       <p
         id={`${ids}-${name}-error`}
-        className="admin-error comic-field-error"
+        className={`admin-error comic-field-error ${COMIC_FIELD_ERROR}`}
         role="alert"
       >
         {fieldError(name)}
@@ -387,7 +396,7 @@ export default function AdminComicVolume() {
     <section className="admin-volume">
       <Breadcrumb trail={trail} />
 
-      <div className="admin-comic-head">
+      <div className={`admin-comic-head ${ADMIN_COMIC_HEAD}`}>
         <div className="admin-comic-cover">
           <CoverImage
             src={cover}
@@ -428,7 +437,7 @@ export default function AdminComicVolume() {
         </div>
       </div>
 
-      <div className="admin-volume-body">
+      <div className={`admin-volume-body ${ADMIN_VOLUME_BODY}`}>
         <Panel title={COPY.status.heading}>
           <div
             className="chip-row"
@@ -448,7 +457,9 @@ export default function AdminComicVolume() {
               </button>
             ))}
           </div>
-          <p className={`${MUTED} comic-hint`}>{COPY.status.hint}</p>
+          <p className={`${MUTED} comic-hint ${COMIC_HINT}`}>
+            {COPY.status.hint}
+          </p>
           <StatusLine line={line} area="shelf" error={error} />
         </Panel>
 
@@ -550,7 +561,10 @@ export default function AdminComicVolume() {
               )}
             </div>
             {unplaced && (
-              <p className="admin-error comic-field-error" role="alert">
+              <p
+                className={`admin-error comic-field-error ${COMIC_FIELD_ERROR}`}
+                role="alert"
+              >
                 {unplaced}
               </p>
             )}
@@ -569,7 +583,10 @@ export default function AdminComicVolume() {
           <StatusLine line={line} area="collects" error={error} />
         </Panel>
 
-        <nav aria-label={COPY.neighbours.label} className="edition-neighbours">
+        <nav
+          aria-label={COPY.neighbours.label}
+          className={`edition-neighbours ${EDITION_NEIGHBOURS}`}
+        >
           {volume.prev ? (
             <Neighbour side="prev" itemId={volume.item_id} book={volume.prev} />
           ) : (
@@ -588,7 +605,10 @@ export default function AdminComicVolume() {
             <p className={MUTED}>{COPY.move.none}</p>
           )}
           {titles.status === 'ready' && others.length > 0 && (
-            <form className="admin-volume-move" onSubmit={moveTo}>
+            <form
+              className={`admin-volume-move ${ADMIN_VOLUME_MOVE}`}
+              onSubmit={moveTo}
+            >
               <label htmlFor={`${ids}-move`} className={LABEL}>
                 {COPY.move.select}
               </label>

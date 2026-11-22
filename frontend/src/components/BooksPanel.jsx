@@ -13,21 +13,31 @@ import Panel from './Panel.jsx'
 import StatePill from './StatePill.jsx'
 import { FIELD, LABEL, MUTED, PLAIN } from './adminDataClasses.js'
 import { TEXT_LINK } from './detail-classes.js'
+import {
+  ADMIN_BOOK,
+  ADMIN_BOOKS,
+  ADMIN_BOOK_ADD,
+  ADMIN_BOOK_ADD_FIELDS,
+  ADMIN_BOOK_FACTS,
+  ADMIN_BOOK_MARKS,
+  ADMIN_BOOK_TEXT,
+  COMIC_PRIVATE,
+} from './comicAdminClasses.js'
 
 const KINDS = spine.comics.volume.kinds
 
 /** One book of the title: cover, name, number, format, marks, entries. */
 function BookRow({ itemId, book }) {
   return (
-    <li className="admin-book">
+    <li className={`admin-book ${ADMIN_BOOK}`}>
       <span className="admin-book-cover">
         <CoverImage src={book.cover_url} type="comic" alt="" />
       </span>
-      <span className="admin-book-text">
+      <span className={`admin-book-text ${ADMIN_BOOK_TEXT}`}>
         <Link className={TEXT_LINK} to={adminVolumePath(itemId, book.slug)}>
           {book.label}
         </Link>
-        <span className={`${MUTED} admin-book-facts`}>
+        <span className={`${MUTED} admin-book-facts ${ADMIN_BOOK_FACTS}`}>
           {[
             book.line_number != null
               ? spine.comics.volume.number(book.line_number)
@@ -39,7 +49,7 @@ function BookRow({ itemId, book }) {
             .join(' · ')}
         </span>
         {book.collects_count === 0 && (
-          <span className={`${MUTED} admin-book-facts`}>
+          <span className={`${MUTED} admin-book-facts ${ADMIN_BOOK_FACTS}`}>
             {COPY.noContents}
             {' · '}
             <Link className={TEXT_LINK} to={adminVolumePath(itemId, book.slug)}>
@@ -51,11 +61,13 @@ function BookRow({ itemId, book }) {
           </span>
         )}
       </span>
-      <span className="admin-book-marks">
+      <span className={`admin-book-marks ${ADMIN_BOOK_MARKS}`}>
         {book.owned ? (
           <StatePill state="owned" />
         ) : (
-          <span className="comic-private">{COPY.notOwned}</span>
+          <span className={`comic-private ${COMIC_PRIVATE}`}>
+            {COPY.notOwned}
+          </span>
         )}
         {book.read && <StatePill state="read" />}
       </span>
@@ -131,16 +143,20 @@ export default function BooksPanel({ itemId }) {
         (state.books.length === 0 ? (
           <p className={MUTED}>{COPY.empty}</p>
         ) : (
-          <ul className="admin-books" aria-label={COPY.list}>
+          <ul className={`admin-books ${ADMIN_BOOKS}`} aria-label={COPY.list}>
             {state.books.map((book) => (
               <BookRow key={book.id} itemId={itemId} book={book} />
             ))}
           </ul>
         ))}
 
-      <form className="admin-book-add" onSubmit={add} noValidate>
+      <form
+        className={`admin-book-add ${ADMIN_BOOK_ADD}`}
+        onSubmit={add}
+        noValidate
+      >
         <h3>{COPY.add.heading}</h3>
-        <div className="admin-book-add-fields">
+        <div className={`admin-book-add-fields ${ADMIN_BOOK_ADD_FIELDS}`}>
           <div>
             <label htmlFor={`${ids}-label`} className={LABEL}>
               {COPY.add.label}

@@ -37,6 +37,14 @@ import { setStatus as postStatus, statusMoves } from '../lib/statusMoves.js'
 import { adminListPath } from '../lib/shelf.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { TEXT_LINK } from '../components/detail-classes.js'
+import {
+  ADMIN_COMIC_ADD,
+  ADMIN_COMIC_COLS,
+  ADMIN_COMIC_HEAD,
+  ADMIN_COMIC_SUM,
+  COMIC_HINT,
+  COMIC_PRIVATE,
+} from '../components/comicAdminClasses.js'
 
 const COPY = spine.comics.admin
 const COMIC_VINE = 'https://comicvine.gamespot.com/'
@@ -435,7 +443,7 @@ export default function AdminComic() {
         </p>
       )}
 
-      <div className="admin-comic-head">
+      <div className={`admin-comic-head ${ADMIN_COMIC_HEAD}`}>
         <div className="admin-comic-cover">
           <CoverImage src={item.cover_url} type="comic" alt="" />
         </div>
@@ -455,7 +463,7 @@ export default function AdminComic() {
         </AdminPageHeader>
       </div>
 
-      <div className="admin-comic-cols">
+      <div className={`admin-comic-cols ${ADMIN_COMIC_COLS}`}>
         <div>
           <Panel title={COPY.series}>
             <form className={FORM_GRID} onSubmit={save}>
@@ -547,7 +555,9 @@ export default function AdminComic() {
 
               <label htmlFor="notes" className={LABEL}>
                 {adminCopy.comic.notes}{' '}
-                <span className="comic-private">{COPY.privateTag}</span>
+                <span className={`comic-private ${COMIC_PRIVATE}`}>
+                  {COPY.privateTag}
+                </span>
               </label>
               <textarea
                 className={TEXTAREA}
@@ -584,7 +594,7 @@ export default function AdminComic() {
         <div>
           <Panel title={COPY.issues}>
             {run && (
-              <p className="admin-comic-sum">
+              <p className={`admin-comic-sum ${ADMIN_COMIC_SUM}`}>
                 {COPY.issuesLine(
                   run.owned,
                   run.released,
@@ -593,7 +603,11 @@ export default function AdminComic() {
                 )}
               </p>
             )}
-            <form className="admin-comic-add" onSubmit={addIssue} noValidate>
+            <form
+              className={`admin-comic-add ${ADMIN_COMIC_ADD}`}
+              onSubmit={addIssue}
+              noValidate
+            >
               <label htmlFor="add-issue" className={LABEL}>
                 {COPY.addLabel}
               </label>
@@ -616,7 +630,10 @@ export default function AdminComic() {
                 {COPY.add}
               </button>
             </form>
-            <p id="add-issue-hint" className={`${MUTED} comic-hint`}>
+            <p
+              id="add-issue-hint"
+              className={`${MUTED} comic-hint ${COMIC_HINT}`}
+            >
               {COPY.addHint}
             </p>
             {addError && (
@@ -624,7 +641,9 @@ export default function AdminComic() {
                 {addError}
               </p>
             )}
-            <p className={`${MUTED} comic-hint`}>{COPY.issuesHint}</p>
+            <p className={`${MUTED} comic-hint ${COMIC_HINT}`}>
+              {COPY.issuesHint}
+            </p>
           </Panel>
           {comic &&
             (wall.wall.issues.length > 0 ||

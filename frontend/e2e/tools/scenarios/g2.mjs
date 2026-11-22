@@ -5,7 +5,21 @@
 // logs `absent: <selector>` and is dumped as it stands, the same on both
 // sides. Edge widths (`w544`, `w545`, `w960`, `w961`, `w320`) are viewports in
 // style-dump.mjs: the Tour's breakpoints are 34rem and 60rem, inclusive.
+import { readFileSync } from 'node:fs'
 import { NEXT, PICK_TABLE } from '../../tools-data.fixtures.js'
+import {
+  COMIC_ID,
+  GAME_ID,
+  VOLUME_SLUG,
+  mockAdminData,
+} from '../../admin-data-mocks.js'
+
+const api = (name) =>
+  JSON.parse(
+    readFileSync(new URL(`../../fixtures/api/${name}.json`, import.meta.url)),
+  )
+const BOOK_LINE = '33333333-bbbb-4bbb-8bbb-000000000003'
+const SINGLE = '44444444-bbbb-4bbb-8bbb-000000000004'
 
 const json = (route, body) =>
   route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
@@ -216,7 +230,7 @@ export async function g2({ record }, theme, vp) {
   await record(
     at('b', 'trip pin focus last'),
     spec(TRIP),
-    on('.drawn-map__pin', 'focus', 3),
+    on('.drawn-map__pin', 'focus', 2),
   )
   await record(
     at('b', 'trip stop link hover'),
@@ -305,4 +319,191 @@ export async function g2({ record }, theme, vp) {
         vp: edge,
       })
     }
+
+  // ---------- g2c: the comic admin pages, the add form, the Book page ----------
+  const admin = (path) => spec(path, undefined, { mock: mockAdminData })
+  const page = (path, routes) =>
+    spec(path, undefined, {
+      mock: async (p) => {
+        for (const [pattern, name] of routes)
+          await p.route(pattern, (r) => json(r, api(name)))
+      },
+    })
+  const comic = admin(`/admin/shelf/comics/${COMIC_ID}`)
+  const volume = admin(`/admin/shelf/comics/${COMIC_ID}/${VOLUME_SLUG}`)
+  await record(at('c', 'admin comic'), comic)
+  await record(
+    at('c', 'admin comic issue focus'),
+    comic,
+    on('.admin-comic-add input', 'focus', 0),
+  )
+  await record(
+    at('c', 'admin comic hint'),
+    comic,
+    on('.comic-hint', 'hover', 0),
+  )
+  await record(at('c', 'admin comic touch'), { ...comic, touch: true })
+  await record(at('c', 'admin comic print'), { ...comic, media: 'print' })
+  await record(at('c', 'admin volume'), volume)
+  await record(at('c', 'admin volume touch'), { ...volume, touch: true })
+  await record(
+    at('c', 'admin comic book hover'),
+    comic,
+    on('.admin-book', 'hover', 0),
+  )
+  await record(
+    at('c', 'admin comic field focus'),
+    comic,
+    on('.admin-book-add-fields input', 'focus', 0),
+  )
+  await record(
+    at('c', 'admin volume collect'),
+    volume,
+    on('.admin-collect', 'hover', 0),
+  )
+  await record(
+    at('c', 'admin volume neighbour hover'),
+    volume,
+    on('.edition-neighbour', 'hover', 0),
+  )
+  await record(
+    at('c', 'admin volume neighbour focus'),
+    volume,
+    on('.edition-neighbour', 'focus', 0),
+  )
+  await record(
+    at('c', 'admin comic add error'),
+    comic,
+    on(
+      '.admin-book-add button[type=submit], .admin-book-add button',
+      'press',
+      0,
+    ),
+  )
+  await record(
+    at('c', 'admin volume collect add'),
+    volume,
+    on('.admin-collect-actions button', 'press', 0),
+  )
+  await record(at('c', 'admin game'), admin(`/admin/collection/${GAME_ID}`))
+  await record(
+    at('c', 'admin game tag focus'),
+    admin(`/admin/collection/${GAME_ID}`),
+    on('.tag-picker input, .tag-picker button', 'focus', 0),
+  )
+  // The Games page: its List view (the item table) and the full add form.
+  const games = spec('/admin/shelf/games', 'shelf')
+  const list = async (page) => {
+    await page.getByRole('button', { name: 'List', exact: true }).click()
+    await page.waitForTimeout(400)
+  }
+  const form = async (page) => {
+    await page.locator('.full-add-form summary').click()
+    await page.waitForTimeout(400)
+  }
+  await record(at('c', 'admin games list'), games, list)
+  await record(
+    at('c', 'admin games list touch'),
+    { ...games, touch: true },
+    list,
+  )
+  await record(
+    at('c', 'admin games list button hover'),
+    games,
+    async (page) => {
+      await list(page)
+      await page.locator('.item-table button').first().hover()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(
+    at('c', 'admin games list select focus'),
+    games,
+    async (page) => {
+      await list(page)
+      await page.locator('.item-table select').first().focus()
+      await page.keyboard.press('Shift+Tab')
+      await page.keyboard.press('Tab')
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(at('c', 'admin games form'), games, form)
+  await record(at('c', 'admin games form field focus'), games, async (page) => {
+    await form(page)
+    await page.locator('.item-form input').first().focus()
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Tab')
+    await page.waitForTimeout(300)
+  })
+  await record(
+    at('c', 'admin games form select focus'),
+    games,
+    async (page) => {
+      await form(page)
+      await page.locator('.item-form select').first().focus()
+      await page.keyboard.press('Shift+Tab')
+      await page.keyboard.press('Tab')
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(
+    at('c', 'admin games form button hover'),
+    games,
+    async (page) => {
+      await form(page)
+      await page.locator('.item-form button').first().hover()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(
+    at('c', 'admin games form submit empty'),
+    games,
+    async (page) => {
+      await form(page)
+      await page.locator('.item-form button[type=submit]').first().click()
+      await page.waitForTimeout(400)
+    },
+  )
+  await record(at('c', 'admin collection add'), admin('/admin/collection/add'))
+  await record(
+    at('c', 'admin volume link'),
+    volume,
+    on('.comic-edition-link', 'hover', 0),
+  )
+  await record(
+    at('c', 'public single book'),
+    page(`/shelf/${SINGLE}`, [
+      [`**/api/public/items/${SINGLE}`, 'public-comic-single_book'],
+    ]),
+  )
+  await record(
+    at('c', 'public book line'),
+    page(`/shelf/${BOOK_LINE}`, [
+      [`**/api/public/items/${BOOK_LINE}`, 'public-comic-book_line'],
+    ]),
+  )
+  await record(
+    at('c', 'public volume'),
+    page(`/shelf/${BOOK_LINE}/vol-1`, [
+      [`**/api/public/items/${BOOK_LINE}/volumes/vol-1`, 'volume'],
+    ]),
+  )
+  await record(
+    at('c', 'public volume neighbour hover'),
+    page(`/shelf/${BOOK_LINE}/vol-1`, [
+      [`**/api/public/items/${BOOK_LINE}/volumes/vol-1`, 'volume'],
+    ]),
+    on('.edition-neighbour', 'hover', 0),
+  )
+  await record(
+    at('c', 'public volume neighbour focus'),
+    page(`/shelf/${BOOK_LINE}/vol-1`, [
+      [`**/api/public/items/${BOOK_LINE}/volumes/vol-1`, 'volume'],
+    ]),
+    on('.edition-neighbour', 'focus', 0),
+  )
+  await record(at('c', 'load state'), spec('/shelf/games', 'skeleton'), (p) =>
+    p.waitForTimeout(4500),
+  )
+  await record(at('c', 'now'), spec('/now'))
 }

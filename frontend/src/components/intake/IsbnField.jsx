@@ -10,6 +10,7 @@ import {
   COMIC_EDITION_ISBN_COVER,
   COMIC_EDITION_ISBN_NOTE,
 } from '../intakeFormClasses.js'
+import { COMIC_FIELD_ERROR } from '../comicAdminClasses.js'
 
 const REASONS = {
   not_found: words.notFound,
@@ -149,12 +150,18 @@ export default function IsbnField({ row, name, onChange }) {
             </p>
           )}
           {note.bad && (
-            <p className="comic-field-error" data-state="bad">
+            <p
+              className={`comic-field-error ${COMIC_FIELD_ERROR}`}
+              data-state="bad"
+            >
               {note.bad}
             </p>
           )}
           {note.onShelf?.length > 0 && (
-            <p className="comic-field-error" data-state="bad">
+            <p
+              className={`comic-field-error ${COMIC_FIELD_ERROR}`}
+              data-state="bad"
+            >
               {words.onShelf.before}
               {note.onShelf.map((held, index) => (
                 <span key={`${held.item_id}-${held.volume_slug}`}>

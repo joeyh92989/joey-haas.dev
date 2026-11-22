@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { CONFIRM_DETAIL } from './adminFormClasses.js'
 
 /**
  * A Delete button that asks in place before it deletes: pressing it swaps
@@ -83,7 +84,11 @@ export default function ConfirmDelete({
     return (
       <>
         {(intro || detail) && (
-          <span className="confirm-detail" id={detailId} role="status">
+          <span
+            className={`confirm-detail ${CONFIRM_DETAIL}`}
+            id={detailId}
+            role="status"
+          >
             {intro} {detail}
           </span>
         )}

@@ -4,6 +4,7 @@ import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { readCss } from '../testing/readCss.js'
 import { TODAY } from './closetClasses.js'
+import { TAG_PICKER } from './comicAdminClasses.js'
 import { PICK_CHIP_ROW } from './tonightClasses.js'
 
 // The Closet pages draw from the Button, Card and Input looks (#535). The
@@ -69,15 +70,20 @@ describe('Closet pages and the legacy look', () => {
 
   // Public rows that reset their padding must reset the start margin the
   // narrow-screen rule adds (a ring's room), or they sit 4px left (#535).
-  for (const selector of ['.ctl-row .chip-row', '.tag-picker .chip-row']) {
-    it(`${selector} resets the start margin`, () => {
-      const css = readCss()
-      const at = css.indexOf(`${selector} {`)
-      expect(at).toBeGreaterThan(-1)
-      const body = css.slice(at, css.indexOf('}', at))
-      expect(body).toMatch(/margin-inline-start: 0/)
-    })
-  }
+  it('.ctl-row .chip-row resets the start margin', () => {
+    const css = readCss()
+    const at = css.indexOf('.ctl-row .chip-row {')
+    expect(at).toBeGreaterThan(-1)
+    const body = css.slice(at, css.indexOf('}', at))
+    expect(body).toMatch(/margin-inline-start: 0/)
+  })
+
+  // The tag picker's row is a class string now (comicAdminClasses.js).
+  it('the tag picker’s chip row resets the start margin', () => {
+    expect(TAG_PICKER.split(' ')).toContain(
+      '[&_.chip-row]:[margin-inline-start:0]',
+    )
+  })
 
   // Pick for me's row is a class string now (tonightClasses.js).
   it('Pick for me’s chip row resets the start margin', () => {

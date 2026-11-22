@@ -3,6 +3,11 @@ import { volume as COPY } from '../content/adminVolume.js'
 import { collectBody, findMetronContents } from '../lib/volumeEdits.js'
 import { LINK_BTN, MUTED, SMALL } from './adminDataClasses.js'
 import { TEXT_LINK } from './detail-classes.js'
+import {
+  ADMIN_COLLECT,
+  ADMIN_COLLECT_ACTIONS,
+  COMIC_HINT,
+} from './comicAdminClasses.js'
 
 const M = COPY.collects.metron
 
@@ -59,7 +64,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
 
   return (
     <div className="admin-collect-read">
-      <div className="admin-collect-actions">
+      <div className={`admin-collect-actions ${ADMIN_COLLECT_ACTIONS}`}>
         <button
           type="button"
           className={SMALL}
@@ -69,7 +74,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
           {finding ? M.finding : M.button}
         </button>
       </div>
-      <p className={`${MUTED} comic-hint`}>{M.hint}</p>
+      <p className={`${MUTED} comic-hint ${COMIC_HINT}`}>{M.hint}</p>
       {error && (
         <p className="admin-error" role="alert">
           {error}
@@ -83,7 +88,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
       {result?.candidates.map((candidate) => (
         <section
           key={candidate.metron_id}
-          className="admin-collect"
+          className={`admin-collect ${ADMIN_COLLECT}`}
           aria-label={`${candidate.series_name} ${candidate.title ?? ''}`.trim()}
         >
           <strong>
@@ -126,7 +131,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
           {result.replaces > 0 && (
             <p className={MUTED}>{M.replaces(result.replaces)}</p>
           )}
-          <div className="admin-collect-actions">
+          <div className={`admin-collect-actions ${ADMIN_COLLECT_ACTIONS}`}>
             <button
               type="button"
               className={SMALL}

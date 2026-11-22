@@ -111,3 +111,6 @@ export const PILL_TONE = {
   warn: 'border-(--warn)',
   acc: 'border-(--accent)',
 }
+
+/** The "Try it" line under a live box. */
+export const HOW_TRY = 'text-[0.875rem] mt-3'

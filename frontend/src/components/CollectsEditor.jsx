@@ -15,6 +15,20 @@ import {
   TEXTAREA,
 } from './adminDataClasses.js'
 import MetronFind from './MetronFind.jsx'
+import {
+  ADMIN_COLLECT,
+  ADMIN_COLLECTS,
+  ADMIN_COLLECT_ACTIONS,
+  ADMIN_COLLECT_FIELD,
+  ADMIN_COLLECT_FORM,
+  ADMIN_COLLECT_LINK,
+  ADMIN_COLLECT_RANGE,
+  ADMIN_COLLECT_SOURCE,
+  ADMIN_COLLECT_TEXT,
+  COMIC_FIELD_ERROR,
+  COMIC_HINT,
+  COMIC_PRIVATE,
+} from './comicAdminClasses.js'
 
 const C = COPY.collects
 
@@ -36,7 +50,7 @@ function draftOf(entry) {
 /** One labelled input with its refusal under it, tied by aria-describedby. */
 function Field({ id, label, error, children }) {
   return (
-    <div className="admin-collect-field">
+    <div className={`admin-collect-field ${ADMIN_COLLECT_FIELD}`}>
       <label htmlFor={id} className={LABEL}>
         {label}
       </label>
@@ -48,7 +62,7 @@ function Field({ id, label, error, children }) {
       {error && (
         <p
           id={`${id}-error`}
-          className="admin-error comic-field-error"
+          className={`admin-error comic-field-error ${COMIC_FIELD_ERROR}`}
           role="alert"
         >
           {error}
@@ -89,7 +103,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
   const linked = draft.item_id !== ''
   return (
     <form
-      className="admin-collect-form"
+      className={`admin-collect-form ${ADMIN_COLLECT_FORM}`}
       onSubmit={submit}
       noValidate
       aria-label={entry ? C.editName(entryName(entry)) : C.add}
@@ -149,7 +163,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
         </Field>
       )}
       {linked && (
-        <div className="admin-collect-range">
+        <div className={`admin-collect-range ${ADMIN_COLLECT_RANGE}`}>
           <Field
             id={`${ids}-from`}
             label={C.from}
@@ -191,7 +205,7 @@ function EntryForm({ index, entry, titles, busy, onSave, onCancel }) {
           {unplaced}
         </p>
       )}
-      <div className="admin-collect-actions">
+      <div className={`admin-collect-actions ${ADMIN_COLLECT_ACTIONS}`}>
         <button type="submit" className={PRIMARY} disabled={busy}>
           {busy ? C.saving : C.save}
         </button>
@@ -208,13 +222,13 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
   const name = entryName(entry)
   const link = entry.link
   return (
-    <li className="admin-collect">
-      <div className="admin-collect-text">
+    <li className={`admin-collect ${ADMIN_COLLECT}`}>
+      <div className={`admin-collect-text ${ADMIN_COLLECT_TEXT}`}>
         <span className="admin-collect-name">
           <strong>{entry.series_name}</strong> <span>{entry.issue_text}</span>
         </span>
         {link && (
-          <span className="admin-collect-link">
+          <span className={`admin-collect-link ${ADMIN_COLLECT_LINK}`}>
             {C.linkedTo}{' '}
             <Link
               className={TEXT_LINK}
@@ -226,15 +240,19 @@ function EntryRow({ entry, index, last, busy, onEdit, onMove, onRemove }) {
               <> {C.range(link.from_number, link.to_number)}</>
             )}{' '}
             {!link.is_public && (
-              <span className="comic-private">{COPY.privateTag}</span>
+              <span className={`comic-private ${COMIC_PRIVATE}`}>
+                {COPY.privateTag}
+              </span>
             )}
           </span>
         )}
-        <span className={`${MUTED} admin-collect-source`}>
+        <span
+          className={`${MUTED} admin-collect-source ${ADMIN_COLLECT_SOURCE}`}
+        >
           {C.sourceLabel}: {C.source[entry.source] ?? entry.source}
         </span>
       </div>
-      <div className="admin-collect-actions">
+      <div className={`admin-collect-actions ${ADMIN_COLLECT_ACTIONS}`}>
         <button
           type="button"
           className={SMALL}
@@ -332,7 +350,7 @@ export default function CollectsEditor({
     <>
       {onParse && (
         <div className="admin-collect-read">
-          <div className="admin-collect-actions">
+          <div className={`admin-collect-actions ${ADMIN_COLLECT_ACTIONS}`}>
             <button
               type="button"
               className={SMALL}
@@ -350,9 +368,9 @@ export default function CollectsEditor({
               {noting ? C.read.noteHide : C.read.noteToggle}
             </button>
           </div>
-          <p className={`${MUTED} comic-hint`}>{C.read.hint}</p>
+          <p className={`${MUTED} comic-hint ${COMIC_HINT}`}>{C.read.hint}</p>
           {noting && (
-            <div className="admin-collect-field">
+            <div className={`admin-collect-field ${ADMIN_COLLECT_FIELD}`}>
               <label htmlFor={noteId} className={LABEL}>
                 {C.read.noteLabel}
               </label>
@@ -365,7 +383,10 @@ export default function CollectsEditor({
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
               />
-              <p id={`${noteId}-hint`} className={`${MUTED} comic-hint`}>
+              <p
+                id={`${noteId}-hint`}
+                className={`${MUTED} comic-hint ${COMIC_HINT}`}
+              >
                 {C.read.noteHint}
               </p>
             </div>
@@ -383,10 +404,10 @@ export default function CollectsEditor({
       {entries.length === 0 ? (
         <p className={MUTED}>{C.empty}</p>
       ) : (
-        <ol className="admin-collects" aria-label={C.list}>
+        <ol className={`admin-collects ${ADMIN_COLLECTS}`} aria-label={C.list}>
           {entries.map((entry, index) =>
             editing === entry.id ? (
-              <li key={entry.id} className="admin-collect">
+              <li key={entry.id} className={`admin-collect ${ADMIN_COLLECT}`}>
                 <EntryForm
                   index={index}
                   entry={entry}

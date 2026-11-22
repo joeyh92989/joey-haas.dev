@@ -13,6 +13,7 @@ import { readSnapshot } from '../lib/snapshot.js'
 import { itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { MONTH_YEAR as MONTH, DAY_YEAR as DAY } from '../lib/formatDate.js'
+import { NOW_RSS } from '../components/adminFormClasses.js'
 
 /** A dated row: a hairline under each, so a list reads as a ledger. */
 const ROW = 'border-b border-line-card py-3'
@@ -169,7 +170,7 @@ export default function Now() {
               </li>
             ))}
           </ul>
-          <p className="muted now-rss">
+          <p className={`muted now-rss ${NOW_RSS}`}>
             Also as an{' '}
             <a href={`${spine.path}/feed.xml`}>RSS feed of finished games</a>.
           </p>
