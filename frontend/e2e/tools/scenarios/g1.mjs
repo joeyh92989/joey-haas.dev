@@ -523,6 +523,7 @@ export async function g1({ record }, theme, vp) {
   )
 
   await g1b(record, at, spec, on)
+  await g1c(record, at, spec, on)
 }
 
 const FIXTURE_GAMES = JSON.parse(
@@ -607,5 +608,33 @@ async function g1b(record, at, spec, on) {
   await record(
     at('b', 'play next genre chips'),
     spec('/admin/play-next', 'play-next'),
+  )
+}
+
+// ---------- g1c: the static pages ----------
+async function g1c(record, at, spec, on) {
+  const about = spec('/about')
+  await record(at('c', 'about print'), { ...about, media: 'print' })
+  await record(
+    at('c', 'about resume focus'),
+    about,
+    on('.about-aside a', 'focus', 0),
+  )
+  await record(
+    at('c', 'about resume hover'),
+    about,
+    on('.about-aside a', 'hover', 0),
+  )
+  for (const path of [
+    '/blog/how-my-shelf-works',
+    '/til/profile-before-parallelizing-ci',
+    '/colophon',
+    '/e2e-no-such-page',
+  ])
+    await record(at('c', `${path} print`), { ...spec(path), media: 'print' })
+  await record(
+    at('c', 'post link hover'),
+    spec('/blog/how-my-shelf-works'),
+    on('.post-body a', 'hover', 0),
   )
 }

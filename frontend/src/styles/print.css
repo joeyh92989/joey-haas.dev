@@ -142,7 +142,6 @@
   h1,
   h2,
   h3,
-  .timeline-entry,
   .post-body pre,
   .post-body figure,
   .post-body img {
@@ -154,28 +153,6 @@
   h3,
   h4 {
     break-after: avoid;
-  }
-
-  /* About stacks: the aside (photo and facts) above the body, so the
-     timeline gets the full page width. */
-  .about {
-    display: block;
-  }
-
-  .about-aside {
-    margin-bottom: var(--space-5);
-    position: static;
-  }
-
-  /* An employer holding several roles is taller than a page can promise, so
-     it may break between roles; a role keeps its heading with its bullets. */
-  .timeline-entry.timeline-employer {
-    break-inside: auto;
-  }
-
-  .timeline-step,
-  .timeline-points li {
-    break-inside: avoid;
   }
 }
 /* ===== end Print ===== */

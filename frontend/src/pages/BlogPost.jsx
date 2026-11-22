@@ -8,6 +8,7 @@ import { BLOG_PAGE } from '../content/pages.js'
 import { findPost } from '../content/posts.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
+import { POST_SUMMARY } from '../components/aboutClasses.js'
 
 /** A post with more h2s than this gets a contents list. */
 const MAX_HEADINGS_WITHOUT_CONTENTS = 4
@@ -61,7 +62,7 @@ export default function BlogPost() {
         ]}
         title={post.frontmatter.title}
         lede={post.frontmatter.summary}
-        ledeClassName="post-summary"
+        ledeClassName={`post-summary ${POST_SUMMARY}`}
       />
       {post.frontmatter.draft && (
         <div className="mt-3">
