@@ -13,6 +13,7 @@ import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import PageHeader from '../components/PageHeader.jsx'
 import { CTL_LABEL } from '../components/shelf-classes.js'
 import { Button } from '../components/ui/button.jsx'
+import { CHIP_COUNT, CHIP_TAP } from '../components/chipClasses.js'
 
 const copy = denver.page
 
@@ -109,22 +110,23 @@ function TagChips({ counts, total, pressed, onChange }) {
         <Button
           variant="chip"
           size="chip"
-          className="chip"
+          className={`chip ${CHIP_TAP}`}
           aria-pressed={pressed.length === 0}
           onClick={() => onChange([])}
         >
-          {copy.all} <span className="chip-count">{total}</span>
+          {copy.all} <span className={`chip-count ${CHIP_COUNT}`}>{total}</span>
         </Button>
         {shown.map(({ tag, count }) => (
           <Button
             key={tag}
             variant="chip"
             size="chip"
-            className="chip"
+            className={`chip ${CHIP_TAP}`}
             aria-pressed={pressed.includes(tag)}
             onClick={() => toggle(tag)}
           >
-            {tagLabel(tag)} <span className="chip-count">{count}</span>
+            {tagLabel(tag)}{' '}
+            <span className={`chip-count ${CHIP_COUNT}`}>{count}</span>
           </Button>
         ))}
       </div>
@@ -252,7 +254,7 @@ export default function Denver() {
                 key={value}
                 variant="chip"
                 size="chip"
-                className="chip"
+                className={`chip ${CHIP_TAP}`}
                 aria-pressed={view === value}
                 onClick={() => setView(value)}
               >

@@ -281,3 +281,14 @@ export const SHELF_ACTIONS_SHEET = 'relative z-10 mt-1'
  *  undone (no margin, no max width, no border but the top). */
 export const SHELF_SHEET =
   'fixed inset-x-0 top-auto bottom-0 z-10 [.admin-app-phone_&]:z-40 m-0 max-h-[85dvh] w-auto max-w-none overflow-auto border-0 border-t border-t-(--line) bg-(--surface) px-4 pt-4 pb-6 text-foreground [box-shadow:0_-8px_24px_var(--overlay)] backdrop:bg-(--overlay)'
+
+/** The shelf pages' closing source line (#536 slice E1): a rule over small
+ *  grey text, its links underlined like the running text's (the accent is
+ *  about 1.3:1 against body text, so colour cannot mark them). */
+export const ATTRIBUTION =
+  'mt-8 border-t border-t-border pt-4 text-(--text-3) [font-size:var(--fs-12)] [&_a]:text-[currentColor] [&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-[0.18em] [&_p]:[margin:0_0_var(--space-1)]'
+
+/** The Games page's charts toggle on a phone: a full-width bar with a + that
+ *  turns into a dash when it is open. */
+export const DISCLOSURE =
+  "flex w-full cursor-pointer items-center justify-between rounded-[var(--radius,8px)] border border-(--line-strong) [background:none] px-3 py-2 mb-4 text-foreground [font-family:inherit] [font-style:inherit] [font-weight:inherit] [font-size:var(--fs-14)] [line-height:inherit] after:content-['+'] aria-expanded:after:content-['–'] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--accent) [@media(max-width:700px)]:inline-flex [@media(max-width:700px)]:min-h-11 [@media(max-width:700px)]:items-center"

@@ -12,6 +12,7 @@ import { ACTION_ERROR, LOAD_ERROR, WAKING } from '../content/status.js'
 import LoadState from '../components/LoadState.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { EMPTY } from '../content/emptyStates.js'
+import { CHIP, CHIP_COUNT } from '../components/chipClasses.js'
 
 const SIZES = [
   ['any', 'Any'],
@@ -66,7 +67,7 @@ function Chip({ pressed, onClick, children, hint }) {
   return (
     <button
       type="button"
-      className="chip"
+      className={`chip ${CHIP}`}
       aria-pressed={pressed}
       aria-label={hint ? children : undefined}
       aria-describedby={hint ? hintId : undefined}
@@ -74,7 +75,7 @@ function Chip({ pressed, onClick, children, hint }) {
     >
       <span>{children}</span>
       {hint && (
-        <span className="chip-count" id={hintId}>
+        <span className={`chip-count ${CHIP_COUNT}`} id={hintId}>
           {' '}
           {hint}
         </span>

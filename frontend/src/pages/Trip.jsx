@@ -14,6 +14,7 @@ import { placeSlug, tripPhotos } from '../lib/trips.js'
 import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
+import { CHIP_BASE } from '../components/chipClasses.js'
 
 /**
  * Each place with the anchor of its first day: the day that ends there, or
@@ -151,7 +152,7 @@ function TripPage({ slug }) {
             {anchors.map((place) => (
               <li key={place.name}>
                 <a
-                  className="chip"
+                  className={`chip ${CHIP_BASE} inline-block no-underline`}
                   href={place.href}
                   data-place={placeSlug(place.name)}
                   aria-current={current === place.name ? 'location' : undefined}

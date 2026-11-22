@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
+import { CHIP } from './chipClasses.js'
 
 const copy = spine.next.capped
 
@@ -64,7 +65,7 @@ export default function CappedList({
         <button
           ref={button}
           type="button"
-          className="chip capped-toggle"
+          className={`chip capped-toggle ${CHIP}`}
           aria-expanded={open}
           aria-controls={listId}
           aria-label={

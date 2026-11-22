@@ -6,6 +6,7 @@ import {
   SORT_SELECT,
   SORT_SELECT_FIELD,
 } from './shelf-classes.js'
+import { CHIP } from './chipClasses.js'
 
 const copy = spine.shelf
 const NARROW = '(max-width: 34rem)'
@@ -111,7 +112,7 @@ export default function SortControl({
         <button
           key={option.value}
           type="button"
-          className="chip"
+          className={`chip ${CHIP}`}
           aria-pressed={option.value === value}
           onClick={() => choose(option.value)}
         >
@@ -132,7 +133,7 @@ export default function SortControl({
     >
       {chooser}
       {isRandom ? (
-        <button type="button" className="chip" onClick={onShuffle}>
+        <button type="button" className={`chip ${CHIP}`} onClick={onShuffle}>
           {copy.shuffle}
         </button>
       ) : (
@@ -140,7 +141,7 @@ export default function SortControl({
         (select ? (
           <button
             type="button"
-            className="chip sort-direction"
+            className={`chip sort-direction ${CHIP}`}
             aria-label={`Order: ${wording}`}
             onClick={flip}
           >
@@ -149,7 +150,7 @@ export default function SortControl({
         ) : (
           <button
             type="button"
-            className="chip sort-direction"
+            className={`chip sort-direction ${CHIP}`}
             aria-label={`Direction: ${direction === 'asc' ? 'ascending' : 'descending'}`}
             onClick={flip}
           >

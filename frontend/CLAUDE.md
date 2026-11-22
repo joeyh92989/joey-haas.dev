@@ -145,6 +145,20 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   rule (`.form label`) beats a utility the legacy sheet used to lose to, so set
   the look on each element (`GARMENT_LABEL`) when a sibling kind is styled by
   its own utilities.
+  The shared chip, result, disclosure and attribution rules left `index.css` in
+  #536 slice E1. `components/chipClasses.js` holds `CHIP` (a plain button or
+  link with no Button variant under it: the pill, hover, ring, pressed and
+  current states, the phone's 44px target), `CHIP_TAP` and `CHIP_COUNT` (for a
+  `Button variant="chip"` and its count), `CHIP_LIST` and `CHIP_LIST_ITEM`;
+  `shelf-classes.js` holds `ATTRIBUTION` and `DISCLOSURE`. The `chip`,
+  `chip-count`, `chip-list`, `result`, `disclosure` and `attribution` names stay
+  on the elements as hooks. The phone step is `[@media(max-width:700px)]:`, not
+  `max-[700px]:`, because the old rules were inclusive at 700 and Tailwind's
+  is strictly below; the hover is `[&:hover:...]`, not `hover:`, because the old
+  rule also applied on touch. A button's `font: inherit` is written as
+  `[font-family:inherit]`, `[font-style:inherit]` and `[font-weight:inherit]`:
+  an arbitrary `[font:inherit]` sorts after the size utilities and resets
+  them to the parent's.
   Admin Home, Jobs and the page header (#535, slice 5) take theirs from
   `components/adminHomeClasses.js` (`PRIMARY`, `PLAIN`, `LINK`, `LINK_BUTTON`,
   the panel, area card, job row and Jobs table strings, and the swap sheet's):

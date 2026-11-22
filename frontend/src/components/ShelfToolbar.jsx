@@ -16,6 +16,7 @@ import {
   VIEW_LAB,
 } from './shelf-classes.js'
 import SortControl from './SortControl.jsx'
+import { CHIP_TAP } from './chipClasses.js'
 
 const copy = spine.shelf
 const NARROW = '(max-width: 34rem)'
@@ -79,7 +80,7 @@ export default function ShelfToolbar({
           key={value}
           variant="chip"
           size="chip"
-          className={cn('chip', labelled && PRESSED_FILL)}
+          className={cn('chip', CHIP_TAP, labelled && PRESSED_FILL)}
           aria-pressed={size === value}
           onClick={() => onSizeChange(value)}
           data-size={value}
@@ -93,7 +94,7 @@ export default function ShelfToolbar({
     <Button
       variant="chip"
       size="chip"
-      className={cn('chip', labelled && PRESSED_FILL)}
+      className={cn('chip', CHIP_TAP, labelled && PRESSED_FILL)}
       aria-pressed={dim}
       onClick={() => onDimChange(!dim)}
     >

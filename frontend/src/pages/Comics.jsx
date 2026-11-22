@@ -1,4 +1,5 @@
 import {
+  ATTRIBUTION,
   CTL_LABEL,
   CTL_ROW,
   CTL_SPLIT,
@@ -484,7 +485,7 @@ export default function Comics() {
         </>
       )}
 
-      <footer className="attribution">
+      <footer className={`attribution ${ATTRIBUTION}`}>
         <p className="spine-project">
           {spine.projectLine}{' '}
           <Link to={spine.links.post.to}>

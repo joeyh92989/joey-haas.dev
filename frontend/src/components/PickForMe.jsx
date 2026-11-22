@@ -12,6 +12,7 @@ import {
 import EmptyState from './EmptyState.jsx'
 import { Button } from './ui/button.jsx'
 import { buttonVariants } from './ui/button-variants.js'
+import { CHIP_TAP } from './chipClasses.js'
 
 const copy = spine.next.pickForMe
 const SHOWN = 3
@@ -23,7 +24,7 @@ const RESULT = 'rounded-md border-line-card border-l-[3px] border-l-primary p-4'
 // pressed look (darker outline, heavier word, the 3px bar) keyed on
 // `data-checked` instead of `aria-pressed`, and the focus ring on the label
 // while the hidden input has keyboard focus.
-const RADIO_CHIP = `chip pick-radio ${buttonVariants({ variant: 'chip', size: 'chip' })} data-[checked=true]:border-foreground data-[checked=true]:bg-card data-[checked=true]:font-medium data-[checked=true]:text-foreground data-[checked=true]:after:block has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring`
+const RADIO_CHIP = `chip pick-radio ${CHIP_TAP} ${buttonVariants({ variant: 'chip', size: 'chip' })} data-[checked=true]:border-foreground data-[checked=true]:bg-card data-[checked=true]:font-medium data-[checked=true]:text-foreground data-[checked=true]:after:block has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-offset-2 has-focus-visible:outline-ring`
 const TERMS = ['affinity', 'similarity', 'quality', 'length_fit']
 
 /**
@@ -193,7 +194,7 @@ export default function PickForMe({ table, lead = null }) {
               key={mood}
               variant="chip"
               size="chip"
-              className="chip"
+              className={`chip ${CHIP_TAP}`}
               aria-pressed={moods.includes(mood)}
               onClick={() => pressMood(mood)}
             >
