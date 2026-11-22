@@ -18,6 +18,12 @@ import {
   TONIGHT_ALTS,
   TONIGHT_CONTINUING,
 } from '../components/tonightClasses.js'
+import {
+  TOUR_CLOSING,
+  TOUR_COVERS,
+  TOUR_LEDE,
+  TOUR_TITLE,
+} from '../components/tourClasses.js'
 
 const copy = spine.how
 const NEWEST = 4
@@ -103,7 +109,7 @@ function Live({ state, empty, children, count, follower = false }) {
 
 function NewestCovers({ games }) {
   return (
-    <ul className="tour-covers">
+    <ul className={`tour-covers ${TOUR_COVERS}`}>
       {games.map((game) => (
         <li key={game.id}>
           <Link to={itemPath(game.id)}>
@@ -230,15 +236,15 @@ export default function HowItWorks() {
   return (
     <section className="tour-page">
       <SpineHeader />
-      <h1 className="tour-title">{copy.title}</h1>
-      <p className="tour-lede">{copy.lede}</p>
+      <h1 className={`tour-title ${TOUR_TITLE}`}>{copy.title}</h1>
+      <p className={`tour-lede ${TOUR_LEDE}`}>{copy.lede}</p>
       <StopIndex />
       {copy.stops.map((stop) => (
         <Stop key={stop.n} stop={withCounts(stop, status.data)}>
           {live[stop.n]}
         </Stop>
       ))}
-      <p className="tour-closing">
+      <p className={`tour-closing ${TOUR_CLOSING}`}>
         <Link to={copy.closing.longVersion.to}>
           {copy.closing.longVersion.label}
         </Link>

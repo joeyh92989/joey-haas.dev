@@ -1,4 +1,17 @@
 import { architecture } from '../content/architecture.js'
+import {
+  ARCH,
+  ARCH_BADGE,
+  ARCH_CAPTION,
+  ARCH_EDGE,
+  ARCH_HEAD,
+  ARCH_NAME,
+  ARCH_NODE,
+  ARCH_NODE_FILL,
+  ARCH_NODE_STROKE,
+  ARCH_SUB,
+  ARCH_SVG,
+} from './archClasses.js'
 
 /**
  * Edges, drawn in the order of `architecture.steps`: `d` is the path, `at`
@@ -13,14 +26,17 @@ const EDGES = [
 ]
 
 /** A node: a name, a line under it and its box. */
-function Node({ x, y, w, h, name, sub, className = '' }) {
+function Node({ x, y, w, h, name, sub, snapshot = false }) {
+  const tone = snapshot
+    ? `arch__node--snapshot ${ARCH_NODE_FILL.snapshot} ${ARCH_NODE_STROKE.snapshot}`
+    : `${ARCH_NODE_FILL.plain} ${ARCH_NODE_STROKE.plain}`
   return (
-    <g className={`arch__node ${className}`}>
+    <g className={`arch__node ${ARCH_NODE} ${tone}`}>
       <rect x={x} y={y} width={w} height={h} rx="6" />
-      <text className="arch__name" x={x + 12} y={y + 22}>
+      <text className={`arch__name ${ARCH_NAME}`} x={x + 12} y={y + 22}>
         {name}
       </text>
-      <text className="arch__sub" x={x + 12} y={y + 40}>
+      <text className={`arch__sub ${ARCH_SUB}`} x={x + 12} y={y + 40}>
         {sub}
       </text>
     </g>
@@ -35,9 +51,9 @@ function Node({ x, y, w, h, name, sub, className = '' }) {
  */
 export default function ArchitectureFigure() {
   return (
-    <figure className="arch">
+    <figure className={`arch ${ARCH}`}>
       <svg
-        className="arch__svg"
+        className={`arch__svg ${ARCH_SVG}`}
         viewBox="0 0 360 296"
         role="img"
         aria-label={architecture.label}
@@ -52,13 +68,16 @@ export default function ArchitectureFigure() {
             markerHeight="7"
             orient="auto-start-reverse"
           >
-            <path className="arch__head" d="M0 0 L10 5 L0 10 z" />
+            <path
+              className={`arch__head ${ARCH_HEAD}`}
+              d="M0 0 L10 5 L0 10 z"
+            />
           </marker>
         </defs>
         {EDGES.map((edge, index) => (
           <path
             key={edge.d}
-            className="arch__edge"
+            className={`arch__edge ${ARCH_EDGE}`}
             d={edge.d}
             markerEnd="url(#arch-head)"
             markerStart={edge.ends === 'both' ? 'url(#arch-head)' : undefined}
@@ -75,12 +94,14 @@ export default function ArchitectureFigure() {
         />
         <Node x={202} y={130} w={150} h={56} name="API" sub="FastAPI, Render" />
         <Node x={202} y={230} w={150} h={56} name="Neon" sub="Postgres 18" />
-        <g className="arch__node arch__node--frame">
+        <g
+          className={`arch__node arch__node--frame ${ARCH_NODE} ${ARCH_NODE_FILL.frame} ${ARCH_NODE_STROKE.plain}`}
+        >
           <rect x="8" y="130" width="150" height="156" rx="6" />
-          <text className="arch__name" x="20" y="152">
+          <text className={`arch__name ${ARCH_NAME}`} x="20" y="152">
             Static site
           </text>
-          <text className="arch__sub" x="20" y="170">
+          <text className={`arch__sub ${ARCH_SUB}`} x="20" y="170">
             Render
           </text>
         </g>
@@ -91,10 +112,10 @@ export default function ArchitectureFigure() {
           h={60}
           name="Snapshot"
           sub="written at build"
-          className="arch__node--snapshot"
+          snapshot
         />
         {EDGES.map((edge, index) => (
-          <g key={edge.d} className="arch__badge">
+          <g key={edge.d} className={`arch__badge ${ARCH_BADGE}`}>
             <circle cx={edge.at[0]} cy={edge.at[1]} r="10" />
             <text x={edge.at[0]} y={edge.at[1] + 4.5} textAnchor="middle">
               {index + 1}
@@ -102,11 +123,13 @@ export default function ArchitectureFigure() {
           </g>
         ))}
       </svg>
-      <figcaption>
+      <figcaption className={ARCH_CAPTION.figcaption}>
         <p>{architecture.caption}</p>
-        <ol>
+        <ol className={ARCH_CAPTION.list}>
           {architecture.steps.map((step) => (
-            <li key={step}>{step}</li>
+            <li key={step} className={ARCH_CAPTION.item}>
+              {step}
+            </li>
           ))}
         </ol>
       </figcaption>

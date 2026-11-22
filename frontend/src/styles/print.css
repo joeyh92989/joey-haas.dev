@@ -122,14 +122,6 @@
     white-space: pre-wrap;
   }
 
-  .project-hero__img--dark {
-    display: none;
-  }
-
-  .project-hero__img--light {
-    display: block;
-  }
-
   /* External links print their address, in About and post prose only. */
   .about a[href^='http']::after,
   .post-body a[href^='http']::after {

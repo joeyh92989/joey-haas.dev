@@ -1,5 +1,10 @@
 import { Link } from 'react-router'
 import { usePageTitle } from '../lib/usePageTitle.js'
+import {
+  PROJECT_HERO,
+  PROJECT_HERO_IMG,
+  PROJECT_HERO_THEME,
+} from '../components/archClasses.js'
 import CoverStrip from '../components/CoverStrip.jsx'
 import RecordCard from '../components/RecordCard.jsx'
 import TagList from '../components/TagList.jsx'
@@ -63,11 +68,11 @@ export default function Projects() {
                 )}
               </h2>
               {project.hero && (
-                <div className="project-hero">
+                <div className={`project-hero ${PROJECT_HERO}`}>
                   {['dark', 'light'].map((theme) => (
                     <img
                       key={theme}
-                      className={`project-hero__img project-hero__img--${theme}`}
+                      className={`project-hero__img project-hero__img--${theme} ${PROJECT_HERO_IMG} ${PROJECT_HERO_THEME[theme]}`}
                       src={`/projects/${project.hero.slug}-${theme}.webp`}
                       alt={project.hero.alt}
                       width={project.hero.width}
