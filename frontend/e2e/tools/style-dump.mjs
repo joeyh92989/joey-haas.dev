@@ -393,13 +393,15 @@ async function open(
       configurable: true,
     })
   }, theme)
-  await page.goto(base + path)
+  // A page that is slow to fire `load` is tried once more.
+  await page.goto(base + path).catch(() => page.goto(base + path))
   await page
     .locator('h1')
     .first()
     .waitFor({ timeout: 15000 })
     .catch(() => {})
-  if (kind !== 'skeleton') await page.waitForLoadState('networkidle')
+  if (kind !== 'skeleton')
+    await page.waitForLoadState('networkidle').catch(() => {})
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => {
     for (const img of document.querySelectorAll('img[loading="lazy"]'))
@@ -415,6 +417,7 @@ const browser = await chromium.launch()
 const result = {}
 async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
+  if (process.env.PROGRESS) console.error(label)
   // A busy machine can time a step out: try the scenario once more.
   for (let attempt = 1; ; attempt++) {
     const { context, page } = await open(browser, spec)
@@ -1004,6 +1007,16 @@ async function d5(theme, vp) {
       // The focus ring's colour fades in (a transition): let it settle.
       await page.waitForTimeout(500)
     },
+  )
+  await record(
+    at('today reduce'),
+    { ...closet('/admin/closet/today'), reduce: true },
+    (page) => click(page, /^Swap/),
+  )
+  await record(
+    at('review reduce'),
+    { ...closet('/admin/closet/review'), reduce: true },
+    (page) => click(page, /^Pack away/),
   )
   await record(at('/admin/closet'), closet('/admin/closet'))
   await record(at('/admin/closet list'), closet('/admin/closet'), (page) =>

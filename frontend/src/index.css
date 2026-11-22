@@ -6575,10 +6575,6 @@ a.cover-tile-cap:focus-visible span {
   color: var(--accent-text);
 }
 
-.admin-app-phone .today-alts {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
    width the cover (62%, centred) comes first, then the text, then the
    neighbouring issues under their heading. The strip scrolls inside itself,

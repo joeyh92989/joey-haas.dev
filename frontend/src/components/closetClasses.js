@@ -103,7 +103,7 @@ export const GARMENT_NAME_TEXT =
   'text-[0.8125rem] leading-[1.3] [overflow-wrap:anywhere]'
 
 /** The tile's name: it underlines when the tile is hovered or focused. */
-export const GARMENT_NAME = `${GARMENT_NAME_TEXT} group-hover/tile:underline group-focus-visible/tile:underline`
+export const GARMENT_NAME = `${GARMENT_NAME_TEXT} group-[:hover]/tile:underline group-focus-visible/tile:underline`
 
 /** A mono stat line. */
 export const GARMENT_STAT =
