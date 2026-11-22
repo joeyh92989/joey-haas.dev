@@ -57,3 +57,15 @@ Pull list, the games page with the add results, the add drawer, the scanner
 and the Wrap up sheet, and the public `/shelf/intake` replay, each in both
 themes at desktop and phone width (`ONLY=' d5 '`). The Closet scenarios use
 `closet-mocks.js`; the add ones `admin-add.fixtures.js`.
+
+Slice D5b (#536) put its scenarios in `scenarios/d5b.mjs` (`ONLY=' d5b? '`;
+`style-dump.mjs` has one import and one call line for it) and its sitting
+answers in `e2e/admin-intake.fixtures.js`: a comic sitting at Check (a title to
+ask about, books with their number marks, a collected book, series that
+grow, the skim grid, typed books), Details (with the collected-book rows and
+the ISBN field, and the scanner), and Shoot with every photo state; the
+Closet's Check for garments, a seed file and pasted links; the item page's
+relink picker (results, hover, focus), the games page's full add form, the
+add page's kind tiles and the garment form and profile focused. A scenario's
+`absent: <selector>` line says an element the group's rules style was not
+drawn.

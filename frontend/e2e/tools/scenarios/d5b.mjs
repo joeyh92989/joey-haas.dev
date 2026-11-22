@@ -242,6 +242,16 @@ export async function d5b({ record, click }, theme, vp) {
     await page.keyboard.press('Shift+Tab')
     await page.waitForTimeout(500)
   })
+  if (vp === 'phone')
+    await record(
+      at('item relink tap'),
+      { ...item, touch: true },
+      async (page) => {
+        await lookup(page)
+        await page.locator('.candidate-list button').first().tap()
+        await page.waitForTimeout(400)
+      },
+    )
   await record(at('item relink input focus'), item, async (page) => {
     await page.locator('#metadata-query').focus()
     await page.waitForTimeout(500)

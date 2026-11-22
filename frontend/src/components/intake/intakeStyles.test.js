@@ -53,6 +53,13 @@ describe('intake styles', () => {
     expect(INTAKE_DEMO_SPINE).toContain('text-(--text)')
   })
 
+  it('lists the demo spines as the one drawing under 12px', () => {
+    // Labels inside a drawing that carries its accessible name elsewhere.
+    expect(INTAKE_DEMO_SPINE).toContain('text-[0.625rem]')
+    for (const size of ['0.5625rem', '0.5rem', '0.4375rem'])
+      expect(INTAKE_DEMO_SPINE).toContain(`:text-[${size}]`)
+  })
+
   it('draws every confidence in a text token measured on the surfaces', () => {
     expect(CONF).toContain('border-current')
     expect(Object.values(CONF_STATE)).toEqual([

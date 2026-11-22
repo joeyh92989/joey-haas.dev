@@ -22,7 +22,7 @@ export const COMIC_EDITION_ISBN_NOTE =
 export const COMIC_EDITION_ISBN_COVER =
   '[block-size:3rem] inline-block [inline-size:auto] me-2 align-middle'
 
-export const ISBN_SCANNER = 'grid gap-3 p-4'
+export const ISBN_SCANNER = 'grid gap-3 p-4 [&_h2]:m-0!'
 
 export const ISBN_SCANNER_VIDEO =
   'aspect-[4/3] bg-(--surface) border border-(--line) rounded-[8px] [inline-size:100%] object-cover'

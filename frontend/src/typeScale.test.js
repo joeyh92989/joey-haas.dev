@@ -14,14 +14,13 @@ const STEPS = [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56]
  * prose-relative inline code. Adding one means adding it here, on purpose.
  */
 const EXEMPT = {
-  '.intake-demo-spine': 'font-size: 0.625rem;',
-  ".intake-demo-spine[data-size='md']": 'font-size: 0.5625rem;',
-  ".intake-demo-spine[data-size='sm']": 'font-size: 0.5rem;',
-  ".intake-demo-spine[data-size='xs']": 'font-size: 0.4375rem;',
   ".run-cell[data-k='read']::after": 'font-size: 0.5rem;',
   ".run-cell[data-k='skip']::after": 'font-size: 0.5625rem;',
   '.drawn-map__sea-label': 'font: italic 400 11px var(--font-display);',
 }
+
+// The intake demo's drawn spines (0.625 to 0.4375rem) are utilities now
+// (intakeDemoClasses.js); intakeStyles.test.js pins their sizes.
 
 /** Sizes in em or %, which follow the text around them. Selector -> value. */
 const RELATIVE = {
