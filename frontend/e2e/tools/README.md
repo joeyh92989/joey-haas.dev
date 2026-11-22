@@ -69,3 +69,16 @@ relink picker (results, hover, focus), the games page's full add form, the
 add page's kind tiles and the garment form and profile focused. A scenario's
 `absent: <selector>` line says an element the group's rules style was not
 drawn.
+
+Slice E1 (#536) put its scenarios in `scenarios/e1.mjs` (`ONLY=' e1 '`;
+`style-dump.mjs` has one import and one call line for it): the states the base
+dump does not reach on the shared chip, result, disclosure and attribution
+rules. A chip hovered (unpressed and pressed), on a touch screen as well (the
+old `:hover` rule applied there and Tailwind's `hover:` does not), tabbed to;
+the Show more pager, the direction chip, Pick for me's chips, the comic wall's
+chips (its answers routed from `e2e/fixtures/api`), the Closet's Bike chip, the
+Games charts disclosure open, hovered and tabbed to, and a footer link. The
+Trip page's chips are on no published page, so they are not in the dump; compare
+them with `vite` dev servers on `/travel/croatia-greece-2026` (a draft shows in
+dev). A capped list's toggle needs more rows than the fixtures carry and logs
+`absent`.
