@@ -10,6 +10,7 @@ import CoverTile from './CoverTile.jsx'
 import EmptyState from './EmptyState.jsx'
 import StatePill from './StatePill.jsx'
 import { CTL_LABEL, CTL_ROW } from './shelf-classes.js'
+import { CHIP, CHIP_COUNT } from './chipClasses.js'
 
 const RUN = spine.comics.run
 const WALL = spine.comics.wall
@@ -349,11 +350,12 @@ export default function CoverWall({
               <button
                 key={value}
                 type="button"
-                className="chip"
+                className={`chip ${CHIP}`}
                 aria-pressed={filter === value}
                 onClick={() => setFilter(value)}
               >
-                {label} <span className="chip-count">{count}</span>
+                {label}{' '}
+                <span className={`chip-count ${CHIP_COUNT}`}>{count}</span>
               </button>
             ))}
           </div>

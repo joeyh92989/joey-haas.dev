@@ -407,8 +407,9 @@ dashed border, so it is never told apart by fading alone), `BOX` for cards
 (the unfinished list, a suggestion, Rate a few, the resume line) and
 `INTAKE_FIELD` for the add bar, drawer and Details fields. The armed
 Discard is the destructive button. Discover's platform chips are the filter
-chip, pressed by weight, border and the accent bar. The legacy `.btn` and
-`.chip` classes stay for the areas not yet migrated (#536). The ten
+chip, pressed by weight, border and the accent bar. The legacy `.btn` class
+stays for the areas not yet migrated (#536); `.chip` has no rule left (slice E1:
+`components/chipClasses.js`). The ten
 half-star targets of Quick rate keep their drawn width (ten 44px targets do
 not fit a phone); they are 44px tall on a phone.
 

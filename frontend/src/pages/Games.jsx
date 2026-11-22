@@ -12,6 +12,8 @@ import SpineKey from '../components/SpineKey.jsx'
 import { Input } from '../components/ui/input.jsx'
 import { SECTION_HEAD } from '../components/prose-classes.js'
 import {
+  ATTRIBUTION,
+  DISCLOSURE,
   SHELF_BEHIND,
   SHELF_LINKS,
   SHELF_OVERVIEW,
@@ -401,7 +403,7 @@ export default function Games() {
                 {narrow && (
                   <button
                     type="button"
-                    className="disclosure"
+                    className={`disclosure ${DISCLOSURE}`}
                     aria-expanded={chartsOpen}
                     aria-controls={chartsOpen ? 'shelf-charts' : undefined}
                     onClick={() => setChartsOpen((open) => !open)}
@@ -455,7 +457,7 @@ export default function Games() {
         </>
       )}
 
-      <footer className="attribution">
+      <footer className={`attribution ${ATTRIBUTION}`}>
         <p className="spine-project">
           {spine.projectLine}{' '}
           <Link to={spine.links.post.to}>

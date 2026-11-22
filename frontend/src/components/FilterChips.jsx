@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Button } from './ui/button.jsx'
 import { cn } from '../lib/utils.js'
 import { CHIP_ROWS, CTL_LABEL, CTL_ROW, PRESSED_FILL } from './shelf-classes.js'
+import { CHIP_COUNT, CHIP_TAP } from './chipClasses.js'
 
 // A labelled single-select row's chips are underline tabs (#532): no pill, the
 // pressed one bold with the chip variant's 3px accent bar under it (its
@@ -23,6 +24,7 @@ function Chip({ pressed, count, label, onClick, className, disabled, tab }) {
       size="chip"
       className={cn(
         'chip',
+        CHIP_TAP,
         tab && TAB,
         tab === false && PRESSED_FILL,
         className,
@@ -35,7 +37,7 @@ function Chip({ pressed, count, label, onClick, className, disabled, tab }) {
       {counted && (
         <>
           {' '}
-          <span className="chip-count">{count}</span>
+          <span className={cn('chip-count', CHIP_COUNT)}>{count}</span>
         </>
       )}
     </Button>
@@ -141,7 +143,7 @@ export default function FilterChips({
         key="more"
         variant="chip"
         size="chip"
-        className={cn('chip', labelled && TAB)}
+        className={cn('chip', CHIP_TAP, labelled && TAB)}
         aria-expanded={expanded.has(group.key)}
         disabled={disabled}
         onClick={() =>

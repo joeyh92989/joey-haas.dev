@@ -3,6 +3,7 @@ import { btn } from './closetClasses.js'
 import CoverImage from './CoverImage.jsx'
 import { dayWords } from '../lib/releaseWords.js'
 import { storeLabel } from '../lib/storeLines.js'
+import { CHIP_LIST, CHIP_LIST_ITEM } from './chipClasses.js'
 
 // Mirrors FORMAT_WORDS in backend/physical_sources/limits.py.
 const FORMAT_WORDS = {
@@ -83,9 +84,14 @@ export default function RecommendationCard({
           <p className="muted">Based on: {basedOn.join(', ')}</p>
         )}
         {genres.length > 0 && (
-          <ul className="chip-list rec-genres" aria-label="Genres">
+          <ul
+            className={`chip-list rec-genres ${CHIP_LIST}`}
+            aria-label="Genres"
+          >
             {genres.map((genre) => (
-              <li key={genre}>{genre}</li>
+              <li key={genre} className={CHIP_LIST_ITEM}>
+                {genre}
+              </li>
             ))}
           </ul>
         )}

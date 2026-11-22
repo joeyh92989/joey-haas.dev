@@ -28,6 +28,7 @@ import { isValidSnapshot } from '../lib/snapshot.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import { itemPath } from '../lib/spinePaths.js'
 import EmptyState from '../components/EmptyState.jsx'
+import { ATTRIBUTION } from '../components/shelf-classes.js'
 
 const copy = spine.next
 const SORTS = copy.sorts.map((sort) => ({ ...sort, direction: 'desc' }))
@@ -823,7 +824,7 @@ export default function Next() {
         </>
       )}
 
-      <footer className="attribution">
+      <footer className={`attribution ${ATTRIBUTION}`}>
         <p>
           {copy.attribution.before}{' '}
           <a href="https://www.igdb.com/" rel="noreferrer noopener">

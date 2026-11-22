@@ -18,7 +18,6 @@
 .prose-list a,
 .post-body a,
 .changelog a,
-.attribution a,
 p.muted a,
 .now-finished a {
   color: currentColor;
@@ -370,23 +369,6 @@ p.muted a,
   .about-aside {
     position: static;
   }
-}
-
-.chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  list-style: none;
-  margin-top: var(--space-4);
-}
-
-.chip-list li {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  font-size: var(--fs-13);
-  padding: var(--space-1) var(--space-3);
 }
 
 /* ---------- Projects ---------- */
@@ -1232,50 +1214,6 @@ p.muted a,
   gap: var(--space-2);
 }
 
-.chip {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text-2);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-13);
-  line-height: 1.4;
-  padding: var(--space-1) var(--space-3);
-  white-space: nowrap;
-}
-
-.chip:hover {
-  border-color: var(--text-3);
-}
-
-.chip:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.chip[aria-pressed='true'] {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
-}
-
-.chip-count {
-  font-variant-numeric: tabular-nums;
-}
-
-.attribution {
-  border-top: 1px solid var(--line);
-  color: var(--text-3);
-  font-size: var(--fs-12);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-}
-
-.attribution p {
-  margin: 0 0 var(--space-1);
-}
-
 /* The wrapper scrolls, not the page: a wide table must never make the whole
    document scroll sideways on a phone. */
 .item-table-wrap {
@@ -1332,46 +1270,6 @@ p.muted a,
   .registry-line {
     grid-column: 1 / -1;
   }
-}
-
-.result {
-  color: var(--text-2);
-  font-size: var(--fs-14);
-  margin: 0;
-}
-
-.result strong {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.disclosure {
-  align-items: center;
-  background: none;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius, 8px);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  font-size: var(--fs-14);
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  width: 100%;
-}
-
-.disclosure::after {
-  content: '+';
-}
-
-.disclosure[aria-expanded='true']::after {
-  content: '\2013';
-}
-
-.disclosure:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 @media (max-width: 34rem) {
@@ -4312,16 +4210,6 @@ a.cover-tile-cap:focus-visible span {
   padding: 2px; /* space-exception: hairline, optical offset */
 }
 
-.trip-places .chip {
-  display: inline-block;
-  text-decoration: none;
-}
-
-.chip[aria-current] {
-  border-color: var(--text);
-  color: var(--text);
-}
-
 /* Days */
 .trip-day {
   border-top: 1px solid var(--line);
@@ -4921,14 +4809,6 @@ a.cover-tile-cap:focus-visible span {
   }
 }
 
-/* Bike is a modifier, not a second occasion: pressed, it takes the
-   accent-soft style rather than the occasion's solid one. */
-.chip.chip-modifier[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-
 /* The public issue page (/shelf/:id/:n/). Cover column at 300px; at phone
    width the cover (62%, centred) comes first, then the text, then the
    neighbouring issues under their heading. The strip scrolls inside itself,
@@ -5293,9 +5173,7 @@ a.btn.sm {
    wins over the desktop rules above at equal specificity. Inline links in
    prose keep their line height (WCAG 2.5.8 exempts them). */
 @media (max-width: 700px) {
-  .chip,
   .btn.sm,
-  .disclosure,
   .spine-tabs a,
   .spine-name a,
   .section-head a,
@@ -5305,11 +5183,6 @@ a.btn.sm {
     align-items: center;
     display: inline-flex;
     min-height: 2.75rem;
-  }
-
-  /* inline-flex drops the space between a label and its count (#505). */
-  .chip > .chip-count {
-    margin-inline-start: var(--space-1);
   }
 }
 

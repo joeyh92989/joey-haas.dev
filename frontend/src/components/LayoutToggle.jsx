@@ -2,6 +2,7 @@ import { spine } from '../content/spine.js'
 import { cn } from '../lib/utils.js'
 import { PRESSED_FILL } from './shelf-classes.js'
 import { Button } from './ui/button.jsx'
+import { CHIP_TAP } from './chipClasses.js'
 
 const copy = spine.shelf
 
@@ -22,7 +23,7 @@ export default function LayoutToggle({ layout, onChange }) {
           key={value}
           variant="chip"
           size="chip"
-          className={cn('chip', PRESSED_FILL)}
+          className={cn('chip', CHIP_TAP, PRESSED_FILL)}
           aria-pressed={layout === value}
           onClick={() => onChange(value)}
         >

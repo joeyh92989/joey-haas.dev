@@ -44,8 +44,8 @@ export const buttonVariants = cva(
         // No box of its own: the nav and link variants set their own height
         // and padding, and a size's px-4 would beat their px-0.
         bare: 'gap-1',
-        // 4px between label and count on desktop; on a phone the legacy
-        // `.chip > .chip-count` margin supplies it (adminPolish.test.js).
+        // 4px between label and count on desktop; on a phone the chip
+        // count's own margin (CHIP_COUNT, chipClasses.js) supplies it.
         chip: 'gap-1 px-3 py-1 text-[0.8125rem] leading-[1.4] max-[700px]:gap-0',
         icon: 'size-9',
         'icon-xs': 'size-6',

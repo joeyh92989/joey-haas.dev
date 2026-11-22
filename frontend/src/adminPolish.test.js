@@ -3,50 +3,10 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { CHIP_COUNT } from './components/chipClasses.js'
 import { HEAD_LINK } from './components/adminHomeClasses.js'
-import { readCss } from './testing/readCss.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-// Read from disk: Vitest stubs CSS imports, `?raw` included.
-const css = readCss()
-
-/** Every `selectors { body }` pair with the @media prelude it sits in, or null. */
-const rules = []
-{
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  const stack = []
-  let start = 0
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i]
-    if (char === '{') {
-      const prelude = text.slice(start, i).trim()
-      stack.push({ prelude, atRule: prelude.startsWith('@'), bodyFrom: i + 1 })
-      start = i + 1
-    } else if (char === '}') {
-      const open = stack.pop()
-      if (open && !open.atRule) {
-        const media = stack.find((entry) => entry.atRule)?.prelude ?? null
-        const body = text.slice(open.bodyFrom, i)
-        for (const selector of open.prelude.split(',')) {
-          rules.push({
-            selector: selector.trim().replace(/\s+/g, ' '),
-            body,
-            media,
-          })
-        }
-      }
-      start = i + 1
-    }
-  }
-}
-
-function bodyOf(selector, media = null) {
-  const bodies = rules
-    .filter((r) => r.selector === selector && r.media === media)
-    .map((r) => r.body)
-  expect(bodies.length, `a rule for ${selector}`).toBeGreaterThan(0)
-  return bodies.join('\n')
-}
 
 describe('American spelling in admin copy (#505)', () => {
   const copyFiles = readdirSync(join(here, 'content'))
@@ -84,11 +44,22 @@ describe('admin tap targets reach 24px (#505, WCAG 2.5.8)', () => {
 })
 
 describe('phone chip count keeps its space (#505)', () => {
-  // `.chip` is inline-flex on a phone, and a flex container drops the
+  // A chip is inline-flex on a phone, and a flex container drops the
   // whitespace text between the label and the count span: "Active1".
   it('spaces the count from the label with a margin, not a text node', () => {
-    expect(bodyOf('.chip > .chip-count', '@media (max-width: 700px)')).toMatch(
-      /margin-inline-start: var\(--space-1\);/,
-    )
+    expect(CHIP_COUNT).toContain('[@media(max-width:700px)]:ms-1')
+  })
+
+  it('puts the count class on every count a chip draws', () => {
+    for (const file of [
+      'components/FilterChips.jsx',
+      'components/CoverWall.jsx',
+      'pages/Denver.jsx',
+      'pages/PlayNext.jsx',
+    ]) {
+      expect(readFileSync(join(here, file), 'utf8'), file).toContain(
+        'CHIP_COUNT',
+      )
+    }
   })
 })
