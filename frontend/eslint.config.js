@@ -84,7 +84,7 @@ export default [
   // Browser tests: Node, plus the browser globals of the callbacks they pass to
   // page.evaluate and page.addInitScript.
   {
-    files: ['e2e/**/*.js', 'e2e/tools/*.mjs'],
+    files: ['e2e/**/*.js', 'e2e/tools/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
