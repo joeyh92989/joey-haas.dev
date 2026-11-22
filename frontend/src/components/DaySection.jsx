@@ -1,6 +1,12 @@
 import { dayKicker } from '../lib/tripDates.js'
 import PhotoGroup from './PhotoGroup.jsx'
 import PostcardCard from './PostcardCard.jsx'
+import {
+  DAY_PROSE,
+  TRIP_DAY,
+  TRIP_DAY_PLACE,
+  TRIP_DAY_TITLE,
+} from './travelClasses.js'
 
 /**
  * One day of a trip: kicker, title with its place, prose, then its photos;
@@ -23,16 +29,23 @@ import PostcardCard from './PostcardCard.jsx'
 export default function DaySection({ slug, day, eager = false, onOpen }) {
   const titleId = `${day.id}-title`
   return (
-    <section id={day.id} className="trip-day" aria-labelledby={titleId}>
+    <section
+      id={day.id}
+      className={`trip-day ${TRIP_DAY}`}
+      aria-labelledby={titleId}
+    >
       <p className="kicker">{dayKicker(day)}</p>
-      <h2 id={titleId} className="trip-day__title">
+      <h2 id={titleId} className={`trip-day__title ${TRIP_DAY_TITLE}`}>
         {day.title}
-        <span className="trip-day__place"> · {day.legs.join(' → ')}</span>
+        <span className={`trip-day__place ${TRIP_DAY_PLACE}`}>
+          {' '}
+          · {day.legs.join(' → ')}
+        </span>
       </h2>
       {day.photos.length > 0 ? (
         <>
           <div
-            className="post-body"
+            className={`post-body ${DAY_PROSE}`}
             dangerouslySetInnerHTML={{ __html: day.html }}
           />
           <PhotoGroup

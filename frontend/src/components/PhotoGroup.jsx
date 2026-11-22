@@ -1,4 +1,5 @@
 import TripPhoto from './TripPhoto.jsx'
+import { PHOTO_GROUP, PHOTO_GROUP_TWO } from './travelClasses.js'
 
 /** Half the 45rem column on a desktop; the whole width once a pair stacks. */
 const SIZES = {
@@ -30,7 +31,9 @@ export default function PhotoGroup({ slug, photos, eager = false, onOpen }) {
     <div
       key={group[0].name}
       className={
-        group.length === 2 ? 'photo-group photo-group--two' : 'photo-group'
+        group.length === 2
+          ? `photo-group photo-group--two ${PHOTO_GROUP} ${PHOTO_GROUP_TWO}`
+          : `photo-group ${PHOTO_GROUP}`
       }
     >
       {group.map((photo) => (

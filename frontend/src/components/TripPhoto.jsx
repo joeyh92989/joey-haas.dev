@@ -1,4 +1,10 @@
 import { photoSrc, photoSrcSet } from '../lib/trips.js'
+import {
+  TRIP_PHOTO,
+  TRIP_PHOTO_OPEN,
+  TRIP_PHOTO_CAPTION,
+  TRIP_PHOTO_IMG,
+} from './travelClasses.js'
 
 /**
  * One trip photo with its caption strip.
@@ -31,7 +37,7 @@ export default function TripPhoto({
 }) {
   const image = (
     <img
-      className="trip-photo__img"
+      className={`trip-photo__img ${TRIP_PHOTO_IMG}`}
       src={photoSrc(slug, photo.name, 800)}
       srcSet={photoSrcSet(slug, photo.name)}
       sizes={sizes}
@@ -42,11 +48,11 @@ export default function TripPhoto({
     />
   )
   return (
-    <figure className="trip-photo">
+    <figure className={`trip-photo ${TRIP_PHOTO}`}>
       {onOpen ? (
         <button
           type="button"
-          className="trip-photo__open"
+          className={`trip-photo__open ${TRIP_PHOTO_OPEN}`}
           onClick={(event) => onOpen(event.currentTarget)}
         >
           {image}
@@ -54,7 +60,7 @@ export default function TripPhoto({
       ) : (
         image
       )}
-      <figcaption className="trip-photo__caption">
+      <figcaption className={`trip-photo__caption ${TRIP_PHOTO_CAPTION}`}>
         {photo.caption ?? <span aria-hidden="true">{photo.alt}</span>}
       </figcaption>
     </figure>

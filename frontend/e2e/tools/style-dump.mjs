@@ -289,6 +289,8 @@ const VIEWPORTS = {
   w320: { width: 320, height: 700 },
   w544: { width: 544, height: 800 },
   w545: { width: 545, height: 800 },
+  w640: { width: 640, height: 800 },
+  w641: { width: 641, height: 800 },
   w960: { width: 960, height: 800 },
   w961: { width: 961, height: 800 },
 }

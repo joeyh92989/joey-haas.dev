@@ -6,6 +6,7 @@ import { trips } from '../content/trips.js'
 import { placeSlug } from '../lib/trips.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import PageHeader from '../components/PageHeader.jsx'
+import { TRIP_LIST } from '../components/travelClasses.js'
 
 /** The sentence under the lede while no trip is published. */
 export const EMPTY = 'No trips written up yet.'
@@ -77,7 +78,7 @@ export default function Travel() {
           {trips.length > 1 && (
             <FilterChips groups={[group]} value={{ place }} onChange={select} />
           )}
-          <ul className="trip-list" role="list">
+          <ul className={`trip-list ${TRIP_LIST}`} role="list">
             {shown.map((trip, index) => (
               <li key={trip.slug}>
                 <TripCard trip={trip} eager={index === 0} />

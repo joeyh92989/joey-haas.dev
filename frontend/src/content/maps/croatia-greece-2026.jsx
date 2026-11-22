@@ -13,6 +13,7 @@
  * accuracy the caption promises when it says *Drawn route, not a live map*.
  */
 import { fitFromPoints, project } from '../../lib/mapFit.js'
+import { DRAWN_MAP_LAND, DRAWN_MAP_ROUTE, DRAWN_MAP_SEA_LABEL } from '../../components/travelClasses.js'
 
 export const viewBox = { width: 560, height: 532 }
 
@@ -367,14 +368,14 @@ const SEAS = [
 export default function CroatiaGreeceMap() {
   return (
     <g aria-hidden="true">
-      <path className="drawn-map__land" d={LAND} />
-      <path className="drawn-map__route" d={ROUTE} />
+      <path className={`drawn-map__land ${DRAWN_MAP_LAND}`} d={LAND} />
+      <path className={`drawn-map__route ${DRAWN_MAP_ROUTE}`} d={ROUTE} />
       {SEAS.map((sea) => {
         const { x, y } = at(sea.at)
         return (
           <text
             key={sea.name}
-            className="drawn-map__sea-label"
+            className={`drawn-map__sea-label ${DRAWN_MAP_SEA_LABEL}`}
             x={x.toFixed(1)}
             y={y.toFixed(1)}
             textAnchor="middle"

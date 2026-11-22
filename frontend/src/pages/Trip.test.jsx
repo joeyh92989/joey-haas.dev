@@ -144,7 +144,7 @@ describe('Trip', () => {
       ...container.querySelectorAll(
         '.crumbs, .trip .kicker, h1, .lede, .facts, .drawn-map, .trip-places, .trip-day',
       ),
-    ].map((el) => el.className || el.tagName)
+    ].map((el) => el.classList[0] || el.tagName)
     expect(order.slice(0, 7)).toEqual([
       'crumbs',
       'kicker',

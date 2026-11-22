@@ -176,4 +176,133 @@ export async function g2({ record }, theme, vp) {
     at('a', 'projects print'),
     spec('/projects', undefined, { media: 'print' }),
   )
+
+  // ---------- g2b: Travel (two vite dev servers, see README) ----------
+  const TRIP = '/travel/croatia-greece-2026'
+  await record(at('b', 'travel index'), spec('/travel'))
+  await record(
+    at('b', 'travel card hover'),
+    spec('/travel'),
+    on('.trip-card', 'hover', 0),
+  )
+  await record(
+    at('b', 'travel card focus'),
+    spec('/travel'),
+    on('.trip-card', 'focus', 0),
+  )
+  await record(at('b', 'travel index print'), {
+    ...spec('/travel'),
+    media: 'print',
+  })
+  await record(at('b', 'trip'), spec(TRIP))
+  await record(at('b', 'trip print'), { ...spec(TRIP), media: 'print' })
+  await record(at('b', 'trip reduce'), { ...spec(TRIP), reduce: true })
+  await record(at('b', 'trip touch'), { ...spec(TRIP), touch: true })
+  await record(
+    at('b', 'trip pin hover'),
+    spec(TRIP),
+    on('.drawn-map__pin', 'hover', 1),
+  )
+  await record(
+    at('b', 'trip pin hover reduce'),
+    { ...spec(TRIP), reduce: true },
+    on('.drawn-map__pin', 'hover', 1),
+  )
+  await record(
+    at('b', 'trip pin focus'),
+    spec(TRIP),
+    on('.drawn-map__pin', 'focus', 0),
+  )
+  await record(
+    at('b', 'trip pin focus last'),
+    spec(TRIP),
+    on('.drawn-map__pin', 'focus', 3),
+  )
+  await record(
+    at('b', 'trip stop link hover'),
+    spec(TRIP),
+    on('.drawn-map__stops a', 'hover', 1),
+  )
+  await record(
+    at('b', 'trip place chip focus'),
+    spec(TRIP),
+    on('.trip-places a', 'focus', 1),
+  )
+  await record(
+    at('b', 'trip place chip hover'),
+    spec(TRIP),
+    on('.trip-places a', 'hover', 1),
+  )
+  await record(
+    at('b', 'trip photo hover'),
+    spec(TRIP),
+    on('.trip-photo__open', 'hover', 0),
+  )
+  await record(
+    at('b', 'trip photo focus'),
+    spec(TRIP),
+    on('.trip-photo__open', 'focus', 0),
+  )
+  await record(
+    at('b', 'trip nav hover'),
+    spec(TRIP),
+    on('.trip-nav a', 'hover', 0),
+  )
+  const lightbox = (inner) =>
+    on('.trip-photo__open', 'press', 0, async (page) => {
+      await page.locator('dialog.lightbox[open]').waitFor()
+      await page.waitForTimeout(400)
+      if (inner) await inner(page)
+    })
+  await record(at('b', 'lightbox open'), spec(TRIP), lightbox())
+  await record(
+    at('b', 'lightbox next'),
+    spec(TRIP),
+    lightbox(async (page) => {
+      await page.keyboard.press('ArrowRight')
+      await page.waitForTimeout(300)
+    }),
+  )
+  await record(
+    at('b', 'lightbox prev focus'),
+    spec(TRIP),
+    lightbox(async (page) => {
+      await page.keyboard.press('Shift+Tab')
+      await page.waitForTimeout(300)
+    }),
+  )
+  await record(
+    at('b', 'lightbox close focus'),
+    spec(TRIP),
+    lightbox(async (page) => {
+      await page.keyboard.press('Tab')
+      await page.waitForTimeout(300)
+    }),
+  )
+  await record(
+    at('b', 'lightbox close hover'),
+    spec(TRIP),
+    lightbox(async (page) => {
+      await page.locator('.lightbox__close').hover()
+      await page.waitForTimeout(300)
+    }),
+  )
+  if (vp === 'desktop')
+    for (const edge of ['w320', 'w544', 'w640', 'w641', 'w960']) {
+      await record(`screen ${theme} g2b trip ${edge}`, {
+        path: TRIP,
+        theme,
+        vp: edge,
+      })
+      await record(
+        `screen ${theme} g2b lightbox ${edge}`,
+        { path: TRIP, theme, vp: edge },
+        lightbox(),
+      )
+      await record(`screen ${theme} g2b travel ${edge}`, {
+        path: '/travel',
+        theme,
+        vp: edge,
+      })
+    }
 }

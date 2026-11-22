@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import { DRAWN_MAP_SEA_LABEL } from './components/travelClasses.js'
 import { readCss } from './testing/readCss.js'
 
 // Read from disk (testing/readCss.js): Vitest stubs CSS imports.
@@ -16,8 +17,11 @@ const STEPS = [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56]
 const EXEMPT = {
   ".run-cell[data-k='read']::after": 'font-size: 0.5rem;',
   ".run-cell[data-k='skip']::after": 'font-size: 0.5625rem;',
-  '.drawn-map__sea-label': 'font: italic 400 11px var(--font-display);',
 }
+
+// The drawn map's sea label (11px italic, inside a drawing that carries its
+// accessible name on the SVG) is a utility now (travelClasses.js); the test
+// below pins its size.
 
 // The intake demo's drawn spines (0.625 to 0.4375rem) are utilities now
 // (intakeDemoClasses.js); intakeStyles.test.js pins their sizes.
@@ -68,6 +72,12 @@ describe('type scale', () => {
       loose.push(`${selector}: ${text}`)
     }
     expect(loose).toEqual([])
+  })
+
+  it("keeps the drawn map's sea label at 11px, the one size off the scale", () => {
+    expect(DRAWN_MAP_SEA_LABEL.split(' ')).toContain(
+      '[font:italic_400_11px_var(--font-display)]',
+    )
   })
 
   it('lists no exemption that the stylesheet no longer has', () => {
