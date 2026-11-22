@@ -373,6 +373,13 @@ async function open(
     await page.route('**/snapshot/**', (r) => r.abort())
     await page.route('**/api/**', () => {})
   }
+  if (kind === 'admin-add' || kind === 'closet-add') await serveAdminAdd(page)
+  if (kind === 'closet-add') {
+    await page.route('**/api/auth/me', (r) =>
+      r.fulfill({ json: { email: 'a@example.com' } }),
+    )
+    await mockCloset(page)
+  }
   if (kind === 'closet') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ json: { email: 'a@example.com' } }),
@@ -386,13 +393,15 @@ async function open(
       configurable: true,
     })
   }, theme)
-  await page.goto(base + path)
+  // A page that is slow to fire `load` is tried once more.
+  await page.goto(base + path).catch(() => page.goto(base + path))
   await page
     .locator('h1')
     .first()
     .waitFor({ timeout: 15000 })
     .catch(() => {})
-  if (kind !== 'skeleton') await page.waitForLoadState('networkidle')
+  if (kind !== 'skeleton')
+    await page.waitForLoadState('networkidle').catch(() => {})
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => {
     for (const img of document.querySelectorAll('img[loading="lazy"]'))
@@ -408,6 +417,7 @@ const browser = await chromium.launch()
 const result = {}
 async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
+  if (process.env.PROGRESS) console.error(label)
   // A busy machine can time a step out: try the scenario once more.
   for (let attempt = 1; ; attempt++) {
     const { context, page } = await open(browser, spec)
@@ -958,6 +968,144 @@ async function d4b(theme, vp) {
   })
 }
 
+// Slice D5 (#536): the Closet leftovers and the admin intake (add) flow.
+async function click(page, name, opts = {}) {
+  const button = page.getByRole('button', { name, ...opts }).first()
+  await button.click()
+  await page.waitForTimeout(300)
+}
+
+async function d5(theme, vp) {
+  const at = (name) => `screen ${theme} ${vp} d5 ${name}`
+  const closet = (path) => ({ path, theme, vp, kind: 'closet' })
+  const add = (path) => ({ path, theme, vp, kind: 'admin-add' })
+  await record(at('/admin/closet/today'), closet('/admin/closet/today'))
+  await record(
+    at('today match sheet'),
+    closet('/admin/closet/today'),
+    async (page) => {
+      await click(page, /^Match this/)
+      const sheet = page.getByRole('dialog')
+      await sheet
+        .getByRole('button', { name: /closet/i })
+        .first()
+        .click()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(at('today swap sheet'), closet('/admin/closet/today'), (page) =>
+    click(page, /^Swap/),
+  )
+  await record(at('today not-this'), closet('/admin/closet/today'), (page) =>
+    click(page, /^Not this/),
+  )
+  await record(
+    at('today tab-focus'),
+    closet('/admin/closet/today'),
+    async (page) => {
+      for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
+      // The focus ring's colour fades in (a transition): let it settle.
+      await page.waitForTimeout(500)
+    },
+  )
+  await record(
+    at('today reduce'),
+    { ...closet('/admin/closet/today'), reduce: true },
+    (page) => click(page, /^Swap/),
+  )
+  await record(
+    at('review reduce'),
+    { ...closet('/admin/closet/review'), reduce: true },
+    (page) => click(page, /^Pack away/),
+  )
+  await record(at('/admin/closet'), closet('/admin/closet'))
+  await record(at('/admin/closet list'), closet('/admin/closet'), (page) =>
+    click(page, 'List', { exact: true }),
+  )
+  await record(
+    at('/admin/closet tile-hover'),
+    closet('/admin/closet'),
+    async (page) => {
+      await page.locator('.garment-tile').nth(1).hover()
+      await page.waitForTimeout(300)
+    },
+  )
+  await record(at('/admin/closet/review'), closet('/admin/closet/review'))
+  await record(
+    at('review sell sheet'),
+    closet('/admin/closet/review'),
+    (page) => click(page, /^Sell/),
+  )
+  await record(
+    at('review pack month'),
+    closet('/admin/closet/review'),
+    (page) => click(page, /^Pack away/),
+  )
+  await record(at('/admin/closet/profile'), closet('/admin/closet/profile'))
+  await record(at('/admin/closet/a'), closet('/admin/closet/a'))
+  await record(at('garment delete'), closet('/admin/closet/a'), (page) =>
+    click(page, 'Delete', { exact: true }),
+  )
+  await record(at('closet add'), add('/admin/closet/add'))
+  const closetAdd = { path: '/admin/closet', theme, vp, kind: 'closet-add' }
+  await record(at('closet add-bar'), closetAdd)
+  await record(at('closet add links'), closetAdd, (page) =>
+    click(page, /^Add from product links/),
+  )
+  await record(at('closet add typed'), closetAdd, async (page) => {
+    await page.getByRole('textbox', { name: 'Add', exact: true }).fill('shirt')
+    await page.waitForTimeout(300)
+  })
+  await record(at('add'), add('/admin/collection/add'))
+  await record(at('add discard'), add('/admin/collection/add'), (page) =>
+    click(page, /^Discard /),
+  )
+  await record(at('sitting'), add('/admin/collection/add/s1'))
+  await record(at('sitting check'), add('/admin/collection/add/chk'))
+  await record(at('sitting details'), add('/admin/collection/add/det'))
+  await record(at('sitting done'), add('/admin/collection/add/det'), (page) =>
+    click(page, /^Add \d+ to/),
+  )
+  await record(at('discover'), add('/admin/discover'))
+  await record(at('radar'), add('/admin/radar'))
+  await record(at('pull list'), add('/admin/pull-list'))
+  await record(at('games'), add('/admin/shelf/games'))
+  await record(
+    at('games add results'),
+    add('/admin/shelf/games'),
+    async (page) => {
+      await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
+      await page.keyboard.press('Enter')
+      await page.getByRole('list', { name: /^Results for/ }).waitFor()
+    },
+  )
+  await record(
+    at('games add drawer'),
+    add('/admin/shelf/games'),
+    async (page) => {
+      await page.getByRole('searchbox', { name: 'Add' }).fill('zelda')
+      await page.keyboard.press('Enter')
+      await page.getByRole('list', { name: /^Results for/ }).waitFor()
+      await click(page, /^Add (The Legend|Super)/)
+    },
+  )
+  await record(at('games scanner'), add('/admin/shelf/games'), async (page) => {
+    await click(page, /^Scan a barcode/)
+    // The camera is refused after a moment: wait for that state.
+    await page.waitForTimeout(1500)
+  })
+  await record(at('games wrap-up sheet'), add('/admin/shelf/games'), (page) =>
+    click(page, /^Wrap up/),
+  )
+  await record(at('/shelf/intake'), { path: '/shelf/intake', theme, vp })
+  await record(at('/shelf/intake reduce'), {
+    path: '/shelf/intake',
+    theme,
+    vp,
+    reduce: true,
+  })
+}
+
 for (const theme of ['dark', 'light']) {
   for (const vp of ['desktop', 'phone']) {
     await d4(theme, vp)
@@ -1118,6 +1266,7 @@ for (const theme of ['dark', 'light']) {
           await page.waitForTimeout(600)
         },
       )
+    await d5(theme, vp)
   }
   for (const path of [
     '/about',

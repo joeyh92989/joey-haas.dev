@@ -17,6 +17,15 @@ import { garmentTitle } from '../lib/closet.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { EMPTY } from '../content/emptyStates.js'
 import { btn, closetCard } from '../components/closetClasses.js'
+import {
+  CLOSET_TOAST,
+  CLOSET_TOAST_ACTS,
+  REVIEW_BANNER,
+  REVIEW_BANNER_ACTS,
+  REVIEW_LISTED,
+  REVIEW_LISTED_LIST,
+  REVIEW_LISTED_ROW,
+} from '../components/closetReviewClasses.js'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -53,14 +62,14 @@ const DONE_WORDS = {
 function DueBack({ garments, busy, onUnpackAll }) {
   return (
     <section
-      className="review-banner"
+      className={`review-banner ${REVIEW_BANNER}`}
       aria-label={adminCopy.closetReview.dueBack}
     >
       <p>
         {pieces(garments.length)} due back:{' '}
         {garments.map((g) => garmentTitle(g)).join(', ')}.
       </p>
-      <div className="review-banner-acts">
+      <div className={`review-banner-acts ${REVIEW_BANNER_ACTS}`}>
         <button
           type="button"
           className={btn('primary', 'sm')}
@@ -78,15 +87,15 @@ function DueBack({ garments, busy, onUnpackAll }) {
 function Listed({ garments, busy, onSold }) {
   return (
     <section
-      className={`${closetCard} review-listed`}
+      className={`${closetCard} review-listed ${REVIEW_LISTED}`}
       aria-labelledby="review-listed"
     >
       <h2 id="review-listed" className="kicker">
         {adminCopy.closetReview.listedForSale}
       </h2>
-      <ul>
+      <ul className={REVIEW_LISTED_LIST}>
         {garments.map((garment) => (
-          <li key={garment.id}>
+          <li key={garment.id} className={REVIEW_LISTED_ROW}>
             <span>{garmentTitle(garment)}</span>
             <button
               type="button"
@@ -108,9 +117,9 @@ function UndoToast({ toast, busy, onUndo, onDismiss }) {
   // Only the words are announced: a status region around the buttons would
   // read "Undo Dismiss" out with every change.
   return (
-    <div className="closet-toast">
+    <div className={`closet-toast ${CLOSET_TOAST}`}>
       <span role="status">{toast.words}</span>
-      <span className="closet-toast-acts">
+      <span className={`closet-toast-acts ${CLOSET_TOAST_ACTS}`}>
         <button
           type="button"
           className={btn('plain', 'sm')}

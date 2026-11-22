@@ -5,7 +5,14 @@ import {
   imageUrl,
   monthName,
 } from '../lib/closet.js'
-import { btn, chipBtn, field, textarea, CHECKED_CHIP } from './closetClasses.js'
+import {
+  btn,
+  chipBtn,
+  field,
+  textarea,
+  CHECKED_CHIP,
+  GARMENT_STAT,
+} from './closetClasses.js'
 
 const TEXT = [
   ['subtype', 'Type', 'oxford shirt, chinos, chelsea boot'],
@@ -86,7 +93,7 @@ function Stepper({ label, value, onChange }) {
       >
         −
       </button>
-      <output aria-live="polite" className="garment-mono">
+      <output aria-live="polite" className={`garment-mono ${GARMENT_STAT}`}>
         {value ?? '—'}
       </output>
       <button

@@ -1,6 +1,21 @@
 import { adminCopy } from '../content/adminCopy.js'
 import { categoryLabel, imageUrl } from '../lib/closet.js'
-import { pieceBtn } from './closetClasses.js'
+import {
+  BOARD,
+  BOARD_COLUMN,
+  BOARD_ROW,
+  BOARD_ROW_ASIDE,
+  GARMENT_SLOT,
+  GARMENT_STAT,
+  PIECE,
+  PIECE_ACTS,
+  PIECE_COLOR,
+  PIECE_GROUND,
+  PIECE_IMG,
+  PIECE_NAME,
+  PIECE_PIC,
+  pieceBtn,
+} from './closetClasses.js'
 
 const copy = adminCopy.closetToday
 
@@ -54,20 +69,20 @@ function Picture({ piece, size }) {
   const src = imageUrl(piece, { size })
   if (src) {
     return (
-      <span className="outfit-board-pic">
-        <img src={src} alt="" loading="lazy" />
+      <span className={`outfit-board-pic ${PIECE_PIC} ${PIECE_GROUND.none}`}>
+        <img className={PIECE_IMG} src={src} alt="" loading="lazy" />
       </span>
     )
   }
+  const family =
+    !piece.primary_hex && FAMILIES.has(piece.primary_color)
+      ? piece.primary_color
+      : undefined
   return (
     <span
-      className="outfit-board-pic"
+      className={`outfit-board-pic ${PIECE_PIC} ${PIECE_GROUND[family ?? 'none']}`}
       data-bare="true"
-      data-family={
-        !piece.primary_hex && FAMILIES.has(piece.primary_color)
-          ? piece.primary_color
-          : undefined
-      }
+      data-family={family}
       style={piece.primary_hex ? { backgroundColor: piece.primary_hex } : null}
     />
   )
@@ -123,18 +138,18 @@ export default function OutfitBoard({
   const Row = small ? 'span' : 'ul'
   return (
     <Wrap
-      className="outfit-board"
+      className={`outfit-board ${BOARD}`}
       data-size={small ? 'small' : 'full'}
       data-aside={aside.length > 0 ? 'true' : undefined}
       role={small ? undefined : 'group'}
       aria-hidden={small ? 'true' : undefined}
       aria-label={small ? undefined : copy.outfitBoard}
     >
-      <Wrap className="outfit-board-main">
+      <Wrap className={`outfit-board-main ${BOARD_COLUMN}`}>
         {rows.map((row) => (
           <Row
             key={row[0].slot}
-            className="outfit-board-row"
+            className={`outfit-board-row ${BOARD_ROW}`}
             style={{ '--pieces': row.length }}
           >
             {row.map(piece)}
@@ -142,8 +157,11 @@ export default function OutfitBoard({
         ))}
       </Wrap>
       {aside.length > 0 && (
-        <Wrap className="outfit-board-aside">
-          <Row className="outfit-board-row" style={{ '--pieces': 1 }}>
+        <Wrap className={`outfit-board-aside ${BOARD_COLUMN}`}>
+          <Row
+            className={`outfit-board-row ${BOARD_ROW_ASIDE}`}
+            style={{ '--pieces': 1 }}
+          >
             {aside.map(piece)}
           </Row>
         </Wrap>
@@ -156,7 +174,7 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
   const Item = small ? 'span' : 'li'
   return (
     <Item
-      className="outfit-piece"
+      className={`outfit-piece ${PIECE}`}
       data-slot={tile.slot}
       data-locked={locked ? 'true' : undefined}
       data-transient={tile.transient ? 'true' : undefined}
@@ -164,15 +182,19 @@ function Piece({ tile, small, locked, busy, saving, onLock, onSwap, onSave }) {
       <Picture piece={tile} size={small ? 'thumb' : undefined} />
       {!small && (
         <>
-          <span className="garment-slot">
+          <span className={`garment-slot ${GARMENT_SLOT}`}>
             {categoryLabel(tile.slot) ?? tile.slot}
           </span>
-          <span className="outfit-piece-name">{tile.name}</span>
+          <span className={`outfit-piece-name ${PIECE_NAME}`}>{tile.name}</span>
           {!tile.image && tile.color_name && (
-            <span className="outfit-piece-color">{tile.color_name}</span>
+            <span className={`outfit-piece-color ${PIECE_COLOR}`}>
+              {tile.color_name}
+            </span>
           )}
-          <span className="outfit-piece-stat">{tile.qualifier}</span>
-          <span className="outfit-piece-acts">
+          <span className={`outfit-piece-stat ${GARMENT_STAT}`}>
+            {tile.qualifier}
+          </span>
+          <span className={`outfit-piece-acts ${PIECE_ACTS}`}>
             <button
               type="button"
               className={pieceBtn}

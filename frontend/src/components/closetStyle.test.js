@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { cwd } from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { readCss } from '../testing/readCss.js'
+import { TODAY } from './closetClasses.js'
 
 // The Closet pages draw from the Button, Card and Input looks (#535). The
 // legacy `.btn`, `.chip` and `.panel` classes stay for areas not yet migrated
@@ -51,10 +52,10 @@ describe('Closet pages and the legacy look', () => {
   }
 
   it('the Today grid column may shrink', () => {
-    const css = readCss()
-    expect(css).toMatch(
-      /\.today \{[^}]*grid-template-columns: minmax\(0, 1fr\)/,
-    )
+    expect(TODAY).toContain('grid-cols-[minmax(0,1fr)]')
+    expect(
+      readFileSync(resolve(cwd(), 'src/pages/AdminClosetToday.jsx'), 'utf8'),
+    ).toContain('`today ${TODAY}`')
   })
 
   it('catches a legacy class in a template literal', () => {

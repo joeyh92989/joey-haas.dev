@@ -1,4 +1,5 @@
 import { imageUrl } from '../lib/closet.js'
+import { OUTFIT_SWATCH, OUTFIT_SWATCHES } from './closetClasses.js'
 
 /**
  * An outfit as small squares, one per garment: its photo, else its main
@@ -10,7 +11,7 @@ import { imageUrl } from '../lib/closet.js'
  */
 export default function OutfitSwatches({ garments }) {
   return (
-    <span className="outfit-swatches" aria-hidden="true">
+    <span className={`outfit-swatches ${OUTFIT_SWATCHES}`} aria-hidden="true">
       {garments.map((garment) => (
         <Swatch key={`${garment.slot}-${garment.id}`} garment={garment} />
       ))}
@@ -19,7 +20,10 @@ export default function OutfitSwatches({ garments }) {
 }
 
 /** One garment's square: the photo, or the colour the tagger recorded. */
-export function Swatch({ garment, className = 'outfit-swatch' }) {
+export function Swatch({
+  garment,
+  className = `outfit-swatch ${OUTFIT_SWATCH}`,
+}) {
   const src = imageUrl(garment)
   if (src) {
     return (

@@ -3,6 +3,16 @@ import { garmentTitle } from '../lib/closet.js'
 import { Swatch } from './OutfitSwatches.jsx'
 import Sheet from './Sheet.jsx'
 import { btn } from './closetClasses.js'
+import {
+  SELL_ACTIONS,
+  SELL_BODY,
+  SELL_CHECK,
+  SELL_COPIED,
+  SELL_LINE,
+  SELL_LINES,
+  SELL_TERM,
+  SELL_THUMB,
+} from './closetReviewClasses.js'
 
 /**
  * The listing's lines for a garment: what a resale listing asks for, from
@@ -83,20 +93,20 @@ function SellBody({ titleId, card, busy, error, onClose, onList }) {
   }
 
   return (
-    <div className="sheet-body">
+    <div className={`sheet-body ${SELL_BODY}`}>
       <h2 id={titleId}>Sell the {garmentTitle(card.garment)}</h2>
-      <div className="sell-check">
-        <Swatch garment={card.garment} className="sell-thumb" />
-        <dl className="sell-lines">
+      <div className={`sell-check ${SELL_CHECK}`}>
+        <Swatch garment={card.garment} className={`sell-thumb ${SELL_THUMB}`} />
+        <dl className={`sell-lines ${SELL_LINES}`}>
           {lines.slice(1).map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
+            <div key={label} className={SELL_LINE}>
+              <dt className={SELL_TERM}>{label}</dt>
               <dd>{value}</dd>
             </div>
           ))}
         </dl>
       </div>
-      <p className="muted sell-copied" role="status">
+      <p className={`muted sell-copied ${SELL_COPIED}`} role="status">
         {copied}
       </p>
       {error && (
@@ -104,7 +114,7 @@ function SellBody({ titleId, card, busy, error, onClose, onList }) {
           {error}
         </p>
       )}
-      <div className="sheet-actions">
+      <div className={`sheet-actions ${SELL_ACTIONS}`}>
         <button type="button" className={btn()} onClick={copy}>
           Copy listing
         </button>
