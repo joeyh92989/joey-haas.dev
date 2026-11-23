@@ -105,7 +105,7 @@ export const SITE_STATS_LISTS =
   'grid gap-6 grid-cols-[repeat(3,minmax(0,1fr))] [@media(max-width:700px)]:grid-cols-[minmax(0,1fr)] [&>section]:mt-0 [.site-stats_&_h2]:mb-1 [&_.kicker]:mb-2 [&_.kicker]:block'
 
 export const CHANGELOG_LIST =
-  'grid list-none gap-3 [&_time]:text-(--text-2) [&_time]:text-[0.8125rem] [&_time]:leading-[normal] [&_time]:font-mono [&_ul]:pl-4 [&_ul_li+li]:mt-1'
+  'grid list-none gap-3 [&_time]:text-(--text-2) [&_time]:text-[0.8125rem] [&_time]:leading-[normal] [&_time]:font-mono [&_ul]:list-[circle] [&_ul]:pl-4 [&_ul_li+li]:mt-1'
 export const CHANGES_FEED = 'mb-3'
 
 /** After a replayed finish's title on Now and the review pages. */

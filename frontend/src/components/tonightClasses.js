@@ -63,7 +63,7 @@ export const NEXT_ROW_TITLE =
   'min-w-0 text-foreground font-sans [font-size:var(--fs-18)] leading-[1.3] [grid-column:2] [grid-row:1] [overflow-wrap:anywhere]'
 export const NEXT_ROW_TEXT =
   'grid min-w-0 content-start gap-1 [font-size:var(--fs-14)] [grid-column:2] [grid-row:2] [overflow-wrap:anywhere]'
-export const NEXT_ROW_REASONS = 'm-0 pl-4 text-muted-foreground'
+export const NEXT_ROW_REASONS = 'm-0 list-[circle] pl-4 text-muted-foreground'
 export const NEXT_BADGES = 'flex flex-wrap gap-1'
 const BADGE =
   'rounded-[999px] border bg-card px-2 py-[0.05rem] text-foreground [font-size:var(--fs-12)] leading-[1.4]'

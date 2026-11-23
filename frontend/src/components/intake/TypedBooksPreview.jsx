@@ -28,7 +28,7 @@ export default function TypedBooksPreview({ entries }) {
       <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
         {words.typedBooksHead(rows.length)}
       </h3>
-      <ul className="intake-typed-books">
+      <ul className="intake-typed-books list-disc">
         {rows.map(({ key, title, book }) => (
           <li key={key}>
             {title && <b>{title}: </b>}

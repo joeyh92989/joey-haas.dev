@@ -34,7 +34,8 @@ export const PICK_COVER = 'flex-[0_0_5.5rem]'
 export const PICK_CARD_H2 = 'mb-1 [font-size:var(--fs-18)]'
 export const PICK_META =
   'mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 [font-size:var(--fs-13)]'
-export const PICK_REASONS = 'm-0 pl-4 [font-size:var(--fs-14)] [&>li+li]:mt-1'
+export const PICK_REASONS =
+  'm-0 list-disc pl-4 [font-size:var(--fs-14)] [&>li+li]:mt-1'
 export const PICK_ACTIONS = 'mt-auto flex flex-wrap gap-2'
 /** "Play this" pins and starts the game; the line under it says so. */
 export const PICK_PLAY = 'inline-flex flex-col gap-[0.15rem]'
@@ -55,7 +56,7 @@ export const RADAR_BODY =
 /** A link inside running text is underlined: colour alone does not set it
  *  apart (axe link-in-text-block). */
 const LINK_UNDERLINED = '[&_a]:underline [&_a]:underline-offset-[0.15em]'
-export const RADAR_LIST = `mb-2 pl-4 [font-size:var(--fs-14)]`
+export const RADAR_LIST = `mb-2 list-disc pl-4 [font-size:var(--fs-14)]`
 export const RADAR_STORES = `${RADAR_LIST} ${LINK_UNDERLINED}`
 export const RADAR_BUTTONS = 'flex flex-wrap gap-2'
 export const RADAR_DIGITAL = `mt-6 [&_summary]:cursor-pointer [&_summary]:font-semibold [@media(max-width:700px)]:[&_summary]:py-3`

@@ -30,6 +30,30 @@
   margin-bottom: var(--space-4);
 }
 
+/* Markdown writes bare lists and code, and Preflight resets both (no markers,
+   the framework's mono font). These put back what the browser drew before
+   Preflight was on (#536 slice H): disc, then circle, then square for nested
+   bullets, decimal for numbers, and the browser's own monospace face. */
+.post-body ul {
+  list-style: disc;
+}
+
+.post-body ol {
+  list-style: decimal;
+}
+
+.post-body :is(ul, ol) ul {
+  list-style-type: circle;
+}
+
+.post-body :is(ul, ol) :is(ul, ol) ul {
+  list-style-type: square;
+}
+
+.post-body :is(code, pre) {
+  font-family: monospace;
+}
+
 .post-body ul,
 .post-body ol {
   padding-left: var(--space-4);

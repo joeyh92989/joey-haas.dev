@@ -317,7 +317,7 @@ export default function ComicVolume({ id, slug }) {
       </h2>
       {collects.length ? (
         <ol
-          className="volume-collects m-0 grid gap-1 pl-5 [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-[1.5px] [&_a]:underline-offset-4"
+          className="volume-collects m-0 grid list-decimal gap-1 pl-5 [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-[1.5px] [&_a]:underline-offset-4"
           aria-labelledby="volume-collects"
         >
           {collects.map((entry, index) => (

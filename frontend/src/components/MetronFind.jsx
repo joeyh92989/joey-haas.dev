@@ -114,7 +114,7 @@ export default function MetronFind({ volumeId, entries, busy, onSave }) {
           {candidate.entries.length > 0 ? (
             <>
               <p>{M.collects}</p>
-              <ul>
+              <ul className="list-disc">
                 {candidate.entries.map((entry) => (
                   <li key={`${entry.series_name}|${entry.issue_text}`}>
                     {entry.series_name} {entry.issue_text}
