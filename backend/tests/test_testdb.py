@@ -2,7 +2,14 @@
 
 from pathlib import Path
 
-from testdb import BASE_URL, database_name_for, is_derived, resolve_url
+from testdb import (
+    BASE_URL,
+    database_name_for,
+    is_derived,
+    resolve_url,
+    should_create,
+    worker_database_name,
+)
 
 WORKTREE = Path("/x/joey-haas.dev-worktrees/feat-ephemeral-ci-migrations")
 
@@ -49,3 +56,46 @@ def test_only_the_derived_database_is_ever_created():
     assert is_derived({})
     assert not is_derived({"TEST_DATABASE_URL": "postgresql://u:p@h/x"})
     assert not is_derived({"CI": "true"})
+
+
+def _db(url):
+    return url.rsplit("/", 1)[1]
+
+
+def test_serial_run_has_no_worker_suffix():
+    assert _db(resolve_url({"CI": "true"}, WORKTREE)) == "postgres"
+    assert not should_create({"CI": "true"})
+    assert not should_create({"TEST_DATABASE_URL": "postgresql://u:p@h/x"})
+    assert should_create({})
+
+
+def test_each_worker_gets_its_own_database_in_every_mode():
+    for env, base in (
+        ({"CI": "true"}, "postgres"),
+        ({"TEST_DATABASE_URL": "postgresql://u:p@h:1/mine"}, "mine"),
+        ({}, _db(resolve_url({}, WORKTREE))),
+    ):
+        names = {
+            _db(resolve_url({**env, "PYTEST_XDIST_WORKER": w}, WORKTREE))
+            for w in ("gw0", "gw1", "gw2")
+        }
+        assert names == {f"{base}_gw0", f"{base}_gw1", f"{base}_gw2"}
+        assert should_create({**env, "PYTEST_XDIST_WORKER": "gw0"})
+
+
+def test_worker_url_keeps_credentials_and_host():
+    env = {
+        "TEST_DATABASE_URL": "postgresql://u:p@h:1/mine",
+        "PYTEST_XDIST_WORKER": "gw3",
+    }
+    assert resolve_url(env, WORKTREE) == "postgresql://u:p@h:1/mine_gw3"
+
+
+def test_worker_name_fits_the_limit_and_stays_distinct():
+    a = database_name_for(Path("/x/" + "a" * 80 + "-one"))
+    b = database_name_for(Path("/x/" + "a" * 80 + "-two"))
+    assert len(a) == 63  # no room left for a suffix without cutting
+    wa, wb = worker_database_name(a, "gw0"), worker_database_name(b, "gw0")
+    assert len(wa) <= 63 and len(wb) <= 63
+    assert wa.endswith("_gw0") and wa != wb
+    assert worker_database_name(a, "gw0") != worker_database_name(a, "gw1")

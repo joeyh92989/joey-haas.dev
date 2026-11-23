@@ -123,7 +123,7 @@ jobs:
           # is set, so these tests can never silently skip here.
           CI: 'true'
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-        run: pytest -q --ignore=tests/test_migrations.py
+        run: pytest -q -n 4 --ignore=tests/test_migrations.py
 
       - name: Audit dependencies
         # The pinned set Render installs, not a fresh resolve of the ranges.

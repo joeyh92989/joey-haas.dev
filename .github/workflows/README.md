@@ -28,6 +28,8 @@ changelog parser read them), `.github/workflows/**` and `render.yaml`. The job
 fails open: an empty list, a push with no usable `before` sha or a git error
 prints `heavy=true`.
 
+`backend-tests` runs pytest with `-n 4` (pytest-xdist): `tests/testdb.py` gives each worker its own database (`postgres_gw0`...), created on first use; `backend-migrations` stays serial.
+
 `backend-tests`, `backend-migrations`, `frontend-checks`, `e2e-shard` and
 `e2e-admin-shard` take `needs: changes` and run only when `heavy` is `true`.
 The four aggregates (`backend`, `frontend`, `e2e`, `e2e-admin`) pass when their

@@ -523,7 +523,8 @@ to use a database of your choosing as given; CI keeps the service container's
 default `postgres` database, since its runner is already isolated. Drop a
 worktree's database when you remove the worktree: list them with
 `psql -l | grep joeyhaas_test` and run `psql -c 'DROP DATABASE <name>' postgres`.
-An explicit `TEST_DATABASE_URL` is never created for you.
+An explicit `TEST_DATABASE_URL` is never created for you. Under `pytest -n N` (pytest-xdist)
+each worker appends `_gw0`, `_gw1`... to that database name and creates it on first use.
 
 The schema is built from the models once per run; each test then starts by
 truncating every table (`RESTART IDENTITY CASCADE`), so it still begins on an
