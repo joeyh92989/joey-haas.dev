@@ -128,6 +128,34 @@ const PROPS = [
   'writing-mode',
   'pointer-events',
   'user-select',
+  // Added for slice H (#536): what Preflight resets and the shim handed back.
+  // Appended, so the indices style-diff.mjs reads stay where they were.
+  'border-right-style',
+  'border-bottom-style',
+  'border-left-style',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
+  'border-spacing',
+  'list-style-position',
+  'list-style-image',
+  'tab-size',
+  '-webkit-tap-highlight-color',
+  'font-feature-settings',
+  'font-variation-settings',
+  'font-variant-caps',
+  'font-stretch',
+  'text-decoration-style',
+  'text-decoration-thickness',
+  'min-height',
+  'max-height',
+  'caret-color',
+  'color-scheme',
+  'accent-color',
+  'table-layout',
+  'text-size-adjust',
+  'margin-inline-end',
+  'scroll-padding-bottom',
 ]
 
 const PLAY_CARD = {
@@ -328,6 +356,16 @@ async function dumpPage(page) {
         if (getComputedStyle(el, pseudo).content !== 'none')
           rows[key + pseudo] = read(el, pseudo)
       }
+      // Slice H (#536): the parts Preflight styles that have no `content`.
+      if (getComputedStyle(el).display === 'list-item')
+        rows[key + '::marker'] = read(el, '::marker')
+      if (el.tagName === 'INPUT' && el.type === 'file')
+        rows[key + '::file-selector-button'] = read(
+          el,
+          '::file-selector-button',
+        )
+      if (el.tagName === 'DIALOG' && el.matches(':modal'))
+        rows[key + '::backdrop'] = read(el, '::backdrop')
     }
     return rows
   }, PROPS)

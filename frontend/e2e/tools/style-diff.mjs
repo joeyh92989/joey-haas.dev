@@ -14,18 +14,26 @@ const jobsRow = (label, key) =>
 // A border with no width is not drawn whatever its style: Preflight's
 // `border: 0 solid` and the browser's `none` are the same on screen, and a
 // width that changes still shows up as its own difference. Compared as equal.
-const STYLE = 24
-const WIDTH_TOP = 20
-// Likewise an outline whose style is `none` is not drawn, so its width and
-// colour are not compared (Preflight's `outline-style: none` leaves a 1px
-// width behind where the old rule left the browser's 3px: neither shows).
+// Slice H (#536) added the other three sides' styles; the colour of an
+// undrawn border is ignored too (Preflight's `border: 0 solid` leaves
+// currentcolor where the browser's own button or fieldset border had a grey).
+const SIDES = [
+  [20, 24, 25],
+  [21, 99, 28],
+  [22, 100, 26],
+  [23, 101, 27],
+]
 const OUTLINE_WIDTH = 49
 const OUTLINE_STYLE = 50
 const OUTLINE_COLOR = 51
 const unstyled = (record) => {
   if (record === undefined) return record
   const parts = record.split('|')
-  if (parts[WIDTH_TOP] === '0px') parts[STYLE] = 'none'
+  for (const [w, st, col] of SIDES)
+    if (parts[w] === '0px') {
+      parts[st] = 'none'
+      parts[col] = ''
+    }
   if (parts[OUTLINE_STYLE] === 'none') {
     parts[OUTLINE_WIDTH] = '0px'
     parts[OUTLINE_COLOR] = ''
