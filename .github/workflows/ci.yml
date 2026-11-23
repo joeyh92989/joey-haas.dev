@@ -206,6 +206,9 @@ jobs:
       - name: wait-for-ci tests
         run: ./scripts/wait-for-ci.test.sh
 
+      - name: ci-changes tests
+        run: ./scripts/ci-changes.test.sh
+
   # Split (#598): a matrix of `e2e-shard` jobs behind one aggregate job named
   # `e2e`. Each is its own runner, so it builds the site itself. The split is
   # by FILE, not Playwright's blind --shard over the whole suite, because that
