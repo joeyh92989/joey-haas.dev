@@ -11,9 +11,14 @@
 # fresh attempt usually gets a faster mirror connection. The last attempt has
 # no cap, so a real failure still fails the job with its own output.
 #
+# `timeout` only kills Playwright's own process: the apt-get it started as root
+# keeps running and holds the dpkg lock, so a plain retry fails at once with
+# "Could not get lock" (seen on the first CI run of this script, exit 100). So
+# before each retry the stale apt-get is killed and waited for.
+#
 # Env: INSTALL_TIMEOUT (seconds per capped attempt, default 75), INSTALL_TRIES
-# (attempts in all, default 3), SUDO (default `sudo`; a killed apt may leave
-# dpkg half-configured, so a retry first runs `$SUDO dpkg --configure -a`).
+# (attempts in all, default 3), SUDO (default `sudo`; used to kill a stale
+# apt-get and to run `dpkg --configure -a` in case the kill landed mid-install).
 set -u
 
 TIMEOUT="${INSTALL_TIMEOUT:-75}"
@@ -30,6 +35,11 @@ while :; do
     exit 0
   fi
   echo "Chromium install attempt $attempt did not finish in ${TIMEOUT}s (or failed); trying again." >&2
+  $SUDO pkill -x apt-get >/dev/null 2>&1 || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -x apt-get >/dev/null 2>&1 || break
+    sleep 1
+  done
   $SUDO dpkg --configure -a >/dev/null 2>&1 || true
   attempt=$((attempt + 1))
 done

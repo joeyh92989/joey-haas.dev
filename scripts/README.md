@@ -162,7 +162,7 @@ INSTALL_TIMEOUT=60 INSTALL_TRIES=4 ../scripts/install-chromium.sh
 
 `INSTALL_TIMEOUT` (default 75 s) caps each attempt but the last; `INSTALL_TRIES`
 (default 3) is the number of attempts; `SUDO` (default `sudo`) runs
-`dpkg --configure -a` between attempts in case a kill landed mid-install.
+`pkill -x apt-get` (and waits for it) plus `dpkg --configure -a` between attempts. The kill matters: `timeout` stops Playwright but not the root `apt-get` it started, which keeps the dpkg lock and made a plain retry fail with exit 100.
 
 ### Gotchas
 
