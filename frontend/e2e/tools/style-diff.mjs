@@ -110,6 +110,9 @@ const normalise = (record, label, key) => {
     .replace(/::.*$/, '')
     .split('>')
     .some((part) => part.startsWith('button['))
+  // The action sheet's dead z-index 40 is deleted (slice H): a modal dialog
+  // is in the top layer, where z-index does nothing.
+  if (/\bshelf-sheet\b/.test(kind)) r.set('z-index', '')
   if (DATE_LIKE.has(type)) {
     r.set('padding-top', '')
     r.set('padding-bottom', '')

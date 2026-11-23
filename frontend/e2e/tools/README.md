@@ -172,5 +172,18 @@ button; `vertical-align` on anything that is not inline-level or a table cell;
 `max-width: 100%` against `none` (the drawn width is its own field); `html`'s
 `font-family` and `line-height` (body sets both); `box-sizing` on `::before` and
 `::after` (a generated box whose size depends on it moves its own offsets or its
-neighbours' widths, which are compared); and a checkbox's, radio's or range's text
-properties and colours (it draws none; needs the `META=1` sidecar).
+neighbours' widths, which are compared); a checkbox's, radio's, range's or colour field's text
+properties and colours (it draws none; needs the `META=1` sidecar); a button, or
+a comic cover tile's button and frame, with no text of its own (the map pin; the
+label inside the tile sets its own font); a date, month or time field's top and
+bottom padding (made up 1px, so its height is equal); a modal dialog's z-index
+(the shelf action sheet's dead `z-40` is deleted, and the top layer ignores it);
+and the size of an absolutely positioned generated box whose offsets are all 0
+(it fills its parent either way).
+
+Two things on the mocked admin pages and the quick-rate stars are not the build:
+the `/admin` header's "last run" widths and `/admin/jobs` row order depend on
+when the dump ran, and a star under the pointer after a click depends on timing.
+A dump of main and one of a branch taken half an hour apart differ there; the
+same pages dumped one after the other from both builds, three times, do not
+(main against main also does, once, on the stars).
