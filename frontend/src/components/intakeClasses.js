@@ -222,7 +222,7 @@ export const INTAKE_ROW_TITLE = 'font-medium'
 export const INTAKE_ADD = 'grid gap-3'
 
 export const INTAKE_ADDBAR =
-  'grid gap-2 grid-cols-[minmax(0,1fr)_auto_auto] [&_input]:min-w-0'
+  'flex flex-wrap gap-2 [&_input]:min-w-0 max-[700px]:[&_input]:basis-full min-[701px]:[&_input]:flex-1 min-[701px]:[&_input]:basis-64'
 
 export const INTAKE_RESULTS =
   'bg-(--surface) border border-(--line-strong) rounded-(--radius) grid gap-2 pt-1 pb-3 [&>p]:px-3 [&>ul:first-child]:list-none'

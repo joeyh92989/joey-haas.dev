@@ -389,6 +389,12 @@ parts in the same order. The card is the same card; the owner's controls are
 a sibling of its link, revealed on hover or focus (a "…" sheet on a phone),
 except what is a state rather than a control: **Private** always shows.
 Bulk publish and hide act on the rows of their own page, by id.
+The page's actions sit in groups that wrap inside themselves (#495): the
+primary links (`HEAD_GROUP`), **Bulk actions** (`HEAD_BULK`, a labelled
+`role="group"`: Publish all, Hide all, Refresh; a row of its own on a phone)
+and the view toggle. The add bar (`AddBar`) is a wrapping row, its field a row
+of its own on a phone, and every button in it shows a word: a placeholder
+cannot wrap, so it is written to fit 320px.
 
 Admin paths that predate the rule (`/admin/collection/:id`, the item edit
 pages) move when their page is next touched, and the old path redirects

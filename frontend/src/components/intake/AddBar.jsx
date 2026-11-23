@@ -7,7 +7,9 @@ import { ibtn, INTAKE_FIELD } from '../addClasses.js'
 import { INTAKE_ADDBAR } from '../intakeClasses.js'
 
 /**
- * The add bar's one row: a text field, ▤ Photos and the barcode button.
+ * The add bar: a text field (a row of its own on a phone, so its placeholder
+ * reads whole), then ▤ Photos and the barcode button, each with a visible
+ * word (#495).
  * The barcode button scans a book's ISBN where the area reads one
  * (`onScan`); elsewhere it stays disabled with its reason in its name
  * (spec: a disabled way in is a disabled button, never a hidden one). The field
@@ -66,8 +68,8 @@ export default function AddBar({
           enterKeyHint={searchable ? 'search' : 'done'}
           placeholder={
             searchable
-              ? 'Search to add one, or ▤ Photos for a sitting'
-              : 'Type a piece to add it by hand, or ▤ Photos, one per piece'
+              ? 'Search to add, or ▤ Photos'
+              : 'Add a piece, or ▤ Photos'
           }
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -113,7 +115,7 @@ export default function AddBar({
           }
           onClick={() => setScanning(true)}
         >
-          <span aria-hidden="true">▥</span>
+          <span aria-hidden="true">▥</span> Scan
         </button>
       </form>
       {onScan && (

@@ -33,6 +33,17 @@ export const HEAD_DESC =
 /** The right-hand slot: it drops under the title when it does not fit. */
 export const HEAD_END = 'ml-auto flex flex-wrap items-center gap-x-3 gap-y-2'
 
+/** One group of controls in the right-hand slot (primary links, the view
+ *  toggle): it wraps inside itself, so opening a confirm in one group never
+ *  moves another (#495). */
+export const HEAD_GROUP = 'flex flex-wrap items-center gap-2'
+
+/** The bulk actions (Publish all, Hide all, Refresh metadata): a group of
+ *  their own, set off from the primary controls by a rule beside it on a
+ *  desktop and a row of its own on a phone. */
+export const HEAD_BULK =
+  'flex flex-wrap items-center gap-2 max-[700px]:basis-full min-[701px]:border-l min-[701px]:border-line-card min-[701px]:pl-3'
+
 /** A plain text link in the right-hand slot ("View /shelf/games"): it reaches
  *  the 24px floor (WCAG 2.5.8, #505). `inline-block` keeps the space before an
  *  arrow, which `inline-flex` would drop. A Button drawn as a link has its own

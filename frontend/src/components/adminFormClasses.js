@@ -12,7 +12,9 @@ export const ITEM_TABLE =
 
 export const LINKED_SOURCE = 'basis-full text-[0.8125rem] m-0'
 
-export const ITEM_TABLE_WRAP = '[overflow-x:auto]'
+// `relative` makes the wrapper the containing block for a visually-hidden span
+// in a cell: without it the span escapes the scroller and widens the page (#459).
+export const ITEM_TABLE_WRAP = 'relative [overflow-x:auto]'
 
 export const FULL_ADD_FORM =
   '[margin-block:var(--space-4)] [&_summary]:cursor-pointer [&_summary]:[padding-block:var(--space-2)] [&_summary]:font-semibold'

@@ -499,15 +499,30 @@ describe('AddSection on the shelf', () => {
 })
 
 describe('AddSection in the Closet', () => {
+  it('shows a word on every add-bar button, never a glyph alone (#495)', async () => {
+    fakeIntakeApi()
+    renderAt('closet')
+    const bar = (await screen.findByRole('textbox', { name: 'Add' })).closest(
+      'form',
+    )
+    for (const button of within(bar).getAllByRole('button')) {
+      const visible = [...button.childNodes]
+        .filter(
+          (node) => node.nodeType === 3 || !node.hasAttribute?.('aria-hidden'),
+        )
+        .map((node) => node.textContent)
+        .join('')
+        .trim()
+      expect(visible, button.outerHTML).not.toBe('')
+    }
+  })
+
   it('types a piece by hand: no search, the garment’s fields', async () => {
     const user = userEvent.setup()
     const api = fakeIntakeApi()
     const onAdded = renderAt('closet')
     const field = await screen.findByRole('textbox', { name: 'Add' })
-    expect(field).toHaveAttribute(
-      'placeholder',
-      'Type a piece to add it by hand, or ▤ Photos, one per piece',
-    )
+    expect(field).toHaveAttribute('placeholder', 'Add a piece, or ▤ Photos')
     await user.type(field, 'Navy blazer{Enter}')
     const drawer = screen.getByRole('complementary', { name: 'Navy blazer' })
     expect(within(drawer).getByLabelText('Name')).toHaveValue('Navy blazer')

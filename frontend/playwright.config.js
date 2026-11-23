@@ -40,6 +40,7 @@ export default defineConfig({
     'admin-home.spec.js',
     'admin-add.spec.js',
     'followups-598.spec.js',
+    'admin-toolbars.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   // E2E_WORKERS sets the worker count (CI sets it on the 4-vCPU runner);
