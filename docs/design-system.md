@@ -411,7 +411,13 @@ chip, pressed by weight, border and the accent bar. The `btn` class
 is an `@utility` in `styles/utilities.css` (#536); `.chip` has no rule left (slice E1:
 `components/chipClasses.js`). The ten
 half-star targets of Quick rate keep their drawn width (ten 44px targets do
-not fit a phone); they are 44px tall on a phone.
+not fit a phone); they are 44px tall on a phone. That is 9px wide on a card
+(21.6px tall on a desktop), under WCAG 2.5.8's 24px with no spacing, and the
+phone's action sheet draws them 24px wide: a known gap, kept (#598). A page
+link on a phone is 44px tall with its label centred (the admin shell's
+segments, What's next's jump links); a link with no ring of its own takes the
+accent ring from `base.css`, and a hovered tile, card or map pin link is not
+underlined.
 
 **The admin twin of a detail page** (comics 5c): the area rail, a
 breadcrumb (Shelf › Comics › the series), `AdminPageHeader` with the page's

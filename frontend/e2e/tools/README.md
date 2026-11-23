@@ -143,6 +143,15 @@ catalogue, Stats and its changelog, and Play next at the edges. The cover strip
 and the item tile figures need favourites or ratings the fixture snapshot does
 not carry: they log `absent`.
 
+The #598 follow-ups put their scenarios in `scenarios/f598.mjs` (`ONLY=' f598'`;
+`style-dump.mjs` has one import and two call lines, the second for the 320px
+width). Besides the dump, each scenario prints a measurement on stderr as `M
+<theme> <viewport> <label> <json>` (a link's outline, axe on a dimmed card,
+a tile's clipped width, the star targets, the page links' height and text gap,
+the code font, the date fields' height), the same on both sides, so the lines of
+a before and an after build can be diffed. The Travel pages are not in it (no
+trip is published): compare those in two dev servers as for `g2b`.
+
 Slice H (#536: `index.css` deleted, Preflight moved into the `base` layer and the
 `revert` shim removed). `PROPS` now lives in `props.mjs` (imported by the dump and
 the diff; `style-diff.mjs` finds a field by name, so a property is appended, never

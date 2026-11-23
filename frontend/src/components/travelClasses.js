@@ -92,12 +92,12 @@ export const LIGHTBOX_COUNT =
   'text-(--text-3) [font-variant-numeric:tabular-nums]'
 
 /** A trip card: the whole card is one link. Hover is `[&:hover]`, not
- *  `hover:`, because the old rule also applied on a touch screen. It writes no
- *  `text-decoration`: the old `.trip-card { text-decoration: none }` lost to the
- *  global `a:hover` underline, so a hovered card has always been underlined, and
- *  a utility that said `none` would have changed that. */
+ *  `hover:`, because the old rule also applied on a touch screen. A hovered
+ *  card is not underlined (#598): the old `.trip-card { text-decoration: none }`
+ *  lost to the global `a:hover` underline, so the port kept the accident, and
+ *  the follow-up drops it. */
 export const TRIP_CARD =
-  'bg-(--surface) border border-(--line) rounded-[10px] text-(--text) grid [grid-template-rows:auto_1fr] h-full overflow-hidden [&:hover]:border-(--line-strong) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-(--accent) focus-visible:outline-offset-2'
+  'bg-(--surface) border border-(--line) rounded-[10px] text-(--text) grid [grid-template-rows:auto_1fr] h-full overflow-hidden [&:hover]:no-underline [&:hover]:border-(--line-strong) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-(--accent) focus-visible:outline-offset-2'
 
 /** A day. Its prose is spaced by the element that holds it (a photo day's
  *  `.post-body` takes DAY_PROSE, a postcard's takes none), so two
@@ -121,7 +121,7 @@ export const TRIP_PHOTO_OPEN =
  *  projected point. A pin past 70% across puts its name on the left, so the
  *  placement is a map (two transforms must not fight over one element). */
 export const DRAWN_MAP_PIN =
-  'group/pin items-center text-(--text) flex gap-1 min-h-6 absolute focus-visible:outline-none'
+  'group/pin items-center text-(--text) flex gap-1 min-h-6 absolute [&:hover]:no-underline focus-visible:outline-none'
 export const DRAWN_MAP_PIN_SIDE = {
   right: '[transform:translate(-12px,-50%)]',
   left: '[flex-direction:row-reverse] [transform:translate(calc(-100%_+_12px),-50%)]',

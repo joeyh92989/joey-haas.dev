@@ -9,8 +9,20 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const remote = process.env.E2E_BASE_URL
 
+// E2E_SKIP_FILES: comma-separated spec file names to leave out of this run.
+function skipFiles() {
+  return (process.env.E2E_SKIP_FILES ?? '')
+    .split(',')
+    .filter(Boolean)
+    .map((name) => `**/${name}`)
+}
+
 export default defineConfig({
   testDir: './e2e',
+  // CI splits the suite across jobs by file (ci.yml): the job that runs
+  // "everything else" sets E2E_SKIP_FILES to the files other jobs own, so a
+  // new spec file lands in it by default and is never silently dropped.
+  testIgnore: skipFiles(),
   testMatch: [
     'smoke.spec.js',
     'a11y.spec.js',
@@ -27,6 +39,7 @@ export default defineConfig({
     'tools-data.spec.js',
     'admin-home.spec.js',
     'admin-add.spec.js',
+    'followups-598.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

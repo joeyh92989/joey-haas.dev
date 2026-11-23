@@ -109,6 +109,15 @@ a:hover {
   text-underline-offset: 3px;
 }
 
+/* A link with no ring of its own (running text in prose, posts and notes,
+   generated markdown links, plain links in lists) takes the accent ring every
+   other control draws, not the browser's pale default (#598). A component that
+   sets its own ring is a utility, which sits above this layer and wins. */
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 section + section {
   margin-top: var(--space-6);
 }

@@ -12,8 +12,20 @@ import { e2eBackendBin, E2E_DB_URL } from './e2e/admin-env.js'
 const PORT = process.env.E2E_PREVIEW_PORT ?? '4173'
 const AUTH_FILE = 'e2e/.auth/admin.json'
 
+// E2E_SKIP_FILES: comma-separated spec file names to leave out of this run.
+function skipFiles() {
+  return (process.env.E2E_SKIP_FILES ?? '')
+    .split(',')
+    .filter(Boolean)
+    .map((name) => `**/${name}`)
+}
+
 export default defineConfig({
   testDir: './e2e',
+  // CI splits the suite across jobs by file (ci.yml): the job that runs
+  // "everything else" sets E2E_SKIP_FILES to the files other jobs own, so a
+  // new spec file lands in it by default and is never silently dropped.
+  testIgnore: skipFiles(),
   testMatch: [
     'admin.setup.js',
     'admin.spec.js',

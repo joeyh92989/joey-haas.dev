@@ -2,15 +2,91 @@
 
 | File | Runs | What it does |
 |---|---|---|
-| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `scripts` (the shell helpers' tests; not required), `e2e`, `e2e-admin`, and `neon-rehearsal` |
+| `ci.yml` | every PR and push to `main` | `changes` (docs-only detection, below), `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend` (an aggregate of `frontend-checks`), `scripts` (the shell helpers' tests; not required), `e2e` and `e2e-admin` (aggregates of sharded jobs, below), and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | push only: wait for that commit's `backend` and `frontend` CI jobs (`scripts/wait-for-ci.sh`); then migrate Neon, deploy the API, wait, smoke. A manual run skips the wait |
 | `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |
 | `nightly.yml` | 00:17 UTC | the data refreshes and the snapshot deploy (see its header) |
 
+## Docs-only changes skip the heavy jobs
+
+```mermaid
+flowchart TD
+  P[PR or push] --> C[changes: scripts/ci-changes.sh on the changed file list]
+  C -->|heavy=true or any doubt| H[backend-tests, backend-migrations, frontend-checks, e2e-shard, e2e-admin-shard run]
+  C -->|heavy=false| S[those jobs are skipped]
+  H --> A[aggregates backend, frontend, e2e, e2e-admin: success]
+  S --> A
+```
+
+The `changes` job lists the changed files (a PR: `origin/<base>...HEAD`; a push:
+`<before>..<sha>`) and `scripts/ci-changes.sh` prints `heavy=true|false`.
+Docs-only is every file under `docs/`, a root `*.md`, or under
+`.github/ISSUE_TEMPLATE/`; the definition lives in that script alone. Anything
+else is heavy, including `frontend/**.md` (`prettier --check .` and the
+changelog parser read them), `.github/workflows/**` and `render.yaml`. The job
+fails open: an empty list, a push with no usable `before` sha or a git error
+prints `heavy=true`.
+
+`backend-tests`, `backend-migrations`, `frontend-checks`, `e2e-shard` and
+`e2e-admin-shard` take `needs: changes` and run only when `heavy` is `true`.
+The four aggregates (`backend`, `frontend`, `e2e`, `e2e-admin`) pass when their
+parts are `success`, **or** when their parts are `skipped` **and** `changes`
+succeeded **and** `heavy` is `false`. A skipped part beside a failed, cancelled
+or skipped `changes` fails the aggregate, so the gate cannot open by accident.
+`scripts` and `neon-rehearsal` are not gated.
+
+- **Why not `paths-ignore`**: a workflow that does not run reports no checks, and
+  a required check that never reports stays pending forever, blocking the merge.
+  Skipping jobs inside a run keeps every check name reporting.
+- **Why the aggregates, not the parts, report**: branch protection and
+  `scripts/wait-for-ci.sh` read `backend` and `frontend` by name. A job that
+  ends `skipped` is not `success`: `wait-for-ci.sh` counts only `success`, so a
+  skipped `backend` would make a docs-only merge to `main` wait 30 minutes and
+  then refuse to deploy. An aggregate that runs and passes ends `success`.
+- **`frontend` is an aggregate now**: its steps moved to `frontend-checks`, and
+  the name `frontend` stays on the aggregate alone, like `backend`.
+- **Widening or narrowing**: edit `scripts/ci-changes.sh` and its test.
+
+## The sharded browser jobs
+
+`e2e` and `e2e-admin` are each an aggregate (like `backend`): a tiny job that
+`needs:` a matrix and passes only when every shard did. The shards are
+`e2e-shard (<name>)` and `e2e-admin-shard (<name>)`; each is its own runner
+(admin shards each have their own Postgres service), builds the site itself,
+and runs Playwright with `--fully-parallel`. Nothing else reads these names:
+`scripts/wait-for-ci.sh` waits only for `backend` and `frontend`, and neither
+`e2e` job is a required check.
+
+| Job | Shard | Runs |
+|---|---|---|
+| `e2e` | `add-1`, `add-2`, `add-3` | `admin-add.spec.js`: its 60 slow `focus rings paint` tests (desktop) cut in thirds by `--shard`; `add-1` also runs the rest of the file as a second step and `add-3` the phone `focus rings paint` tests (retune if the slow tests change) |
+| `e2e` | `rest` | every other spec, then the visual tests (`e2e:visual`) |
+| `e2e-admin` | `cd-1`, `cd-2`, `cd-3` | the Closet and Denver site specs, cut three ways by `--shard` (plus the sign-in setup test, which runs in every shard) |
+| `e2e-admin` | `rest` | every other admin spec |
+
+Why files and not plain `--shard=i/N` over the suite: Playwright cuts the test
+list into equal counts, and one file (`admin-add.spec.js`, 192 slow tests) made
+a shard take 15 minutes while others took 1. `rest` runs everything the others
+do not through `E2E_SKIP_FILES` (read by both Playwright configs), so a new
+spec file lands in `rest` by default; if it is heavy, give it its own shard. The
+Closet, Denver and data specs route their API answers in the page and write
+nothing, which is what makes `--fully-parallel` safe for them.
+
+- **Read the aggregate**: `e2e` or `e2e-admin` red means a shard is red or
+  cancelled; open the run and look for the red `... (<name>)` job. Its failure
+  report is the artifact `playwright-report-<name>` (admin:
+  `playwright-report-admin-<name>`).
+- **Rerun one shard**: in the run, "Re-run failed jobs" (or `gh run rerun <run-id>
+  --failed`) reruns only the red shards, and the aggregate job with them.
+- **Counts**: each shard prints its own `N passed, M skipped`; the sum across
+  shards equals the old single job's numbers (admin: plus two extra passes of the
+  sign-in setup test).
+- **Add a shard**: add an entry to the matrix in `ci.yml` (`name`, `args`, `skip`).
+
 ## Visual baselines
 
-`ci.yml`'s `e2e` job compares screenshots (`npm run e2e:visual`) with the PNGs
+`ci.yml`'s `e2e` job (its `rest` shard) compares screenshots (`npm run e2e:visual`) with the PNGs
 in `frontend/e2e/visual-baselines/`. They must come from the runner, so after
 an intended visual change run `gh workflow run update-visual-baselines.yml
 --ref <branch>`, then push an empty commit (a `GITHUB_TOKEN` commit does not

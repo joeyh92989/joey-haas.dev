@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-23
+
+- Small accessibility fixes: links in text show the same keyboard focus ring as the rest of the site, the page links on a phone are all tap-sized with their words centred, a finished game with a replay count stays readable when it is dimmed, and a long line of detail in the admin stats wraps instead of being cut off.
+
 ## 2026-11-21
 
 - Home now opens with my name.
