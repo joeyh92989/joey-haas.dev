@@ -13,6 +13,8 @@ header.
 | `wait-for-ci.test.sh` | tests for `wait-for-ci.sh` against a fake `gh` |
 | `ci-changes.sh` | read changed file names on stdin, print `heavy=true` or `heavy=false` (used by `ci.yml`'s `changes` job) |
 | `ci-changes.test.sh` | tests for `ci-changes.sh` |
+| `install-chromium.sh` | `playwright install --with-deps chromium` with a time cap and retries (used by the browser shards in `ci.yml`) |
+| `install-chromium.test.sh` | tests for `install-chromium.sh` against a fake `npx` |
 
 ## merge-train.sh
 
@@ -139,3 +141,31 @@ Gotchas:
   and count as heavy.
 - Tested without git (`./scripts/ci-changes.test.sh`, also run by the `scripts`
   CI job).
+
+## install-chromium.sh
+
+### Why
+
+The browser shards install Chromium and its system libraries on every run. It
+normally takes about 20 s, but the runner's apt mirror is sometimes throttled
+(21.9 MB at 151 kB/s took 2 min 25 s on one run) and one slow shard sets the
+run's wait. The Chromium download itself is 4 s, so caching `ms-playwright` would
+not help. The slow part happens before anything is installed, so killing it and
+retrying is safe.
+
+### Usage
+
+```
+cd frontend && ../scripts/install-chromium.sh
+INSTALL_TIMEOUT=60 INSTALL_TRIES=4 ../scripts/install-chromium.sh
+```
+
+`INSTALL_TIMEOUT` (default 75 s) caps each attempt but the last; `INSTALL_TRIES`
+(default 3) is the number of attempts; `SUDO` (default `sudo`) runs
+`dpkg --configure -a` between attempts in case a kill landed mid-install.
+
+### Gotchas
+
+- Needs GNU `timeout` (on the Ubuntu runner; not on macOS, where the test uses a
+  perl stand-in). It is a CI script, not for a laptop.
+- The last attempt has no cap, so a real failure shows its own output.

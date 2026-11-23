@@ -287,6 +287,9 @@ jobs:
       - name: ci-changes tests
         run: ./scripts/ci-changes.test.sh
 
+      - name: install-chromium tests
+        run: ./scripts/install-chromium.test.sh
+
   # Split (#598): a matrix of `e2e-shard` jobs behind one aggregate job named
   # `e2e`. Each is its own runner, so it builds the site itself. The split is
   # by FILE, not Playwright's blind --shard over the whole suite, because that
@@ -335,9 +338,11 @@ jobs:
         run: npm ci
 
       # The browser binary is not part of the npm package. --with-deps adds
-      # the system libraries Chromium needs on a bare runner.
+      # the system libraries Chromium needs on a bare runner. The script retries
+      # a throttled apt mirror (one shard in most runs took 2 to 4 minutes here
+      # instead of 20 seconds; the browser download itself is 4 s).
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: ../scripts/install-chromium.sh
 
       # e2e only: the browser tests need one page of each dynamic shelf route.
       # fetch-snapshot.mjs does nothing without an API URL and leaves
@@ -480,7 +485,7 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: ../scripts/install-chromium.sh
 
       - name: Build
         run: npm run build

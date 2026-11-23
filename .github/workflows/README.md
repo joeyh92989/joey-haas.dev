@@ -140,6 +140,8 @@ variable. Migrations stay (additive).
 
 ## Gotchas
 
+- The browser shards install Chromium with `scripts/install-chromium.sh`: `playwright install --with-deps` is about 20 s, but a throttled apt mirror made one shard in most runs take 2 to 4 minutes (the browser download is 4 s; the apt step is the slow part). The script caps each attempt at 75 s and retries, the last uncapped. A "Chromium install attempt N did not finish" line in a log is that working, not a failure.
+
 - `deploy.yml`'s `wait-for-ci` job holds a push's deploy until CI has passed on that
   commit (about 5 more minutes before a deploy starts), and fails the run if CI is
   red or does not finish in 30 minutes, so a red `main` never deploys. `ci.yml`
