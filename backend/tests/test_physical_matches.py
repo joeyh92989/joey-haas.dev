@@ -252,7 +252,9 @@ async def test_an_unknown_item_is_404(sessionmaker_for_test):
     [
         ("get", "/api/physical/needs-match"),
         ("post", "/api/physical/matches"),
-        ("get", f"/api/physical/items/{uuid.uuid4()}/registry"),
+        # A fixed id: a random one gives every pytest-xdist worker a different
+        # test id, and xdist refuses a run whose workers collect different ids.
+        ("get", "/api/physical/items/6f1c0a52-3b7e-4d9a-8c41-2e5b7a9d0f13/registry"),
         ("get", "/api/physical/disagreements"),
     ],
 )
