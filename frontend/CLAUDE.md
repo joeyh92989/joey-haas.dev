@@ -176,8 +176,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px
   targets, and a titled card from `components/SectionCard.jsx` (Card look, `mt-0`
   against the global `section + section` gap, no `overflow`). Utilities sit above
-  `index.css`, so a width, border colour or margin the legacy sheet used to set
-  on those controls is said on the element (`w-24!`, `border-(color:--ok)!`).
+  the site's `base` layer, so a width, border colour or margin a base rule sets
+  on those controls is overridden on the element (`w-24!`, `border-(color:--ok)!`).
   The Spots table folds Last visit under the name below 1440px and the tags and
   actions under it on a phone, so no action is ever half-scrolled out of its
   wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.

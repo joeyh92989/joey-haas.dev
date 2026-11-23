@@ -1,7 +1,6 @@
 /* Tailwind v4 with the site's own CSS in the `base` layer (#536 slice H). Every
    hand-written rule sits in `base`, below Tailwind's utilities, so a utility
-   always beats it (`styles/base.css` has `* { padding: 0 }`, which unlayered
-   would beat every utility). Preflight is `base.preflight`, a sublayer of it:
+   always beats it (unlayered, it would beat every utility). Preflight is `base.preflight`, a sublayer of it:
    a rule written directly in `base` beats a sublayer's whatever the
    specificity, so a bare element rule or a zero-specificity `:where()` rule in
    the hand-written CSS still beats Preflight, as it always has. The cascade is
