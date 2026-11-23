@@ -42,7 +42,7 @@ export const ARCH_BADGE =
 
 export const ARCH_CAPTION = {
   figcaption: 'text-(--text-2) text-[0.875rem] mt-3',
-  list: 'mt-2 mb-0 mx-0 pl-4',
+  list: 'mt-2 mb-0 mx-0 list-decimal pl-4',
   item: '[&:not(:first-child)]:mt-1',
 }
 

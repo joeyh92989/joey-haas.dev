@@ -78,7 +78,7 @@ const SHARE_BOX =
 export const SHARE_GRID = SHARE_BOX
 export const SHARE_TEXT = `${SHARE_BOX} resize-none`
 export const SHARE_WORDS_LEAD = 'm-0 [font-size:var(--fs-12)]'
-export const SHARE_WORDS = 'm-0 pl-4 [font-size:var(--fs-12)]'
+export const SHARE_WORDS = 'm-0 list-disc pl-4 [font-size:var(--fs-12)]'
 export const SHARE_STATUS = 'm-0 min-h-[1.5em]'
 export const SHARE_FOOT = 'flex flex-wrap justify-end gap-2'
 

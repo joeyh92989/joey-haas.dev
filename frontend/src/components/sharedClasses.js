@@ -75,7 +75,7 @@ export const PROGRESS_BAR =
   "relative inline-block h-1 w-[3.2rem] overflow-hidden rounded-[2px] bg-(--sunken) after:absolute after:top-0 after:right-auto after:bottom-0 after:left-0 after:w-[var(--p,0%)] after:bg-(--status-active) after:content-['']"
 
 export const PROSE_LIST =
-  'grid gap-2 max-w-[min(45rem,68ch)] pl-4 text-(--text-2)'
+  'grid list-disc gap-2 max-w-[min(45rem,68ch)] pl-4 text-(--text-2)'
 export const NOW_FINISHED = 'max-w-[min(45rem,68ch)] text-(--text-2)'
 
 export const FOOTER_ADMIN = 'text-(--text-3)'

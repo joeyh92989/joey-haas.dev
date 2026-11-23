@@ -17,6 +17,7 @@ import { e1 } from './scenarios/e1.mjs'
 import { g1 } from './scenarios/g1.mjs'
 import { g2 } from './scenarios/g2.mjs'
 import { g3 } from './scenarios/g3.mjs'
+import { PROPS } from './props.mjs'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
@@ -25,110 +26,6 @@ if (!base || !out) {
   console.error('usage: style-dump.mjs <baseUrl> <out.json>')
   process.exit(2)
 }
-
-const PROPS = [
-  'color',
-  'background-color',
-  'background-image',
-  'font-family',
-  'font-size',
-  'font-weight',
-  'font-style',
-  'line-height',
-  'letter-spacing',
-  'text-align',
-  'text-decoration-line',
-  'text-transform',
-  'margin-top',
-  'margin-right',
-  'margin-bottom',
-  'margin-left',
-  'padding-top',
-  'padding-right',
-  'padding-bottom',
-  'padding-left',
-  'border-top-width',
-  'border-right-width',
-  'border-bottom-width',
-  'border-left-width',
-  'border-top-style',
-  'border-top-color',
-  'border-bottom-color',
-  'border-left-color',
-  'border-right-color',
-  'border-top-left-radius',
-  'display',
-  'position',
-  'width',
-  'height',
-  'min-width',
-  'max-width',
-  'flex-direction',
-  'flex-wrap',
-  'gap',
-  'grid-template-columns',
-  'align-items',
-  'justify-content',
-  'overflow-x',
-  'overflow-y',
-  'opacity',
-  'box-shadow',
-  'transform',
-  'z-index',
-  'cursor',
-  'outline-width',
-  'outline-style',
-  'outline-color',
-  'outline-offset',
-  'box-sizing',
-  'white-space',
-  'visibility',
-  'clip-path',
-  'content',
-  'transition-property',
-  'animation-name',
-  'page-break-inside',
-  'break-inside',
-  'list-style-type',
-  'vertical-align',
-  'border-collapse',
-  'resize',
-  'text-indent',
-  'appearance',
-  // Added for group G2 (#536): drawn shapes, offsets and the rest of what a
-  // utility port can change that the list above did not read.
-  'fill',
-  'stroke',
-  'stroke-width',
-  'top',
-  'right',
-  'bottom',
-  'left',
-  'flex-grow',
-  'flex-shrink',
-  'flex-basis',
-  'align-self',
-  'justify-self',
-  'grid-auto-flow',
-  'grid-template-rows',
-  'grid-column-start',
-  'grid-column-end',
-  'grid-row-start',
-  'grid-row-end',
-  'overflow-wrap',
-  'word-break',
-  'text-overflow',
-  'scroll-margin-top',
-  'object-fit',
-  'aspect-ratio',
-  'background-size',
-  'text-underline-offset',
-  'text-decoration-color',
-  'font-variant-numeric',
-  'writing-mode',
-  'pointer-events',
-  'user-select',
-]
 
 const PLAY_CARD = {
   item_id: 'p1',
@@ -304,6 +201,7 @@ const VIEWPORTS = {
 async function dumpPage(page) {
   return page.evaluate((props) => {
     const rows = {}
+    const classes = {}
     const path = (el) => {
       const parts = []
       for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
@@ -322,14 +220,28 @@ async function dumpPage(page) {
       if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName)) continue
       const key = path(el)
       rows[key] = read(el)
+      // META=1: the tag, class and first words of each element, written beside
+      // the dump to say which element a path in a diff is.
+      classes[key] =
+        `${el.tagName.toLowerCase()}${el.tagName === 'INPUT' ? `[${el.type}]` : ''}.${String(el.getAttribute('class') ?? '').slice(0, 90)} | ${(el.textContent ?? '').trim().slice(0, 24)}`
       if (['INPUT', 'TEXTAREA'].includes(el.tagName) && el.placeholder)
         rows[key + '::placeholder'] = read(el, '::placeholder')
       for (const pseudo of ['::before', '::after']) {
         if (getComputedStyle(el, pseudo).content !== 'none')
           rows[key + pseudo] = read(el, pseudo)
       }
+      // Slice H (#536): the parts Preflight styles that have no `content`.
+      if (getComputedStyle(el).display === 'list-item')
+        rows[key + '::marker'] = read(el, '::marker')
+      if (el.tagName === 'INPUT' && el.type === 'file')
+        rows[key + '::file-selector-button'] = read(
+          el,
+          '::file-selector-button',
+        )
+      if (el.tagName === 'DIALOG' && el.matches(':modal'))
+        rows[key + '::backdrop'] = read(el, '::backdrop')
     }
-    return rows
+    return { rows, classes }
   }, PROPS)
 }
 
@@ -467,6 +379,7 @@ async function open(
 
 const browser = await chromium.launch()
 const result = {}
+const meta = {}
 async function record(label, spec, after) {
   if (process.env.ONLY && !new RegExp(process.env.ONLY).test(label)) return
   if (process.env.PROGRESS) console.error(label)
@@ -481,7 +394,9 @@ async function record(label, spec, after) {
       // Let hover, focus and state transitions settle: a half-faded colour is
       // timing, not a style.
       await page.waitForTimeout(500)
-      result[label] = await dumpPage(page)
+      const dumped = await dumpPage(page)
+      result[label] = dumped.rows
+      if (process.env.META) meta[label] = dumped.classes
       return
     } catch (error) {
       if (attempt === 3) throw error
@@ -1523,6 +1438,7 @@ for (const theme of ['dark', 'light']) {
 await browser.close()
 
 writeFileSync(out, JSON.stringify(result))
+if (process.env.META) writeFileSync(`${out}.meta.json`, JSON.stringify(meta))
 let elements = 0
 for (const rows of Object.values(result)) elements += Object.keys(rows).length
 console.log(

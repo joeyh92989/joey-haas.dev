@@ -33,18 +33,9 @@ const RELATIVE = {
   '.post-body :not(pre) > code': 'font-size: max(0.85em, var(--fs-12));',
 }
 
-/** `revert` hands a size back to the browser (the Preflight shim in
- * styles/base.css, #536): it sets none. */
-const reverts = (text) => /:\s*revert;/.test(text)
-
 /** Every line that sets a size: `font-size:` or a `font:` shorthand. */
 const sized = lines.flatMap((text, index) => {
-  if (
-    !/^\s*font(-size)?:/.test(text) ||
-    /font:\s*inherit/.test(text) ||
-    reverts(text)
-  )
-    return []
+  if (!/^\s*font(-size)?:/.test(text) || /font:\s*inherit/.test(text)) return []
   let at = index
   while (at > 0 && !lines[at].trimEnd().endsWith('{')) at--
   return [

@@ -11,7 +11,8 @@ const NAME_LEAD = 'm-0 text-[1.25rem] font-medium'
 const META =
   'm-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-(color:--text-3)'
 const TAGS = 'inline-flex flex-wrap gap-1'
-const WHY = 'm-0 grid gap-1 pl-4 text-[0.875rem] text-muted-foreground'
+const WHY =
+  'm-0 grid list-[circle] gap-1 pl-4 text-[0.875rem] text-muted-foreground'
 const NOTE = '[font:500_var(--fs-13)_var(--font-mono)] text-foreground'
 
 /**

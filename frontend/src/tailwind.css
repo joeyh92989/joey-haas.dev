@@ -1,17 +1,17 @@
-/* Tailwind v4 with Preflight in its own layer BELOW legacy (#536 slice C): it
-   only changes properties the hand-written sheet never sets, and base.css
-   restates what pages relied on. The last #536 slice moves it to `base`. See
-   frontend/CLAUDE.md "Design system setup".
+/* Tailwind v4 with the site's own CSS in the `base` layer (#536 slice H). Every
+   hand-written rule sits in `base`, below Tailwind's utilities, so a utility
+   always beats it (unlayered, it would beat every utility). Preflight is `base.preflight`, a sublayer of it:
+   a rule written directly in `base` beats a sublayer's whatever the
+   specificity, so a bare element rule or a zero-specificity `:where()` rule in
+   the hand-written CSS still beats Preflight, as it always has. The cascade is
+   written down in src/styles/README.md and guarded by tailwindSetup.test.js.
    (shadcn's check looks for the plain import: @import "tailwindcss";) */
-@layer preflight, legacy, theme, base, components, utilities;
-/* The hand-written stylesheet moves into the lowest layer: it has an unlayered
-   `* { padding: 0 }` reset that would otherwise beat every Tailwind utility. */
-@import 'tailwindcss/preflight.css' layer(preflight);
-@import './styles/tokens.css' layer(legacy);
-@import './styles/base.css' layer(legacy);
-@import './index.css' layer(legacy);
-@import './styles/post-body.css' layer(legacy);
-@import './styles/print.css' layer(legacy);
+@layer theme, base, components, utilities;
+@import 'tailwindcss/preflight.css' layer(base.preflight);
+@import './styles/tokens.css' layer(base);
+@import './styles/base.css' layer(base);
+@import './styles/post-body.css' layer(base);
+@import './styles/print.css' layer(base);
 @import './styles/utilities.css';
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
@@ -20,10 +20,11 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Tokens the legacy sheet and Tailwind's theme both define. Tailwind writes
-   its default into the `theme` layer, above `legacy`, once anything uses it,
-   and that replaces the site's value on every page. Redeclare them here with
-   the site's own values (copy from styles/tokens.css :root, keep them in step).
+/* Tokens the site's sheet and Tailwind's theme both define. Tailwind writes its
+   default into the `theme` layer once anything uses it; `base` sits above
+   `theme`, so styles/tokens.css wins, but a second declaration of the same name
+   is one more place to drift. Redeclare them here with the site's own values
+   (copy from styles/tokens.css :root, keep them in step).
    tailwindSetup.test.js fails when a new collision appears. */
 @theme {
   --font-sans:
@@ -33,9 +34,9 @@
   --radius: 6px;
 }
 
-/* shadcn semantic tokens (#527). Each one points at a legacy token, so there
+/* shadcn semantic tokens (#527). Each one points at a site token, so there
    is one palette: edit styles/tokens.css and both vocabularies follow, in both themes
-   (the var() resolves on <html>, where [data-theme] overrides the legacy
+   (the var() resolves on <html>, where [data-theme] overrides the site
    value). Unlayered, so they sit above the theme layer.
    The one collision: shadcn's --accent is a hover background, the site's
    --accent is the brand colour. shadcn's is held in --sh-accent and exposed
@@ -109,7 +110,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  /* shadcn's --chart-1..5 are not declared: --chart-2 is a legacy token with
+  /* shadcn's --chart-1..5 are not declared: --chart-2 is a site token with
      its own meaning, so the utilities read the site's data colours directly. */
   --color-chart-1: var(--chart);
   --color-chart-2: var(--chart-2);

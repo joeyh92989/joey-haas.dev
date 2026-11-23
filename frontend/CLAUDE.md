@@ -8,7 +8,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   the public/admin twin rule and the feature status list. Any design step
   reads it before drawing; a design that needs a rule it lacks adds the
   rule there in the same PR, and a parked feature gets no design changes.
-- Plain CSS in `frontend/src/styles/` (`frontend/src/index.css` is empty since #536 G3). No CSS framework unless deliberately
+- Plain CSS in `frontend/src/styles/` and Tailwind utilities on the components (the old `index.css` is gone, #536). No CSS framework unless deliberately
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
@@ -43,7 +43,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 - Blog code blocks are highlighted at build time in both palettes at once
   (`frontend/vite-plugin-markdown.js`): Shiki inlines the default theme's
   colors and emits everything else as `--shiki-light*` / `--shiki-dark*`
-  custom properties, which `index.css` promotes. Adding a Shiki line
+  custom properties, which `styles/post-body.css` promotes. Adding a Shiki line
   transformer needs those overrides narrowed, or a line-level color gets
   overridden.
 - The Shiki theme pair and `--code-bg` are chosen together, on measured
@@ -176,8 +176,8 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px
   targets, and a titled card from `components/SectionCard.jsx` (Card look, `mt-0`
   against the global `section + section` gap, no `overflow`). Utilities sit above
-  `index.css`, so a width, border colour or margin the legacy sheet used to set
-  on those controls is said on the element (`w-24!`, `border-(color:--ok)!`).
+  the site's `base` layer, so a width, border colour or margin a base rule sets
+  on those controls is overridden on the element (`w-24!`, `border-(color:--ok)!`).
   The Spots table folds Last visit under the name below 1440px and the tags and
   actions under it on a phone, so no action is ever half-scrolled out of its
   wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.
@@ -457,66 +457,75 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
 ## Design system setup (#526)
 
 Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
-hand-written CSS: `src/styles/tokens.css` (the two palettes), `src/styles/base.css`
-(element rules, the page frame, `.skip-link`, `.visually-hidden`, reduced motion,
-the search and account-panel keyframes, the admin form-control defaults and the
-tab bar's scroll padding), `src/index.css` (empty since #536 group G3, kept
-until a later PR deletes it with the `legacy` layer), `src/styles/utilities.css`
-(the shared classes as `@utility` rules, below) and `src/styles/print.css` (`@page` and `@media print`). `main.jsx`
-imports `src/tailwind.css`, which pulls everything in. Tests that read the CSS as
-text go through `src/testing/readCss.js`, which concatenates those files in cascade
-order. `e2e/tools/` holds the computed-style dump and diff that prove a CSS move
-changed nothing. No page should change until it is migrated (epic #519).
-`src/tailwindSetup.test.js` guards the points below. Verified against `main` by
-comparing computed styles of 8 routes in both themes: the only difference is
-`background-position` on elements with no background image.
+hand-written CSS in `src/styles/`: `tokens.css` (the two palettes),
+`base.css` (element rules, the page frame, `.skip-link`, `.visually-hidden`,
+reduced motion, the search and account-panel keyframes, the admin form-control
+defaults and the tab bar's scroll padding), `post-body.css` (the markup
+markdown and Shiki write), `print.css` (`@page` and `@media print`) and
+`utilities.css` (the shared classes as `@utility` rules, below). The old
+`src/index.css` held every per-page rule until #536 moved them onto the
+components as utilities; it is deleted (#536 slice H). `main.jsx` imports
+`src/tailwind.css`, which pulls everything in. Tests that read the CSS as
+text go through `src/testing/readCss.js`, which concatenates those files in
+cascade order. `e2e/tools/` holds the computed-style dump and diff that prove a
+CSS move changed nothing. `src/tailwindSetup.test.js` guards the points below,
+and `src/styles/README.md` is the cascade written out.
 
-**Layers.** `@layer preflight, legacy, theme, base, components, utilities;` and
-the four legacy files imported `layer(legacy)` in the order tokens, base, index,
-print. Unlayered CSS always beats layered CSS, and `base.css` has an unlayered
-`* { padding: 0 }`; unlayered it would beat
-every Tailwind utility (cards and buttons lost their padding in the spike).
-Layered into `legacy`, the lowest layer, every utility wins and old pages still
-render from their own rules. Delete the layer when the last page moves.
+**Layers.** `@layer theme, base, components, utilities;`. `tailwind.css` imports
+Preflight as `base.preflight` and the four hand-written sheets into `base`, in
+the order tokens, base, post-body, print; `utilities.css` is unlayered and
+Tailwind lifts its `@utility` rules into `utilities`. So the order, lowest to
+highest, is theme variables, Preflight, the site's rules, Tailwind utilities,
+then the unlayered `:root` shadcn tokens. Three things follow.
+(1) Everything the site writes by hand must stay in a layer: an unlayered
+`* { padding: 0 }` beat every utility in the spike (cards and buttons lost their
+padding). The `*` reset is Preflight's now, in `base.preflight`; `base.css` has
+none of its own.
+(2) A rule written directly in `base` beats the `base.preflight` sublayer
+whatever the specificity, so `a { color }`, `h1 { font-size }` and the admin
+form-control defaults (zero-specificity `:where()` rules) beat Preflight as
+they would in a stylesheet loaded after it. Do not import Preflight into plain
+`base`: its `button, input { font: inherit; border-radius: 0 }` (specificity
+0,0,1) would then beat those `:where()` rules.
+(3) `!important` reverses by layer: a lower layer wins. Preflight's `[hidden]
+{ display: none !important }` is the lowest of the site's layers, so nothing
+can show an element that has `hidden`: a component must not put `hidden` on
+an element it means to show (the intake meter did, and it was always ignored).
+The reduced-motion block in `base.css` is `!important` in `base`, so it beats
+an `!important` utility.
 
-**Preflight is on, below `legacy` (#536 slice C).** `tailwindcss/preflight.css` is
-imported `layer(preflight)`, the lowest layer, so it only changes properties the
-legacy sheet never sets (placed in `base` it would sit above `legacy` and beat
-every legacy rule that sets the same property). Pages relied on browser defaults
-Preflight removes: list markers, form-control fonts, colours and borders,
-`h3`/`h4` sizes, `code` and `pre` fonts, table borders and collapse,
-`img`/`svg` display, the date field's inner padding, `html` font and line
-height, border-box on `::before`/`::after`. `src/styles/base.css` hands each of
-them back with `revert` in a zero-specificity `:where()` rule, so a legacy
-rule still wins, Tailwind utilities win over both, and the computed styles are
-unchanged (`e2e/tools/` dump: 0 differing records; a border with no width is
-compared equal whatever its style). That block is a shim: the slice that moves
-Preflight to `base` replaces each group with utilities on the component.
-Three things `revert` cannot do. (1) Preflight's `[hidden] { display: none
-!important }` is important in the lowest layer, so nothing above it can show an
-element that has `hidden`; a component must not put `hidden` on an element it
-means to show (the intake meter did, and it was always ignored). (2) The
+**Preflight is on (#536 slice H).** `tailwindcss/preflight.css` resets list
+markers, form-control fonts, colours and borders, heading sizes, `code` and
+`pre` fonts, table borders, `img`/`svg` display and the date field's inner
+padding. Until slice H a block of `revert` rules in `base.css` handed each reset
+back to the browser (slice C, #585); the slice removed it and put the browser's
+value on the markup that relied on it: a utility on the component where a
+component draws it, and a small rule in `base.css` or `post-body.css` only for
+markup nobody writes by hand (markdown's lists, tables and code). The
 placeholder colour is the one deliberate change: `::placeholder` is
-`var(--text-3)` (4.5 or more on `--bg`, `--surface`, `--sunken` in both themes,
-`contrast.test.js`), where the browser's grey was 2.4 on a dark field. (3)
-`tw-animate-css` and `shadcn/tailwind.css` are imported *unlayered* (they add
-`@property` blocks and one `.shimmer` reduced-motion rule that nothing uses, and
-a `properties` layer below `legacy`). A comment in `tailwind.css` carries the
-plain `@import "tailwindcss";` text only because the shadcn CLI refuses to run
+`var(--text-3)` (4.5 or more on `--bg`, `--surface`, `--sunken` in both
+themes, `contrast.test.js`), where the browser's grey was 2.4 on a dark field.
+Also deliberate and invisible but for a tap: Preflight's `tab-size: 4` and
+`-webkit-tap-highlight-color: transparent` on `html`. `tw-animate-css` and
+`shadcn/tailwind.css` are imported *unlayered* (they add `@property` blocks and
+one `.shimmer` reduced-motion rule that nothing uses, and a `properties` layer
+below the rest). A comment in `tailwind.css` carries the plain
+`@import "tailwindcss";` text only because the shadcn CLI refuses to run
 without it.
 
-**A legacy token with a Tailwind theme name gets replaced.** Tailwind writes
-its default theme variable into the `theme` layer, above `legacy`, the moment
-any CSS uses it. `--font-sans`, `--font-mono` and `--radius` collide with
-`tokens.css` `:root`: unfixed, every page lost Inter and JetBrains Mono. They
-are redeclared in the `@theme` block in `tailwind.css` with the site's values
-(keep the two in step). `tailwindSetup.test.js` fails on any new collision.
+**A site token with a Tailwind theme name is declared twice.** Tailwind writes
+its default theme variable into the `theme` layer the moment any CSS uses it.
+`--font-sans`, `--font-mono` and `--radius` collide with `tokens.css` `:root`.
+When the site's sheet sat below `theme`, every page lost Inter and JetBrains
+Mono; now `base` is above `theme` and the site's value wins, but they stay
+redeclared in the `@theme` block in `tailwind.css` with the site's values (keep
+the two in step). `tailwindSetup.test.js` fails on any new collision.
 
-**Also true while legacy exists.** (a) Tailwind scans the source and emits
-utilities for ordinary words (`.hidden`, `.block`, `.grid`, `.table`,
-`.container`, `.border`, `.transition`), which sit above `legacy`: do not give
-a legacy class one of those names. (b) Layers reverse `!important`: legacy
-`!important` declarations beat `!`-utilities. (c) Browser floor: Tailwind v4's
+**Also true.** (a) Tailwind scans the source and emits utilities for ordinary
+words (`.hidden`, `.block`, `.grid`, `.table`, `.container`, `.border`,
+`.transition`), which sit above `base`: do not give a class of your own one of
+those names. (b) Layers reverse `!important`: a `!important` declaration in
+`base` beats a `!`-utility. (c) Browser floor: Tailwind v4's
 (Safari 16.4, Chrome 111, Firefox 128); `@layer` is required, and the
 `min-height:100vh` fallback before `100dvh` is no longer emitted. Accepted.
 `shadcn` and `tw-animate-css` are dev dependencies (build-time CSS only), so
@@ -534,8 +543,8 @@ the CLI's tree stays out of the production audit gate.
    Re-check `git diff src/tailwind.css` after every `shadcn add` or `init`.
 3. Links as buttons. A Base UI `Button` rendered as a link
    (`render={<Link />}`) needs `nativeButton={false}`, or it logs a warning.
-   Old `a { color }` needs a one-line `inherit` in the base layer while legacy
-   styles exist. Applies when #528 builds the button.
+   `a { color }` in `base.css` is the site's link colour: a link that should take
+   its surroundings' colour says `text-inherit` (it applies when #528 builds the button).
 4. Lint. Generated files import an unused `React`. `eslint.config.js` has an
    override for `src/components/ui/**` that ignores `React` in `no-unused-vars`
    only; the rest of the folder is still linted. Run `npm run format` on a
@@ -553,11 +562,11 @@ Tabs use `disabled:opacity-55`), a
 `chip` button variant for `FilterChips`. Running `shadcn add` again on one of
 them overwrites the look. `RecordCard`, `CatalogueNumber` and `StatusMark` sit
 on top in `src/components/` and are eager-safe (they join classes with `cx`, below; `RecordCard` takes Card's shell from `ui/card-classes.js`, shared with `ui/card.jsx`); the rules for using them are in
-`docs/design-system.md` → One of each. Tailwind utilities beat the legacy
-layer, so a rebuilt component keeps its legacy class names (tests and other
+`docs/design-system.md` → One of each. Tailwind utilities beat the
+`base` layer, so a rebuilt component keeps its old class names (tests and other
 CSS read them) and sets only the properties it means to change: leave
-`min-height` to the legacy phone rules. A component sets its own `display`
-(`Button` is `inline-flex`), so a legacy `display` rule on that element loses.
+`min-height` to the phone rules. A component sets its own `display`
+(`Button` is `inline-flex`), so a `display` rule in `base` on that element loses.
 
 **The shell (#529).** The masthead, More, the phone sheet and Search use the
 shadcn button's look but not its component: they import `buttonVariants` (and
@@ -618,7 +627,7 @@ entry chunk contains the tailwind-merge tables.
 ## Tokens and theme (#527)
 
 The look is "Archive catalogue" (`docs/planning/2026-11-20-design-system-spike-design.md`):
-warm paper in light, graphite in dark, one accent, serif headings. The legacy
+warm paper in light, graphite in dark, one accent, serif headings. The
 tokens in `src/styles/tokens.css` were repointed, not renamed, so every old page changed at
 once (`--bg` is the page, `--surface` the card, `--text` ink).
 
@@ -655,4 +664,4 @@ once (`--bg` is the page, `--surface` the card, `--text` ink).
 - **shadcn.** `tailwind.css` aliases `--background`, `--primary` and the rest to
   these tokens, and `@theme inline` exposes them (`--color-accent-text` gives
   `text-accent-text`). shadcn's `--accent` is `--sh-accent` (`--color-accent`);
-  its `--chart-1..5` are not declared because `--chart-2` is a legacy token.
+  its `--chart-1..5` are not declared because `--chart-2` is a site token.

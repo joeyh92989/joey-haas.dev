@@ -19,7 +19,7 @@ import {
 
 const copy = adminCopy.closetToday
 
-/** The colour families that have a --gc-* swatch token (index.css). */
+/** The colour families that have a --gc-* swatch token (styles/tokens.css). */
 const FAMILIES = new Set([
   'black',
   'white',

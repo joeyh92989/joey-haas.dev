@@ -47,7 +47,7 @@ function StopCapture({ capture }) {
           tabIndex={0}
           aria-label="Code"
         >
-          <code>{capture.code}</code>
+          <code className="[font-family:monospace]">{capture.code}</code>
         </pre>
       )}
     </Capture>

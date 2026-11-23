@@ -53,7 +53,7 @@ export const closetCard =
 export const field = FIELD_LOOK
 
 /** A text field: the look, with the height a textarea does not take. */
-export const textarea = FIELD_LOOK.replace('h-10 ', 'min-h-16 ')
+export const textarea = FIELD_LOOK.replace('h-10 ', 'min-h-16 resize ')
 
 /** A chip that wraps a visually hidden radio: it shows the choice as the
  *  pressed chip does (a darker outline, the heavier word, the accent bar) and

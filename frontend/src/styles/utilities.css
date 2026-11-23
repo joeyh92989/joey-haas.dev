@@ -4,8 +4,8 @@
  * The class names stay on the elements as hooks (tests, e2e and print read
  * them) and nothing else changes: each rule is the old index.css rule, wrapped
  * in `:where()`. A `:where()` selector has no specificity, so any Tailwind
- * utility on the same element beats it, as it beat the legacy rule when the
- * rule sat in the lowest layer; the order of the rules is the old cascade.
+ * utility on the same element beats it, as it beat the old rule when it sat
+ * in the lowest layer; the order of the rules is the old cascade.
  * Imported unlayered by tailwind.css: Tailwind lifts `@utility` into the
  * utilities layer and emits one only when a file uses it.
  */

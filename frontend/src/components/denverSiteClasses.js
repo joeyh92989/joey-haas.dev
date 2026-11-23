@@ -46,7 +46,7 @@ export const pill = badgeVariants({ variant: 'outline' })
 export const field = FIELD_LOOK
 
 /** A multi-line field: the look, with the height a textarea does not take. */
-export const textarea = FIELD_LOOK.replace('h-10 ', 'min-h-16 ')
+export const textarea = FIELD_LOOK.replace('h-10 ', 'min-h-16 resize ')
 
 /** A native checkbox, in the accent colour with the ring. */
 export const checkbox =

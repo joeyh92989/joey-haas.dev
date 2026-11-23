@@ -23,7 +23,7 @@ import '@fontsource/jetbrains-mono/latin-400.css'
 import '@fontsource/jetbrains-mono/latin-500.css'
 import '@fontsource/source-serif-4/latin-500.css'
 import '@fontsource/source-serif-4/latin-500-italic.css'
-// styles/*.css (and the empty index.css) are imported inside tailwind.css, in the lowest cascade layer.
+// styles/*.css are imported inside tailwind.css.
 import './tailwind.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

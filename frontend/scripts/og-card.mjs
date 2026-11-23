@@ -10,8 +10,8 @@
  *
  * Everything but `loadFaces` and `renderCardPng` is pure and takes a `faces`
  * object ({width(face, text, size), path(face, text, x, y, size)}).
- * The colors are the light (paper and ink) tokens from index.css, so a link
- * preview matches the site (#529; og-card.test.mjs holds them to index.css and
+ * The colors are the light (paper and ink) tokens from styles/tokens.css, so a link
+ * preview matches the site (#529; og-card.test.mjs holds them to tokens.css and
  * measures their ratios on `--bg`).
  */
 import fs from 'node:fs/promises'

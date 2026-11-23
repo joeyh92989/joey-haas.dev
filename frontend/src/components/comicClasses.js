@@ -345,7 +345,7 @@ export const STATE_PILL = {
   book: `${PILL} border border-(--chart-2) bg-(--accent-soft) text-(--text)`,
   missing: `${PILL} border-[1.5px] border-(--run-missing) text-(--text-2)`,
   skipped: `${PILL} border-[1.5px] border-dashed border-(--run-missing) text-(--text-2)`,
-  'not-out': `${PILL} border border-(--line-strong) text-(--text-2) before:h-[10px] before:w-[12px] before:rounded-[2px] before:border before:border-(--run-missing) before:[background-image:var(--hatch)] before:content-['']`,
+  'not-out': `${PILL} border border-(--line-strong) text-(--text-2) before:box-content before:h-[10px] before:w-[12px] before:rounded-[2px] before:border before:border-(--run-missing) before:[background-image:var(--hatch)] before:content-['']`,
   none: `${PILL} border border-(--line-strong) text-(--text-2)`,
 }
 

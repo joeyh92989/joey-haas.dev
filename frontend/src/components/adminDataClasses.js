@@ -28,7 +28,7 @@ export const FIELD = `${FIELD_LOOK} ${TAP} ${SCROLL}`
 export const FIELD_AUTO = `${FIELD_LOOK.replace('w-full ', 'w-auto max-w-full ')} ${TAP} ${SCROLL}`
 
 /** A multi-line field. */
-export const TEXTAREA = FIELD_LOOK.replace('h-10 ', 'min-h-16 ')
+export const TEXTAREA = FIELD_LOOK.replace('h-10 ', 'min-h-16 resize ')
 
 /** A date or number field inside a table cell: compact. */
 export const FIELD_CELL = `${FIELD_LOOK.replace('h-10 ', 'h-8 ')

@@ -55,7 +55,7 @@ const GONE = [
 ]
 
 describe('legacy rules these pages alone read', () => {
-  it.each(GONE)('index.css no longer has a rule for %s', (selector) => {
+  it.each(GONE)('the old stylesheet has no rule for %s', (selector) => {
     expect(css).not.toContain(`\n${selector} {`)
   })
 })

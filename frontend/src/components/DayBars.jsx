@@ -63,7 +63,7 @@ export default function DayBars({ series }) {
           {PEAK_CAPTION(dayLabel(series[peak].day, { weekday: true }), highest)}
         </p>
       )}
-      <table className="visually-hidden">
+      <table className="visually-hidden border-separate">
         <caption>Views per UTC day</caption>
         <thead>
           <tr>

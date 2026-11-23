@@ -6,14 +6,13 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 /**
  * The hand-written stylesheets in cascade order: what tailwind.css imports
- * into the legacy layer (#536). Tests that read the CSS as text go through
+ * into the `base` layer (#536). Tests that read the CSS as text go through
  * `readCss()` and not a file path, so moving a block between these files, or
  * deleting one, changes this list and nothing else.
  */
 export const CSS_FILES = [
   'styles/tokens.css',
   'styles/base.css',
-  'index.css',
   'styles/post-body.css',
   'styles/print.css',
 ]
