@@ -39,7 +39,7 @@ export const pageLink = `${ghost} h-auto min-h-9 w-full justify-start! px-3 py-2
  * what pushed a row past 320px); `px-1` keeps four segments beside the
  * account button inside 320px. `!` because both weights are one property.
  */
-export const segmentLink = `${ghost} min-h-9 flex-[1_0_auto] px-1 text-[0.8125rem] font-normal! aria-[current]:font-medium! ${CURRENT}`
+export const segmentLink = `${ghost} min-h-11 flex-[1_0_auto] px-1 text-[0.8125rem] font-normal! aria-[current]:font-medium! ${CURRENT}`
 
 /** The account trigger at the head of the desktop rail. */
 export const accountRail = `${ghost} h-auto min-h-12 w-14 flex-col px-0.5 py-1 ${HOVER} aria-expanded:border-foreground aria-expanded:bg-card aria-expanded:text-foreground`

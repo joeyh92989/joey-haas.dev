@@ -243,7 +243,7 @@ export function tileClass({
   return [
     'relative block min-w-0 text-inherit',
     strip && '[flex:0_0_auto]',
-    link && TILE_RING,
+    link && `${TILE_RING} [&:hover]:no-underline`,
     TILE_COVER,
     grey && TILE_GREY,
     stack,

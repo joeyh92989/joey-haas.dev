@@ -114,6 +114,48 @@ for (const size of WIDTHS) {
   })
 }
 
+// #598: the Best day tile's detail ("Sun, Oct 18 · <referrer>") wraps inside
+// its tile at the narrow widths, with nothing clipped by the tile's own
+// overflow, and the phone's page links are 44px tall with the label centred.
+for (const width of [320, 390]) {
+  test(`the Best day detail is not clipped at ${width}px`, async ({ page }) => {
+    await open(page, STATES[4], { width, height: 800 })
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll('.stat-detail')]
+        .filter((el) => el.scrollWidth > el.clientWidth)
+        .map((el) => el.textContent),
+    )
+    expect(clipped).toEqual([])
+  })
+}
+
+for (const width of [320, 390]) {
+  test(`the shell's phone page links are 44px with the label centred at ${width}px`, async ({
+    page,
+  }) => {
+    await open(page, STATES[2], { width, height: 800 })
+    const links = page.locator('.admin-subnav a, .admin-subnav button')
+    await expect(links.first()).toBeVisible()
+    const boxes = await links.evaluateAll((list) =>
+      list.map((el) => {
+        const box = el.getBoundingClientRect()
+        const range = document.createRange()
+        range.selectNodeContents(el)
+        const text = range.getBoundingClientRect()
+        return {
+          height: box.height,
+          gap: Math.abs(text.top - box.top - (box.bottom - text.bottom)),
+        }
+      }),
+    )
+    expect(boxes.length).toBeGreaterThan(0)
+    for (const { height, gap } of boxes) {
+      expect(height).toBeGreaterThanOrEqual(44)
+      expect(gap).toBeLessThanOrEqual(1)
+    }
+  })
+}
+
 // Every action in the spots table is reached by real Tab presses, whole, with
 // its ring painted, at the widths the half-width column is tightest. At 1280
 // and above the table needs no sideways scroll at all.
