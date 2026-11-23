@@ -20,7 +20,7 @@ export const ABOUT_BODY = '[&_.prose]:max-w-[64ch]'
  *  accent. */
 export const TIMELINE = 'ml-1 list-none border-l border-l-(--line-strong) pl-6'
 const DOT =
-  "relative before:absolute before:-left-[27px] before:h-[9px] before:w-[9px] before:rounded-[50%] before:border-2 before:content-['']"
+  "relative before:absolute before:-left-[27px] before:box-content before:h-[9px] before:w-[9px] before:rounded-[50%] before:border-2 before:content-['']"
 /** An entry: a dot on the rail. */
 export const timelineEntry = (current) =>
   `${DOT} pb-6 before:top-[7px] print:break-inside-avoid before:border-background ${
