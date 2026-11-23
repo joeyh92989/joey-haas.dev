@@ -113,6 +113,7 @@ class PublicTonightCard(BaseModel):
     `platform` carries the publisher."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     type: ItemType
     title: str
     cover_url: str | None
@@ -128,6 +129,7 @@ class PublicLastFinish(BaseModel):
     owned, and finished within picker's JUST_FINISHED_WINDOW."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
     cover_url: str | None
     finished_at: date
@@ -166,6 +168,7 @@ class PublicNextRow(BaseModel):
     top_pick: bool
     new: bool
     item_id: uuid.UUID | None = None
+    item_slug: str | None = None
     # Comics join the wanted list only; every other section is games.
     type: ItemType = ItemType.GAME
     shelf_format: ComicShelfFormat | None = None
@@ -329,6 +332,7 @@ def _tonight_card(
     item = item or to_picker_item(row)
     return PublicTonightCard(
         item_id=row.id,
+        item_slug=row.slug,
         type=row.type,
         title=row.title,
         cover_url=row.cover_url,
@@ -354,6 +358,7 @@ def _last_finish(last: Item | None, today: date) -> PublicLastFinish | None:
         return None
     return PublicLastFinish(
         item_id=last.id,
+        item_slug=last.slug,
         title=last.title,
         cover_url=last.cover_url,
         finished_at=last.finished_at,
@@ -378,6 +383,7 @@ def _wanted_row(item: Item, today: date) -> PublicNextRow:
         top_pick=False,
         new=False,
         item_id=item.id,
+        item_slug=item.slug,
         type=item.type,
         shelf_format=item.shelf_format,
     )

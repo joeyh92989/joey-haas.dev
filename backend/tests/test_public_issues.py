@@ -56,13 +56,15 @@ WALL_EDITION_FIELDS = {
     "slug", "kind", "label", "from_issue", "to_issue", "cover_url",
 }  # fmt: skip
 ISSUE_FIELDS = {
-    "series_id", "series_title", "publisher", "number", "name", "store_date",
+    "series_id", "series_slug", "series_title", "publisher", "number", "name",
+    "store_date",
     "cover_date", "cover_url", "large_url", "description", "state", "owned",
     "read", "held_single", "also_in", "released", "ongoing", "neighbours",
     "source_url",
 }  # fmt: skip
 ALSO_IN_FIELDS = {
-    "slug", "label", "kind", "line_number", "title_id", "title", "same_title",
+    "slug", "label", "kind", "line_number", "title_id", "title_slug", "title",
+    "same_title",
 }  # fmt: skip
 
 
@@ -348,7 +350,8 @@ async def test_issue_page_volume_only_and_both(sessionmaker_for_test):
     assert also == [
         {
             "slug": "vol-1", "label": "Volume Two", "kind": "trade",
-            "line_number": 1, "title_id": str(item_id), "title": "Saga",
+            "line_number": 1, "title_id": str(item_id), "title_slug": "saga",
+            "title": "Saga",
             "same_title": True,
         }
     ]  # fmt: skip
@@ -587,7 +590,7 @@ async def test_a_skip_changes_no_issue_body(sessionmaker_for_test):
     assert await bodies() == before
 
 
-INDEX_FIELDS = {"item_id", "series_title", "kind", "issues", "volumes"}
+INDEX_FIELDS = {"item_id", "item_slug", "series_title", "kind", "issues", "volumes"}
 INDEX_ISSUE_FIELDS = {"number", "name", "cover_url"}
 
 
@@ -762,7 +765,7 @@ async def test_existing_ranges_still_read_without_marks(sessionmaker_for_test):
 VOLUME_FIELDS = {
     "title", "volume", "collects", "prev", "next", "source_url",
 }  # fmt: skip
-VOLUME_TITLE_FIELDS = {"id", "title", "cover_url", "publisher", "year"}
+VOLUME_TITLE_FIELDS = {"id", "slug", "title", "cover_url", "publisher", "year"}
 VOLUME_BODY_FIELDS = {
     "slug", "label", "kind", "line_number", "isbn", "pages", "description",
     "cover_url", "large_url", "owned", "read",

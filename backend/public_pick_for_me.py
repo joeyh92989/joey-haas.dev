@@ -36,6 +36,7 @@ class PublicPickCard(BaseModel):
     not `id`, as on What's next (Spine Next spec, S1)."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
     cover_url: str | None
     platform: str | None
@@ -78,6 +79,7 @@ async def load_pick_for_me(session: AsyncSession, now: datetime) -> PublicPickFo
         games={
             item_id: PublicPickCard(
                 item_id=rows[item_id].id,
+                item_slug=rows[item_id].slug,
                 title=rows[item_id].title,
                 cover_url=rows[item_id].cover_url,
                 platform=rows[item_id].platform,

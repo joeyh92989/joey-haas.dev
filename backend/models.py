@@ -25,11 +25,21 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
     func,
+    select,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    object_session,
+)
+
+import item_slugs
 
 
 class Base(DeclarativeBase):
@@ -170,11 +180,23 @@ class Item(Base):
             ),
         ),
         Index("ix_items_finished_at", "finished_at"),
+        # Partial so a row inserted by older code (no slug yet) stays out of it.
+        Index(
+            "ux_items_slug",
+            "slug",
+            unique=True,
+            postgresql_where=text("slug IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # The item page's URL key (/shelf/<slug>/), item_slugs.py. Set at insert
+    # and never changed by a retitle (shared links), so it is not a function
+    # of `title`. Filled for every ORM insert by the listener at the foot of
+    # this module; the bulk importer fills it itself.
+    slug: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[ItemType] = mapped_column(
         Enum(
             ItemType, name="item_type", values_callable=lambda e: [m.value for m in e]
@@ -1676,3 +1698,42 @@ class ComicVolumeCollect(Base):
     )
     from_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     to_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+
+
+# --- Item slugs (migration 0029) ----------------------------------------------
+
+
+@event.listens_for(Item, "before_insert")
+def _fill_item_slug(mapper, connection, target: Item) -> None:
+    """Gives every ORM-inserted item a slug, so no creation path can leave one
+    NULL. `before_insert` runs for the whole flush before any row is written,
+    so slugs handed out in this flush are remembered on the session; the rest
+    are checked against the table."""
+    if target.slug:
+        return
+    if target.id is None:
+        target.id = uuid.uuid4()
+    session = object_session(target)
+    pending: set[str] = (
+        session.info.setdefault("pending_item_slugs", set())
+        if session is not None
+        else set()
+    )
+    column = Item.__table__.c.slug
+
+    def taken(candidate: str) -> bool:
+        if candidate in pending:
+            return True
+        found = connection.execute(select(column).where(column == candidate))
+        return found.first() is not None
+
+    kind = target.type.value if isinstance(target.type, ItemType) else target.type
+    target.slug = item_slugs.unique_slug(
+        target.title, str(kind or "item"), target.id, taken
+    )
+    pending.add(target.slug)
+
+
+@event.listens_for(Session, "after_flush_postexec")
+def _forget_pending_slugs(session, flush_context) -> None:
+    session.info.pop("pending_item_slugs", None)

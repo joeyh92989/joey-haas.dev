@@ -2365,3 +2365,96 @@ async def test_a_head_level_diff_still_reports_a_leftover_visits_column(
         below = await connection.run_sync(_diff_against_models, True)
     assert [(e[0], e[3].name) for e in at_head] == [("remove_column", "kid_along")]
     assert below == []  # the carve-out would hide it, which is why it is opt-in
+
+
+# --- Revision 0029: items.slug (readable item URLs, #479). -------------------
+
+
+async def _seed_items_at_0028(engine) -> None:
+    """Four items written before the column existed, two sharing a title; the
+    oldest by created_at is inserted last on purpose."""
+    rows = [
+        ("00000000-0000-0000-0000-00000000000a", "Dune", "movie", "2026-03-01"),
+        ("00000000-0000-0000-0000-00000000000b", "Dune", "movie", "2026-01-01"),
+        ("00000000-0000-0000-0000-00000000000c", "Pokémon Red", "game", "2026-02-01"),
+        ("00000000-0000-0000-0000-00000000000d", "???", "game", "2026-02-02"),
+    ]
+    async with engine.begin() as connection:
+        for item_id, title, kind, created in rows:
+            await connection.execute(
+                text(
+                    "INSERT INTO items (id, type, title, status, created_at) "
+                    "VALUES (CAST(:id AS uuid), CAST(:kind AS item_type), :title, "
+                    "CAST('backlog' AS item_status), "
+                    f"TIMESTAMPTZ '{created}')"
+                ),
+                {"id": item_id, "kind": kind, "title": title},
+            )
+
+
+@pytest.mark.asyncio
+async def test_0029_backfills_a_slug_oldest_row_first_and_matches_the_models(
+    clean_database,
+):
+    assert _alembic("upgrade", "0028").returncode == 0
+    await _seed_items_at_0028(clean_database)
+    result = _alembic("upgrade", "0029")
+    assert result.returncode == 0, result.stderr
+    async with clean_database.connect() as connection:
+        slugs = dict(
+            (
+                await connection.execute(
+                    text("SELECT right(id::text, 1), slug FROM items")
+                )
+            ).all()
+        )
+        diff = await connection.run_sync(_diff_against_models)
+    assert slugs["b"] == "dune"  # the oldest keeps the bare slug
+    assert slugs["a"] == "dune-000000"  # first 6 hex of its id
+    assert slugs["c"] == "pokemon-red"
+    assert slugs["d"] == "game"
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0029_cycle_drops_the_column_and_upgrades_again(clean_database):
+    assert _alembic("upgrade", "0029").returncode == 0
+    down = _alembic("downgrade", "0028")
+    assert down.returncode == 0, down.stderr
+    async with clean_database.connect() as connection:
+        columns = {
+            row[0]
+            for row in await connection.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'items'"
+                )
+            )
+        }
+        indexes = {
+            row[0]
+            for row in await connection.execute(
+                text("SELECT indexname FROM pg_indexes WHERE tablename = 'items'")
+            )
+        }
+    assert "slug" not in columns
+    assert "ux_items_slug" not in indexes
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+
+
+@pytest.mark.asyncio
+async def test_0029_the_slug_index_is_unique_but_lets_nulls_repeat(clean_database):
+    assert _alembic("upgrade", "head").returncode == 0
+    insert = text(
+        "INSERT INTO items (id, type, title, status, slug) VALUES "
+        "(gen_random_uuid(), CAST('game' AS item_type), 'T', "
+        "CAST('backlog' AS item_status), :slug)"
+    )
+    async with clean_database.begin() as connection:
+        await connection.execute(insert, {"slug": None})
+        await connection.execute(insert, {"slug": None})
+        await connection.execute(insert, {"slug": "same"})
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await connection.execute(insert, {"slug": "same"})

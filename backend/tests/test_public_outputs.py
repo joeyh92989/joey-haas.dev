@@ -66,11 +66,12 @@ SHOWN_DAY = MIDNIGHT - timedelta(hours=12)
 # What a tonight card publishes. `item_id`, not `id`: What's next carries no key
 # named id (spec, S1).
 PICK_FIELDS = {
-    "item_id", "type", "title", "cover_url", "platform", "reasons",
+    "item_id", "item_slug", "type", "title", "cover_url", "platform", "reasons",
     "slot_label", "size", "progress",
 }  # fmt: skip
 LAST_FINISH_FIELDS = {
-    "item_id", "title", "cover_url", "finished_at", "time_to_beat_hours", "rating",
+    "item_id", "item_slug", "title", "cover_url", "finished_at",
+    "time_to_beat_hours", "rating",
 }  # fmt: skip
 # The Continue card (Tonight continue spec): the game in hand and its open
 # run's journal. No status key, no note, no minutes per day.
@@ -801,7 +802,7 @@ FORBIDDEN = {
 }  # fmt: skip
 NEXT_ROW_FIELDS = {
     "title", "platform", "physical_format", "release_date", "release_precision",
-    "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id",
+    "cover_url", "igdb_url", "reasons", "top_pick", "new", "item_id", "item_slug",
     # Comics (2026-11-01): a comic want's type and how it sits on the shelf.
     "type", "shelf_format",
 }  # fmt: skip
