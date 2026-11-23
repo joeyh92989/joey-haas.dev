@@ -206,8 +206,35 @@ jobs:
       - name: wait-for-ci tests
         run: ./scripts/wait-for-ci.test.sh
 
-  e2e:
+  # Split (#598): a matrix of `e2e-shard` jobs behind one aggregate job named
+  # `e2e`. Each is its own runner, so it builds the site itself. The split is
+  # by FILE, not Playwright's blind --shard over the whole suite, because that
+  # cuts the test list into equal COUNTS and one file (admin-add.spec.js, 192
+  # slow tests, 10 minutes of the 20) made one shard take 15 minutes. So
+  # three shards go to admin-add (add-1..3): its 60 'focus rings paint' tests are the slow ones (about 18
+  # minutes of its 20, and they sit together in the file, so a plain --shard
+  # cut by position leaves one job with all of them): they are cut in three by
+  # --shard over a --grep, desktop only; add-1 also runs everything else in the
+  # file (fast) as its `extra` step, and add-3 the phone ones, so every test
+  # runs once. `rest` runs every other spec: it skips
+  # admin-add through E2E_SKIP_FILES (playwright.config.js), so a new spec file
+  # runs in `rest` by default and is never silently dropped.
+  # --fully-parallel makes each test its own unit: safe here (no spec has a
+  # beforeAll, serial mode or module state; every API answer is routed in the
+  # page). fail-fast is off so one red shard does not cancel the others
+  # mid-run: rerun the failed shard alone.
+  e2e-shard:
+    name: e2e-shard (${{ matrix.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: add-1, args: 'admin-add.spec.js --project=desktop --grep "focus rings paint" --shard=1/3', extra: 'admin-add.spec.js --grep-invert "focus rings paint"', skip: '' }
+          - { name: add-2, args: 'admin-add.spec.js --project=desktop --grep "focus rings paint" --shard=2/3', extra: '', skip: '' }
+          - { name: add-3, args: 'admin-add.spec.js --project=desktop --grep "focus rings paint" --shard=3/3', extra: 'admin-add.spec.js --project=phone --grep "focus rings paint"', skip: '' }
+          - { name: rest, args: '', extra: '', skip: 'admin-add.spec.js' }
     defaults:
       run:
         working-directory: frontend
@@ -246,8 +273,9 @@ jobs:
           VITE_DAILY_SALT: ci
 
       - name: Run browser tests
-        run: npm run e2e
+        run: npm run e2e -- --fully-parallel ${{ matrix.args }}
         env:
+          E2E_SKIP_FILES: ${{ matrix.skip }}
           # Turns on forbidOnly and one retry in playwright.config.js, so a
           # stray test.only cannot pass CI and one flake is not a failure.
           CI: 'true'
@@ -255,7 +283,16 @@ jobs:
       # Visual baselines (#217): compare mode. A diff is a layout change;
       # intended ones are accepted with the update-visual-baselines workflow
       # (.github/workflows/README.md).
+      - name: Run the extra browser tests
+        if: always() && matrix.extra != ''
+        run: npm run e2e -- --fully-parallel ${{ matrix.extra }}
+        env:
+          CI: 'true'
+
+      # It is 36 tests and about 30 seconds, so it runs in the `rest` shard only rather
+      # than being split.
       - name: Run visual tests
+        if: matrix.name == 'rest'
         run: npm run e2e:visual
         env:
           CI: 'true'
@@ -266,19 +303,54 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.name }}
           path: |
             frontend/playwright-report/
             frontend/playwright-report-visual/
             frontend/test-results-visual/
           retention-days: 14
 
+  # The check people read: it passes only when every shard did. `always()` so a
+  # failed or cancelled shard fails this job rather than leaving it skipped.
+  e2e:
+    needs: [e2e-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every e2e shard passed
+        env:
+          SHARDS: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "e2e-shard: $SHARDS"
+          [ "$SHARDS" = success ]
+
   # The admin suite (#216): the same run as `npm run e2e:admin` locally, against
   # a throwaway Postgres. Every credential is a dummy: the Playwright config
   # sets the backend's env, and the sign-in test route is only mounted on an
   # http://localhost FRONTEND_URL (config.py refuses to boot otherwise).
-  e2e-admin:
+  #
+  # Split like `e2e` (matrix `e2e-admin-shard`, aggregate `e2e-admin`): the
+  # Closet and Denver site specs (about 14 and 12 minutes each, serial) are cut
+  # three ways together (`cd-1..3`), and `rest` runs everything else. Each shard
+  # has its own runner and so its own Postgres service and joeyhas_e2e
+  # database: no shard shares state with another. The Closet, Denver and data
+  # specs route their API answers in the page and write nothing, so
+  # --fully-parallel is safe for them; admin.spec.js does write to the database
+  # but each test makes and deletes its own rows, and its desktop and phone
+  # projects already ran concurrently. The sign-in setup test runs in every shard.
+  e2e-admin-shard:
+    name: e2e-admin-shard (${{ matrix.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: cd-1, args: 'admin-closet admin-denver-site admin.setup --shard=1/3', skip: '' }
+          - { name: cd-2, args: 'admin-closet admin-denver-site admin.setup --shard=2/3', skip: '' }
+          - { name: cd-3, args: 'admin-closet admin-denver-site admin.setup --shard=3/3', skip: '' }
+          - { name: rest, args: '', skip: 'admin-closet.spec.js,admin-denver-site.spec.js' }
     services:
       postgres:
         # Same pin as the backend job: Neon's version.
@@ -332,17 +404,31 @@ jobs:
       - name: Run admin browser tests
         run: |
           export E2E_BACKEND_BIN="$(dirname "$(command -v uvicorn)")"
-          npm run e2e:admin
+          npm run e2e:admin -- --fully-parallel ${{ matrix.args }}
         env:
+          E2E_SKIP_FILES: ${{ matrix.skip }}
           CI: 'true'
 
       - name: Upload report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-admin
+          name: playwright-report-admin-${{ matrix.name }}
           path: frontend/playwright-report-admin/
           retention-days: 14
+
+  e2e-admin:
+    needs: [e2e-admin-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every admin e2e shard passed
+        env:
+          SHARDS: ${{ needs.e2e-admin-shard.result }}
+        run: |
+          echo "e2e-admin-shard: $SHARDS"
+          [ "$SHARDS" = success ]
 
   # Migration rehearsal (plan task 4): when a PR adds or changes a migration,
   # apply it to a schema-only Neon branch of production and comment the schema

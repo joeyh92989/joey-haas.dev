@@ -96,7 +96,8 @@ before pushing.
 
 - Checks: the PR's `backend` (aggregate of `backend-tests` and
   `backend-migrations`: open the red half), `frontend`, `e2e` and `e2e-admin`
-  GitHub Actions jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
+  (each an aggregate of sharded `e2e-shard` / `e2e-admin-shard` jobs: open the
+  red shard) GitHub Actions jobs (`neon-rehearsal` also runs, and only does anything, on a PR that
   changes `backend/migrations/versions`)
 - Merge: squash. Branch policy: **not strict** since 2026-11-17 (a PR need not
   be up to date with `main`; `backend` and `frontend` must pass on the PR).
@@ -168,8 +169,11 @@ before pushing.
   scripts/migrate_neon.py current` and `upgrade`.
 - **CI jobs**: `frontend`, `backend` (an aggregate job: it passes only when
   `backend-tests` and `backend-migrations` both do; keep the name `backend` on it
-  alone, since branch protection requires it), `e2e` and `e2e-admin` (the admin browser
-  suite against a Postgres 18 service and a real backend, test-login on a
+  alone, since branch protection requires it), `e2e` and `e2e-admin` (aggregates of
+  the `e2e-shard (…)` and `e2e-admin-shard (…)` matrix jobs, split by spec file so
+  each run is about 10 minutes; a new spec file runs in the `rest` shard by
+  default, see `.github/workflows/README.md`; the admin browser suite runs
+  against a Postgres 18 service per shard and a real backend, test-login on a
   localhost `FRONTEND_URL`). Branch protection on `main` requires `backend` and
   `frontend` to pass on the PR, and no longer requires the branch to be up to
   date with `main` (strict off since 2026-11-17: after another PR merges, no

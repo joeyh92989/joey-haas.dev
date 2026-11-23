@@ -2,15 +2,51 @@
 
 | File | Runs | What it does |
 |---|---|---|
-| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `scripts` (the shell helpers' tests; not required), `e2e`, `e2e-admin`, and `neon-rehearsal` |
+| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `scripts` (the shell helpers' tests; not required), `e2e` and `e2e-admin` (aggregates of sharded jobs, below), and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | push only: wait for that commit's `backend` and `frontend` CI jobs (`scripts/wait-for-ci.sh`); then migrate Neon, deploy the API, wait, smoke. A manual run skips the wait |
 | `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |
 | `nightly.yml` | 00:17 UTC | the data refreshes and the snapshot deploy (see its header) |
 
+## The sharded browser jobs
+
+`e2e` and `e2e-admin` are each an aggregate (like `backend`): a tiny job that
+`needs:` a matrix and passes only when every shard did. The shards are
+`e2e-shard (<name>)` and `e2e-admin-shard (<name>)`; each is its own runner
+(admin shards each have their own Postgres service), builds the site itself,
+and runs Playwright with `--fully-parallel`. Nothing else reads these names:
+`scripts/wait-for-ci.sh` waits only for `backend` and `frontend`, and neither
+`e2e` job is a required check.
+
+| Job | Shard | Runs |
+|---|---|---|
+| `e2e` | `add-1`, `add-2`, `add-3` | `admin-add.spec.js`: its 60 slow `focus rings paint` tests (desktop) cut in thirds by `--shard`; `add-1` also runs the rest of the file as a second step and `add-3` the phone `focus rings paint` tests (retune if the slow tests change) |
+| `e2e` | `rest` | every other spec, then the visual tests (`e2e:visual`) |
+| `e2e-admin` | `cd-1`, `cd-2`, `cd-3` | the Closet and Denver site specs, cut three ways by `--shard` (plus the sign-in setup test, which runs in every shard) |
+| `e2e-admin` | `rest` | every other admin spec |
+
+Why files and not plain `--shard=i/N` over the suite: Playwright cuts the test
+list into equal counts, and one file (`admin-add.spec.js`, 192 slow tests) made
+a shard take 15 minutes while others took 1. `rest` runs everything the others
+do not through `E2E_SKIP_FILES` (read by both Playwright configs), so a new
+spec file lands in `rest` by default; if it is heavy, give it its own shard. The
+Closet, Denver and data specs route their API answers in the page and write
+nothing, which is what makes `--fully-parallel` safe for them.
+
+- **Read the aggregate**: `e2e` or `e2e-admin` red means a shard is red or
+  cancelled; open the run and look for the red `... (<name>)` job. Its failure
+  report is the artifact `playwright-report-<name>` (admin:
+  `playwright-report-admin-<name>`).
+- **Rerun one shard**: in the run, "Re-run failed jobs" (or `gh run rerun <run-id>
+  --failed`) reruns only the red shards, and the aggregate job with them.
+- **Counts**: each shard prints its own `N passed, M skipped`; the sum across
+  shards equals the old single job's numbers (admin: plus two extra passes of the
+  sign-in setup test).
+- **Add a shard**: add an entry to the matrix in `ci.yml` (`name`, `args`, `skip`).
+
 ## Visual baselines
 
-`ci.yml`'s `e2e` job compares screenshots (`npm run e2e:visual`) with the PNGs
+`ci.yml`'s `e2e` job (its `rest` shard) compares screenshots (`npm run e2e:visual`) with the PNGs
 in `frontend/e2e/visual-baselines/`. They must come from the runner, so after
 an intended visual change run `gh workflow run update-visual-baselines.yml
 --ref <branch>`, then push an empty commit (a `GITHUB_TOKEN` commit does not
