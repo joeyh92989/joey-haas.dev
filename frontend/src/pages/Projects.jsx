@@ -14,6 +14,7 @@ import {
   TITLE_LINK,
 } from '../components/prose-classes.js'
 import { projects } from '../content/projects.js'
+import { DAY_YEAR } from '../lib/formatDate.js'
 
 /**
  * Projects list. Reads static content — deliberately makes no API call, so
@@ -81,6 +82,15 @@ export default function Projects() {
                       decoding="async"
                     />
                   ))}
+                  {project.hero.captured && (
+                    <p className="project-hero__caption mt-1 text-xs text-muted-foreground">
+                      Screenshot from{' '}
+                      {DAY_YEAR.format(
+                        new Date(`${project.hero.captured}T00:00:00Z`),
+                      )}
+                      ; the shelf has today’s figures.
+                    </p>
+                  )}
                 </div>
               )}
               {project.strip === 'favourites' && <CoverStrip />}

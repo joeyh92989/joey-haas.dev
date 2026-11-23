@@ -12,10 +12,12 @@ import LoadState from '../components/LoadState.jsx'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import { CHANGELOG, renderLine } from '../content/changelog.js'
 import {
+  ALL_TIME_SINCE,
   COUNTED,
   FROM_SNAPSHOT,
   LEDE,
   LIVE_AS_OF,
+  PAGES_COVER,
   STATS_TITLE,
 } from '../content/stats.js'
 import { deviceName, referrerName, showsAllTime } from '../lib/analytics.js'
@@ -64,6 +66,9 @@ export default function Stats() {
 
   const status = liveAt ? LIVE_AS_OF(TIME.format(liveAt)) : FROM_SNAPSHOT
   const thirty = data?.thirty
+  const since = data
+    ? CHANGE_DATE.format(new Date(`${data.all.live_since}T00:00:00Z`))
+    : ''
 
   return (
     <section className={`site-stats ${SITE_STATS}`}>
@@ -87,12 +92,12 @@ export default function Stats() {
                 <StatTile
                   label="Views"
                   value={figure(data.all.views)}
-                  detail="all time"
+                  detail={ALL_TIME_SINCE(since)}
                 />
                 <StatTile
                   label="Visitors"
                   value={figure(data.all.visitors)}
-                  detail="all time"
+                  detail={ALL_TIME_SINCE(since)}
                 />
               </>
             )}
@@ -122,7 +127,13 @@ export default function Stats() {
           <div className={`site-stats-lists ${SITE_STATS_LISTS}`}>
             <section aria-labelledby="stats-pages">
               <h2 id="stats-pages">Pages</h2>
-              <span className="kicker">views, last 30 days</span>
+              <span className="kicker">
+                {PAGES_COVER(
+                  thirty.pages.reduce((sum, row) => sum + row.count, 0),
+                  thirty.views,
+                  thirty.pages.length,
+                )}
+              </span>
               <Card className={LIST_CARD}>
                 <BarList
                   stacked

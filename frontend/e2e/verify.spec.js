@@ -182,6 +182,38 @@ test.describe('hero actions in the first viewport (#287)', () => {
       ).toBeVisible()
     }
   })
+
+  // #482: after Escape on a no-results search, the next tap landed on
+  // /projects, as if the overlay still held input. It closes, and the page
+  // beneath takes the tap.
+  test('Escape on a no-results search closes it and the page beneath is tappable', async ({
+    page,
+    openRoute,
+  }) => {
+    await openRoute('/', 'dark')
+    await page
+      .getByRole('button', { name: /search/i })
+      .first()
+      .click()
+    const input = page.getByRole('combobox', { name: 'Search' })
+    await input.fill('zzzqqq-no-such-page')
+    await expect(page.locator('dialog.search-dialog')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('dialog.search-dialog')).toBeHidden()
+    await expect(page.locator('dialog[open]')).toHaveCount(0)
+    // The top element at a page link's centre is the link, not the dialog.
+    const link = page.locator('main a:visible').first()
+    await link.scrollIntoViewIfNeeded()
+    const hitsLink = await link.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const top = document.elementFromPoint(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+      )
+      return el.contains(top)
+    })
+    expect(hitsLink).toBe(true)
+  })
 })
 
 test.describe('Report-Only CSP (#263)', () => {

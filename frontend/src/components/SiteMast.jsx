@@ -88,12 +88,12 @@ export default function SiteMast({
             aria-label={`Switch to ${target} theme`}
             onClick={onToggleTheme}
           >
-            {/* On a phone the label shortens to Light or Dark so the bar fits
-                320px; the accessible name stays whole (aria-label). */}
-            <span>
-              <span className="max-[700px]:sr-only">Switch to </span>
-              <span className="max-[700px]:capitalize">{target}</span>
-            </span>
+            {/* On a phone the words give way to the icon of the theme it
+                switches to (a sun to go light, a moon to go dark), so the
+                button no longer reads as the current mode; the accessible
+                name stays whole (aria-label). */}
+            <ThemeIcon target={target} />
+            <span className="max-[700px]:sr-only">Switch to {target}</span>
           </button>
           <button
             type="button"
@@ -115,5 +115,32 @@ export default function SiteMast({
         returnFocusRef={menuRef}
       />
     </header>
+  )
+}
+
+/** The icon of the theme the toggle switches to; shown on a phone only. */
+function ThemeIcon({ target }) {
+  return (
+    <svg
+      className="hidden size-5 max-[700px]:block"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      data-icon={target === 'light' ? 'sun' : 'moon'}
+    >
+      {target === 'light' ? (
+        <>
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </>
+      ) : (
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+      )}
+    </svg>
   )
 }

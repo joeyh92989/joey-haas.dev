@@ -41,6 +41,7 @@ vi.mock('../content/projects.js', () => ({
         alt: 'The Games page.',
         width: 1200,
         height: 560,
+        captured: '2026-11-15',
       },
     },
     {
@@ -76,6 +77,13 @@ describe('Projects', () => {
       expect(image).toHaveAttribute('loading', 'lazy')
     }
     expect(cards[1].querySelector('.project-hero')).toBeNull()
+  })
+
+  it('dates a hero screenshot, since its figures are that day’s', () => {
+    const { container } = renderProjects()
+    expect(container.querySelector('.project-hero__caption')).toHaveTextContent(
+      'Screenshot from Nov 15, 2026',
+    )
   })
 
   it('shows the differently line only when it is set', () => {

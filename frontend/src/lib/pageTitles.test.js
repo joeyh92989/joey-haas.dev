@@ -17,6 +17,12 @@ describe('pageName', () => {
     expect(pageName(titles, `/shelf/${ID}`)).toBe('Hades')
   })
 
+  it('names the site’s fixed pages so no row is a bare path', () => {
+    expect(pageName(null, '/')).toBe('Home')
+    expect(pageName(null, '/shelf')).toBe('My Shelf')
+    expect(pageName(null, '/projects')).toBe('Projects')
+  })
+
   it('names year and month pages like the pages themselves', () => {
     expect(pageName(null, '/shelf/year/2026')).toBe('2026 in review')
     expect(pageName(null, '/shelf/journal/2026-10')).toBe(
@@ -35,7 +41,8 @@ describe('pageName', () => {
   it('reads an old /spine path as its /shelf page', () => {
     expect(pageName(titles, `/spine/${ID}`)).toBe('Hades')
     expect(pageName(null, '/spine/year/2025')).toBe('2025 in review')
-    expect(pageName(titles, '/spine/next')).toBe('/spine/next')
+    expect(pageName(titles, '/spine/old-page')).toBe('/spine/old-page')
+    expect(pageName(titles, '/spine/next')).toBe('My Shelf · What’s next')
   })
 
   it('falls back to the path: no index, unknown item, other groups', () => {
@@ -44,6 +51,6 @@ describe('pageName', () => {
       pageName(titles, '/shelf/0b7c6f3e-9999-4c1c-9a50-000000000009'),
     ).toBe('/shelf/0b7c6f3e-9999-4c1c-9a50-000000000009')
     expect(pageName(titles, '/blog/a-post')).toBe('/blog/a-post')
-    expect(pageName(titles, '/about')).toBe('/about')
+    expect(pageName(titles, '/old-page')).toBe('/old-page')
   })
 })

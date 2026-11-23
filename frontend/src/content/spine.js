@@ -522,7 +522,8 @@ export const spine = {
     },
     band: {
       lead: 'What’s next',
-      tonight: 'Tonight:',
+      /** Tonight's pick, the engine's suggestion: not the game in hand (Now playing). */
+      tonight: 'Tonight’s pick:',
     },
     loading: 'Loading…',
     waking: WAKING,
