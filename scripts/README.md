@@ -11,6 +11,8 @@ header.
 | `merge-train.test.sh` | tests for `merge-train.sh` against a fake `gh` |
 | `wait-for-ci.sh` | wait until `backend` and `frontend` pass on a commit (used by `deploy.yml`) |
 | `wait-for-ci.test.sh` | tests for `wait-for-ci.sh` against a fake `gh` |
+| `ci-changes.sh` | read changed file names on stdin, print `heavy=true` or `heavy=false` (used by `ci.yml`'s `changes` job) |
+| `ci-changes.test.sh` | tests for `ci-changes.sh` |
 
 ## merge-train.sh
 
@@ -112,3 +114,28 @@ Limits: it reads the two job names from `ci.yml` (keep them in step with branch
 protection; a rename makes every deploy time out). The static site, which Render
 deploys on its own, is not gated. Tested against a fake `gh`
 (`./scripts/wait-for-ci.test.sh`, also run by the `scripts` CI job).
+
+## ci-changes.sh
+
+`git diff --name-only origin/main...HEAD | ./scripts/ci-changes.sh` reads
+changed file names (one per line) on stdin and prints exactly `heavy=false` when
+every file is docs-only, otherwise `heavy=true`. Docs-only means a file under
+`docs/`, a root-level `*.md`, or a file under `.github/ISSUE_TEMPLATE/`.
+
+Why: `ci.yml` skips the heavy jobs (backend, frontend, browser tests) on a PR
+that changes only documentation. This script is the one place that definition
+lives; widening it later is a one-line change.
+
+Gotchas:
+
+- It fails open: an empty list, a blank-only list or any file it does not
+  recognise prints `heavy=true`. A skipped suite is only ever the result of
+  every file matching.
+- `frontend/**.md` is deliberately heavy: `prettier --check .` and the
+  changelog parser read those files. So are `.github/workflows/**` and
+  `render.yaml`.
+- It reads names line by line, so spaces in a name are fine; names git quotes
+  (non-ASCII without `core.quotepath=off`) start with `"`, match no docs rule,
+  and count as heavy.
+- Tested without git (`./scripts/ci-changes.test.sh`, also run by the `scripts`
+  CI job).

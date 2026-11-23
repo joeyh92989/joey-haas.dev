@@ -20,11 +20,59 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Decides whether the heavy jobs run (#604). A PR that changes only docs
+  # (scripts/ci-changes.sh holds the definition) skips the backend, frontend and
+  # browser jobs; each aggregate below then passes on `skipped` parts, but only
+  # when this job succeeded and said heavy=false. It fails open: any git
+  # problem, an empty list or no `before` sha prints heavy=true, so the full
+  # suite runs. Workflow-level `paths-ignore` is not used: it would leave the
+  # required checks pending forever.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      heavy: ${{ steps.detect.outputs.heavy }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Are the changes docs-only?
+        id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Never fail here: any error falls through to heavy=true.
+          files=""
+          ok=false
+          if [ "$EVENT" = pull_request ]; then
+            files="$(git diff --name-only "origin/$BASE_REF...HEAD")" && ok=true
+          elif [ -n "$BEFORE" ] && ! printf '%s' "$BEFORE" | grep -qE '^0+$'; then
+            files="$(git diff --name-only "$BEFORE..$SHA")" && ok=true
+          fi
+          if [ "$ok" = true ]; then
+            result="$(printf '%s\n' "$files" | ./scripts/ci-changes.sh)" || result=heavy=true
+          else
+            echo "Could not list the changed files; running everything."
+            result=heavy=true
+          fi
+          case "$result" in
+            heavy=true|heavy=false) ;;
+            *) result=heavy=true ;;
+          esac
+          printf 'Changed files:\n%s\n=> %s\n' "$files" "$result"
+          echo "$result" >> "$GITHUB_OUTPUT"
+
   # The backend suite runs as two parallel jobs (`backend-tests`, and
   # `backend-migrations` for tests/test_migrations.py, about a fifth of the
   # run) behind one aggregate job named `backend`, because branch protection
   # requires a check called `backend`. Keep that name on the aggregate only.
   backend-tests:
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -87,6 +135,8 @@ jobs:
   # Keep the Postgres image, Python version and install in step with
   # backend-tests: the same pins, so both halves test what production runs.
   backend-migrations:
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -124,24 +174,34 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest -q tests/test_migrations.py
 
-  # The required check. It passes only when both halves passed: `always()` so a
-  # failed or cancelled half fails this job, not leaves it skipped (a skipped
-  # required check reads as passing to branch protection).
+  # The required check. It passes when both halves passed, or when both were
+  # skipped because `changes` succeeded and found a docs-only change (a skipped
+  # part with any other `changes` result fails). `always()` so a failed or
+  # cancelled half fails this job, not leaves it skipped (a skipped required
+  # check reads as passing to branch protection). scripts/wait-for-ci.sh needs
+  # this job to end `success`, which a pass on skipped parts is.
   backend:
-    needs: [backend-tests, backend-migrations]
+    needs: [changes, backend-tests, backend-migrations]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Both backend jobs passed
+      - name: Both backend jobs passed, or were skipped for a docs-only change
         env:
+          CHANGES: ${{ needs.changes.result }}
+          HEAVY: ${{ needs.changes.outputs.heavy }}
           TESTS: ${{ needs.backend-tests.result }}
           MIGRATIONS: ${{ needs.backend-migrations.result }}
         run: |
-          echo "backend-tests: $TESTS; backend-migrations: $MIGRATIONS"
-          [ "$TESTS" = success ] && [ "$MIGRATIONS" = success ]
+          echo "changes: $CHANGES (heavy=$HEAVY); backend-tests: $TESTS; backend-migrations: $MIGRATIONS"
+          if [ "$TESTS" = success ] && [ "$MIGRATIONS" = success ]; then exit 0; fi
+          [ "$TESTS" = skipped ] && [ "$MIGRATIONS" = skipped ] && [ "$CHANGES" = success ] && [ "$HEAVY" = false ]
 
-  frontend:
+  # The old `frontend` job. The name `frontend` (a required check) now belongs
+  # to the aggregate below.
+  frontend-checks:
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -192,6 +252,24 @@ jobs:
         # once a patched picomatch exists.
         run: npm audit --omit=dev --audit-level=high
 
+  # The required check `frontend`: an aggregate of `frontend-checks`, same rule
+  # as `backend`. Keep the name on the aggregate alone.
+  frontend:
+    needs: [changes, frontend-checks]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: The frontend checks passed, or were skipped for a docs-only change
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          HEAVY: ${{ needs.changes.outputs.heavy }}
+          CHECKS: ${{ needs.frontend-checks.result }}
+        run: |
+          echo "changes: $CHANGES (heavy=$HEAVY); frontend-checks: $CHECKS"
+          if [ "$CHECKS" = success ]; then exit 0; fi
+          [ "$CHECKS" = skipped ] && [ "$CHANGES" = success ] && [ "$HEAVY" = false ]
+
   # The shell helpers' own tests, against a fake `gh` (no network, no secrets).
   # Not a required check: read it when scripts/ changes.
   scripts:
@@ -205,6 +283,9 @@ jobs:
 
       - name: wait-for-ci tests
         run: ./scripts/wait-for-ci.test.sh
+
+      - name: ci-changes tests
+        run: ./scripts/ci-changes.test.sh
 
   # Split (#598): a matrix of `e2e-shard` jobs behind one aggregate job named
   # `e2e`. Each is its own runner, so it builds the site itself. The split is
@@ -225,6 +306,8 @@ jobs:
   # mid-run: rerun the failed shard alone.
   e2e-shard:
     name: e2e-shard (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -313,17 +396,20 @@ jobs:
   # The check people read: it passes only when every shard did. `always()` so a
   # failed or cancelled shard fails this job rather than leaving it skipped.
   e2e:
-    needs: [e2e-shard]
+    needs: [changes, e2e-shard]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Every e2e shard passed
+      - name: Every e2e shard passed, or all were skipped for a docs-only change
         env:
+          CHANGES: ${{ needs.changes.result }}
+          HEAVY: ${{ needs.changes.outputs.heavy }}
           SHARDS: ${{ needs.e2e-shard.result }}
         run: |
-          echo "e2e-shard: $SHARDS"
-          [ "$SHARDS" = success ]
+          echo "changes: $CHANGES (heavy=$HEAVY); e2e-shard: $SHARDS"
+          if [ "$SHARDS" = success ]; then exit 0; fi
+          [ "$SHARDS" = skipped ] && [ "$CHANGES" = success ] && [ "$HEAVY" = false ]
 
   # The admin suite (#216): the same run as `npm run e2e:admin` locally, against
   # a throwaway Postgres. Every credential is a dummy: the Playwright config
@@ -341,6 +427,8 @@ jobs:
   # projects already ran concurrently. The sign-in setup test runs in every shard.
   e2e-admin-shard:
     name: e2e-admin-shard (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -418,17 +506,20 @@ jobs:
           retention-days: 14
 
   e2e-admin:
-    needs: [e2e-admin-shard]
+    needs: [changes, e2e-admin-shard]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Every admin e2e shard passed
+      - name: Every admin e2e shard passed, or all were skipped for a docs-only change
         env:
+          CHANGES: ${{ needs.changes.result }}
+          HEAVY: ${{ needs.changes.outputs.heavy }}
           SHARDS: ${{ needs.e2e-admin-shard.result }}
         run: |
-          echo "e2e-admin-shard: $SHARDS"
-          [ "$SHARDS" = success ]
+          echo "changes: $CHANGES (heavy=$HEAVY); e2e-admin-shard: $SHARDS"
+          if [ "$SHARDS" = success ]; then exit 0; fi
+          [ "$SHARDS" = skipped ] && [ "$CHANGES" = success ] && [ "$HEAVY" = false ]
 
   # Migration rehearsal (plan task 4): when a PR adds or changes a migration,
   # apply it to a schema-only Neon branch of production and comment the schema
