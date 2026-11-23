@@ -28,6 +28,11 @@ import {
 import { SKELETON_BLOCK, SKELETON_COVER } from '../components/shelf-classes.js'
 import { cx } from '../lib/cx.js'
 import CoverImage from '../components/CoverImage.jsx'
+import {
+  ITEM_CARD_TOP,
+  SERIES_PILL_OK,
+  SERIES_PILL_PLAIN,
+} from '../components/comicClasses.js'
 import BookWall from '../components/BookWall.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import SingleBookCard from '../components/SingleBookCard.jsx'
@@ -350,7 +355,7 @@ function ComicSummary({ comic, model, issues }) {
         <>
           <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
           <span
-            className="series-pill"
+            className={`series-pill ${model.state === 'gaps' ? SERIES_PILL_PLAIN : SERIES_PILL_OK}`}
             data-ok={model.state === 'gaps' ? undefined : ''}
           >
             {pill}
@@ -487,7 +492,10 @@ function ComicCards({
       )}
 
       {withIssues && model.held > 0 && (
-        <section className={cx('item-card', PANEL)} aria-labelledby="item-run">
+        <section
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
+          aria-labelledby="item-run"
+        >
           <h2 id="item-run" className={PANEL_HEAD}>
             {kind === 'both' ? BOOKS.issues : SERIES.runCard}
           </h2>
@@ -531,7 +539,7 @@ function ComicCards({
 
       {!withBooks && comic.editions.length > 0 && (
         <section
-          className={cx('item-card', PANEL)}
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
           aria-labelledby="item-editions"
         >
           <h2 id="item-editions" className={PANEL_HEAD}>
@@ -558,7 +566,7 @@ function ComicCards({
 
       {description && (
         <section
-          className={cx('item-card', PANEL)}
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
           aria-labelledby="item-about"
         >
           <h2 id="item-about" className={PANEL_HEAD}>

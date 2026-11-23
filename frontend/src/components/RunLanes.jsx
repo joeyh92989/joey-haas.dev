@@ -1,4 +1,21 @@
 import { spine } from '../content/spine.js'
+import {
+  LANE,
+  LANE_AXIS_LABEL,
+  LANE_NAME,
+  LANE_PRIVATE,
+  LANE_SPAN,
+  LANE_TAIL,
+  LANE_TAIL_MARK,
+  LANE_TAIL_THIN,
+  LANE_TRACK,
+  LANE_TRACK_AXIS,
+  LANE_TRACK_THIN,
+  RUN_KEY,
+  RUN_KEY_ITEM,
+  RUN_KEY_SWATCH,
+  lanesClass,
+} from './comicClasses.js'
 
 const { run: RUN } = spine.comics
 
@@ -26,6 +43,7 @@ const pct = (value) => `${value * 100}%`
 function Span({ span, released, k = span.k }) {
   return (
     <i
+      className={LANE_SPAN[k]}
       data-k={k}
       style={{
         left: pct((span.from - 1) / released),
@@ -37,15 +55,21 @@ function Span({ span, released, k = span.k }) {
 
 function Lane({ name, thin, tail, children, note }) {
   return (
-    <div className="lane" data-thin={thin ? '' : undefined}>
+    <div className={`lane ${LANE}`} data-thin={thin ? '' : undefined}>
       {/* Always rendered, empty on a card, so every lane keeps its grid
           columns and the read lane lines up under the run. */}
-      <span className="lane-name">
+      <span className={`lane-name ${LANE_NAME}`}>
         {name}
-        {name && note && <em className="lane-private"> {note}</em>}
+        {name && note && (
+          <em className={`lane-private ${LANE_PRIVATE}`}> {note}</em>
+        )}
       </span>
-      <span className="lane-track">{children}</span>
-      <span className="lane-tail">{tail && <i data-k="upcoming" />}</span>
+      <span className={`lane-track ${thin ? LANE_TRACK_THIN : LANE_TRACK}`}>
+        {children}
+      </span>
+      <span className={`lane-tail ${thin ? LANE_TAIL_THIN : LANE_TAIL}`}>
+        {tail && <i className={LANE_TAIL_MARK} data-k="upcoming" />}
+      </span>
     </div>
   )
 }
@@ -72,7 +96,11 @@ export default function RunLanes({ spans, label, mini = false, showSkipped }) {
   const name = (text) => (mini ? undefined : text)
   return (
     <div
-      className="lanes"
+      className={`lanes ${lanesClass({
+        mini,
+        tail: Boolean(tail),
+        secret: Boolean(showSkipped && skipped.length > 0),
+      })}`}
       data-mini={mini ? '' : undefined}
       data-tail={tail ? '' : undefined}
       data-private={showSkipped && skipped.length > 0 ? '' : undefined}
@@ -101,16 +129,20 @@ export default function RunLanes({ spans, label, mini = false, showSkipped }) {
         )}
       </Lane>
       {!mini && !short && (
-        <div className="lane" data-axis="">
-          <span className="lane-name" />
-          <span className="lane-track">
+        <div className={`lane ${LANE}`} data-axis="">
+          <span className={`lane-name ${LANE_NAME}`} />
+          <span className={`lane-track ${LANE_TRACK_AXIS}`}>
             {axisTicks(released).map((n) => (
-              <b key={n} style={{ left: pct((n - 0.5) / released) }}>
+              <b
+                key={n}
+                className={LANE_AXIS_LABEL}
+                style={{ left: pct((n - 0.5) / released) }}
+              >
                 {n}
               </b>
             ))}
           </span>
-          <span className="lane-tail" />
+          <span className={`lane-tail ${LANE_TAIL}`} />
         </div>
       )}
     </div>
@@ -141,23 +173,28 @@ const BOX_KEY = [
  */
 export function RunKey({ variant = 'lanes', showSkipped = false }) {
   const keys = variant === 'box' ? BOX_KEY : LANE_KEY
+  const swatches = RUN_KEY_SWATCH[variant === 'box' ? 'box' : 'lanes']
   return (
-    <ul className="run-key" data-variant={variant} aria-label={RUN.key}>
+    <ul
+      className={`run-key ${RUN_KEY}`}
+      data-variant={variant}
+      aria-label={RUN.key}
+    >
       {keys.map(([k, word]) => (
-        <li key={k}>
-          <i data-k={k} aria-hidden="true" />
+        <li key={k} className={RUN_KEY_ITEM}>
+          <i className={swatches[k]} data-k={k} aria-hidden="true" />
           {word}
         </li>
       ))}
       {showSkipped && (
-        <li>
-          <i data-k="skip" aria-hidden="true" />
+        <li className={RUN_KEY_ITEM}>
+          <i className={swatches.skip} data-k="skip" aria-hidden="true" />
           {RUN.skippedKey}
         </li>
       )}
       {variant === 'box' && (
-        <li>
-          <i data-k="book" aria-hidden="true" />
+        <li className={RUN_KEY_ITEM}>
+          <i className={swatches.book} data-k="book" aria-hidden="true" />
           {RUN.edition}
         </li>
       )}

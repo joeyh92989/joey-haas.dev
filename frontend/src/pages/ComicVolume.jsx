@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BOOK_STACK } from '../components/comicClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import ComicDescription from '../components/ComicDescription.jsx'
@@ -227,7 +228,9 @@ export default function ComicVolume({ id, slug }) {
       />
 
       <div className="comic-issue-main grid grid-cols-[300px_minmax(0,1fr)] items-start gap-5 max-[640px]:grid-cols-[minmax(0,1fr)]">
-        <div className="comic-issue-cover book-tile max-[640px]:mx-auto max-[640px]:w-[62%]">
+        <div
+          className={`comic-issue-cover book-tile ${BOOK_STACK} max-[640px]:mx-auto max-[640px]:w-[62%]`}
+        >
           <CoverImage
             src={cover}
             type="comic"

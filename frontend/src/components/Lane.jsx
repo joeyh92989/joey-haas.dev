@@ -1,4 +1,10 @@
 import { useId } from 'react'
+import {
+  NEXT_LANE,
+  NEXT_LANE_CAP,
+  NEXT_LANE_HEAD,
+  NEXT_LANE_TITLE,
+} from './comicClasses.js'
 import PickList from './PickList.jsx'
 
 /**
@@ -20,10 +26,12 @@ export default function Lane({ title, caption, verb, picks, ...owner }) {
   const id = useId()
   if (!picks?.length) return null
   return (
-    <section className="lane" aria-labelledby={id}>
-      <div className="lane-h">
-        <h3 id={id}>{title}</h3>
-        <span className="live-cap">{caption}</span>
+    <section className={`lane ${NEXT_LANE}`} aria-labelledby={id}>
+      <div className={`lane-h ${NEXT_LANE_HEAD}`}>
+        <h3 id={id} className={NEXT_LANE_TITLE}>
+          {title}
+        </h3>
+        <span className={`live-cap ${NEXT_LANE_CAP}`}>{caption}</span>
       </div>
       <PickList picks={picks} heading={null} verb={verb} {...owner} />
     </section>

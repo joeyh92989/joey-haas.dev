@@ -11,6 +11,28 @@ import EmptyState from './EmptyState.jsx'
 import StatePill from './StatePill.jsx'
 import { CTL_LABEL, CTL_ROW } from './shelf-classes.js'
 import { CHIP, CHIP_COUNT } from './chipClasses.js'
+import {
+  COVER_STACK,
+  COVER_STACK_FOLD,
+  COVER_WALL_GRID,
+  ITEM_CARD,
+  TILE_BUTTON,
+  TILE_CAP,
+  TILE_CAP_LINK,
+  TILE_CAP_NUMBER,
+  TILE_CHIP,
+  TILE_DO,
+  TILE_FLAG,
+  TILE_HOLD,
+  TILE_TICK,
+  WALL_BAR,
+  WALL_HOW,
+  WALL_KEY,
+  WALL_STATUS,
+  frameClass,
+  tileClass,
+  STATE_PILL,
+} from './comicClasses.js'
 
 const RUN = spine.comics.run
 const WALL = spine.comics.wall
@@ -34,11 +56,15 @@ function OwnerTile({ tile, series, onTap, linked }) {
   const date = tile.store_date ? monthYear(tile.store_date) : null
   const stateWord = WALL.names[tile.state]
   return (
-    <div className="cover-tile" data-size="wall" data-state={tile.state}>
-      <div className="cover-tile-hold">
+    <div
+      className={`cover-tile ${tileClass({ state: tile.state })}`}
+      data-size="wall"
+      data-state={tile.state}
+    >
+      <div className={`cover-tile-hold ${TILE_HOLD}`}>
         <button
           type="button"
-          className="cover-tile-btn"
+          className={`cover-tile-btn ${TILE_BUTTON}`}
           data-focus={`mark-${tile.n}`}
           aria-label={OWNER.tapName(
             series.title,
@@ -48,19 +74,26 @@ function OwnerTile({ tile, series, onTap, linked }) {
           )}
           onClick={() => onTap(tile.n, tile.state, next)}
         >
-          <span className="cover-tile-frame">
+          <span
+            className={`cover-tile-frame ${frameClass({ state: tile.state, on: 'press' })}`}
+          >
             <CoverImage src={tile.cover_url} type="comic" alt="" />
             {tile.state === 'read' && (
-              <span className="cover-tile-tick" aria-hidden="true">
+              <span
+                className={`cover-tile-tick ${TILE_TICK}`}
+                aria-hidden="true"
+              >
                 ✓
               </span>
             )}
             {tile.state === 'skipped' && (
-              <span className="cover-tile-chip cover-tile-flag">
+              <span
+                className={`cover-tile-chip ${TILE_CHIP} cover-tile-flag ${TILE_FLAG}`}
+              >
                 {OWNER.skippedTag}
               </span>
             )}
-            <span className="cover-tile-do" aria-hidden="true">
+            <span className={`cover-tile-do ${TILE_DO}`} aria-hidden="true">
               {OWNER.do[next]}
             </span>
           </span>
@@ -69,15 +102,15 @@ function OwnerTile({ tile, series, onTap, linked }) {
       {linked ? (
         <Link
           to={issuePath(series.id, tile.n)}
-          className="cover-tile-cap"
+          className={`cover-tile-cap ${TILE_CAP_LINK}`}
           aria-label={OWNER.openName(series.title, tile.n)}
         >
-          <span>#{tile.n}</span>
+          <span className={TILE_CAP_NUMBER}>#{tile.n}</span>
           {date && <em>{date}</em>}
         </Link>
       ) : (
         // A private series has no issue page to open.
-        <span className="cover-tile-cap">
+        <span className={`cover-tile-cap ${TILE_CAP}`}>
           <span>#{tile.n}</span>
           {date && <em>{date}</em>}
         </span>
@@ -268,7 +301,7 @@ export default function CoverWall({
           <button
             key={`stack-${tile.key}`}
             type="button"
-            className="cover-stack"
+            className={`cover-stack ${COVER_STACK}`}
             data-focus={`stack-${tile.key}`}
             aria-expanded="false"
             onClick={() => toggle(tile.key, true, `fold-${tile.key}`)}
@@ -281,7 +314,7 @@ export default function CoverWall({
           <button
             key={`fold-${tile.key}`}
             type="button"
-            className="cover-stack"
+            className={`cover-stack ${COVER_STACK_FOLD}`}
             data-fold=""
             data-focus={`fold-${tile.key}`}
             aria-expanded="true"
@@ -326,7 +359,7 @@ export default function CoverWall({
   return (
     <section
       ref={ref}
-      className="item-card cover-wall"
+      className={`item-card ${ITEM_CARD} cover-wall`}
       aria-labelledby="item-wall"
     >
       <h2
@@ -337,7 +370,7 @@ export default function CoverWall({
       >
         {title}
       </h2>
-      <div className="wall-bar">
+      <div className={`wall-bar ${WALL_BAR}`}>
         <div className={`ctl-row ${CTL_ROW}`}>
           <span className={`ctl-label ${CTL_LABEL}`} id="wall-show">
             {WALL.show.label}
@@ -361,16 +394,20 @@ export default function CoverWall({
           </div>
         </div>
         {owner && (
-          <p className="wall-how">{linked ? OWNER.howLinked : OWNER.how}</p>
+          <p className={`wall-how ${WALL_HOW}`}>
+            {linked ? OWNER.howLinked : OWNER.how}
+          </p>
         )}
       </div>
       {shown.length > 0 ? (
-        <div className="cover-wall-grid">{shown.map(renderTile)}</div>
+        <div className={`cover-wall-grid ${COVER_WALL_GRID}`}>
+          {shown.map(renderTile)}
+        </div>
       ) : (
         <EmptyState title={WALL.nothingMissing} />
       )}
       {owner && (
-        <p className="wall-status" role="status">
+        <p className={`wall-status ${WALL_STATUS}`} role="status">
           {error ? (
             <span className="admin-error" role="alert">
               {error}
@@ -385,14 +422,14 @@ export default function CoverWall({
           ) : null}
         </p>
       )}
-      <ul className="cover-wall-key" aria-label={RUN.key}>
+      <ul className={`cover-wall-key ${WALL_KEY}`} aria-label={RUN.key}>
         {keyStates.map((state) => (
           <li key={state}>
             <StatePill state={state} />
           </li>
         ))}
         <li>
-          <span className="state-pill" data-state="book">
+          <span className={`state-pill ${STATE_PILL.book}`} data-state="book">
             {WALL.edition}
           </span>
         </li>

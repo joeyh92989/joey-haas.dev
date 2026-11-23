@@ -3,6 +3,13 @@ import { Link } from 'react-router'
 import { spine } from '../../content/spine.js'
 import { countText, nearCells } from '../../lib/comicRun.js'
 import CoverImage from '../CoverImage.jsx'
+import {
+  RUN_BOX,
+  RUN_BOX_FRAME,
+  SERIES_PILL_OK,
+  SERIES_PILL_PLAIN,
+  runCell,
+} from '../comicClasses.js'
 import { ibtn, MONO_FIELD } from '../addClasses.js'
 import {
   INTAKE_GROW,
@@ -29,7 +36,10 @@ function StatePill({ model }) {
   const words = gaps ? PILL.gaps(model.missing) : PILL[model.state]
   if (!words) return null
   return (
-    <span className="series-pill" data-ok={gaps ? undefined : ''}>
+    <span
+      className={`series-pill ${gaps ? SERIES_PILL_PLAIN : SERIES_PILL_OK}`}
+      data-ok={gaps ? undefined : ''}
+    >
       {words}
     </span>
   )
@@ -76,17 +86,25 @@ function Strip({ growth }) {
   if (!tiles.length) return null
   return (
     <div
-      className={`run-box-frame intake-grow-strip ${INTAKE_GROW_STRIP}`}
+      className={`run-box-frame ${RUN_BOX_FRAME} intake-grow-strip ${INTAKE_GROW_STRIP}`}
       aria-hidden="true"
     >
-      <div className="run-box">
+      <div className={`run-box ${RUN_BOX}`}>
         {tiles.map((tile) =>
           tile.type === 'gap' ? (
-            <i key={`gap-${tile.after}`} className="run-cell" data-gap="">
+            <i
+              key={`gap-${tile.after}`}
+              className={`run-cell ${runCell()}`}
+              data-gap=""
+            >
               …
             </i>
           ) : (
-            <i key={tile.n} className="run-cell" data-k={tile.k}>
+            <i
+              key={tile.n}
+              className={`run-cell ${runCell(tile.k)}`}
+              data-k={tile.k}
+            >
               {tile.k === 'new' ? `+${tile.n}` : tile.n}
             </i>
           ),

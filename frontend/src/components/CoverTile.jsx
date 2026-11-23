@@ -3,6 +3,16 @@ import { spine } from '../content/spine.js'
 import { monthYear } from '../lib/comics.js'
 import { volumePath, issuePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
+import {
+  TILE_CAP,
+  TILE_CAP_BOOK,
+  TILE_CHIP,
+  TILE_HATCH,
+  TILE_HOLLOW,
+  TILE_TICK,
+  frameClass,
+  tileClass,
+} from './comicClasses.js'
 
 const WALL = spine.comics.wall
 const BOOKS = spine.comics.books
@@ -39,7 +49,7 @@ export function shortEditionLabel(label) {
  *   store_date: string|null, state?: string}|{kind: 'book', slug: string,
  *   edition: {label: string, from: number, to: number},
  *   cover_url: string|null, readTo: number|null}} props.tile - From `wallTiles`.
- * @param {'wall'|'strip'|'inside'} props.size
+ * @param {'wall'|'strip'} props.size
  * @param {{id: string, title: string}} props.series
  * @param {boolean} [props.current] - The issue the page is about.
  * @param {boolean} [props.linked] - A book links to its edition page (default);
@@ -59,14 +69,21 @@ export default function CoverTile({
   const date = tile.store_date ? monthYear(tile.store_date) : null
   if (tile.kind === 'not-out') {
     return (
-      <div className="cover-tile" data-size={size} data-state="not-out">
-        <div className="cover-tile-frame" aria-hidden="true">
-          <div className="cover-tile-hatch">
-            <span className="cover-tile-chip">#{tile.n}</span>
+      <div
+        className={`cover-tile ${tileClass({ state: 'not-out', strip: size === 'strip' })}`}
+        data-size={size}
+        data-state="not-out"
+      >
+        <div
+          className={`cover-tile-frame ${frameClass({ state: 'not-out' })}`}
+          aria-hidden="true"
+        >
+          <div className={`cover-tile-hatch ${TILE_HATCH}`}>
+            <span className={`cover-tile-chip ${TILE_CHIP}`}>#{tile.n}</span>
           </div>
         </div>
         {date && (
-          <span className="cover-tile-cap" aria-hidden="true">
+          <span className={`cover-tile-cap ${TILE_CAP}`} aria-hidden="true">
             <em>{date}</em>
           </span>
         )}
@@ -79,22 +96,24 @@ export default function CoverTile({
   return (
     <Link
       to={issuePath(series.id, tile.n)}
-      className="cover-tile"
+      className={`cover-tile ${tileClass({ state: tile.state, link: true, strip: size === 'strip' })}`}
       data-size={size}
       data-state={tile.state}
       aria-current={current ? 'page' : undefined}
       aria-label={WALL.tileName(series.title, tile.n, WALL.names[tile.state])}
     >
-      <span className="cover-tile-frame">
+      <span
+        className={`cover-tile-frame ${frameClass({ state: tile.state, on: 'link', current })}`}
+      >
         {/* No `number`: the caption below already names it. */}
         <CoverImage src={tile.cover_url} type="comic" alt="" />
         {tile.state === 'read' && (
-          <span className="cover-tile-tick" aria-hidden="true">
+          <span className={`cover-tile-tick ${TILE_TICK}`} aria-hidden="true">
             ✓
           </span>
         )}
       </span>
-      <span className="cover-tile-cap" aria-hidden="true">
+      <span className={`cover-tile-cap ${TILE_CAP}`} aria-hidden="true">
         <span>#{tile.n}</span>
         {date && <em>{date}</em>}
       </span>
@@ -112,16 +131,16 @@ function BookLink({ tile, series, linked }) {
   if (!linked) {
     return (
       <div
-        className="cover-tile book-tile"
+        className={`cover-tile book-tile ${tileClass({ state: 'book', book: true })}`}
         data-size="wall"
         data-state="book"
         role="group"
         aria-label={label}
       >
-        <span className="cover-tile-frame">
+        <span className={`cover-tile-frame ${frameClass({ state: 'book' })}`}>
           <CoverImage src={tile.cover_url} type="comic" alt="" />
         </span>
-        <span className="cover-tile-cap" aria-hidden="true">
+        <span className={`cover-tile-cap ${TILE_CAP_BOOK}`} aria-hidden="true">
           <span>{shortEditionLabel(edition.label)}</span>
           <em>
             {range}
@@ -134,15 +153,17 @@ function BookLink({ tile, series, linked }) {
   return (
     <Link
       to={volumePath(series.id, tile.slug)}
-      className="cover-tile book-tile"
+      className={`cover-tile book-tile ${tileClass({ state: 'book', link: true, book: true })}`}
       data-size="wall"
       data-state="book"
       aria-label={label}
     >
-      <span className="cover-tile-frame">
+      <span
+        className={`cover-tile-frame ${frameClass({ state: 'book', on: 'link' })}`}
+      >
         <CoverImage src={tile.cover_url} type="comic" alt="" />
       </span>
-      <span className="cover-tile-cap" aria-hidden="true">
+      <span className={`cover-tile-cap ${TILE_CAP_BOOK}`} aria-hidden="true">
         <span>{shortEditionLabel(edition.label)}</span>
         <em>
           {range}
@@ -162,15 +183,15 @@ function VolumeLink({ tile, series }) {
   return (
     <Link
       to={volumePath(series.id, tile.slug)}
-      className="cover-tile book-tile"
+      className={`cover-tile book-tile ${tileClass({ state, link: true, book: true })}`}
       data-size="wall"
       data-state={state}
       aria-label={BOOKS.tileName(tile.label, BOOKS.names[state])}
     >
-      <span className="cover-tile-frame">
+      <span className={`cover-tile-frame ${frameClass({ state, on: 'link' })}`}>
         <CoverImage src={tile.cover_url} type="comic" alt="" />
       </span>
-      <span className="cover-tile-cap" aria-hidden="true">
+      <span className={`cover-tile-cap ${TILE_CAP_BOOK}`} aria-hidden="true">
         <span>
           {tile.line_number != null
             ? spine.comics.volume.number(tile.line_number)
@@ -186,16 +207,19 @@ function VolumeLink({ tile, series }) {
 function VolumeGap({ tile }) {
   return (
     <div
-      className="cover-tile book-tile"
+      className={`cover-tile book-tile ${tileClass({ state: 'missing', book: true })}`}
       data-size="wall"
       data-state="missing"
       role="group"
       aria-label={BOOKS.gapName(tile.number)}
     >
-      <span className="cover-tile-frame" aria-hidden="true">
-        <span className="cover-tile-hollow" />
+      <span
+        className={`cover-tile-frame ${frameClass({ state: 'missing' })}`}
+        aria-hidden="true"
+      >
+        <span className={`cover-tile-hollow ${TILE_HOLLOW}`} />
       </span>
-      <span className="cover-tile-cap" aria-hidden="true">
+      <span className={`cover-tile-cap ${TILE_CAP_BOOK}`} aria-hidden="true">
         <span>{spine.comics.volume.number(tile.number)}</span>
         <em>{BOOKS.states.gap}</em>
       </span>

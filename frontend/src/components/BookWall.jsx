@@ -1,6 +1,7 @@
 import { spine } from '../content/spine.js'
 import { PANEL_HEAD } from './detail-classes.js'
 import CoverTile from './CoverTile.jsx'
+import { BOOK_WALL_HAVE, COVER_WALL_GRID, ITEM_CARD } from './comicClasses.js'
 
 const BOOKS = spine.comics.books
 
@@ -63,12 +64,17 @@ export default function BookWall({ comic, series }) {
   const tiles = bookTiles(comic)
   if (tiles.length === 0) return null
   return (
-    <section className="item-card cover-wall" aria-labelledby="item-books">
+    <section
+      className={`item-card ${ITEM_CARD} cover-wall`}
+      aria-labelledby="item-books"
+    >
       <h2 id="item-books" className={PANEL_HEAD}>
         {BOOKS.title}
       </h2>
-      <p className="book-wall-have muted">{haveLine(comic)}</p>
-      <div className="cover-wall-grid">
+      <p className={`book-wall-have ${BOOK_WALL_HAVE} muted`}>
+        {haveLine(comic)}
+      </p>
+      <div className={`cover-wall-grid ${COVER_WALL_GRID}`}>
         {tiles.map((tile) => (
           <CoverTile
             key={tile.kind === 'volume' ? tile.slug : `gap-${tile.number}`}
