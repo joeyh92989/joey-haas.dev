@@ -89,8 +89,10 @@ nothing, which is what makes `--fully-parallel` safe for them.
 `ci.yml`'s `e2e` job (its `rest` shard) compares screenshots (`npm run e2e:visual`) with the PNGs
 in `frontend/e2e/visual-baselines/`. They must come from the runner, so after
 an intended visual change run `gh workflow run update-visual-baselines.yml
---ref <branch>`, then push an empty commit (a `GITHUB_TOKEN` commit does not
-trigger CI). Diff policy and the artifact route: `frontend/README.md` -> Browser
+--ref <branch>`. It commits the new PNGs and then starts `ci.yml` on that commit itself
+(`gh workflow run`, the one thing a `GITHUB_TOKEN` may start; `ci.yml` has
+`workflow_dispatch` for it), so no empty commit is needed: the run's checks show
+on the PR. Diff policy and the artifact route: `frontend/README.md` -> Browser
 tests -> Visual baselines.
 
 ## Migrations and deploys (the whole path)

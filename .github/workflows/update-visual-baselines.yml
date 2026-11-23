@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
 
 # The only workflow that writes to the repo: it commits PNGs to the branch.
+# `actions: write` is for the last step, which starts CI on that commit.
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update:
@@ -61,4 +63,10 @@ jobs:
           else
             git commit -m "test(visual): update baselines on the CI runner"
             git push origin "HEAD:${GITHUB_REF_NAME}"
+            # A commit pushed with GITHUB_TOKEN starts no CI run (so the PR would
+            # wait for an empty commit by hand). workflow_dispatch is the one event
+            # a GITHUB_TOKEN may start, and it needs no new secret.
+            gh workflow run ci.yml --ref "${GITHUB_REF_NAME}"
           fi
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -5,6 +5,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # update-visual-baselines.yml starts CI on its own commit with this: a commit
+  # pushed with GITHUB_TOKEN triggers no pull_request or push run. The checks
+  # attach to the branch's head commit, so the PR shows them. No inputs.
+  workflow_dispatch:
 
 # The workflow reads code and reports status. It needs nothing else, so a
 # compromised step has nothing worth taking.
