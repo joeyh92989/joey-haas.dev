@@ -33,15 +33,29 @@ The Tailwind v4 and shadcn/ui build setup (layers, Preflight, adding a component
 A list page has no breadcrumb: the area band's tabs are its way around. A
 detail or sub-detail page has no tabs.
 
-**The order of a list page's parts** (13 Nov 2026), top to bottom: area band,
-page header, figures, the search field (with the page's own links, such as
-Tonight), the labelled filters and the sort, the result bar (count, Clear
-filters and the key to the marks), the grid, then an optional **Overview**
-section of charts and favourites. A part a page has no use for is left out,
-never moved. The empty state replaces the grid and what is under it.
+**The order of a list page's parts** (13 Nov 2026; controls moved 23 Nov 2026,
+#473), top to bottom: area band, page header, figures, Now playing (Games), the
+search field (with the page's own links, such as Tonight), the result bar
+(count, Clear filters and the key to the marks), the controls bar, the grid,
+then an optional **Overview** section of charts and favourites. A part a page
+has no use for is left out, never moved. The empty state replaces the grid and
+what is under it.
+
+**The controls bar** (`ShelfControls`) is one row: a **Filters** button (a
+disclosure: `aria-expanded`, `aria-controls`, 44px, the count of filters that
+are on) and the sort on the left, and the **Display** group (Cards and Spines,
+Comfortable and Compact, Dim finished) on the right behind a rule. The labelled
+filter rows (`FilterChips labelled`) sit in the panel the button opens, closed
+on arrival at every width, so the count and the first game sit within one
+screen of the search box. A display toggle never goes inside the panel: it is
+how the grid draws, not what it holds.
 
 **The area band** is the one `SpineHeader`: the area's name as a link at
-`--fs-28`, the tagline and the tab row. It is never the page's `h1`, so a
+`--fs-28`, the byline, the tagline and the tab row. The **byline**
+(`ShelfByline`, #470) is one quiet line, "Joey Haas's shelf · Part of
+joey-haas.dev", the second part a link Home; a detail page opens with the same
+line above its breadcrumb (`ShelfTrail`), so every shelf page names its owner.
+A detail trail is always My Shelf / Games or Comics / the title. It is never the page's `h1`, so a
 list page has exactly one `h1`, in its `PageHeader` under the band. A type's
 tab shows only while the build's snapshot holds a public row of that type.
 

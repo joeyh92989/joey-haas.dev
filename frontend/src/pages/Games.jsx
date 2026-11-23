@@ -291,13 +291,25 @@ export default function Games() {
   return (
     <section>
       {header}
-      <LoadState failed={failed} stale live={liveItems} onRetry={retry} />
+      <LoadState
+        className="mt-3"
+        failed={failed}
+        stale
+        live={liveItems}
+        onRetry={retry}
+      />
 
       {items.length === 0 ? (
         <EmptyState title={games.empty} />
       ) : (
         <>
-          {stats && <GamesFigures stats={stats} />}
+          {stats && (
+            <div className="mt-6">
+              <GamesFigures stats={stats} />
+            </div>
+          )}
+
+          <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />
 
           <div className={`shelf-top ${SHELF_TOP}`}>
             <p className={`shelf-links ${SHELF_LINKS}`}>
@@ -324,7 +336,15 @@ export default function Games() {
             </label>
           </div>
 
-          <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />
+          <ResultBar
+            shown={visible.length}
+            total={items.length}
+            filtered={filtered}
+            noun={games.noun}
+            onClear={clearAll}
+          >
+            {layout === 'spines' ? <SpineKey /> : <CoverKey statuses={false} />}
+          </ResultBar>
 
           <ShelfToolbar
             labelled
@@ -343,16 +363,6 @@ export default function Games() {
             layout={layout}
             onLayoutChange={changeLayout}
           />
-
-          <ResultBar
-            shown={visible.length}
-            total={items.length}
-            filtered={filtered}
-            noun={games.noun}
-            onClear={clearAll}
-          >
-            {layout === 'spines' ? <SpineKey /> : <CoverKey statuses={false} />}
-          </ResultBar>
 
           {visible.length === 0 ? (
             <EmptyState

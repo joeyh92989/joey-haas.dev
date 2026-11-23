@@ -16,6 +16,7 @@ import {
   shortDate,
   sortComics,
   kindSummary,
+  titleQualifiers,
   volumesOwnedText,
 } from './comics.js'
 
@@ -485,5 +486,69 @@ describe('withoutLegacyEditions', () => {
     expect(withoutLegacyEditions({ editions: [] })).toEqual({})
     const plain = { issues_owned: '1' }
     expect(withoutLegacyEditions(plain)).toBe(plain)
+  })
+})
+
+describe('titleQualifiers (#474)', () => {
+  const row = (id, title, fields = {}) => ({
+    item_id: id,
+    title,
+    year: null,
+    publisher: null,
+    kind: 'run',
+    owned: 0,
+    volume_numbers: [],
+    ...fields,
+  })
+
+  it('says nothing for a title only one row has', () => {
+    expect(
+      titleQualifiers([row('a', 'Saga'), row('b', 'Monstress')]).size,
+    ).toBe(0)
+  })
+
+  it('uses the year when it tells the twins apart', () => {
+    const out = titleQualifiers([
+      row('a', 'Creepshow', { year: 1982, publisher: 'DC' }),
+      row('b', 'Creepshow', { year: 2023, publisher: 'DC' }),
+    ])
+    expect([...out]).toEqual([
+      ['a', '1982'],
+      ['b', '2023'],
+    ])
+  })
+
+  it('falls to the publisher, then both, then the shape', () => {
+    expect([
+      ...titleQualifiers([
+        row('a', 'Creepshow', { publisher: 'DC' }),
+        row('b', 'Creepshow', { publisher: 'Image' }),
+      ]).values(),
+    ]).toEqual(['DC', 'Image'])
+    expect([
+      ...titleQualifiers([
+        row('a', 'Creepshow', { year: 2020, publisher: 'DC' }),
+        row('b', 'Creepshow', { year: 2020, publisher: 'Image' }),
+      ]).values(),
+    ]).toEqual(['DC', 'Image'])
+    expect([
+      ...titleQualifiers([
+        row('a', 'Creepshow', { year: 2020, owned: 3 }),
+        row('b', 'Creepshow', { year: 2020, kind: 'book_line' }),
+      ]).values(),
+    ]).toEqual(['2020 · Run of issues, 3 issues', '2020 · Line of books'])
+  })
+
+  it('numbers twins that nothing else separates, ignoring case', () => {
+    const out = titleQualifiers([
+      row('a', 'Creepshow'),
+      row('b', 'creepshow'),
+      row('c', 'Creepshow'),
+    ])
+    expect([...out.values()]).toEqual([
+      'Run of issues · 1 of 3',
+      'Run of issues · 2 of 3',
+      'Run of issues · 3 of 3',
+    ])
   })
 })

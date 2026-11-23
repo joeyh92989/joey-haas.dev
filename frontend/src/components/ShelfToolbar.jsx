@@ -1,24 +1,19 @@
-import { spine } from '../content/spine.js'
 import { useMediaQuery } from '../lib/useMediaQuery.js'
 import { cn } from '../lib/utils.js'
 import { Button } from './ui/button.jsx'
 import FilterChips from './FilterChips.jsx'
 import LayoutToggle from './LayoutToggle.jsx'
 import {
-  CTL_LABEL,
-  CTL_ROW,
-  CTL_SPLIT,
   PRESSED_FILL,
-  SHELF_CONTROLS,
   SHELF_TOOLBAR,
   SHELF_TOOLBAR_ROW,
   SHELF_VIEW_CONTROLS,
-  VIEW_LAB,
 } from './shelf-classes.js'
+import ShelfControls from './ShelfControls.jsx'
 import SortControl from './SortControl.jsx'
+import { activeFilterCount } from '../lib/shelf.js'
 import { CHIP_TAP } from './chipClasses.js'
 
-const copy = spine.shelf
 const NARROW = '(max-width: 34rem)'
 
 /**
@@ -109,46 +104,36 @@ export default function ShelfToolbar({
 
   if (labelled) {
     return (
-      <section
-        className={`shelf-toolbar controls ${SHELF_CONTROLS}`}
-        aria-label="Filter and sort"
-      >
-        <FilterChips
-          groups={groups}
-          toggles={toggles}
-          value={filters}
-          onChange={onFiltersChange}
-          labelled
-        />
-        <div className={`ctl-row ${CTL_ROW}`}>
-          <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
-            {copy.sort}
-          </span>
-          <div className={`ctl-split ${CTL_SPLIT}`}>
-            <SortControl
-              value={sort.value}
-              direction={sort.direction}
-              seed={seed}
-              onChange={onSortChange}
-              onShuffle={onShuffle}
-              select
-              hideLabel
-            />
-            <div
-              className={`shelf-view-controls ${SHELF_VIEW_CONTROLS}`}
-              role="group"
-              aria-label={copy.view}
-            >
-              <span className={`view-lab ${VIEW_LAB}`} aria-hidden="true">
-                {copy.view}
-              </span>
-              {layouts}
-              {!spines && !narrow && sizes}
-              {!spines && dimmer}
-            </div>
-          </div>
-        </div>
-      </section>
+      <ShelfControls
+        activeCount={activeFilterCount(filters)}
+        filters={
+          <FilterChips
+            groups={groups}
+            toggles={toggles}
+            value={filters}
+            onChange={onFiltersChange}
+            labelled
+          />
+        }
+        sort={
+          <SortControl
+            value={sort.value}
+            direction={sort.direction}
+            seed={seed}
+            onChange={onSortChange}
+            onShuffle={onShuffle}
+            select
+            hideLabel
+          />
+        }
+        display={
+          <>
+            {layouts}
+            {!spines && !narrow && sizes}
+            {!spines && dimmer}
+          </>
+        }
+      />
     )
   }
 

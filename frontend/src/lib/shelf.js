@@ -266,6 +266,19 @@ export const NO_FILTER = {
 }
 
 /**
+ * How many filters a selection has on: every group with a choice and every
+ * toggle that is pressed. The Filters button's count.
+ *
+ * @param {Record<string, unknown>} filters
+ * @returns {number}
+ */
+export function activeFilterCount(filters) {
+  return Object.values(filters).filter(
+    (value) => value !== null && value !== undefined && value !== false,
+  ).length
+}
+
+/**
  * Reads a persisted shelf preference.
  *
  * Guarded because storage throws outright in some private-browsing modes, and

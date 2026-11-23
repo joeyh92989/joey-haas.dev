@@ -48,7 +48,7 @@ describe('SpineHeader', () => {
     expect(screen.getByRole('link', { name: 'Games' })).not.toHaveClass(
       'active',
     )
-    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(7)
+    expect(screen.getAllByRole('link', { name: /./ })).toHaveLength(8)
   })
 
   it('leaves Tour inactive elsewhere under /shelf', () => {

@@ -6,6 +6,8 @@ import {
   COMIC_CARD_KIND,
   COMIC_CARD_LINE,
   COMIC_CARD_RUN,
+  COMIC_CARD_TOP,
+  COMIC_CARD_VOLUMES,
   SERIES_PILL_WARN,
 } from './comicClasses.js'
 
@@ -43,8 +45,11 @@ export function RowLanes({ row }) {
  * @param {object} props
  * @param {object} props.row - A PublicComicRow, or the admin shelf's twin of
  *   one (`kind`, `volumes_owned`, `volume_numbers`).
+ * @param {boolean} [props.reserve] - Hold room for the kind and two lines of
+ *   volumes (or a single book's note), so the lanes of every card in a grid
+ *   start at one height. A page sets it when any of its cards has such lines.
  */
-export default function ComicCardRun({ row }) {
+export default function ComicCardRun({ row, reserve = false }) {
   const lines = cardLines(row, shortDate)
   const { kind, word, volumes } = kindSummary(row)
   const hasRun = kind === 'run' || kind === 'both'
@@ -54,10 +59,21 @@ export default function ComicCardRun({ row }) {
       role="group"
       aria-label={[row.title, word].filter(Boolean).join(': ')}
     >
-      <p className={`comic-card-kind ${COMIC_CARD_KIND}`}>{word}</p>
-      {volumes && (
-        <p className={`comic-card-line ${COMIC_CARD_LINE}`}>{volumes}</p>
-      )}
+      <div className={reserve ? COMIC_CARD_TOP : undefined}>
+        <p className={`comic-card-kind ${COMIC_CARD_KIND}`}>{word}</p>
+        {volumes && (
+          <p
+            className={`comic-card-line ${COMIC_CARD_LINE} ${COMIC_CARD_VOLUMES}`}
+          >
+            {volumes}
+          </p>
+        )}
+        {COPY.kindNotes[kind] && !volumes && (
+          <p className={`comic-card-line ${COMIC_CARD_LINE}`}>
+            {COPY.kindNotes[kind]}
+          </p>
+        )}
+      </div>
       {hasRun && <ComicRun row={row} lines={lines} />}
     </div>
   )

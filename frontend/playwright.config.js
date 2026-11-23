@@ -33,6 +33,7 @@ export default defineConfig({
     'home.spec.js',
     'prose.spec.js',
     'shelf-lists.spec.js',
+    'shelf-chrome.spec.js',
     'detail.spec.js',
     'admin-shelf.spec.js',
     'tour-overflow.spec.js',
