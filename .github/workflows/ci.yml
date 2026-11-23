@@ -209,7 +209,11 @@ jobs:
   # Sharded (#598): a matrix of `e2e-shard` jobs, each running one third of the
   # suite (Playwright's --shard=i/3 splits by file and project), behind one
   # aggregate job named `e2e`. Each shard is its own runner, so it builds the
-  # site itself. fail-fast is off so one red shard does not cancel the others
+  # site itself. --fully-parallel makes each test its own unit, so the shards
+  # balance by test rather than by file: without it, admin-add.spec.js alone
+  # was one 10-minute unit per project and shard 1 took 20 minutes. Safe here:
+  # no spec has a beforeAll, serial mode or module state, and every API answer
+  # is routed in the page. fail-fast is off so one red shard does not cancel the others
   # mid-run: a rerun of the failed shard alone is cheaper than a rerun of all.
   e2e-shard:
     name: e2e-shard (${{ matrix.shard }}/3)
@@ -257,7 +261,7 @@ jobs:
           VITE_DAILY_SALT: ci
 
       - name: Run browser tests
-        run: npm run e2e -- --shard=${{ matrix.shard }}/3
+        run: npm run e2e -- --shard=${{ matrix.shard }}/3 --fully-parallel
         env:
           # Turns on forbidOnly and one retry in playwright.config.js, so a
           # stray test.only cannot pass CI and one flake is not a failure.
@@ -371,7 +375,7 @@ jobs:
       - name: Run admin browser tests
         run: |
           export E2E_BACKEND_BIN="$(dirname "$(command -v uvicorn)")"
-          npm run e2e:admin -- --shard=${{ matrix.shard }}/3
+          npm run e2e:admin -- --shard=${{ matrix.shard }}/3 --fully-parallel
         env:
           CI: 'true'
 
