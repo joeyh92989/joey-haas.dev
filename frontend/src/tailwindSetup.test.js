@@ -6,15 +6,15 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import { CSS_FILES, readCss } from './testing/readCss.js'
 
-// Read from disk: Vitest stubs CSS imports. Guards the coexistence setup in
-// frontend/CLAUDE.md "Design system setup": the hand-written CSS sits in the
-// `legacy` layer and Preflight in its own layer below it, so unmigrated pages
-// do not shift (#526, #536).
+// Read from disk: Vitest stubs CSS imports. Guards the cascade in
+// frontend/CLAUDE.md "Design system setup" and src/styles/README.md: the
+// hand-written CSS sits in the `base` layer, Preflight in its sublayer
+// `base.preflight`, and Tailwind's utilities above both (#536).
 const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'tailwind.css'),
   'utf8',
 )
-const legacy = readCss()
+const sheets = readCss()
 const themeCss = readFileSync(
   createRequire(import.meta.url).resolve('tailwindcss/theme.css'),
   'utf8',
@@ -23,17 +23,14 @@ const themeCss = readFileSync(
 const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
 describe('tailwind.css setup', () => {
-  it('declares the layer order, preflight below legacy', () => {
-    expect(code).toContain(
-      '@layer preflight, legacy, theme, base, components, utilities;',
-    )
+  it('declares the layer order: theme, base, components, utilities', () => {
+    expect(code).toContain('@layer theme, base, components, utilities;')
+    expect(code).not.toMatch(/legacy/)
   })
 
-  it('imports the hand-written CSS into the legacy layer, in cascade order', () => {
+  it('imports the hand-written CSS into the base layer, in cascade order', () => {
     const imports = [
-      ...code.matchAll(
-        /@import\s+['"]\.\/([^'"]+\.css)['"]\s+layer\(legacy\)/g,
-      ),
+      ...code.matchAll(/@import\s+['"]\.\/([^'"]+\.css)['"]\s+layer\(base\)/g),
     ].map((m) => m[1])
     expect(imports).toEqual(CSS_FILES)
   })
@@ -42,31 +39,19 @@ describe('tailwind.css setup', () => {
     expect(code).toMatch(/@import\s+['"]\.\/styles\/utilities\.css['"];/)
   })
 
-  // Preflight in `base` would sit above `legacy` and override every legacy
-  // rule that sets the same property. Below it, it only changes what the
-  // legacy sheet never sets, and styles/base.css hands those back with
-  // `revert`. The last #536 slice moves it to `base`.
-  it('imports Preflight into its own layer, below legacy', () => {
+  // A rule written directly in `base` beats a sublayer's whatever the
+  // specificity, so the hand-written element rules (`a`, `h1`, the admin
+  // form-control defaults in zero-specificity :where()) beat Preflight's, as
+  // they would in a stylesheet that loaded after it. Preflight in plain
+  // `base` would let its `button, input { font: inherit; border-radius: 0 }`
+  // beat a :where() rule.
+  it('imports Preflight first, into the sublayer base.preflight', () => {
     const imports = [
-      ...code.matchAll(/@import\s+['"]([^'"]+)['"]\s+layer\((\w+)\)/g),
+      ...code.matchAll(/@import\s+['"]([^'"]+)['"]\s+layer\(([\w.]+)\)/g),
     ]
     const order = imports.map((m) => `${m[2]}:${m[1]}`)
-    expect(order[0]).toBe('preflight:tailwindcss/preflight.css')
-    expect(order.filter((o) => o.startsWith('preflight:'))).toHaveLength(1)
-  })
-
-  it('restates the browser values Preflight would reset, in zero specificity', () => {
-    const base = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), 'styles/base.css'),
-      'utf8',
-    )
-    for (const selector of [
-      ':where(ul, ol, menu)',
-      ':where(table)',
-      ':where(html)',
-    ])
-      expect(base).toContain(selector)
-    expect(base).toMatch(/:where\(\*\)::before/)
+    expect(order[0]).toBe('base.preflight:tailwindcss/preflight.css')
+    expect(order.filter((o) => o.includes('preflight.css'))).toHaveLength(1)
   })
 
   // The placeholder is text on a field: --text-3 is pinned at 4.5 or more on
@@ -88,14 +73,15 @@ describe('tailwind.css setup', () => {
   })
 
   // Tailwind writes a theme variable into the output once any CSS uses it, in
-  // the `theme` layer, which sits above `legacy`. A legacy :root token with
-  // the same name as a Tailwind theme token is then silently replaced: body
-  // text lost Inter that way in the first draft of #526. Redeclare any such
-  // token in an @theme block here with the site's own value.
-  it('redeclares every legacy token that Tailwind also defines', () => {
+  // the `theme` layer. The site's :root token of the same name sits in `base`,
+  // above it, so it wins; but two declarations of one name drift (body text
+  // lost Inter that way in the first draft of #526, when the sheet sat below
+  // `theme`). Redeclare any such token in an @theme block here with the
+  // site's own value.
+  it('redeclares every site token that Tailwind also defines', () => {
     const names = (text) =>
       new Set([...text.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]))
-    const collisions = [...names(legacy)].filter((n) => names(themeCss).has(n))
+    const collisions = [...names(sheets)].filter((n) => names(themeCss).has(n))
     const themeBlocks = [...code.matchAll(/@theme[^{]*\{([^}]*)\}/g)]
       .map((m) => m[1])
       .join('\n')

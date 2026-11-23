@@ -1,8 +1,48 @@
 # src/styles
 
-The hand-written CSS that has left `src/index.css` (#536). `src/tailwind.css`
-imports these into the `legacy` layer in this order, and the order is the
-cascade, so do not reorder them:
+The site's hand-written CSS (#536 moved every per-page rule out of the old
+`src/index.css`, which is deleted). `src/tailwind.css` imports it, and the
+order below is the cascade, so do not reorder it.
+
+## The cascade
+
+```css
+@layer theme, base, components, utilities;
+@import 'tailwindcss/preflight.css' layer(base.preflight);
+@import './styles/tokens.css' layer(base);
+@import './styles/base.css' layer(base);
+@import './styles/post-body.css' layer(base);
+@import './styles/print.css' layer(base);
+@import './styles/utilities.css'; /* @utility: Tailwind lifts it into `utilities` */
+```
+
+Lowest to highest:
+
+1. `theme`: Tailwind's variables (only the ones some CSS uses).
+2. `base.preflight`: Tailwind's Preflight, a sublayer of `base`.
+3. `base`: the files below, in order. A rule written directly in a layer beats
+   a sublayer's whatever the specificity, so these rules beat Preflight
+   without a specificity fight: `a { color }` over Preflight's `a { color:
+   inherit }`, and the admin form-control defaults (zero-specificity `:where()`
+   rules) over Preflight's `button, input { font: inherit }`. Preflight in
+   plain `base` would let its element rules beat a `:where()` rule. Do not
+   flatten it.
+4. `utilities`: every Tailwind utility and the `@utility` classes below. A
+   utility beats everything in `base`, which is why `* { padding: 0 }` in
+   `base.css` is safe: it must stay in a layer (unlayered it would beat every
+   utility, as it did in the spike).
+5. Unlayered, above all: the shadcn token `:root` block and the `@theme`
+   redeclarations in `tailwind.css` (variables only), and `tw-animate-css` and
+   `shadcn/tailwind.css`, imported unlayered (`@property` blocks and one
+   unused `.shimmer` rule).
+
+Reversed `!important`: in a lower layer it wins. Preflight's `[hidden]
+{ display: none !important }` is in the lowest of the `base` layers, so a
+component must not put `hidden` on an element it means to show. The
+reduced-motion block in `base.css` is `!important` in `base`, so it beats an
+`!important` utility.
+
+## The files
 
 1. `tokens.css`: the `:root` (dark) and `[data-theme='light']` palettes and
    the type, space and status scales.
@@ -10,23 +50,20 @@ cascade, so do not reorder them:
    `.prose`), `.skip-link`, `.visually-hidden`, the reduced-motion block, the
    search dialog's and account panel's keyframes, and the admin leftovers that
    are not one component's (the form-control defaults under `.admin-main`, the
-   tab bar's `html:has(.admin-tabs)` scroll padding).
-3. `../index.css`: empty since #536 group G3: every per-page rule is a utility
-   on its component. The file stays, imported, until a later PR deletes it
-   with `layer(legacy)`.
-4. `post-body.css`: the rules for `.post-body` and the Shiki spans in it
+   tab bar's `html:has(.admin-tabs)` scroll padding), and the restatements of
+   what Preflight removes that markup nobody writes cannot set itself.
+3. `post-body.css`: the rules for `.post-body` and the Shiki spans in it
    (#536 G1): markdown and the highlighter write that markup, so it cannot
-   take utilities. It sits after `index.css`, where those rules were.
-5. `print.css`: `@page` and `@media print`, last so paper wins.
-
-Tailwind's Preflight sits in a `preflight` layer below all of these; the block
-at the top of `base.css` hands its resets back with `revert` (a shim, removed
-when Preflight moves to `base`, #536).
+   take utilities.
+4. `print.css`: `@page` and `@media print`, last so paper wins over the rules
+   above it in `base` (it still loses to a screen utility on the same element,
+   as it always did).
 
 Tests that read the CSS as text use `src/testing/readCss.js`, which lists the
-same files. A move that must change nothing is proved with `e2e/tools/`.
+same files, and `src/tailwindSetup.test.js` pins the layer line and the import
+order. A move that must change nothing is proved with `e2e/tools/`.
 
-`utilities.css` is the one file imported unlayered (before Tailwind's utilities):
+`utilities.css` is the one file imported without a layer (before Tailwind's utilities):
 the classes many files share, written as Tailwind `@utility` rules (#536 G3):
 `muted`, `kicker`, `btn` (with `.primary`, `.ghost`, `.danger`, `.sm`),
 `link-button`, `sheet`, `chip-row`, `cover` and its parts, `empty-state` and
