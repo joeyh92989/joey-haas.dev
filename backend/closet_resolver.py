@@ -251,10 +251,16 @@ def _colour_from_tags(product: dict) -> str | None:
 
 
 def _colour_from_title(title: str) -> str | None:
-    """The part of "No Sweat Taper - Chestnut" after the last dash."""
-    if " - " not in title:
+    """The colour a one-product-per-colour store puts at the end of its title:
+    after the last " | " ("The Classic Short-Sleeve Shirt in Linen | Cocoa",
+    Everlane) when there is one, else after the last " - " ("No Sweat Taper -
+    Chestnut", Duer). Verbatim; an empty suffix is no colour."""
+    if title.rstrip().endswith("|"):
         return None
-    return _text(title.rsplit(" - ", 1)[1], 80)
+    for sep in (" | ", " - "):
+        if sep in title:
+            return _text(title.rsplit(sep, 1)[1], 80)
+    return None
 
 
 def parse_shopify_json(payload: Any, url: str) -> Product | None:
@@ -263,7 +269,7 @@ def parse_shopify_json(payload: Any, url: str) -> Product | None:
 
     Colours: variants grouped by the `Color`/`Colour` option; a product with
     no such option is one colour, read from its `color_` tag, else from the
-    title after " - ", else unnamed. A size is the variant's other option
+    title after " | " or " - ", else unnamed. A size is the variant's other option
     values joined with " / " ("Small", "30 / 30"). A colour's image is its
     first variant's own image when the product gives one, else the
     product's first image."""

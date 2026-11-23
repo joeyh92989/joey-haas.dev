@@ -697,3 +697,58 @@ def test_scoped_ids_differ_by_product_and_stay_within_the_column():
     long = cr.item_ref("https://shop.test/products/" + "x" * 300, "c0")
     assert len(long) <= 80
     assert long != cr.item_ref("https://shop.test/products/" + "x" * 301, "c0")
+
+
+def one_per_colour(title, **over):
+    """SYNTHETIC: a product with only a Size option, as a store that sells
+    each colour as its own product lists it (Everlane)."""
+    product = {
+        "title": title,
+        "vendor": "Acme",
+        "tags": "",
+        "options": [{"name": "Size"}],
+        "images": [{"id": 1, "src": "https://cdn.test/c.jpg", "variant_ids": []}],
+        "variants": [
+            {"id": 21, "option1": "S", "price": "60.00", "available": True},
+            {"id": 22, "option1": "M", "price": "60.00", "available": True},
+        ],
+    }
+    product.update(over)
+    return {"product": product}
+
+
+@pytest.mark.parametrize(
+    "title, colour",
+    [
+        ("The Classic Short-Sleeve Shirt in Linen | Cocoa", "Cocoa"),
+        ("Shirt | Dusty  Rose", "Dusty Rose"),
+        ("Shirt |    Cocoa", "Cocoa"),
+        ("Shirt | Linen | Cocoa", "Cocoa"),
+        ("Shirt - Taper | Cocoa", "Cocoa"),
+        ("Shirt | ", None),
+        ("Shirt |", None),
+        ("Shirt|Cocoa", None),
+        ("Plain Shirt", None),
+        ("Taper - Chestnut", "Chestnut"),
+    ],
+)
+def test_a_one_product_per_colour_title_gives_the_colour(title, colour):
+    product = parse_shopify_json(one_per_colour(title), "https://shop.test/products/t")
+    assert product.title == " ".join(title.split())
+    assert [c.name for c in product.colours] == [colour]
+    assert [s.size for s in product.colours[0].sizes] == ["S", "M"]
+
+
+def test_a_colour_option_beats_the_title_suffix():
+    product = parse_shopify_json(
+        shopify(title="Test Crew | Green"), "https://shop.test/products/t"
+    )
+    assert [c.name for c in product.colours] == ["Red", "Blue"]
+
+
+def test_the_colour_tag_beats_the_title_suffix():
+    product = parse_shopify_json(
+        one_per_colour("Shirt | Cocoa", tags="color_Sand"),
+        "https://shop.test/products/t",
+    )
+    assert [c.name for c in product.colours] == ["Sand"]

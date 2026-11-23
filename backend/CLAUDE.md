@@ -95,7 +95,9 @@ schema and runs alone in `backend-migrations`. Worker databases are not dropped 
   (`intake/seed_file.py`, `seed_import.py`; CSV columns in
   `intake/README.md`) and **pasted links** (`closet_resolver.py`: Shopify
   per-product JSON, then JSON-LD `Product`/`ProductGroup`, then kept as
-  typed; a candidate is a colour, not a variant). A garment is created at
+  typed; a candidate is a colour, not a variant; a product with no colour
+  option takes its colour from a `color_` tag, else the title's ` | ` or ` - `
+  suffix). A garment is created at
   commit, never at upload; the piece's photo is held in `intake_photos`
   until then. Imported garments arrive `untagged` with `tag_source` NULL so
   the nightly tag queue fills the rest. "Don't own this" is remembered in
