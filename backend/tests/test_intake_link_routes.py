@@ -27,7 +27,7 @@ from models import (
     GarmentStatus,
     IntakePhoto,
 )
-from tests.test_closet_resolver import shopify
+from tests.test_closet_resolver import one_per_colour, shopify
 from tests.test_closet_routes import jpeg
 from tests.test_intake_kinds import client_for
 
@@ -35,6 +35,7 @@ FIXTURES = Path(__file__).parent / "fixtures" / "closet"
 ML = "https://www.marinelayer.com/products/chalet-lounge-pant"
 DUER = "https://www.duer.com/products/no-sweat-athletic-taper-chestnut"
 MULTI = "https://small-brand.test/products/test-crew"
+PIPE = "https://one-per-colour.test/products/shirt-cocoa"
 REFUSED = "https://refuses.test/products/x"
 MISSING_PHOTO = "https://cdn.test/blue.jpg"
 PLAIN_A = "https://plain.test/p/hat-a"
@@ -63,6 +64,9 @@ def network(monkeypatch):
         ML: cr.parse_shopify_json(recorded("marinelayer"), ML),
         DUER: cr.parse_shopify_json(recorded("duer"), DUER),
         MULTI: cr.parse_shopify_json(shopify(), MULTI),
+        PIPE: cr.parse_shopify_json(
+            one_per_colour("The Classic Short-Sleeve Shirt in Linen | Cocoa"), PIPE
+        ),
         PLAIN_A: cr.parse_jsonld(skuless("Hat A"), PLAIN_A),
         PLAIN_B: cr.parse_jsonld(skuless("Hat B"), PLAIN_B),
     }
@@ -614,3 +618,19 @@ async def test_a_slow_store_is_kept_as_typed_not_waited_for(
     [entry] = response.json()["entries"]
     assert entry["payload"]["link"]["state"] == "kept"
     assert entry["payload"]["link"]["code"] == "timeout"
+
+
+@pytest.mark.asyncio
+async def test_a_colour_in_the_title_after_a_pipe_is_the_pieces_colour(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        sitting_id = await start(client)
+        response = await paste(client, sitting_id, [PIPE])
+    assert response.status_code == 201, response.text
+    [entry] = response.json()["entries"]
+    payload = entry["payload"]
+    assert [c["color_name"] for c in entry["candidates"]] == ["Cocoa"]
+    assert payload["name"] == "The Classic Short-Sleeve Shirt in Linen | Cocoa"
+    # Verbatim; "Cocoa" names no family in the keyword table, so Check asks.
+    assert payload["color_name"] == "Cocoa" and "primary_color" not in payload

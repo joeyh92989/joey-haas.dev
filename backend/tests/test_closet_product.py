@@ -26,7 +26,7 @@ from models import (
     GarmentStatus,
     GarmentTagSource,
 )
-from tests.test_closet_resolver import shopify
+from tests.test_closet_resolver import one_per_colour, shopify
 from tests.test_closet_routes import _garment, client_for, jpeg, photos
 
 pytestmark = pytest.mark.asyncio
@@ -35,6 +35,7 @@ FIXTURES = Path(__file__).parent / "fixtures" / "closet"
 ML = "https://www.marinelayer.com/products/chalet-lounge-pant"
 DUER = "https://www.duer.com/products/no-sweat-athletic-taper-chestnut"
 MULTI = "https://small-brand.test/products/test-crew"
+PIPE = "https://one-per-colour.test/products/shirt-cocoa"
 REFUSED = "https://refuses.test/products/x"
 BLUE = "https://cdn.test/blue.jpg"
 
@@ -49,6 +50,9 @@ def network(monkeypatch):
         ML: cr.parse_shopify_json(recorded("marinelayer"), ML),
         DUER: cr.parse_shopify_json(recorded("duer"), DUER),
         MULTI: cr.parse_shopify_json(shopify(), MULTI),
+        PIPE: cr.parse_shopify_json(
+            one_per_colour("The Classic Short-Sleeve Shirt in Linen | Cocoa"), PIPE
+        ),
     }
     fetched: list[str] = []
 
@@ -482,3 +486,23 @@ async def test_the_product_routes_are_admin_only(sessionmaker_for_test, network)
     assert (read.status_code, write.status_code) == (401, 401)
     assert await count(sessionmaker_for_test, GarmentProduct) == 0
     assert network == []
+
+
+async def test_a_colour_in_the_title_after_a_pipe_attaches_as_the_store_colour(
+    sessionmaker_for_test,
+):
+    row = await _garment(
+        sessionmaker_for_test, status=GarmentStatus.ACTIVE, name="Shirt"
+    )
+    async with client_for(sessionmaker_for_test) as client:
+        preview = await client.post(url_of(row.id), json={"url": PIPE})
+        candidate = preview.json()["candidates"][0]
+        response = await client.patch(
+            url_of(row.id),
+            json={"url": PIPE, "external_id": candidate["external_id"], "size": "M"},
+        )
+    assert [c["color_name"] for c in preview.json()["candidates"]] == ["Cocoa"]
+    garment = response.json()["garment"]
+    assert response.status_code == 200, response.text
+    assert (garment["color_name"], garment["color_source"]) == ("Cocoa", "vendor")
+    assert garment["name"] == "Shirt"
