@@ -10,6 +10,7 @@ import {
   TOUR_TOC,
 } from './components/tourClasses.js'
 import { POSTER_HEART } from './components/shelf-classes.js'
+import { NOW_FINISHED, PROSE_LIST } from './components/sharedClasses.js'
 import { BAR, BAR_FILL, DAY_BAR } from './components/overview-classes.js'
 import {
   DAILY_LEDE,
@@ -133,10 +134,14 @@ describe('two widths (#188)', () => {
     expect(TOUR_STOP_COLS.split(' ')).toContain('[&.one]:max-w-[45rem]')
   })
 
-  it.each(['.prose', '.prose-list'])(
-    'caps running text in %s at the reading measure',
-    (selector) => {
-      expect(rule(selector)).toContain(TEXT)
+  it('caps running text in .prose at the reading measure', () => {
+    expect(rule('.prose')).toContain(TEXT)
+  })
+
+  it.each([PROSE_LIST, NOW_FINISHED])(
+    'caps the list %s at the reading measure',
+    (classes) => {
+      expect(classes.split(' ')).toContain('max-w-[min(45rem,68ch)]')
     },
   )
 

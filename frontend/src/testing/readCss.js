@@ -22,10 +22,14 @@ export const CSS_FILES = [
  * The text of the hand-written CSS. Vitest stubs CSS imports, so tests read it
  * from disk.
  *
+ * The shared utilities (`styles/utilities.css`) are not in `CSS_FILES`: they
+ * are imported unlayered, as Tailwind `@utility` rules, and tests that read
+ * the CSS as text read them as well.
+ *
  * @param {string[]} [files] files under src/, in cascade order (all by default)
  * @returns {string}
  */
-export function readCss(files = CSS_FILES) {
+export function readCss(files = [...CSS_FILES, 'styles/utilities.css']) {
   return files
     .map((file) => readFileSync(join(here, '..', file), 'utf8'))
     .join('\n')

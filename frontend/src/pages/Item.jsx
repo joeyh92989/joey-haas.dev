@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  CLAMP_6,
+  ITEM_TILE_FIGURE,
+  ITEM_TTB,
+} from '../components/sharedClasses.js'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import { platformsLabel } from '../content/tags.js'
@@ -254,7 +259,7 @@ function Tiles({ item, detail }) {
       </StatTile>
       {detail && item.community_score != null && (
         <StatTile label="Community">
-          <span className="item-tile-figure">
+          <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
             {Math.round(item.community_score)} / 100
           </span>
           {item.community_votes != null && (
@@ -265,9 +270,11 @@ function Tiles({ item, detail }) {
       {detail && timeToBeat.length > 0 && (
         <StatTile label="Time to beat">
           {timeToBeat.map(([label, figure]) => (
-            <span className="item-ttb" key={label}>
+            <span className={`item-ttb ${ITEM_TTB}`} key={label}>
               <span className="muted">{label}</span>
-              <span className="item-tile-figure">{figure}</span>
+              <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
+                {figure}
+              </span>
             </span>
           ))}
         </StatTile>
@@ -275,7 +282,7 @@ function Tiles({ item, detail }) {
       {detail && showPlayed && (
         <StatTile label={runWords(item.type).tile}>
           {item.times_completed > 0 && (
-            <span className="item-tile-figure">
+            <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
               Finished{' '}
               {item.times_completed === 1
                 ? 'once'
@@ -976,7 +983,7 @@ function ItemView({
             className={
               expanded
                 ? 'item-description m-0 mb-1'
-                : 'item-description clamp-6 m-0 mb-1'
+                : `item-description clamp-6 ${CLAMP_6} m-0 mb-1`
             }
           >
             {description}

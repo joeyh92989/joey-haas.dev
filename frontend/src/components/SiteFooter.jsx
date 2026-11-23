@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { FOOTER_ADMIN } from './sharedClasses.js'
 import { profile } from '../content/profile.js'
 import { loginUrl } from '../lib/api.js'
 import { cx } from '../lib/cx.js'
@@ -69,11 +70,11 @@ export default function SiteFooter({
           {/* Replaces having to know the /admin URL. Deliberately understated:
               it is a door for one person, not a call to action. */}
           {signedIn ? (
-            <Link to="/admin" className="footer-admin">
+            <Link to="/admin" className={`footer-admin ${FOOTER_ADMIN}`}>
               Admin
             </Link>
           ) : (
-            <a href={loginUrl} className="footer-admin">
+            <a href={loginUrl} className={`footer-admin ${FOOTER_ADMIN}`}>
               Sign in
             </a>
           )}

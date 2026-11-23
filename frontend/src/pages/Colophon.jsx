@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { PROSE_LIST } from '../components/sharedClasses.js'
 import { profile } from '../content/profile.js'
 import { spine } from '../content/spine.js'
 import ArchitectureFigure from '../components/ArchitectureFigure.jsx'
@@ -26,7 +27,7 @@ export default function Colophon() {
       <ArchitectureFigure />
 
       <h2 className={PROSE_H2}>Frontend</h2>
-      <ul className="prose-list">
+      <ul className={`prose-list ${PROSE_LIST}`}>
         <li>
           React 19 and Vite, routed with React Router. Styled with Tailwind and
           shadcn/ui on design tokens; some older pages still use plain CSS.
@@ -50,7 +51,7 @@ export default function Colophon() {
       </ul>
 
       <h2 className={PROSE_H2}>Backend</h2>
-      <ul className="prose-list">
+      <ul className={`prose-list ${PROSE_LIST}`}>
         <li>
           FastAPI on Python 3.12, with Postgres 18 on Neon. Migrations are
           additive and applied when a pull request merges. The API won&rsquo;t
@@ -71,7 +72,7 @@ export default function Colophon() {
       </ul>
 
       <h2 className={PROSE_H2}>Hosting</h2>
-      <ul className="prose-list">
+      <ul className={`prose-list ${PROSE_LIST}`}>
         <li>
           Render&rsquo;s free tier: a static site and a web service that sleeps
           when idle. Public pages load from a build-time snapshot, so nothing
@@ -91,7 +92,7 @@ export default function Colophon() {
         I haven&rsquo;t had the site audited, and I don&rsquo;t claim a
         conformance level. What I test:
       </p>
-      <ul className="prose-list">
+      <ul className={`prose-list ${PROSE_LIST}`}>
         <li>
           Every pull request runs axe (WCAG 2 A and AA rules) in a real browser
           against the built site, in both themes. A new serious violation fails
@@ -116,7 +117,7 @@ export default function Colophon() {
       <h2 id="docs" className={PROSE_H2}>
         Docs and decisions
       </h2>
-      <ul className="prose-list">
+      <ul className={`prose-list ${PROSE_LIST}`}>
         <li>
           <a href={`${profile.repo}/blob/main/docs/design-system.md`}>
             Design system

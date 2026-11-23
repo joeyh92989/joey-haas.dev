@@ -704,7 +704,11 @@ export default function AdminComics() {
         <RunKey />
       </ResultBar>
 
-      <div className="collection-list" ref={listRef} tabIndex={-1}>
+      <div
+        className="collection-list focus:outline-none"
+        ref={listRef}
+        tabIndex={-1}
+      >
         {visibleRows.length === 0 ? (
           <EmptyState title={copy.noMatch} />
         ) : (

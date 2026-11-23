@@ -1152,7 +1152,11 @@ export default function AdminCollection() {
           />
         </details>
 
-        <div className="collection-list" ref={listRef} tabIndex={-1}>
+        <div
+          className="collection-list focus:outline-none"
+          ref={listRef}
+          tabIndex={-1}
+        >
           {items.length === 0 ? (
             <EmptyState title={spine.games.empty} />
           ) : (

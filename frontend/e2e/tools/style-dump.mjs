@@ -294,6 +294,11 @@ const VIEWPORTS = {
   w641: { width: 641, height: 800 },
   w960: { width: 960, height: 800 },
   w961: { width: 961, height: 800 },
+  // G3: the edges of the hero (700px, 980px) and the spine's tabs (700px).
+  w700: { width: 700, height: 800 },
+  w701: { width: 701, height: 800 },
+  w980: { width: 980, height: 800 },
+  w981: { width: 981, height: 800 },
 }
 
 async function dumpPage(page) {

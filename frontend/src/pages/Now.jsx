@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { NOW_FINISHED } from '../components/sharedClasses.js'
 import { Link } from 'react-router'
 import RecordCard from '../components/RecordCard.jsx'
 import { PROSE_H1, SECTION_HEAD } from '../components/prose-classes.js'
@@ -113,7 +114,9 @@ export default function Now() {
           <h2 id="now-paused" className={SECTION_HEAD}>
             Paused
           </h2>
-          <ul className="now-finished m-0 grid list-none gap-0 p-0">
+          <ul
+            className={`now-finished ${NOW_FINISHED} m-0 grid list-none gap-0 p-0`}
+          >
             {paused.map((item) => (
               <li key={item.id} className={ROW}>
                 <Link to={itemPath(item.id)}>{item.title}</Link>
@@ -155,7 +158,9 @@ export default function Now() {
           <h2 id="now-finished" className={SECTION_HEAD}>
             Recently finished
           </h2>
-          <ul className="now-finished m-0 grid list-none gap-0 p-0">
+          <ul
+            className={`now-finished ${NOW_FINISHED} m-0 grid list-none gap-0 p-0`}
+          >
             {finished.map((item) => (
               <li key={item.id} className={ROW}>
                 <Link to={itemPath(item.id)}>{item.title}</Link>

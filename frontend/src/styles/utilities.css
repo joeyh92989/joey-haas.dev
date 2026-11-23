@@ -1,0 +1,308 @@
+/*
+ * The shared classes that many files use (#536, group G3), as Tailwind
+ * utilities: `muted`, `kicker`, `btn`, `link-button`, `sheet` and `chip-row`.
+ * The class names stay on the elements as hooks (tests, e2e and print read
+ * them) and nothing else changes: each rule is the old index.css rule, wrapped
+ * in `:where()`. A `:where()` selector has no specificity, so any Tailwind
+ * utility on the same element beats it, as it beat the legacy rule when the
+ * rule sat in the lowest layer; the order of the rules is the old cascade.
+ * Imported unlayered by tailwind.css: Tailwind lifts `@utility` into the
+ * utilities layer and emits one only when a file uses it.
+ */
+
+@utility muted {
+  :where(&) {
+    color: var(--text-3);
+  }
+}
+
+/* The mono label above a heading or a group. */
+@utility kicker {
+  :where(&) {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+/* A button, or a link that looks like one: plain, .primary, .ghost, .danger,
+   and .sm for the small size. */
+@utility btn {
+  :where(&) {
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    font: 500 var(--fs-13) var(--font-sans);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  :where(&:hover) {
+    border-color: var(--text-3);
+    text-decoration: none;
+  }
+
+  :where(&.primary) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  :where(&.ghost) {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-2);
+  }
+
+  :where(&.ghost:hover) {
+    color: var(--text);
+  }
+
+  /* Distinguished by border and text, never colour alone. */
+  :where(&.danger) {
+    border-color: var(--accent);
+    color: var(--accent-text);
+  }
+
+  :where(&.sm) {
+    font-size: var(--fs-12);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  :where(&:disabled) {
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  :where(&:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Phone tap targets (#276): 44px high. */
+  @media (max-width: 700px) {
+    :where(&.sm) {
+      align-items: center;
+      display: inline-flex;
+      min-height: 2.75rem;
+    }
+  }
+}
+
+@utility link-button {
+  :where(&) {
+    background: none;
+    border: 0;
+    color: var(--accent-text);
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-decoration: underline;
+  }
+}
+
+/* Sheet (components/Sheet.jsx), the shell the Wrap up sheet and the other
+   dialogs use: a native dialog, centred on desktop and anchored to the
+   bottom on a phone (Tonight continue spec). Backdrop in --overlay as the
+   other sheets. */
+@utility sheet {
+  :where(&) {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: var(--text);
+    /* The reset zeroes every margin; a modal dialog centres by margin. */
+    margin: auto;
+    max-height: calc(100dvh - 2rem);
+    max-width: 34rem;
+    overflow: auto;
+    padding: 0;
+    width: calc(100% - 2rem);
+  }
+
+  :where(&)::backdrop {
+    background: var(--overlay);
+  }
+
+  @media (max-width: 34rem) {
+    :where(&) {
+      border-bottom: 0;
+      border-radius: 14px 14px 0 0;
+      margin: auto 0 0;
+      max-height: calc(100dvh - 1rem);
+      max-width: 100vw;
+      width: 100%;
+    }
+  }
+}
+
+/* Shelf filters and sort. Chips are buttons with aria-pressed; the pressed
+   state inverts like the nav pills. */
+@utility chip-row {
+  :where(&) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 34rem) {
+    /* Chip rows scroll sideways rather than stacking five lines deep. */
+    :where(&) {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      /* The scroller clips on the left too: 4px (outline plus offset) of
+         padding, cancelled by margin, keeps the first chip's ring whole. */
+      margin-inline-start: calc(-1 * var(--space-1));
+      padding-inline-start: var(--space-1);
+      margin-top: -0.25rem;
+      padding-bottom: var(--space-1);
+      padding-right: var(--space-6);
+      padding-top: var(--space-1);
+      scroll-padding-inline-end: 2rem;
+    }
+
+    /* A cut-off chip reads as "more", not "clipped". The mask stop is
+       --mask-opaque, an alpha mask, not a colour that is displayed. The
+       padding lets the last item clear the fade, and scroll-padding keeps a
+       focused item out of it. */
+    :where(&) {
+      -webkit-mask-image: linear-gradient(
+        to right,
+        var(--mask-opaque) calc(100% - 2rem),
+        transparent
+      );
+      mask-image: linear-gradient(
+        to right,
+        var(--mask-opaque) calc(100% - 2rem),
+        transparent
+      );
+    }
+
+    /* The labelled rows wrap, as the mockup's do: the label column makes a
+       scrolling row hard to read, and four rows is all it costs. Last, so it
+       wins the tie the old specificity broke. */
+    :where(.ctl-row &) {
+      -webkit-mask-image: none;
+      flex-wrap: wrap;
+      margin-top: 0;
+      mask-image: none;
+      overflow-x: visible;
+      margin-inline-start: 0;
+      padding: 0;
+    }
+  }
+}
+
+/* Cover art. The ratio is per type because the sources disagree: film
+   posters are 2:3, game covers nearer 3:4, board game box shots roughly
+   square. One ratio for all of them looks broken on a mixed shelf. */
+@utility cover {
+  :where(&) {
+    background: var(--sunken);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  :where(& img) {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  /* An issue with no cover: a labelled placeholder, not an empty block. The
+     dashed --run-missing outline is 3.01 / 3.40 on --surface and 3.64 / 3.01
+     on --bg (dark / light) but 4.13 / 2.75 on --sunken, so it takes the
+     page's ground instead of the cover's. */
+  :where(&[data-nocover]) {
+    background: transparent;
+    border: 1.5px dashed var(--run-missing);
+  }
+
+  /* A cover that loads for an issue I do not own is content, dimmed. */
+  :where(&[data-unowned] img) {
+    filter: grayscale(1);
+    opacity: 0.45;
+  }
+}
+
+@utility cover-placeholder {
+  :where(&) {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+}
+
+@utility cover-nocover {
+  :where(&) {
+    align-content: center;
+    color: var(--text-3);
+    display: grid;
+    font-size: var(--fs-13);
+    gap: var(--space-1);
+    height: 100%;
+    justify-items: center;
+    line-height: 1.3;
+    padding: var(--space-2);
+    text-align: center;
+  }
+
+  :where(& b) {
+    color: var(--text-2);
+    font: 500 var(--fs-28) var(--font-mono);
+  }
+}
+
+@utility cover-movie {
+  :where(&) {
+    aspect-ratio: 2 / 3;
+  }
+}
+
+@utility cover-comic {
+  :where(&) {
+    aspect-ratio: 2 / 3;
+  }
+}
+
+@utility cover-game {
+  :where(&) {
+    aspect-ratio: 3 / 4;
+  }
+}
+
+@utility cover-boardgame {
+  :where(&) {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+/* EmptyState: a dashed box, with room for a next step. */
+@utility empty-state {
+  :where(&) {
+    border: 1px dashed var(--line-strong);
+    border-radius: 10px;
+    color: var(--text-2);
+    display: grid;
+    gap: var(--space-2);
+    justify-items: start;
+    padding: var(--space-4);
+  }
+}
+
+@utility empty-state-title {
+  :where(&) {
+    color: var(--text);
+  }
+}

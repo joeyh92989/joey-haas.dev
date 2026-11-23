@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { PROGRESS, PROGRESS_BAR } from './sharedClasses.js'
 import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import SkippedToast from './SkippedToast.jsx'
@@ -128,8 +129,9 @@ export default function PickList({
 function Progress({ read, of }) {
   const share = of > 0 ? Math.min(100, Math.round((read / of) * 100)) : 0
   return (
-    <span className="progress">
+    <span className={`progress ${PROGRESS}`}>
       <i
+        className={PROGRESS_BAR}
         role="img"
         aria-label={copy.progressLabel(read, of)}
         style={{ '--p': `${share}%` }}

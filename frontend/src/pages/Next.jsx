@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { SPINE_LEDE } from '../components/sharedClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import CappedList from '../components/CappedList.jsx'
 import JumpNav from '../components/JumpNav.jsx'
@@ -783,7 +784,7 @@ export default function Next() {
     <section className="next-page">
       <SpineHeader />
       <h1 className={`next-title ${NEXT_TITLE}`}>{copy.title}</h1>
-      <p className="spine-lede">{copy.lede}</p>
+      <p className={`spine-lede ${SPINE_LEDE}`}>{copy.lede}</p>
       {data && <Freshness generated={data.generated_at} />}
 
       {!data && <LoadState loading={!failed} failed={failed} onRetry={retry} />}

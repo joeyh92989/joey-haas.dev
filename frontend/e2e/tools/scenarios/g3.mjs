@@ -327,4 +327,101 @@ export async function g3({ record }, theme, vp) {
   )
   await record(at('a', 'issue touch'), issue(3, { touch: true }))
   await record(at('a', 'issue print'), issue(3, { media: 'print' }))
+
+  await g3b({ record, on, spec, seen, at, theme, vp })
+}
+
+/** Part b: the shared primitives (buttons, hero, tabs, chip rows, sheets). */
+async function g3b({ record, on, spec, seen, at, theme, vp }) {
+  const home = spec('/', 'home')
+  await record(
+    at('b', 'home'),
+    home,
+    seen('.hero', '.hero-actions', '.cover-strip'),
+  )
+  await record(
+    at('b', 'home action hover'),
+    home,
+    on('.hero-actions a', 'hover', 1),
+  )
+  await record(
+    at('b', 'home action focus'),
+    home,
+    on('.hero-actions a', 'focus', 0),
+  )
+  await record(
+    at('b', 'home section link focus'),
+    home,
+    on('.section-head a', 'focus', 0),
+  )
+  await record(
+    at('b', 'projects'),
+    spec('/projects'),
+    seen('.cover-strip', '.project-links'),
+  )
+  await record(
+    at('b', 'projects link hover'),
+    spec('/projects'),
+    on('.project-links a', 'hover', 0),
+  )
+  // The shelf's header: name, lede and tabs, each hovered and tabbed to.
+  const shelf = spec('/shelf/games')
+  await record(at('b', 'spine'), shelf, seen('.spine-header', '.spine-tabs a'))
+  await record(
+    at('b', 'spine tab hover'),
+    shelf,
+    on('.spine-tabs a:not([aria-current])', 'hover', 0),
+  )
+  await record(
+    at('b', 'spine tab current hover'),
+    shelf,
+    on('.spine-tabs a[aria-current]', 'hover', 0),
+  )
+  await record(
+    at('b', 'spine tab focus'),
+    shelf,
+    on('.spine-tabs a', 'focus', 1),
+  )
+  await record(
+    at('b', 'spine name focus'),
+    shelf,
+    on('.spine-name a', 'focus', 0),
+  )
+  await record(
+    at('b', 'spine name hover'),
+    shelf,
+    on('.spine-name a', 'hover', 0),
+  )
+  await record(at('b', 'spine touch'), { ...shelf, touch: true })
+  await record(at('b', 'spine year'), spec('/shelf/year'))
+  await record(at('b', 'spine how'), spec('/shelf/how'))
+  if (vp === 'desktop')
+    for (const edge of [
+      'w320',
+      'w544',
+      'w545',
+      'w700',
+      'w701',
+      'w980',
+      'w981',
+    ]) {
+      const at2 = (name) => `screen ${theme} g3b ${name} ${edge}`
+      await record(at2('home'), { path: '/', theme, vp: edge, kind: 'home' })
+      await record(at2('shelf'), { path: '/shelf/games', theme, vp: edge })
+      await record(at2('comics'), { path: '/shelf/comics', theme, vp: edge })
+      await record(at2('projects'), { path: '/projects', theme, vp: edge })
+      await record(at2('denver'), {
+        path: '/denver',
+        theme,
+        vp: edge,
+        kind: 'denver',
+      })
+      await record(at2('next'), {
+        path: '/shelf/next',
+        theme,
+        vp: edge,
+        kind: 'next',
+      })
+      await record(at2('daily'), { path: '/shelf/daily', theme, vp: edge })
+    }
 }
