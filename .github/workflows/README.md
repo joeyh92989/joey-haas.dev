@@ -20,7 +20,7 @@ and runs Playwright with `--fully-parallel`. Nothing else reads these names:
 
 | Job | Shard | Runs |
 |---|---|---|
-| `e2e` | `add-1`, `add-2`, `add-3` | `admin-add.spec.js`, desktop project, cut in quarters by `--shard` (quarters 1 and 2 are fast and share `add-1`; the slow tests are in the second half of the file, so retune if they move); `add-3` also runs its phone project as a second step |
+| `e2e` | `add-1`, `add-2`, `add-3` | `admin-add.spec.js`: its 60 slow `focus rings paint` tests (desktop) cut in thirds by `--shard`; `add-1` also runs the rest of the file as a second step and `add-3` the phone `focus rings paint` tests (retune if the slow tests change) |
 | `e2e` | `rest` | every other spec, then the visual tests (`e2e:visual`) |
 | `e2e-admin` | `cd-1`, `cd-2`, `cd-3` | the Closet and Denver site specs, cut three ways by `--shard` (plus the sign-in setup test, which runs in every shard) |
 | `e2e-admin` | `rest` | every other admin spec |
