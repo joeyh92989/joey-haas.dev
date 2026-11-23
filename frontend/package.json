@@ -15,7 +15,8 @@
     "shots": "playwright test -c playwright.shots.config.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "doctor": "node scripts/doctor.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
