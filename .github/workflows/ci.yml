@@ -211,7 +211,9 @@ jobs:
   # by FILE, not Playwright's blind --shard over the whole suite, because that
   # cuts the test list into equal COUNTS and one file (admin-add.spec.js, 192
   # slow tests, 10 minutes of the 20) made one shard take 15 minutes. So
-  # admin-add is cut in two, and `rest` runs everything else: it skips
+  # admin-add is cut in two (desktop only, since its phone project is all
+  # skips but one test: the shards would be 15 minutes and 1 second; the phone
+  # project runs as the `extra` step of add-2), and `rest` runs everything else: it skips
   # admin-add through E2E_SKIP_FILES (playwright.config.js), so a new spec file
   # runs in `rest` by default and is never silently dropped.
   # --fully-parallel makes each test its own unit: safe here (no spec has a
@@ -226,9 +228,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: add-1, args: 'admin-add.spec.js --shard=1/2', skip: '' }
-          - { name: add-2, args: 'admin-add.spec.js --shard=2/2', skip: '' }
-          - { name: rest, args: '', skip: 'admin-add.spec.js' }
+          - { name: add-1, args: 'admin-add.spec.js --project=desktop --shard=1/2', extra: '', skip: '' }
+          - { name: add-2, args: 'admin-add.spec.js --project=desktop --shard=2/2', extra: 'admin-add.spec.js --project=phone', skip: '' }
+          - { name: rest, args: '', extra: '', skip: 'admin-add.spec.js' }
     defaults:
       run:
         working-directory: frontend
@@ -277,6 +279,12 @@ jobs:
       # Visual baselines (#217): compare mode. A diff is a layout change;
       # intended ones are accepted with the update-visual-baselines workflow
       # (.github/workflows/README.md).
+      - name: Run the extra browser tests
+        if: always() && matrix.extra != ''
+        run: npm run e2e -- --fully-parallel ${{ matrix.extra }}
+        env:
+          CI: 'true'
+
       # It is 36 tests and about 30 seconds, so it runs in the `rest` shard only rather
       # than being split.
       - name: Run visual tests
