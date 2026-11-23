@@ -161,12 +161,43 @@ export const adminCopy = {
   },
   add: {
     loading: 'Loading…',
-    startSitting: 'Start a sitting',
+    startSitting: 'Start a batch',
     title: 'Add',
+  },
+  /** The new-batch page: the card's step before anything is saved (#493). */
+  newBatch: {
+    title: (kind) => `New batch · ${kind}`,
+    description: 'Nothing is saved until you add a photo.',
+    heading: 'Add the first photos',
+    dropShelf: 'Photograph the shelf, spines or covers facing you',
+    dropCloset: 'Photograph each piece on its own',
+    nothingSaved:
+      'The batch starts when you pick a photo. Going back before that leaves nothing behind.',
+    starting: 'Starting…',
+    takePhotos: 'Take photos',
+    chooseFiles: 'Choose files',
+    back: 'Back to Add',
+    unknown: 'That kind is not on the Add page.',
+    noPhotos:
+      'This kind has no photo way in; add it one at a time from the Shelf.',
   },
   sitting: {
     details: 'Details',
     loading: 'Loading…',
+    /** The Done step's page title: what happened, not the batch's label. */
+    added: (area) =>
+      area === 'closet' ? 'Added to the closet' : 'Added to the shelf',
+  },
+  /** What a new, private row means and when publishing shows (#490). */
+  publish: {
+    privateNote:
+      'These are private: only you see them until you publish. Publishing puts them on the public shelf.',
+    delay:
+      'They show on the public shelf within a minute; a tab that already had the page open may need a reload.',
+    addedPrivate: (name) =>
+      `${name} added, private. It is not on the public site until you publish it.`,
+    openIt: 'Open it to publish',
+    viewPublic: 'View public page',
   },
   gate: {
     home: 'Back to the public site',

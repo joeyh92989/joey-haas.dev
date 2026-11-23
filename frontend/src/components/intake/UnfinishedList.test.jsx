@@ -96,7 +96,7 @@ describe('UnfinishedList', () => {
 
   it('names an unlabelled mixed sitting', () => {
     renderList({ sittings: [{ ...SITTING, kind: null, label: null }] })
-    expect(screen.getByRole('listitem')).toHaveTextContent('Untitled sitting')
+    expect(screen.getByRole('listitem')).toHaveTextContent('Untitled batch')
     expect(screen.getByRole('listitem')).toHaveTextContent('Mixed shelf')
   })
 

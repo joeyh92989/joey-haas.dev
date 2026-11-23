@@ -191,3 +191,28 @@ describe('DoneStep books and titles', () => {
     expect(document.body.textContent.toLowerCase()).not.toContain('edition')
   })
 })
+
+describe('DoneStep actions (#490, #494)', () => {
+  const labels = () =>
+    screen
+      .getAllByRole('button')
+      .concat(screen.getAllByRole('link'))
+      .map((el) => el.textContent)
+
+  it('offers Publish first, and says the new rows are private', () => {
+    done({ created: ['a', 'b'] })
+    expect(screen.getAllByRole('button')[0]).toHaveTextContent(
+      'Publish these 2',
+    )
+    expect(screen.getByText(/These are private/)).toBeVisible()
+    expect(labels()).toContain('Shoot the next box')
+  })
+
+  it('leads with the next box when there is nothing to publish', () => {
+    done({ created: [] })
+    expect(screen.getAllByRole('button')[0]).toHaveTextContent(
+      'Shoot the next box',
+    )
+    expect(screen.queryByText(/These are private/)).toBeNull()
+  })
+})

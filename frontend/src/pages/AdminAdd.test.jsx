@@ -12,12 +12,18 @@ function Sitting() {
   return <p data-testid="sitting">{useParams().sittingId}</p>
 }
 
+function NewBatch() {
+  return <p data-testid="new-batch">{useParams().kind}</p>
+}
+
 function renderAt(path = '/admin/collection/add') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/admin/collection/add" element={<AdminAdd />} />
         <Route path="/admin/closet/add" element={<AdminAdd />} />
+        <Route path="/admin/collection/add/new/:kind" element={<NewBatch />} />
+        <Route path="/admin/closet/add/new/:kind" element={<NewBatch />} />
         <Route path="/admin/collection/add/:sittingId" element={<Sitting />} />
         <Route path="/admin/closet/add/:sittingId" element={<Sitting />} />
       </Routes>
@@ -49,16 +55,9 @@ describe('AdminAdd', () => {
     const names = within(tiles)
       .getAllByRole('button')
       .map((tile) => tile.querySelector('.intake-kind-name').textContent)
-    expect(names).toEqual([
-      'Game',
-      'Movie',
-      'Comic',
-      'Board game',
-      'Mixed shelf',
-    ])
-    expect(
-      within(tiles).getByRole('button', { name: /Board game/ }),
-    ).toBeDisabled()
+    // Movie and Board game have no list in the Shelf nav, so Add leaves
+    // them out (#493).
+    expect(names).toEqual(['Game', 'Comic', 'Mixed shelf'])
     expect(screen.getByText('Nothing unfinished')).toBeInTheDocument()
   })
 
@@ -85,29 +84,22 @@ describe('AdminAdd', () => {
     ).toBeEnabled()
   })
 
-  it('starts a sitting of the kind pressed and opens it', async () => {
+  it('opens the new-batch page for a card and saves nothing yet', async () => {
     const api = fakeIntakeApi()
     renderAt()
-    await userEvent.click(await screen.findByRole('button', { name: /^Movie/ }))
-    expect(await screen.findByTestId('sitting')).toHaveTextContent('new-1')
-    expect(api.calls('POST', /\/api\/intake\/sittings$/)[0].body).toMatchObject(
-      {
-        area: 'shelf',
-        kind: 'movie',
-      },
-    )
+    await userEvent.click(await screen.findByRole('button', { name: /^Comic/ }))
+    expect(await screen.findByTestId('new-batch')).toHaveTextContent('comic')
+    expect(api.calls('POST', /\/api\/intake\/sittings$/)).toHaveLength(0)
   })
 
-  it('starts a mixed sitting with no kind', async () => {
+  it('opens the mixed shelf as its own segment, still saving nothing', async () => {
     const api = fakeIntakeApi()
     renderAt()
     await userEvent.click(
       await screen.findByRole('button', { name: /^Mixed shelf/ }),
     )
-    await screen.findByTestId('sitting')
-    expect(
-      api.calls('POST', /\/api\/intake\/sittings$/)[0].body.kind,
-    ).toBeNull()
+    expect(await screen.findByTestId('new-batch')).toHaveTextContent('mixed')
+    expect(api.calls('POST', /\/api\/intake\/sittings$/)).toHaveLength(0)
   })
 
   it('lists unfinished sittings and discards one after asking', async () => {

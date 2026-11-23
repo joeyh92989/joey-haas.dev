@@ -33,7 +33,7 @@ export const seedIntake = {
   dontOwnYes: 'Yes, not owned',
   dontOwnKeep: 'Keep it',
   dontOwnDone: (name) => `${name} marked not owned`,
-  remove: 'Remove from this sitting',
+  remove: 'Remove from this batch',
   noAnswer: 'The server did not answer; try again.',
   done: {
     skippedNotOwned: 'skipped, not owned',

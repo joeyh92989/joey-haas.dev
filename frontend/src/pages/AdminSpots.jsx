@@ -266,6 +266,12 @@ export default function AdminSpots() {
       >
         {adminCopy.spots.logVisit}
       </button>
+      {spot.is_public && (
+        <a className={btn('plain', 'sm')} href="/denver">
+          {adminCopy.publish.viewPublic}
+          <span className="visually-hidden">: {spot.name}</span>
+        </a>
+      )}
     </div>
   )
 

@@ -47,6 +47,7 @@ import {
   TEXTAREA,
 } from '../components/adminDataClasses.js'
 import { TEXT_LINK } from '../components/detail-classes.js'
+import { itemPath } from '../lib/spinePaths.js'
 
 // A comic has its own page (`AdminComic`), so it is not offered here.
 const TYPES = ['game', 'movie', 'boardgame']
@@ -860,6 +861,14 @@ export default function AdminItem() {
               checked={form.is_public}
               onChange={set('is_public')}
             />
+            {item.is_public && (
+              <>
+                <span aria-hidden="true" className="hidden min-[560px]:block" />
+                <Link className={TEXT_LINK} to={itemPath(item.id)}>
+                  {adminCopy.publish.viewPublic}
+                </Link>
+              </>
+            )}
 
             {form.type === 'game' && (
               <TagPicker

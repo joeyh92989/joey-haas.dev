@@ -104,6 +104,15 @@ describe('AdminSpots', () => {
     expect(within(corvus).getByText('Rainy day')).toBeInTheDocument()
     expect(within(corvus).getByText('3 visits')).toBeInTheDocument()
     expect(within(corvus).getByLabelText('Public: Corvus Coffee')).toBeChecked()
+    // A public spot says where visitors see it; a private one has no link.
+    expect(
+      within(corvus).getByRole('link', { name: /View public page/ }),
+    ).toHaveAttribute('href', '/denver')
+    expect(
+      within(screen.getByRole('row', { name: /Home/ })).queryByRole('link', {
+        name: /View public page/,
+      }),
+    ).toBeNull()
     expect(
       within(screen.getByRole('row', { name: /Home/ })).getByText('Anchor'),
     ).toBeInTheDocument()

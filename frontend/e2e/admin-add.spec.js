@@ -14,8 +14,8 @@ import { serveAdminAdd } from './admin-add.fixtures.js'
 test.skip(!!process.env.E2E_BASE_URL, 'mocked answers only')
 
 const PAGES = [
-  { name: 'add', path: '/admin/collection/add', ready: 'Start a sitting' },
-  { name: 'closet add', path: '/admin/closet/add', ready: 'Start a sitting' },
+  { name: 'add', path: '/admin/collection/add', ready: 'Start a batch' },
+  { name: 'closet add', path: '/admin/closet/add', ready: 'Start a batch' },
   { name: 'sitting', path: '/admin/collection/add/s1', ready: 'Take photos' },
   {
     name: 'sitting check',
@@ -555,4 +555,72 @@ test('the shelf sheet keeps its stars whole and 44px tall', async ({
       clip: { x: box.x, y, width: box.width, height: 1 },
     })
   expect((await row(box.y)).equals(await row(box.y - 3))).toBe(true)
+})
+
+// The Add page's cards (#493): a click opens the new-batch page and saves
+// nothing; the batch is made on the first photo. Phone and desktop projects
+// both run it.
+const PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==',
+  'base64',
+)
+
+function watchBatchPosts(page) {
+  const posts = []
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/intake/sittings'
+    )
+      posts.push(request.url())
+  })
+  return posts
+}
+
+test('a card opens the new-batch page without saving a batch', async ({
+  page,
+  openRoute,
+}) => {
+  await serveAdminAdd(page)
+  const posts = watchBatchPosts(page)
+  await openRoute('/admin/collection/add', 'light')
+  await expect(page.getByText('Start a batch')).toBeVisible()
+  // Movie and Board game have no list in the Shelf nav: not offered.
+  await expect(page.getByRole('button', { name: /^Movie/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Board game/ })).toHaveCount(0)
+  await page.getByRole('button', { name: /^Comic/ }).click()
+  await expect(
+    page.getByRole('heading', { name: 'New batch · Comic' }),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Nothing is saved until you add a photo.'),
+  ).toBeVisible()
+  expect(posts).toHaveLength(0)
+  // No sideways scroll.
+  const wide = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+  )
+  expect(wide).toBe(false)
+})
+
+test('the first photo makes the batch and opens it', async ({
+  page,
+  openRoute,
+}) => {
+  await serveAdminAdd(page)
+  const posts = watchBatchPosts(page)
+  await openRoute('/admin/collection/add/new/comic', 'light')
+  await expect(
+    page.getByRole('heading', { name: 'New batch · Comic' }),
+  ).toBeVisible()
+  expect(posts).toHaveLength(0)
+  await page.getByLabel('Choose files').setInputFiles({
+    name: 'cover.png',
+    mimeType: 'image/png',
+    buffer: PIXEL,
+  })
+  await expect(page).toHaveURL(/\/admin\/collection\/add\/new$/)
+  expect(posts).toHaveLength(1)
 })

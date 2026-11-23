@@ -11,7 +11,7 @@ const NO_ANSWER = 'The server did not answer; try again.'
 /**
  * Shoot's "Search instead" (spec, Sitting · 1 Shoot): the add bar's search
  * (`GET /api/intake/search` and its results list), but Add puts the chosen
- * result into this sitting (`POST /sittings/{id}/entries` with `chosen`)
+ * result into this batch (`POST /sittings/{id}/entries` with `chosen`)
  * instead of the shelf, and "keep as typed" adds a typed entry. The entry
  * then goes through Check and the sitting's one commit like a read one.
  *
@@ -62,7 +62,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
     }
   }
 
-  // Added to this sitting: a live entry in a written state chose this source
+  // Added to this batch: a live entry in a written state chose this source
   // and id. A guess still to confirm, or an unticked entry, is not added.
   const isAdded = (result) =>
     live(sitting.entries).some(
@@ -89,7 +89,7 @@ export default function ShootSearch({ sitting, kinds, onAdded }) {
         return
       }
       onAdded(await response.json())
-      setNotice(`${name} added to this sitting.`)
+      setNotice(`${name} added to this batch.`)
     } catch {
       setError(NO_ANSWER)
     }

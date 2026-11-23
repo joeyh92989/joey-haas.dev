@@ -54,7 +54,7 @@ export const comicIntake = {
   },
   badNumber: 'Whole numbers from 1 to 9999 only.',
   badRange: 'Give the first and the last issue, first to last.',
-  duplicate: 'Already in this sitting',
+  duplicate: 'Already in this batch',
   addsHead: 'What this adds',
   /** Check's list of the collected books typed in Details (`books_preview`). */
   typedBooksHead: (n) => `Collected books it adds · ${n}`,

@@ -86,6 +86,30 @@ export function shelfPath(area, kind = null) {
 }
 
 /**
+ * The admin page of one item, where it is edited and published: a comic's
+ * own page, any other kind's item page.
+ */
+export function itemEditPath(kindKey, id) {
+  return kindKey === 'comic'
+    ? `/admin/shelf/comics/${id}`
+    : `/admin/collection/${id}`
+}
+
+/**
+ * Kinds with no list in the admin to find them again in. Game and comic sit
+ * in the Shelf nav and a garment in the Closet; movies and board games are
+ * saved but no page lists them, so Add does not offer them (#493). Remove a
+ * key here when its list page exists. A kind the server newly registers is
+ * offered without a change here (AC 9).
+ */
+const KINDS_WITHOUT_A_LIST = ['movie', 'boardgame']
+
+/** Whether Add should offer this kind. */
+export function hasHome(kind) {
+  return Boolean(kind) && !KINDS_WITHOUT_A_LIST.includes(kind.key)
+}
+
+/**
  * A file the server would refuse, in words naming it, or null. Checked
  * before uploading so a 14 MB photo is not sent only to be refused.
  *
@@ -106,6 +130,19 @@ export function refuseFile(file) {
 
 /** What a waiting photo says when the day's model budget is spent. */
 export const BUDGET_WAITING = 'waiting for tomorrow’s budget'
+
+/** The mixed shelf: one batch, and the reader sorts each title's kind. */
+export const MIXED_KIND = {
+  key: null,
+  label: 'Mixed shelf',
+  ways_in: ['photo'],
+  note: 'the reader sorts each title',
+}
+
+/** The URL segment for a kind on the new-batch route (`mixed` for none). */
+export function kindSegment(kind) {
+  return kind.key ?? 'mixed'
+}
 
 /** The title an entry is known by: its match's, else what was read or typed. */
 export function entryTitle(entry) {

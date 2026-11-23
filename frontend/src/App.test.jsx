@@ -186,9 +186,12 @@ const TITLES = [
   ['/admin/shelf/comics', 'Comics · Admin · Joey Haas'],
   // `add` outranks `:id`: the Add page, not an item called "add".
   ['/admin/collection/add', 'Add · Admin · Joey Haas'],
-  ['/admin/collection/add/abc', 'Sitting · Admin · Joey Haas'],
+  ['/admin/collection/add/abc', 'Batch · Admin · Joey Haas'],
+  // The new-batch page, before its kind has loaded.
+  ['/admin/collection/add/new/comic', 'Add · Admin · Joey Haas'],
   ['/admin/closet/add', 'Add · Admin · Joey Haas'],
-  ['/admin/closet/add/abc', 'Sitting · Admin · Joey Haas'],
+  ['/admin/closet/add/abc', 'Batch · Admin · Joey Haas'],
+  ['/admin/closet/add/new/garment', 'Add · Admin · Joey Haas'],
   ['/admin/play-next', 'Play next · Admin · Joey Haas'],
   ['/admin/catalogue', 'Sources · Admin · Joey Haas'],
   ['/admin/radar', 'Radar · Admin · Joey Haas'],

@@ -391,13 +391,13 @@ export default function DetailsStep({
       ))}
       <div className={`intake-bar ${INTAKE_BAR}`}>
         <p className="muted">
-          New rows are private until published. Finish later keeps the sitting.
+          New rows are private until published. Finish later keeps the batch.
         </p>
         <div className={`intake-actions ${INTAKE_ACTIONS}`}>
           <button type="button" className={ibtn('plain')} onClick={onBack}>
             <span aria-hidden="true">←</span> Back to Check
           </button>
-          <button type="button" className={ibtn('ghost')} onClick={onLater}>
+          <button type="button" className={ibtn('plain')} onClick={onLater}>
             Finish later
           </button>
           <button

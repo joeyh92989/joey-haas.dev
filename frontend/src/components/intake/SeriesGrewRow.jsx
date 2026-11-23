@@ -213,7 +213,7 @@ export default function SeriesGrewRow({
             className={`intake-grow-form ${INTAKE_GROW_FORM}`}
             onSubmit={save}
           >
-            <label htmlFor={inputId}>Issues of {title} in this sitting</label>
+            <label htmlFor={inputId}>Issues of {title} in this batch</label>
             <input
               id={inputId}
               ref={inputRef}

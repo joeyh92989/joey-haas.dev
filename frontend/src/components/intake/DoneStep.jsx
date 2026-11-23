@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { apiFetch, errorMessage } from '../../lib/api.js'
+import { adminCopy } from '../../content/adminCopy.js'
 import { comicIntake as words } from '../../content/comicIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
 import { hashRanges } from '../../lib/comicBooks.js'
@@ -75,6 +76,7 @@ export default function DoneStep({
   const [error, setError] = useState(null)
   const closet = sitting.area === 'closet'
   const created = answer.created ?? []
+  const canPublish = !closet && created.length > 0 && !published
   const issuesAdded = answer.issues_added ?? 0
   // An answer from before `series_grew` existed says it in one line.
   const report = answer.series_grew ?? null
@@ -309,33 +311,36 @@ export default function DoneStep({
           {error}
         </p>
       )}
+      {!closet && created.length > 0 && !published && (
+        <p className="muted">{adminCopy.publish.privateNote}</p>
+      )}
       {published && (
         <p role="status">
           Published {created.length}.{' '}
           {sitting.kind === 'comic' || sitting.kind === null
             ? 'Comics show publicly once the next nightly build adds them.'
-            : 'They show on the public shelf now.'}
+            : adminCopy.publish.delay}
         </p>
       )}
       <div className={`intake-actions ${INTAKE_ACTIONS}`}>
-        <button
-          type="button"
-          className={ibtn('primary')}
-          disabled={startingNext}
-          onClick={onNextBox}
-        >
-          {closet ? 'Shoot the next rack' : 'Shoot the next box'}
-        </button>
-        {!closet && created.length > 0 && !published && (
+        {canPublish && (
           <button
             type="button"
-            className={ibtn('plain')}
+            className={ibtn('primary')}
             disabled={publishing}
             onClick={publish}
           >
             {`Publish these ${created.length}`}
           </button>
         )}
+        <button
+          type="button"
+          className={ibtn(canPublish ? 'plain' : 'primary')}
+          disabled={startingNext}
+          onClick={onNextBox}
+        >
+          {closet ? 'Shoot the next rack' : 'Shoot the next box'}
+        </button>
         <Link
           className={ibtn('plain')}
           to={shelfPath(sitting.area, sitting.kind)}

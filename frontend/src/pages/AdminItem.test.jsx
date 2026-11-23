@@ -110,6 +110,21 @@ describe('AdminItem', () => {
     expect(screen.getByLabelText('Format')).toHaveValue('physical')
   })
 
+  it('links a public item to its public page, and a private one to none (#490)', async () => {
+    stubApi({ item: { ...ITEM, is_public: true } })
+    renderPage()
+    expect(
+      await screen.findByRole('link', { name: 'View public page' }),
+    ).toHaveAttribute('href', '/shelf/abc/')
+  })
+
+  it('offers no public link for a private item', async () => {
+    stubApi()
+    renderPage()
+    await screen.findByDisplayValue('Star Fox')
+    expect(screen.queryByRole('link', { name: 'View public page' })).toBeNull()
+  })
+
   it('shows what the item is linked to', async () => {
     stubApi()
     renderPage()

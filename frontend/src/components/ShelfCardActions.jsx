@@ -1,4 +1,7 @@
 import { useId } from 'react'
+import { Link } from 'react-router'
+import { adminCopy } from '../content/adminCopy.js'
+import { itemPath } from '../lib/spinePaths.js'
 import { cx } from '../lib/cx.js'
 import { playMove, statusMoves } from '../lib/statusMoves.js'
 import CardActionsShell from './CardActionsShell.jsx'
@@ -126,6 +129,16 @@ export default function ShelfCardActions({
           />
           <span aria-hidden="true">Public</span>
         </label>
+        {item.is_public && (
+          <Button
+            variant="link"
+            className={PHONE_TARGET}
+            nativeButton={false}
+            render={<Link to={itemPath(item.id)} />}
+          >
+            {adminCopy.publish.viewPublic}
+          </Button>
+        )}
         {item.owned_format !== 'none' && (
           <Button
             variant="chip"

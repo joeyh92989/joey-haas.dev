@@ -178,9 +178,9 @@ describe('LinkCheck', () => {
     const { api } = show([linkEntry('e1'), linkEntry('e2')])
     await user.click(
       (await screen
-        .findByRole('button', { name: 'Remove from this sitting: Test Crew' })
+        .findByRole('button', { name: 'Remove from this batch: Test Crew' })
         .catch(() => null)) ??
-        screen.getAllByRole('button', { name: /Remove from this sitting/ })[0],
+        screen.getAllByRole('button', { name: /Remove from this batch/ })[0],
     )
     await user.click(screen.getByRole('button', { name: 'Yes, remove it' }))
     await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(1))
