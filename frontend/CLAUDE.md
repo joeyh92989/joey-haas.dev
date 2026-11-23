@@ -8,7 +8,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   the public/admin twin rule and the feature status list. Any design step
   reads it before drawing; a design that needs a rule it lacks adds the
   rule there in the same PR, and a parked feature gets no design changes.
-- Plain CSS in `frontend/src/index.css` and `frontend/src/styles/`. No CSS framework unless deliberately
+- Plain CSS in `frontend/src/styles/` (`frontend/src/index.css` is empty since #536 G3). No CSS framework unless deliberately
   added. Design tokens are CSS variables declared twice: dark values on
   `:root` and light overrides under `[data-theme='light']`. Style with the
   tokens, never with raw hex — a literal color will be wrong in one theme.
@@ -210,6 +210,22 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   source scan); a hover that also applied on touch is `group-[:hover]/pin:`.
   Travel is shipped dark: its pages exist only in `vite` dev, so a port is
   proved with two dev servers (README → `e2e/tools`).
+  The last of `index.css` left in #536 group G3. The classes many files share
+  (`muted`, `kicker`, `btn` and its kinds, `link-button`, `sheet`, `chip-row`,
+  `cover` and its parts, `empty-state`, `admin-error`) became `@utility` rules in
+  `styles/utilities.css`, each rule inside `:where()` so it loses to any
+  utility on the element as the old rule did (see `styles/README.md`); a new
+  one written there must do the same. The rest are class modules:
+  `comicClasses.js` (run lanes and key, run box, cover wall tiles, stacks and
+  pills, series pill, neighbour strip), `sharedClasses.js` (Home's hero, cover
+  strip, facts table, the shelf header and tabs, progress, one-off blocks) and
+  `adminPageClasses.js` (item edit page, play journal, playthroughs, store
+  list, pull list, pick list, Stats and its changelog). A descendant rule in a
+  class string is `[:where(&_x)]:` when the child may carry its own utility.
+  A one-sided border takes a one-sided colour (`border-b border-b-(--line)`):
+  `border-(--line)` also colours the three sides that have no width, which the
+  dump reads. `items-start` is `flex-start`; the old `align-items: start` is
+  `[align-items:start]`.
   The comic admin pages (the comic edit page, a book's page and their Books,
   Collects, tag picker and edition link picker), the add form and collection
   table (`ItemForm`, `AdminCollection`), `LoadState`, `ConfirmDelete`'s detail
@@ -444,8 +460,9 @@ Tailwind v4 and shadcn/ui (Base UI flavour, JavaScript) run beside the
 hand-written CSS: `src/styles/tokens.css` (the two palettes), `src/styles/base.css`
 (element rules, the page frame, `.skip-link`, `.visually-hidden`, reduced motion,
 the search and account-panel keyframes, the admin form-control defaults and the
-tab bar's scroll padding), `src/index.css` (the remaining class rules; being
-removed, #536) and `src/styles/print.css` (`@page` and `@media print`). `main.jsx`
+tab bar's scroll padding), `src/index.css` (empty since #536 group G3, kept
+until a later PR deletes it with the `legacy` layer), `src/styles/utilities.css`
+(the shared classes as `@utility` rules, below) and `src/styles/print.css` (`@page` and `@media print`). `main.jsx`
 imports `src/tailwind.css`, which pulls everything in. Tests that read the CSS as
 text go through `src/testing/readCss.js`, which concatenates those files in cascade
 order. `e2e/tools/` holds the computed-style dump and diff that prove a CSS move
