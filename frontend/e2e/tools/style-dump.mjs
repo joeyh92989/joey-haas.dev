@@ -17,6 +17,7 @@ import { e1 } from './scenarios/e1.mjs'
 import { g1 } from './scenarios/g1.mjs'
 import { g2 } from './scenarios/g2.mjs'
 import { g3 } from './scenarios/g3.mjs'
+import { f598 } from './scenarios/f598.mjs'
 import { PROPS } from './props.mjs'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
@@ -1239,6 +1240,8 @@ for (const theme of ['dark', 'light']) {
     await g1({ record, click }, theme, vp)
     await g2({ record, click }, theme, vp)
     await g3({ record, click }, theme, vp)
+    await f598({ record, click }, theme, vp)
+    if (vp === 'phone') await f598({ record, click }, theme, 'w320')
   }
   for (const path of [
     '/about',

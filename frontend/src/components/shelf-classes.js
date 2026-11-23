@@ -182,13 +182,10 @@ export const POSTER_LIFT =
 
 /** Finished and abandoned fade back so the backlog stands out; a card being
  *  looked at or worked with comes back to full strength. Only the cover
- *  dims: fading the whole card took the title and meta text below 4.5:1. */
+ *  image dims, in the public and the admin lists alike (#598): fading the
+ *  whole art took the title and meta text below 4.5:1, and then a faded
+ *  "x2" or heart (the marks sit over the cover) as well. */
 export const POSTER_DIMMED =
-  'data-dimmed:[&:not(:hover):not(:focus-within)_.poster-art]:opacity-45'
-
-/** The admin lists fade only the cover of a finished or abandoned title, not
- *  its marks: a faded "x2" or heart fell below 4.5:1 against the cover. */
-export const POSTER_DIMMED_COVER =
   'data-dimmed:[&:not(:hover):not(:focus-within)_.poster-art_.cover]:opacity-45'
 
 /** A loose poster's link: the whole poster and its title, ringed on focus. */

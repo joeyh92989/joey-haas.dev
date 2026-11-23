@@ -39,6 +39,7 @@ export default defineConfig({
     'tools-data.spec.js',
     'admin-home.spec.js',
     'admin-add.spec.js',
+    'followups-598.spec.js',
   ],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

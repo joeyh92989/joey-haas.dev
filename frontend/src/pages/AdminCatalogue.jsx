@@ -122,7 +122,9 @@ function SourceRow({ source, busy, onRefreshStore }) {
           <ul className="m-0 mt-1 list-none p-0 text-[0.8125rem] text-muted-foreground [overflow-wrap:anywhere]">
             {run.errors.map((entry, index) => (
               <li key={index}>
-                <code className="[font-family:monospace]">{entry.code}</code>{' '}
+                <code className="[font-family:var(--font-mono)]">
+                  {entry.code}
+                </code>{' '}
                 {entry.detail}
               </li>
             ))}

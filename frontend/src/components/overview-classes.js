@@ -30,8 +30,10 @@ export const STAT_LABEL = 'mb-2 block'
 export const STAT_VALUE =
   'text-[1.75rem] leading-none tracking-[-0.02em] tabular-nums'
 
-/** A plain tile's line of detail. */
-export const STAT_DETAIL = 'mt-2 text-[0.75rem] text-(color:--text-3)'
+/** A plain tile's line of detail. It wraps anywhere: the tile clips what
+ *  overflows it, and a long referrer is one unbroken word (#598). */
+export const STAT_DETAIL =
+  'mt-2 text-[0.75rem] [overflow-wrap:anywhere] text-(color:--text-3)'
 
 // ----------------------------------------------------------------- day bars
 

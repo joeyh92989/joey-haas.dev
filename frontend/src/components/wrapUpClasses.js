@@ -27,8 +27,9 @@ const WRAP_INPUT =
   'rounded-md border border-border bg-background p-2 text-foreground [font:inherit]'
 export const WRAP_TEXTAREA = `${WRAP_INPUT} resize-y`
 // A date field's inner parts have 1px of padding top and bottom in the browser
-// that Preflight removes; the outer padding makes up for it.
-export const WRAP_DATE = `${WRAP_INPUT} w-max py-[calc(0.5rem+1px)]`
+// that Preflight removes (WebKit only: Firefox has no such parts). The 1px goes
+// back on those parts, so it applies only where Preflight took it away (#598).
+export const WRAP_DATE = `${WRAP_INPUT} w-max [&::-webkit-datetime-edit]:py-px`
 export const WRAP_HINT = 'text-[0.75rem] text-muted-foreground'
 export const WRAP_FOOT = 'flex flex-wrap items-center justify-between gap-2'
 export const WRAP_FOOT_NOTE = 'text-[0.75rem]'

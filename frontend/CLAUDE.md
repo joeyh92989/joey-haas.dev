@@ -513,6 +513,22 @@ below the rest). A comment in `tailwind.css` carries the plain
 `@import "tailwindcss";` text only because the shadcn CLI refuses to run
 without it.
 
+**Preflight's loose ends (#598).** A link with no ring of its own takes the
+accent ring from one `a:focus-visible` rule in `base.css` (a component's own
+ring is a utility and wins: do not add a ring to each prose link). Code
+(`.post-body`, the Tour's code, the catalogue's) is set in `var(--font-mono)`,
+JetBrains Mono, which `main.jsx` already loads for the labels. The date and
+month fields get Preflight's 1px back on `::-webkit-datetime-edit` only
+(`WRAP_DATE`, `PACK_INPUT`) and none on the input, so Firefox, which has no
+such part, is not 2px taller. A finished card dims only its `.cover`
+(`POSTER_DIMMED`), public and admin alike, so the replay mark and heart over it
+keep their contrast. The phone's page links (the admin shell's segments,
+What's next's `JumpNav`) are 44px with the label centred. A hovered
+`a.cover-tile`, Travel card or map pin is not underlined (`[&:hover]:no-underline`:
+a utility beats the global `a:hover`). Quick rate's half-star targets are 9px
+wide on a card, under WCAG 2.5.8's 24px; on the phone's action sheet they are
+24px wide. That gap is known and kept: closing it needs a bigger star row (#598).
+
 **A site token with a Tailwind theme name is declared twice.** Tailwind writes
 its default theme variable into the `theme` layer the moment any CSS uses it.
 `--font-sans`, `--font-mono` and `--radius` collide with `tokens.css` `:root`.

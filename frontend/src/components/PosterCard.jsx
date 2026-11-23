@@ -15,7 +15,6 @@ import {
   POSTER_ART,
   POSTER_CARD,
   POSTER_DIMMED,
-  POSTER_DIMMED_COVER,
   POSTER_HEART,
   POSTER_LIFT,
   POSTER_LINK,
@@ -156,11 +155,9 @@ export default function PosterCard({
         )}
       </span>
     )
-    // The admin lists (an actions panel under the card) fade only the cover.
-    const dimClass = actions ? POSTER_DIMMED_COVER : POSTER_DIMMED
     return (
       <RecordCard
-        className={cx('poster-card', POSTER_CARD, CARD_HOST, dimClass)}
+        className={cx('poster-card', POSTER_CARD, CARD_HOST, POSTER_DIMMED)}
         data-dimmed={dimmed || undefined}
         number={number}
         label={
