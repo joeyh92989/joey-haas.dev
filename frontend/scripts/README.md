@@ -387,3 +387,14 @@ edited. The synthetic snapshot files CI builds from live in
 and checked by `fixture-snapshot.test.mjs` above.
 
 Separate from the build: `closet/` holds the Stitch Fix order export, a script pasted into the browser console (see `closet/README.md`).
+
+## doctor.mjs
+
+**What and why.** `npm run doctor` fails, naming the fix (`npm ci`), when
+`node_modules` has a dependency missing or at the wrong version against
+`package-lock.json`. A checkout whose install had fallen behind (it lacked
+`class-variance-authority`) made the admin Playwright config list 0 tests with no
+clear error. Extraneous packages are ignored. It runs `npm ls --depth=0 --json`,
+about a second. It is not part of CI, which installs with `npm ci` first.
+
+**Usage.** `cd frontend && npm run doctor`, before the local browser tests.

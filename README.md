@@ -411,6 +411,30 @@ cd frontend && npm test
 cd frontend && npm run format:check && npm run lint
 ```
 
+### Fast local check
+
+For a typical change, run this and let CI run the rest. CI shards the browser
+suites across eight runners and finishes in about 5 to 6 minutes; one machine
+running everything takes far longer and, when several runs overlap, can time
+out tests that pass in CI (a local `e2e:admin` run lost 8 tests to timeouts
+under load that passed 24 of 24 on a filtered rerun).
+
+```sh
+uptime                                    # load average above your core count: wait
+cd frontend
+npm run doctor                            # node_modules matches package-lock.json (else: npm ci)
+npm run lint && npm run format:check      # about 30 s in CI
+npx vitest run --changed origin/main      # only the tests of files this branch touched
+# one browser spec, one project, one title (after a build, see Browser tests):
+npx playwright test e2e/<spec>.spec.js --project=desktop -g "<part of a title>"
+```
+
+Leave these to CI, or run them one at a time on a quiet machine: the full
+`npm run e2e` and `npm run e2e:admin` suites, the style-dump tool
+(`frontend/e2e/tools/`, 15 to 25 minutes for about 1,600 scenarios when quiet,
+over an hour under load), and a full `pytest` in more than one checkout at once.
+The backend's one-`pytest`-per-checkout rule is in `backend/CLAUDE.md`.
+
 To fix formatting rather than just check it:
 
 ```sh
