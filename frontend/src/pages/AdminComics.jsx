@@ -15,7 +15,11 @@ import {
   SHELF_TOP,
 } from '../components/shelf-classes.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import { HEAD_LINK } from '../components/adminHomeClasses.js'
+import {
+  HEAD_BULK,
+  HEAD_GROUP,
+  HEAD_LINK,
+} from '../components/adminHomeClasses.js'
 import CardActionsShell from '../components/CardActionsShell.jsx'
 import ComicCardRun from '../components/ComicCardRun.jsx'
 import ComicFigures from '../components/ComicFigures.jsx'
@@ -447,55 +451,63 @@ export default function AdminComics() {
         ready ? `${publicCount} of ${rows.length} public` : undefined
       }
     >
-      <Link className={HEAD_LINK} to={copy.path}>
-        View {copy.path} <span aria-hidden="true">↗</span>
-      </Link>
-      <Button
-        variant="outline"
-        size="sm"
-        className={PHONE_TARGET}
-        nativeButton={false}
-        render={<Link to="/admin/collection/add" />}
-      >
-        {adminCopy.comics.addComics}
-      </Button>
+      <div className={HEAD_GROUP}>
+        <Link className={HEAD_LINK} to={copy.path}>
+          View {copy.path} <span aria-hidden="true">↗</span>
+        </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className={PHONE_TARGET}
+          nativeButton={false}
+          render={<Link to="/admin/collection/add" />}
+        >
+          {adminCopy.comics.addComics}
+        </Button>
+      </div>
       {ready && (
         <>
-          <ConfirmDelete
-            className={ACTION}
-            armedClassName={ARMED_NEUTRAL}
-            label={`Publish all ${rows.length}`}
-            subject={`${rows.length} comic series`}
-            name={`Publish all ${rows.length}`}
-            confirmLabel="Yes, publish"
-            detail={publishAllDetail(
-              rows.length,
-              'comic series',
-              'comic series',
-            )}
-            disabled={busy || publicCount === rows.length}
-            onConfirm={() => setAllVisibility(true)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className={PHONE_TARGET}
-            disabled={busy || publicCount === 0}
-            onClick={() => setAllVisibility(false)}
+          <div
+            className={HEAD_BULK}
+            role="group"
+            aria-label={adminCopy.comics.bulkActions}
           >
-            {adminCopy.comics.hideAll}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={PHONE_TARGET}
-            disabled={refreshing}
-            onClick={refreshMetadata}
-          >
-            {refreshing
-              ? adminCopy.comics.refreshing
-              : adminCopy.comics.refreshMetadata}
-          </Button>
+            <ConfirmDelete
+              className={ACTION}
+              armedClassName={ARMED_NEUTRAL}
+              label={`Publish all ${rows.length}`}
+              subject={`${rows.length} comic series`}
+              name={`Publish all ${rows.length}`}
+              confirmLabel="Yes, publish"
+              detail={publishAllDetail(
+                rows.length,
+                'comic series',
+                'comic series',
+              )}
+              disabled={busy || publicCount === rows.length}
+              onConfirm={() => setAllVisibility(true)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className={PHONE_TARGET}
+              disabled={busy || publicCount === 0}
+              onClick={() => setAllVisibility(false)}
+            >
+              {adminCopy.comics.hideAll}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={PHONE_TARGET}
+              disabled={refreshing}
+              onClick={refreshMetadata}
+            >
+              {refreshing
+                ? adminCopy.comics.refreshing
+                : adminCopy.comics.refreshMetadata}
+            </Button>
+          </div>
         </>
       )}
     </AdminPageHeader>

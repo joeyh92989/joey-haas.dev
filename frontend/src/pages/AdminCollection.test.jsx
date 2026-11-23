@@ -1790,6 +1790,26 @@ describe('AdminCollection look (#532 b)', () => {
     }
   })
 
+  it('groups the bulk actions apart from the primary links (#495)', async () => {
+    stubApi()
+    await renderShelf()
+    const bulk = screen.getByRole('group', {
+      name: adminCopy.collection.bulkActions,
+    })
+    expect(
+      within(bulk)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Publish all 2', 'Hide all', 'Refresh game metadata'])
+    expect(within(bulk).queryByRole('link')).toBeNull()
+    expect(within(bulk).queryByRole('button', { name: 'Shelf' })).toBeNull()
+    expect(
+      within(bulk).queryByRole('link', {
+        name: adminCopy.collection.addGames,
+      }),
+    ).toBeNull()
+  })
+
   it('marks the pressed view with a fill and weight, not colour alone', async () => {
     stubApi()
     await renderShelf()

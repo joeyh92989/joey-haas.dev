@@ -3,7 +3,11 @@ import { ITEM_COVER_CELL } from '../components/adminPageClasses.js'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router'
 import { SHELF_SEARCH, SHELF_TOP } from '../components/shelf-classes.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
-import { HEAD_LINK } from '../components/adminHomeClasses.js'
+import {
+  HEAD_BULK,
+  HEAD_GROUP,
+  HEAD_LINK,
+} from '../components/adminHomeClasses.js'
 import CoverImage from '../components/CoverImage.jsx'
 import CoverKey from '../components/CoverKey.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -983,53 +987,61 @@ export default function AdminCollection() {
         ready ? `${publicCount} of ${items.length} public` : undefined
       }
     >
-      <Link className={HEAD_LINK} to={gamesPath()}>
-        View {gamesPath()} <span aria-hidden="true">↗</span>
-      </Link>
-      <Button
-        variant="outline"
-        size="sm"
-        className={PHONE_TARGET}
-        nativeButton={false}
-        render={<Link to="/admin/collection/add" />}
-      >
-        {adminCopy.collection.addGames}
-      </Button>
+      <div className={HEAD_GROUP}>
+        <Link className={HEAD_LINK} to={gamesPath()}>
+          View {gamesPath()} <span aria-hidden="true">↗</span>
+        </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          className={PHONE_TARGET}
+          nativeButton={false}
+          render={<Link to="/admin/collection/add" />}
+        >
+          {adminCopy.collection.addGames}
+        </Button>
+      </div>
       {ready && (
         <>
-          <ConfirmDelete
-            className={ACTION}
-            armedClassName={ARMED_NEUTRAL}
-            label={`Publish all ${items.length}`}
-            subject={`${items.length} games`}
-            name={`Publish all ${items.length}`}
-            confirmLabel="Yes, publish"
-            detail={publishAllDetail(items.length, 'game')}
-            disabled={bulkBusy || publicCount === items.length}
-            onConfirm={() => setAllVisibility(true)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className={PHONE_TARGET}
-            disabled={bulkBusy || publicCount === 0}
-            onClick={() => setAllVisibility(false)}
-          >
-            {adminCopy.collection.hideAll}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className={PHONE_TARGET}
-            disabled={refreshing !== null}
-            onClick={() => refreshMetadata(REFRESH_TYPE)}
-          >
-            {refreshing === REFRESH_TYPE
-              ? 'Refreshing…'
-              : `Refresh ${REFRESH_TYPE} metadata`}
-          </Button>
           <div
-            className="flex flex-wrap gap-2"
+            className={HEAD_BULK}
+            role="group"
+            aria-label={adminCopy.collection.bulkActions}
+          >
+            <ConfirmDelete
+              className={ACTION}
+              armedClassName={ARMED_NEUTRAL}
+              label={`Publish all ${items.length}`}
+              subject={`${items.length} games`}
+              name={`Publish all ${items.length}`}
+              confirmLabel="Yes, publish"
+              detail={publishAllDetail(items.length, 'game')}
+              disabled={bulkBusy || publicCount === items.length}
+              onConfirm={() => setAllVisibility(true)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className={PHONE_TARGET}
+              disabled={bulkBusy || publicCount === 0}
+              onClick={() => setAllVisibility(false)}
+            >
+              {adminCopy.collection.hideAll}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={PHONE_TARGET}
+              disabled={refreshing !== null}
+              onClick={() => refreshMetadata(REFRESH_TYPE)}
+            >
+              {refreshing === REFRESH_TYPE
+                ? 'Refreshing…'
+                : `Refresh ${REFRESH_TYPE} metadata`}
+            </Button>
+          </div>
+          <div
+            className={HEAD_GROUP}
             role="group"
             aria-label={adminCopy.collection.view}
           >
