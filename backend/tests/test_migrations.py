@@ -70,6 +70,13 @@ def _diff_against_models(connection, outing_columns_present: bool = False) -> li
     later_drops = {"items": {"editions"}}
     if outing_columns_present:
         later_drops["visits"] = {"title", "verdict", "kid_along", "precision"}
+    # items.slug (0029) is in the models, so a schema below 0029 lacks it. The
+    # revision is read from the schema itself, so the carve-out never applies
+    # at head, where a missing slug column is drift.
+    version = connection.exec_driver_sql(
+        "SELECT version_num FROM alembic_version"
+    ).scalar()
+    before_slugs = version is not None and version < "0029"
     return [
         entry
         for entry in diff
@@ -77,7 +84,17 @@ def _diff_against_models(connection, outing_columns_present: bool = False) -> li
             entry[0] == "remove_column"
             and entry[3].name in later_drops.get(entry[2], ())
         )
+        and not (before_slugs and _is_slug_addition(entry))
     ]
+
+
+def _is_slug_addition(entry) -> bool:
+    """The autogenerate entries for 0029's column and index."""
+    if entry[0] == "add_column":
+        return entry[2] == "items" and entry[3].name == "slug"
+    if entry[0] == "add_index":
+        return entry[1].name == "ux_items_slug"
+    return False
 
 
 @pytest_asyncio.fixture
