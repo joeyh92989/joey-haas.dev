@@ -167,9 +167,13 @@ before pushing.
   Symlink the main checkout's: `ln -s <main>/backend/.venv backend/.venv`
   (untracked; gitignored), then `<main>/backend/.venv/bin/python
   scripts/migrate_neon.py current` and `upgrade`.
-- **CI jobs**: `frontend`, `backend` (an aggregate job: it passes only when
-  `backend-tests` and `backend-migrations` both do; keep the name `backend` on it
-  alone, since branch protection requires it), `e2e` and `e2e-admin` (aggregates of
+- **CI jobs**: `changes` (lists the changed files; a docs-only change, per
+  `scripts/ci-changes.sh`, skips the heavy jobs), `frontend` (an aggregate of
+  `frontend-checks`), `backend` (an aggregate job: it passes only when
+  `backend-tests` and `backend-migrations` both do; keep the names `backend` and
+  `frontend` on their aggregates alone, since branch protection requires them;
+  every aggregate also passes when its parts were skipped for a docs-only change,
+  see `.github/workflows/README.md`), `e2e` and `e2e-admin` (aggregates of
   the `e2e-shard (…)` and `e2e-admin-shard (…)` matrix jobs, split by spec file so
   each run is about 10 minutes; a new spec file runs in the `rest` shard by
   default, see `.github/workflows/README.md`; the admin browser suite runs

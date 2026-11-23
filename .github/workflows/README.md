@@ -2,11 +2,51 @@
 
 | File | Runs | What it does |
 |---|---|---|
-| `ci.yml` | every PR and push to `main` | `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend`, `scripts` (the shell helpers' tests; not required), `e2e` and `e2e-admin` (aggregates of sharded jobs, below), and `neon-rehearsal` |
+| `ci.yml` | every PR and push to `main` | `changes` (docs-only detection, below), `backend` (an aggregate of `backend-tests` and `backend-migrations`, which run in parallel), `frontend` (an aggregate of `frontend-checks`), `scripts` (the shell helpers' tests; not required), `e2e` and `e2e-admin` (aggregates of sharded jobs, below), and `neon-rehearsal` |
 | `deploy.yml` | push to `main` (after cutover), or by hand | push only: wait for that commit's `backend` and `frontend` CI jobs (`scripts/wait-for-ci.sh`); then migrate Neon, deploy the API, wait, smoke. A manual run skips the wait |
 | `update-visual-baselines.yml` | by hand (`workflow_dispatch`) | regenerate the visual baselines on ubuntu and commit them to the branch it ran on; the only workflow with `contents: write`, and it refuses `main` |
 | `pr-closed.yml` | a PR closes | delete the PR's Neon rehearsal branch |
 | `nightly.yml` | 00:17 UTC | the data refreshes and the snapshot deploy (see its header) |
+
+## Docs-only changes skip the heavy jobs
+
+```mermaid
+flowchart TD
+  P[PR or push] --> C[changes: scripts/ci-changes.sh on the changed file list]
+  C -->|heavy=true or any doubt| H[backend-tests, backend-migrations, frontend-checks, e2e-shard, e2e-admin-shard run]
+  C -->|heavy=false| S[those jobs are skipped]
+  H --> A[aggregates backend, frontend, e2e, e2e-admin: success]
+  S --> A
+```
+
+The `changes` job lists the changed files (a PR: `origin/<base>...HEAD`; a push:
+`<before>..<sha>`) and `scripts/ci-changes.sh` prints `heavy=true|false`.
+Docs-only is every file under `docs/`, a root `*.md`, or under
+`.github/ISSUE_TEMPLATE/`; the definition lives in that script alone. Anything
+else is heavy, including `frontend/**.md` (`prettier --check .` and the
+changelog parser read them), `.github/workflows/**` and `render.yaml`. The job
+fails open: an empty list, a push with no usable `before` sha or a git error
+prints `heavy=true`.
+
+`backend-tests`, `backend-migrations`, `frontend-checks`, `e2e-shard` and
+`e2e-admin-shard` take `needs: changes` and run only when `heavy` is `true`.
+The four aggregates (`backend`, `frontend`, `e2e`, `e2e-admin`) pass when their
+parts are `success`, **or** when their parts are `skipped` **and** `changes`
+succeeded **and** `heavy` is `false`. A skipped part beside a failed, cancelled
+or skipped `changes` fails the aggregate, so the gate cannot open by accident.
+`scripts` and `neon-rehearsal` are not gated.
+
+- **Why not `paths-ignore`**: a workflow that does not run reports no checks, and
+  a required check that never reports stays pending forever, blocking the merge.
+  Skipping jobs inside a run keeps every check name reporting.
+- **Why the aggregates, not the parts, report**: branch protection and
+  `scripts/wait-for-ci.sh` read `backend` and `frontend` by name. A job that
+  ends `skipped` is not `success`: `wait-for-ci.sh` counts only `success`, so a
+  skipped `backend` would make a docs-only merge to `main` wait 30 minutes and
+  then refuse to deploy. An aggregate that runs and passes ends `success`.
+- **`frontend` is an aggregate now**: its steps moved to `frontend-checks`, and
+  the name `frontend` stays on the aggregate alone, like `backend`.
+- **Widening or narrowing**: edit `scripts/ci-changes.sh` and its test.
 
 ## The sharded browser jobs
 
