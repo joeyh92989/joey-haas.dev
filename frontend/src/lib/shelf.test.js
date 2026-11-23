@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  activeFilterCount,
   countBy,
   filterItems,
   NO_FILTER,
@@ -378,5 +379,16 @@ describe('words follow the item type', () => {
       journalOn: 'Played on',
     })
     expect(runWords(undefined).runs).toBe('Playthroughs')
+  })
+})
+
+describe('activeFilterCount', () => {
+  it('counts chosen groups and pressed toggles, not empty ones', () => {
+    expect(activeFilterCount({ status: null, wanted: false, tone: null })).toBe(
+      0,
+    )
+    expect(
+      activeFilterCount({ status: 'active', wanted: true, tone: null }),
+    ).toBe(2)
   })
 })

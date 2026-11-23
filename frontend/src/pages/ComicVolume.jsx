@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BOOK_STACK } from '../components/comicClasses.js'
 import { Link, useOutletContext } from 'react-router'
-import Breadcrumb from '../components/Breadcrumb.jsx'
+import { ShelfTrail } from '../components/ShelfByline.jsx'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -184,7 +184,7 @@ export default function ComicVolume({ id, slug }) {
       <article
         className={cx('comic-issue comic-volume', COMIC_VOLUME, PAGE_WRAP)}
       >
-        <Breadcrumb
+        <ShelfTrail
           label={ISSUE.breadcrumb}
           trail={[
             { label: spine.name, to: spine.path },
@@ -209,7 +209,7 @@ export default function ComicVolume({ id, slug }) {
     <article
       className={cx('comic-issue comic-volume', COMIC_VOLUME, PAGE_WRAP)}
     >
-      <Breadcrumb
+      <ShelfTrail
         label={ISSUE.breadcrumb}
         trail={[
           { label: spine.name, to: spine.path },

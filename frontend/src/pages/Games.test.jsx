@@ -2,6 +2,7 @@ import '@testing-library/jest-dom'
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -152,12 +153,19 @@ function renderPage(path = '/shelf/games') {
   )
 }
 
+/** Opens the Filters disclosure, as a visitor does before any chip. */
+function openFilters() {
+  const button = screen.queryByRole('button', { name: /^Filters/ })
+  if (button?.getAttribute('aria-expanded') === 'false') fireEvent.click(button)
+}
+
 /** Renders and waits for the grid, the last thing a ready page draws. */
-async function renderReady(path) {
+async function renderReady(path, { open = true } = {}) {
   renderPage(path)
   await waitFor(() =>
     expect(document.querySelector('.poster-grid')).not.toBeNull(),
   )
+  if (open) openFilters()
 }
 
 afterEach(() => {
@@ -297,10 +305,76 @@ describe('Games', () => {
 
     expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Sort' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'View' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Display' })).toBeInTheDocument()
     expect(
       screen.getByRole('list', { name: 'Key to the marks on covers' }),
     ).toBeInTheDocument()
+  })
+
+  it('keeps the filters behind a Filters button, closed to begin with (#473)', async () => {
+    stubApi()
+    await renderReady('/shelf/games', { open: false })
+
+    const button = screen.getByRole('button', { name: /^Filters/ })
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    const panel = document.getElementById(button.getAttribute('aria-controls'))
+    expect(panel).toHaveAttribute('hidden')
+    expect(
+      screen.queryByRole('group', { name: 'Status' }),
+    ).not.toBeInTheDocument()
+
+    await userEvent.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    expect(panel).not.toHaveAttribute('hidden')
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument()
+  })
+
+  it('says how many filters are on, on the closed button (#473)', async () => {
+    stubApi()
+    await renderReady()
+    await userEvent.click(screen.getByRole('button', { name: /^Finished/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Filters/ }))
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveTextContent(
+      'Filters (1 on)',
+    )
+    expect(screen.getByRole('button', { name: /^Filters/ })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
+
+  it('puts the count between the search and the grid, the toggles apart from the filters (#473)', async () => {
+    stubApi()
+    await renderReady('/shelf/games', { open: false })
+    const search = document.getElementById('shelf-search')
+    const bar = document.querySelector('.resultbar')
+    const controls = document.querySelector('.shelf-toolbar')
+    const grid = document.querySelector('.poster-grid')
+    const before = (a, b) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(before(search, bar)).toBe(true)
+    expect(before(bar, grid)).toBe(true)
+    expect(before(controls, grid)).toBe(true)
+    // Display toggles sit in their own group, outside the filters panel.
+    const panel = document.getElementById(
+      screen
+        .getByRole('button', { name: /^Filters/ })
+        .getAttribute('aria-controls'),
+    )
+    const display = screen.getByRole('group', { name: 'Display' })
+    expect(panel.contains(display)).toBe(false)
+    expect(
+      within(display).getByRole('button', { name: 'Dim finished' }),
+    ).toBeInTheDocument()
+  })
+
+  it('names the owner and links back to the site (#470)', async () => {
+    stubApi()
+    await renderReady('/shelf/games', { open: false })
+    expect(screen.getByText('Joey Haas’s shelf')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Part of joey-haas.dev' }),
+    ).toHaveAttribute('href', '/')
   })
 
   it('counts the titles, and offers Clear filters only while filtered', async () => {
@@ -1302,6 +1376,7 @@ async function renderAt(path) {
   await waitFor(() =>
     expect(document.querySelector('.poster-grid')).not.toBeNull(),
   )
+  openFilters()
 }
 
 const cardNumbers = () =>

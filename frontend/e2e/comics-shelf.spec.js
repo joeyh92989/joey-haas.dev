@@ -31,6 +31,8 @@ test('Books and Single issues filter the shelf and are tappable', async ({
   openRoute,
 }, testInfo) => {
   await openRoute('/shelf/comics', 'light')
+  // The filters sit behind their button (#473).
+  await page.getByRole('button', { name: /^Filters/ }).click()
   const books = page.getByRole('button', { name: /^Books/ })
   await books.click()
   await expect(page.locator('.poster-card')).toHaveCount(3)

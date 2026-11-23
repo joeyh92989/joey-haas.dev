@@ -5,6 +5,7 @@ import CoverImage from './CoverImage.jsx'
 import Rating from './Rating.jsx'
 import { MONTH_YEAR } from '../lib/formatDate.js'
 import { cx } from '../lib/cx.js'
+import { CARD_QUALIFIER } from './comicClasses.js'
 import RecordCard from './RecordCard.jsx'
 import StatusMark from './StatusMark.jsx'
 import {
@@ -91,6 +92,10 @@ function KeyGlyph() {
  *   Decorative.
  * @param {import('react').ReactNode} [props.run] - A comic's run, under the
  *   title and outside the link (ComicCardRun).
+ * @param {string} [props.qualifier] - What tells this card from one with the
+ *   same title (a year, a publisher), in the link under the title. An empty
+ *   string keeps the line empty so a grid with some twins stays level; leave
+ *   it out where no card has one.
  * @param {Record<string, string>} [props.statusLabels] - The status mark's
  *   names; comics pass their own (Reading, Read).
  * @param {number} [props.number] - The card's catalogue number. With it the
@@ -108,6 +113,7 @@ export default function PosterCard({
   dimmed = false,
   stacked = false,
   run = null,
+  qualifier,
   statusLabels,
   number,
 }) {
@@ -175,7 +181,25 @@ export default function PosterCard({
         <div className="flex flex-1 flex-col p-3">
           <Link to={to} className={cx('poster-link', CARD_LINK)}>
             {art}
-            <span className={cx('poster-title', CARD_TITLE)}>{item.title}</span>
+            {/* A comic holds two title lines (and the qualifier's) so the
+                lanes below start level across a grid row (#474); the title
+                itself stays unclipped. */}
+            <span
+              className={cx(
+                'block',
+                run && qualifier !== undefined && 'min-h-[4.05rem]',
+                run && qualifier === undefined && 'min-h-12',
+              )}
+            >
+              <span className={cx('poster-title', CARD_TITLE)}>
+                {item.title}
+              </span>
+              {qualifier !== undefined && (
+                <span className={cx('poster-qualifier', CARD_QUALIFIER)}>
+                  {qualifier}
+                </span>
+              )}
+            </span>
             {markLabel && ' '}
             {markLabel && <span className="sr-only">{markLabel}</span>}
           </Link>

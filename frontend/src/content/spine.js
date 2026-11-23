@@ -28,6 +28,12 @@ export const spine = {
   tagline:
     'A tracker for my physical game and comic collection: what I own, what I’ve finished, and what to play or read next.',
   projectsTagline: 'A tracker for my physical games and comics',
+  /** The owner's name on every shelf page, and the way back to the portfolio. */
+  byline: {
+    owner: 'Joey Haas’s shelf',
+    site: 'Part of joey-haas.dev',
+    to: '/',
+  },
   homeLine:
     'A tracker for my physical games and comics: it reads the shelf from a photo, knows which boxes hold a real cartridge, follows each comic run, and picks what to play next.',
   projectLine:
@@ -535,6 +541,10 @@ export const spine = {
     groupStatus: 'Status',
     sort: 'Sort',
     view: 'View',
+    /** The filters disclosure's button and the group of display toggles. */
+    filters: 'Filters',
+    filtersActive: (count) => `${count} on`,
+    display: 'Display',
     layout: 'Layout',
     layouts: { cards: 'Cards', spines: 'Spines' },
     spineKey: {
@@ -848,6 +858,10 @@ export const spine = {
       book_line: 'Line of books',
       single_book: 'Single book',
       both: 'Books and issues',
+    },
+    /** A line under a kind word that needs one (cards and the kind legend). */
+    kindNotes: {
+      single_book: 'One collected book, not a run of issues',
     },
     /** The Books section of a title that holds books (/shelf/:id). */
     books: {

@@ -186,6 +186,15 @@ export const SERIES_PILL_WARN = `${SERIES_PILL} border-(--warn) text-(--warn-tex
 // ---- Comic card text (ComicCardRun.jsx) -----------------------------------
 
 export const COMIC_CARD_RUN = 'mt-2'
+// The kind word and the volumes (or the single book's note) sit in a block that
+// holds three lines of 0.75rem at 1.4 when a grid reserves it, so the lanes
+// start at the same height on every card in a row (#474).
+export const COMIC_CARD_TOP = 'min-h-[3.15rem]'
+export const COMIC_CARD_VOLUMES = 'line-clamp-2'
+// A same-title qualifier under the title; an empty one keeps its line so the
+// cards in a grid stay level.
+export const CARD_QUALIFIER =
+  'block text-(--text-2) text-[0.75rem] leading-[1.4]'
 export const COMIC_CARD_KIND =
   'text-(--text) text-[0.75rem] font-medium leading-[1.4]'
 export const COMIC_CARD_LINE =

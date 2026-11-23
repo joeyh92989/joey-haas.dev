@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -141,14 +141,23 @@ function mockComics(state) {
   vi.mocked(useSnapshotThenLive).mockReturnValue(state)
 }
 
-function renderPage() {
-  return render(
+/** Opens the Filters disclosure, as a visitor does before any chip. */
+function openFilters() {
+  const button = screen.queryByRole('button', { name: /^Filters/ })
+  if (button?.getAttribute('aria-expanded') === 'false') fireEvent.click(button)
+}
+
+/** Renders the page with its filters open: most tests press a chip. */
+function renderPage({ open = true } = {}) {
+  const view = render(
     <MemoryRouter initialEntries={['/shelf/comics']}>
       <Routes>
         <Route path="/shelf/comics" element={<Comics />} />
       </Routes>
     </MemoryRouter>,
   )
+  if (open) openFilters()
+  return view
 }
 
 /** The series titles in the grid, in order. */
@@ -685,6 +694,79 @@ function renderAt(path) {
     </MemoryRouter>,
   )
 }
+
+describe('Comics: twins, level cards and the single book (#474)', () => {
+  const twins = [
+    series('Creepshow', { item_id: 'a', year: 1982, kind: 'run' }),
+    series('Creepshow', { item_id: 'b', year: 2023, kind: 'run' }),
+    series('Saga', { item_id: 'c', kind: 'single_book', volumes_owned: 1 }),
+  ]
+
+  it('tells same-title series apart on the card, and no other', () => {
+    mockComics({
+      data: { ...COMICS, series: twins },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const qualifiers = [...document.querySelectorAll('.poster-qualifier')].map(
+      (node) => node.textContent,
+    )
+    expect(qualifiers).toEqual(['1982', '2023', ''])
+    expect(
+      screen.getByRole('link', { name: /Creepshow\s*1982/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('draws no qualifier line when no title repeats', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    expect(document.querySelector('.poster-qualifier')).toBeNull()
+  })
+
+  it('explains a Single book on its card', () => {
+    mockComics({
+      data: { ...COMICS, series: twins },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    expect(
+      screen.getByText('One collected book, not a run of issues'),
+    ).toBeInTheDocument()
+  })
+
+  it('reserves the kind block on every card when any card has volume lines', () => {
+    mockComics({
+      data: { ...COMICS, series: twins },
+      live: true,
+      failed: false,
+    })
+    renderPage()
+    const groups = document.querySelectorAll('.comic-card-run')
+    expect(groups).toHaveLength(3)
+    for (const group of groups) {
+      expect(group.firstElementChild).toHaveClass('min-h-[3.15rem]')
+    }
+  })
+
+  it('keeps the filters behind a Filters button, with the count under the search', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage({ open: false })
+    const button = screen.getByRole('button', { name: /^Filters/ })
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(
+      screen.queryByRole('button', { name: /^Gaps/ }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('4 titles')).toBeInTheDocument()
+  })
+
+  it('names the owner (#470)', () => {
+    mockComics({ data: COMICS, live: true, failed: false })
+    renderPage()
+    expect(screen.getByText('Joey Haas’s shelf')).toBeInTheDocument()
+  })
+})
 
 describe('Comics as record cards', () => {
   it('numbers each card by its place on the whole shelf', () => {

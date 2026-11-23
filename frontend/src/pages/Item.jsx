@@ -13,7 +13,7 @@ import { spine } from '../content/spine.js'
 import { platformsLabel } from '../content/tags.js'
 import { itemTagGroups } from '../lib/tags.js'
 import LoadState from '../components/LoadState.jsx'
-import Breadcrumb from '../components/Breadcrumb.jsx'
+import { ShelfTrail } from '../components/ShelfByline.jsx'
 import PageHeader from '../components/PageHeader.jsx'
 import RecordCard from '../components/RecordCard.jsx'
 import StatusMark from '../components/StatusMark.jsx'
@@ -301,17 +301,17 @@ function Tiles({ item, detail }) {
 }
 
 /**
- * The trail above the title. A comic series sits under Comics, as its issue
- * pages' trail does; a game sits directly under the shelf.
+ * The trail above the title: My Shelf / Games or Comics / the title, the same
+ * pattern for a game and a comic (#474), as the comic issue pages use.
  *
  * @param {string|null} title - Null while nothing is known yet.
  * @param {boolean} comic
  */
 function itemTrail(title, comic) {
   const trail = [{ label: spine.name, to: spine.path }]
-  if (comic) {
-    trail.push({ label: spine.tabs.comics.label, to: spine.tabs.comics.to })
-  }
+  // One pattern for every kind: My Shelf / Games or Comics / the title.
+  const tab = comic ? spine.tabs.comics : spine.tabs.games
+  trail.push({ label: tab.label, to: tab.to })
   if (title) trail.push({ label: title })
   return trail
 }
@@ -795,7 +795,7 @@ function ItemPage({ id }) {
   // loaded page, so nothing shifts when the item arrives.
   return (
     <article className={cx('item-page', PAGE_WRAP)}>
-      <Breadcrumb trail={itemTrail(null, false)} />
+      <ShelfTrail trail={itemTrail(null, false)} />
       <PageHeader className="visually-hidden" title={spine.name} />
       {!failed && <ItemSkeleton />}
       <LoadState loading={!failed} failed={failed} onRetry={retry} />
@@ -906,7 +906,7 @@ function ItemView({
 
   return (
     <article className={cx('item-page', PAGE_WRAP)}>
-      <Breadcrumb trail={itemTrail(item.title, isComic)} />
+      <ShelfTrail trail={itemTrail(item.title, isComic)} />
 
       <div className={cx('item-head', DETAIL_HEAD)}>
         <div className={cx('item-cover', DETAIL_COVER)}>

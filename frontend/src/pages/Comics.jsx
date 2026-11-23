@@ -1,15 +1,9 @@
 import {
   ATTRIBUTION,
-  CTL_LABEL,
-  CTL_ROW,
-  CTL_SPLIT,
-  SHELF_CONTROLS,
   SHELF_OVERVIEW,
   SHELF_SEARCH,
   SHELF_TOP,
-  SHELF_VIEW_CONTROLS,
   STAT_CARD,
-  VIEW_LAB,
 } from '../components/shelf-classes.js'
 import { cx } from '../lib/cx.js'
 import {
@@ -48,6 +42,7 @@ import { SECTION_HEAD } from '../components/prose-classes.js'
 import ResultBar from '../components/ResultBar.jsx'
 import { RunKey } from '../components/RunLanes.jsx'
 import { StatusBar } from '../components/ShelfOverview.jsx'
+import ShelfControls from '../components/ShelfControls.jsx'
 import SortControl from '../components/SortControl.jsx'
 import SpineHeader from '../components/SpineHeader.jsx'
 import { spine } from '../content/spine.js'
@@ -57,11 +52,17 @@ import {
   chipCounts,
   filterComics,
   publishersByCount,
+  kindSummary,
   searchComics,
   sortComics,
+  titleQualifiers,
 } from '../lib/comics.js'
 import { catalogueNumbers } from '../lib/catalogue.js'
-import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
+import {
+  activeFilterCount,
+  readShelfPref,
+  writeShelfPref,
+} from '../lib/shelf.js'
 import {
   filterByTags,
   hasTagFilter,
@@ -310,6 +311,15 @@ export default function Comics() {
     hasTagFilter('comic', picked)
   // Numbered over the whole shelf, so filtering never renumbers a card.
   const numbers = catalogueNumbers(series, (row) => row.item_id)
+  // Same-title series carry what tells them apart; a grid with any twin keeps
+  // an (empty) line on every card so the cards stay level (#474).
+  const qualifiers = titleQualifiers(series)
+  // A grid with a card that has volume or single-book lines reserves them on
+  // every card, so the run lanes start at one height.
+  const reserve = series.some((row) => {
+    const { kind, volumes } = kindSummary(row)
+    return volumes || kind === 'single_book'
+  })
   const counts = chipCounts(series)
   const publishers = publishersByCount(series)
   // A pressed publisher the rows no longer hold (live data replaced the
@@ -343,6 +353,12 @@ export default function Comics() {
     },
   ]
 
+  const selection = {
+    show: chip === 'all' ? null : chip,
+    publisher,
+    ...picked,
+  }
+
   function clearAll() {
     changeFilters({})
     setQuery('')
@@ -354,6 +370,7 @@ export default function Comics() {
       <PageHeader title={copy.title} lede={copy.lede} />
 
       <LoadState
+        className="mt-3"
         loading={!data && !failed}
         failed={failed}
         stale={!!data}
@@ -365,7 +382,9 @@ export default function Comics() {
         <EmptyState title={copy.empty} />
       ) : (
         <>
-          <ComicsFigures stats={stats} rows={series} />
+          <div className="mt-6">
+            <ComicsFigures stats={stats} rows={series} />
+          </div>
 
           <div className={`shelf-top ${SHELF_TOP}`}>
             <label className={`shelf-search ${SHELF_SEARCH}`}>
@@ -379,50 +398,6 @@ export default function Comics() {
             </label>
           </div>
 
-          <section
-            className={`shelf-toolbar controls ${SHELF_CONTROLS}`}
-            aria-label="Filter and sort"
-          >
-            <FilterChips
-              labelled
-              groups={groups}
-              value={{
-                show: chip === 'all' ? null : chip,
-                publisher,
-                ...picked,
-              }}
-              onChange={changeFilters}
-            />
-            <div className={`ctl-row ${CTL_ROW}`}>
-              <span className={`ctl-label ${CTL_LABEL}`} aria-hidden="true">
-                {spine.shelf.sort}
-              </span>
-              <div className={`ctl-split ${CTL_SPLIT}`}>
-                <SortControl
-                  value={sort}
-                  direction="asc"
-                  seed={0}
-                  onChange={changeSort}
-                  onShuffle={() => {}}
-                  sorts={SORTS}
-                  directional={false}
-                  select
-                  hideLabel
-                />
-                <div
-                  className={`shelf-view-controls ${SHELF_VIEW_CONTROLS}`}
-                  role="group"
-                  aria-label={spine.shelf.view}
-                >
-                  <span className={`view-lab ${VIEW_LAB}`} aria-hidden="true">
-                    {spine.shelf.view}
-                  </span>
-                  <LayoutToggle layout={layout} onChange={changeLayout} />
-                </div>
-              </div>
-            </div>
-          </section>
-
           <ResultBar
             shown={visible.length}
             total={series.length}
@@ -433,6 +408,32 @@ export default function Comics() {
           >
             {layout === 'spines' ? <SpineKey /> : <RunKey />}
           </ResultBar>
+
+          <ShelfControls
+            activeCount={activeFilterCount(selection)}
+            filters={
+              <FilterChips
+                labelled
+                groups={groups}
+                value={selection}
+                onChange={changeFilters}
+              />
+            }
+            sort={
+              <SortControl
+                value={sort}
+                direction="asc"
+                seed={0}
+                onChange={changeSort}
+                onShuffle={() => {}}
+                sorts={SORTS}
+                directional={false}
+                select
+                hideLabel
+              />
+            }
+            display={<LayoutToggle layout={layout} onChange={changeLayout} />}
+          />
 
           {visible.length === 0 ? (
             <EmptyState title={copy.noMatch} />
@@ -455,7 +456,12 @@ export default function Comics() {
                     to={itemPath(item.id)}
                     number={numbers.get(item.id)}
                     stacked
-                    run={<ComicCardRun row={item.row} />}
+                    run={<ComicCardRun row={item.row} reserve={reserve} />}
+                    qualifier={
+                      qualifiers.size > 0
+                        ? (qualifiers.get(item.row.item_id) ?? '')
+                        : undefined
+                    }
                     statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
                   />
                 )

@@ -180,6 +180,67 @@ export function kindSummary(row) {
   return { kind, word: spine.comics.kinds[kind], volumes: text || null }
 }
 
+/** How a row differs by shape: "Run of issues, 12 issues", "Line of books". */
+function shapeOf(row) {
+  const { kind, word } = kindSummary(row)
+  if ((kind === 'run' || kind === 'both') && row.owned > 0) {
+    return `${word}, ${row.owned} ${row.owned === 1 ? 'issue' : 'issues'}`
+  }
+  return word
+}
+
+/**
+ * What tells same-title series apart (#474): for every title that more than
+ * one row carries ("Creepshow" four times), the fewest of year, publisher and
+ * shape that make every one of them different; a title only one row has gets
+ * nothing. When even all three tie, each also carries its place among the
+ * twins ("2 of 3"), so no two cards read the same.
+ *
+ * @param {object[]} rows - Public (or admin) comic rows.
+ * @param {(row: object) => string} [idOf] - The row's key in the result.
+ * @returns {Map<string, string>} Row key to qualifier, twins only.
+ */
+export function titleQualifiers(rows, idOf = (row) => row.item_id) {
+  const groups = new Map()
+  for (const row of rows) {
+    const key = row.title.trim().toLocaleLowerCase()
+    groups.set(key, [...(groups.get(key) ?? []), row])
+  }
+  const year = (row) => (row.year ? String(row.year) : null)
+  const publisher = (row) => row.publisher || null
+  const choices = [
+    [year],
+    [publisher],
+    [year, publisher],
+    [year, publisher, shapeOf],
+  ]
+  const label = (row, fields) =>
+    fields
+      .map((field) => field(row))
+      .filter(Boolean)
+      .join(' · ')
+  const out = new Map()
+  for (const twins of groups.values()) {
+    if (twins.length < 2) continue
+    const fields = choices.find((set) => {
+      const labels = twins.map((row) => label(row, set))
+      return labels.every(Boolean) && new Set(labels).size === twins.length
+    })
+    twins.forEach((row, index) => {
+      const base = label(row, fields ?? choices[3])
+      out.set(
+        idOf(row),
+        fields
+          ? base
+          : [base, `${index + 1} of ${twins.length}`]
+              .filter(Boolean)
+              .join(' · '),
+      )
+    })
+  }
+  return out
+}
+
 /** Publishers by row count, most first, then by name. */
 export function publishersByCount(rows) {
   const counts = new Map()

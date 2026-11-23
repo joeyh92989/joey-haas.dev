@@ -93,11 +93,29 @@ export const SHELF_TOOLBAR = 'mb-6 flex flex-col gap-3'
 
 /** The labelled toolbar: rows between two rules. */
 export const SHELF_CONTROLS =
-  'm-0 grid flex-col gap-2 border-y border-y-border py-3'
+  'm-0 mb-4 grid flex-col gap-2 border-y border-y-border py-3'
 
 /** The unlabelled toolbar's second row: sort left, view right. */
 export const SHELF_TOOLBAR_ROW =
   'flex flex-wrap items-center justify-between gap-x-6 gap-y-3'
+
+/** The labelled controls bar (#473): Filters and Sort on the left, the
+ *  Display group on the right, a rule between them once they share a row. */
+export const CTL_BAR =
+  'flex flex-wrap items-center justify-between gap-x-6 gap-y-2'
+export const CTL_BAR_START = 'flex flex-wrap items-center gap-x-3 gap-y-2'
+
+/** The Filters button: a chip with its own 44px target and ring. */
+export const FILTERS_BUTTON =
+  'min-h-11 aria-expanded:border-foreground aria-expanded:font-medium aria-expanded:text-foreground'
+
+/** The filter groups' panel, opened by the Filters button. */
+export const FILTERS_PANEL = 'pt-1'
+
+/** Display toggles (layout, size, dim): set apart from the filters by a rule
+ *  on a wide row and by their own labelled row on a phone. */
+export const DISPLAY_GROUP =
+  'flex flex-wrap items-center gap-x-3 gap-y-2 min-[34rem]:border-l min-[34rem]:border-l-border min-[34rem]:pl-6'
 
 /** The View group: Cards and Spines, size, dim. */
 export const SHELF_VIEW_CONTROLS = 'flex flex-wrap items-center gap-x-3 gap-y-2'

@@ -3,7 +3,7 @@ import { PHONE_TAP } from '../components/sharedClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
-import Breadcrumb from '../components/Breadcrumb.jsx'
+import { ShelfTrail } from '../components/ShelfByline.jsx'
 import LoadState from '../components/LoadState.jsx'
 import NeighbourStrip from '../components/NeighbourStrip.jsx'
 import OwnerControls from '../components/OwnerControls.jsx'
@@ -146,7 +146,7 @@ export default function ComicIssue({ id, n }) {
   if (!page) {
     return (
       <article className={cx('comic-issue', PAGE_WRAP)}>
-        <Breadcrumb
+        <ShelfTrail
           label={COPY.breadcrumb}
           trail={[
             { label: spine.name, to: spine.path },
@@ -180,7 +180,7 @@ export default function ComicIssue({ id, n }) {
 
   return (
     <article className={cx('comic-issue', PAGE_WRAP)}>
-      <Breadcrumb
+      <ShelfTrail
         label={COPY.breadcrumb}
         trail={[
           { label: spine.name, to: spine.path },
