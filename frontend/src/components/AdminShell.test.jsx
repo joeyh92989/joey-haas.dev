@@ -12,12 +12,7 @@ vi.mock('../lib/useMediaQuery.js', () => ({
 function renderAt(path = '/admin', props = {}) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AdminShell
-        email="admin@example.com"
-        ownedCount={107}
-        onSignOut={() => {}}
-        {...props}
-      >
+      <AdminShell email="admin@example.com" onSignOut={() => {}} {...props}>
         <p>Page body</p>
       </AdminShell>
     </MemoryRouter>,
@@ -54,8 +49,8 @@ describe('AdminShell on a desktop', () => {
       ['⌂Home', '/admin'],
       ['▦Shelf', '/admin/shelf/games'],
       ['◫Closet', '/admin/closet/today'],
-      ['◎Denver', '/admin/weekend'],
-      ['◇Site', '/admin/analytics'],
+      ['◎Outings', '/admin/weekend'],
+      ['◇Site & jobs', '/admin/analytics'],
     ])
   })
 
@@ -121,8 +116,8 @@ describe('AdminShell on a desktop', () => {
 
   it('titles the page list with the area and its description', () => {
     renderAt('/admin/weekend')
-    expect(screen.getByText('spots and weekends')).toBeInTheDocument()
-    const nav = screen.getByRole('navigation', { name: 'Denver pages' })
+    expect(screen.getByText('weekend plans and spots')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Outings pages' })
     expect(
       within(nav)
         .getAllByRole('link')
@@ -130,29 +125,27 @@ describe('AdminShell on a desktop', () => {
     ).toEqual(['/admin/weekend', '/admin/spots'])
   })
 
-  it('lists Jobs under Site too, without leaving Home', () => {
+  it('marks Jobs and its area, never Home, on /admin/jobs', () => {
     renderAt('/admin/jobs')
-    expect(within(areas()).getByRole('link', { name: 'Home' })).toHaveAttribute(
+    expect(
+      within(areas()).getByRole('link', { name: 'Site & jobs' }),
+    ).toHaveAttribute('aria-current', 'true')
+    expect(
+      within(areas()).getByRole('link', { name: 'Home' }),
+    ).not.toHaveAttribute('aria-current')
+    const nav = screen.getByRole('navigation', { name: 'Site & jobs pages' })
+    expect(within(nav).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'aria-current',
-      'true',
+      'page',
     )
     expect(
-      within(screen.getByRole('navigation', { name: 'Home pages' })).getByRole(
-        'link',
-        { name: 'Jobs' },
-      ),
-    ).toHaveAttribute('aria-current', 'page')
+      screen.queryByRole('navigation', { name: 'Home pages' })?.textContent ??
+        '',
+    ).not.toContain('Jobs')
   })
 
-  it('shows the owned count beside Games, and reads it out', () => {
+  it('shows no count beside Games: counts are not shown for any list', () => {
     renderAt('/admin/collection')
-    expect(
-      screen.getByRole('link', { name: 'Games, 107 owned' }),
-    ).toBeInTheDocument()
-  })
-
-  it('leaves the count out until it has loaded', () => {
-    renderAt('/admin/collection', { ownedCount: null })
     expect(
       within(screen.getByRole('navigation', { name: 'Shelf pages' })).getByRole(
         'link',
@@ -164,7 +157,7 @@ describe('AdminShell on a desktop', () => {
   it("reads an area's badge as part of its name", () => {
     renderAt('/admin', { badges: { site: { value: 2, words: 'jobs failed' } } })
     expect(
-      within(areas()).getByRole('link', { name: 'Site, 2 jobs failed' }),
+      within(areas()).getByRole('link', { name: 'Site & jobs, 2 jobs failed' }),
     ).toBeInTheDocument()
   })
 
@@ -249,13 +242,13 @@ describe('AdminShell on a phone', () => {
   it('marks the current area tab', () => {
     renderAt('/admin/spots')
     expect(
-      within(areas()).getByRole('link', { name: 'Denver' }),
+      within(areas()).getByRole('link', { name: 'Outings' }),
     ).toHaveAttribute('aria-current', 'true')
   })
 
   it("shows the area's pages as segments, the current one marked", () => {
     renderAt('/admin/spots')
-    const sub = screen.getByRole('navigation', { name: 'Denver pages' })
+    const sub = screen.getByRole('navigation', { name: 'Outings pages' })
     expect(within(sub).getByRole('link', { name: 'Spots' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -348,7 +341,7 @@ describe('AdminShell on a phone', () => {
     // A new element each time: React skips a rerender of the same one.
     const tree = () => (
       <MemoryRouter initialEntries={['/admin/collection']}>
-        <AdminShell email={null} ownedCount={null} onSignOut={() => {}}>
+        <AdminShell email={null} onSignOut={() => {}}>
           <p>Page body</p>
         </AdminShell>
       </MemoryRouter>

@@ -3,14 +3,11 @@
  * tab lands), a one-line description shown at the top of its page list, and
  * its pages in list order. Every page keeps the URL it had before areas.
  *
- * A page is `{ to, label, end?, also?, count?, group?, alias?, badge? }`:
+ * A page is `{ to, label, end?, also?, group?, badge? }`:
  * - `end`: matches only its exact path (an index route).
  * - `also`: more path prefixes the page owns (Games owns `/admin/collection`,
  *   the item edit pages, which have not moved).
- * - `count`: shows the owned count beside it.
  * - `group`: a kicker heading the run of pages that share it (Shelf only).
- * - `alias`: listed here too, but the page belongs to another area; it is
- *   never what decides the current area.
  * - `badge`: the key of a pending count the layout loads (`intake.shelf`,
  *   `intake.closet`: entries left to check), shown beside the page and
  *   read out as part of its name.
@@ -29,10 +26,7 @@ export const ADMIN_AREAS = [
     icon: '⌂',
     home: '/admin',
     description: 'everything, one card each',
-    pages: [
-      { to: '/admin', label: 'Home', end: true },
-      { to: '/admin/jobs', label: 'Jobs' },
-    ],
+    pages: [{ to: '/admin', label: 'Home', end: true }],
   },
   {
     key: 'shelf',
@@ -44,7 +38,6 @@ export const ADMIN_AREAS = [
       {
         to: '/admin/shelf/games',
         label: 'Games',
-        count: true,
         group: 'Shelf',
         also: ['/admin/collection'],
       },
@@ -95,10 +88,10 @@ export const ADMIN_AREAS = [
   },
   {
     key: 'denver',
-    label: 'Denver',
+    label: 'Outings',
     icon: '◎',
     home: '/admin/weekend',
-    description: 'spots and weekends',
+    description: 'weekend plans and spots',
     pages: [
       { to: '/admin/weekend', label: 'Weekend' },
       { to: '/admin/spots', label: 'Spots' },
@@ -106,13 +99,13 @@ export const ADMIN_AREAS = [
   },
   {
     key: 'site',
-    label: 'Site',
+    label: 'Site & jobs',
     icon: '◇',
     home: '/admin/analytics',
-    description: 'the website itself',
+    description: 'traffic and nightly jobs',
     pages: [
       { to: '/admin/analytics', label: 'Analytics' },
-      { to: '/admin/jobs', label: 'Jobs', alias: true },
+      { to: '/admin/jobs', label: 'Jobs' },
     ],
   },
 ]
@@ -156,31 +149,30 @@ export function currentPage(pages, pathname) {
 }
 
 /**
- * The page `pathname` is on within `area`, its own pages first, the
- * longest match among them (/admin/collection/add is Add, not Games).
+ * The page `pathname` is on within `area`, the longest match among its
+ * pages (/admin/collection/add is Add, not Games).
  */
 export function pageFor(area, pathname) {
-  const owned = area.pages.filter((page) => !page.alias)
-  return currentPage(owned, pathname) ?? currentPage(area.pages, pathname)
+  return currentPage(area.pages, pathname)
 }
 
 /**
- * The area a pathname belongs to: the area owning the page it is on (an
- * alias never decides), or Home for anything else under /admin, such as a
+ * The area a pathname belongs to: the one page-owning area (each page is in
+ * exactly one, so a page is never current in two places), or Home for anything else under /admin, such as a
  * mistyped URL, so the shell always has an area to show.
  */
 export function areaFor(pathname) {
   return (
     ADMIN_AREAS.find((area) =>
-      area.pages.some((page) => !page.alias && onPage(page, pathname)),
+      area.pages.some((page) => onPage(page, pathname)),
     ) ?? ADMIN_AREAS[0]
   )
 }
 
-/** A page by its path, from any area's own pages. */
+/** A page by its path, from any area. */
 export function pageAt(to) {
   for (const area of ADMIN_AREAS) {
-    const page = area.pages.find((p) => p.to === to && !p.alias)
+    const page = area.pages.find((p) => p.to === to)
     if (page) return page
   }
   return null

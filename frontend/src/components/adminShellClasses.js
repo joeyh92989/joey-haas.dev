@@ -85,7 +85,8 @@ export const MARK =
   'grid size-8 place-items-center rounded-[4px] border border-foreground bg-transparent font-mono text-[0.75rem] leading-[normal] font-medium text-foreground'
 
 export const AREA_ICON = 'text-base leading-[1.2]'
-const LABEL = 'font-sans text-[0.75rem] leading-[1.1]'
+const LABEL =
+  'font-sans text-[0.75rem] leading-[1.1] whitespace-normal text-center'
 /** An area's name under its icon (the rail, the account trigger). */
 export const AREA_LABEL = `${LABEL} font-normal`
 /** The tab bar's label is a weight heavier. */
@@ -112,8 +113,6 @@ export const SIDE_SMALL =
   'mt-1 block font-sans text-[0.75rem] leading-[normal] font-normal text-[color:var(--text-3)]'
 export const SIDE_KICKER = 'mt-4 px-3 pt-0 pb-2'
 export const SIDE_LIST = 'grid list-none gap-[2px]'
-export const SIDE_COUNT =
-  'ml-auto text-[0.75rem] font-normal text-[color:var(--text-3)]'
 
 /** The phone tab bar: fixed to the bottom, one equal target per area. */
 export const TABS =

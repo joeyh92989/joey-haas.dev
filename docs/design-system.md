@@ -365,7 +365,7 @@ rest of the naming rules.
 
 | Thing | Public | Admin | Notes |
 |---|---|---|---|
-| The area | My Shelf (masthead, page titles) | Shelf (area rail) | The one sanctioned difference: admin areas are bare nouns (Closet, Denver, Site). |
+| The area | My Shelf (masthead, page titles) | Shelf (area rail) | The one sanctioned difference: admin areas are plain names of what is inside (Closet, Outings, Site & jobs): Outings is the weekend plan and the spots, Site & jobs is Analytics and Jobs. |
 | All types together | Shelf, at `/shelf`, when built | Shelf | Decided 12 Nov; not built yet. |
 | Games list | Games, `/shelf/games` | Games, `/admin/shelf/games` | Built 13 Nov. Replaced the Collection tab. |
 | Comics list | Comics, `/shelf/comics` | Comics, `/admin/shelf/comics` | Built 13 Nov. |

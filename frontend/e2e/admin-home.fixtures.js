@@ -92,9 +92,10 @@ const STATUS = {
 
 /**
  * Routes `/api/**` for Home and Jobs. `posts` collects the POSTs, so a spec
- * can see what a click sent.
+ * can see what a click sent. `stopped` answers with no source runs at all,
+ * which reads as a schedule that has stopped.
  */
-export async function serveHome(page, { posts = [] } = {}) {
+export async function serveHome(page, { posts = [], stopped = false } = {}) {
   await page.route('**/api/**', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
@@ -121,7 +122,7 @@ export async function serveHome(page, { posts = [] } = {}) {
       case '/api/intake/counts':
         return json({ shelf: 3, closet: 105 })
       case '/api/physical/status':
-        return json(STATUS)
+        return json(stopped ? { sources: [] } : STATUS)
       case '/api/recommendations/store-list':
         return json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } })
       case '/api/spots/status':

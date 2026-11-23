@@ -11,7 +11,7 @@ import {
 import AreaCard, { AreaLead } from '../components/AreaCard.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import LoadState from '../components/LoadState.jsx'
-import JobsList, { NightlyStatus } from '../components/JobsList.jsx'
+import { NightlyStatus } from '../components/JobsList.jsx'
 import { StatusText } from '../components/JobStatusRow.jsx'
 import OutfitSwatches from '../components/OutfitSwatches.jsx'
 import SwapSheet from '../components/SwapSheet.jsx'
@@ -36,7 +36,7 @@ import { adminCopy } from '../content/adminCopy.js'
 const COULDNT_READ = 'Couldn’t read'
 
 /** The cards in page order, as the top line names them. */
-const AREAS = ['Closet', 'Shelf', 'Denver', 'Site']
+const AREAS = ['Closet', 'Shelf', 'Outings', 'Site & jobs']
 
 /**
  * `{body}` (null when it cannot be read or does not answer within the
@@ -412,7 +412,7 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
   )
 }
 
-/** Denver: this weekend's first suggestions, and the spots and the queue. */
+/** Outings: this weekend's first suggestions, and the spots and the queue. */
 function DenverCard({ round, onFailure }) {
   const [plan, planEnded, planFailed] = useRead('/api/spots/plan', round)
   const [spots, spotsEnded, spotsFailed] = useRead('/api/spots', round)
@@ -422,7 +422,7 @@ function DenverCard({ round, onFailure }) {
   )
   const failed = planFailed || spotsFailed || candidatesFailed
   useReportFailure(
-    'Denver',
+    'Outings',
     failed,
     planEnded || spotsEnded || candidatesEnded,
     onFailure,
@@ -475,7 +475,7 @@ function DenverCard({ round, onFailure }) {
 /** Site: the last seven days' traffic and the nightly jobs in one line. */
 function SiteCard({ nightly, round, onFailure }) {
   const [views, viewsEnded, failed] = useRead('/api/analytics?range=7d', round)
-  useReportFailure('Site', failed, viewsEnded, onFailure)
+  useReportFailure('Site & jobs', failed, viewsEnded, onFailure)
   const read = typeof views?.views === 'number' ? views : null
   // Ranked rows from analytics._ranked: {value, count}.
   const top = read?.pages?.[0]?.value ?? null
@@ -491,6 +491,8 @@ function SiteCard({ nightly, round, onFailure }) {
           <p className={`area-card-meta ${AREA_META}`}>
             <StatusText state={summary.state}>{summary.words}</StatusText>
           </p>
+        ) : nightly.loaded ? (
+          <p className="muted">{adminCopy.dashboard.nightlyUnread}</p>
         ) : null
       }
       figures={[
@@ -509,7 +511,8 @@ function SiteCard({ nightly, round, onFailure }) {
 
 /**
  * Admin Home, at /admin: one card per area with the one thing that matters
- * today, then the nightly jobs. AdminLayout has already checked the session
+ * today; the Site card sums up the nightly jobs and links to Jobs.
+ * AdminLayout has already checked the session
  * and loads the rows.
  */
 export default function Admin() {
@@ -563,22 +566,13 @@ export default function Admin() {
           round={rounds.Shelf ?? 0}
           onFailure={onFailure}
         />
-        <DenverCard round={rounds.Denver ?? 0} onFailure={onFailure} />
+        <DenverCard round={rounds.Outings ?? 0} onFailure={onFailure} />
         <SiteCard
           nightly={nightly}
-          round={rounds.Site ?? 0}
+          round={rounds['Site & jobs'] ?? 0}
           onFailure={onFailure}
         />
       </div>
-
-      <JobsList
-        nightly={nightly}
-        action={
-          <Link to="/admin/jobs">
-            {adminCopy.dashboard.jobs} <span aria-hidden="true">→</span>
-          </Link>
-        }
-      />
     </section>
   )
 }

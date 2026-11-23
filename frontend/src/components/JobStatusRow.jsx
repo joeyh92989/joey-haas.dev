@@ -1,16 +1,20 @@
 import { Link } from 'react-router'
 import { adminCopy } from '../content/adminCopy.js'
-import { whenWords } from '../lib/nightly.js'
+import { relativeWords, whenWords } from '../lib/nightly.js'
 import { useJobRun } from '../lib/useJobRun.js'
 import {
   JOB_ACTIONS,
-  JOB_LABEL,
+  JOB_ACTIONS_INNER,
+  JOB_CELL_LABEL,
+  JOB_DISTANCE,
+  JOB_EXACT,
+  JOB_NAME,
+  JOB_PURPOSE,
   JOB_RESULT,
   JOB_RESULT_FAILED,
-  JOB_STATE,
   JOB_ROW,
+  JOB_STATE_CELL,
   JOB_SUMMARY,
-  JOB_TEXT,
   JOB_WHEN,
   LINK,
   LINK_BUTTON,
@@ -65,10 +69,11 @@ export function StatusText({ state, children, className, strong = false }) {
 }
 
 /**
- * One nightly job in the Dashboard's panel: when it last ran, what it is,
- * its state, and a link to the page that shows it ("Open Radar"). The link
- * only navigates. A job given `run` also has a "Run now" button that starts
- * it from the row, with the link kept beside it.
+ * One nightly job, a row of the Jobs table: its name, what it does, when it
+ * last ran and next runs, its state, and a link to the page that shows it
+ * ("Open Radar"). The link only navigates. A job given `run` also has a "Run
+ * now" button that starts it from the row, with the link kept beside it.
+ * Stacked below 1180px, each time carries its own small label.
  *
  * @param {object} props
  * @param {ReturnType<typeof import('../lib/nightly.js').nightlyJobs>[number]} props.job
@@ -76,69 +81,108 @@ export function StatusText({ state, children, className, strong = false }) {
  * @param {{path: string, body?: object}} [props.run] The job's start call.
  * @param {() => void} [props.onRan] Called after a run ends, to read the
  *   status again.
+ * @param {number} [props.now] The page's clock, for the distances.
  */
-export default function JobStatusRow({ job, extra, run, onRan }) {
+export default function JobStatusRow({ job, extra, run, onRan, now }) {
   if (run)
-    return <RunnableRow job={job} extra={extra} run={run} onRan={onRan} />
-  return <RowBody job={job} extra={extra} />
+    return (
+      <RunnableRow job={job} extra={extra} run={run} onRan={onRan} now={now} />
+    )
+  return <RowBody job={job} extra={extra} now={now} />
 }
 
 /** The row with its run state, which lives here and not in the list. */
-function RunnableRow({ job, extra, run, onRan }) {
+function RunnableRow({ job, extra, run, onRan, now }) {
   const control = useJobRun({
     path: run.path,
     body: run.body,
     onSettled: onRan,
   })
-  return <RowBody job={job} extra={extra} control={control} />
+  return <RowBody job={job} extra={extra} control={control} now={now} />
 }
 
-function RowBody({ job, extra, control }) {
+/** A time as its distance over its exact moment; `empty` words a null. */
+function TimeCell({ label, at, now, empty, className }) {
+  return (
+    <td role="cell" className={cx(className, JOB_WHEN)}>
+      <span className={JOB_CELL_LABEL} aria-hidden="true">
+        {label}
+      </span>
+      {at === null || at === undefined ? (
+        <span className={JOB_DISTANCE}>{empty}</span>
+      ) : (
+        <>
+          <span className={JOB_DISTANCE}>{relativeWords(at, now)}</span>
+          <span className={JOB_EXACT}>{whenWords(at)}</span>
+        </>
+      )}
+    </td>
+  )
+}
+
+function RowBody({ job, extra, control, now }) {
   const words = job.runWords ?? `Open ${job.label}`
   const running = control?.state === 'running'
   return (
-    <li className={`job-row ${JOB_ROW}`}>
-      <span className={`job-when ${JOB_WHEN}`}>
-        {job.at === null ? '—' : whenWords(job.at)}
-      </span>
-      <span className={`job-text ${JOB_TEXT}`}>
-        <span className={`job-label ${JOB_LABEL}`}>{job.label}</span>
+    <tr role="row" className={`job-row ${JOB_ROW}`}>
+      <th scope="row" role="rowheader" className={`job-label ${JOB_NAME}`}>
+        {job.label}
+      </th>
+      <td role="cell" className={JOB_PURPOSE}>
+        {job.purpose}
+      </td>
+      <TimeCell
+        label="Last run"
+        at={job.at}
+        now={now}
+        empty="Not yet"
+        className="job-last"
+      />
+      <TimeCell
+        label="Next run"
+        at={job.next}
+        now={now}
+        empty="Not scheduled"
+        className="job-next"
+      />
+      <td role="cell" className={JOB_STATE_CELL}>
+        <span className={JOB_CELL_LABEL} aria-hidden="true">
+          Status
+        </span>
+        <StatusText state={job.state}>{job.stateWords}</StatusText>
         <span className={`job-summary ${JOB_SUMMARY}`}>
           {job.summary}
           {extra}
         </span>
         {control && <JobResult control={control} />}
-      </span>
-      <StatusText state={job.state} className={JOB_STATE}>
-        {job.stateWords}
-      </StatusText>
-      {job.runNow || control ? (
-        <span className={`job-actions ${JOB_ACTIONS}`}>
-          {control && (
-            <button
-              type="button"
-              className={`job-run job-run-button ${LINK_BUTTON}`}
-              disabled={running}
-              aria-busy={running}
-              onClick={control.start}
-            >
-              {running ? copy.running : copy.run}
-              <span className="visually-hidden">{`: ${job.label}`}</span>
-            </button>
-          )}
-          {job.runNow && (
-            <Link to={job.runNow} className={`job-run ${LINK}`}>
-              {words}
-              {!words.includes(job.label) && (
+      </td>
+      <td role="cell" className={`job-actions ${JOB_ACTIONS}`}>
+        {job.runNow || control ? (
+          <span className={JOB_ACTIONS_INNER}>
+            {control && (
+              <button
+                type="button"
+                className={`job-run job-run-button ${LINK_BUTTON}`}
+                disabled={running}
+                aria-busy={running}
+                onClick={control.start}
+              >
+                {running ? copy.running : copy.run}
                 <span className="visually-hidden">{`: ${job.label}`}</span>
-              )}
-            </Link>
-          )}
-        </span>
-      ) : (
-        <span />
-      )}
-    </li>
+              </button>
+            )}
+            {job.runNow && (
+              <Link to={job.runNow} className={`job-run ${LINK}`}>
+                {words}
+                {!words.includes(job.label) && (
+                  <span className="visually-hidden">{`: ${job.label}`}</span>
+                )}
+              </Link>
+            )}
+          </span>
+        ) : null}
+      </td>
+    </tr>
   )
 }
 

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   DISCOVER_STALE_HOURS,
+  JOB_INFO,
   lastNightly,
+  nextRunAt,
   nightlyHeadline,
   nightlyJobs,
+  relativeWords,
   STALE_HOURS,
 } from './nightly.js'
 
@@ -597,6 +600,69 @@ describe('nightlyJobs', () => {
       byKey(nightlyJobs(summary(), hoursAgo(hours), NOW)).snapshot.state
     expect(at(STALE_HOURS - 1)).toBe('ok')
     expect(at(STALE_HOURS + 1)).toBe('stale')
+  })
+})
+
+describe('every job says what it does and when it runs', () => {
+  const rows = nightlyJobs(summary(), null, NOW)
+
+  it('gives each of the thirteen jobs a purpose, a schedule and a next run', () => {
+    expect(rows).toHaveLength(13)
+    for (const row of rows) {
+      expect(row.purpose, row.key).toMatch(/^[A-Z].*\.$/)
+      expect(['nightly', 'sunday'], row.key).toContain(row.schedule)
+      expect(row.next, row.key).toBeGreaterThan(NOW)
+    }
+  })
+
+  it('has a JOB_INFO entry for no job that is not a row', () => {
+    expect(Object.keys(JOB_INFO).sort()).toEqual(rows.map((r) => r.key).sort())
+  })
+
+  it('keeps the weekly jobs to Sunday evening', () => {
+    expect(
+      rows.filter((r) => r.schedule === 'sunday').map((r) => r.key),
+    ).toEqual(['discover', 'spots', 'closet-opinions'])
+  })
+})
+
+describe('nextRunAt', () => {
+  it('is the next 00:17 UTC for a nightly job', () => {
+    expect(nextRunAt('nightly', Date.parse('2026-11-23T10:00:00Z'))).toBe(
+      Date.parse('2026-11-24T00:17:00Z'),
+    )
+    expect(nextRunAt('nightly', Date.parse('2026-11-23T00:10:00Z'))).toBe(
+      Date.parse('2026-11-23T00:17:00Z'),
+    )
+  })
+
+  it('never returns the moment it is asked at', () => {
+    const at = Date.parse('2026-11-23T00:17:00Z')
+    expect(nextRunAt('nightly', at)).toBe(Date.parse('2026-11-24T00:17:00Z'))
+  })
+
+  it('is the next Monday 00:17 UTC (Sunday evening in Denver) for a Sunday job', () => {
+    // Monday 2026-11-23, after the start: the next one is a week on.
+    expect(nextRunAt('sunday', Date.parse('2026-11-23T10:00:00Z'))).toBe(
+      Date.parse('2026-11-30T00:17:00Z'),
+    )
+    expect(nextRunAt('sunday', Date.parse('2026-11-26T10:00:00Z'))).toBe(
+      Date.parse('2026-11-30T00:17:00Z'),
+    )
+  })
+})
+
+describe('relativeWords', () => {
+  const now = Date.parse('2026-11-23T12:00:00Z')
+  it.each([
+    [now - 20_000, 'just now'],
+    [now - 5 * 60_000, '5 minutes ago'],
+    [now - 3 * 3600_000, '3 hours ago'],
+    [now + 8 * 3600_000, 'in 8 hours'],
+    [now - 3 * 86400_000, '3 days ago'],
+    [now + 6 * 86400_000, 'in 6 days'],
+  ])('reads %s as %s', (ms, words) => {
+    expect(relativeWords(ms, now)).toBe(words)
   })
 })
 

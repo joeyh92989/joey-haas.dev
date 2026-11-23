@@ -67,6 +67,11 @@ for (const path of ROUTES) {
             const inner = document.documentElement.clientWidth
             const wide = [...document.querySelectorAll('body *')]
               .filter((el) => el.getBoundingClientRect().right > inner + 0.5)
+              // A head read by assistive tech only (sr-only) is clipped.
+              .filter((el) => {
+                const head = el.closest('thead')
+                return !(head && getComputedStyle(head).position === 'absolute')
+              })
               .filter((el) => {
                 for (let p = el.parentElement; p; p = p.parentElement) {
                   const overflow = getComputedStyle(p).overflowX
@@ -102,24 +107,108 @@ for (const path of ROUTES) {
   }
 }
 
-// A job that has never run leaves no wide empty column: the job's name starts
-// at the row's left edge.
-test('job rows start with the job at 1280px', async ({
+// The Jobs table (#488): a job that has never run leaves no wide empty
+// column. The name starts at the row's left edge, every column has a visible
+// header, and each row says what it does and when it last and next runs.
+test('job rows are a table with headers and start with the job at 1280px', async ({
   page,
   openRoute,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
   await open(page, openRoute, '/admin/jobs', 'light', 1280)
+  const headers = page.locator('main .job-list thead th')
+  await expect(headers).toHaveText([
+    'Job',
+    'What it does',
+    'Last run',
+    'Next run',
+    'Status',
+    'Actions',
+  ])
+  for (const header of await headers.all()) await expect(header).toBeVisible()
   const gaps = await page.evaluate(() =>
     [...document.querySelectorAll('main .job-row')].map((row) => ({
       job: row.querySelector('.job-label').textContent,
       gap:
         row.querySelector('.job-label').getBoundingClientRect().left -
         row.getBoundingClientRect().left,
+      purpose: row.querySelectorAll('td')[0].textContent.trim().length,
+      last: row.querySelector('.job-last').textContent.trim().length,
+      next: row.querySelector('.job-next').textContent.trim().length,
     })),
   )
-  expect(gaps.length).toBeGreaterThan(8)
+  expect(gaps.length).toBe(13)
   expect(gaps.filter((g) => g.gap > 24)).toEqual([])
+  expect(gaps.filter((g) => !g.purpose || !g.last || !g.next)).toEqual([])
+})
+
+// On a phone the table is stacked rows with the time labels visible, and the
+// header is for assistive tech only.
+test('job rows stack with their time labels at 320px', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+  await open(page, openRoute, '/admin/jobs', 'light', 320)
+  const row = page.locator('main .job-row').first()
+  await expect(row.getByText('Last run', { exact: true })).toBeVisible()
+  await expect(row.getByText('Next run', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('main .job-list thead th').first(),
+  ).not.toBeInViewport()
+})
+
+// #492: Jobs lives in one place, and the highlight never changes under the
+// user.
+test('Jobs is listed once: on its page, not on Home', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+  await open(page, openRoute, '/admin', 'light', 1280)
+  await expect(page.locator('main .job-list')).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Nightly jobs' })).toHaveCount(
+    0,
+  )
+  await openRoute('/admin/jobs', 'light')
+  await expect(page.locator('main .job-list')).toHaveCount(1)
+})
+
+for (const width of [393, 1280]) {
+  test(`the rail marks Site & jobs, and Jobs in its list, on /admin/jobs at ${width}px`, async ({
+    page,
+    openRoute,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+    await open(page, openRoute, '/admin/jobs', 'light', width)
+    const areas = page.getByRole('navigation', { name: 'Areas' })
+    await expect(areas.locator('[aria-current="true"]')).toHaveText(
+      /Site & jobs/,
+    )
+    await expect(areas.getByRole('link', { name: 'Home' })).not.toHaveAttribute(
+      'aria-current',
+      /.*/,
+    )
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Site & jobs pages' })
+        .getByRole('link', { name: 'Jobs' }),
+    ).toHaveAttribute('aria-current', 'page')
+  })
+}
+
+test('the re-enable link is marked as opening GitHub', async ({
+  page,
+  openRoute,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
+  await serveHome(page, { stopped: true })
+  await openRoute('/admin/jobs', 'light')
+  const link = page.getByRole('link', { name: /how to re-enable it/ })
+  await expect(link).toHaveAttribute('target', '_blank')
+  await expect(link).toHaveAttribute('rel', /noopener/)
+  await expect(link).toContainText('opens GitHub in a new tab')
+  await expect(link).toContainText('↗')
 })
 
 // #276: on a phone a control is 44px tall. Measured, so a rule that loses to
@@ -418,7 +507,11 @@ test('every table cell has its role', async ({ page, openRoute }, testInfo) => {
   await open(page, openRoute, '/admin/jobs', 'light', 390)
   const bad = await page.evaluate(() => [
     ...[...document.querySelectorAll('main th')]
-      .filter((el) => el.getAttribute('role') !== 'columnheader')
+      .filter(
+        (el) =>
+          el.getAttribute('role') !==
+          (el.closest('tbody') ? 'rowheader' : 'columnheader'),
+      )
       .map(() => 'th'),
     ...[...document.querySelectorAll('main td')]
       .filter((el) => el.getAttribute('role') !== 'cell')

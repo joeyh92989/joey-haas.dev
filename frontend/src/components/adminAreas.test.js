@@ -23,7 +23,7 @@ function appAdminPaths() {
   return block.includes('<Route index') ? ['/admin', ...children] : children
 }
 
-const owned = (area) => area.pages.filter((page) => !page.alias)
+const owned = (area) => area.pages
 
 describe('ADMIN_AREAS', () => {
   it('lists the areas in their fixed order', () => {
@@ -31,8 +31,8 @@ describe('ADMIN_AREAS', () => {
       'Home',
       'Shelf',
       'Closet',
-      'Denver',
-      'Site',
+      'Outings',
+      'Site & jobs',
     ])
   })
 
@@ -49,7 +49,7 @@ describe('ADMIN_AREAS', () => {
     }
   })
 
-  it('routes every page it lists, aliases included', () => {
+  it('routes every page it lists', () => {
     const paths = new Set(appAdminPaths())
     for (const area of ADMIN_AREAS) {
       for (const page of area.pages) expect(paths, page.to).toContain(page.to)
@@ -113,11 +113,21 @@ describe('Add pages', () => {
   })
 })
 
+describe('Jobs', () => {
+  it('is listed in exactly one area, and Home does not list it', () => {
+    const lists = ADMIN_AREAS.filter((area) =>
+      area.pages.some((page) => page.to === '/admin/jobs'),
+    )
+    expect(lists.map((area) => area.key)).toEqual(['site'])
+  })
+})
+
 describe('areaFor', () => {
   it.each([
     ['/admin', 'home', 'Home'],
     ['/admin/', 'home', 'Home'],
-    ['/admin/jobs', 'home', 'Jobs'],
+    ['/admin/jobs', 'site', 'Jobs'],
+    ['/admin/analytics', 'site', 'Analytics'],
     ['/admin/shelf/games', 'shelf', 'Games'],
     ['/admin/shelf/comics', 'shelf', 'Comics'],
     // The old list path and the item edit pages, which have not moved.

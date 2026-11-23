@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -10,6 +10,8 @@ const job = (overrides) => ({
   label: 'Radar',
   at: Date.parse('2026-10-05T00:44:00Z'),
   summary: 'Upcoming releases',
+  purpose: 'Builds the list of games and comics coming out soon.',
+  next: Date.parse('2026-10-06T00:17:00Z'),
   state: 'ok',
   runNow: '/admin/radar',
   ...overrides,
@@ -18,9 +20,11 @@ const job = (overrides) => ({
 function renderRow(props) {
   return render(
     <MemoryRouter>
-      <ul>
-        <JobStatusRow {...props} />
-      </ul>
+      <table>
+        <tbody>
+          <JobStatusRow {...props} />
+        </tbody>
+      </table>
     </MemoryRouter>,
   )
 }
@@ -39,23 +43,48 @@ describe('StatusText', () => {
 })
 
 describe('JobStatusRow', () => {
-  it('shows the time, label, summary, state and a named Open link, never Run now', () => {
-    renderRow({ job: job({ state: 'stale' }) })
-    const row = screen.getByRole('listitem')
-    expect(row).toHaveTextContent('Radar')
+  it('shows the name, purpose, both times, state and a named Open link, never Run now', () => {
+    renderRow({
+      job: job({ state: 'stale' }),
+      now: Date.parse('2026-10-05T03:44:00Z'),
+    })
+    const row = screen.getByRole('row')
+    expect(
+      within(row).getByRole('rowheader', { name: 'Radar' }),
+    ).toBeInTheDocument()
+    expect(row).toHaveTextContent('Builds the list of games')
     expect(row).toHaveTextContent('Upcoming releases')
     expect(row).toHaveTextContent('stale')
-    expect(row).toHaveTextContent(/\d{1,2}:\d{2}/)
+    // Last run as a distance, with the exact time under it.
+    const last = row.querySelector('.job-last')
+    expect(last).toHaveTextContent('3 hours ago')
+    expect(last).toHaveTextContent(/\d{1,2}:\d{2}/)
+    const next = row.querySelector('.job-next')
+    expect(next).toHaveTextContent('in 21 hours')
     expect(screen.getByRole('link', { name: 'Open Radar' })).toHaveAttribute(
       'href',
       '/admin/radar',
     )
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('shows a dash with no time and no link without a trigger', () => {
+  it('says Not yet with no last run, and has no dash or link without a trigger', () => {
     renderRow({ job: job({ at: null, runNow: null, state: 'unknown' }) })
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getByText('Not yet')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('labels each time for the stacked layout, hidden from assistive tech', () => {
+    renderRow({ job: job() })
+    const labels = [
+      ...screen.getByRole('row').querySelectorAll('[aria-hidden]'),
+    ]
+      .map((el) => el.textContent)
+      .filter(Boolean)
+    expect(labels).toEqual(
+      expect.arrayContaining(['Last run', 'Next run', 'Status']),
+    )
   })
 
   it('adds the extra after the summary', () => {
