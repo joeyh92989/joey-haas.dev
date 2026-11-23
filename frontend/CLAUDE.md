@@ -102,6 +102,16 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   (`components/adminAreas.js`) and in `ADMIN_ROUTES` (`prerender-lib.mjs`),
   and titles itself through `AdminPageHeader`. Admin pages build from
   `StatTile`, `Panel` and `JobStatusRow`; Home is one `AreaCard` per area.
+  **Jobs lives in one place:** `/admin/jobs` (the Site & jobs area), as a
+  table (Job, What it does, Last run, Next run, Status, Actions; stacked rows
+  with visible labels below 1180px). Home shows no jobs list: its Site & jobs
+  card sums them up and links to Jobs. A page is listed in exactly one area,
+  so the rail never highlights a different area than the page's own. A new
+  job needs a `JOB_INFO` entry in `lib/nightly.js` (purpose sentence and
+  `nightly` or `sunday` schedule); a test fails without it. **The shell shows
+  no list counts** (no owned count beside Games): only the to-do badges
+  (`badge` on a page, the area badges), which come from requests the layout
+  already makes.
   The shell's controls (rail and tab-bar area links, page links, segments, the
   account trigger and its rows, the sign-in link) are the Button look from
   `components/adminShellClasses.js`, built on `ui/button-variants.js`: that

@@ -101,7 +101,7 @@ describe('AdminLayout session states', () => {
     expect(await screen.findByText('You are signed out.')).toBeInTheDocument()
   })
 
-  it('reloads the rows behind the sidebar count when a page asks (#489)', async () => {
+  it('reloads the rows when a page asks (#489)', async () => {
     const fetch = stubApi({
       items: [{ id: 'a', type: 'game', owned_format: 'physical' }],
     })
@@ -219,20 +219,18 @@ describe('AdminLayout session states', () => {
 })
 
 describe('AdminLayout rows', () => {
-  it('counts owned games beside Games, leaving out the want list and comics', async () => {
+  it('shows no count beside Games, and the page still gets every row', async () => {
     stubApi({
       items: [
         { id: 1, type: 'game', owned_format: 'cartridge' },
         { id: 2, type: 'game', owned_format: null },
-        { id: 3, type: 'game', owned_format: 'none' },
-        { id: 4, type: 'comic', owned_format: 'physical' },
       ],
     })
     renderAt('/admin/shelf/games')
-    expect(
-      await screen.findByRole('link', { name: 'Games, 2 owned' }),
-    ).toBeInTheDocument()
-    expect(screen.getByTestId('page')).toHaveTextContent('4 rows')
+    await waitFor(() =>
+      expect(screen.getByTestId('page')).toHaveTextContent('2 rows'),
+    )
+    expect(screen.getByRole('link', { name: 'Games' })).toBeInTheDocument()
   })
 
   it('keeps the page up when the rows cannot be loaded', async () => {

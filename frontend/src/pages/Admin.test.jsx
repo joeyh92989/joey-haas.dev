@@ -6,7 +6,6 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ownerYear } from '../lib/formatDate.js'
@@ -278,10 +277,10 @@ describe('Admin Home', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('leads Denver with the weekend, and links the candidates', async () => {
+  it('leads Outings with the weekend, and links the candidates', async () => {
     stubApi()
     renderAt()
-    const denver = await card('Denver')
+    const denver = await card('Outings')
     expect(
       await within(denver).findByText('Saturday morning · Chautauqua'),
     ).toBeInTheDocument()
@@ -297,7 +296,7 @@ describe('Admin Home', () => {
     ).toHaveAttribute('href', '/admin/spots')
   })
 
-  it('hides Denver with no spots and no weekend', async () => {
+  it('hides Outings with no spots and no weekend', async () => {
     stubApi({
       '/api/spots/plan': () => json({ suggestions: [] }),
       '/api/spots': () => json([]),
@@ -306,7 +305,7 @@ describe('Admin Home', () => {
     await card('Shelf')
     await waitFor(() =>
       expect(
-        screen.queryByRole('region', { name: 'Denver' }),
+        screen.queryByRole('region', { name: 'Outings' }),
       ).not.toBeInTheDocument(),
     )
   })
@@ -314,17 +313,16 @@ describe('Admin Home', () => {
   it("reads Site's traffic and sums up the jobs", async () => {
     stubApi()
     renderAt()
-    const site = await card('Site')
+    const site = await card('Site & jobs')
     await waitFor(() =>
       expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
     )
     expect(figureOf(site, 'Visitors')).toHaveTextContent('7')
     expect(figureOf(site, 'Top page')).toHaveTextContent('/daily')
     expect(await within(site).findByText(/jobs ok/)).toBeInTheDocument()
-    expect(within(site).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
-      'href',
-      '/admin/jobs',
-    )
+    expect(
+      within(site).getByRole('link', { name: 'All jobs' }),
+    ).toHaveAttribute('href', '/admin/jobs')
   })
 
   it('names the reads that failed, says so on the card, and keeps the page', async () => {
@@ -339,7 +337,7 @@ describe('Admin Home', () => {
     })
     renderAt()
     expect(await screen.findByText('API unreachable')).toBeInTheDocument()
-    const site = await card('Site')
+    const site = await card('Site & jobs')
     await waitFor(() =>
       expect(figureOf(site, 'Views · 7 days')).toHaveTextContent(
         'Couldn’t read',
@@ -348,7 +346,7 @@ describe('Admin Home', () => {
     const shelf = await card('Shelf')
     expect(within(shelf).getByText('Couldn’t read')).toBeInTheDocument()
     expect(
-      await screen.findByText('Couldn’t read: Shelf, Site.'),
+      await screen.findByText('Couldn’t read: Shelf, Site & jobs.'),
     ).toBeInTheDocument()
     expect(
       screen.getByText('The nightly status couldn’t be read.'),
@@ -374,7 +372,9 @@ describe('Admin Home', () => {
           : json({}, false),
     })
     renderAt()
-    expect(await screen.findByText('Couldn’t read: Site.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Couldn’t read: Site & jobs.'),
+    ).toBeInTheDocument()
     const calls = (path) =>
       fetch.mock.calls.filter(([url]) => String(url).endsWith(path)).length
     expect(calls('/api/analytics?range=7d')).toBe(1)
@@ -382,7 +382,7 @@ describe('Admin Home', () => {
 
     analyticsUp = true
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    const site = await card('Site')
+    const site = await card('Site & jobs')
     await waitFor(() =>
       expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
     )
@@ -462,64 +462,17 @@ describe('Admin Home', () => {
     expect(figureOf(shelf, 'Owned')).toHaveTextContent('—')
   })
 
-  it('lists the nightly jobs, linked to the Jobs page', async () => {
+  it('does not list the jobs: they live on the Jobs page, and the Site card links there', async () => {
     stubApi()
     renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    expect(await within(panel).findAllByRole('listitem')).toHaveLength(13)
-    expect(within(panel).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
-      'href',
-      '/admin/jobs',
-    )
-  })
-
-  it('gives four rows a Run now button and the rest only their link', async () => {
-    stubApi()
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
-    const withButton = rows
-      .filter((row) => within(row).queryByRole('button', { name: /Run now/ }))
-      .map(
-        (row) =>
-          within(row).getByText(/./, { selector: '.job-label' }).textContent,
-      )
-    expect(withButton).toEqual([
-      'Radar',
-      'Weekend forecast',
-      'Comic refresh',
-      'Comic issues',
-    ])
-    expect(within(panel).getAllByRole('button')).toHaveLength(4)
-    // The Open link stays beside the button.
+    const site = await card('Site & jobs')
     expect(
-      within(panel).getByRole('link', { name: 'Open Radar' }),
-    ).toBeInTheDocument()
-  })
-
-  it('starts a run from its row, then reads the status again', async () => {
-    const fetch = stubApi({
-      '/api/comics/refresh': () => json({ refreshed: 3, errors: [] }),
-    })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const row = (await within(panel).findAllByRole('listitem'))[9]
-    const before = fetch.mock.calls.filter(([url]) =>
-      String(url).endsWith('/api/comics/status'),
-    ).length
-    await userEvent.click(within(row).getByRole('button', { name: /Run now/ }))
-    await waitFor(() => expect(row).toHaveTextContent(/Done, /))
-    const post = fetch.mock.calls.find(([url]) =>
-      String(url).endsWith('/api/comics/refresh'),
-    )
-    expect(post[1].method).toBe('POST')
-    await waitFor(() =>
-      expect(
-        fetch.mock.calls.filter(([url]) =>
-          String(url).endsWith('/api/comics/status'),
-        ).length,
-      ).toBeGreaterThan(before),
-    )
+      screen.queryByRole('region', { name: 'Nightly jobs' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(
+      within(site).getByRole('link', { name: 'All jobs' }),
+    ).toHaveAttribute('href', '/admin/jobs')
   })
 
   const TODAY = {

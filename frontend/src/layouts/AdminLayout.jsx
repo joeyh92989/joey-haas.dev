@@ -22,8 +22,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
 /**
- * Loads the admin rows: the shell's owned count and Home's
- * figures. Null until loaded, and left null when the request fails, since
+ * Loads the admin rows: Home's figures. Null until loaded, and left null when the request fails, since
  * every page that needs the rows to work loads its own.
  */
 async function loadItems() {
@@ -243,7 +242,7 @@ export default function AdminLayout() {
     }
   }, [signedIn, inAdd])
 
-  /** Reloads the rows behind the sidebar's owned-games count. */
+  /** Reloads the rows Home and the pages read. */
   function refreshItems() {
     loadItems().then((rows) => {
       if (rows) setItems(rows)
@@ -297,15 +296,9 @@ export default function AdminLayout() {
   }
 
   if (signedIn) {
-    const owned = items
-      ? items.filter(
-          (item) => item.type === 'game' && item.owned_format !== 'none',
-        ).length
-      : null
     return (
       <AdminShell
         email={email}
-        ownedCount={owned}
         onSignOut={signOut}
         signOutPending={signingOut}
         signOutFailed={signOutFailed}

@@ -130,38 +130,62 @@ export const PLAIN = `${btn('plain', 'sm')} ${CALM}`
 /** A button that looks like its neighbour link ("Change", "Run now"). */
 export const LINK_BUTTON = `${LINK} disabled:pointer-events-auto! disabled:cursor-not-allowed disabled:aria-busy:cursor-progress! disabled:text-muted-foreground! disabled:no-underline disabled:opacity-100! disabled:hover:no-underline`
 
-/** The jobs list: no bullets. */
-export const JOB_LIST = 'm-0 list-none p-0'
+/**
+ * The jobs table: six columns (job, what it does, last run, next run, status,
+ * actions) from 1180px, where the main column is about 880px wide. Below that
+ * each row is stacked: the job and what it does across the top, the two times
+ * side by side under their own small labels, then the status and the actions.
+ * The head is read by assistive tech only when stacked. No column is empty: a
+ * job that has never run says so in its time cell.
+ */
+export const JOB_LIST = 'w-full border-collapse text-sm max-[1179px]:block'
 
-/** A job row. A phone stacks the time, the job, then the state and the
- *  actions. From 1000px (the rail and page list narrow the main column, so it
- *  is not 700) the time sits over the job at the left and the state and the
- *  actions stand to its right: no column is a fixed width, so a job that has
- *  never run leaves no wide empty one. */
+export const JOB_HEAD = 'max-[1179px]:sr-only'
+
+export const JOB_BODY = 'max-[1179px]:block'
+
 export const JOB_ROW =
-  'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-t border-line-card py-3 text-sm first:border-t-0 min-[1000px]:grid-cols-[minmax(0,1fr)_auto_auto]'
+  'group/row max-[1179px]:grid max-[1179px]:grid-cols-2 max-[1179px]:gap-x-3 max-[1179px]:gap-y-2 max-[1179px]:border-t max-[1179px]:border-line-card max-[1179px]:py-3 max-[1179px]:first:border-t-0'
 
-export const JOB_WHEN =
-  'col-span-full font-mono text-xs whitespace-nowrap text-muted-foreground min-[1000px]:col-span-1 min-[1000px]:col-start-1 min-[1000px]:row-start-1'
+export const JOB_HEAD_CELL =
+  'border-b border-line-card px-3 py-2 text-left font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase'
 
-export const JOB_TEXT =
-  'col-span-full flex min-w-0 flex-col [overflow-wrap:anywhere] min-[1000px]:col-span-1 min-[1000px]:col-start-1 min-[1000px]:row-start-2'
+/** A cell: a top rule between rows from 1180px, none when stacked. */
+const JOB_CELL =
+  'min-w-0 border-t border-line-card px-3 py-3 text-left align-top group-first/row:border-t-0 max-[1179px]:border-t-0 max-[1179px]:p-0'
 
-/** The state and the actions, beside the pair at the left. */
-export const JOB_STATE =
-  'min-[1000px]:col-start-2 min-[1000px]:row-span-2 min-[1000px]:row-start-1'
+export const JOB_NAME = `${JOB_CELL} font-medium text-foreground [overflow-wrap:break-word] max-[1179px]:col-span-full`
 
-export const JOB_LABEL = 'text-foreground'
+export const JOB_PURPOSE = `${JOB_CELL} text-muted-foreground [overflow-wrap:anywhere] max-[1179px]:col-span-full`
+
+/** Last run and next run: the distance, then the exact time under it. */
+export const JOB_WHEN = `${JOB_CELL} min-[1180px]:whitespace-nowrap`
+
+export const JOB_STATE_CELL = `${JOB_CELL} [overflow-wrap:anywhere] max-[1179px]:col-span-full`
+
+/** The stacked layout's small label over a cell; hidden when the head shows. */
+export const JOB_CELL_LABEL =
+  'block font-mono text-xs tracking-wider text-muted-foreground uppercase min-[1180px]:hidden'
+
+export const JOB_DISTANCE = 'block text-foreground'
+
+export const JOB_EXACT = 'block font-mono text-xs text-muted-foreground'
 
 export const JOB_SUMMARY =
-  'text-[0.8125rem] text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-1 [&_a]:underline-offset-4'
+  'mt-1 block text-[0.8125rem] text-muted-foreground [&_a]:text-foreground [&_a]:underline [&_a]:decoration-primary [&_a]:decoration-1 [&_a]:underline-offset-4'
 
-export const JOB_ACTIONS =
-  'min-[1000px]:col-start-3 min-[1000px]:row-span-2 min-[1000px]:row-start-1 inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1'
+export const JOB_ACTIONS = `${JOB_CELL} max-[1179px]:col-span-full`
+
+/** The links and button in the actions cell, stacked from 1180px. */
+export const JOB_ACTIONS_INNER =
+  'flex flex-wrap items-center gap-x-3 gap-y-1 min-[1180px]:flex-col min-[1180px]:items-start'
 
 export const JOB_RESULT = 'text-[0.8125rem] text-muted-foreground empty:hidden'
 
 export const JOB_RESULT_FAILED = 'text-[0.8125rem] text-foreground'
+
+/** The line under the table: when the times are. */
+export const JOB_NOTE = 'mt-3 text-[0.8125rem] text-muted-foreground'
 
 /** The Jobs table: three short columns on the automatic layout, so spare
  *  width goes to each in proportion to its words and none is left empty.

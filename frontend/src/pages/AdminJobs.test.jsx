@@ -126,6 +126,10 @@ function stubApi(routes = {}) {
   return fetch
 }
 
+/** The body rows of the jobs table: every row but the header's. */
+const jobRows = async (panel) =>
+  (await within(panel).findAllByRole('row')).slice(1)
+
 const called = (fetch, path) =>
   fetch.mock.calls.some(([url]) => String(url).endsWith(path))
 
@@ -150,7 +154,7 @@ describe('Admin Jobs', () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows).toHaveLength(13)
     expect(rows[0]).toHaveTextContent('Sources refresh')
     expect(rows[0]).toHaveTextContent(/ok/)
@@ -193,11 +197,64 @@ describe('Admin Jobs', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('has headers, a purpose, and a last and next run on every row', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const table = await within(panel).findByRole('table')
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((th) => th.textContent),
+    ).toEqual([
+      'Job',
+      'What it does',
+      'Last run',
+      'Next run',
+      'Status',
+      'Actions',
+    ])
+    const rows = await jobRows(panel)
+    expect(rows[1].querySelector('.job-label')).toHaveTextContent('Radar')
+    for (const row of rows) {
+      expect(row.querySelectorAll('td')[0].textContent).toMatch(/\w{4}/)
+      expect(row.querySelector('.job-next')).toHaveTextContent(
+        /^Next run(in|tomorrow)/,
+      )
+      expect(row.querySelector('.job-last').textContent).not.toBe('')
+    }
+    // No first column holding only a dash.
+    expect(within(panel).queryByText('—')).not.toBeInTheDocument()
+    expect(rows[0]).toHaveTextContent('Pulls new physical releases')
+    expect(rows[2]).toHaveTextContent('Suggests games and comics')
+    expect(rows[2].querySelector('.job-next')).toHaveTextContent(/in \d+ days?/)
+  })
+
+  it('says Not yet for a job that has never run, in the time cell', async () => {
+    stubApi({
+      '/api/comics/status': () => json({}),
+    })
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    const rows = await jobRows(panel)
+    expect(rows[10].querySelector('.job-last')).toHaveTextContent('Not yet')
+  })
+
+  it('lists the jobs once on the page', async () => {
+    stubApi()
+    renderAt()
+    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
+    await within(panel).findByRole('table')
+    expect(
+      screen.getAllByRole('table').filter((t) => t.matches('.job-list')),
+    ).toHaveLength(1)
+  })
+
   it('gives four rows a Run now button and the rest only their link', async () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     const withButton = rows
       .filter((row) => within(row).queryByRole('button', { name: /Run now/ }))
       .map(
@@ -223,7 +280,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const row = (await within(panel).findAllByRole('listitem'))[9]
+    const row = (await jobRows(panel))[9]
     const before = fetch.mock.calls.filter(([url]) =>
       String(url).endsWith('/api/comics/status'),
     ).length
@@ -263,7 +320,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[9]).toHaveTextContent(
       'Failed: 1 of 3 series failed: Saga: HTTP 500',
     )
@@ -285,7 +342,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[3]).toHaveTextContent('Failed: NWS answered 503')
     expect(rows[4]).toHaveTextContent('First run Sunday evening')
     expect(rows[4]).toHaveTextContent('scheduled')
@@ -296,7 +353,7 @@ describe('Admin Jobs', () => {
     stubApi({ '/api/spots/status': () => json({}, false) })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows).toHaveLength(13)
     expect(rows[3]).toHaveTextContent('unknown')
     expect(rows[4]).toHaveTextContent('unknown')
@@ -307,7 +364,7 @@ describe('Admin Jobs', () => {
     stubApi({ '/api/closet/status': () => json({}, false) })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows).toHaveLength(13)
     expect(rows[5]).toHaveTextContent('unknown')
     expect(rows[6]).toHaveTextContent('unknown')
@@ -354,6 +411,20 @@ describe('Admin Jobs', () => {
     expect(screen.getByText(/^nightly stale/)).toBeInTheDocument()
   })
 
+  it('marks the re-enable link as leaving the site, for everyone', async () => {
+    stubApi({ '/api/physical/status': () => json(status({ sources: [] })) })
+    renderAt()
+    const link = await screen.findByRole('link', {
+      name: /how to re-enable it/i,
+    })
+    expect(link).toHaveAccessibleName(
+      'how to re-enable it, opens GitHub in a new tab',
+    )
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(link).toHaveTextContent('↗')
+  })
+
   it('still links how to re-enable it when the last, old night failed', async () => {
     stubApi({
       '/api/physical/status': () =>
@@ -385,7 +456,7 @@ describe('Admin Jobs', () => {
     stubApi({ '/snapshot/meta.json': () => json({}, false) })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[12]).toHaveTextContent('No build time recorded')
     expect(rows[12]).toHaveTextContent('unknown')
     // An unknown job does not drag the headline down.
@@ -398,7 +469,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[1]).toHaveTextContent('Not generated yet')
     expect(rows[1]).toHaveTextContent('unknown')
   })
@@ -437,7 +508,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[1]).toHaveTextContent('Upcoming releases')
     expect(rows[1]).toHaveTextContent('stale')
     expect(rows[2]).toHaveTextContent('Sunday evenings only')
@@ -448,7 +519,7 @@ describe('Admin Jobs', () => {
     stubApi({ '/snapshot/meta.json': () => json({ fetched_at: ago(40) }) })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await within(panel).findAllByRole('listitem')
+    const rows = await jobRows(panel)
     expect(rows[12]).toHaveTextContent('Rebuilt nightly')
     expect(rows[12]).toHaveTextContent('stale')
   })

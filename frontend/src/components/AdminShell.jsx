@@ -24,7 +24,6 @@ import {
   RAIL,
   RAIL_NAV,
   SIDE,
-  SIDE_COUNT,
   SIDE_KICKER,
   SIDE_LIST,
   SIDE_SMALL,
@@ -40,22 +39,6 @@ import {
 
 /** Below this width the rail and page list give way to tabs and segments. */
 export const PHONE_QUERY = '(max-width: 900px)'
-
-/**
- * The Collection link's owned count: shown beside the label, and read out
- * as part of it.
- */
-function OwnedCount({ value }) {
-  if (value === null || value === undefined) return null
-  return (
-    <>
-      <span className={SIDE_COUNT} aria-hidden="true">
-        {value}
-      </span>
-      <span className="visually-hidden">{`, ${value} owned`}</span>
-    </>
-  )
-}
 
 /**
  * An area's pending count as a warn badge, read out as part of the area's
@@ -155,7 +138,7 @@ function runs(pages) {
 }
 
 /** The desktop's second column: the current area's pages. */
-function AreaPages({ area, pathname, ownedCount, pageBadges }) {
+function AreaPages({ area, pathname, pageBadges }) {
   const here = currentPage(area.pages, pathname)
   return (
     <aside className={cx('admin-side', SIDE)}>
@@ -188,7 +171,6 @@ function AreaPages({ area, pathname, ownedCount, pageBadges }) {
                     className={pageLink}
                   >
                     {page.label}
-                    {page.count && <OwnedCount value={ownedCount} />}
                     <PageBadge
                       page={page}
                       badges={pageBadges}
@@ -321,7 +303,6 @@ function AreaSubnav({
  *
  * @param {object} props
  * @param {string|null} props.email The signed-in account.
- * @param {number|null} props.ownedCount Shown beside Collection once loaded.
  * @param {Record<string, {value: number, words: string}>} [props.badges]
  *   Pending counts per area key, e.g. `{ closet: { value: 9, words: 'to review' } }`.
  * @param {Record<string, {value: number, words: string}>} [props.pageBadges]
@@ -334,7 +315,6 @@ function AreaSubnav({
  */
 export default function AdminShell({
   email,
-  ownedCount,
   badges = {},
   pageBadges = {},
   onSignOut,
@@ -372,12 +352,7 @@ export default function AdminShell({
     >
       {!phone && <AreaRail current={area} badges={badges} account={account} />}
       {!phone && (
-        <AreaPages
-          area={area}
-          pathname={pathname}
-          ownedCount={ownedCount}
-          pageBadges={pageBadges}
-        />
+        <AreaPages area={area} pathname={pathname} pageBadges={pageBadges} />
       )}
 
       <main

@@ -1,8 +1,18 @@
 import { REENABLE_URL } from '../lib/adminJobs.js'
 import { JOB_RUNS } from '../lib/nightly.js'
+import { adminCopy } from '../content/adminCopy.js'
 import JobStatusRow, { StatusText } from './JobStatusRow.jsx'
-import { HEAD_STATUS, JOB_LIST } from './adminHomeClasses.js'
+import {
+  HEAD_STATUS,
+  JOB_BODY,
+  JOB_HEAD,
+  JOB_HEAD_CELL,
+  JOB_LIST,
+  JOB_NOTE,
+} from './adminHomeClasses.js'
 import Panel from './Panel.jsx'
+
+const copy = adminCopy.jobs
 
 /**
  * The header's status line: the API's state and the nightly headline. A
@@ -24,40 +34,74 @@ export function NightlyStatus({ nightly }) {
 }
 
 /**
- * The nightly jobs, one row each, with the way to switch the schedule back
- * on beside a catalogue row that says it may have stopped.
+ * The link to the README's "how to re-enable it", marked as leaving the
+ * site: it opens GitHub in a new tab.
+ */
+function ReenableLink() {
+  return (
+    <>
+      {' · '}
+      <a href={REENABLE_URL} target="_blank" rel="noopener noreferrer">
+        how to re-enable it
+        <span className="visually-hidden">
+          , opens GitHub in a new tab
+        </span>{' '}
+        <span aria-hidden="true">↗</span>
+      </a>
+    </>
+  )
+}
+
+/**
+ * The nightly jobs as a table, one row each: what it does, when it last ran
+ * and next runs, its state, and the way to switch the schedule back on
+ * beside a catalogue row that says it may have stopped. Lives on the Jobs
+ * page only; Home sums it up in the Site card.
  *
  * @param {object} props
  * @param {ReturnType<typeof import('../lib/adminJobs.js').useNightly>} props.nightly
- * @param {import('react').ReactNode} [props.action] A link in the header bar.
  */
-export default function JobsList({ nightly, action }) {
-  const { jobs, loaded, reload } = nightly
+export default function JobsList({ nightly }) {
+  const { jobs, loaded, reload, now } = nightly
   return (
-    <Panel title="Nightly jobs" action={action}>
+    <Panel title={copy.nightly}>
       {jobs ? (
-        <ul className={`job-list ${JOB_LIST}`}>
-          {jobs.map((job) => (
-            <JobStatusRow
-              key={job.key}
-              job={job}
-              run={JOB_RUNS[job.key]}
-              onRan={reload}
-              extra={
-                job.stopped && (
-                  <>
-                    {' · '}
-                    <a href={REENABLE_URL}>how to re-enable it</a>
-                  </>
-                )
-              }
-            />
-          ))}
-        </ul>
+        <>
+          <table role="table" className={`job-list ${JOB_LIST}`}>
+            <caption className="sr-only">{copy.caption}</caption>
+            <thead role="rowgroup" className={JOB_HEAD}>
+              <tr role="row">
+                {copy.columns.map((name) => (
+                  <th
+                    key={name}
+                    scope="col"
+                    role="columnheader"
+                    className={JOB_HEAD_CELL}
+                  >
+                    {name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody role="rowgroup" className={JOB_BODY}>
+              {jobs.map((job) => (
+                <JobStatusRow
+                  key={job.key}
+                  job={job}
+                  now={now}
+                  run={JOB_RUNS[job.key]}
+                  onRan={reload}
+                  extra={job.stopped && <ReenableLink />}
+                />
+              ))}
+            </tbody>
+          </table>
+          <p className={JOB_NOTE}>{copy.note}</p>
+        </>
       ) : (
         <p className="muted">
           {loaded
-            ? 'The nightly status couldn’t be read.'
+            ? adminCopy.dashboard.nightlyUnread
             : 'Reading the nightly status…'}
         </p>
       )}

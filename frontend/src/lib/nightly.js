@@ -92,6 +92,109 @@ export const JOB_RUNS = {
   'comic-issues': { path: '/api/comics/issues/sync?budget=10' },
 }
 
+/**
+ * What each job does, in a sentence, and when it is scheduled: `nightly`
+ * (every night) or `sunday` (Sunday evening in Denver, Monday 00:17 UTC).
+ * Keyed by job key; `nightlyJobs` merges it into each row.
+ */
+export const JOB_INFO = {
+  catalog: {
+    purpose:
+      'Pulls new physical releases from the registries and online stores, then matches them to your catalogue.',
+    schedule: 'nightly',
+  },
+  radar: {
+    purpose: 'Builds the list of games and comics coming out soon.',
+    schedule: 'nightly',
+  },
+  discover: {
+    purpose: 'Suggests games and comics you might like next.',
+    schedule: 'sunday',
+  },
+  weather: {
+    purpose: 'Fetches the hourly forecast that the weekend plan uses.',
+    schedule: 'nightly',
+  },
+  spots: {
+    purpose: 'Searches near your anchor places for new outing spots.',
+    schedule: 'sunday',
+  },
+  'closet-tags': {
+    purpose:
+      'Reads new closet photos and tags each piece by colour, kind and season.',
+    schedule: 'nightly',
+  },
+  'closet-plans': {
+    purpose: 'Plans tomorrow’s outfit from the closet and the forecast.',
+    schedule: 'nightly',
+  },
+  'closet-opinions': {
+    purpose: 'Writes a short opinion on each closet piece flagged for review.',
+    schedule: 'sunday',
+  },
+  intake: {
+    purpose: 'Reads the photos waiting in Add and fills in what they show.',
+    schedule: 'nightly',
+  },
+  'comic-refresh': {
+    purpose: 'Checks the comic series you follow for new volumes.',
+    schedule: 'nightly',
+  },
+  'comic-issues': {
+    purpose: 'Fetches the issue list for each comic series.',
+    schedule: 'nightly',
+  },
+  'comic-tags': {
+    purpose: 'Tags new comic series so the shelf can filter them.',
+    schedule: 'nightly',
+  },
+  snapshot: {
+    purpose:
+      'Rebuilds the public site’s saved copy of the shelf, so it loads while the server sleeps.',
+    schedule: 'nightly',
+  },
+}
+
+/** The nightly workflow starts at 00:17 UTC (`nightly.yml`). */
+const START_MS = 17 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
+
+/**
+ * When a schedule next starts after `now`: the next 00:17 UTC for a nightly
+ * job, the next Monday 00:17 UTC (Sunday evening in Denver) for a Sunday
+ * one. It is when the workflow starts; a later step starts later.
+ *
+ * @param {'nightly'|'sunday'} schedule
+ * @param {number} [now] Milliseconds since the epoch.
+ * @returns {number}
+ */
+export function nextRunAt(schedule, now = Date.now()) {
+  let next = Math.floor(now / DAY_MS) * DAY_MS + START_MS
+  if (next <= now) next += DAY_MS
+  if (schedule === 'sunday') {
+    // getUTCDay: 1 is Monday.
+    while (new Date(next).getUTCDay() !== 1) next += DAY_MS
+  }
+  return next
+}
+
+const RELATIVE = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' })
+
+/**
+ * A time as a distance from now: "3 hours ago", "in 2 days", "now".
+ *
+ * @param {number} ms
+ * @param {number} [now]
+ */
+export function relativeWords(ms, now = Date.now()) {
+  const minutes = Math.round((ms - now) / 60000)
+  const abs = Math.abs(minutes)
+  if (abs < 1) return 'just now'
+  if (abs < 60) return RELATIVE.format(minutes, 'minute')
+  if (abs < 48 * 60) return RELATIVE.format(Math.round(minutes / 60), 'hour')
+  return RELATIVE.format(Math.round(minutes / 1440), 'day')
+}
+
 /** A run time as the Dashboard shows it: "Sun, Oct 18, 10:41 PM". */
 export function whenWords(ms) {
   return WHEN.format(ms)
@@ -197,7 +300,7 @@ export function nightlyJobs(
   let catalogue = 'Registries, stores and matching'
   if (summary.failed.length) catalogue = `Failed: ${summary.failed.join(', ')}`
   else if (summary.catalogueAt === null) catalogue = 'Sources haven’t run yet'
-  return [
+  const jobs = [
     {
       key: 'catalog',
       label: 'Sources refresh',
@@ -369,6 +472,11 @@ export function nightlyJobs(
       runNow: null,
     },
   ]
+  return jobs.map((job) => ({
+    ...job,
+    ...JOB_INFO[job.key],
+    next: nextRunAt(JOB_INFO[job.key].schedule, now),
+  }))
 }
 
 const SEVERITY = ['unknown', 'ok', 'stale', 'failed']
