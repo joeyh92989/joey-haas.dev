@@ -142,3 +142,35 @@ control, registry line), the public item page signed in, the store list,
 catalogue, Stats and its changelog, and Play next at the edges. The cover strip
 and the item tile figures need favourites or ratings the fixture snapshot does
 not carry: they log `absent`.
+
+Slice H (#536: `index.css` deleted, Preflight moved into the `base` layer and the
+`revert` shim removed). `PROPS` now lives in `props.mjs` (imported by the dump and
+the diff; `style-diff.mjs` finds a field by name, so a property is appended, never
+inserted). It gained 26 properties: `border-right/bottom/left-style`, the other
+three corner radii, `border-spacing`, `list-style-position`, `list-style-image`,
+`tab-size`, `-webkit-tap-highlight-color`, `font-feature-settings`,
+`font-variation-settings`, `font-variant-caps`, `font-stretch`,
+`text-decoration-style`, `text-decoration-thickness`, `min-height`, `max-height`,
+`caret-color`, `color-scheme`, `accent-color`, `table-layout`, `text-size-adjust`,
+`margin-inline-end`, `scroll-padding-bottom`. It also reads `::marker` on every
+`display: list-item` element, `::file-selector-button` on file inputs and
+`::backdrop` on a modal dialog, besides `::before`, `::after` and the placeholder.
+What it cannot read: the date field's inner parts (`::-webkit-datetime-edit` and
+the rest return the input's own values to `getComputedStyle`, so a change in them
+shows only as the field's height: Preflight's removed the browser's 1px of padding,
+which `WRAP_DATE` and `PACK_INPUT` now make up) and `:-moz-focusring` (Firefox).
+`META=1` writes `<out>.meta.json` beside the dump: tag, input type, class and first
+words of every element, keyed like the dump, to say which element a path in a diff is
+(`style-diff.mjs` takes it as a third argument).
+
+**Explained differences.** `style-diff.mjs` treats these as equal, because Preflight
+changes the value and nothing is drawn differently; each is a line in `normalise()`:
+a border with no width (style and colour); an outline with style `none`; `tab-size`
+and `-webkit-tap-highlight-color` (Preflight's `html` values, kept on purpose: 4
+instead of 8, and no grey flash on a tap); `appearance: button` against `auto` on a
+button; `vertical-align` on anything that is not inline-level or a table cell;
+`max-width: 100%` against `none` (the drawn width is its own field); `html`'s
+`font-family` and `line-height` (body sets both); `box-sizing` on `::before` and
+`::after` (a generated box whose size depends on it moves its own offsets or its
+neighbours' widths, which are compared); and a checkbox's, radio's or range's text
+properties and colours (it draws none; needs the `META=1` sidecar).
