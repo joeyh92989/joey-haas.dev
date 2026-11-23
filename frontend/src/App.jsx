@@ -48,6 +48,7 @@ const AdminCollection = lazy(() => import('./pages/AdminCollection.jsx'))
 const AdminComics = lazy(() => import('./pages/AdminComics.jsx'))
 const AdminAdd = lazy(() => import('./pages/AdminAdd.jsx'))
 const AdminSitting = lazy(() => import('./pages/AdminSitting.jsx'))
+const AdminNewBatch = lazy(() => import('./pages/AdminNewBatch.jsx'))
 const AdminItem = lazy(() => import('./pages/AdminItem.jsx'))
 const AdminComic = lazy(() => import('./pages/AdminComic.jsx'))
 const AdminComicVolume = lazy(() => import('./pages/AdminComicVolume.jsx'))
@@ -239,8 +240,10 @@ export default function App() {
           <Route path="closet/review" element={<AdminClosetReview />} />
           {/* The static `add` outranks `:id` in react-router's ranking. */}
           <Route path="collection/add" element={<AdminAdd />} />
+          <Route path="collection/add/new/:kind" element={<AdminNewBatch />} />
           <Route path="collection/add/:sittingId" element={<AdminSitting />} />
           <Route path="closet/add" element={<AdminAdd />} />
+          <Route path="closet/add/new/:kind" element={<AdminNewBatch />} />
           <Route path="closet/add/:sittingId" element={<AdminSitting />} />
           <Route path="collection/:id" element={<KeyedAdminItem />} />
           <Route path="closet/:id" element={<KeyedAdminGarment />} />

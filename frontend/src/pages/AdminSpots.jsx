@@ -284,6 +284,11 @@ export default function AdminSpots() {
         title={denver.admin.title}
         description={denver.admin.description}
       >
+        {publicCount > 0 && (
+          <a className={btn('plain')} href="/denver">
+            {adminCopy.publish.viewPublic}
+          </a>
+        )}
         <button
           type="button"
           className={btn('primary')}

@@ -41,8 +41,8 @@ export const linkIntake = {
   photosLeft: (n) => `Fetching photos · ${n} left`,
   photosFailed:
     'The photos could not be fetched; the pieces are added without one.',
-  remove: 'Remove from this sitting',
-  removeAsk: (name) => `Remove ${name} from this sitting?`,
+  remove: 'Remove from this batch',
+  removeAsk: (name) => `Remove ${name} from this batch?`,
   removeYes: 'Yes, remove it',
   removeKeep: 'Keep it',
   removed: (name) => `${name} removed`,
@@ -51,7 +51,7 @@ export const linkIntake = {
       counts.kept > 0 &&
         `${counts.kept} kept as typed (the store could not be read)`,
       counts.not_links > 0 && `${counts.not_links} not links, left out`,
-      counts.duplicates > 0 && `${counts.duplicates} already in the sitting`,
+      counts.duplicates > 0 && `${counts.duplicates} already in the batch`,
     ].filter(Boolean),
   hint: 'Pieces from links wait in the tag queue for warmth, formality and seasons; their store color, brand and size stay as the store said.',
 }

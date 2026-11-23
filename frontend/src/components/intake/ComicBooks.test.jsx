@@ -135,9 +135,9 @@ describe('ComicBooks', () => {
 
   it('flags the second book of a series and number', () => {
     show([book('1', 2), book('2', 2)])
-    expect(screen.getAllByText('Already in this sitting')).toHaveLength(1)
+    expect(screen.getAllByText('Already in this batch')).toHaveLength(1)
     const second = screen.getAllByRole('listitem')[1]
-    expect(within(second).getByText('Already in this sitting')).toBeVisible()
+    expect(within(second).getByText('Already in this batch')).toBeVisible()
   })
 
   it('shows a collected book as a range and a format', async () => {

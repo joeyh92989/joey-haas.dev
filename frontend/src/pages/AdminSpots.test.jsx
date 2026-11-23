@@ -104,6 +104,10 @@ describe('AdminSpots', () => {
     expect(within(corvus).getByText('Rainy day')).toBeInTheDocument()
     expect(within(corvus).getByText('3 visits')).toBeInTheDocument()
     expect(within(corvus).getByLabelText('Public: Corvus Coffee')).toBeChecked()
+    // Spots all show on one public page: one link says where visitors see them.
+    expect(
+      screen.getByRole('link', { name: 'View public page' }),
+    ).toHaveAttribute('href', '/denver')
     expect(
       within(screen.getByRole('row', { name: /Home/ })).getByText('Anchor'),
     ).toBeInTheDocument()

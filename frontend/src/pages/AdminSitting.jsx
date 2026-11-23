@@ -83,7 +83,7 @@ function AdminSitting() {
         if (!sittingAnswer.ok) {
           const words =
             sittingAnswer.status === 404
-              ? 'This sitting is gone: added or discarded, perhaps on another device.'
+              ? 'This batch is gone: added or discarded, perhaps on another device.'
               : LOAD_ERROR
           if (live) setFailed(words)
           return
@@ -225,7 +225,7 @@ function AdminSitting() {
   }
 
   const kind = sitting && kinds?.find((k) => k.key === sitting.kind)
-  const title = sitting?.label || 'Sitting'
+  const title = sitting?.label || 'Batch'
   const steps = sitting && kinds ? stepsFor(sitting, kinds) : []
   const writable = sitting
     ? sitting.entries.filter((e) => WRITTEN_STATES.includes(e.state)).length
@@ -240,10 +240,10 @@ function AdminSitting() {
   return (
     <>
       <AdminPageHeader
-        title={answer ? `${title} is in` : title}
+        title={answer ? adminCopy.sitting.added(area) : title}
         description={
           sitting
-            ? `${kind?.label ?? (area === 'closet' ? 'Closet' : 'Mixed shelf')} sitting`
+            ? `${kind?.label ?? (area === 'closet' ? 'Closet' : 'Mixed shelf')} batch`
             : null
         }
       />

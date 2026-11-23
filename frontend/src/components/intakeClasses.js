@@ -36,13 +36,13 @@ export const INTAKE_KINDS =
   'grid gap-2 grid-cols-[repeat(5,minmax(0,1fr))] mb-6 max-[900px]:grid-cols-[repeat(2,minmax(0,1fr))]'
 
 export const INTAKE_KIND =
-  'text-(--text) grid [font:inherit] gap-[0.15rem] min-w-0 [overflow-wrap:anywhere] p-3 text-left [&>span]:min-w-0 [&>span]:[overflow-wrap:anywhere]'
+  'text-(--text) flex flex-col h-full [font:inherit] gap-[0.15rem] min-w-0 [overflow-wrap:anywhere] p-3 text-left [&>span]:min-w-0 [&>span]:[overflow-wrap:anywhere]'
 
 export const INTAKE_KIND_NAME = 'font-semibold'
 
 export const INTAKE_KIND_NOTE = 'text-(--text-2) text-[0.8125rem]'
 
-export const INTAKE_KIND_WAYS = 'text-(--text-3) text-[0.75rem] mt-1'
+export const INTAKE_KIND_WAYS = 'text-(--text-3) text-[0.75rem] mt-auto pt-1'
 
 export const INTAKE_UNFINISHED = 'list-none px-4'
 

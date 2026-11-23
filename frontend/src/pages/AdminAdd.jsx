@@ -6,16 +6,14 @@ import UnfinishedList from '../components/intake/UnfinishedList.jsx'
 import LoadState from '../components/LoadState.jsx'
 import { adminCopy } from '../content/adminCopy.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
-import { addPath, areaOfPath, sittingLabel } from '../lib/intake.js'
+import {
+  addPath,
+  areaOfPath,
+  hasHome,
+  kindSegment,
+  MIXED_KIND,
+} from '../lib/intake.js'
 import { INTAKE_KINDS } from '../components/intakeClasses.js'
-
-/** The mixed shelf: one sitting, and the reader sorts each title's kind. */
-const MIXED = {
-  key: null,
-  label: 'Mixed shelf',
-  ways_in: ['photo'],
-  note: 'the reader sorts each title',
-}
 
 /**
  * An area's Add page (`/admin/collection/add`, `/admin/closet/add`): a tile
@@ -34,7 +32,6 @@ export default function AdminAdd() {
   const [failed, setFailed] = useState(false)
   const [tries, setTries] = useState(0)
   const [error, setError] = useState(null)
-  const [starting, setStarting] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -65,35 +62,17 @@ export default function AdminAdd() {
     setTries((count) => count + 1)
   }
 
-  const areaKinds = (kinds ?? []).filter((kind) => kind.area === area)
+  const allAreaKinds = (kinds ?? []).filter((kind) => kind.area === area)
+  // Only kinds with a list to find them again in (#493).
+  const areaKinds = allAreaKinds.filter(hasHome)
   const photoKinds = areaKinds.filter((kind) => kind.ways_in.includes('photo'))
-  const tiles = photoKinds.length > 1 ? [...areaKinds, MIXED] : areaKinds
-  const byKey = Object.fromEntries(areaKinds.map((kind) => [kind.key, kind]))
+  const tiles = photoKinds.length > 1 ? [...areaKinds, MIXED_KIND] : areaKinds
+  const byKey = Object.fromEntries(allAreaKinds.map((kind) => [kind.key, kind]))
 
-  async function start(kind) {
-    setStarting(true)
-    setError(null)
-    try {
-      const response = await apiFetch('/api/intake/sittings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          area,
-          kind: kind.key,
-          label: sittingLabel(kind),
-        }),
-      })
-      if (!response.ok) {
-        setError(await errorMessage(response, { ownConflicts: true }))
-        return
-      }
-      const sitting = await response.json()
-      navigate(`${addPath(area)}/${sitting.id}`)
-    } catch {
-      setError('The server did not answer; try again.')
-    } finally {
-      setStarting(false)
-    }
+  // A card opens the new-batch page. Nothing is saved until its first photo
+  // (#493): a click, a look and Back leave no unfinished batch behind.
+  function start(kind) {
+    navigate(`${addPath(area)}/new/${kindSegment(kind)}`)
   }
 
   async function discard(sitting) {
@@ -119,8 +98,8 @@ export default function AdminAdd() {
         title={adminCopy.add.title}
         description={
           area === 'closet'
-            ? 'a sitting: photograph pieces, one per photo'
-            : 'a sitting: one kind, many at once'
+            ? 'a batch: photograph pieces, one per photo'
+            : 'a batch: one kind, many at once'
         }
       />
       {failed && <LoadState failed onRetry={retry} />}
@@ -145,12 +124,7 @@ export default function AdminAdd() {
             className={`intake-kinds ${INTAKE_KINDS}`}
           >
             {tiles.map((kind) => (
-              <KindTile
-                key={kind.key ?? 'mixed'}
-                kind={kind}
-                onStart={start}
-                busy={starting}
-              />
+              <KindTile key={kind.key ?? 'mixed'} kind={kind} onStart={start} />
             ))}
           </div>
           <h2 className="kicker">

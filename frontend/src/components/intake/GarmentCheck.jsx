@@ -344,7 +344,7 @@ export default function GarmentCheck({ sitting, kind, onRemoved }) {
       )}
       {pieces.length > (current ? 1 : 0) && (
         <>
-          <h3 className="kicker">Other photos in this sitting</h3>
+          <h3 className="kicker">Other photos in this batch</h3>
           <ul
             className={`intake-garment-others ${INTAKE_GARMENT_OTHERS}`}
             aria-label="Other photos"

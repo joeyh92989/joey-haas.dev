@@ -105,17 +105,12 @@ describe('AddSection on the shelf', () => {
     )
     // Per-source states, in words; a source with no credentials is a
     // disabled way in with its reason (AC 11).
+    // Movie and Board game have no list to find them in, so Add says
+    // nothing of their sources (#493).
+    expect(screen.queryByText(/Movie: tmdb/)).toBeNull()
     expect(
-      screen.getByText('Movie: tmdb is busy; try again in a moment'),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Search Board game' }),
-    ).toBeDisabled()
-    expect(
-      screen.getByText(
-        'Board game search is off: BGG unavailable: it needs a registered app',
-      ),
-    ).toBeInTheDocument()
+      screen.queryByRole('button', { name: 'Search Board game' }),
+    ).toBeNull()
     expect(await axeViolations(document.querySelector('.intake-add'))).toEqual(
       [],
     )
@@ -144,9 +139,18 @@ describe('AddSection on the shelf', () => {
     expect(sent.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(onAdded).toHaveBeenCalled()
     expect(screen.getByRole('status')).toHaveTextContent('Saga added, private')
-    expect(screen.getByRole('searchbox')).toHaveValue('saga')
-    expect(screen.getByRole('list', { name: /Results/ })).toBeInTheDocument()
-    expect(add).toHaveFocus()
+    // Private, and what publishing does, with a way to open it (#490).
+    expect(
+      screen.getByText(/not on the public site until you publish/, {
+        selector: '.intake-notice',
+      }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Open it to publish' }),
+    ).toHaveAttribute('href', '/admin/shelf/comics/item-new')
+    // The results close once the item is in (#494); the bar is ready.
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(screen.queryByRole('list', { name: /Results/ })).toBeNull()
   })
 
   it('sends one request id per add action and reuses it when the add is retried', async () => {
@@ -170,7 +174,9 @@ describe('AddSection on the shelf', () => {
       await screen.findByRole('button', { name: 'Add to shelf' }),
     )
     await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
-    await user.click(screen.getByRole('button', { name: 'Add Saga' }))
+    // The results closed once Saga was in; search again for another add.
+    await search(user)
+    await user.click(await screen.findByRole('button', { name: 'Add Saga' }))
     await user.click(addToShelf())
     await waitFor(() => expect(calls).toBe(3))
     const [one, two, three] = api
@@ -236,9 +242,7 @@ describe('AddSection on the shelf', () => {
     renderAt()
     await search(user, 'Heat')
     expect(await screen.findByText('No match for “Heat”.')).toBeInTheDocument()
-    await user.click(
-      screen.getByRole('button', { name: 'Keep as a typed Movie' }),
-    )
+    await user.click(screen.getByRole('button', { name: 'Keep as typed Game' }))
     const drawer = screen.getByRole('complementary', { name: 'Heat' })
     expect(within(drawer).getByLabelText('Title')).toHaveValue('Heat')
     await user.click(
@@ -247,35 +251,23 @@ describe('AddSection on the shelf', () => {
     await waitFor(() => expect(screen.queryByRole('complementary')).toBeNull())
     const [sent] = api.calls('POST', /\/api\/intake\/add$/)
     expect(sent.body).toMatchObject({
-      kind: 'movie',
+      kind: 'game',
       chosen: null,
       payload: { title: 'Heat' },
     })
   })
 
-  it('commits an unconfigured source’s kind as typed (AC 11)', async () => {
+  it('does not offer a kind with no list to find it in (#493)', async () => {
     const user = userEvent.setup()
-    const api = fakeIntakeApi({ search: () => SAGA })
+    fakeIntakeApi({ search: () => SAGA })
     renderAt()
     await search(user, 'Wingspan')
-    await user.click(
-      await screen.findByRole('button', { name: 'Keep as a typed Board game' }),
-    )
-    const drawer = screen.getByRole('complementary', { name: 'Wingspan' })
+    const keep = await screen.findByRole('group', { name: 'Keep as typed' })
     expect(
-      within(drawer).getByText('Board game · kept as typed'),
-    ).toBeInTheDocument()
-    await user.click(
-      within(drawer).getByRole('button', { name: 'Add to shelf' }),
-    )
-    await waitFor(() =>
-      expect(api.calls('POST', /\/api\/intake\/add$/)).toHaveLength(1),
-    )
-    expect(api.calls('POST', /\/api\/intake\/add$/)[0].body).toMatchObject({
-      kind: 'boardgame',
-      chosen: null,
-      payload: { title: 'Wingspan' },
-    })
+      within(keep)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Keep as typed Game', 'Keep as typed Comic'])
   })
 
   it('adds and searches again: the bar cleared and focused', async () => {
@@ -450,11 +442,11 @@ describe('AddSection on the shelf', () => {
     )
   })
 
-  it('names a sitting with no label as Untitled sitting', async () => {
+  it('names a sitting with no label as Untitled batch', async () => {
     fakeIntakeApi({ sittings: [{ id: 's1', area: 'shelf', kind: 'game' }] })
     renderAt()
     expect(await screen.findByText(/is unfinished/)).toHaveTextContent(
-      'Untitled sitting is unfinished',
+      'Untitled batch is unfinished',
     )
   })
 
@@ -477,7 +469,7 @@ describe('AddSection on the shelf', () => {
     fakeIntakeApi({ sittings: [sitting('s1'), sitting('s2')] })
     renderAt()
     const line = await screen.findByText(/are unfinished/)
-    expect(line).toHaveTextContent('2 sittings are unfinished')
+    expect(line).toHaveTextContent('2 batches are unfinished')
     expect(
       screen.getByRole('link', { name: /See them on the Add page/ }),
     ).toHaveAttribute('href', '/admin/collection/add')

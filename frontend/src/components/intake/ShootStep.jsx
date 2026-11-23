@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, errorMessage } from '../../lib/api.js'
 import { PHOTO_ACCEPT } from '../../lib/closet.js'
+import { takeFiles } from '../../lib/intakeHandoff.js'
 import {
   CHECK_STATES,
   WRITTEN_STATES,
@@ -185,6 +186,16 @@ export default function ShootStep({
     }
   }
 
+  // The new-batch page made this batch for its first photos: send them now.
+  useEffect(() => {
+    const first = takeFiles(sitting.id)
+    // Off the effect body: the upload sets state as it goes.
+    if (first.length > 0) queueMicrotask(() => upload(first))
+    // Once per mount: `upload` is redefined each render and takeFiles is
+    // one-shot, so a later render finds nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function retry(photo) {
     setError(null)
     const response = await apiFetch(`/api/intake/photos/${photo.id}/retry`, {
@@ -265,8 +276,8 @@ export default function ShootStep({
         {!closet && (
           <p className="muted">
             {budget?.enforced
-              ? `About 1 model call per photo; ${budget.remaining} left today.`
-              : 'About 1 model call per photo.'}
+              ? `Each photo is read once; ${budget.remaining} reads left today.`
+              : 'Each photo is read once.'}
           </p>
         )}
         <div className={`intake-drop-actions ${INTAKE_DROP_ACTIONS}`}>

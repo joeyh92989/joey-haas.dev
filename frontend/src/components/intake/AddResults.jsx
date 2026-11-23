@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import CoverImage from '../CoverImage.jsx'
-import { comicDetails, sourceWords } from '../../lib/intake.js'
+import { comicDetails, hasHome, sourceWords } from '../../lib/intake.js'
 import { ibtn } from '../addClasses.js'
 import {
   INTAKE_RESULT,
@@ -40,18 +40,24 @@ export default function AddResults({
   onKeepTyped,
   isAdded = () => false,
 }) {
-  const typed = Object.values(kinds).filter((kind) =>
-    kind.ways_in.includes('type'),
+  const typed = Object.values(kinds).filter(
+    (kind) => kind.ways_in.includes('type') && hasHome(kind),
+  )
+  // A kind with no list in the admin is not offered (#493).
+  const shown = results.filter(
+    (row) => !kinds[row.kind] || hasHome(kinds[row.kind]),
   )
   const unanswered = sources
     .map((source) => ({ source, kind: kinds[source.kind] }))
-    .filter(({ source, kind }) => kind && source.state !== 'ok')
+    .filter(
+      ({ source, kind }) => kind && hasHome(kind) && source.state !== 'ok',
+    )
 
   return (
     <div className={`intake-results ${INTAKE_RESULTS}`}>
-      {results.length > 0 ? (
+      {shown.length > 0 ? (
         <ul aria-label={`Results for “${query}”`}>
-          {results.map((result) => {
+          {shown.map((result) => {
             const kind = kinds[result.kind]
             const meta = [
               result.year,
@@ -134,17 +140,16 @@ export default function AddResults({
           aria-label="Keep as typed"
         >
           <span className="muted">
-            {results.length > 0 ? 'No match? ' : ''}Keep “{query}” as typed:
+            {shown.length > 0 ? 'No match? ' : ''}Keep “{query}” as typed:
           </span>
           {typed.map((kind) => (
             <button
               key={kind.key}
               type="button"
-              className={ibtn('plain', 'sm')}
-              aria-label={`Keep as a typed ${kind.label}`}
+              className={ibtn('plain')}
               onClick={(event) => onKeepTyped(kind, event.currentTarget)}
             >
-              {kind.label}
+              {`Keep as typed ${kind.label}`}
             </button>
           ))}
         </div>

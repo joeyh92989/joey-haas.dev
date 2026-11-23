@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router'
+import { adminCopy } from '../../content/adminCopy.js'
 import { isbnIntake } from '../../content/isbnIntake.js'
 import { linkIntake } from '../../content/linkIntake.js'
 import { seedIntake } from '../../content/seedIntake.js'
@@ -11,6 +12,7 @@ import {
   linesOf,
   localToday,
   looksLikeLink,
+  itemEditPath,
   MAX_LINKS,
   meterCounts,
   refuseSeedFile,
@@ -61,7 +63,7 @@ function UnfinishedLine({ sittings, area, onDiscard }) {
     return (
       <p className={`${BOX} intake-resume ${INTAKE_RESUME}`}>
         <span>
-          <b>{sittings.length} sittings</b> are unfinished
+          <b>{sittings.length} batches</b> are unfinished
         </span>
         <Link className={ibtn('plain')} to={addPath(area)}>
           See them on the Add page <span aria-hidden="true">→</span>
@@ -163,6 +165,8 @@ export default function AddSection({ area, onAdded, children }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState('')
+  // Where the item just added can be opened (to publish it), or null.
+  const [noticeLink, setNoticeLink] = useState(null)
   const [drawer, setDrawer] = useState(null)
   const [adding, setAdding] = useState(false)
   const [drawerError, setDrawerError] = useState(null)
@@ -243,6 +247,7 @@ export default function AddSection({ area, onAdded, children }) {
     const text = (typeof override === 'string' ? override : query).trim()
     setError(null)
     setNotice('')
+    setNoticeLink(null)
     if (linkKind && !searchable && looksLikeLink(text)) {
       // A pasted product link in the Closet's bar is "From links" for one.
       await fromLinks([text])
@@ -283,6 +288,7 @@ export default function AddSection({ area, onAdded, children }) {
   async function scanned(isbn) {
     setError(null)
     setNotice('')
+    setNoticeLink(null)
     setBusy(true)
     let found
     try {
@@ -346,6 +352,7 @@ export default function AddSection({ area, onAdded, children }) {
     const [kind] = areaKinds.filter((k) => k.ways_in.includes('file'))
     setBusy(true)
     setNotice('')
+    setNoticeLink(null)
     try {
       const created = await apiFetch('/api/intake/sittings', {
         method: 'POST',
@@ -392,6 +399,7 @@ export default function AddSection({ area, onAdded, children }) {
     }
     setBusy(true)
     setNotice('')
+    setNoticeLink(null)
     setError(null)
     try {
       const created = await apiFetch('/api/intake/sittings', {
@@ -479,11 +487,16 @@ export default function AddSection({ area, onAdded, children }) {
       const body = await response.json()
       // An owned comic series gains the typed issues (Got it's rule).
       const issuesAdded = body.issues_added ?? 0
+      setNoticeLink(
+        body.added && area === 'shelf' && body.created?.[0]
+          ? itemEditPath(kind.key, body.created[0])
+          : null,
+      )
       setNotice(
         body.added
           ? area === 'closet'
             ? `${name} added to the closet`
-            : `${name} added, private`
+            : adminCopy.publish.addedPrivate(name)
           : issuesAdded > 0
             ? `Added ${issuesAdded} ${issuesAdded === 1 ? 'issue' : 'issues'} to ${name}`
             : `${name} is already on the shelf`,
@@ -494,7 +507,7 @@ export default function AddSection({ area, onAdded, children }) {
       // its bar empty and focused, but only when it added: a duplicate keeps
       // the text so it can be corrected. The Collection keeps the results for
       // adding more from one search, unless the owner asked to go again.
-      if (again || (area === 'closet' && body.added)) {
+      if (again || body.added) {
         setDrawer(null)
         setAnswer(null)
         setQuery('')
@@ -569,7 +582,17 @@ export default function AddSection({ area, onAdded, children }) {
       <p className="visually-hidden" role="status">
         {busy ? 'Searching…' : notice}
       </p>
-      {notice && !busy && <p className="muted intake-notice">{notice}</p>}
+      {notice && !busy && (
+        <p className="muted intake-notice">
+          {notice}
+          {noticeLink && (
+            <>
+              {' '}
+              <Link to={noticeLink}>{adminCopy.publish.openIt}</Link>
+            </>
+          )}
+        </p>
+      )}
       {error && (
         <p className="admin-error" role="alert">
           {error}

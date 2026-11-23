@@ -15,7 +15,7 @@ import {
 
 /** A sitting's name on the page; one left unnamed still has one. */
 export function sittingName(sitting) {
-  return sitting.label || 'Untitled sitting'
+  return sitting.label || 'Untitled batch'
 }
 
 /**

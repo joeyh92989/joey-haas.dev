@@ -450,7 +450,7 @@ describe('AdminSitting', () => {
     })
     renderSitting()
     expect(
-      await screen.findByText(/About 1 model call per photo; 30 left today/),
+      await screen.findByText(/Each photo is read once; 30 reads left today/),
     ).toBeInTheDocument()
     const start = screen.getByRole('button', { name: /Start checking/ })
     expect(start).toBeDisabled()
@@ -618,9 +618,7 @@ describe('AdminSitting', () => {
     await user.click(
       within(untyped).getByRole('button', { name: 'Edit issues of Saga' }),
     )
-    const field = within(untyped).getByLabelText(
-      'Issues of Saga in this sitting',
-    )
+    const field = within(untyped).getByLabelText('Issues of Saga in this batch')
     expect(field).toHaveFocus()
     await user.type(field, '59-60')
     await user.click(
@@ -1002,13 +1000,16 @@ describe('AdminSitting', () => {
       await screen.findByRole('button', { name: 'Add 2 to the shelf' }),
     )
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Longbox 1 is in' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Added to the shelf',
+      }),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Shoot the next box' }))
     expect(await screen.findByRole('heading', { name: 'Shoot' })).toBeVisible()
     expect(api.calls('GET', /\/sittings\/new-1$/)).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /^Sitting$/,
+      /^Batch$/,
     )
     expect(document.title).not.toMatch(/is in/)
     expect(currentStep()).toHaveTextContent('Shoot')
@@ -1210,7 +1211,7 @@ describe('AdminSitting', () => {
     expect(added.body).toEqual({ kind: 'comic', chosen: saga })
     expect(api.state.sittings.s1.entries).toHaveLength(1)
     expect(
-      screen.getByText('Saga added to this sitting.').closest('[role=status]'),
+      screen.getByText('Saga added to this batch.').closest('[role=status]'),
     ).not.toBeNull()
     expect(screen.getByRole('button', { name: /Start checking/ })).toBeEnabled()
     expect(await axeViolations(container)).toEqual([])
@@ -1335,7 +1336,7 @@ describe('AdminSitting', () => {
       'Lost zine{Enter}',
     )
     await user.click(
-      await screen.findByRole('button', { name: 'Keep as a typed Comic' }),
+      await screen.findByRole('button', { name: 'Keep as typed Comic' }),
     )
     await waitFor(() =>
       expect(api.calls('POST', /\/sittings\/s1\/entries$/)).toHaveLength(1),

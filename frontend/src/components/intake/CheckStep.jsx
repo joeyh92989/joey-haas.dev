@@ -32,6 +32,16 @@ import {
 } from '../intakeClasses.js'
 
 /**
+ * The skim grid's heading follows what is in it: rows the owner typed are
+ * not "matched" (#494).
+ */
+function skimHeading(entries) {
+  const typed = entries.filter((e) => e.state === 'typed').length
+  if (typed === 0) return 'Matched'
+  return typed === entries.length ? 'Typed' : 'Ready to add'
+}
+
+/**
  * Whether an entry adds to a comic series already on the shelf: settled
  * (not asked one at a time, not still reading) and matched to a series
  * the API marked `on_shelf`. These leave the skim grid for their own
@@ -340,7 +350,7 @@ export default function CheckStep({
         <p className="muted" ref={oneRef} tabIndex={-1}>
           Nothing left to check one at a time.
           {skipped.size > 0 &&
-            ` ${skipped.size} skipped: kept in the sitting for later.`}
+            ` ${skipped.size} skipped: kept in the batch for later.`}
         </p>
       )}
 
@@ -395,7 +405,7 @@ export default function CheckStep({
       {skim.length > 0 && (
         <>
           <h3 className={`kicker intake-skim-head ${INTAKE_SKIM_HEAD}`}>
-            Matched · {skim.length} · untick anything wrong
+            {skimHeading(skim)} · {skim.length} · untick anything wrong
           </h3>
           <SkimGrid
             entries={skim}

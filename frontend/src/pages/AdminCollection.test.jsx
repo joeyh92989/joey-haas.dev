@@ -664,7 +664,17 @@ describe('AdminCollection shelf', () => {
       'href',
       '/admin/collection/a',
     )
-    expect(card('Dune').getByRole('link')).toHaveAttribute('href', '/shelf/b/')
+    expect(card('Dune').getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      '/shelf/b/',
+    )
+    // A public card also says how to see it as a visitor does (#490).
+    expect(
+      card('Dune').getByRole('link', { name: 'View public page' }),
+    ).toHaveAttribute('href', '/shelf/b/')
+    expect(
+      card('Star Fox').queryByRole('link', { name: 'View public page' }),
+    ).toBeNull()
   })
 
   it('dims finished items by default', async () => {
