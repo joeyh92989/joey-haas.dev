@@ -95,19 +95,19 @@ function itemEntry(item) {
     s: joined(platform, item.platforms, item.year, item.status),
     title: item.title,
     sub: [platform, item.year].filter((part) => part != null).join(' · '),
-    href: itemPath(item.id),
+    href: itemPath(item),
     cover: httpsCover(item.cover_url),
   }
 }
 
-function seriesEntry({ id, title, publisher, cover_url: cover }) {
+function seriesEntry({ id, slug, title, publisher, cover_url: cover }) {
   return {
     g: 'comics',
     t: normalize(title),
     s: joined(publisher),
     title,
     sub: publisher ?? '',
-    href: itemPath(id),
+    href: itemPath({ id, slug }),
     cover: httpsCover(cover),
   }
 }
@@ -150,7 +150,7 @@ export function buildIndex({ posts, notes = [], trips = [], items, comics }) {
   const series = Array.isArray(comics?.series)
     ? comics.series
         .filter((row) => hasTitle(row) && row.item_id != null)
-        .map((row) => ({ ...row, id: row.item_id }))
+        .map((row) => ({ ...row, id: row.item_id, slug: row.item_slug }))
     : rows
         .filter((item) => item.type === 'comic')
         .map((item) => ({ ...item, publisher: item.creator }))

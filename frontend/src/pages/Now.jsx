@@ -11,7 +11,7 @@ import { spine } from '../content/spine.js'
 import { timeWord } from '../lib/finishes.js'
 import { nowLists } from '../lib/nowLists.js'
 import { readSnapshot } from '../lib/snapshot.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemPath, itemRowPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { MONTH_YEAR as MONTH, DAY_YEAR as DAY } from '../lib/formatDate.js'
 import { NOW_RSS } from '../components/adminFormClasses.js'
@@ -101,7 +101,7 @@ export default function Now() {
             items={playing}
             size="compact"
             renderCard={(item) => (
-              <PosterCard item={item} to={itemPath(item.id)} />
+              <PosterCard item={item} to={itemPath(item)} />
             )}
           />
         </section>
@@ -119,7 +119,7 @@ export default function Now() {
           >
             {paused.map((item) => (
               <li key={item.id} className={ROW}>
-                <Link to={itemPath(item.id)}>{item.title}</Link>
+                <Link to={itemPath(item)}>{item.title}</Link>
                 {item.paused_on && (
                   <span className="muted">
                     {' '}
@@ -140,7 +140,7 @@ export default function Now() {
           <RecordCard className="max-w-[45rem]">
             <p className="p-4">
               <Link
-                to={itemPath(upNext.item_id)}
+                to={itemRowPath(upNext)}
                 className="font-heading text-xl font-medium text-foreground underline decoration-primary decoration-[1.5px] underline-offset-4"
               >
                 {upNext.title}
@@ -163,7 +163,7 @@ export default function Now() {
           >
             {finished.map((item) => (
               <li key={item.id} className={ROW}>
-                <Link to={itemPath(item.id)}>{item.title}</Link>
+                <Link to={itemPath(item)}>{item.title}</Link>
                 {item.again && <AgainTag />}
                 <span className="muted">
                   {' '}

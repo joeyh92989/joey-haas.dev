@@ -52,7 +52,7 @@ COMIC_FORBIDDEN = {
 }  # fmt: skip
 
 ROW_FIELDS = {
-    "item_id", "title", "publisher", "year", "cover_url", "ongoing",
+    "item_id", "item_slug", "title", "publisher", "year", "cover_url", "ongoing",
     "wanted", "shelf_format", "edition_labels", "owned",
     "released", "missing", "run_state", "segments", "status", "rating",
     "read_to", "read", "read_next", "next_issue", "tags", "created_at",
@@ -64,7 +64,8 @@ STATS_FIELDS = {
     "issues_read",
 }  # fmt: skip
 ISSUE_FIELDS = {
-    "item_id", "title", "publisher", "number", "store_date", "cover_url",
+    "item_id", "item_slug", "title", "publisher", "number", "store_date",
+    "cover_url",
     "owned_text", "released",
 }  # fmt: skip
 DETAIL_FIELDS = {
@@ -214,16 +215,17 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
     }  # fmt: skip
     assert set(PublicNeighbour.model_fields) == {"number", "cover_url", "state"}
     assert set(PublicIssueAlsoIn.model_fields) == {
-        "slug", "label", "kind", "line_number", "title_id", "title", "same_title",
+        "slug", "label", "kind", "line_number", "title_id", "title_slug", "title",
+        "same_title",
     }  # fmt: skip
     assert set(PublicIssuePage.model_fields) == {
-        "series_id", "series_title", "publisher", "number", "name",
+        "series_id", "series_slug", "series_title", "publisher", "number", "name",
         "store_date", "cover_date", "cover_url", "large_url", "description",
         "state", "owned", "read", "held_single", "also_in", "released",
         "ongoing", "neighbours", "source_url",
     }  # fmt: skip
     assert set(PublicComicIndex.model_fields) == {
-        "item_id", "series_title", "kind", "issues", "volumes",
+        "item_id", "item_slug", "series_title", "kind", "issues", "volumes",
     }  # fmt: skip
     assert set(PublicComicIndexVolume.model_fields) == {
         "slug", "label", "kind", "line_number", "cover_url",
@@ -232,7 +234,7 @@ async def test_the_issue_page_models_publish_exactly_these_fields():
         "title", "volume", "collects", "prev", "next", "source_url", "metron_credit",
     }  # fmt: skip
     assert set(PublicVolumeTitle.model_fields) == {
-        "id", "title", "cover_url", "publisher", "year",
+        "id", "slug", "title", "cover_url", "publisher", "year",
     }  # fmt: skip
     assert set(PublicVolumeBody.model_fields) == {
         "slug", "label", "kind", "line_number", "isbn", "pages", "description",

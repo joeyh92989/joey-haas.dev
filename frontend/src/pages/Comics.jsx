@@ -216,6 +216,7 @@ function AddedCard({ months }) {
 /** As a shelf card: PosterCard reads the shelf's item fields. */
 const asPoster = (row) => ({
   id: row.item_id,
+  slug: row.item_slug,
   type: 'comic',
   title: row.title,
   year: row.year,
@@ -446,14 +447,14 @@ export default function Comics() {
                 layout === 'spines' ? (
                   <SpineCard
                     item={item}
-                    to={itemPath(item.id)}
+                    to={itemPath(item)}
                     number={numbers.get(item.id)}
                     statusLabels={{ ...copy.status, caughtUp: copy.caughtUp }}
                   />
                 ) : (
                   <PosterCard
                     item={item}
-                    to={itemPath(item.id)}
+                    to={itemPath(item)}
                     number={numbers.get(item.id)}
                     stacked
                     run={<ComicCardRun row={item.row} reserve={reserve} />}

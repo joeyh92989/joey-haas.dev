@@ -60,7 +60,7 @@ export default function DailyResult({
           {won ? copy.gotIt(guesses) : copy.notToday(answer.title)}
         </h2>
         <p className={`daily-result-name ${DAILY_RESULT_LINE}`}>
-          <Link to={itemPath(answer.id)}>{answer.title}</Link>
+          <Link to={itemPath(answer)}>{answer.title}</Link>
         </p>
         <p className={`daily-result-facts muted ${DAILY_RESULT_LINE}`}>
           {facts.join(' · ')}
@@ -69,7 +69,7 @@ export default function DailyResult({
           <Button onClick={onShare}>{copy.share}</Button>
           <Button
             variant="outline"
-            render={<Link to={itemPath(answer.id)} />}
+            render={<Link to={itemPath(answer)} />}
             nativeButton={false}
           >
             {copy.onShelf}

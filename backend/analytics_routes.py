@@ -229,13 +229,15 @@ async def public_path_filter(session: AsyncSession) -> Callable[[str], bool]:
     """A keep_path for the public read: an item page is listed only while
     its item is public, so a private game's page is never named. A comic's
     issue and edition pages (/shelf/<id>/<n>, /shelf/<id>/ed-...) follow
-    their series the same way."""
-    public = {
-        str(item_id)
-        for item_id in (
-            await session.scalars(select(Item.id).where(Item.is_public))
-        ).all()
-    }
+    their series the same way. A page is named by id or slug (#479); either
+    counts as the item."""
+    public: set[str] = set()
+    for item_id, slug in (
+        await session.execute(select(Item.id, Item.slug).where(Item.is_public))
+    ).all():
+        public.add(str(item_id))
+        if slug:
+            public.add(slug)
 
     def keep(path: str) -> bool:
         # ITEM_PATH spells out the issue and edition suffix, so every form of

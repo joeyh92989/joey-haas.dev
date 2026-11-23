@@ -120,6 +120,11 @@ def test_true_client_ip_then_the_socket():
         ("/til/render-rewrites-need-the-slash", "/til/render-rewrites-need-the-slash"),
         ("/shelf/comics/", "/shelf/comics"),
         ("/shelf/games/", "/shelf/games"),
+        # An item named by its slug (#479), with and without a comic suffix.
+        ("/shelf/catherine-full-body/", "/shelf/catherine-full-body"),
+        ("/shelf/saga/58/", "/shelf/saga/58"),
+        ("/shelf/saga/vol-3", "/shelf/saga/vol-3"),
+        ("/shelf/year-of-the-rabbit/", "/shelf/year-of-the-rabbit"),
     ],
 )
 def test_a_public_path_is_kept_in_one_form(path, expected):
@@ -132,7 +137,11 @@ def test_a_public_path_is_kept_in_one_form(path, expected):
         "/admin",
         "/admin/collection",
         "/wp-login.php",
-        "/shelf/not-an-id",
+        "/shelf/Not_An_Id",
+        "/shelf/-leading-hyphen",
+        "/shelf/two--hyphens",
+        "/shelf/saga/58a",
+        "/shelf/year/abc",
         "/spine",
         "/spine/next",
         "/spine/0b7c6f3e-1111-4c1c-9a50-000000000001",

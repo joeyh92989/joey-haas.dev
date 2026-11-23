@@ -99,6 +99,7 @@ class PublicIssueAlsoIn(BaseModel):
     line_number: int | None
     # The book's own title: the Book page is /shelf/<title_id>/<slug>/.
     title_id: uuid.UUID
+    title_slug: str | None = None
     title: str
     same_title: bool
 
@@ -107,6 +108,7 @@ class PublicIssuePage(BaseModel):
     """GET /api/public/items/{id}/issues/{n}."""
 
     series_id: uuid.UUID
+    series_slug: str | None = None
     series_title: str
     publisher: str | None
     number: int
@@ -150,6 +152,7 @@ class PublicComicIndex(BaseModel):
     `ed-<from>-<to>` URLs are volumes whose slug kept that name."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     series_title: str
     # What the title is (`comics.title_kind`), so the build's link preview
     # for the title's page can say "a book line" and not "a series".
@@ -160,6 +163,7 @@ class PublicComicIndex(BaseModel):
 
 class PublicVolumeTitle(BaseModel):
     id: uuid.UUID
+    slug: str | None = None
     title: str
     cover_url: str | None
     publisher: str | None
@@ -219,10 +223,13 @@ class PublicVolumePage(BaseModel):
 
 
 async def _public_comic(
-    session: AsyncSession, item_id: uuid.UUID, public_only: bool = True
+    session: AsyncSession, item_id: uuid.UUID | None, public_only: bool = True
 ) -> Item | None:
     """One row by id, held to the public predicate. `public_only=False` is
-    for the admin comic page, which draws the same wall for a private row."""
+    for the admin comic page, which draws the same wall for a private row.
+    None (a key that names no item, public.py `_resolve_key`) finds nothing."""
+    if item_id is None:
+        return None
     query = select(Item).where(Item.id == item_id, Item.type == ItemType.COMIC)
     if public_only:
         query = query.where(Item.is_public.is_(True))
@@ -381,7 +388,7 @@ async def _also_in(
     that covers this issue. One query. A text-only entry, an unowned book and
     a private title's book never appear (nor that title's id or name)."""
     result = await session.execute(
-        select(ComicVolume, Item.title)
+        select(ComicVolume, Item.title, Item.slug)
         .join(ComicVolumeCollect, ComicVolumeCollect.volume_id == ComicVolume.id)
         .join(Item, Item.id == ComicVolume.item_id)
         .where(
@@ -393,8 +400,11 @@ async def _also_in(
             Item.type == ItemType.COMIC,
         )
     )
+    rows = result.all()
     return also_in_rows(
-        item.id, {volume.id: (volume, title) for volume, title in result}
+        item.id,
+        {volume.id: (volume, title) for volume, title, _ in rows},
+        {volume.item_id: slug for volume, _, slug in rows if slug},
     )
 
 
@@ -404,7 +414,9 @@ def held_single(item: Item, number: int) -> bool:
 
 
 def also_in_rows(
-    item_id: uuid.UUID, books: dict[uuid.UUID, tuple[ComicVolume, str]]
+    item_id: uuid.UUID,
+    books: dict[uuid.UUID, tuple[ComicVolume, str]],
+    slugs: dict[uuid.UUID, str] | None = None,
 ) -> list[PublicIssueAlsoIn]:
     """The `also_in` entries for books (volume id -> (volume, its title's
     name)): the page's own title first, then by title name, `line_number`
@@ -425,6 +437,7 @@ def also_in_rows(
             kind=volume.kind,
             line_number=volume.line_number,
             title_id=volume.item_id,
+            title_slug=(slugs or {}).get(volume.item_id),
             title=title,
             same_title=volume.item_id == item_id,
         )
@@ -466,6 +479,7 @@ async def build_issue_page(
     also_in = await _also_in(session, item, number)
     return PublicIssuePage(
         series_id=item.id,
+        series_slug=item.slug,
         series_title=item.title,
         publisher=series.publisher,
         number=number,
@@ -580,6 +594,7 @@ async def build_volume_page(
         **credit,
         title=PublicVolumeTitle(
             id=item.id,
+            slug=item.slug,
             title=item.title,
             cover_url=item.cover_url,
             publisher=series_of(item).publisher,
@@ -652,6 +667,7 @@ async def load_comic_index(
         out.append(
             PublicComicIndex(
                 item_id=item.id,
+                item_slug=item.slug,
                 series_title=item.title,
                 kind=title_kind(len(volumes[item.id]), loose_issues(item)),
                 issues=[

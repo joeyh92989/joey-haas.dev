@@ -10,7 +10,7 @@ import { spine } from '../content/spine.js'
 import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemPath, itemRowPath } from '../lib/spinePaths.js'
 import ContinueCard from '../components/ContinueCard.jsx'
 import TonightAlt from '../components/TonightAlt.jsx'
 import {
@@ -113,7 +113,7 @@ function NewestCovers({ games }) {
     <ul className={`tour-covers ${TOUR_COVERS}`}>
       {games.map((game) => (
         <li key={game.id}>
-          <Link to={itemPath(game.id)}>
+          <Link to={itemPath(game)}>
             <CoverImage src={game.cover_url} type={game.type} alt="" />
             <span className="tour-cover-title">{game.title}</span>
           </Link>
@@ -200,7 +200,7 @@ export default function HowItWorks() {
                 <ContinueCard
                   key={card.item_id}
                   card={card}
-                  to={itemPath(card.item_id)}
+                  to={itemRowPath(card)}
                 />
               ))}
             </ul>

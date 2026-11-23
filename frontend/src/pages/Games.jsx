@@ -309,7 +309,7 @@ export default function Games() {
             </div>
           )}
 
-          <NowPlaying items={items} linkFor={(item) => itemPath(item.id)} />
+          <NowPlaying items={items} linkFor={(item) => itemPath(item)} />
 
           <div className={`shelf-top ${SHELF_TOP}`}>
             <p className={`shelf-links ${SHELF_LINKS}`}>
@@ -381,13 +381,13 @@ export default function Games() {
                 layout === 'spines' ? (
                   <SpineCard
                     item={item}
-                    to={itemPath(item.id)}
+                    to={itemPath(item)}
                     number={numbers.get(item.id)}
                   />
                 ) : (
                   <PosterCard
                     item={item}
-                    to={itemPath(item.id)}
+                    to={itemPath(item)}
                     number={numbers.get(item.id)}
                     dimmed={dim && isDimmable(item)}
                   />
@@ -406,7 +406,7 @@ export default function Games() {
             </h2>
             <FavoritesRow
               items={items}
-              linkFor={(item) => itemPath(item.id)}
+              linkFor={(item) => itemPath(item)}
               headingLevel={3}
             />
             {stats && stats.total > 0 && (

@@ -7,7 +7,7 @@ import { seedIntake } from '../../content/seedIntake.js'
 import { hashRanges } from '../../lib/comicBooks.js'
 import { runModel } from '../../lib/comicRun.js'
 import { shelfPath } from '../../lib/intake.js'
-import { itemPath } from '../../lib/spinePaths.js'
+import { itemRowPath } from '../../lib/spinePaths.js'
 import StatTile, { StatTiles } from '../StatTile.jsx'
 import SeriesGrewRow from './SeriesGrewRow.jsx'
 import { ibtn } from '../addClasses.js'
@@ -277,7 +277,7 @@ export default function DoneStep({
                 to={
                   series.is_public === false
                     ? `/admin/shelf/comics/${series.item_id}`
-                    : itemPath(series.item_id)
+                    : itemRowPath(series)
                 }
                 growth={reportGrowth(series)}
               />

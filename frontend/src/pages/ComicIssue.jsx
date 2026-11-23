@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PHONE_TAP } from '../components/sharedClasses.js'
 import { Link, useOutletContext } from 'react-router'
+import { useCanonicalKey } from '../lib/useCanonicalKey.js'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
 import { ShelfTrail } from '../components/ShelfByline.jsx'
@@ -21,7 +22,7 @@ import { spine } from '../content/spine.js'
 import { apiFetch } from '../lib/api.js'
 import { expandRanges } from '../lib/comics.js'
 import { formatDate } from '../lib/formatDate.js'
-import { volumePath, itemPath } from '../lib/spinePaths.js'
+import { isItemId, issuePath, volumePath, itemPath } from '../lib/spinePaths.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { SAVED_NOT_REFRESHED } from '../content/status.js'
@@ -63,7 +64,12 @@ function AlsoIn({ single, books = [] }) {
         <span key={`${book.title_id}/${book.slug}`}>
           {i > 0 && COPY.alsoIn.separator}
           {i === 0 && ' '}
-          <Link to={volumePath(book.title_id, book.slug)}>
+          <Link
+            to={volumePath(
+              { id: book.title_id, slug: book.title_slug },
+              book.slug,
+            )}
+          >
             {book.same_title
               ? book.label
               : COPY.alsoIn.other(book.label, book.title)}
@@ -107,14 +113,19 @@ export default function ComicIssue({ id, n }) {
   const missing = read.data?.missing === true
   const page = missing ? null : read.data
 
+  // The owner's read is by id; the URL may carry the slug.
+  const itemId = page?.series_id ?? (isItemId(id) ? id : null)
   const loadStored = useCallback(async () => {
+    if (!itemId) return null
     try {
-      const response = await apiFetch(`/api/items/${encodeURIComponent(id)}`)
+      const response = await apiFetch(
+        `/api/items/${encodeURIComponent(itemId)}`,
+      )
       return response.ok ? storedView(await response.json()) : null
     } catch {
       return null
     }
-  }, [id])
+  }, [itemId])
 
   useEffect(() => {
     if (!signedIn) return undefined
@@ -141,6 +152,9 @@ export default function ComicIssue({ id, n }) {
         : `${spine.name} · Joey Haas`,
   )
 
+  // An old /shelf/<uuid>/<n>/ link becomes the slug form (#479).
+  useCanonicalKey(id, page?.series_slug, (slug) => issuePath(slug, n))
+
   if (missing) return <NotFound />
 
   if (!page) {
@@ -161,7 +175,11 @@ export default function ComicIssue({ id, n }) {
     )
   }
 
-  const series = { id: page.series_id, title: page.series_title }
+  const series = {
+    id: page.series_id,
+    slug: page.series_slug,
+    title: page.series_title,
+  }
   const held = page.state === 'read' || page.state === 'owned'
   // The pill reads "Skipped · private" only for the owner.
   const skipped = signedIn && stored?.skippedSet.has(n)
@@ -185,7 +203,10 @@ export default function ComicIssue({ id, n }) {
         trail={[
           { label: spine.name, to: spine.path },
           { label: COPY.comics, to: spine.tabs.comics.to },
-          { label: page.series_title, to: itemPath(page.series_id) },
+          {
+            label: page.series_title,
+            to: itemPath({ id: page.series_id, slug: page.series_slug }),
+          },
           { label: `#${page.number}` },
         ]}
         end={
@@ -261,7 +282,7 @@ export default function ComicIssue({ id, n }) {
 
           {signedIn && stored && (
             <OwnerControls
-              id={id}
+              id={page.series_id}
               n={page.number}
               state={page.state}
               stored={stored}

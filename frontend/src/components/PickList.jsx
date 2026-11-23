@@ -11,7 +11,7 @@ import SizePill from './SizePill.jsx'
 import SkippedToast from './SkippedToast.jsx'
 import { Button } from './ui/button.jsx'
 import { spine } from '../content/spine.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemRowPath } from '../lib/spinePaths.js'
 import {
   PICK_SLOT,
   TONIGHT_ACTS_LIST,
@@ -85,7 +85,7 @@ export default function PickList({
                   <span className={`pick-slot ${PICK_SLOT}`}>{label}</span>
                 )}
                 <Link
-                  to={itemPath(pick.item_id)}
+                  to={itemRowPath(pick)}
                   className={`tonight-title ${TONIGHT_TITLE}`}
                   data-tonight-title={pick.item_id}
                 >

@@ -71,7 +71,7 @@ import {
   noTags,
   tagChipGroups,
 } from '../lib/tags.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemPath, itemRowPath } from '../lib/spinePaths.js'
 import { useElapsed } from '../lib/useElapsed.js'
 import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
 
@@ -200,7 +200,7 @@ function ComicActions({ row, onFollow, onPublish, onDelete, onRedo }) {
             variant="link"
             className={PHONE_TARGET}
             nativeButton={false}
-            render={<Link to={itemPath(row.item_id)} />}
+            render={<Link to={itemRowPath(row)} />}
           >
             {row.missing > 0
               ? `Cover wall · ${row.missing} missing`
@@ -744,7 +744,7 @@ export default function AdminComics() {
                 item={item}
                 to={
                   item.is_public
-                    ? itemPath(item.id)
+                    ? itemPath(item)
                     : `/admin/shelf/comics/${item.id}`
                 }
                 number={numbers.get(item.id)}

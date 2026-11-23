@@ -15,6 +15,23 @@ same checkout still does). Keep `tests/test_migrations.py` out of `-n` runs: it 
 schema and runs alone in `backend-migrations`. Worker databases are not dropped for you;
 `psql -l | grep joeyhaas_test` lists them.
 
+## Item slugs (readable URLs, #479)
+
+`items.slug` (migration `0029`, nullable, partial unique index `ux_items_slug`) is the
+item page's URL key: `/shelf/catherine-full-body/`. `item_slugs.py` holds the generator
+(`slugify`, `unique_slug`, `backfill`) and imports nothing from the app, because the
+migration uses it. Rules: lowercase ASCII, hyphens, at most 80 characters, the item type
+when the title has nothing usable, `-<first 6 hex of the id>` on a collision, a reserved
+page name (`games`, `next`, `year`...) or a UUID-shaped slug. **Set once at insert and
+never changed by a retitle** (shared links). Every ORM `Item(...)` insert gets one from the
+`before_insert` listener at the foot of `models.py`; the bulk import (`items.commit_items`,
+a Core `pg_insert`) calls `_new_slug` itself. `test_item_slugs.py` fails if another Core
+insert of `Item` appears. The public reads under `/api/public/items/{key}` (item, `/issues`,
+`/issues/{n}`, `/volumes/{slug}`) take a slug or a UUID (`public._resolve_key`); rows that
+link to an item carry `item_slug` (`slug`, `series_slug`, `title_slug` on the item and
+issue pages). `analytics.py` counts slug paths and `public_path_filter` keeps a slug page
+only while its item is public. Admin routes stay keyed by id.
+
 ## Denver spots, test login
 
 - Denver spots: the public `/denver` map and list,
@@ -837,7 +854,7 @@ schema and runs alone in `backend-migrations`. Worker databases are not dropped 
   also ignored `comic_volumes.owned`). The prerender reads `volumes`. The wall
   (`/issues`) still lists `editions` for its book tiles, from owned volumes. Both tables join the
   `/api/public/next` fingerprint (`public_next_cache`). `analytics.py`
-  counts `/shelf/<id>/vol-<n>` (the `vol-[1-9][0-9]{0,3}` part, beside `ed-*`,
+  counts `/shelf/<key>/vol-<n>` (key = id or slug; the `vol-[1-9][0-9]{0,3}` part, beside `ed-*`,
   in `_PATTERNS` and `ITEM_PATH`); App.jsx must accept the same part when the
   page ships. `test_public_issues.py` checks every new key against
   `scripts/smoke.sh`'s `PRIVATE_KEYS`.

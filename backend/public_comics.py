@@ -90,6 +90,7 @@ class PublicComicRow(BaseModel):
     """A series on /shelf/comics. A want carries no run."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
     publisher: str | None
     year: int | None
@@ -171,6 +172,7 @@ class PublicComicIssue(BaseModel):
     to buy it (spec, AC9)."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
     publisher: str | None
     number: str
@@ -188,6 +190,7 @@ class PublicComicWeek(BaseModel):
 
 class PublicComicUndated(BaseModel):
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
 
 
@@ -350,6 +353,7 @@ def _row(
     status, caught_up = derived_status(item, series, read_marks)
     return PublicComicRow(
         item_id=item.id,
+        item_slug=item.slug,
         title=item.title,
         publisher=series.publisher,
         year=item.year,
@@ -519,6 +523,7 @@ def comic_weeks(
         issue: Issue = row.issue
         return PublicComicIssue(
             item_id=row.series_id,
+            item_slug=by_id[row.series_id].slug,
             title=row.title,
             publisher=row.publisher,
             number=issue.number,
@@ -537,7 +542,10 @@ def comic_weeks(
             )
             for week in pull.weeks
         ],
-        later=[PublicComicUndated(item_id=s.id, title=s.title) for s in pull.undated],
+        later=[
+            PublicComicUndated(item_id=s.id, item_slug=s.slug, title=s.title)
+            for s in pull.undated
+        ],
     )
 
 

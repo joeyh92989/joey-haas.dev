@@ -54,7 +54,8 @@ async def test_the_models_publish_exactly_these_fields():
         "generated_on", "weights", "games", "combos",
     }  # fmt: skip
     assert set(PublicPickCard.model_fields) == {
-        "item_id", "title", "cover_url", "platform", "time_to_beat_hours",
+        "item_id", "item_slug", "title", "cover_url", "platform",
+        "time_to_beat_hours",
         "igdb_url", "reasons",
     }  # fmt: skip
     assert set(PublicPickScore.model_fields) == {"item_id", "score", "terms"}

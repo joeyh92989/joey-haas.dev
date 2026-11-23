@@ -143,32 +143,42 @@ check_equals "GET /spine/next (legacy) has a /shelf canonical" \
   "<link rel=\"canonical\" href=\"$SITE_URL/shelf/next\" />"
 
 # Item, year and month pages are prerendered too, but Render serves them only
-# at the slash form (/shelf/<id>/), which every link, canonical URL and
+# at the slash form (/shelf/<slug>/), which every link, canonical URL and
 # sitemap entry uses (frontend/src/lib/spinePaths.js). A redirect from the
 # bare form loops on Render, so there is none: the bare form stays the SPA.
 # A slash path with no file (an item newer than the build) must fall through
 # to the SPA shell, not an empty 200.
+# An item page lives at its slug (#479); the snapshot of a build that predates
+# slugs has none, and then the id is the page. The id form of a slugged item
+# stays prerendered for old shared links, its canonical the slug page.
 if command -v jq > /dev/null; then
   snapshot_items="$(curl -s -m 90 "$SITE_URL/snapshot/items.json")"
   first_id="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].id // empty' 2>/dev/null)"
   first_title="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].title // empty | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;") | gsub("\""; "&quot;")' 2>/dev/null)"
+  first_slug="$(printf '%s' "$snapshot_items" | jq -r '[.[] | select(.id != null and .title)][0].slug // empty' 2>/dev/null)"
+  first_key="${first_slug:-$first_id}"
   if [ -n "$first_id" ]; then
-    item_page="$(curl -s -m 90 "$SITE_URL/shelf/$first_id/")"
+    item_page="$(curl -s -m 90 "$SITE_URL/shelf/$first_key/")"
     # A title shared by several series is qualified (year, platform, creator
     # or a short id: prerender-lib), so the page's title is the item's name,
     # optionally followed by " (qualifier)", then " · My Shelf".
     item_title="$(printf '%s' "$item_page" | grep -o '<title>[^<]*</title>')"
     case "$item_title" in
       "<title>$first_title · My Shelf</title>"|"<title>$first_title ("*") · My Shelf</title>")
-        report_pass "GET /shelf/<id>/ has its own prerendered title" "$item_title" ;;
-      *) report_fail "GET /shelf/<id>/ has its own prerendered title" "expected '<title>$first_title[ (qualifier)] · My Shelf</title>', got '$item_title'" ;;
+        report_pass "GET /shelf/<slug>/ has its own prerendered title" "$item_title" ;;
+      *) report_fail "GET /shelf/<slug>/ has its own prerendered title" "expected '<title>$first_title[ (qualifier)] · My Shelf</title>', got '$item_title'" ;;
     esac
-    check_equals "GET /shelf/<id>/ has a slash canonical" \
+    check_equals "GET /shelf/<slug>/ has a slash canonical" \
       "$(printf '%s' "$item_page" | grep -o '<link rel="canonical"[^>]*>')" \
-      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_id/\" />"
+      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_key/\" />"
+    if [ -n "$first_slug" ]; then
+      check_equals "GET /shelf/<id>/ (old link) has the slug canonical" \
+        "$(curl -s -m 90 "$SITE_URL/shelf/$first_id/" | grep -o '<link rel="canonical"[^>]*>')" \
+        "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_slug/\" />"
+    fi
     check_equals "GET /spine/<id>/ (legacy) has a /shelf canonical" \
       "$(curl -s -m 90 "$SITE_URL/spine/$first_id/" | grep -o '<link rel="canonical"[^>]*>')" \
-      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_id/\" />"
+      "<link rel=\"canonical\" href=\"$SITE_URL/shelf/$first_key/\" />"
   else
     report_fail "snapshot has an item" "no id in $SITE_URL/snapshot/items.json"
   fi

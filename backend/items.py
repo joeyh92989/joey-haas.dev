@@ -18,6 +18,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import item_slugs
 import playthroughs
 from auth import session_admin
 from comics import (
@@ -245,6 +246,7 @@ class ItemOut(BaseModel):
     """An item as returned by the API."""
 
     id: uuid.UUID
+    slug: str | None = None
     type: ItemType
     title: str
     status: ItemStatus
@@ -840,6 +842,25 @@ async def _require_favorite_slots(session: AsyncSession, adding: int) -> None:
         raise HTTPException(status_code=409, detail=FAVORITES_FULL)
 
 
+async def _new_slug(session: AsyncSession, values: dict, used: set[str]) -> str:
+    """The slug for one row of the bulk insert, which is a Core INSERT and so
+    does not reach models.py's ORM listener. `used` holds the batch's own
+    earlier slugs; the table is asked for any others that share the base."""
+    kind = values["type"].value if hasattr(values["type"], "value") else values["type"]
+    base = item_slugs.slugify(values.get("title"), str(kind))
+    existing = set(
+        await session.scalars(select(Item.slug).where(Item.slug.like(f"{base}%")))
+    )
+    slug = item_slugs.unique_slug(
+        values.get("title"),
+        str(kind),
+        values["id"],
+        lambda candidate: candidate in existing or candidate in used,
+    )
+    used.add(slug)
+    return slug
+
+
 async def commit_items(
     session: AsyncSession, rows: Sequence[ItemIn], *, today: date
 ) -> CommitResult:
@@ -859,6 +880,7 @@ async def commit_items(
     BULK_CHUNK, all in the caller's transaction. Does not commit.
     """
     seen: set[tuple[str, str]] = set()
+    used_slugs: set[str] = set()
     values_list: list[dict] = []
     index_of: dict[uuid.UUID, int] = {}
     duplicates = 0
@@ -885,6 +907,7 @@ async def commit_items(
                 continue
             seen.add(key)
         values["id"] = uuid.uuid4()
+        values["slug"] = await _new_slug(session, values, used_slugs)
         index_of[values["id"]] = index
         values_list.append(values)
 

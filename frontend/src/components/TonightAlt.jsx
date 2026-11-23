@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import { spine } from '../content/spine.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemRowPath } from '../lib/spinePaths.js'
 import {
   PICK_SLOT,
   TONIGHT_ACTS,
@@ -51,7 +51,7 @@ export default function TonightAlt({
       </span>
       {slot && <span className={`pick-slot ${PICK_SLOT}`}>{slot}</span>}
       <Link
-        to={itemPath(pick.item_id)}
+        to={itemRowPath(pick)}
         className={`tonight-title ${TONIGHT_TITLE}`}
         data-tonight-title={pick.item_id}
       >

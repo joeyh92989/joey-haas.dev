@@ -316,20 +316,28 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   unpublishing one means removing it: there are no placeholder rules,
   because a rewrite to a file the build did not write serves an empty 200
   rather than the SPA. `prerender-lib.test.mjs` checks the rules match the
-  pages exactly. `/shelf/:id`, `/shelf/year/:year` and
+  pages exactly. `/shelf/:key` (an item's **slug**, or its id: #479), `/shelf/year/:year` and
   `/shelf/journal/:month`, and the comic issue and volume pages
-  (`/shelf/<id>/<n>`, `/shelf/<id>/<slug>` where the slug is `vol-<n>` or an
+  (`/shelf/<key>/<n>`, `/shelf/<key>/<part>` where the part is `vol-<n>` or an
   old `ed-<from>-<to>`; `ComicVolume.jsx` serves both, and `App.jsx`'s
   `ShelfPart` accepts exactly those two shapes, the same ones
   `backend/analytics.py` allows; built from `volumes` in the optional
   `comic-issues.json` snapshot (the old `editions` array and the
   `/editions/<slug>` endpoint are gone), in the sitemap like items, no
   `/spine` mirror; the owner's write tools are the admin page below) stay on the catch-all, so their prerendered heads
-  are served only at the slash form (`/shelf/<id>/`). Every link, canonical,
+  are served only at the slash form (`/shelf/<slug>/`). Every link, canonical,
   The issue page's "Held" line (#332) reads `held_single` and `also_in` from
   `/api/public/items/<id>/issues/<n>` (`ComicIssue.jsx`, copy in `spine.comics.issue.alsoIn`): single only, "Also in: ..." or both, each book a link built by `volumePath(title_id, slug)`, a book of another title shown as "label (title)". Its fixtures (`e2e/fixtures/api/issue*.json`) come from `backend/scripts/export_public_comic_fixtures.py`.
   `og:url`, sitemap entry and feed link uses that form, built by
   `src/lib/spinePaths.js`; never hand-write a shelf item, year or month path.
+  **Item URLs are slugs** (`/shelf/catherine-full-body/`, #479): `itemPath(item)`
+  takes the item (or `itemRowPath(row)` for a row with `item_id` and
+  `item_slug`) and uses `slug ?? id`, so a snapshot or API older than the column
+  still links by id. The page redirects an id (or stale key) to the slug with
+  `useCanonicalKey` (replace, no history entry). The prerender writes the slug
+  page, plus the id page as a head whose canonical is the slug page (old shared
+  links still preview; not in the sitemap). The slug is set once on the backend
+  (`item_slugs.py`) and never changes with the title; the feed GUID stays the id.
   Don't add a slash with a redirect rule: on Render it loops for any path
   without a file (tried on 2026-10-19).
   The tracker moved from `/spine` to `/shelf` (copy pass, 2026-10-22).

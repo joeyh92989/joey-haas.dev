@@ -101,7 +101,7 @@ function OwnerTile({ tile, series, onTap, linked }) {
       </div>
       {linked ? (
         <Link
-          to={issuePath(series.id, tile.n)}
+          to={issuePath(series, tile.n)}
           className={`cover-tile-cap ${TILE_CAP_LINK}`}
           aria-label={OWNER.openName(series.title, tile.n)}
         >

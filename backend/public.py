@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+import item_slugs
 from comics import VolumeHold, held_ranges, load_holds
 from formats import KEY_CARD_PLATFORMS
 from models import (
@@ -111,6 +112,9 @@ class PublicItemOut(BaseModel):
     """
 
     id: uuid.UUID
+    # The page's URL key (/shelf/<slug>/); null only for a row older than the
+    # slug column, which the app falls back to the id for.
+    slug: str | None = None
     type: ItemType
     title: str
     year: int | None
@@ -172,6 +176,7 @@ class PublicItemCard(BaseModel):
     """The minimum a cover strip needs, so it costs no second request."""
 
     id: uuid.UUID
+    slug: str | None = None
     type: ItemType
     title: str
     cover_url: str | None
@@ -228,6 +233,7 @@ class PublicDiaryEntry(BaseModel):
     the shelf does not already show."""
 
     item_id: uuid.UUID
+    item_slug: str | None = None
     title: str
     cover_url: str | None
     platform: str | None
@@ -337,6 +343,7 @@ def _list_fields(
     snapshot = _allowed_snapshot(item, PUBLIC_METADATA_FIELDS)
     return {
         "id": item.id,
+        "slug": item.slug,
         "type": item.type,
         "title": item.title,
         "year": item.year,
@@ -490,6 +497,7 @@ def _to_public_detail(
         similar_in_collection=[
             PublicItemCard(
                 id=other.id,
+                slug=other.slug,
                 type=other.type,
                 title=other.title,
                 cover_url=other.cover_url,
@@ -497,6 +505,20 @@ def _to_public_detail(
             for other in similar
         ],
         comic=comic,
+    )
+
+
+async def _resolve_key(session: AsyncSession, key: str) -> uuid.UUID | None:
+    """The id an item page's URL key names: the key itself when it is a UUID,
+    else the id of the public item with that slug. None when nothing matches;
+    callers answer that with the 404 they already have (privacy is the
+    callers' `is_public` check, as before)."""
+    if item_slugs.is_id(key):
+        return uuid.UUID(key)
+    if not item_slugs.SLUG_SHAPE.fullmatch(key):
+        return None
+    return await session.scalar(
+        select(Item.id).where(Item.slug == key, Item.is_public.is_(True))
     )
 
 
@@ -550,6 +572,7 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         return [
             PublicDiaryEntry(
                 item_id=item.id,
+                item_slug=item.slug,
                 title=item.title,
                 cover_url=item.cover_url,
                 platform=item.platform,
@@ -731,17 +754,19 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
 
     @router.get("/items/{item_id}/issues", response_model=PublicWall)
     async def public_wall(
-        item_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+        item_id: str, session: AsyncSession = Depends(get_session)
     ) -> PublicWall:
         """The cover wall of one public comic series: its issues and editions."""
-        wall = await build_wall(session, item_id, datetime.now(UTC).date())
+        wall = await build_wall(
+            session, await _resolve_key(session, item_id), datetime.now(UTC).date()
+        )
         if wall is None:
             raise HTTPException(status_code=404, detail="Not found")
         return wall
 
     @router.get("/items/{item_id}/issues/{number}", response_model=PublicIssuePage)
     async def public_issue_page(
-        item_id: uuid.UUID,
+        item_id: str,
         number: str,
         session: AsyncSession = Depends(get_session),
     ) -> PublicIssuePage:
@@ -750,7 +775,10 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         if len(number) > 4 or not (number.isascii() and number.isdigit()):
             raise HTTPException(status_code=404, detail="Not found")
         page = await build_issue_page(
-            session, item_id, int(number), datetime.now(UTC).date()
+            session,
+            await _resolve_key(session, item_id),
+            int(number),
+            datetime.now(UTC).date(),
         )
         if page is None:
             raise HTTPException(status_code=404, detail="Not found")
@@ -762,13 +790,18 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         response_model_exclude_unset=True,
     )
     async def public_volume_page(
-        item_id: uuid.UUID,
+        item_id: str,
         slug: str,
         session: AsyncSession = Depends(get_session),
     ) -> PublicVolumePage:
         """One owned volume (book) of a public comic title. Private, unknown
         and not-owned all answer the same 404."""
-        page = await build_volume_page(session, item_id, slug, datetime.now(UTC).date())
+        page = await build_volume_page(
+            session,
+            await _resolve_key(session, item_id),
+            slug,
+            datetime.now(UTC).date(),
+        )
         if page is None:
             raise HTTPException(status_code=404, detail="Not found")
         return page
@@ -777,14 +810,16 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
     # 422 rather than fall through, but the order keeps that from mattering.
     @router.get("/items/{item_id}", response_model=PublicItemDetailOut)
     async def get_public_item(
-        item_id: uuid.UUID,
+        item_id: str,
         session: AsyncSession = Depends(get_session),
     ) -> PublicItemDetailOut:
         """One public item with its similar-items strip.
 
-        Unknown and private ids both 404: a 403 would confirm that a private
-        row exists at that id.
+        `item_id` is the item's slug or its UUID (item_slugs.py). Unknown and
+        private keys both 404: a 403 would confirm that a private row exists
+        at that key.
         """
+        item_id = await _resolve_key(session, item_id)
         result = await session.execute(select(Item).where(Item.is_public.is_(True)))
         public_items = list(result.scalars())
         item = next((row for row in public_items if row.id == item_id), None)

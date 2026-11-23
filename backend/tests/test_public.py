@@ -232,6 +232,7 @@ async def test_items_are_ordered_by_most_recently_finished(sessionmaker_for_test
 # these sets -- that is the review signal the allowlist exists to produce.
 LIST_FIELDS = {
     "id",
+    "slug",
     "type",
     "title",
     "year",
@@ -452,7 +453,7 @@ async def test_the_detail_page_carries_the_extra_fields(sessionmaker_for_test):
     assert body["times_completed"] == 2
     assert body["started_at"] == "2026-01-02"
     for card in body["similar_in_collection"]:
-        assert set(card) == {"id", "type", "title", "cover_url"}
+        assert set(card) == {"id", "slug", "type", "title", "cover_url"}
 
 
 async def test_an_unknown_item_is_a_404(sessionmaker_for_test):
@@ -1181,7 +1182,15 @@ async def test_no_public_response_carries_a_recommendation(sessionmaker_for_test
 
 # --- The play journal's public diary (migration 0007). --------------------
 
-DIARY_FIELDS = {"item_id", "title", "cover_url", "platform", "played_on", "minutes"}
+DIARY_FIELDS = {
+    "item_id",
+    "item_slug",
+    "title",
+    "cover_url",
+    "platform",
+    "played_on",
+    "minutes",
+}
 
 
 async def test_the_diary_model_publishes_exactly_these_fields():

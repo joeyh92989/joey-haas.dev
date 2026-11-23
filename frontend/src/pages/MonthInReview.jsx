@@ -26,7 +26,7 @@ import { usePageTitle } from '../lib/usePageTitle.js'
 import { usePublicDiaryState } from '../lib/usePublicDiary.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
 import NotFound from './NotFound.jsx'
-import { itemPath, yearPath } from '../lib/spinePaths.js'
+import { itemPath, itemRowPath, yearPath } from '../lib/spinePaths.js'
 import { WEEKDAY_DAY as DAY } from '../lib/formatDate.js'
 
 function dayWords(isoDate) {
@@ -119,7 +119,7 @@ export default function MonthInReview() {
             size="compact"
             renderCard={(item) => (
               <>
-                <PosterCard item={item} to={itemPath(item.id)} />
+                <PosterCard item={item} to={itemPath(item)} />
                 {item.again && <AgainTag />}
               </>
             )}
@@ -156,7 +156,7 @@ export default function MonthInReview() {
                       key={`${row.item_id}-${index}`}
                       className={DIARY_DAY_ROW}
                     >
-                      <Link to={itemPath(row.item_id)}>{row.title}</Link>
+                      <Link to={itemRowPath(row)}>{row.title}</Link>
                       {row.minutes != null && (
                         <span className="muted text-muted-foreground">
                           {row.minutes} min

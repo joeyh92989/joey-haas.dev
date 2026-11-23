@@ -32,6 +32,8 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+import item_slugs
+
 # The day the beacon went live: the empty state's "live since", and where
 # the All range starts. Set to the merge date.
 ANALYTICS_LIVE_SINCE = date(2026, 10, 20)
@@ -82,16 +84,25 @@ _EXACT_PATHS = frozenset(
         "/shelf/year",
     }
 )
+# An item's key in its URL: its id, or its slug (item_slugs.py; #479). A slug
+# is words joined by hyphens and never one of the reserved page names, so
+# /shelf/year/2026 and /shelf/journal/2026-10 stay their own pages.
+_ITEM_KEY = (
+    r"(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    r"|(?!(?:" + "|".join(sorted(item_slugs.RESERVED)) + r")(?:/|$))"
+    r"[a-z0-9]+(?:-[a-z0-9]+)*)"
+)
+_ITEM_PART = (
+    r"(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?"
+    r"|vol-[1-9][0-9]{0,3})"
+)
 _PATTERNS = (
-    re.compile(r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
+    re.compile(rf"/shelf/{_ITEM_KEY}"),
     # A comic issue (/shelf/<id>/<n>), a collected edition
     # (/shelf/<id>/ed-<from>-<to>[-<k>]) and a volume (/shelf/<id>/vol-<n>):
     # exactly what App.jsx's ShelfPart accepts, so a mistyped part, which
     # renders NotFound, is not counted.
-    re.compile(
-        r"/shelf/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-        r"/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?|vol-[1-9][0-9]{0,3})"
-    ),
+    re.compile(rf"/shelf/{_ITEM_KEY}/{_ITEM_PART}"),
     re.compile(r"/shelf/year/\d{4}"),
     re.compile(r"/shelf/journal/\d{4}-\d{2}"),
     re.compile(r"/blog/[a-z0-9]+(?:-[a-z0-9]+)*"),
@@ -130,11 +141,8 @@ _GOOGLE = re.compile(r"(?:www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2
 # An item page's path, before and after the /spine -> /shelf rename, with the
 # optional comic suffix: an issue (/<n>), a collected edition (/ed-...) or a
 # volume (/vol-<n>).
-# The group is the item's id.
-ITEM_PATH = re.compile(
-    r"/(?:shelf|spine)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-    r"(?:/(?:[1-9][0-9]{0,3}|ed-[1-9][0-9]{0,3}-[1-9][0-9]{0,3}(?:-[2-9][0-9]*)?|vol-[1-9][0-9]{0,3}))?"
-)
+# The group is the item's id or slug.
+ITEM_PATH = re.compile(rf"/(?:shelf|spine)/({_ITEM_KEY})(?:/{_ITEM_PART})?")
 _HOSTNAME = re.compile(
     r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*"
 )
