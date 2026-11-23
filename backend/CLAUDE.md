@@ -2,6 +2,19 @@
 
 Moved from the root CLAUDE.md. Rules for `backend/`; shared and deploy rules stay in the root file.
 
+## Running the tests in parallel
+
+CI runs `pytest -n 4` (pytest-xdist, `--dist load`) for `backend-tests`; a plain
+`pytest` stays serial. Under xdist each worker has its own database, because every run
+drops and rebuilds a schema: `tests/testdb.py` appends `_<worker>` (`_gw0`, `_gw1`...) to the
+database name of whichever URL applies (the per-checkout `joeyhaas_test_...` name, CI's
+`postgres`, or an explicit `TEST_DATABASE_URL`) and creates it when missing. Locally,
+`pytest -n 3 --ignore=tests/test_migrations.py` works; the one-pytest-per-checkout rule holds
+for the whole `-n` group (workers do not collide with each other, but a second pytest on the
+same checkout still does). Keep `tests/test_migrations.py` out of `-n` runs: it replaces the
+schema and runs alone in `backend-migrations`. Worker databases are not dropped for you;
+`psql -l | grep joeyhaas_test` lists them.
+
 ## Denver spots, test login
 
 - Denver spots: the public `/denver` map and list,
