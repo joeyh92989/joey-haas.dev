@@ -280,7 +280,7 @@ export const SHELF_ACTIONS_SHEET = 'relative z-10 mt-1'
 /** The bottom sheet the touch form opens: a modal dialog, so its own box is
  *  undone (no margin, no max width, no border but the top). */
 export const SHELF_SHEET =
-  'fixed inset-x-0 top-auto bottom-0 z-10 [.admin-app-phone_&]:z-40 m-0 max-h-[85dvh] w-auto max-w-none overflow-auto border-0 border-t border-t-(--line) bg-(--surface) px-4 pt-4 pb-6 text-foreground [box-shadow:0_-8px_24px_var(--overlay)] backdrop:bg-(--overlay)'
+  'fixed inset-x-0 top-auto bottom-0 z-10 m-0 max-h-[85dvh] w-auto max-w-none overflow-auto border-0 border-t border-t-(--line) bg-(--surface) px-4 pt-4 pb-6 text-foreground [box-shadow:0_-8px_24px_var(--overlay)] backdrop:bg-(--overlay)'
 
 /** The shelf pages' closing source line (#536 slice E1): a rule over small
  *  grey text, its links underlined like the running text's (the accent is
