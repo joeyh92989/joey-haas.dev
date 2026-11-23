@@ -541,3 +541,7 @@ test('data pages review shots', async ({ page }) => {
     }
   }
 })
+
+test('deliberate failure (throwaway, #598 check)', async () => {
+  throw new Error('deliberate')
+})

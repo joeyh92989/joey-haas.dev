@@ -35,3 +35,7 @@ test('Menu on a phone lists the More group', async ({
   await group.getByRole('link', { name: 'Denver places' }).click()
   await expect(page).toHaveURL(/\/denver\/?$/)
 })
+
+test('deliberate failure (throwaway, #598 check)', async () => {
+  throw new Error('deliberate')
+})
