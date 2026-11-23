@@ -181,20 +181,25 @@ export default function PosterCard({
         <div className="flex flex-1 flex-col p-3">
           <Link to={to} className={cx('poster-link', CARD_LINK)}>
             {art}
+            {/* A comic holds two title lines (and the qualifier's) so the
+                lanes below start level across a grid row (#474); the title
+                itself stays unclipped. */}
             <span
               className={cx(
-                'poster-title',
-                CARD_TITLE,
-                run && 'line-clamp-2 min-h-[2lh]',
+                'block',
+                run && qualifier !== undefined && 'min-h-[4.05rem]',
+                run && qualifier === undefined && 'min-h-12',
               )}
             >
-              {item.title}
-            </span>
-            {qualifier !== undefined && (
-              <span className={cx('poster-qualifier', CARD_QUALIFIER)}>
-                {qualifier}
+              <span className={cx('poster-title', CARD_TITLE)}>
+                {item.title}
               </span>
-            )}
+              {qualifier !== undefined && (
+                <span className={cx('poster-qualifier', CARD_QUALIFIER)}>
+                  {qualifier}
+                </span>
+              )}
+            </span>
             {markLabel && ' '}
             {markLabel && <span className="sr-only">{markLabel}</span>}
           </Link>

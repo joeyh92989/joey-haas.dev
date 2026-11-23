@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   MemoryRouter,
@@ -539,6 +545,9 @@ async function renderShelf() {
   await waitFor(() =>
     expect(document.querySelector('.poster-grid')).not.toBeNull(),
   )
+  // The filter rows sit behind the Filters button (#473).
+  const button = screen.queryByRole('button', { name: /^Filters/ })
+  if (button?.getAttribute('aria-expanded') === 'false') fireEvent.click(button)
 }
 
 describe('AdminCollection shelf', () => {

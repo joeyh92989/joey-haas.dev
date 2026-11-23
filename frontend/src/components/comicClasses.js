@@ -194,7 +194,7 @@ export const COMIC_CARD_VOLUMES = 'line-clamp-2'
 // A same-title qualifier under the title; an empty one keeps its line so the
 // cards in a grid stay level.
 export const CARD_QUALIFIER =
-  'block min-h-[1lh] text-(--text-2) text-[0.75rem] leading-[1.4]'
+  'block text-(--text-2) text-[0.75rem] leading-[1.4]'
 export const COMIC_CARD_KIND =
   'text-(--text) text-[0.75rem] font-medium leading-[1.4]'
 export const COMIC_CARD_LINE =
