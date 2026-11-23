@@ -8,6 +8,7 @@
 // does not draw logs `absent: <selector>` and is dumped as it stands, the same
 // on both sides. Run the pair with `ONLY=' g3a '` and so on.
 import { readFileSync } from 'node:fs'
+import { COMIC_ID, GAME_ID, mockAdminData } from '../../admin-data-mocks.js'
 
 const api = (name) =>
   JSON.parse(
@@ -329,6 +330,7 @@ export async function g3({ record }, theme, vp) {
   await record(at('a', 'issue print'), issue(3, { media: 'print' }))
 
   await g3b({ record, on, spec, seen, at, theme, vp })
+  await g3c({ record, on, spec, seen, at, theme, vp })
 }
 
 /** Part b: the shared primitives (buttons, hero, tabs, chip rows, sheets). */
@@ -423,5 +425,170 @@ async function g3b({ record, on, spec, seen, at, theme, vp }) {
         kind: 'next',
       })
       await record(at2('daily'), { path: '/shelf/daily', theme, vp: edge })
+    }
+}
+
+/** Part c: the admin and stats pages (item edit, playthroughs, Stats). */
+async function g3c({ record, on, spec, seen, at, theme, vp }) {
+  const admin = (path, extra = {}) =>
+    spec(path, undefined, { ...extra, mock: mockAdminData })
+  const game = admin(`/admin/collection/${GAME_ID}`)
+  await record(
+    at('c', 'game'),
+    game,
+    seen(
+      '.item-detail',
+      '.item-relink',
+      '.play-journal-list',
+      '.item-playthroughs',
+      '.playthroughs-table',
+      '.registry-line',
+    ),
+  )
+  await record(
+    at('c', 'game touch'),
+    admin(`/admin/collection/${GAME_ID}`, { touch: true }),
+  )
+  await record(
+    at('c', 'game add past'),
+    game,
+    on('.playthroughs-add button', 'press', 0),
+  )
+  await record(
+    at('c', 'game relink focus'),
+    game,
+    on('.item-relink input', 'focus', 0),
+  )
+  await record(
+    at('c', 'game status focus'),
+    game,
+    on('.item-status-control select', 'focus', 0),
+  )
+  await record(
+    at('c', 'game journal delete hover'),
+    game,
+    on('.play-journal-list button', 'hover', 0),
+  )
+  await record(
+    at('c', 'game run edit'),
+    game,
+    on('.playthroughs-table input', 'press', 0, async (page) => {
+      await page.locator('.playthroughs-table input').first().fill('2024-03-02')
+      await page.waitForTimeout(200)
+    }),
+  )
+  await record(
+    at('c', 'game print'),
+    admin(`/admin/collection/${GAME_ID}`, { media: 'print' }),
+  )
+  await record(
+    at('c', 'comic'),
+    admin(`/admin/shelf/comics/${COMIC_ID}`),
+    seen('.item-relink', '.item-attribution'),
+  )
+  await record(
+    at('c', 'collection'),
+    admin('/admin/collection'),
+    seen('.item-cover-cell'),
+  )
+  await record(
+    at('c', 'catalogue'),
+    admin('/admin/catalogue'),
+    seen('.needs-match-row'),
+  )
+  await record(
+    at('c', 'store list'),
+    admin('/admin/store-list'),
+    seen('.store-list-section', '.store-lines'),
+  )
+  await record(
+    at('c', 'store list link hover'),
+    admin('/admin/store-list'),
+    on('.store-lines a', 'hover', 0),
+  )
+  // The public item page, signed in: the runs table, read-only.
+  const gameBody = {
+    ...api('public-comic-run'),
+    id: GAME_ID,
+    type: 'game',
+    title: 'Pinned Game',
+    comic: null,
+    platforms: ['Nintendo Switch 2'],
+    description: 'An invented game. '.repeat(40),
+  }
+  const mine = spec(`/shelf/${GAME_ID}`, 'signed-in', {
+    mock: async (page) => {
+      await mockAdminData(page)
+      await page.route(`**/api/public/items/${GAME_ID}`, (r) =>
+        json(r, gameBody),
+      )
+    },
+  })
+  await record(
+    at('c', 'public item runs'),
+    mine,
+    seen(
+      '.item-playthroughs',
+      '.playthroughs-note',
+      '.item-tile-figure',
+      '.item-description',
+    ),
+  )
+  await record(at('c', 'public item runs touch'), { ...mine, touch: true })
+  await record(
+    at('c', 'public item expand'),
+    mine,
+    on('.item-description-wrap button', 'press', 0),
+  )
+  await record(
+    at('c', 'stats'),
+    spec('/stats', undefined, { serve: ['site-stats'] }),
+    seen('.site-stats', '.site-stats-lists', '.changelog'),
+  )
+  await record(
+    at('c', 'stats changelog link hover'),
+    spec('/stats', undefined, { serve: ['site-stats'] }),
+    on('.changelog a', 'hover', 0),
+  )
+  await record(
+    at('c', 'stats feed focus'),
+    spec('/stats', undefined, { serve: ['site-stats'] }),
+    on('.changes-feed a', 'focus', 0),
+  )
+  if (vp === 'desktop')
+    for (const edge of [
+      'w320',
+      'w544',
+      'w545',
+      'w640',
+      'w641',
+      'w700',
+      'w701',
+    ]) {
+      const at2 = (name) => `screen ${theme} g3c ${name} ${edge}`
+      await record(at2('stats'), {
+        path: '/stats',
+        theme,
+        vp: edge,
+        serve: ['site-stats'],
+      })
+      await record(at2('game'), {
+        path: `/admin/collection/${GAME_ID}`,
+        theme,
+        vp: edge,
+        mock: mockAdminData,
+      })
+      await record(at2('store list'), {
+        path: '/admin/store-list',
+        theme,
+        vp: edge,
+        mock: mockAdminData,
+      })
+      await record(at2('play next'), {
+        path: '/admin/play-next',
+        theme,
+        vp: edge,
+        kind: 'play-next',
+      })
     }
 }

@@ -1,5 +1,11 @@
 import { Link } from 'react-router'
 import { PROGRESS, PROGRESS_BAR } from './sharedClasses.js'
+import {
+  PICKLIST,
+  PICKLIST_COVER,
+  PICKLIST_TEXT,
+  PICKS_H,
+} from './adminPageClasses.js'
 import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import SkippedToast from './SkippedToast.jsx'
@@ -55,12 +61,12 @@ export default function PickList({
   return (
     <>
       {heading && (
-        <p className="picks-h">
+        <p className={`picks-h ${PICKS_H}`}>
           <span>{heading}</span>
           <span className="muted">{caption}</span>
         </p>
       )}
-      <ul className="picklist">
+      <ul className={`picklist ${PICKLIST}`}>
         {rows.map(({ pick, label }) =>
           skipped.includes(pick.item_id) ? (
             <SkippedToast
@@ -71,10 +77,10 @@ export default function PickList({
             />
           ) : (
             <li key={pick.item_id}>
-              <span className="picklist-cover">
+              <span className={`picklist-cover ${PICKLIST_COVER}`}>
                 <CoverImage src={pick.cover_url} type={pick.type} alt="" />
               </span>
-              <div className="picklist-text">
+              <div className={`picklist-text ${PICKLIST_TEXT}`}>
                 {label && (
                   <span className={`pick-slot ${PICK_SLOT}`}>{label}</span>
                 )}

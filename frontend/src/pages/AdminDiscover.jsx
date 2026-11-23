@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { RADAR } from '../components/adminPageClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -257,7 +258,7 @@ export default function AdminDiscover() {
   const ranking = rankingWords(discover)
 
   return (
-    <section className="radar discover">
+    <section className={`radar ${RADAR} discover`}>
       <AdminPageHeader
         title={copy.title}
         description="Released physical games on your platforms that fit your taste and aren’t on your shelf, picked from the sources."

@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  STORE_LINES,
+  STORE_LIST_SECTION,
+} from '../components/adminPageClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import { apiFetch, errorMessage } from '../lib/api.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -44,7 +48,7 @@ function storeWords(line, lines) {
 function StoreLines({ lines }) {
   if (!lines?.length) return null
   return (
-    <ul className="store-lines">
+    <ul className={`store-lines ${STORE_LINES}`}>
       {lines.map((line, index) => (
         <li key={`${line.store}-${index}`}>
           {line.url ? (
@@ -272,7 +276,7 @@ export default function AdminStoreList() {
           return (
             <section
               key={key}
-              className="store-list-section"
+              className={`store-list-section ${STORE_LIST_SECTION}`}
               aria-labelledby={`store-list-${key}`}
             >
               <h2 id={`store-list-${key}`}>{spine.next.sections[key]}</h2>

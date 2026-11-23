@@ -1,4 +1,11 @@
 import { useState } from 'react'
+import {
+  PLAYTHROUGHS_ACTIONS,
+  PLAYTHROUGHS_ADD_FORM,
+  PLAYTHROUGHS_NOTE,
+  PLAYTHROUGHS_TABLE,
+  PLAYTHROUGHS_WRAP,
+} from './adminPageClasses.js'
 import { runWords, statusLabel } from '../lib/shelf.js'
 import { DAY_YEAR as DAY } from '../lib/formatDate.js'
 import {
@@ -46,8 +53,8 @@ export default function PlaythroughTable({
       {sorted.length === 0 ? (
         <p className="muted">{words.noRuns}</p>
       ) : (
-        <div className="playthroughs-wrap">
-          <table className="playthroughs-table">
+        <div className={`playthroughs-wrap ${PLAYTHROUGHS_WRAP}`}>
+          <table className={`playthroughs-table ${PLAYTHROUGHS_TABLE}`}>
             <thead>
               <tr>
                 <th scope="col">#</th>
@@ -131,7 +138,7 @@ function EditableRow({ run, type, busy, onEdit, onDelete }) {
       </td>
       <td>{outcomeLabel(run, type)}</td>
       <td>{journalText(run)}</td>
-      <td className="playthroughs-actions">
+      <td className={`playthroughs-actions ${PLAYTHROUGHS_ACTIONS}`}>
         {dirty && (
           <button
             type="button"
@@ -167,7 +174,7 @@ function AddPast({ busy, onAdd, type }) {
   const [finished, setFinished] = useState('')
   if (!adding) {
     return (
-      <p className="playthroughs-add">
+      <p className={`playthroughs-add ${PLAYTHROUGHS_NOTE}`}>
         <button
           type="button"
           className={LINK_BTN}
@@ -180,7 +187,7 @@ function AddPast({ busy, onAdd, type }) {
   }
   return (
     <div
-      className="playthroughs-add-form"
+      className={`playthroughs-add-form ${PLAYTHROUGHS_ADD_FORM}`}
       role="group"
       aria-label={words.pastRun}
     >

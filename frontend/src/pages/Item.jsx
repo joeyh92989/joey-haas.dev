@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  ITEM_PLAYTHROUGHS,
+  PLAYTHROUGHS_NOTE,
+} from '../components/adminPageClasses.js'
+import {
   CLAMP_6,
   ITEM_TILE_FIGURE,
   ITEM_TTB,
@@ -1005,12 +1009,12 @@ function ItemView({
 
       {runs && runs.length > 0 && (
         <section
-          className="item-playthroughs"
+          className={`item-playthroughs ${ITEM_PLAYTHROUGHS}`}
           aria-label={runWords(item.type).runs}
         >
           <h2>{runWords(item.type).runs}</h2>
           <PlaythroughTable runs={runs} type={item.type} />
-          <p className="muted playthroughs-note">
+          <p className={`muted playthroughs-note ${PLAYTHROUGHS_NOTE}`}>
             Dates change on the <Link to={adminItemPath(item)}>edit page</Link>.
           </p>
         </section>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ITEM_COVER_CELL } from '../components/adminPageClasses.js'
 import { Link, useLocation, useNavigate, useOutletContext } from 'react-router'
 import { SHELF_SEARCH, SHELF_TOP } from '../components/shelf-classes.js'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -1277,7 +1278,7 @@ export default function AdminCollection() {
                               onChange={() => toggleSelected(item.id)}
                             />
                           </td>
-                          <td className="item-cover-cell">
+                          <td className={`item-cover-cell ${ITEM_COVER_CELL}`}>
                             <CoverImage src={item.cover_url} type={item.type} />
                           </td>
                           <td>{item.type}</td>
