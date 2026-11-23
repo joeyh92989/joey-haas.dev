@@ -17,7 +17,7 @@ list can use them; their rules are added when one of them is next designed.
 Tokens (colour, type, spacing, status marks) are in `frontend/src/styles/tokens.css`
 (base rules in `base.css`, print in `print.css`) and their rules in CLAUDE.md → Conventions. Words are in `docs/voice.md`.
 
-The Tailwind v4 and shadcn/ui build setup (layers, Preflight, adding a component) is in
+The Tailwind v4 and shadcn/ui build setup (layers, Preflight, adding a component; the cascade is in `frontend/src/styles/README.md`) is in
 `frontend/CLAUDE.md` → "Design system setup".
 
 ## Page types
@@ -59,7 +59,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 | State pill | `StatePill` | A thing's state in words and colour: owned, read, missing, not out, skipped, and the play statuses. One pill per state, the same words everywhere (`content/spine.js`). |
 | Empty state | `EmptyState` | One sentence saying what is missing, an optional line, and the next step as a link or button when there is one. Words from `content/`. No page writes its own empty box or `*-empty` class (`designConsistency.test.js`). |
 | Load error | `LoadState` | A failed read says so in the shared words (`content/status.js`) with Try again; a stale but painted page says it quietly. A bare `{LOAD_ERROR}` paragraph is refused, and every `admin-error` is a `role="alert"` (`designConsistency.test.js`). |
-| Button | `Button` (`components/ui/button.jsx`) | Every button and every link that looks like one. Flat, a 1px outline, no shadow; the primary variant fills with `--accent`. **One primary button per view.** A link-button is `render={<Link />}` with `nativeButton={false}` (it keeps `role="link"`), or `buttonVariants` on a plain `Link`. A filter chip is `Button variant="chip"` (`FilterChips`). New code does not write `className="btn"`; the legacy `.btn` stays on pages not yet migrated (#536). |
+| Button | `Button` (`components/ui/button.jsx`) | Every button and every link that looks like one. Flat, a 1px outline, no shadow; the primary variant fills with `--accent`. **One primary button per view.** A link-button is `render={<Link />}` with `nativeButton={false}` (it keeps `role="link"`), or `buttonVariants` on a plain `Link`. A filter chip is `Button variant="chip"` (`FilterChips`). New code does not write `className="btn"`: the `btn` class is an `@utility` in `styles/utilities.css`, kept only where a page still carries it (#536). |
 | Label | `Badge` (`components/ui/badge.jsx`) | A small mono label with an outline: a tag, a count, a version. `accent` is the one filled variant. A badge names a thing; it is not a status (see Status mark) and not a match confidence (see below). |
 | Text field | `Input` (`components/ui/input.jsx`) | A one-line field: 1px ink outline on the card colour. Always with a visible or `aria-label`led label. |
 | Tabs | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | **Sections of one page** that swap in place: a rule under the list and a 3px accent bar under the active tab; arrow keys move focus, Enter or Space selects. Where the choices are other pages, they are links (`SpineHeader`), not tabs. |
@@ -69,7 +69,7 @@ tab shows only while the build's snapshot holds a public row of that type.
 | Record card | `RecordCard` | One record in a **numbered collection**: a mono label strip (catalogue number left, type or status right), a 3px accent left edge, the body below. A card that is not part of a collection is a `Card`. It takes Card's shell from `ui/card-classes.js` (the same string `Card` uses), with no padding of its own, and joins classes with `lib/cx.js`, so it is safe in the entry chunk. |
 | Catalogue number | `CatalogueNumber` | "No. 007": decorative (`aria-hidden`), mono, on a record card's strip, **collections only**. It never stands in for a title or an id, and no page draws one by hand. |
 | Status mark | `StatusMark` | A small outlined square, filled `--highlight` only when `live` or `finished`, **always with its word beside it**: colour never carries the meaning alone. The word's text colour is `--text-2`, never `--accent`. It is for a record card's status; the words and colours of a thing's state on the shelf (owned, read, missing) stay with `StatePill` on the detail pages; the public Games and Comics cards are `RecordCard`s whose strip holds the number and a `StatusMark` (`active` draws as `live`). |
-| Account menu | `AccountMenu` | The admin's one place for who is signed in, View site and Sign out (#503). The `jh` mark at the head of the rail is its button (labelled Account) on a desktop; on a phone it is a 44px rounded-square quiet button, the mark and a caret, at the left of the segment row, with the panel below. A real `button` with `aria-expanded`, `aria-controls` and the name "Account, <email>"; the panel is a plain list, never `role="menu"`. Escape, a press outside and tabbing out close it; Sign out has no confirm, reads "Signing out…" and ignores a second press, and a failure is a `role="alert"` line in the open panel. No page adds its own sign-out or View site link, and the sidebar and phone foot are gone. Words in `adminCopy.shell`. The shell's layout (frame, rail, page list, tab bar, segments, badges, panel, gate) is utilities in `components/adminShellClasses.js` (#536); `index.css` has no `.admin-rail`, `.admin-tabs` or `.acct-*` rule. |
+| Account menu | `AccountMenu` | The admin's one place for who is signed in, View site and Sign out (#503). The `jh` mark at the head of the rail is its button (labelled Account) on a desktop; on a phone it is a 44px rounded-square quiet button, the mark and a caret, at the left of the segment row, with the panel below. A real `button` with `aria-expanded`, `aria-controls` and the name "Account, <email>"; the panel is a plain list, never `role="menu"`. Escape, a press outside and tabbing out close it; Sign out has no confirm, reads "Signing out…" and ignores a second press, and a failure is a `role="alert"` line in the open panel. No page adds its own sign-out or View site link, and the sidebar and phone foot are gone. Words in `adminCopy.shell`. The shell's layout (frame, rail, page list, tab bar, segments, badges, panel, gate) is utilities in `components/adminShellClasses.js` (#536); the old `index.css` is deleted, and no stylesheet has an `.admin-rail`, `.admin-tabs` or `.acct-*` rule. |
 | Dialog | `Sheet` | The one modal (CLAUDE.md), and the only `role="dialog"`: the card action sheet on touch renders through it. A non-modal panel, such as the inline add drawer, is a labelled `aside`, not a dialog. |
 | Destructive confirm | `ConfirmDelete` (`ShelfConfirm` for rows) | Asks in place, never in a browser dialog, and names the row and what goes with it, with the real counts (`lib/deleteDetail.js`, words in `content/shelfDelete.js`). A delete that cannot read the counts does not go ahead. |
 
@@ -137,7 +137,7 @@ inside itself and keeps room for a ring at its edge. A text button in a
 sentence (Undo, Cancel) is `LINK_BTN`. Each button, select and text field
 carries its own 44px phone target; a checkbox is 24px and its label, a
 separate element, is the 44px one, and the pressed Owned and Read marks are the chip look (outline,
-weight and bar, never colour alone). `adminDataStyle.test.js` pins the legacy
+weight and bar, never colour alone). `adminDataStyle.test.js` pins the
 `btn`, `chip`, `panel` and `link-button` classes off these files.
 
 **What the shared pieces reach.** `STAT_CARD` is used by the public Games and
@@ -149,7 +149,7 @@ public and admin lists.
 
 (#533.) The item page, the comic title page, an issue, a book and the Year and
 Month in review take their look from utility strings in
-`components/detail-classes.js`, not from the legacy sheet. The detail head is
+`components/detail-classes.js`, not from a stylesheet. The detail head is
 the cover beside a `PageHeader` (kicker, title, one muted line), under the
 `Breadcrumb`; a long word in the title breaks inside its box rather than push
 the page sideways (`PAGE_WRAP` on each page's root). A game's and a comic
@@ -162,7 +162,7 @@ the comic title page reads as one set of panels (the admin comic page shares
 those three components and so takes it too). What's next is three `RecordCard`s with no number (a catalogue
 number is for collections, and a detail page has no whole shelf to place the
 title in without a new read), and tags and platforms are badge-look chips that
-may wrap. A control that was a legacy `.btn.sm` is a `buttonVariants` button
+may wrap. A control that was a `.btn.sm` is a `buttonVariants` button
 and keeps its 44px phone target (`PHONE_TARGET`). A pressed toggle is built
 with `cn`, which merges, since `cx` would leave two `aria-pressed` fills in the
 sheet (`classCollisions.test.js` fails any such join). Whole-link rings on the
@@ -175,7 +175,7 @@ trail (13px, the current crumb in ink and medium weight, the trail wraps and
 breaks a long word, the owner's Edit link sits to the right and drops under
 the trail when it does not fit). `Breadcrumb` and `PageHeader` are eager files.
 
-Still legacy, shared with the admin twins until #536: `CoverWall`, `BookWall`,
+Written in the shared `@utility` classes of `styles/utilities.css` (#536 G3), shared with the admin twins: `CoverWall`, `BookWall`,
 `SingleBookCard` (their panel box, `.item-card`, now 6px like `PANEL`),
 `StatTile`, `PlaythroughTable`, `StatePill`, `MonthIndex`, `.edition-neighbour`
 (the admin book page) and the chips' CSS (`PlayNext`).
@@ -407,8 +407,8 @@ dashed border, so it is never told apart by fading alone), `BOX` for cards
 (the unfinished list, a suggestion, Rate a few, the resume line) and
 `INTAKE_FIELD` for the add bar, drawer and Details fields. The armed
 Discard is the destructive button. Discover's platform chips are the filter
-chip, pressed by weight, border and the accent bar. The legacy `.btn` class
-stays for the areas not yet migrated (#536); `.chip` has no rule left (slice E1:
+chip, pressed by weight, border and the accent bar. The `btn` class
+is an `@utility` in `styles/utilities.css` (#536); `.chip` has no rule left (slice E1:
 `components/chipClasses.js`). The ten
 half-star targets of Quick rate keep their drawn width (ten 44px targets do
 not fit a phone); they are 44px tall on a phone.

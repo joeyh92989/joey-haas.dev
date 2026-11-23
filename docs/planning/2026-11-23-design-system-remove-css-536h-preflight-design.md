@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: refactor (finish the old-CSS removal: Preflight really on, no visible change)
 mode: auto
 issue: "#536 final slice 536h-preflight, epic #519"

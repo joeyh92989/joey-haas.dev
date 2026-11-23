@@ -28,9 +28,10 @@ Lowest to highest:
    plain `base` would let its element rules beat a `:where()` rule. Do not
    flatten it.
 4. `utilities`: every Tailwind utility and the `@utility` classes below. A
-   utility beats everything in `base`, which is why `* { padding: 0 }` in
-   `base.css` is safe: it must stay in a layer (unlayered it would beat every
-   utility, as it did in the spike).
+   utility beats everything in `base`. The old `* { margin: 0; padding: 0;
+   box-sizing: border-box }` rule is gone: Preflight's own `*` reset does it, and
+   a bare `*` rule in `base.css` (let alone unlayered, where it beat every
+   utility in the spike) would be a second copy.
 5. Unlayered, above all: the shadcn token `:root` block and the `@theme`
    redeclarations in `tailwind.css` (variables only), and `tw-animate-css` and
    `shadcn/tailwind.css`, imported unlayered (`@property` blocks and one

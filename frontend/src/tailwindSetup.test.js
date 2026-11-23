@@ -54,6 +54,13 @@ describe('tailwind.css setup', () => {
     expect(order.filter((o) => o.includes('preflight.css'))).toHaveLength(1)
   })
 
+  // Until slice H a block of `revert` rules in base.css handed every Preflight
+  // reset back to the browser. Markup that needs a browser value says so
+  // itself (a utility, or a rule that names the value).
+  it('has no revert shim: no rule hands a reset back to the browser', () => {
+    expect(sheets).not.toMatch(/:\s*revert\s*;/)
+  })
+
   // The placeholder is text on a field: --text-3 is pinned at 4.5 or more on
   // --bg, --surface and --sunken in both themes by contrast.test.js.
   it('colours the placeholder with a pinned text token', () => {
