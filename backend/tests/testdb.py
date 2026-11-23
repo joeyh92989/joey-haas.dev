@@ -7,6 +7,12 @@ gets a database named after the checkout it runs from. CI and an explicit
 TEST_DATABASE_URL are untouched: CI's runner is already isolated, and an
 explicit URL is a decision someone made.
 
+Under pytest-xdist (PYTEST_XDIST_WORKER set, e.g. `gw0`) every worker gets its
+own database, the URL's database name plus `_<worker>`, because each run drops
+and rebuilds a schema and two workers on one database fail each other. That
+holds for the derived, CI and explicit URLs alike, and the worker database is
+created in every case. Without xdist nothing changes.
+
 Not a test module (no `test_` prefix), so pytest does not collect it.
 """
 
@@ -39,20 +45,51 @@ def database_name_for(checkout: Path) -> str:
     return f"{_PREFIX}{slug[:_MAX_SLUG]}_{digest}"
 
 
+def worker_id(environ: dict[str, str]) -> str:
+    """The pytest-xdist worker this process is (`gw0`...), or "" when serial."""
+    return re.sub(r"[^a-z0-9]+", "_", environ.get("PYTEST_XDIST_WORKER", "").lower())
+
+
+def worker_database_name(name: str, worker: str) -> str:
+    """`name` plus `_<worker>`, kept within Postgres' 63-byte identifier limit.
+
+    When the suffix does not fit, the name is cut and a hash of the whole name
+    is put back in front of the suffix, so two long names that share a prefix
+    still get different worker databases.
+    """
+    suffix = f"_{worker}"
+    if len(name) + len(suffix) <= 63:
+        return name + suffix
+    digest = hashlib.sha256(name.encode()).hexdigest()[:_HASH_LENGTH]
+    keep = 63 - len(suffix) - _HASH_LENGTH - 1
+    return f"{name[:keep]}_{digest}{suffix}"
+
+
+def _for_worker(url: str, environ: dict[str, str]) -> str:
+    worker = worker_id(environ)
+    if not worker:
+        return url
+    parts = urlsplit(url)
+    name = worker_database_name(parts.path.lstrip("/"), worker)
+    return urlunsplit(parts._replace(path="/" + name))
+
+
 def resolve_url(environ: dict[str, str], checkout: Path) -> str:
     """The test database URL for this run.
 
     An explicit TEST_DATABASE_URL wins. CI keeps the service container's
     default database. Anything else is a local run and gets a per-checkout
-    database on the same server.
+    database on the same server. An xdist worker gets its own copy of
+    whichever of those it is (see the module docstring).
     """
     explicit = environ.get("TEST_DATABASE_URL", "").strip()
     if explicit:
-        return explicit
+        return _for_worker(explicit, environ)
     if environ.get("CI", "").lower() in {"1", "true"}:
-        return BASE_URL
+        return _for_worker(BASE_URL, environ)
     parts = urlsplit(BASE_URL)
-    return urlunsplit(parts._replace(path="/" + database_name_for(checkout)))
+    url = urlunsplit(parts._replace(path="/" + database_name_for(checkout)))
+    return _for_worker(url, environ)
 
 
 def test_database_url() -> str:
@@ -63,12 +100,18 @@ def test_database_url() -> str:
 def is_derived(environ: dict[str, str]) -> bool:
     """Whether the URL is the per-checkout one this module made up.
 
-    Only a derived database is ever created here: an explicit URL is used as
-    given, and CI's service container already has its database.
+    Only a derived database, or an xdist worker's, is ever created here: an
+    explicit URL is used as given, and CI's service container already has its
+    database.
     """
     explicit = environ.get("TEST_DATABASE_URL", "").strip()
     in_ci = environ.get("CI", "").lower() in {"1", "true"}
     return not explicit and not in_ci
+
+
+def should_create(environ: dict[str, str]) -> bool:
+    """Whether this run may create its database: derived, or a worker's own."""
+    return is_derived(environ) or bool(worker_id(environ))
 
 
 async def _create_if_missing(url: str) -> None:
@@ -94,14 +137,17 @@ async def _create_if_missing(url: str) -> None:
 
 
 def ensure_database(url: str) -> None:
-    """Create the per-checkout test database if the server is up and it is missing.
+    """Create the test database if the server is up and it is missing.
+
+    That is the per-checkout database locally and an xdist worker's database
+    anywhere (the worker database is new, whoever made the parent one).
 
     A server that cannot be reached is left to the engine fixture, which skips
     locally and fails in CI with a message people already know. Any other
     failure (no CREATEDB privilege, wrong password) is warned about here,
     because the error the tests would give later does not mention creation.
     """
-    if not is_derived(dict(os.environ)):
+    if not should_create(dict(os.environ)):
         return
     try:
         asyncio.run(_create_if_missing(url))
