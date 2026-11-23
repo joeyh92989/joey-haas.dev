@@ -343,6 +343,8 @@ jobs:
       # instead of 20 seconds; the browser download itself is 4 s).
       - name: Install Chromium
         run: ../scripts/install-chromium.sh
+        env:
+          INSTALL_TIMEOUT: '10'
 
       # e2e only: the browser tests need one page of each dynamic shelf route.
       # fetch-snapshot.mjs does nothing without an API URL and leaves
@@ -486,6 +488,8 @@ jobs:
 
       - name: Install Chromium
         run: ../scripts/install-chromium.sh
+        env:
+          INSTALL_TIMEOUT: '10'
 
       - name: Build
         run: npm run build
