@@ -49,7 +49,7 @@ describe('AdminShell on a desktop', () => {
       ['⌂Home', '/admin'],
       ['▦Shelf', '/admin/shelf/games'],
       ['◫Closet', '/admin/closet/today'],
-      ['◎Outings', '/admin/weekend'],
+      ['◎Denver', '/admin/weekend'],
       ['◇Site & jobs', '/admin/analytics'],
     ])
   })
@@ -117,7 +117,7 @@ describe('AdminShell on a desktop', () => {
   it('titles the page list with the area and its description', () => {
     renderAt('/admin/weekend')
     expect(screen.getByText('weekend plans and spots')).toBeInTheDocument()
-    const nav = screen.getByRole('navigation', { name: 'Outings pages' })
+    const nav = screen.getByRole('navigation', { name: 'Denver pages' })
     expect(
       within(nav)
         .getAllByRole('link')
@@ -242,13 +242,13 @@ describe('AdminShell on a phone', () => {
   it('marks the current area tab', () => {
     renderAt('/admin/spots')
     expect(
-      within(areas()).getByRole('link', { name: 'Outings' }),
+      within(areas()).getByRole('link', { name: 'Denver' }),
     ).toHaveAttribute('aria-current', 'true')
   })
 
   it("shows the area's pages as segments, the current one marked", () => {
     renderAt('/admin/spots')
-    const sub = screen.getByRole('navigation', { name: 'Outings pages' })
+    const sub = screen.getByRole('navigation', { name: 'Denver pages' })
     expect(within(sub).getByRole('link', { name: 'Spots' })).toHaveAttribute(
       'aria-current',
       'page',

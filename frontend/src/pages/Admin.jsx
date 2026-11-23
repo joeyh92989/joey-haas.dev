@@ -36,7 +36,7 @@ import { adminCopy } from '../content/adminCopy.js'
 const COULDNT_READ = 'Couldn’t read'
 
 /** The cards in page order, as the top line names them. */
-const AREAS = ['Closet', 'Shelf', 'Outings', 'Site & jobs']
+const AREAS = ['Closet', 'Shelf', 'Denver', 'Site & jobs']
 
 /**
  * `{body}` (null when it cannot be read or does not answer within the
@@ -412,7 +412,7 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
   )
 }
 
-/** Outings: this weekend's first suggestions, and the spots and the queue. */
+/** Denver: this weekend's first suggestions, and the spots and the queue. */
 function DenverCard({ round, onFailure }) {
   const [plan, planEnded, planFailed] = useRead('/api/spots/plan', round)
   const [spots, spotsEnded, spotsFailed] = useRead('/api/spots', round)
@@ -422,7 +422,7 @@ function DenverCard({ round, onFailure }) {
   )
   const failed = planFailed || spotsFailed || candidatesFailed
   useReportFailure(
-    'Outings',
+    'Denver',
     failed,
     planEnded || spotsEnded || candidatesEnded,
     onFailure,
@@ -566,7 +566,7 @@ export default function Admin() {
           round={rounds.Shelf ?? 0}
           onFailure={onFailure}
         />
-        <DenverCard round={rounds.Outings ?? 0} onFailure={onFailure} />
+        <DenverCard round={rounds.Denver ?? 0} onFailure={onFailure} />
         <SiteCard
           nightly={nightly}
           round={rounds['Site & jobs'] ?? 0}

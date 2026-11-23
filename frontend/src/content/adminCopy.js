@@ -62,7 +62,7 @@ export const adminCopy = {
   dashboard: {
     change: 'Change',
     closet: 'Closet',
-    denver: 'Outings',
+    denver: 'Denver',
     home: 'Home',
     jobs: 'All jobs',
     loading: 'Loading…',

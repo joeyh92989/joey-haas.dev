@@ -277,10 +277,10 @@ describe('Admin Home', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('leads Outings with the weekend, and links the candidates', async () => {
+  it('leads Denver with the weekend, and links the candidates', async () => {
     stubApi()
     renderAt()
-    const denver = await card('Outings')
+    const denver = await card('Denver')
     expect(
       await within(denver).findByText('Saturday morning · Chautauqua'),
     ).toBeInTheDocument()
@@ -296,7 +296,7 @@ describe('Admin Home', () => {
     ).toHaveAttribute('href', '/admin/spots')
   })
 
-  it('hides Outings with no spots and no weekend', async () => {
+  it('hides Denver with no spots and no weekend', async () => {
     stubApi({
       '/api/spots/plan': () => json({ suggestions: [] }),
       '/api/spots': () => json([]),
@@ -305,7 +305,7 @@ describe('Admin Home', () => {
     await card('Shelf')
     await waitFor(() =>
       expect(
-        screen.queryByRole('region', { name: 'Outings' }),
+        screen.queryByRole('region', { name: 'Denver' }),
       ).not.toBeInTheDocument(),
     )
   })

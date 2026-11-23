@@ -31,7 +31,7 @@ describe('ADMIN_AREAS', () => {
       'Home',
       'Shelf',
       'Closet',
-      'Outings',
+      'Denver',
       'Site & jobs',
     ])
   })
