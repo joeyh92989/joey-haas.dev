@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { unringed } from './closet-ring.js'
+import { unringed } from './focus-ring.js'
 import { mockCloset } from './closet-mocks.js'
 
 // The Closet area (#535, slice 2): every route with filled data, at the four

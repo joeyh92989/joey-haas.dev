@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { tabRings } from './denver-site-ring.js'
+import { tabRings } from './focus-ring.js'
 import { mockDenverSite } from './denver-site-mocks.js'
 
 // The Denver and Site areas (#535, slice 3): Weekend, Spots and Analytics with

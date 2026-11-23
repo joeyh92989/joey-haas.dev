@@ -825,6 +825,8 @@ Playwright runs the built site in Chromium, as a desktop and a phone (Pixel 5):
   desktop project only; the phone project runs the smoke checks, including
   the sideways-scroll check.
 
+The focus-ring tests (`focus rings paint…`) share one helper, `frontend/e2e/focus-ring.js`: `unringed` (script focus), `tabRings` (real Tab, geometry and pixels on every control) and `tabRingsByLook` (the same, with the pixel read once per distinct look). Each used to sleep a fixed 150 to 200 ms per read for the ring's colour transition; they now call `settle()`, which waits for finite animations to end and the scroll position to hold across two frames, capped at that old sleep so it never waits longer. Keep the test titles: CI splits the shards on the text `focus rings paint`.
+
 The route list comes from `STATIC_PAGES` in `frontend/src/content/pages.js`, so
 a new static page is covered automatically. `/blog` and `/til` are included
 locally only when the build prerendered them.

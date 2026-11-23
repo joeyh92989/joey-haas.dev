@@ -1,8 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { mkdirSync } from 'node:fs'
 import { test, expect } from './fixtures.js'
-import { unringed } from './closet-ring.js'
-import { tabRings } from './denver-site-ring.js'
+import { unringed } from './focus-ring.js'
+import { tabRings } from './focus-ring.js'
 import { serveHome } from './admin-home.fixtures.js'
 
 // Admin Home and Jobs (#535, Home and Jobs slice), with realistic mocked
