@@ -34,6 +34,11 @@ export default defineConfig({
     'admin-data.spec.js',
   ],
   forbidOnly: !!process.env.CI,
+  // E2E_WORKERS sets the worker count (CI sets it on the 4-vCPU runner);
+  // unset keeps Playwright's default (half the cores).
+  workers: process.env.E2E_WORKERS
+    ? Number(process.env.E2E_WORKERS)
+    : undefined,
   reporter: [
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report-admin' }],
