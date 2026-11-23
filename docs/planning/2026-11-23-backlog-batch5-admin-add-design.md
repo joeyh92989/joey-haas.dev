@@ -31,7 +31,7 @@ New rows stay private (`backend/CLAUDE.md`: "Items are private when created"); a
 - The Add bar's notice: "X added, private. It is not on the public site until you publish it." with a link to the item (`created[0]` from the add answer) so the owner can publish from there.
 - Done (batch committed) says the same, and "Publish these N" is the first button.
 - "View public page" is a link on a game card's action panel and on the item edit page, shown only when the item is public (a private item's public URL is a 404, so a dead link would be worse than none). A private row keeps its existing Private tag.
-- Spots: a public row links to the Denver page.
+- Spots: all public spots show on the one Denver page, so the header carries one "View public page" link (a per-row link made the table scroll sideways at 1440px, caught by `admin-denver-site.spec.js`).
 - Defaults: games, comics and spots are all private on create (items `is_public` false in the backend; `SpotForm` `?? false`), and every list's switch reads "Public"; the spot form's hint says "Show on the public map". The walkthrough's "games were public by default" was not reproducible from the code (no create path sets it true), so nothing to change in the defaults.
 
 ### #490 The snapshot-cache lag: repro and finding

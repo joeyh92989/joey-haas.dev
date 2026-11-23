@@ -266,12 +266,6 @@ export default function AdminSpots() {
       >
         {adminCopy.spots.logVisit}
       </button>
-      {spot.is_public && (
-        <a className={btn('plain', 'sm')} href="/denver">
-          {adminCopy.publish.viewPublic}
-          <span className="visually-hidden">: {spot.name}</span>
-        </a>
-      )}
     </div>
   )
 
@@ -290,6 +284,11 @@ export default function AdminSpots() {
         title={denver.admin.title}
         description={denver.admin.description}
       >
+        {publicCount > 0 && (
+          <a className={btn('plain')} href="/denver">
+            {adminCopy.publish.viewPublic}
+          </a>
+        )}
         <button
           type="button"
           className={btn('primary')}
