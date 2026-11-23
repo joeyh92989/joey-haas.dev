@@ -212,7 +212,7 @@ describe('theme blocks', () => {
     expect(PROGRESS_BAR.split(' ')).toContain('bg-(--sunken)')
   })
 
-  // The paper is light whatever theme is browsed (index.css, Print): the
+  // The paper is light whatever theme is browsed (print.css): the
   // print copy must not drift from the light block.
   it('the @media print tokens equal the light block for every shared token', () => {
     const at = css.indexOf('@media print {')

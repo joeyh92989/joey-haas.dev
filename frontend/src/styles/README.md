@@ -70,7 +70,7 @@ the classes many files share, written as Tailwind `@utility` rules (#536 G3):
 `link-button`, `sheet`, `chip-row`, `cover` and its parts, `empty-state` and
 `admin-error`. They are the old rules, in the old order, but every selector is
 wrapped in `:where()`: a rule with no specificity loses to any utility on the
-same element, as the rule did when it sat in the lowest layer. Keep that when
+same element, as the old rule did when it sat in the lowest layer. Keep that when
 adding to it: a bare selector would beat the caller's own utilities. Tailwind
 emits an `@utility` only when its name is in the source, so a name built at
 run time (`cover-${type}`) needs a literal somewhere (`CoverImage`'s `RATIO`).

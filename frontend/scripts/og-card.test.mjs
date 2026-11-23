@@ -122,7 +122,7 @@ describe('renderCardPng', () => {
 })
 
 // The Archive palette (#527): the card and the favicon are paper and ink, the
-// light tokens of index.css, so a link preview matches the site it links to.
+// light tokens of styles/tokens.css, so a link preview matches the site it links to.
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 function lightToken(name) {
   const css = readCss()

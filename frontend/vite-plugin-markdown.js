@@ -20,7 +20,7 @@ import {
 /**
  * Both palettes are compiled in one highlight pass. Shiki writes the light
  * theme as inline colors and the dark theme as `--shiki-dark*` custom
- * properties; index.css swaps them in under [data-theme='dark']. Highlighting
+ * properties; styles/post-body.css swaps them in under [data-theme='dark']. Highlighting
  * again at runtime would mean shipping the highlighter to the browser.
  */
 /*

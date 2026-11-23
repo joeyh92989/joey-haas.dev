@@ -11,7 +11,7 @@ const WORDS = {
 /**
  * A match's confidence as a word in an outlined pill: Exact, Probable,
  * Check or On shelf. The word is the signal; the colour (`--ok`,
- * `--accent`, `--badge`, `--text-3`, measured in index.css) only repeats it.
+ * `--accent`, `--badge`, `--text-3`, measured against the sheets) only repeats it.
  * Confidence is `matching.py`'s string distance, never the model's opinion.
  *
  * @param {object} props
