@@ -32,7 +32,7 @@ Source: `gh run view --json jobs` for 16 runs (10 pre-shard, 5 on PR #599's bran
 | Build sharing | `npm run build` is 8 to 11 s. Sharing one build artifact across shards saves under 10 s per shard and adds an upload and download. Not worth doing |
 | PR #599 (merged as a638b206 after this was measured) | Sharded runs: 22.1, 16.1, 11.2, 10.1, 11.7 min for `e2e`; 16.0, 12.2, 8.5, 8.1, 7.9 min for `e2e-admin` (end of run, from run creation). Shards spend 172 to 446 s in tests. Total runner minutes went up (8 shard jobs instead of 2) |
 
-Could not measure: per-test time inside the sharded runs (only step totals), the cause of a 26-minute queue on the newest PR #599 run (shards created 15:41, started 16:07; see risk 1), whether `workers` is really 2 in CI (inferred from 1,890 s of tests in 1,225 s; the brief said `--workers=1`, but `playwright.config.js` on `main` sets none), per-control cost inside `tabRings`, and Playwright browser cache hit rates (no cache step exists).
+Could not measure at first: per-test time inside the sharded runs (only step totals), whether `workers` is really 2 in CI (inferred from 1,890 s of tests in 1,225 s; the brief said `--workers=1`, but `playwright.config.js` on `main` sets none), per-control cost inside `tabRings`, and Playwright browser cache hit rates (no cache step exists).
 
 ## Scope
 
@@ -84,7 +84,7 @@ That story would run, on a PR, only two of the four width × theme combinations 
 
 ## Risks
 
-1. **Concurrent job cap.** PR #599 raised a run from 5 jobs to 13. If the account's cap is 20 concurrent jobs, two PRs at once, or one PR plus a `main` run, queue the shards. The newest #599 run queued 26 minutes before its shards started; this fits, but it is a hypothesis, unmeasured. If true, fewer, larger shards beat more small ones, and a fix that costs money is `needs-joey`.
+1. ~~Concurrent job cap.~~ **Disproved (#605).** The "26-minute queue" was a measurement mistake: that run was attempt 3 (re-run at 16:07), and `created_at` stays the original time. Attempt 1's jobs started 1 to 3 s after creation, no other run existed in the window, and GitHub listed no incident. Queue time must be measured per attempt: job `started_at` minus that attempt's own job `created_at`.
 2. Ring tests flake under more workers (CPU-bound pixel work).
 3. A gating bug that skips a needed suite on a frontend PR. Mitigation: fail open, and a test of the detection script against sample file lists.
 4. Chromium install outliers (217 s) keep a run slow regardless of everything above.
@@ -103,6 +103,22 @@ These correct or extend the measurements above.
 - New friction, not CI minutes: full local verification is slow (style dump about 15 to 25 min quiet, 1 h 45 min under load; load average peaked at 150 with overlapping Playwright runs; local `e2e:admin` timed out 8 tests under load that passed 24 of 24 on a filtered rerun). Stories: a documented fast local check, and a stale-`node_modules` check (the admin config listed 0 tests when `class-variance-authority` was missing).
 - A baseline regeneration (`update-visual-baselines.yml`) makes a bot commit that does not start CI, so each PR needs an empty commit. A fix that dispatches CI from the workflow works without a token; one that uses a PAT or app is a secret change and `needs-joey`.
 - One focus-ring test flaked once (admin-add, 1280 px dark, passed on rerun); `retries: 1` hides how often. Measuring retry counts moves into the tuning story.
+
+## Outcome (2026-11-23)
+
+Measured on real runs; "before" is the pre-shard runs in the table at the top.
+
+| Change | Result |
+|---|---|
+| #599 sharding (the migration session) | `e2e` 21.6 to 6.8 to 12.9 min, `e2e-admin` 20.9 to 7.5 to 8.6 min; about +20% runner minutes |
+| #604 docs-only gating (#614) | a docs-only PR's CI: 21 s (was 22 to 24 min); a docs-only push to `main` passes Deploy API's `wait-for-ci` in 7 s (was about 5 min). Check names and `wait-for-ci.sh` unchanged; skipped parts pass only when `changes` succeeded and said `heavy=false` |
+| #603 one focus-ring helper, settle instead of sleeps (#615) | one `unringed` test 87 to 63 s locally; shard test steps 5 to 35 s shorter (add-1 207 to 173 s, add-3 199 to 158 s, cd-3 388 to 352 s). Smaller than the sleeps alone suggested: the ring colour transition is a real 150 ms, so `settle` mostly waits it out |
+| #606 four workers (#617) | the runner defaulted to 2 workers. With `E2E_WORKERS=4` test steps fell 35 to 50%: rest 377 to 234 to 273 s, cd-3 352 to 175 s, cd-1 295 to 142 s, add-3 158 to 90 s. Three runs green, no flaky lines. Shard balance left alone: setup variance now dominates a shard's wall time |
+| #607 Chromium install retry (#618) | the apt step, not the download (4 s), was the slow part: `Fetched 21.9 MB in 2min 25s (151 kB/s)`, 158 to 226 s on one or two shards of every run. Cap 75 s and retry (up to three). The first CI run exposed a bug: the root `apt-get` survives the kill and holds the dpkg lock (`Could not get lock`, exit 100); fixed by killing it before the retry and proven on the runner with a forced 10 s cap. Final runs: max install 43 to 58 s |
+| #611, #612 (#619) | fast local check in the README; `npm run doctor` (it flags the stale main checkout today) |
+| #613 CI after baseline regeneration | **Not done, `needs-joey`.** `workflow_dispatch` starts CI on the bot's commit but the PR does not count it (BLOCKED, null rollup); the bot's own `pull_request` run waits at `action_required` |
+
+Now: browser checks run about 5 to 6 minutes per code PR (slowest job 4.7 to 5.7 min on the last runs), and `backend-tests` (4.6 to 6.2 min) is the critical path with them. #608 (parallel pytest) therefore also shortens a PR's wait, not just the deploy. #609 (half the focus-ring matrix on PRs) is no longer needed for the 10-minute goal; recommend closing it as not planned.
 
 ## Smoke check
 
