@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures.js'
 import { GAMES, serveAdmin } from './admin-shelf.fixtures.js'
 import { serveAdminAdd } from './admin-add.fixtures.js'
+import { mockCloset } from './closet-mocks.js'
 
 // Admin list toolbars (#495) and the shared table wrap (#459), with mocked
 // answers and no backend: the add bar's placeholder is read whole at the
@@ -11,8 +12,11 @@ test.skip(!!process.env.E2E_BASE_URL, 'mocked answers only')
 
 const PHONES = [320, 390]
 
-test.beforeEach((_fixtures, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'sets its own viewport')
+test.beforeEach(({ browserName }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop' || browserName !== 'chromium',
+    'sets its own viewport',
+  )
 })
 
 /** Inputs whose placeholder is wider than the room the field gives it. */
@@ -61,7 +65,8 @@ for (const width of PHONES) {
   }) => {
     await page.setViewportSize({ width, height: 800 })
     await serveAdminAdd(page)
-    await openRoute('/admin/closet/add', 'light')
+    await mockCloset(page)
+    await openRoute('/admin/closet', 'light')
     await expect(page.locator('.intake-addbar')).toBeVisible()
     expect(await clippedPlaceholders(page)).toEqual([])
     expect(await nameless(page)).toEqual([])
