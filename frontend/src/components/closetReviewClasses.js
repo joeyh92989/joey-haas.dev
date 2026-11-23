@@ -45,8 +45,10 @@ export const OUTCOME_HINT = 'text-[0.75rem] text-muted-foreground'
 
 /** Pack away's month. */
 export const PACK_MONTH = 'mt-4 flex flex-wrap items-center gap-2'
+// A month field's inner parts have 1px of padding top and bottom in the browser
+// that Preflight removes (py-1 plus that 1px).
 export const PACK_INPUT =
-  'rounded-md border border-border bg-card px-2 py-1 text-foreground [font:inherit]'
+  'rounded-md border border-border bg-card px-2 py-[calc(0.25rem+1px)] text-foreground [font:inherit]'
 export const REVIEW_SKIP = 'mt-3'
 
 /** Listed for sale, each with Mark sold. */

@@ -26,7 +26,9 @@ export const WRAP_LABEL = 'text-[0.8125rem] text-muted-foreground'
 const WRAP_INPUT =
   'rounded-md border border-border bg-background p-2 text-foreground [font:inherit]'
 export const WRAP_TEXTAREA = `${WRAP_INPUT} resize-y`
-export const WRAP_DATE = `${WRAP_INPUT} w-max`
+// A date field's inner parts have 1px of padding top and bottom in the browser
+// that Preflight removes; the outer padding makes up for it.
+export const WRAP_DATE = `${WRAP_INPUT} w-max py-[calc(0.5rem+1px)]`
 export const WRAP_HINT = 'text-[0.75rem] text-muted-foreground'
 export const WRAP_FOOT = 'flex flex-wrap items-center justify-between gap-2'
 export const WRAP_FOOT_NOTE = 'text-[0.75rem]'
