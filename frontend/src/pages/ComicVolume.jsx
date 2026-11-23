@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BOOK_STACK } from '../components/comicClasses.js'
 import { Link, useOutletContext } from 'react-router'
+import { useCanonicalKey } from '../lib/useCanonicalKey.js'
 import { ShelfTrail } from '../components/ShelfByline.jsx'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
@@ -98,7 +99,7 @@ function OwnerBox({ id, slug, range, read, onChanged }) {
 }
 
 /** One of the previous/next links under the page. */
-function Neighbour({ side, id, book }) {
+function Neighbour({ side, title, book }) {
   return (
     <Link
       className={cx(
@@ -108,7 +109,7 @@ function Neighbour({ side, id, book }) {
         EDITION_NEIGHBOUR_HOVER,
         side === 'next' && 'ml-auto text-right',
       )}
-      to={volumePath(id, book.slug)}
+      to={volumePath(title, book.slug)}
     >
       <span className="tiny text-xs text-muted-foreground">
         {side === 'prev' ? COPY.previous : COPY.next}
@@ -177,6 +178,9 @@ export default function ComicVolume({ id, slug }) {
         : `${spine.name} · Joey Haas`,
   )
 
+  // An old /shelf/<uuid>/<book>/ link becomes the slug form (#479).
+  useCanonicalKey(id, page?.title.slug, (key) => volumePath(key, slug))
+
   if (missing) return <NotFound />
 
   if (!page) {
@@ -214,7 +218,7 @@ export default function ComicVolume({ id, slug }) {
         trail={[
           { label: spine.name, to: spine.path },
           { label: ISSUE.comics, to: spine.tabs.comics.to },
-          { label: title.title, to: itemPath(title.id) },
+          { label: title.title, to: itemPath(title) },
           { label: volume.label },
         ]}
       />
@@ -278,7 +282,7 @@ export default function ComicVolume({ id, slug }) {
 
           {signedIn && (
             <OwnerBox
-              id={id}
+              id={title.id}
               slug={slug}
               range={range}
               read={volume.read}
@@ -333,12 +337,12 @@ export default function ComicVolume({ id, slug }) {
         className="edition-neighbours mt-6 flex flex-wrap justify-between gap-x-4 gap-y-3"
       >
         {prev ? (
-          <Neighbour side="prev" id={title.id} book={prev} />
+          <Neighbour side="prev" title={title} book={prev} />
         ) : (
           <p className="tiny text-xs text-muted-foreground">{COPY.first}</p>
         )}
         {next ? (
-          <Neighbour side="next" id={title.id} book={next} />
+          <Neighbour side="next" title={title} book={next} />
         ) : (
           <p className="tiny text-xs text-muted-foreground">{COPY.last}</p>
         )}

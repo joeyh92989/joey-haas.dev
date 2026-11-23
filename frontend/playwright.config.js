@@ -35,6 +35,7 @@ export default defineConfig({
     'shelf-lists.spec.js',
     'shelf-chrome.spec.js',
     'detail.spec.js',
+    'item-slug.spec.js',
     'admin-shelf.spec.js',
     'tour-overflow.spec.js',
     'tools-data.spec.js',

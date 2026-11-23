@@ -27,7 +27,7 @@ import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import { isValidSnapshot } from '../lib/snapshot.js'
 import { useSnapshotThenLive } from '../lib/useSnapshotThenLive.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemRowPath } from '../lib/spinePaths.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { ATTRIBUTION } from '../components/shelf-classes.js'
 import {
@@ -225,7 +225,7 @@ function ComicsThisWeek({ rows }) {
             className={`next-row ${NEXT_ROW}`}
           >
             <Link
-              to={itemPath(row.item_id)}
+              to={itemRowPath(row)}
               className={`next-row-link ${NEXT_ROW_LINK}`}
             >
               <span className={`next-row-cover ${NEXT_ROW_COVER}`}>
@@ -592,7 +592,7 @@ function Tonight({ tonight, signedIn, onRefresh, onLead }) {
                 <ContinueCard
                   key={card.item_id}
                   card={card}
-                  to={itemPath(card.item_id)}
+                  to={itemRowPath(card)}
                   loggedToday={card.last_played_on === today}
                   {...cardOwner}
                 />

@@ -476,19 +476,32 @@ export function publicRoutes({
       ? `on ${profile.name}’s want list`
       : `in ${profile.name}’s ${kind}`
     const lead = item.type === 'comic' ? comicLead(titles.get(item.id)) : ''
-    routes.push({
+    const route = {
       ...page(
-        `${spine.path}/${encodeURIComponent(item.id)}`,
+        itemPath(item).slice(0, -1),
         `${label} · ${spine.name}`,
         `${item.title}${lead}${where}, ${place} on ${spine.name}.${rated}`,
       ),
       slash: true,
-      legacy: true,
+      // The /spine mirror is of the id form, the only one that ever existed.
+      legacy: !item.slug,
       ...(date ? { lastmod: date } : {}),
       image: item.cover_url?.startsWith('https://')
         ? { url: item.cover_url, alt: `Cover of ${item.title}` }
         : DEFAULT_IMAGE,
-    })
+    }
+    routes.push(route)
+    // An old /shelf/<uuid>/ link still previews as the page: the same head,
+    // its canonical (and the sitemap's entry) on the slug page, then the app
+    // replaces the address (#479). Only when the item has a slug to point at.
+    if (item.slug) {
+      routes.push({
+        ...route,
+        path: itemPath(item.id).slice(0, -1),
+        canonical: routeUrl(route),
+        legacy: true,
+      })
+    }
   }
   // Issue and volume pages of public comic series (the old `ed-*` edition
   // URLs are volumes that kept their slug). Like item pages they stay
@@ -499,6 +512,7 @@ export function publicRoutes({
     const known = seriesDate.get(series.item_id)
     const seriesName = known?.label ?? series.series_title
     const seriesMod = known?.date ? { lastmod: known.date } : {}
+    const seriesRef = { id: series.item_id, slug: series.item_slug }
     // The SPA's own builders, minus the slash `slash: true` puts back.
     const bare = (path) => path.slice(0, -1)
     const cover = (url, alt) =>
@@ -511,7 +525,7 @@ export function publicRoutes({
       const named = issue.name ? `, “${issue.name}”` : ''
       routes.push({
         ...page(
-          bare(issuePath(series.item_id, issue.number)),
+          bare(issuePath(seriesRef, issue.number)),
           `${label} · ${spine.name}`,
           `${label}${named}, from ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
@@ -531,7 +545,7 @@ export function publicRoutes({
       const article = kinds[volume.kind] ? 'a ' : ''
       routes.push({
         ...page(
-          bare(volumePath(series.item_id, volume.slug)),
+          bare(volumePath(seriesRef, volume.slug)),
           `${label} · ${spine.name}`,
           `${label}: ${article}${format}${number}, from ${profile.name}’s comic shelf on ${spine.name}.`,
         ),
@@ -731,7 +745,7 @@ export function spineFeed(items) {
     .slice(0, FEED_SIZE)
   const entries = finished
     .map((item) => {
-      const url = `${SITE_URL}${itemPath(item.id)}`
+      const url = `${SITE_URL}${itemPath(item)}`
       // Fixed to the pre-rename item URL: a reader keys entries on the GUID,
       // so moving it to /shelf would show all twenty again as new.
       const guid = `${SITE_URL}${LEGACY_PREFIX}/${encodeURIComponent(item.id)}/#finished-${item.finish_tag}`

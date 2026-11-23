@@ -9,6 +9,7 @@ import {
   ITEM_TTB,
 } from '../components/sharedClasses.js'
 import { Link, useOutletContext, useParams } from 'react-router'
+import { useCanonicalKey } from '../lib/useCanonicalKey.js'
 import { spine } from '../content/spine.js'
 import { platformsLabel } from '../content/tags.js'
 import { itemTagGroups } from '../lib/tags.js'
@@ -66,7 +67,7 @@ import { adminItemPath, runWords, STATUS_LABEL } from '../lib/shelf.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import StatTile, { StatTiles } from '../components/StatTile.jsx'
 import NotFound from './NotFound.jsx'
-import { itemPath } from '../lib/spinePaths.js'
+import { isItemId, itemPath } from '../lib/spinePaths.js'
 import { useLiveRead } from '../lib/useLiveRead.js'
 import { SAVED_NOT_REFRESHED, WAKING } from '../content/status.js'
 import { useElapsed } from '../lib/useElapsed.js'
@@ -610,7 +611,7 @@ function ComicCards({
  */
 export default function Item() {
   const { id } = useParams()
-  return <ItemPage key={id} id={id} />
+  return <ItemPage key={id} itemKey={id} />
 }
 
 /**
@@ -621,7 +622,7 @@ export default function Item() {
  * 404, and both render NotFound. The session comes from the layout's outlet
  * context; this page never asks the API who is signed in.
  */
-function ItemPage({ id }) {
+function ItemPage({ itemKey: id }) {
   const { signedIn = false } = useOutletContext() ?? {}
   const [preview, setPreview] = useState(null)
   const [expanded, setExpanded] = useState(false)
@@ -657,7 +658,7 @@ function ItemPage({ id }) {
   useEffect(() => {
     let cancelled = false
     readSnapshot('items').then((items) => {
-      const match = items?.find((entry) => entry.id === id)
+      const match = items?.find((entry) => entry.id === id || entry.slug === id)
       if (!cancelled && match) setPreview(match)
     })
     return () => {
@@ -668,14 +669,19 @@ function ItemPage({ id }) {
   // The owner's playthroughs and skips come from the admin read, which a
   // visitor cannot make; the public item carries only the dates. Quiet on
   // failure: the table is an aside, and the edit page is where it matters.
+  // The owner's reads and writes are by id; the URL may carry the slug.
+  const itemId = loaded?.id ?? (isItemId(id) ? id : (preview?.id ?? null))
   const fetchOwner = useCallback(async () => {
+    if (!itemId) return null
     try {
-      const response = await apiFetch(`/api/items/${encodeURIComponent(id)}`)
+      const response = await apiFetch(
+        `/api/items/${encodeURIComponent(itemId)}`,
+      )
       return response.ok ? await response.json() : null
     } catch {
       return null
     }
-  }, [id])
+  }, [itemId])
   const applyOwner = useCallback((body) => {
     if (!body) return // The aside stays as it was.
     setRuns(body.playthroughs ?? null)
@@ -732,14 +738,14 @@ function ItemPage({ id }) {
    */
   const markIssue = useCallback(
     async (n, state, undo = {}) => {
-      const result = await setMark(id, n, state)
+      const result = await setMark(itemId, n, state)
       // Undo puts back what the first tap moved, and a skip the tap cleared.
-      if (undo.skip) await toggleSkip(id, n)
-      if (undo.restore) await restoreSeries(id, undo.restore)
+      if (undo.skip) await toggleSkip(itemId, n)
+      if (undo.restore) await restoreSeries(itemId, undo.restore)
       await Promise.all([refresh(), loadWall(), loadOwner()])
       return result
     },
-    [id, refresh, loadWall, loadOwner],
+    [itemId, refresh, loadWall, loadOwner],
   )
 
   const staleLine = (
@@ -760,6 +766,10 @@ function ItemPage({ id }) {
         ? `${shown.title} · ${spine.name}`
         : `${spine.name} · Joey Haas`,
   )
+
+  // An old /shelf/<uuid>/ link, or a stale key, becomes /shelf/<slug>/ (#479),
+  // from the snapshot's slug when it has one, else the API's.
+  useCanonicalKey(id, missing ? null : shown?.slug, itemPath)
 
   if (missing) return <NotFound />
 
@@ -1026,7 +1036,7 @@ function ItemView({
           detail={item}
           wall={wall}
           skipped={skipped ?? undefined}
-          series={{ id: item.id, title: item.title }}
+          series={{ id: item.id, slug: item.slug, title: item.title }}
           model={run}
           description={description}
           onMark={onMark}
@@ -1042,7 +1052,7 @@ function ItemView({
             items={similar}
             size="compact"
             renderCard={(card) => (
-              <PosterCard item={card} to={itemPath(card.id)} />
+              <PosterCard item={card} to={itemPath(card)} />
             )}
           />
         </section>

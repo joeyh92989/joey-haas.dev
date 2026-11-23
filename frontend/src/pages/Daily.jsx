@@ -231,7 +231,7 @@ export default function Daily() {
               <p className={`daily-yesterday ${DAILY_YESTERDAY}`}>
                 {copy.yesterday}{' '}
                 <b>
-                  <Link to={itemPath(yesterday.item.id)}>
+                  <Link to={itemPath(yesterday.item)}>
                     {yesterday.item.title}
                   </Link>
                 </b>

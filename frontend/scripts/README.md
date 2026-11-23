@@ -164,7 +164,7 @@ exactly the static pages, the published posts and the published notes. There are
 a rewrite to a file the build did not write serves an **empty 200**, not the
 SPA (a `/blog/:slug` rule did this to `/blog/example`, a draft, on
 2026-10-19). So publishing or unpublishing a post or note means adding or removing
-its rule. Item, year and month pages (`/shelf/:id`, `/shelf/year/:year`,
+its rule. Item, year and month pages (`/shelf/:slug`, `/shelf/year/:year`,
 `/shelf/journal/:month`) change between deploys and stay on the catch-all;
 their prerendered heads are served only at the trailing-slash URL. So those
 routes carry `slash: true`, and `routeUrl` gives them the slash form in the

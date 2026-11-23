@@ -50,7 +50,7 @@ export default function SingleBookCard({ comic, series }) {
           <StatePill state={book.read ? 'read' : 'owned'} />
         </p>
         <p>
-          <Link to={volumePath(series.id, book.slug)}>{BOOKS.single.link}</Link>
+          <Link to={volumePath(series, book.slug)}>{BOOKS.single.link}</Link>
         </p>
       </div>
     </section>

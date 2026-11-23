@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-23
 
+- Pages on [the shelf](/shelf/games) have readable addresses: a game is at a name like `/shelf/hades/` instead of a long string of letters and digits. Old links keep working and move to the new address.
 - [Stats](/stats) says what its Pages list covers (the top pages, and how many of the views they add up to), names every fixed page instead of showing its path, and dates the all-time figures from the day counting began. The Projects screenshot of the shelf is dated, and the shelf's link to what's next now reads "Tonight’s pick", so it is not mistaken for the game I'm playing now.
 - The phone's theme button shows a sun or a moon for the theme it switches to, and Escape in the search box closes search at once instead of only clearing the text.
 - The shelf names its owner: every shelf page now says "Joey Haas's shelf" with a quiet link back to the rest of the site, and a game's page trail reads My Shelf / Games / the game, like a comic's.

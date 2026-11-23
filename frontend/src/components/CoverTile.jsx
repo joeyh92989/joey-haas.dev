@@ -95,7 +95,7 @@ export default function CoverTile({
   }
   return (
     <Link
-      to={issuePath(series.id, tile.n)}
+      to={issuePath(series, tile.n)}
       className={`cover-tile ${tileClass({ state: tile.state, link: true, strip: size === 'strip' })}`}
       data-size={size}
       data-state={tile.state}
@@ -152,7 +152,7 @@ function BookLink({ tile, series, linked }) {
   }
   return (
     <Link
-      to={volumePath(series.id, tile.slug)}
+      to={volumePath(series, tile.slug)}
       className={`cover-tile book-tile ${tileClass({ state: 'book', link: true, book: true })}`}
       data-size="wall"
       data-state="book"
@@ -182,7 +182,7 @@ function VolumeLink({ tile, series }) {
   const state = tile.read ? 'read' : 'owned'
   return (
     <Link
-      to={volumePath(series.id, tile.slug)}
+      to={volumePath(series, tile.slug)}
       className={`cover-tile book-tile ${tileClass({ state, link: true, book: true })}`}
       data-size="wall"
       data-state={state}

@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import CoverImage from './CoverImage.jsx'
 import SizePill from './SizePill.jsx'
 import { spine } from '../content/spine.js'
-import { itemPath } from '../lib/spinePaths.js'
+import { itemRowPath } from '../lib/spinePaths.js'
 import {
   LEAD,
   LEAD_COVER,
@@ -54,7 +54,7 @@ export default function TonightLead({
       <div className={`tonight-lead-text ${LEAD_TEXT}`}>
         {slot && <span className={`pick-slot ${PICK_SLOT}`}>{slot}</span>}
         <Link
-          to={itemPath(pick.item_id)}
+          to={itemRowPath(pick)}
           className={`tonight-title ${LEAD_TITLE}`}
           data-tonight-title={pick.item_id}
         >

@@ -363,7 +363,7 @@ export default function AdminComic() {
   ]
   const ready = state === 'ready' && item
   const viewOnSite = ready && item.is_public && (
-    <Link className={PLAIN} to={itemPath(item.id)}>
+    <Link className={PLAIN} to={itemPath(item)}>
       {COPY.viewOnSite}
     </Link>
   )

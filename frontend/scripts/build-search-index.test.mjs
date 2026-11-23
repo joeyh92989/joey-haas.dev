@@ -46,6 +46,30 @@ const comics = {
   ],
 }
 
+describe('buildIndex hrefs (#479)', () => {
+  it('links a series by its slug, and falls back to its id', () => {
+    const bySlug = buildIndex({
+      posts: [],
+      items: [comicItem],
+      comics: { series: [{ ...comics.series[0], item_slug: 'saga' }] },
+    }).filter((e) => e.g === 'comics')
+    expect(bySlug[0].href).toBe('/shelf/saga/')
+    const byId = buildIndex({ posts: [], items: [comicItem], comics }).filter(
+      (e) => e.g === 'comics',
+    )
+    expect(byId[0].href).toBe('/shelf/c1/')
+  })
+
+  it('links a game by its slug', () => {
+    const [entry] = buildIndex({
+      posts: [],
+      items: [{ id: 'g1', slug: 'hades', type: 'game', title: 'Hades' }],
+      comics: null,
+    }).filter((e) => e.g === 'shelf')
+    expect(entry.href).toBe('/shelf/hades/')
+  })
+})
+
 describe('buildIndex', () => {
   it('holds the blog page and posts only without a snapshot', () => {
     const entries = buildIndex({ posts: [post], items: null, comics: null })

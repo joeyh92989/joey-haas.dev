@@ -11,6 +11,7 @@ import {
   itemLabels,
   excerpt,
   legacyRoutes,
+  headTags,
   spineFeed,
   noindex,
   publicRoutes,
@@ -49,6 +50,64 @@ const ITEM = {
 }
 
 const routeAt = (routes, at) => routes.find((route) => route.path === at)
+
+describe('item pages by slug (#479)', () => {
+  const slugged = { ...ITEM, slug: 'hades-ii' }
+  const routes = publicRoutes({ posts: [], items: [slugged] })
+
+  it('writes the page at its slug and lists that URL in the sitemap', () => {
+    const page = routeAt(routes, '/shelf/hades-ii')
+    expect(page).toMatchObject({ slash: true, title: 'Hades II · My Shelf' })
+    expect(page.canonical).toBeUndefined()
+    expect(sitemap(routes)).toContain(
+      '<loc>https://joey-haas.dev/shelf/hades-ii/</loc>',
+    )
+  })
+
+  it('keeps the id form as a head whose canonical is the slug page, off the sitemap', () => {
+    const old = routeAt(routes, `/shelf/${ITEM.id}`)
+    expect(old.canonical).toBe('https://joey-haas.dev/shelf/hades-ii/')
+    expect(headTags(old)).toContain(
+      '<link rel="canonical" href="https://joey-haas.dev/shelf/hades-ii/" />',
+    )
+    expect(sitemap(routes)).not.toContain(ITEM.id)
+  })
+
+  it('mirrors only the id form under /spine, pointing at the slug page', () => {
+    const mirrored = legacyRoutes(routes).filter((route) =>
+      route.path.startsWith('/spine/'),
+    )
+    expect(mirrored.map((route) => route.path)).toContain(`/spine/${ITEM.id}`)
+    expect(mirrored.map((route) => route.path)).not.toContain('/spine/hades-ii')
+    expect(
+      mirrored.find((route) => route.path === `/spine/${ITEM.id}`).canonical,
+    ).toBe('https://joey-haas.dev/shelf/hades-ii/')
+  })
+
+  it('falls back to the id when the snapshot has no slug yet', () => {
+    const before = publicRoutes({ posts: [], items: [ITEM] })
+    expect(routeAt(before, `/shelf/${ITEM.id}`).canonical).toBeUndefined()
+    expect(sitemap(before)).toContain(`/shelf/${ITEM.id}/`)
+  })
+
+  it('names the slug in comic issue pages', () => {
+    const comic = { ...ITEM, id: 'c1', type: 'comic', slug: 'saga' }
+    const withIssues = publicRoutes({
+      posts: [],
+      items: [comic],
+      comicIssues: [
+        {
+          item_id: 'c1',
+          item_slug: 'saga',
+          series_title: 'Hades II',
+          issues: [{ number: 5 }],
+          volumes: [],
+        },
+      ],
+    })
+    expect(routeAt(withIssues, '/shelf/saga/5')).toBeTruthy()
+  })
+})
 
 describe('excerpt', () => {
   it('takes the first prose paragraph as plain text', () => {

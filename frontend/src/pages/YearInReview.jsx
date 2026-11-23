@@ -41,7 +41,12 @@ import { ownerYear } from '../lib/formatDate.js'
 import { isoMonth } from '../lib/monthInReview.js'
 import { finishYears, yearInReview } from '../lib/yearInReview.js'
 import NotFound from './NotFound.jsx'
-import { itemPath, yearPath, monthPath } from '../lib/spinePaths.js'
+import {
+  itemPath,
+  itemRowPath,
+  yearPath,
+  monthPath,
+} from '../lib/spinePaths.js'
 import { DAY } from '../lib/formatDate.js'
 
 const MONTHS = [
@@ -259,7 +264,7 @@ export default function YearInReview() {
                           <CoverImage src={item.cover_url} type={item.type} />
                         </span>
                         <span>
-                          <Link to={itemPath(item.id)}>{item.title}</Link>
+                          <Link to={itemPath(item)}>{item.title}</Link>
                           {item.again && <AgainTag />}
                         </span>
                       </span>
@@ -304,7 +309,7 @@ export default function YearInReview() {
                         <>
                           {' '}
                           Biggest gap:{' '}
-                          <Link to={itemPath(versus.furthest.item.id)}>
+                          <Link to={itemPath(versus.furthest.item)}>
                             {versus.furthest.item.title}
                           </Link>
                           . I gave it{' '}
@@ -333,7 +338,7 @@ export default function YearInReview() {
                 items={review.favourites}
                 size="compact"
                 renderCard={(item) => (
-                  <PosterCard item={item} to={itemPath(item.id)} />
+                  <PosterCard item={item} to={itemPath(item)} />
                 )}
               />
             </section>
@@ -361,7 +366,7 @@ export default function YearInReview() {
                 className={DIARY_ROW}
               >
                 <time dateTime={row.played_on}>{shortDate(row.played_on)}</time>
-                <Link to={itemPath(row.item_id)}>{row.title}</Link>
+                <Link to={itemRowPath(row)}>{row.title}</Link>
                 {row.minutes != null && (
                   <span className="muted">{row.minutes} min</span>
                 )}

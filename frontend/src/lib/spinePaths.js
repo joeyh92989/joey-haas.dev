@@ -17,9 +17,41 @@ export function gamesPath() {
   return `${spine.path}/games`
 }
 
-/** `/shelf/<id>/`, the item page. */
-export function itemPath(id) {
-  return `${spine.path}/${encodeURIComponent(id)}/`
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Whether a URL key is an item id (a UUID) rather than a slug. */
+export function isItemId(key) {
+  return UUID.test(String(key))
+}
+
+/**
+ * An item's URL key: its slug (`catherine-full-body`), else its id. A row
+ * with no slug (a snapshot written before slugs, an admin row) falls back to
+ * the id, which the item page redirects to the slug form.
+ *
+ * @param {string | {id?: string, slug?: string | null}} ref An item (or any
+ *   `{id, slug}`), or a bare key.
+ */
+export function itemKey(ref) {
+  if (ref !== null && typeof ref === 'object') return ref.slug || ref.id
+  return ref
+}
+
+/**
+ * `/shelf/<slug>/`, the item page. Takes the item, or a bare key.
+ *
+ * @param {string | {id?: string, slug?: string | null}} ref
+ */
+export function itemPath(ref) {
+  return `${spine.path}/${encodeURIComponent(itemKey(ref))}/`
+}
+
+/**
+ * The item page for a row that names its item as `item_id` and `item_slug`
+ * (the What's next, picks, diary and comics bodies).
+ */
+export function itemRowPath(row) {
+  return itemPath({ id: row.item_id, slug: row.item_slug })
 }
 
 /** `/shelf/year/<year>/`, Year in review. */
@@ -32,12 +64,12 @@ export function monthPath(month) {
   return `${spine.path}/journal/${month}/`
 }
 
-/** `/shelf/<id>/<n>/`, one issue's page. */
-export function issuePath(id, n) {
-  return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(n)}/`
+/** `/shelf/<slug>/<n>/`, one issue's page. */
+export function issuePath(ref, n) {
+  return `${itemPath(ref)}${encodeURIComponent(n)}/`
 }
 
-/** `/shelf/<id>/<slug>/`, one book's page (`vol-<n>` or `ed-<from>-<to>`). */
-export function volumePath(id, slug) {
-  return `${spine.path}/${encodeURIComponent(id)}/${encodeURIComponent(slug)}/`
+/** `/shelf/<slug>/<book>/`, one book's page (`vol-<n>` or `ed-<from>-<to>`). */
+export function volumePath(ref, slug) {
+  return `${itemPath(ref)}${encodeURIComponent(slug)}/`
 }

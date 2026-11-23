@@ -1,7 +1,14 @@
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigationType,
+} from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { STALE_COPY } from '../content/status.js'
 import { spine } from '../content/spine.js'
@@ -90,6 +97,97 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+describe('Item URLs (#479)', () => {
+  function renderAt(path, signedIn = false) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<Outlet context={{ signedIn }} />}>
+            <Route path="/shelf/:id" element={<Item />} />
+          </Route>
+        </Routes>
+        <Where />
+      </MemoryRouter>,
+    )
+  }
+
+  it('replaces an id URL with the slug URL once the item says its slug', async () => {
+    const fetch = stubItem({ slug: 'hades' })
+    renderAt(`/shelf/${ID}/?x=1`)
+    await screen.findByRole('heading', { level: 1, name: 'Hades' })
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent(
+        '/shelf/hades/?x=1',
+      ),
+    )
+    // The slug form is then read by its slug.
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).includes('/api/public/items/hades'),
+      ),
+    ).toBe(true)
+  })
+
+  it('replaces the entry rather than adding one', async () => {
+    stubItem({ slug: 'hades' })
+    renderAt(`/shelf/${ID}`)
+    await screen.findByRole('heading', { level: 1, name: 'Hades' })
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent('/shelf/hades/'),
+    )
+    expect(screen.getByTestId('history')).toHaveTextContent('1')
+  })
+
+  it('reads a slug URL by its slug and stays put', async () => {
+    const fetch = stubItem({ slug: 'hades' })
+    renderAt('/shelf/hades')
+    await screen.findByRole('heading', { level: 1, name: 'Hades' })
+    expect(String(fetch.mock.calls[0][0])).toContain('/api/public/items/hades')
+    expect(screen.getByTestId('where')).toHaveTextContent('/shelf/hades')
+    expect(screen.getByTestId('where')).not.toHaveTextContent('/shelf/hades/')
+  })
+
+  it('leaves an id URL alone when the API has no slug yet', async () => {
+    stubItem()
+    renderAt(`/shelf/${ID}`)
+    await screen.findByRole('heading', { level: 1, name: 'Hades' })
+    expect(screen.getByTestId('where')).toHaveTextContent(`/shelf/${ID}`)
+  })
+
+  it('shows not-found for an unknown key and does not redirect', async () => {
+    stubApi({ ok: false, status: 404, json: async () => ({}) })
+    renderAt('/shelf/no-such-game')
+    await screen.findByRole('heading', { level: 1, name: /not found|lost/i })
+    expect(screen.getByTestId('where')).toHaveTextContent('/shelf/no-such-game')
+  })
+
+  it('redirects from the snapshot slug before the API answers', async () => {
+    vi.mocked(readSnapshot).mockResolvedValue([{ ...DETAIL, slug: 'hades' }])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    renderAt(`/shelf/${ID}`)
+    await waitFor(() =>
+      expect(screen.getByTestId('where')).toHaveTextContent('/shelf/hades/'),
+    )
+  })
+})
+
+function Where() {
+  const location = useLocation()
+  const type = useNavigationType()
+  return (
+    <>
+      <output data-testid="where">
+        {location.pathname}
+        {location.search}
+      </output>
+      <output data-testid="history">{type === 'REPLACE' ? 1 : 0}</output>
+    </>
+  )
+}
 
 describe('Item', () => {
   it('fetches the public item by its id', async () => {

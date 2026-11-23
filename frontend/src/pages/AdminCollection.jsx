@@ -823,7 +823,7 @@ export default function AdminCollection() {
       searchField.current?.focus()
     }
     const linkFor = (item) =>
-      item.is_public ? itemPath(item.id) : `/admin/collection/${item.id}`
+      item.is_public ? itemPath(item) : `/admin/collection/${item.id}`
 
     return (
       <>

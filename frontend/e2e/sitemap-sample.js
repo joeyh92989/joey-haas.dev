@@ -3,8 +3,13 @@
  * screenshot run (`npm run shots`) and the dynamic-route browser tests.
  */
 
-/** Regex source for a UUID-shaped item id, used inside the shelf kinds. */
-export const ID = '[0-9a-f]{8}-[0-9a-f-]{27}'
+/**
+ * Regex source for an item's URL key, used inside the shelf kinds: its slug
+ * (`catherine-full-body`, #479) or, for an item whose snapshot had none, its
+ * UUID. Not the shelf's own pages (`/shelf/games/`, `/shelf/next/`...).
+ */
+export const ID =
+  '(?!(?:games|comics|intake|next|how|year|journal|daily)/)[0-9a-z][0-9a-z-]*'
 
 /**
  * One path pattern per dynamic route kind, in the order `sampleRoutes`
