@@ -2,8 +2,8 @@
    write itself, so they cannot be utilities. Markdown renders every post, note
    and trip day into `.post-body` (headings, paragraphs, lists, tables, code),
    and Shiki writes its own spans inside the code blocks. Imported by
-   tailwind.css after index.css and before print.css, as the rules sat in
-   index.css; the link underline these pages share is still index.css's. */
+   tailwind.css after base.css and before print.css; the link underline these
+   pages share is base.css's (`.post-body a`). */
 
 .post-body {
   color: var(--text-2);

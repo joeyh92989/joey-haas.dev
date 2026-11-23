@@ -61,7 +61,7 @@ describe('Denver and Site pages and the legacy look', () => {
     }
   })
 
-  it('the rules only these pages read are gone from index.css', () => {
+  it('the rules only these pages read are gone from the stylesheets', () => {
     for (const selector of [
       '.range-control',
       '.spots-search',

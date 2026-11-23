@@ -17,7 +17,7 @@ const css = readCss()
 /** The declarations of the first top-level block that opens with `selector`. */
 function block(selector) {
   const start = css.indexOf(`\n${selector} {`)
-  if (start < 0) throw new Error(`no ${selector} block in index.css`)
+  if (start < 0) throw new Error(`no ${selector} block in the stylesheets`)
   const open = css.indexOf('{', start)
   const close = css.indexOf('\n}', open)
   const body = css.slice(open + 1, close).replace(/\/\*[\s\S]*?\*\//g, '')

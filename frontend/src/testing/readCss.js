@@ -13,7 +13,6 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const CSS_FILES = [
   'styles/tokens.css',
   'styles/base.css',
-  'index.css',
   'styles/post-body.css',
   'styles/print.css',
 ]

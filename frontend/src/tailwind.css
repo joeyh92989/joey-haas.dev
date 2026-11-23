@@ -9,7 +9,6 @@
 @import 'tailwindcss/preflight.css' layer(preflight);
 @import './styles/tokens.css' layer(legacy);
 @import './styles/base.css' layer(legacy);
-@import './index.css' layer(legacy);
 @import './styles/post-body.css' layer(legacy);
 @import './styles/print.css' layer(legacy);
 @import './styles/utilities.css';
