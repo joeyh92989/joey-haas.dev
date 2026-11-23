@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { REVIEW_BAR } from './components/closetReviewClasses.js'
 import { readCss } from './testing/readCss.js'
 import { BAR_FILL, BAR_TRACK, DAY_BAR } from './components/overview-classes.js'
+import { TOUR_BAR, TOUR_BAR_FILL } from './components/tourClasses.js'
 import { PICK_TERM_BAR } from './components/tonightClasses.js'
 import { SHELFLE_CELL } from './components/dailyClasses.js'
 
@@ -163,13 +164,6 @@ describe.each(Object.keys(THEMES))('contrast, %s theme', (theme) => {
 const LIGHT_OWN = block("[data-theme='light']")
 
 describe('theme blocks', () => {
-  /** The declarations of the first rule for `selector` at top level. */
-  function rule(selector) {
-    const at = css.indexOf(`\n${selector} {`)
-    expect(at, selector).toBeGreaterThan(-1)
-    return css.slice(at, css.indexOf('}', at))
-  }
-
   // #534: a chart's track is --sunken with a --line-card outline, so the fill
   // is measured against the track (above) and the track against the card.
   it('draws every bar track on --sunken with a --line-card outline', () => {
@@ -181,13 +175,14 @@ describe('theme blocks', () => {
     expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
     expect(PICK_TERM_BAR.split(' ')).toContain('border')
     expect(PICK_TERM_BAR.split(' ')).toContain('border-line-card')
-    expect(rule('.tour-bar')).toMatch(/background:\s*var\(--sunken\)/)
-    expect(rule('.tour-bar')).toMatch(/border:\s*1px solid var\(--line-card\)/)
+    expect(TOUR_BAR.split(' ')).toContain('bg-(--sunken)')
+    expect(TOUR_BAR.split(' ')).toContain('border')
+    expect(TOUR_BAR.split(' ')).toContain('border-(--line-card)')
   })
 
   it('fills bars with --chart, and the score meter with --accent', () => {
     expect(BAR_FILL.split(' ')).toContain('bg-chart-1')
-    expect(rule('.tour-bar-fill')).toMatch(/background:\s*var\(--chart\)/)
+    expect(TOUR_BAR_FILL.split(' ')).toContain('bg-(--chart)')
     expect(DAY_BAR.split(' ')).toContain('bg-chart-1')
     expect(PICK_TERM_BAR.split(' ')).toContain('[&>span]:bg-(--accent)')
   })

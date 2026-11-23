@@ -9,6 +9,7 @@ import {
 import { Button } from './ui/button.jsx'
 import { useElapsed } from '../lib/useElapsed.js'
 import { SLOW_LOAD_AFTER_S } from '../lib/waits.js'
+import { LOAD_STATE } from './adminFormClasses.js'
 
 /**
  * The one status line for a read: waiting, failed, or (once data is there)
@@ -52,7 +53,7 @@ export default function LoadState({
 }) {
   const waiting = loading && !failed
   const seconds = useElapsed(waiting)
-  const cls = `load-state ${className}`.trim()
+  const cls = `load-state ${LOAD_STATE} ${className}`.trim()
 
   if (ended) {
     return (

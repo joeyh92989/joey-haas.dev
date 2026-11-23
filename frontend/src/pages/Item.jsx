@@ -64,6 +64,7 @@ import {
   DAY_YEAR as DAY,
 } from '../lib/formatDate.js'
 import EmptyState from '../components/EmptyState.jsx'
+import { LOAD_STATE } from '../components/adminFormClasses.js'
 
 const COMICS = spine.comics
 const SERIES = COMICS.series
@@ -792,7 +793,7 @@ function DetailWait() {
   const seconds = useElapsed(true)
   if (seconds < SLOW_LOAD_AFTER_S) return null
   return (
-    <p className="load-state muted" role="status">
+    <p className={`load-state ${LOAD_STATE} muted`} role="status">
       {WAKING}
     </p>
   )

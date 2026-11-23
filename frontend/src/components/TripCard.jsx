@@ -2,6 +2,15 @@ import { Link } from 'react-router'
 
 import { tripKicker } from '../lib/tripDates.js'
 import { photoSrc, photoSrcSet, tripPhotos } from '../lib/trips.js'
+import {
+  DRAFT_BADGE,
+  TRIP_CARD,
+  TRIP_CARD_BODY,
+  TRIP_CARD_COUNT,
+  TRIP_CARD_COVER,
+  TRIP_CARD_PLACES,
+  TRIP_CARD_TITLE,
+} from './travelClasses.js'
 
 /**
  * One trip on the `/travel` index: cover, kicker, title, places and photo
@@ -22,10 +31,10 @@ export default function TripCard({ trip, eager = false }) {
   const { slug, frontmatter, cover } = trip
   const photos = tripPhotos(trip).length
   return (
-    <Link className="trip-card" to={`/travel/${slug}`}>
+    <Link className={`trip-card ${TRIP_CARD}`} to={`/travel/${slug}`}>
       {cover ? (
         <img
-          className="trip-card__cover"
+          className={`trip-card__cover ${TRIP_CARD_COVER}`}
           src={photoSrc(slug, cover.name, 800)}
           srcSet={photoSrcSet(slug, cover.name)}
           sizes="(min-width: 46rem) 45rem, 100vw"
@@ -35,20 +44,24 @@ export default function TripCard({ trip, eager = false }) {
           alt=""
         />
       ) : (
-        <span className="trip-card__cover trip-card__cover--blank" />
+        <span
+          className={`trip-card__cover ${TRIP_CARD_COVER} trip-card__cover--blank`}
+        />
       )}
       {/* A div, not a span: the heading inside needs flow content. */}
-      <div className="trip-card__body">
+      <div className={`trip-card__body ${TRIP_CARD_BODY}`}>
         <span className="kicker">{tripKicker(frontmatter)}</span>
-        <h2 className="trip-card__title">
+        <h2 className={`trip-card__title ${TRIP_CARD_TITLE}`}>
           {frontmatter.title}
-          {frontmatter.draft && <span className="draft-badge">Draft</span>}
+          {frontmatter.draft && (
+            <span className={`draft-badge ${DRAFT_BADGE}`}>Draft</span>
+          )}
         </h2>
-        <span className="trip-card__places">
+        <span className={`trip-card__places ${TRIP_CARD_PLACES}`}>
           {frontmatter.places.map((place) => place.name).join(' · ')}
         </span>
         {photos > 0 && (
-          <span className="trip-card__count">
+          <span className={`trip-card__count ${TRIP_CARD_COUNT}`}>
             {photos} {photos === 1 ? 'photo' : 'photos'}
           </span>
         )}

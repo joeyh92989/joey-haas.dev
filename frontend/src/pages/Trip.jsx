@@ -15,6 +15,12 @@ import { useHashFocus } from '../lib/useHashFocus.js'
 import { usePageTitle } from '../lib/usePageTitle.js'
 import NotFound from './NotFound.jsx'
 import { CHIP_BASE } from '../components/chipClasses.js'
+import {
+  DRAFT_BADGE,
+  TRIP,
+  TRIP_NAV,
+  TRIP_PLACES,
+} from '../components/travelClasses.js'
 
 /**
  * Each place with the anchor of its first day: the day that ends there, or
@@ -121,7 +127,7 @@ function TripPage({ slug }) {
   const older = index >= 0 ? trips[index + 1] : null
 
   return (
-    <article className="trip">
+    <article className={`trip ${TRIP}`}>
       <PageHeader
         trail={[
           { label: TRAVEL_PAGE.title, to: TRAVEL_PAGE.path },
@@ -131,7 +137,9 @@ function TripPage({ slug }) {
         title={
           <>
             {frontmatter.title}
-            {frontmatter.draft && <span className="draft-badge">Draft</span>}
+            {frontmatter.draft && (
+              <span className={`draft-badge ${DRAFT_BADGE}`}>Draft</span>
+            )}
           </>
         }
         lede={frontmatter.summary}
@@ -147,7 +155,7 @@ function TripPage({ slug }) {
         />
       )}
       {anchors.length > 1 && (
-        <nav className="trip-places" aria-label="Places">
+        <nav className={`trip-places ${TRIP_PLACES}`} aria-label="Places">
           <ul role="list">
             {anchors.map((place) => (
               <li key={place.name}>
@@ -174,7 +182,7 @@ function TripPage({ slug }) {
         />
       ))}
       {(older || newer) && (
-        <nav className="trip-nav" aria-label="More trips">
+        <nav className={`trip-nav ${TRIP_NAV}`} aria-label="More trips">
           {older && (
             <Link to={`/travel/${older.slug}`} rel="prev">
               ← {older.frontmatter.title}

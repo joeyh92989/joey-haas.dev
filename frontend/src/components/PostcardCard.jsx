@@ -1,3 +1,5 @@
+import { POSTCARD, POSTCARD_STAMP } from './travelClasses.js'
+
 /**
  * A photo-less day's prose, set as a postcard: a bordered `--surface` card
  * with the day's place stamped in its corner, so a day with nothing to show
@@ -12,8 +14,8 @@
  */
 export default function PostcardCard({ place, html }) {
   return (
-    <div className="postcard">
-      <span className="postcard__stamp" aria-hidden="true">
+    <div className={`postcard ${POSTCARD}`}>
+      <span className={`postcard__stamp ${POSTCARD_STAMP}`} aria-hidden="true">
         {place}
       </span>
       <div className="post-body" dangerouslySetInnerHTML={{ __html: html }} />

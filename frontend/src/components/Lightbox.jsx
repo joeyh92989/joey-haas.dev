@@ -1,5 +1,16 @@
 import Sheet from './Sheet.jsx'
 import { photoSrc, photoSrcSet } from '../lib/trips.js'
+import {
+  LIGHTBOX,
+  LIGHTBOX_BUTTON,
+  LIGHTBOX_CAPTION,
+  LIGHTBOX_CLOSE,
+  LIGHTBOX_NEXT,
+  LIGHTBOX_PREV,
+  LIGHTBOX_COUNT,
+  LIGHTBOX_FIGURE,
+  LIGHTBOX_IMG,
+} from './travelClasses.js'
 
 /**
  * A trip's photos, one at a time, in a native modal `<dialog>`.
@@ -57,16 +68,16 @@ export default function Lightbox({
       onClose={onClose}
       ariaLabel="Photos"
       variant="bare"
-      className="lightbox"
+      className={`lightbox ${LIGHTBOX}`}
       initialFocus=".lightbox__next, .lightbox__close"
       returnFocus={opener}
       onKeyDown={handleKeyDown}
     >
       {photo && (
         <>
-          <figure className="lightbox__figure">
+          <figure className={`lightbox__figure ${LIGHTBOX_FIGURE}`}>
             <img
-              className="lightbox__img"
+              className={`lightbox__img ${LIGHTBOX_IMG}`}
               src={photoSrc(slug, photo.name, 1600)}
               srcSet={photoSrcSet(slug, photo.name)}
               sizes="100vw"
@@ -74,9 +85,12 @@ export default function Lightbox({
               height={photo.height ?? undefined}
               alt={photo.alt}
             />
-            <figcaption className="lightbox__caption" aria-live="polite">
+            <figcaption
+              className={`lightbox__caption ${LIGHTBOX_CAPTION}`}
+              aria-live="polite"
+            >
               <span>{photo.caption ?? photo.alt}</span>
-              <span className="lightbox__count">
+              <span className={`lightbox__count ${LIGHTBOX_COUNT}`}>
                 {photo.day && `${photo.day} · `}
                 {index + 1} of {count}
               </span>
@@ -86,7 +100,7 @@ export default function Lightbox({
             {count > 1 && (
               <button
                 type="button"
-                className="lightbox__prev"
+                className={`lightbox__prev ${LIGHTBOX_BUTTON} ${LIGHTBOX_PREV}`}
                 aria-label={`Previous photo, ${step(-1) + 1} of ${count}`}
                 onClick={() => onIndex(step(-1))}
               >
@@ -96,7 +110,7 @@ export default function Lightbox({
             {count > 1 && (
               <button
                 type="button"
-                className="lightbox__next"
+                className={`lightbox__next ${LIGHTBOX_BUTTON} ${LIGHTBOX_NEXT}`}
                 aria-label={`Next photo, ${step(1) + 1} of ${count}`}
                 onClick={() => onIndex(step(1))}
               >
@@ -105,7 +119,7 @@ export default function Lightbox({
             )}
             <button
               type="button"
-              className="lightbox__close"
+              className={`lightbox__close ${LIGHTBOX_BUTTON} ${LIGHTBOX_CLOSE}`}
               aria-label="Close photos"
               onClick={onClose}
             >

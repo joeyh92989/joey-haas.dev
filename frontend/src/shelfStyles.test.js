@@ -2,6 +2,13 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { readCss } from './testing/readCss.js'
+import {
+  TOUR_LEDE,
+  TOUR_STOP_CLAIM,
+  TOUR_STOP_COLS,
+  TOUR_STOP_WHY,
+  TOUR_TOC,
+} from './components/tourClasses.js'
 import { POSTER_HEART } from './components/shelf-classes.js'
 import { BAR, BAR_FILL, DAY_BAR } from './components/overview-classes.js'
 import {
@@ -95,14 +102,14 @@ describe('tour on a phone (#475)', () => {
   // A bare 1fr track is minmax(auto, 1fr): a wide table or URL inside it
   // stretches the track past the viewport. minmax(0, 1fr) lets it shrink.
   it('lets the one-column stop shrink below its content', () => {
-    expect(mediaRule('.tour-stop-cols')).toContain(
-      'grid-template-columns: minmax(0, 1fr);',
+    expect(TOUR_STOP_COLS.split(' ')).toContain(
+      '[@media(max-width:34rem)]:grid-cols-[minmax(0,1fr)]',
     )
   })
 
   it('lets the contents row shrink below its content', () => {
-    expect(mediaRule('.tour-toc a')).toContain(
-      'grid-template-columns: 2rem minmax(0, 1fr);',
+    expect(TOUR_TOC.split(' ')).toContain(
+      '[@media(max-width:34rem)]:[&_a]:grid-cols-[2rem_minmax(0,1fr)]',
     )
   })
 })
@@ -120,25 +127,25 @@ describe('two widths (#188)', () => {
     expect(DAILY_LEDE.split(' ')).toContain('max-w-[min(45rem,68ch)]')
   })
 
-  const COLUMN = 'max-width: 45rem;'
   const TEXT = 'max-width: min(45rem, 68ch);'
 
-  it.each(['.tour-stop-cols.one'])(
-    'holds %s to the 45rem column',
+  it('holds the one-column stop to the 45rem column', () => {
+    expect(TOUR_STOP_COLS.split(' ')).toContain('[&.one]:max-w-[45rem]')
+  })
+
+  it.each(['.prose', '.prose-list'])(
+    'caps running text in %s at the reading measure',
     (selector) => {
-      expect(rule(selector)).toContain(COLUMN)
+      expect(rule(selector)).toContain(TEXT)
     },
   )
 
-  it.each([
-    '.prose',
-    '.prose-list',
-    '.tour-lede',
-    '.tour-stop-claim',
-    '.tour-stop-why',
-  ])('caps running text in %s at the reading measure', (selector) => {
-    expect(rule(selector)).toContain(TEXT)
-  })
+  it.each([TOUR_LEDE, TOUR_STOP_CLAIM, TOUR_STOP_WHY])(
+    'caps the tour text %s at the reading measure',
+    (classes) => {
+      expect(classes.split(' ')).toContain('max-w-[min(45rem,68ch)]')
+    },
+  )
 
   it.each(['.tonight', '.year-months'])(
     'leaves %s no width of its own',

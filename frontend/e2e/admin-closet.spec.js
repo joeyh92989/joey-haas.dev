@@ -217,14 +217,14 @@ for (const route of ROUTES) {
 
 // The ring's room in a narrow chip row (the first chip's left ring) must not
 // move rows that reset their padding: a public row's start margin is 0.
-// Pick for me's row carries its reset as utilities on the element itself
-// (`PICK_CHIP_ROW`, pinned in closetStyle.test.js), so it is not in this
-// wrapper-and-bare-row check.
+// Pick for me's row and the tag picker's carry their reset as utilities on the
+// element itself (`PICK_CHIP_ROW` and `TAG_PICKER`, pinned in
+// closetStyle.test.js), so they are not in this wrapper-and-bare-row check.
 test('public chip rows keep their start margin at 390px', async ({ page }) => {
   await open(page, '/admin/closet', WIDTHS[1])
   const margins = await page.evaluate(() => {
     const out = {}
-    for (const parent of ['ctl-row', 'tag-picker']) {
+    for (const parent of ['ctl-row']) {
       const wrap = document.createElement('div')
       wrap.className = parent
       const row = document.createElement('div')
@@ -236,10 +236,7 @@ test('public chip rows keep their start margin at 390px', async ({ page }) => {
     }
     return out
   })
-  expect(margins).toEqual({
-    'ctl-row': '0px',
-    'tag-picker': '0px',
-  })
+  expect(margins).toEqual({ 'ctl-row': '0px' })
 })
 
 for (const route of ROUTES) {

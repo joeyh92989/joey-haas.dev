@@ -15,6 +15,7 @@ import { serveAdminAdd } from '../admin-add.fixtures.js'
 import { d5b } from './scenarios/d5b.mjs'
 import { e1 } from './scenarios/e1.mjs'
 import { g1 } from './scenarios/g1.mjs'
+import { g2 } from './scenarios/g2.mjs'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
@@ -93,6 +94,39 @@ const PROPS = [
   'resize',
   'text-indent',
   'appearance',
+  // Added for group G2 (#536): drawn shapes, offsets and the rest of what a
+  // utility port can change that the list above did not read.
+  'fill',
+  'stroke',
+  'stroke-width',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'flex-grow',
+  'flex-shrink',
+  'flex-basis',
+  'align-self',
+  'justify-self',
+  'grid-auto-flow',
+  'grid-template-rows',
+  'grid-column-start',
+  'grid-column-end',
+  'grid-row-start',
+  'grid-row-end',
+  'overflow-wrap',
+  'word-break',
+  'text-overflow',
+  'scroll-margin-top',
+  'object-fit',
+  'aspect-ratio',
+  'background-size',
+  'text-underline-offset',
+  'text-decoration-color',
+  'font-variant-numeric',
+  'writing-mode',
+  'pointer-events',
+  'user-select',
 ]
 
 const PLAY_CARD = {
@@ -251,6 +285,14 @@ const GATES = ['/admin', '/admin?error=access_denied']
 const VIEWPORTS = {
   desktop: { width: 1280, height: 800 },
   phone: { width: 393, height: 851 },
+  // G2: the Tour's and Travel's breakpoints (34rem, 60rem) and their edges.
+  w320: { width: 320, height: 700 },
+  w544: { width: 544, height: 800 },
+  w545: { width: 545, height: 800 },
+  w640: { width: 640, height: 800 },
+  w641: { width: 641, height: 800 },
+  w960: { width: 960, height: 800 },
+  w961: { width: 961, height: 800 },
 }
 
 async function dumpPage(page) {
@@ -305,7 +347,7 @@ async function openMore(page) {
 
 async function open(
   browser,
-  { path, theme, vp, kind, media, reduce, noIndex, serve: served, touch },
+  { path, theme, vp, kind, media, reduce, noIndex, serve: served, touch, mock },
 ) {
   const context = await browser.newContext({
     viewport: VIEWPORTS[vp],
@@ -337,6 +379,7 @@ async function open(
     })
   }
   if (served) await serve(page, served)
+  if (mock) await mock(page)
   if (kind === 'denver' || kind === 'next') {
     const json = (body) => (route) =>
       route.fulfill({
@@ -1273,6 +1316,7 @@ for (const theme of ['dark', 'light']) {
     await d5b({ record, click }, theme, vp)
     await e1({ record, click }, theme, vp)
     await g1({ record, click }, theme, vp)
+    await g2({ record, click }, theme, vp)
   }
   for (const path of [
     '/about',

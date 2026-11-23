@@ -4,6 +4,11 @@ import { spine } from '../content/spine.js'
 import { volumePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
 import StatePill from './StatePill.jsx'
+import {
+  SINGLE_BOOK,
+  SINGLE_BOOK_COVER,
+  SINGLE_BOOK_TEXT,
+} from './comicAdminClasses.js'
 
 const BOOKS = spine.comics.books
 const VOLUME = spine.comics.volume
@@ -25,11 +30,14 @@ export default function SingleBookCard({ comic, series }) {
     book.line_number != null ? VOLUME.number(book.line_number) : null,
   ].filter(Boolean)
   return (
-    <section className="item-card single-book" aria-labelledby="item-book">
-      <div className="single-book-cover">
+    <section
+      className={`item-card single-book ${SINGLE_BOOK}`}
+      aria-labelledby="item-book"
+    >
+      <div className={`single-book-cover ${SINGLE_BOOK_COVER}`}>
         <CoverImage src={book.cover_url} type="comic" alt="" />
       </div>
-      <div className="single-book-text">
+      <div className={`single-book-text ${SINGLE_BOOK_TEXT}`}>
         <h2 id="item-book" className={PANEL_HEAD}>
           {BOOKS.single.title}
         </h2>

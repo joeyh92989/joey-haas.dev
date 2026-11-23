@@ -16,10 +16,20 @@ const jobsRow = (label, key) =>
 // width that changes still shows up as its own difference. Compared as equal.
 const STYLE = 24
 const WIDTH_TOP = 20
+// Likewise an outline whose style is `none` is not drawn, so its width and
+// colour are not compared (Preflight's `outline-style: none` leaves a 1px
+// width behind where the old rule left the browser's 3px: neither shows).
+const OUTLINE_WIDTH = 49
+const OUTLINE_STYLE = 50
+const OUTLINE_COLOR = 51
 const unstyled = (record) => {
   if (record === undefined) return record
   const parts = record.split('|')
   if (parts[WIDTH_TOP] === '0px') parts[STYLE] = 'none'
+  if (parts[OUTLINE_STYLE] === 'none') {
+    parts[OUTLINE_WIDTH] = '0px'
+    parts[OUTLINE_COLOR] = ''
+  }
   return parts.join('|')
 }
 const same = (label, key, x, y) => {

@@ -1,4 +1,16 @@
 import { isOnMap, project } from '../lib/mapFit.js'
+import {
+  DRAWN_MAP,
+  DRAWN_MAP_CAPTION,
+  DRAWN_MAP_FRAME,
+  DRAWN_MAP_NAME,
+  DRAWN_MAP_NUMBER,
+  DRAWN_MAP_PIN,
+  DRAWN_MAP_PIN_SIDE,
+  DRAWN_MAP_SEA,
+  DRAWN_MAP_STOPS,
+  DRAWN_MAP_SVG,
+} from './travelClasses.js'
 
 /**
  * A hand-drawn map with numbered stops: the travel route map, and the
@@ -40,18 +52,22 @@ export default function DrawnMap({
   const { width, height } = viewBox
   const names = stops.map((stop) => stop.name).join(', ')
   return (
-    <figure className="drawn-map">
+    <figure className={`drawn-map ${DRAWN_MAP}`}>
       <div
-        className="drawn-map__frame"
+        className={`drawn-map__frame ${DRAWN_MAP_FRAME}`}
         style={{ aspectRatio: `${width} / ${height}` }}
       >
         <svg
-          className="drawn-map__svg"
+          className={`drawn-map__svg ${DRAWN_MAP_SVG}`}
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={`${label}: ${names}`}
         >
-          <rect className="drawn-map__sea" width={width} height={height} />
+          <rect
+            className={`drawn-map__sea ${DRAWN_MAP_SEA}`}
+            width={width}
+            height={height}
+          />
           <Drawing />
         </svg>
         {stops.map((stop, index) => {
@@ -61,28 +77,30 @@ export default function DrawnMap({
           return (
             <a
               key={stop.name}
-              className={
-                left > 70
-                  ? 'drawn-map__pin drawn-map__pin--label-left'
-                  : 'drawn-map__pin'
-              }
+              className={`drawn-map__pin ${left > 70 ? 'drawn-map__pin--label-left ' : ''}${DRAWN_MAP_PIN} ${DRAWN_MAP_PIN_SIDE[left > 70 ? 'left' : 'right']}`}
               href={stop.href}
               style={{ left: `${left}%`, top: `${(y / height) * 100}%` }}
               aria-label={`${index + 1}. ${stop.name}`}
             >
-              <span className="drawn-map__number" aria-hidden="true">
+              <span
+                className={`drawn-map__number ${DRAWN_MAP_NUMBER}`}
+                aria-hidden="true"
+              >
                 {index + 1}
               </span>
-              <span className="drawn-map__name" aria-hidden="true">
+              <span
+                className={`drawn-map__name ${DRAWN_MAP_NAME}`}
+                aria-hidden="true"
+              >
                 {stop.name}
               </span>
             </a>
           )
         })}
       </div>
-      <figcaption className="drawn-map__caption">
+      <figcaption className={`drawn-map__caption ${DRAWN_MAP_CAPTION}`}>
         <span className="drawn-map__note">{note}</span>
-        <ol className="drawn-map__stops">
+        <ol className={`drawn-map__stops ${DRAWN_MAP_STOPS}`}>
           {stops.map((stop) => (
             <li key={stop.name}>
               <a href={stop.href}>{stop.name}</a>

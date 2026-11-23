@@ -98,3 +98,31 @@ sheet's Copy, the journal's month index, the shelf footers' project line.
 link hovered and tabbed to. The signed-in answers are routed from the scenario
 (`/api/auth/me*`, the pattern must end in `*` or the `?quiet=1` query misses
 it); an element the page does not draw logs `absent: <selector>`.
+
+Group G2 (#536) put its scenarios in `scenarios/g2.mjs` (`ONLY=' g2a '`,
+`' g2b '`, `' g2c '`; `style-dump.mjs` has one import and one call line for it).
+`PROPS` gained 33 properties (`fill`, `stroke`, `stroke-width`, the offsets,
+`flex-grow/shrink/basis`, `grid-auto-flow`, `grid-template-rows`, the grid
+lines, `overflow-wrap`, `object-fit`, `aspect-ratio`, `writing-mode`, and a few
+more): a port to utilities can change those and the older list did not read
+them (a `bg-(--redact)` that should have been `[background:var(--redact)]`
+showed up as `background-image`). `VIEWPORTS` gained `w320`, `w544`, `w545`,
+`w640`, `w641`, `w960`, `w961`: the edges of the Tour's (34rem, 60rem) and
+Travel's (640px) breakpoints, which are inclusive. `open()` takes a `mock`
+function for answers the scenario routes itself.
+
+- `g2a`: the Tour (`/shelf/how`) with every live box answered, empty, on
+  paper, reduced motion, its contents links hovered, tabbed to and pressed, a
+  code link and the code block focused, at each edge width; the Colophon and
+  Projects at the same widths and on paper.
+- `g2b`: Travel (`/travel`, `/travel/croatia-greece-2026`: card, drawn map,
+  pins hovered and focused with and without reduced motion, place chips,
+  photos, the lightbox open, stepped, focused and at the phone edge). Travel is
+  published nowhere, so its pages exist only in `vite` dev: serve the base
+  commit and the changed one from two worktrees (`VITE_DAILY_SALT=local npx vite
+  --port <n> --strictPort` in each `frontend/`, each with its own `npm ci`) and
+  dump each with `ONLY=' g2b '`.
+- `g2c`: the comic admin pages, the Book page, the item edit page and the
+  collection table (all from `admin-data-mocks.js`), the public single-book
+  card and volume page (from `fixtures/api`), the load state and Now.
+
