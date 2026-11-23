@@ -8,7 +8,8 @@ import { serve } from './tools-data.fixtures.js'
 // with a centred label, a hovered cover tile, and the code face. Desktop
 // project only: the viewport is set here. Fixture snapshot only.
 test.skip(!!process.env.E2E_BASE_URL, 'fixture snapshot only')
-test.beforeEach((_fixtures, testInfo) => {
+test.beforeEach(({ browserName }, testInfo) => {
+  void browserName
   test.skip(testInfo.project.name !== 'desktop', 'sizes are set here')
 })
 
