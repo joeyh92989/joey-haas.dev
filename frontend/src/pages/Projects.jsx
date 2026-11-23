@@ -97,7 +97,9 @@ export default function Projects() {
                 </ul>
               )}
               {project.links && (
-                <p className="project-links mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <p
+                  className={`project-links mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm [@media(max-width:700px)]:[&_a]:inline-flex [@media(max-width:700px)]:[&_a]:items-center [@media(max-width:700px)]:[&_a]:min-h-11`}
+                >
                   {project.links.map((link) =>
                     link.to ? (
                       <Link key={link.label} to={link.to}>

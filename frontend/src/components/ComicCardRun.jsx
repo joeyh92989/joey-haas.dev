@@ -2,6 +2,12 @@ import { spine } from '../content/spine.js'
 import { kindSummary, shortDate } from '../lib/comics.js'
 import { cardLines, laneSpansFromRow, lanesLabel } from '../lib/comicRun.js'
 import RunLanes from './RunLanes.jsx'
+import {
+  COMIC_CARD_KIND,
+  COMIC_CARD_LINE,
+  COMIC_CARD_RUN,
+  SERIES_PILL_WARN,
+} from './comicClasses.js'
 
 const COPY = spine.comics
 
@@ -44,12 +50,14 @@ export default function ComicCardRun({ row }) {
   const hasRun = kind === 'run' || kind === 'both'
   return (
     <div
-      className="comic-card-run"
+      className={`comic-card-run ${COMIC_CARD_RUN}`}
       role="group"
       aria-label={[row.title, word].filter(Boolean).join(': ')}
     >
-      <p className="comic-card-kind">{word}</p>
-      {volumes && <p className="comic-card-line">{volumes}</p>}
+      <p className={`comic-card-kind ${COMIC_CARD_KIND}`}>{word}</p>
+      {volumes && (
+        <p className={`comic-card-line ${COMIC_CARD_LINE}`}>{volumes}</p>
+      )}
       {hasRun && <ComicRun row={row} lines={lines} />}
     </div>
   )
@@ -60,7 +68,7 @@ function ComicRun({ row, lines }) {
   return (
     <>
       <RowLanes row={row} />
-      <p className="comic-card-line">
+      <p className={`comic-card-line ${COMIC_CARD_LINE}`}>
         {lines.count && (
           <>
             <b>{lines.count}</b>
@@ -71,13 +79,15 @@ function ComicRun({ row, lines }) {
         {row.wanted && (
           <>
             {' '}
-            <span className="series-pill" data-warn="">
+            <span className={`series-pill ${SERIES_PILL_WARN}`} data-warn="">
               {COPY.pills.want}
             </span>
           </>
         )}
       </p>
-      {lines.reading && <p className="comic-card-line">{lines.reading}</p>}
+      {lines.reading && (
+        <p className={`comic-card-line ${COMIC_CARD_LINE}`}>{lines.reading}</p>
+      )}
     </>
   )
 }

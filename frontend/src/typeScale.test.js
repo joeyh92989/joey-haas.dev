@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
+import { runCell } from './components/comicClasses.js'
 import { DRAWN_MAP_SEA_LABEL } from './components/travelClasses.js'
 import { readCss } from './testing/readCss.js'
 
@@ -14,10 +15,11 @@ const STEPS = [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 48, 56]
  * label inside a drawing that carries its accessible name elsewhere, or
  * prose-relative inline code. Adding one means adding it here, on purpose.
  */
-const EXEMPT = {
-  ".run-cell[data-k='read']::after": 'font-size: 0.5rem;',
-  ".run-cell[data-k='skip']::after": 'font-size: 0.5625rem;',
-}
+const EXEMPT = {}
+
+// The run cells' tick and cross (0.5rem, 0.5625rem; decoration, the cell's
+// name carries the state) are utilities now (comicClasses.js); the test
+// below pins their sizes.
 
 // The drawn map's sea label (11px italic, inside a drawing that carries its
 // accessible name on the SVG) is a utility now (travelClasses.js); the test
@@ -78,6 +80,11 @@ describe('type scale', () => {
     expect(DRAWN_MAP_SEA_LABEL.split(' ')).toContain(
       '[font:italic_400_11px_var(--font-display)]',
     )
+  })
+
+  it("keeps the run cells' tick and cross small, as the old rules drew them", () => {
+    expect(runCell('read').split(' ')).toContain('after:text-[0.5rem]')
+    expect(runCell('skip').split(' ')).toContain('after:text-[0.5625rem]')
   })
 
   it('lists no exemption that the stylesheet no longer has', () => {

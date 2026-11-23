@@ -1,4 +1,11 @@
 import { useState } from 'react'
+import {
+  CHANGELOG_LIST,
+  CHANGES_FEED,
+  SITE_STATS,
+  SITE_STATS_LISTS,
+  SITE_STATS_STATUS,
+} from '../components/adminPageClasses.js'
 import BarList from '../components/BarList.jsx'
 import DayBars from '../components/DayBars.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -59,7 +66,7 @@ export default function Stats() {
   const thirty = data?.thirty
 
   return (
-    <section className="site-stats">
+    <section className={`site-stats ${SITE_STATS}`}>
       <PageHeader title="Stats" lede={LEDE} ledeClassName="prose" />
 
       {data ? (
@@ -93,7 +100,10 @@ export default function Stats() {
           {failed ? (
             <LoadState failed stale live={live} onRetry={retry} />
           ) : (
-            <p className="muted site-stats-status" role="status">
+            <p
+              className={`muted site-stats-status ${SITE_STATS_STATUS}`}
+              role="status"
+            >
               {status}
             </p>
           )}
@@ -109,7 +119,7 @@ export default function Stats() {
             <p className="muted">No views in the last 30 days.</p>
           )}
 
-          <div className="site-stats-lists">
+          <div className={`site-stats-lists ${SITE_STATS_LISTS}`}>
             <section aria-labelledby="stats-pages">
               <h2 id="stats-pages">Pages</h2>
               <span className="kicker">views, last 30 days</span>
@@ -157,7 +167,7 @@ export default function Stats() {
 
       <section id="changes" aria-labelledby="changes-title">
         <h2 id="changes-title">Changes</h2>
-        <p className="changes-feed">
+        <p className={`changes-feed ${CHANGES_FEED}`}>
           <a
             href="/changelog.xml"
             className={buttonVariants({ variant: 'outline', size: 'xs' })}
@@ -165,7 +175,7 @@ export default function Stats() {
             RSS
           </a>
         </p>
-        <ol className="changelog" role="list">
+        <ol className={`changelog ${CHANGELOG_LIST}`} role="list">
           {CHANGELOG.map((entry) => (
             <li key={entry.date}>
               <Card className="gap-2 px-4 py-3 text-[1rem]">

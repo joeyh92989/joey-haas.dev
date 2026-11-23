@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { spine } from '../content/spine.js'
 import { boxTiles } from '../lib/comicRun.js'
+import {
+  RUN_BOOK,
+  RUN_BOX,
+  RUN_BOX_FRAME,
+  RUN_BUNDLE,
+  runCell,
+} from './comicClasses.js'
 
 const BOX = spine.comics.run.box
 
@@ -77,7 +84,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
         return (
           <span
             key={`book-${tile.edition.index}`}
-            className="run-book"
+            className={`run-book ${RUN_BOOK[tile.k] ?? RUN_BOOK.none}`}
             data-k={tile.k}
             aria-hidden={hidden}
           >
@@ -94,7 +101,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
           <button
             key={`bundle-${tile.from}`}
             type="button"
-            className="run-bundle"
+            className={`run-bundle ${RUN_BUNDLE[tile.k] ?? RUN_BUNDLE.none}`}
             data-k={tile.k}
             data-focus={`bundle-${tile.from}`}
             aria-expanded="false"
@@ -114,7 +121,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
           <button
             key={`fold-${tile.from}`}
             type="button"
-            className="run-cell"
+            className={`run-cell ${runCell('fold', true)}`}
             data-fold=""
             data-focus={`fold-${tile.from}`}
             aria-expanded="true"
@@ -131,7 +138,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
         return (
           <i
             key="next"
-            className="run-cell"
+            className={`run-cell ${runCell('upcoming')}`}
             data-k="upcoming"
             aria-hidden="true"
           >
@@ -149,7 +156,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
         <button
           key={`cell-${n}`}
           type="button"
-          className="run-cell"
+          className={`run-cell ${runCell(k, true)}`}
           data-k={k}
           aria-label={BOX.cellName(n, BOX.cellState[k])}
           aria-disabled={busy || undefined}
@@ -164,7 +171,7 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
         <button
           key={`cell-${n}`}
           type="button"
-          className="run-cell"
+          className={`run-cell ${runCell(k, true)}`}
           data-k={k}
           aria-pressed={issue.held}
           aria-label={`Issue ${n}`}
@@ -176,20 +183,25 @@ export default function RunBox({ model, mode = 'public', onCell, busy }) {
       )
     }
     return (
-      <i key={`cell-${n}`} className="run-cell" data-k={k} aria-hidden="true">
+      <i
+        key={`cell-${n}`}
+        className={`run-cell ${runCell(k)}`}
+        data-k={k}
+        aria-hidden="true"
+      >
         {n}
       </i>
     )
   }
 
   return (
-    <div className="run-box-frame">
+    <div className={`run-box-frame ${RUN_BOX_FRAME}`}>
       {/* Public, a box with no bundle has nothing to operate, and the
           sentence under it says what it shows: decoration, not an empty
           labelled group. */}
       <div
         ref={boxRef}
-        className="run-box"
+        className={`run-box ${RUN_BOX}`}
         {...(interactive
           ? { role: 'group', 'aria-label': BOX.label }
           : { 'aria-hidden': true })}

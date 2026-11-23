@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { spine } from '../content/spine.js'
 import { hasComics, hasGames } from '../lib/snapshotPresence.js'
+import { SPINE_TAB, SPINE_TAB_BADGE, SPINE_TABS } from './sharedClasses.js'
 
 /**
  * Games · Comics · What's next · Year in review · Tour · Daily game,
@@ -42,20 +43,39 @@ export default function SpineTabs({ games = hasGames, comics = hasComics }) {
     }
   }, [pathname])
   return (
-    <nav ref={nav} className="spine-tabs" aria-label={`${spine.name} sections`}>
+    <nav
+      ref={nav}
+      className={`spine-tabs ${SPINE_TABS}`}
+      aria-label={`${spine.name} sections`}
+    >
       {games && (
-        <NavLink to={spine.tabs.games.to}>{spine.tabs.games.label}</NavLink>
+        <NavLink className={SPINE_TAB} to={spine.tabs.games.to}>
+          {spine.tabs.games.label}
+        </NavLink>
       )}
       {comics && (
-        <NavLink to={spine.tabs.comics.to}>{spine.tabs.comics.label}</NavLink>
+        <NavLink className={SPINE_TAB} to={spine.tabs.comics.to}>
+          {spine.tabs.comics.label}
+        </NavLink>
       )}
-      <NavLink to={spine.tabs.next.to}>{spine.tabs.next.label}</NavLink>
-      <NavLink to={spine.tabs.year.to}>{spine.tabs.year.label}</NavLink>
-      <NavLink to={how.to}>
-        {how.label}
-        {how.badge && <span className="spine-tab-badge"> {how.badge}</span>}
+      <NavLink className={SPINE_TAB} to={spine.tabs.next.to}>
+        {spine.tabs.next.label}
       </NavLink>
-      <NavLink to={spine.tabs.daily.to}>{spine.tabs.daily.label}</NavLink>
+      <NavLink className={SPINE_TAB} to={spine.tabs.year.to}>
+        {spine.tabs.year.label}
+      </NavLink>
+      <NavLink className={SPINE_TAB} to={how.to}>
+        {how.label}
+        {how.badge && (
+          <span className={`spine-tab-badge ${SPINE_TAB_BADGE}`}>
+            {' '}
+            {how.badge}
+          </span>
+        )}
+      </NavLink>
+      <NavLink className={SPINE_TAB} to={spine.tabs.daily.to}>
+        {spine.tabs.daily.label}
+      </NavLink>
     </nav>
   )
 }

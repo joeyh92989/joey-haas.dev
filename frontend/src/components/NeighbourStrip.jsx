@@ -3,6 +3,7 @@ import { spine } from '../content/spine.js'
 import CoverTile from './CoverTile.jsx'
 import { cx } from '../lib/cx.js'
 import { NEIGHBOUR_RING } from './detail-classes.js'
+import { NEIGHBOUR_STRIP } from './comicClasses.js'
 
 const COPY = spine.comics.issue
 
@@ -30,7 +31,7 @@ export default function NeighbourStrip({ list, current, series, labelledBy }) {
 
   return (
     <ol
-      className={cx('neighbour-strip', NEIGHBOUR_RING)}
+      className={cx('neighbour-strip', NEIGHBOUR_STRIP, NEIGHBOUR_RING)}
       aria-label={labelledBy ? undefined : COPY.neighbours}
       aria-labelledby={labelledBy}
     >

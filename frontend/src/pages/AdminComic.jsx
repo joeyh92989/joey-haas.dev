@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  ITEM_ATTRIBUTION,
+  ITEM_RELINK,
+} from '../components/adminPageClasses.js'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -693,7 +697,7 @@ export default function AdminComic() {
             ) : (
               <p className={MUTED}>{COPY.unlinked}</p>
             )}
-            <div className="item-relink">
+            <div className={`item-relink ${ITEM_RELINK}`}>
               <p className={MUTED}>{COPY.relinkLine}</p>
               {relinking && (
                 <p className={MUTED}>{adminCopy.comic.relinking}</p>
@@ -705,7 +709,7 @@ export default function AdminComic() {
         </div>
       </div>
 
-      <p className="item-attribution muted">
+      <p className={`item-attribution ${ITEM_ATTRIBUTION} muted`}>
         {spine.comics.attribution.before}{' '}
         <a className={TEXT_LINK} href={COMIC_VINE}>
           {spine.comics.attribution.label}

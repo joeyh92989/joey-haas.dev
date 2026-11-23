@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { PROGRESS_BAR } from './components/sharedClasses.js'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -207,11 +208,8 @@ describe('theme blocks', () => {
     // The review deck's bar is utilities now: bg-muted is --sunken.
     expect(REVIEW_BAR).toMatch(/(^| )bg-muted( |$)/)
     expect(PICK_TERM_BAR.split(' ')).toContain('bg-(--sunken)')
-    const at = css.indexOf('\n.progress i {')
-    expect(at, '.progress i').toBeGreaterThan(-1)
-    expect(css.slice(at, css.indexOf('}', at))).toMatch(
-      /background:\s*var\(--sunken\)/,
-    )
+    // The pick list's read-through bar is utilities too (sharedClasses.js).
+    expect(PROGRESS_BAR.split(' ')).toContain('bg-(--sunken)')
   })
 
   // The paper is light whatever theme is browsed (index.css, Print): the

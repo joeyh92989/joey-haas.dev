@@ -126,3 +126,19 @@ function for answers the scenario routes itself.
   collection table (all from `admin-data-mocks.js`), the public single-book
   card and volume page (from `fixtures/api`), the load state and Now.
 
+Group G3 (#536) put its scenarios in `scenarios/g3.mjs` (`ONLY=' g3a '`,
+`'g3b'`, `'g3c'`; `style-dump.mjs` has one import and one call line for it, and
+the viewports `w700`, `w701`, `w980`, `w981`). `g3a`: the comics family: a long
+run as its box (cells, a book, a bundle opened, hovered, tabbed to, the lanes
+and key), the same run as a cover wall (tiles hovered and tabbed to, a book, a
+stack opened and folded, the Missing filter), the owner's wall (each cover a
+button, its number a link), a title with books, a book line, and an issue page
+with a neighbour strip of every state. The run, wall and issue answers are built
+in the scenario. `g3b`: Home's hero and actions, Projects' links, the shelf's
+header and tabs (hover, current, focus, touch), and Home, the shelf, Denver,
+What's next and the Daily game at the edge widths 320, 544, 545, 700, 701, 980
+and 981. `g3c`: the item edit page (journal, playthroughs table, relink, status
+control, registry line), the public item page signed in, the store list,
+catalogue, Stats and its changelog, and Play next at the edges. The cover strip
+and the item tile figures need favourites or ratings the fixture snapshot does
+not carry: they log `absent`.

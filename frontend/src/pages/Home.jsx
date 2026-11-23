@@ -1,4 +1,10 @@
 import { useEffect, useState } from 'react'
+import {
+  HERO,
+  HERO_ACTIONS,
+  HERO_LEDE,
+  HERO_TITLE,
+} from '../components/sharedClasses.js'
 import { Link } from 'react-router'
 import ContactLine from '../components/ContactLine.jsx'
 import CoverStrip from '../components/CoverStrip.jsx'
@@ -27,7 +33,7 @@ const action = (variant) =>
 
 const SECTION = 'pt-14 max-[700px]:pt-10'
 const SECTION_HEAD =
-  'section-head mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-foreground pb-2'
+  'section-head mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-foreground pb-2 [@media(max-width:700px)]:[&_a]:inline-flex [@media(max-width:700px)]:[&_a]:items-center [@media(max-width:700px)]:[&_a]:min-h-11'
 const SECTION_TITLE = 'm-0 font-heading text-2xl font-medium'
 
 const thisSite = projects.find((project) => project.url === profile.repo)
@@ -131,19 +137,19 @@ export default function Home() {
 
   return (
     <>
-      <section className="hero" aria-labelledby="home-title">
+      <section className={`hero ${HERO}`} aria-labelledby="home-title">
         <div>
           <Kicker className="text-sm tracking-normal text-muted-foreground normal-case">
             {profile.tagline}
           </Kicker>
-          <h1 id="home-title" className="hero-title max-w-none">
+          <h1 id="home-title" className={`hero-title ${HERO_TITLE} max-w-none`}>
             {profile.name}
           </h1>
           <p className="mt-2 font-heading text-[length:var(--fs-28)] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground max-[700px]:text-[length:var(--fs-24)]">
             {profile.headline}
           </p>
-          <p className="hero-lede">{profile.lede}</p>
-          <div className="hero-actions">
+          <p className={`hero-lede ${HERO_LEDE}`}>{profile.lede}</p>
+          <div className={`hero-actions ${HERO_ACTIONS}`}>
             <Link to="/about" className={action('default')}>
               About me
             </Link>

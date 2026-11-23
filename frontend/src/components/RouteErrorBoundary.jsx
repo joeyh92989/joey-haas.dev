@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { ROUTE_ERROR } from './sharedClasses.js'
 import { Link } from 'react-router'
 
 /**
@@ -26,7 +27,7 @@ export default class RouteErrorBoundary extends Component {
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      <section className="route-error" role="alert">
+      <section className={`route-error ${ROUTE_ERROR}`} role="alert">
         <h1>This page hit a problem</h1>
         <p>
           Something on this page failed to load. Reloading usually fixes it;

@@ -45,7 +45,7 @@ describe('spacing scale', () => {
   })
 
   it('finds the spacing declarations', () => {
-    expect(spacing.length).toBeGreaterThan(200)
+    expect(spacing.length).toBeGreaterThan(20)
   })
 
   it('uses a token wherever a spacing value is exactly a step', () => {

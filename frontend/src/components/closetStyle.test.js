@@ -72,7 +72,8 @@ describe('Closet pages and the legacy look', () => {
   // narrow-screen rule adds (a ring's room), or they sit 4px left (#535).
   it('.ctl-row .chip-row resets the start margin', () => {
     const css = readCss()
-    const at = css.indexOf('.ctl-row .chip-row {')
+    // A shared utility now (styles/utilities.css), inside `:where()`.
+    const at = css.indexOf(':where(.ctl-row &) {')
     expect(at).toBeGreaterThan(-1)
     const body = css.slice(at, css.indexOf('}', at))
     expect(body).toMatch(/margin-inline-start: 0/)

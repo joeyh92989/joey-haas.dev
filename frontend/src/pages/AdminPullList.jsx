@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  CATALOGUE_PROGRESS,
+  PULL_LIST_SEARCH,
+  PULL_LIST_SEARCH_FORM,
+  PULL_LIST_WEEK,
+} from '../components/adminPageClasses.js'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -150,9 +156,15 @@ function SeriesSearch({ onFollowChange }) {
   }
 
   return (
-    <section className="pull-list-search" aria-labelledby="pull-list-search">
+    <section
+      className={`pull-list-search ${PULL_LIST_SEARCH}`}
+      aria-labelledby="pull-list-search"
+    >
       <h2 id="pull-list-search">{adminCopy.pullList.findSeries}</h2>
-      <form className="pull-list-search-form" onSubmit={search}>
+      <form
+        className={`pull-list-search-form ${PULL_LIST_SEARCH_FORM}`}
+        onSubmit={search}
+      >
         <label htmlFor="series-query">{adminCopy.pullList.seriesName}</label>
         <input
           id="series-query"
@@ -425,7 +437,7 @@ export default function AdminPullList() {
       {state === 'error' && <LoadState failed onRetry={retry} />}
       <p
         ref={statusRef}
-        className="catalogue-progress"
+        className={`catalogue-progress ${CATALOGUE_PROGRESS}`}
         role="status"
         aria-live="polite"
         tabIndex={-1}
@@ -446,7 +458,7 @@ export default function AdminPullList() {
           {list.weeks.map((week) => (
             <section
               key={week.start}
-              className="pull-list-week"
+              className={`pull-list-week ${PULL_LIST_WEEK}`}
               aria-labelledby={`week-${week.start}`}
             >
               <h2 id={`week-${week.start}`}>

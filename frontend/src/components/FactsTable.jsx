@@ -1,3 +1,5 @@
+import { FACTS_TABLE } from './sharedClasses.js'
+
 /**
  * Home's facts table: short label and value pairs in a bordered box, beside
  * the hero on a desktop and under it on a phone. A description list, so a
@@ -8,7 +10,7 @@
  */
 export default function FactsTable({ rows }) {
   return (
-    <dl className="facts">
+    <dl className={`facts ${FACTS_TABLE}`}>
       {rows.map((row) => (
         <div key={row.label}>
           <dt>{row.label}</dt>

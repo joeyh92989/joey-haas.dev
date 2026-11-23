@@ -1,6 +1,12 @@
 import { Link } from 'react-router'
 import { spine } from '../content/spine.js'
 import SpineTabs from './SpineTabs.jsx'
+import {
+  SPINE_HEADER,
+  SPINE_LEDE,
+  SPINE_NAME,
+  SPINE_NAME_LINK,
+} from './sharedClasses.js'
 
 /**
  * The shelf's area band, shared by every shelf list page (Games, Comics,
@@ -11,11 +17,13 @@ import SpineTabs from './SpineTabs.jsx'
  */
 export default function SpineHeader() {
   return (
-    <div className="spine-header">
-      <p className="spine-name">
-        <Link to={spine.path}>{spine.name}</Link>
+    <div className={`spine-header ${SPINE_HEADER}`}>
+      <p className={`spine-name ${SPINE_NAME}`}>
+        <Link to={spine.path} className={SPINE_NAME_LINK}>
+          {spine.name}
+        </Link>
       </p>
-      <p className="spine-lede">{spine.tagline}</p>
+      <p className={`spine-lede ${SPINE_LEDE}`}>{spine.tagline}</p>
       <SpineTabs />
     </div>
   )

@@ -4,6 +4,7 @@ import { spine } from '../content/spine.js'
 import { volumePath } from '../lib/spinePaths.js'
 import CoverImage from './CoverImage.jsx'
 import StatePill from './StatePill.jsx'
+import { ITEM_CARD } from './comicClasses.js'
 import {
   SINGLE_BOOK,
   SINGLE_BOOK_COVER,
@@ -31,7 +32,7 @@ export default function SingleBookCard({ comic, series }) {
   ].filter(Boolean)
   return (
     <section
-      className={`item-card single-book ${SINGLE_BOOK}`}
+      className={`item-card ${ITEM_CARD} single-book ${SINGLE_BOOK}`}
       aria-labelledby="item-book"
     >
       <div className={`single-book-cover ${SINGLE_BOOK_COVER}`}>

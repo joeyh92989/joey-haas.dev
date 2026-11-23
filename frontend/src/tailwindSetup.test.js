@@ -38,6 +38,10 @@ describe('tailwind.css setup', () => {
     expect(imports).toEqual(CSS_FILES)
   })
 
+  it('imports the shared utilities unlayered, so Tailwind lifts them', () => {
+    expect(code).toMatch(/@import\s+['"]\.\/styles\/utilities\.css['"];/)
+  })
+
   // Preflight in `base` would sit above `legacy` and override every legacy
   // rule that sets the same property. Below it, it only changes what the
   // legacy sheet never sets, and styles/base.css hands those back with

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { WALL_STATUS } from '../components/comicClasses.js'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
@@ -84,7 +85,7 @@ function useComicTitles(enabled) {
 /** One line under a thing the owner changed: what happened, and Undo. */
 function StatusLine({ line, area, error }) {
   return (
-    <p className="wall-status" role="status">
+    <p className={`wall-status ${WALL_STATUS}`} role="status">
       {error?.area === area ? (
         <span className="admin-error" role="alert">
           {error.text}

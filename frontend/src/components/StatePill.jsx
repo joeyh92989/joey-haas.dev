@@ -1,4 +1,5 @@
 import { spine } from '../content/spine.js'
+import { STATE_PILL } from './comicClasses.js'
 
 const { states: STATES } = spine.comics.wall
 
@@ -12,7 +13,10 @@ const { states: STATES } = spine.comics.wall
  */
 export default function StatePill({ state }) {
   return (
-    <span className="state-pill" data-state={state}>
+    <span
+      className={`state-pill ${STATE_PILL[state] ?? STATE_PILL.none}`}
+      data-state={state}
+    >
       {STATES[state]}
     </span>
   )

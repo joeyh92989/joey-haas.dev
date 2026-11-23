@@ -1,4 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  ITEM_PLAYTHROUGHS,
+  PLAYTHROUGHS_NOTE,
+} from '../components/adminPageClasses.js'
+import {
+  CLAMP_6,
+  ITEM_TILE_FIGURE,
+  ITEM_TTB,
+} from '../components/sharedClasses.js'
 import { Link, useOutletContext, useParams } from 'react-router'
 import { spine } from '../content/spine.js'
 import { platformsLabel } from '../content/tags.js'
@@ -28,6 +37,11 @@ import {
 import { SKELETON_BLOCK, SKELETON_COVER } from '../components/shelf-classes.js'
 import { cx } from '../lib/cx.js'
 import CoverImage from '../components/CoverImage.jsx'
+import {
+  ITEM_CARD_TOP,
+  SERIES_PILL_OK,
+  SERIES_PILL_PLAIN,
+} from '../components/comicClasses.js'
 import BookWall from '../components/BookWall.jsx'
 import CoverWall from '../components/CoverWall.jsx'
 import SingleBookCard from '../components/SingleBookCard.jsx'
@@ -249,7 +263,7 @@ function Tiles({ item, detail }) {
       </StatTile>
       {detail && item.community_score != null && (
         <StatTile label="Community">
-          <span className="item-tile-figure">
+          <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
             {Math.round(item.community_score)} / 100
           </span>
           {item.community_votes != null && (
@@ -260,9 +274,11 @@ function Tiles({ item, detail }) {
       {detail && timeToBeat.length > 0 && (
         <StatTile label="Time to beat">
           {timeToBeat.map(([label, figure]) => (
-            <span className="item-ttb" key={label}>
+            <span className={`item-ttb ${ITEM_TTB}`} key={label}>
               <span className="muted">{label}</span>
-              <span className="item-tile-figure">{figure}</span>
+              <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
+                {figure}
+              </span>
             </span>
           ))}
         </StatTile>
@@ -270,7 +286,7 @@ function Tiles({ item, detail }) {
       {detail && showPlayed && (
         <StatTile label={runWords(item.type).tile}>
           {item.times_completed > 0 && (
-            <span className="item-tile-figure">
+            <span className={`item-tile-figure ${ITEM_TILE_FIGURE}`}>
               Finished{' '}
               {item.times_completed === 1
                 ? 'once'
@@ -350,7 +366,7 @@ function ComicSummary({ comic, model, issues }) {
         <>
           <b>{SERIES.count(model.held, model.released, model.ongoing)}</b>{' '}
           <span
-            className="series-pill"
+            className={`series-pill ${model.state === 'gaps' ? SERIES_PILL_PLAIN : SERIES_PILL_OK}`}
             data-ok={model.state === 'gaps' ? undefined : ''}
           >
             {pill}
@@ -487,7 +503,10 @@ function ComicCards({
       )}
 
       {withIssues && model.held > 0 && (
-        <section className={cx('item-card', PANEL)} aria-labelledby="item-run">
+        <section
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
+          aria-labelledby="item-run"
+        >
           <h2 id="item-run" className={PANEL_HEAD}>
             {kind === 'both' ? BOOKS.issues : SERIES.runCard}
           </h2>
@@ -531,7 +550,7 @@ function ComicCards({
 
       {!withBooks && comic.editions.length > 0 && (
         <section
-          className={cx('item-card', PANEL)}
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
           aria-labelledby="item-editions"
         >
           <h2 id="item-editions" className={PANEL_HEAD}>
@@ -558,7 +577,7 @@ function ComicCards({
 
       {description && (
         <section
-          className={cx('item-card', PANEL)}
+          className={cx('item-card', ITEM_CARD_TOP, PANEL)}
           aria-labelledby="item-about"
         >
           <h2 id="item-about" className={PANEL_HEAD}>
@@ -968,7 +987,7 @@ function ItemView({
             className={
               expanded
                 ? 'item-description m-0 mb-1'
-                : 'item-description clamp-6 m-0 mb-1'
+                : `item-description clamp-6 ${CLAMP_6} m-0 mb-1`
             }
           >
             {description}
@@ -990,12 +1009,12 @@ function ItemView({
 
       {runs && runs.length > 0 && (
         <section
-          className="item-playthroughs"
+          className={`item-playthroughs ${ITEM_PLAYTHROUGHS}`}
           aria-label={runWords(item.type).runs}
         >
           <h2>{runWords(item.type).runs}</h2>
           <PlaythroughTable runs={runs} type={item.type} />
-          <p className="muted playthroughs-note">
+          <p className={`muted playthroughs-note ${PLAYTHROUGHS_NOTE}`}>
             Dates change on the <Link to={adminItemPath(item)}>edit page</Link>.
           </p>
         </section>

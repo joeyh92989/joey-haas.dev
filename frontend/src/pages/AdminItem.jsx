@@ -1,4 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  ITEM_DETAIL,
+  ITEM_DETAIL_COVER,
+  ITEM_DETAIL_LINK,
+  ITEM_PLAYTHROUGHS,
+  ITEM_RELINK,
+  ITEM_STATUS_CONTROL,
+  REGISTRY_LINE,
+} from '../components/adminPageClasses.js'
 import { adminCopy } from '../content/adminCopy.js'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -196,7 +205,7 @@ function RegistryLine({ item, onAdopted }) {
 
   if (!note?.note) return null
   return (
-    <div className="registry-line">
+    <div className={`registry-line ${REGISTRY_LINE}`}>
       <p className={note.agrees === false ? undefined : MUTED}>{note.note}</p>
       {note.agrees === false && (
         <button type="button" className={SMALL} disabled={busy} onClick={adopt}>
@@ -614,10 +623,10 @@ export default function AdminItem() {
         )}
       </div>
 
-      <div className="item-detail">
-        <div className="item-detail-cover">
+      <div className={`item-detail ${ITEM_DETAIL}`}>
+        <div className={`item-detail-cover ${ITEM_DETAIL_COVER}`}>
           <CoverImage src={item.cover_url} type={item.type} alt="" />
-          <p className={`${MUTED} item-detail-link`}>
+          <p className={`${MUTED} item-detail-link ${ITEM_DETAIL_LINK}`}>
             {item.external_source ? (
               <>
                 Linked to {item.external_source} #{item.external_id}
@@ -628,7 +637,7 @@ export default function AdminItem() {
           </p>
           {item.creator && <p className={MUTED}>{item.creator}</p>}
 
-          <div className="item-relink">
+          <div className={`item-relink ${ITEM_RELINK}`}>
             <h2>{adminCopy.item.relink}</h2>
             <p className={MUTED}>{adminCopy.item.relinkHelp}</p>
             {relinking && <p className={MUTED}>{adminCopy.item.relinking}</p>}
@@ -877,11 +886,11 @@ export default function AdminItem() {
           </form>
 
           <section
-            className="item-playthroughs"
+            className={`item-playthroughs ${ITEM_PLAYTHROUGHS}`}
             aria-labelledby="playthroughs-heading"
           >
             <h2 id="playthroughs-heading">{runWords(item.type).runs}</h2>
-            <p className="item-status-control">
+            <p className={`item-status-control ${ITEM_STATUS_CONTROL}`}>
               <label htmlFor="status" className={LABEL}>
                 {adminCopy.item.status}
               </label>

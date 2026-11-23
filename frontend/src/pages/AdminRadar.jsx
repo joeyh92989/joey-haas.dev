@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { RADAR } from '../components/adminPageClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import LoadState from '../components/LoadState.jsx'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
@@ -278,7 +279,7 @@ export default function AdminRadar() {
     !sections.digital.length
 
   return (
-    <section className="radar">
+    <section className={`radar ${RADAR}`}>
       <AdminPageHeader
         title={copy.title}
         description="Upcoming physical releases and open pre-orders from the sources, ranked by your taste profile."

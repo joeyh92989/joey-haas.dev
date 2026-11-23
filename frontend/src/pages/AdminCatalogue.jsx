@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { NEEDS_MATCH_ROW } from '../components/adminPageClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import AdminPageHeader from '../components/AdminPageHeader.jsx'
 import LoadState from '../components/LoadState.jsx'
@@ -168,7 +169,7 @@ function NeedsMatchRow({ entry, onDecide }) {
   }
 
   return (
-    <li className="needs-match-row">
+    <li className={`needs-match-row ${NEEDS_MATCH_ROW}`}>
       <p className="m-0">
         <strong>{entry.title}</strong>{' '}
         <span className={MUTED}>

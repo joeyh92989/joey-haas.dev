@@ -1,4 +1,9 @@
 import { runWords } from '../lib/shelf.js'
+import {
+  PLAY_JOURNAL,
+  PLAY_JOURNAL_FORM,
+  PLAY_JOURNAL_LIST,
+} from './adminPageClasses.js'
 import { useCallback, useEffect, useState } from 'react'
 import { ACTION_ERROR } from '../content/status.js'
 import { apiFetch, errorMessage } from '../lib/api.js'
@@ -93,9 +98,9 @@ export default function PlayJournal({ itemId, type }) {
   }
 
   return (
-    <div className="play-journal">
+    <div className={`play-journal ${PLAY_JOURNAL}`}>
       <h2>Journal</h2>
-      <form className="play-journal-form" onSubmit={log}>
+      <form className={`play-journal-form ${PLAY_JOURNAL_FORM}`} onSubmit={log}>
         <label htmlFor="journal-played-on" className={LABEL}>
           {runWords(type).journalOn}
         </label>
@@ -145,7 +150,7 @@ export default function PlayJournal({ itemId, type }) {
         <p className={MUTED}>No sessions logged yet.</p>
       )}
       {sessions?.length > 0 && (
-        <ul className="play-journal-list">
+        <ul className={`play-journal-list ${PLAY_JOURNAL_LIST}`}>
           {sessions.map((row) => (
             <li key={row.id}>
               <time dateTime={row.played_on}>{shown(row.played_on)}</time>

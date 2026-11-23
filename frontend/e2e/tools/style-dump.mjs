@@ -16,6 +16,7 @@ import { d5b } from './scenarios/d5b.mjs'
 import { e1 } from './scenarios/e1.mjs'
 import { g1 } from './scenarios/g1.mjs'
 import { g2 } from './scenarios/g2.mjs'
+import { g3 } from './scenarios/g3.mjs'
 import { mockDenverSite } from '../denver-site-mocks.js'
 import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
@@ -293,6 +294,11 @@ const VIEWPORTS = {
   w641: { width: 641, height: 800 },
   w960: { width: 960, height: 800 },
   w961: { width: 961, height: 800 },
+  // G3: the edges of the hero (700px, 980px) and the spine's tabs (700px).
+  w700: { width: 700, height: 800 },
+  w701: { width: 701, height: 800 },
+  w980: { width: 980, height: 800 },
+  w981: { width: 981, height: 800 },
 }
 
 async function dumpPage(page) {
@@ -1317,6 +1323,7 @@ for (const theme of ['dark', 'light']) {
     await e1({ record, click }, theme, vp)
     await g1({ record, click }, theme, vp)
     await g2({ record, click }, theme, vp)
+    await g3({ record, click }, theme, vp)
   }
   for (const path of [
     '/about',

@@ -384,7 +384,7 @@ describe('Needs match', () => {
         name: '',
       })
       .then((items) =>
-        items.filter((item) => item.className === 'needs-match-row'),
+        items.filter((item) => item.classList.contains('needs-match-row')),
       )
     expect(starFox).toHaveTextContent(
       'Nintendo Switch 2 · nscollectors, super_rare · 2 rows',

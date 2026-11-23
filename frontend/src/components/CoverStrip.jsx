@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { topFavourites } from '../lib/shelf.js'
 import { readSnapshot } from '../lib/snapshot.js'
 import CoverImage from './CoverImage.jsx'
+import { COVER_STRIP } from './sharedClasses.js'
 
 const STRIP_SIZE = 4
 
@@ -40,7 +41,7 @@ export default function CoverStrip() {
 
   if (covers.length === 0) return null
   return (
-    <span className="cover-strip" aria-hidden="true">
+    <span className={`cover-strip ${COVER_STRIP}`} aria-hidden="true">
       {covers.map((item) => (
         <CoverImage
           key={item.id}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { PHONE_TAP } from '../components/sharedClasses.js'
 import { Link, useOutletContext } from 'react-router'
 import ComicDescription from '../components/ComicDescription.jsx'
 import CoverImage from '../components/CoverImage.jsx'
@@ -192,6 +193,7 @@ export default function ComicIssue({ id, n }) {
             <Link
               className={cx(
                 'crumb-edit',
+                PHONE_TAP,
                 buttonVariants({ variant: 'outline', size: 'sm' }),
                 PHONE_TARGET,
               )}

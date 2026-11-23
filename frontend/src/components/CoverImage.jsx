@@ -3,6 +3,15 @@ import { spine } from '../content/spine.js'
 
 const COPY = spine.comics.issue
 
+// The class for each type's ratio, written out whole: the stylesheet emits a
+// utility only when its name is in the source.
+const RATIO = {
+  game: 'cover-game',
+  movie: 'cover-movie',
+  comic: 'cover-comic',
+  boardgame: 'cover-boardgame',
+}
+
 /**
  * Cover art with a placeholder fallback and a per-type aspect ratio.
  *
@@ -43,7 +52,7 @@ export default function CoverImage({
 
   return (
     <span
-      className={`cover cover-${type}`}
+      className={`cover ${RATIO[type] ?? `cover-${type}`}`}
       data-missing={missing || undefined}
       data-nocover={(missing && number != null) || undefined}
       data-unowned={(unowned && !missing) || undefined}
