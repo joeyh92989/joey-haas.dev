@@ -99,6 +99,18 @@ describe('SiteMast', () => {
     expect(onToggleTheme).toHaveBeenCalledOnce()
   })
 
+  it('shows the icon of the theme it switches to, for a phone', () => {
+    const { container } = renderAt('/')
+    expect(container.querySelector('svg[data-icon]')).toHaveAttribute(
+      'data-icon',
+      'sun',
+    )
+    expect(container.querySelector('svg[data-icon]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+  })
+
   it('opens the sheet from Menu and closes it with Close', () => {
     const { container } = renderAt()
     expect(sheet(container)).not.toHaveAttribute('open')

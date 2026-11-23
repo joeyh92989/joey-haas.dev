@@ -88,7 +88,13 @@ export default function SearchDialog({ open, onClose }) {
   function handleKeyDown(event) {
     // An IME's own Enter and arrows pick its candidates, not a row.
     if (event.nativeEvent.isComposing || event.keyCode === 229) return
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (event.key === 'Escape') {
+      // A search field clears its text on the first Escape (a native
+      // behaviour), which left the dialog open over the page with the
+      // default list showing (#482). Escape closes it, text and all.
+      event.preventDefault()
+      close()
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       if (!rows.length) return
       const step = event.key === 'ArrowDown' ? 1 : -1

@@ -48,6 +48,8 @@ export const projects = [
       alt: 'My Shelf’s Games page: three figures (108 owned, 58 finished, 8 finished this year), the game I’m playing now, and filter chips for status, play style and setting.',
       width: 1200,
       height: 560,
+      /** Day the screenshot was taken: its figures are that day's. */
+      captured: '2026-11-15',
     },
     // differently: '',  // Joey's line: what I'd do differently
   },

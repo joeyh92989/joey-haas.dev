@@ -173,6 +173,20 @@ describe('SearchDialog', () => {
     expect(button).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('closes on the first Escape typed in the field, not just clears it', async () => {
+    stubIndex(INDEX)
+    const user = userEvent.setup()
+    renderHarness()
+    await openWithButton(user)
+    const input = screen.getByRole('combobox', { name: 'Search' })
+    await user.type(input, 'zzzqqq')
+    await user.keyboard('{Escape}')
+    expect(document.querySelector('dialog.search-dialog')).not.toHaveAttribute(
+      'open',
+    )
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveFocus()
+  })
+
   it('closes on a backdrop click', async () => {
     stubIndex(INDEX)
     const user = userEvent.setup()

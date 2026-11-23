@@ -9,7 +9,7 @@
  * unknown falls back to the path.
  */
 import { useEffect, useState } from 'react'
-import { EDITION_NAME, ISSUE_NAME } from '../content/stats.js'
+import { EDITION_NAME, ISSUE_NAME, PAGE_NAMES } from '../content/stats.js'
 import { spine } from '../content/spine.js'
 import { monthName } from './monthInReview.js'
 import { loadIndex } from './searchIndex.js'
@@ -47,6 +47,8 @@ export function titleLookup(entries) {
 export function pageName(titles, path) {
   // Old analytics rows still carry the /spine prefix from before the rename.
   const current = path.replace(/^\/spine(?=\/)/, '/shelf')
+  const fixed = Object.hasOwn(PAGE_NAMES, current) ? PAGE_NAMES[current] : null
+  if (fixed) return fixed
   const year = YEAR.exec(current)
   if (year) return `${year[1]} in review`
   const month = MONTH.exec(current)

@@ -31,3 +31,37 @@ export const PEAK_CAPTION = (day, views) =>
 /** What a comic page is called in the Pages list, after its series title. */
 export const ISSUE_NAME = (title, number) => `${title} · issue ${number}`
 export const EDITION_NAME = (title) => `${title} · collected edition`
+
+/** Names for the site's fixed pages, so the Pages list shows titles, not paths. */
+export const PAGE_NAMES = {
+  '/': 'Home',
+  '/about': 'About',
+  '/projects': 'Projects',
+  '/now': 'Now',
+  '/colophon': 'Colophon',
+  '/stats': 'Stats',
+  '/denver': 'Denver',
+  '/daily': 'Daily game',
+  '/blog': 'Blog',
+  '/til': 'TIL',
+  '/travel': 'Travel',
+  '/shelf': 'My Shelf',
+  '/shelf/games': 'My Shelf · Games',
+  '/shelf/comics': 'My Shelf · Comics',
+  '/shelf/next': 'My Shelf · What’s next',
+  '/shelf/how': 'How My Shelf works',
+  '/shelf/intake': 'My Shelf · Intake demo',
+  '/shelf/year': 'My Shelf · This year',
+}
+
+/** The all-time tiles' detail: counting began on a date, so all time is short. */
+export const ALL_TIME_SINCE = (date) => `all time, since ${date}`
+
+/**
+ * What the Pages list covers: the top rows only, with how much of the
+ * total they add up to. Whole list shown: the plain scope.
+ */
+export const PAGES_COVER = (shown, total, rows) =>
+  shown >= total
+    ? 'views, last 30 days'
+    : `top ${rows} pages: ${shown} of ${total} views, last 30 days`

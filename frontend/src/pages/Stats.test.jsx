@@ -100,9 +100,9 @@ describe('Stats', () => {
       '21',
       'last 30 days',
       '1,234',
-      'all time',
+      'all time, since Sep 1, 2026',
       '567',
-      'all time',
+      'all time, since Sep 1, 2026',
     ])
     expect(screen.getByRole('status')).toHaveTextContent(FROM_SNAPSHOT)
     expect(screen.getAllByRole('img')).toHaveLength(30)
@@ -157,6 +157,7 @@ describe('Stats', () => {
             { value: '/shelf/year/2026', count: 5 },
             { value: '/shelf/journal/2026-10', count: 4 },
             { value: '/about', count: 2 },
+            { value: '/spine/old-page', count: 1 },
           ],
         }),
       },
@@ -166,7 +167,33 @@ describe('Stats', () => {
     expect(await list.findByText('Hades')).toBeInTheDocument()
     expect(list.getByText('2026 in review')).toBeInTheDocument()
     expect(list.getByText('October 2026 · My Shelf')).toBeInTheDocument()
-    expect(list.getByText('/about')).toBeInTheDocument()
+    expect(list.getByText('About')).toBeInTheDocument()
+    expect(list.getByText('/spine/old-page')).toBeInTheDocument()
+  })
+
+  it('says the Pages list is the top rows and what share of views they are', () => {
+    mockStats({
+      data: {
+        ...BODY,
+        thirty: summary({
+          views: 263,
+          pages: [
+            { value: '/', count: 21 },
+            { value: '/shelf', count: 20 },
+          ],
+        }),
+      },
+    })
+    renderPage()
+    expect(
+      screen.getByText('top 2 pages: 41 of 263 views, last 30 days'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the plain scope when the list holds every view', () => {
+    mockStats({ data: BODY })
+    renderPage()
+    expect(screen.getAllByText('views, last 30 days')).toHaveLength(2)
   })
 
   it('says live, with the time, once the API has answered', () => {

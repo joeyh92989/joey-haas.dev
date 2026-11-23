@@ -6,6 +6,9 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-23
 
+- [Stats](/stats) says what its Pages list covers (the top pages, and how many of the views they add up to), names every fixed page instead of showing its path, and dates the all-time figures from the day counting began. The Projects screenshot of the shelf is dated, and the shelf's link to what's next now reads "Tonight’s pick", so it is not mistaken for the game I'm playing now.
+- The phone's theme button shows a sun or a moon for the theme it switches to, and Escape in the search box closes search at once instead of only clearing the text.
+
 - Small accessibility fixes: links in text show the same keyboard focus ring as the rest of the site, the page links on a phone are all tap-sized with their words centred, a finished game with a replay count stays readable when it is dimmed, and a long line of detail in the admin stats wraps instead of being cut off.
 
 ## 2026-11-21
