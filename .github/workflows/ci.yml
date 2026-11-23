@@ -206,8 +206,19 @@ jobs:
       - name: wait-for-ci tests
         run: ./scripts/wait-for-ci.test.sh
 
-  e2e:
+  # Sharded (#598): a matrix of `e2e-shard` jobs, each running one third of the
+  # suite (Playwright's --shard=i/3 splits by file and project), behind one
+  # aggregate job named `e2e`. Each shard is its own runner, so it builds the
+  # site itself. fail-fast is off so one red shard does not cancel the others
+  # mid-run: a rerun of the failed shard alone is cheaper than a rerun of all.
+  e2e-shard:
+    name: e2e-shard (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     defaults:
       run:
         working-directory: frontend
@@ -246,7 +257,7 @@ jobs:
           VITE_DAILY_SALT: ci
 
       - name: Run browser tests
-        run: npm run e2e
+        run: npm run e2e -- --shard=${{ matrix.shard }}/3
         env:
           # Turns on forbidOnly and one retry in playwright.config.js, so a
           # stray test.only cannot pass CI and one flake is not a failure.
@@ -255,7 +266,10 @@ jobs:
       # Visual baselines (#217): compare mode. A diff is a layout change;
       # intended ones are accepted with the update-visual-baselines workflow
       # (.github/workflows/README.md).
+      # It is 36 tests and about 30 seconds, so it runs in shard 1 only rather
+      # than being split.
       - name: Run visual tests
+        if: matrix.shard == 1
         run: npm run e2e:visual
         env:
           CI: 'true'
@@ -266,19 +280,44 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             frontend/playwright-report/
             frontend/playwright-report-visual/
             frontend/test-results-visual/
           retention-days: 14
 
+  # The check people read: it passes only when every shard did. `always()` so a
+  # failed or cancelled shard fails this job rather than leaving it skipped.
+  e2e:
+    needs: [e2e-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every e2e shard passed
+        env:
+          SHARDS: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "e2e-shard: $SHARDS"
+          [ "$SHARDS" = success ]
+
   # The admin suite (#216): the same run as `npm run e2e:admin` locally, against
   # a throwaway Postgres. Every credential is a dummy: the Playwright config
   # sets the backend's env, and the sign-in test route is only mounted on an
   # http://localhost FRONTEND_URL (config.py refuses to boot otherwise).
-  e2e-admin:
+  #
+  # Sharded like `e2e` (matrix `e2e-admin-shard`, aggregate `e2e-admin`). Each
+  # shard has its own runner and so its own Postgres service and joeyhaas_e2e
+  # database: no shard shares state with another.
+  e2e-admin-shard:
+    name: e2e-admin-shard (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         # Same pin as the backend job: Neon's version.
@@ -332,7 +371,7 @@ jobs:
       - name: Run admin browser tests
         run: |
           export E2E_BACKEND_BIN="$(dirname "$(command -v uvicorn)")"
-          npm run e2e:admin
+          npm run e2e:admin -- --shard=${{ matrix.shard }}/3
         env:
           CI: 'true'
 
@@ -340,9 +379,22 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-admin
+          name: playwright-report-admin-${{ matrix.shard }}
           path: frontend/playwright-report-admin/
           retention-days: 14
+
+  e2e-admin:
+    needs: [e2e-admin-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every admin e2e shard passed
+        env:
+          SHARDS: ${{ needs.e2e-admin-shard.result }}
+        run: |
+          echo "e2e-admin-shard: $SHARDS"
+          [ "$SHARDS" = success ]
 
   # Migration rehearsal (plan task 4): when a PR adds or changes a migration,
   # apply it to a schema-only Neon branch of production and comment the schema
