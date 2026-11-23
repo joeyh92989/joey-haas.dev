@@ -206,23 +206,29 @@ jobs:
       - name: wait-for-ci tests
         run: ./scripts/wait-for-ci.test.sh
 
-  # Sharded (#598): a matrix of `e2e-shard` jobs, each running one third of the
-  # suite (Playwright's --shard=i/3 splits by file and project), behind one
-  # aggregate job named `e2e`. Each shard is its own runner, so it builds the
-  # site itself. --fully-parallel makes each test its own unit, so the shards
-  # balance by test rather than by file: without it, admin-add.spec.js alone
-  # was one 10-minute unit per project and shard 1 took 20 minutes. Safe here:
-  # no spec has a beforeAll, serial mode or module state, and every API answer
-  # is routed in the page. fail-fast is off so one red shard does not cancel the others
-  # mid-run: a rerun of the failed shard alone is cheaper than a rerun of all.
+  # Split (#598): a matrix of `e2e-shard` jobs behind one aggregate job named
+  # `e2e`. Each is its own runner, so it builds the site itself. The split is
+  # by FILE, not Playwright's blind --shard over the whole suite, because that
+  # cuts the test list into equal COUNTS and one file (admin-add.spec.js, 192
+  # slow tests, 10 minutes of the 20) made one shard take 15 minutes. So
+  # admin-add is cut in two, and `rest` runs everything else: it skips
+  # admin-add through E2E_SKIP_FILES (playwright.config.js), so a new spec file
+  # runs in `rest` by default and is never silently dropped.
+  # --fully-parallel makes each test its own unit: safe here (no spec has a
+  # beforeAll, serial mode or module state; every API answer is routed in the
+  # page). fail-fast is off so one red shard does not cancel the others
+  # mid-run: rerun the failed shard alone.
   e2e-shard:
-    name: e2e-shard (${{ matrix.shard }}/3)
+    name: e2e-shard (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - { name: add-1, args: 'admin-add.spec.js --shard=1/2', skip: '' }
+          - { name: add-2, args: 'admin-add.spec.js --shard=2/2', skip: '' }
+          - { name: rest, args: '', skip: 'admin-add.spec.js' }
     defaults:
       run:
         working-directory: frontend
@@ -261,8 +267,9 @@ jobs:
           VITE_DAILY_SALT: ci
 
       - name: Run browser tests
-        run: npm run e2e -- --shard=${{ matrix.shard }}/3 --fully-parallel
+        run: npm run e2e -- --fully-parallel ${{ matrix.args }}
         env:
+          E2E_SKIP_FILES: ${{ matrix.skip }}
           # Turns on forbidOnly and one retry in playwright.config.js, so a
           # stray test.only cannot pass CI and one flake is not a failure.
           CI: 'true'
@@ -270,10 +277,10 @@ jobs:
       # Visual baselines (#217): compare mode. A diff is a layout change;
       # intended ones are accepted with the update-visual-baselines workflow
       # (.github/workflows/README.md).
-      # It is 36 tests and about 30 seconds, so it runs in shard 1 only rather
+      # It is 36 tests and about 30 seconds, so it runs in the `rest` shard only rather
       # than being split.
       - name: Run visual tests
-        if: matrix.shard == 1
+        if: matrix.name == 'rest'
         run: npm run e2e:visual
         env:
           CI: 'true'
@@ -284,7 +291,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ matrix.shard }}
+          name: playwright-report-${{ matrix.name }}
           path: |
             frontend/playwright-report/
             frontend/playwright-report-visual/
@@ -311,17 +318,27 @@ jobs:
   # sets the backend's env, and the sign-in test route is only mounted on an
   # http://localhost FRONTEND_URL (config.py refuses to boot otherwise).
   #
-  # Sharded like `e2e` (matrix `e2e-admin-shard`, aggregate `e2e-admin`). Each
-  # shard has its own runner and so its own Postgres service and joeyhaas_e2e
-  # database: no shard shares state with another.
+  # Split like `e2e` (matrix `e2e-admin-shard`, aggregate `e2e-admin`): the
+  # Closet and Denver site specs (about 14 and 12 minutes each, serial) are cut
+  # three ways together (`cd-1..3`), and `rest` runs everything else. Each shard
+  # has its own runner and so its own Postgres service and joeyhas_e2e
+  # database: no shard shares state with another. The Closet, Denver and data
+  # specs route their API answers in the page and write nothing, so
+  # --fully-parallel is safe for them; admin.spec.js does write to the database
+  # but each test makes and deletes its own rows, and its desktop and phone
+  # projects already ran concurrently. The sign-in setup test runs in every shard.
   e2e-admin-shard:
-    name: e2e-admin-shard (${{ matrix.shard }}/3)
+    name: e2e-admin-shard (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - { name: cd-1, args: 'admin-closet admin-denver-site admin.setup --shard=1/3', skip: '' }
+          - { name: cd-2, args: 'admin-closet admin-denver-site admin.setup --shard=2/3', skip: '' }
+          - { name: cd-3, args: 'admin-closet admin-denver-site admin.setup --shard=3/3', skip: '' }
+          - { name: rest, args: '', skip: 'admin-closet.spec.js,admin-denver-site.spec.js' }
     services:
       postgres:
         # Same pin as the backend job: Neon's version.
@@ -375,15 +392,16 @@ jobs:
       - name: Run admin browser tests
         run: |
           export E2E_BACKEND_BIN="$(dirname "$(command -v uvicorn)")"
-          npm run e2e:admin -- --shard=${{ matrix.shard }}/3 --fully-parallel
+          npm run e2e:admin -- --fully-parallel ${{ matrix.args }}
         env:
+          E2E_SKIP_FILES: ${{ matrix.skip }}
           CI: 'true'
 
       - name: Upload report
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-admin-${{ matrix.shard }}
+          name: playwright-report-admin-${{ matrix.name }}
           path: frontend/playwright-report-admin/
           retention-days: 14
 
