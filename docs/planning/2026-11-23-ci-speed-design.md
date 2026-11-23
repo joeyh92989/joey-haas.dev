@@ -30,7 +30,7 @@ Source: `gh run view --json jobs` for 16 runs (10 pre-shard, 5 on PR #599's bran
 | `backend-tests` / `backend-migrations` | pytest 217 to 303 s / 82 to 117 s |
 | Deploy API (3 runs) | 7.1 to 8.3 min: `wait-for-ci` 4.7 to 5.3 min (it is `backend-tests` plus a 15 s poll), then migrate + hook + wait for `/api/version` 77 to 91 s + smoke 22 to 24 s. The 180 s smoke retry never fired. **Browser jobs are not on the deploy path** |
 | Build sharing | `npm run build` is 8 to 11 s. Sharing one build artifact across shards saves under 10 s per shard and adds an upload and download. Not worth doing |
-| PR #599 (open, WIP body) | Sharded runs: 22.1, 16.1, 11.2, 10.1, 11.7 min for `e2e`; 16.0, 12.2, 8.5, 8.1, 7.9 min for `e2e-admin` (end of run, from run creation). Shards spend 172 to 446 s in tests. Total runner minutes went up (8 shard jobs instead of 2) |
+| PR #599 (merged as a638b206 after this was measured) | Sharded runs: 22.1, 16.1, 11.2, 10.1, 11.7 min for `e2e`; 16.0, 12.2, 8.5, 8.1, 7.9 min for `e2e-admin` (end of run, from run creation). Shards spend 172 to 446 s in tests. Total runner minutes went up (8 shard jobs instead of 2) |
 
 Could not measure: per-test time inside the sharded runs (only step totals), the cause of a 26-minute queue on the newest PR #599 run (shards created 15:41, started 16:07; see risk 1), whether `workers` is really 2 in CI (inferred from 1,890 s of tests in 1,225 s; the brief said `--workers=1`, but `playwright.config.js` on `main` sets none), per-control cost inside `tabRings`, and Playwright browser cache hit rates (no cache step exists).
 
@@ -38,7 +38,7 @@ Could not measure: per-test time inside the sharded runs (only step totals), the
 
 In: `.github/workflows/ci.yml` (change detection, gating), the focus-ring test helpers and the specs that use them, Playwright worker settings, shard balance, backend pytest parallelism, docs of all of it (`.github/workflows/README.md`, root `CLAUDE.md` Ship and CI jobs).
 
-Out: PR #599's sharding itself (tracked in #598; this plan builds on it), `deploy.yml`, `scripts/wait-for-ci.sh`, any repository setting, secret, variable or branch-protection change (always-stops: a story that needs one is `needs-joey` and nothing here makes it), larger paid runners.
+Out: PR #599's sharding itself (merged; this plan builds on it), `deploy.yml`, `scripts/wait-for-ci.sh`, any repository setting, secret, variable or branch-protection change (always-stops: a story that needs one is `needs-joey` and nothing here makes it), larger paid runners.
 
 ## Options
 
@@ -52,7 +52,7 @@ flowchart LR
 
 | Option | Saves | Tradeoff | Decision |
 |---|---|---|---|
-| **Finish sharding (#599)** | 21 to about 11 min | More runner minutes, more concurrent jobs per run (13 instead of 5) | In flight. Keep; tune after the other cuts |
+| **Sharding (#599)** | 21 to about 7 to 13 min | More runner minutes (about +20%), more concurrent jobs per run (13 instead of 5) | **Merged.** Tune after the other cuts |
 | **Speed up `tabRings` without dropping a case** (one shared helper, less work per control) | Up to ~20 to 40% of 3,027 test-seconds if per-control cost allows; **unverified**, hence a measuring step first | No coverage change. Needs a profile of one 72 s test | **Do first** |
 | **Run a smaller focus-ring matrix on PRs, the full one nightly** | Up to half of 3,027 test-seconds | **Demotes coverage.** See "Coverage changes" below. Nightly catches it a day late | Only if the helper work is not enough. `needs-joey` |
 | **Docs-only / backend-only gating** | docs-only 21 min to about 1 min | Needs a `changes` job. `deploy.yml`'s wait counts only `success` for `backend` and `frontend` (`scripts/wait-for-ci.sh`), so those two jobs must still end `success`, not `skipped`, or a docs-only merge would stall the deploy for 30 min. So keep both jobs and gate their **steps**. Do not use workflow `paths-ignore`: required checks would stay pending forever | **Do** |
@@ -92,6 +92,17 @@ That story would run, on a PR, only two of the four width × theme combinations 
 ## Estimated outcome
 
 Pre-shard 21.5 min. With #599 about 11 min. With the ring helper work and tuned workers and balance, an estimated 7 to 9 min (not measured). Docs-only: about 1 min. Deploy API: about 8 min now, about 6 with xdist.
+
+## Addendum: facts from the migration session (2026-11-23, after the first draft)
+
+These correct or extend the measurements above.
+
+- #599 merged. Measured by that session over 4 runs: `e2e` 21.6 to 6.8 to 12.9 min, `e2e-admin` 20.9 to 7.5 to 8.6 min, runner minutes 42.5 to 51. Plain `--shard=i/N` failed (Playwright cuts equal test counts and the slow focus-ring tests sat together), so the matrices are named shards fed by `E2E_SKIP_FILES`, with `--fully-parallel`; the visual step runs in the `e2e` `rest` shard only. **The split keys on the test title text `focus rings paint`**: stories that touch those tests must keep the title, or a shard slows (nothing is skipped).
+- A live measure of a docs-only PR today: #600 (this doc, based on pre-shard `main`) took 24 min for `e2e-admin` and 22 min for `e2e`. Rebased on the sharded `main` it would be about 8 to 13 min. Gating (#604) is still the whole saving for it.
+- Shared build artifact stays rejected: build is 8 to 11 s, against about 2 to 3 min of fixed setup per shard in which Chromium install and the Postgres container are the larger parts.
+- New friction, not CI minutes: full local verification is slow (style dump about 15 to 25 min quiet, 1 h 45 min under load; load average peaked at 150 with overlapping Playwright runs; local `e2e:admin` timed out 8 tests under load that passed 24 of 24 on a filtered rerun). Stories: a documented fast local check, and a stale-`node_modules` check (the admin config listed 0 tests when `class-variance-authority` was missing).
+- A baseline regeneration (`update-visual-baselines.yml`) makes a bot commit that does not start CI, so each PR needs an empty commit. A fix that dispatches CI from the workflow works without a token; one that uses a PAT or app is a secret change and `needs-joey`.
+- One focus-ring test flaked once (admin-add, 1280 px dark, passed on rerun); `retries: 1` hides how often. Measuring retry counts moves into the tuning story.
 
 ## Smoke check
 
