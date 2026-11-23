@@ -10,7 +10,7 @@ export const COMIC_PRIVATE =
   'border border-(--line-strong) rounded-[999px] text-(--text-2) text-[0.75rem] py-0 px-2'
 
 export const COMIC_EDITIONS =
-  '[border:0] grid gap-2 col-[1/-1] my-1 mx-0 min-w-0 p-0 [&_legend]:text-(--text-3) [&_legend]:text-[0.8125rem] [&_legend]:mb-2 [&_legend]:p-0 [&>.link-button]:justify-self-start'
+  '[border:0] grid gap-2 col-[1/-1] my-1 mx-0 min-w-0 p-0 [&_legend]:text-(--text-3) [&_legend]:text-[0.8125rem] [&_legend]:mb-2 [&_legend]:p-0 [&>.link-button]:[justify-self:start]'
 
 export const COMIC_EDITION_ROW =
   'items-center grid gap-2 grid-cols-[minmax(0,7rem)_minmax(0,1fr)_4rem_4rem_auto] [@media(max-width:700px)]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem_3.5rem_auto]'
