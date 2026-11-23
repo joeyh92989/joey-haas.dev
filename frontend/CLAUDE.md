@@ -180,7 +180,7 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   on those controls is overridden on the element (`w-24!`, `border-(color:--ok)!`).
   The Spots table folds Last visit under the name below 1440px and the tags and
   actions under it on a phone, so no action is ever half-scrolled out of its
-  wrapper; `e2e/denver-site-ring.js` presses real Tab to prove it.
+  wrapper; `e2e/focus-ring.js` presses real Tab to prove it.
   Denver, spots and the map have no rule in `index.css` (#536, slice D3): `/denver`
   (`pages/Denver.jsx`, `SpotCard`, `SpotMap`), What's next's `JumpNav` and the
   weekend and finder cards draw from utilities written on the components. A

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from './fixtures.js'
-import { unringed } from './closet-ring.js'
-import { tabRings } from './denver-site-ring.js'
+import { unringed } from './focus-ring.js'
+import { tabRings } from './focus-ring.js'
 import { GAMES, serveAdmin } from './admin-shelf.fixtures.js'
 import { serveAdminAdd } from './admin-add.fixtures.js'
 
@@ -285,7 +285,7 @@ for (const width of [390, 1280]) {
           `${state.scope} :is(a[href], button, input:not([type=hidden]), select, textarea, summary):not(:disabled, [tabindex='-1']):not(.poster-card, .poster-card *):visible`,
         )
         expect(await controls.count()).toBeGreaterThan(0)
-        // Real Tab presses, geometry and pixels (denver-site-ring.js).
+        // Real Tab presses, geometry and pixels (focus-ring.js).
         expect(await tabRings(page, controls)).toEqual([])
       })
     }

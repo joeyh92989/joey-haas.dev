@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
-import { tabRings } from './admin-data-ring.js'
+import { tabRingsByLook as tabRings } from './focus-ring.js'
 import {
   COMIC_ID,
   GAME_ID,
