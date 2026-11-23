@@ -359,6 +359,7 @@ jobs:
         run: npm run e2e -- --fully-parallel ${{ matrix.args }}
         env:
           E2E_SKIP_FILES: ${{ matrix.skip }}
+          E2E_WORKERS: '4'
           # Turns on forbidOnly and one retry in playwright.config.js, so a
           # stray test.only cannot pass CI and one flake is not a failure.
           CI: 'true'
@@ -495,6 +496,7 @@ jobs:
           npm run e2e:admin -- --fully-parallel ${{ matrix.args }}
         env:
           E2E_SKIP_FILES: ${{ matrix.skip }}
+          E2E_WORKERS: '4'
           CI: 'true'
 
       - name: Upload report
