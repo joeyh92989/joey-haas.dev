@@ -49,7 +49,7 @@ export const DRAWN_MAP_CAPTION =
   'bg-(--surface) border-t border-t-(--line) text-(--text-3) flex flex-wrap text-[0.75rem] gap-y-1 gap-x-4 justify-between py-2 px-3'
 
 export const DRAWN_MAP_STOPS =
-  'flex flex-wrap gap-y-0 gap-x-3 m-0 pl-4 [&_a]:text-(--text-2)'
+  'flex flex-wrap list-decimal gap-y-0 gap-x-3 m-0 pl-4 [&_a]:text-(--text-2)'
 
 export const TRIP_PLACES =
   '[&_ul]:flex [&_ul]:gap-2 [&_ul]:list-none [&_ul]:mt-0 [&_ul]:mb-4 [&_ul]:mx-0 [&_ul]:[overflow-x:auto] [&_ul]:p-0.5'

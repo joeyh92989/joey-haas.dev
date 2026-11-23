@@ -97,7 +97,12 @@ const normalise = (record, label, key) => {
   // Generated content is border-box under Preflight and was content-box
   // before. That alone changes nothing: a generated box whose size depends on
   // it moves its own offsets or its neighbours' widths, and those are compared.
-  if (/::(before|after)$/.test(key)) r.set('box-sizing', '')
+  if (/::(before|after)$/.test(key)) {
+    r.set('box-sizing', '')
+    // A generated box with `content: ''` has no text to set in a font; its
+    // border and background colours are compared as their own fields.
+    if (r.get('content') === '""') for (const name of TEXTY) r.set(name, '')
+  }
   const kind = (meta[label] ?? {})[key.replace(/::.*$/, '')] ?? ''
   const type = /^input\[(\w+)\]/.exec(kind)?.[1]
   if (!key.includes('::') && NO_TEXT.has(type))
