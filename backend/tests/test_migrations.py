@@ -57,9 +57,9 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-# The Denver spots tables (0013). The models no longer map them (#631); the
-# tables stay in the database until the drop migration of story #632, so
-# autogenerate sees them as "remove". Remove this set with that migration.
+# The Denver spots tables (0013). The models no longer map them (#631) and
+# 0030 drops them (#632), so below 0030 autogenerate sees them as "remove";
+# the carve-out applies only there, never at head.
 DENVER_TABLES = frozenset(
     {"spots", "visits", "candidates", "dismissals", "spot_settings"}
 )
@@ -80,7 +80,8 @@ def _is_denver_leftover(entry) -> bool:
 def _diff_against_models(connection) -> list:
     """Autogenerate's view of how the live schema differs from the models.
 
-    The Denver tables the models no longer map are left out (`DENVER_TABLES`).
+    Below 0030 the Denver tables the models no longer map are left out
+    (`DENVER_TABLES`).
     """
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
@@ -94,6 +95,7 @@ def _diff_against_models(connection) -> list:
         "SELECT version_num FROM alembic_version"
     ).scalar()
     before_slugs = version is not None and version < "0029"
+    before_denver_drop = version is not None and version < "0030"
     return [
         entry
         for entry in diff
@@ -101,7 +103,7 @@ def _diff_against_models(connection) -> list:
             entry[0] == "remove_column"
             and entry[3].name in later_drops.get(entry[2], ())
         )
-        and not _is_denver_leftover(entry)
+        and not (before_denver_drop and _is_denver_leftover(entry))
         and not (before_slugs and _is_slug_addition(entry))
     ]
 
@@ -2047,7 +2049,7 @@ async def test_0025_cycle_downgrades_and_matches_models(clean_database):
     assert not {"title", "verdict", "kid_along", "precision"} & columns
     assert not {"outing_verdict", "outing_precision"} & types
     assert count == 1  # the downgrade loses no visit
-    assert _alembic("upgrade", "head").returncode == 0
+    assert _alembic("upgrade", "0029").returncode == 0
     async with clean_database.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM visits")) == 1
         diff = await connection.run_sync(_diff_against_models)
@@ -2374,7 +2376,7 @@ async def test_0028_cycle_downgrades_to_the_0027_schema_and_upgrades_again(
     async with clean_database.begin() as connection:
         await _insert_sitting(connection, "places")  # the label is usable again
     # A places sitting present again is deleted by the next upgrade.
-    assert _alembic("upgrade", "head").returncode == 0
+    assert _alembic("upgrade", "0029").returncode == 0
     async with clean_database.connect() as connection:
         assert await connection.scalar(text("SELECT count(*) FROM visits")) == 1
         assert (
@@ -2384,20 +2386,65 @@ async def test_0028_cycle_downgrades_to_the_0027_schema_and_upgrades_again(
     assert diff == []
 
 
+# --- Revision 0030: drop the Denver tables (#632). ---------------------------
+
+
 @pytest.mark.asyncio
-async def test_the_denver_carve_out_hides_those_tables_and_nothing_else(
+async def test_0030_drops_the_denver_tables_and_the_enum_and_keeps_weather(
     clean_database,
 ):
-    """At head the five Denver tables are in the database and not in the
-    models (#631); the diff must not call that drift, but a table the models
-    do not carry and the carve-out does not name must still show."""
-    assert _alembic("upgrade", "head").returncode == 0
-    async with clean_database.begin() as connection:
-        await connection.execute(text("CREATE TABLE stray (id integer)"))
+    assert _alembic("upgrade", "0029").returncode == 0
+    tables = await _tables(clean_database)
+    assert DENVER_TABLES | {"weather_hours"} <= tables
+    result = _alembic("upgrade", "head")
+    assert result.returncode == 0, result.stderr
+    tables = await _tables(clean_database)
+    assert not (DENVER_TABLES & tables)
+    assert "weather_hours" in tables
     async with clean_database.connect() as connection:
+        enums = await connection.scalar(
+            text("SELECT count(*) FROM pg_type WHERE typname = 'candidate_source'")
+        )
+        assert enums == 0
         diff = await connection.run_sync(_diff_against_models)
-    assert [(e[0], e[1].name) for e in diff] == [("remove_table", "stray")]
-    assert DENVER_TABLES <= await _tables(clean_database)
+    assert diff == []
+
+
+@pytest.mark.asyncio
+async def test_0030_discards_rows_and_the_downgrade_restores_empty_structure(
+    clean_database,
+):
+    assert _alembic("upgrade", "0029").returncode == 0
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO spots (id, name, slug, lat, lng) VALUES "
+                "(gen_random_uuid(), 'A', 'a', 1, 2)"
+            )
+        )
+        await connection.execute(
+            text("INSERT INTO spot_settings (key, value) VALUES ('k', '{}')")
+        )
+    assert _alembic("upgrade", "head").returncode == 0
+    down = _alembic("downgrade", "0029")
+    assert down.returncode == 0, down.stderr
+    async with clean_database.connect() as connection:
+        assert DENVER_TABLES <= await _tables(clean_database)
+        for table in sorted(DENVER_TABLES):
+            count = await connection.scalar(text(f"SELECT count(*) FROM {table}"))
+            assert count == 0
+        indexes = await connection.scalar(
+            text(
+                "SELECT count(*) FROM pg_indexes "
+                "WHERE indexname = 'ix_visits_spot_visited'"
+            )
+        )
+        assert indexes == 1
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    assert not (DENVER_TABLES & await _tables(clean_database))
 
 
 # --- Revision 0029: items.slug (readable item URLs, #479). -------------------
