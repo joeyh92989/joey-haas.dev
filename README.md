@@ -49,7 +49,6 @@ snapshot files and never call the API.
 | `/projects` | Projects | |
 | `/now` | Now | What I am doing now |
 | `/colophon` | Colophon | How the site is built |
-| `/denver` | Denver | The short list: a drawn map and list of published spots from `/api/public/spots`, painting the build-time snapshot first |
 | `/shelf/intake` | Intake demo | A replay of the signed-in photo intake, from a recording; no API call |
 | `/daily` | Daily game | The daily puzzle: guess the game on the shelf in six, built in the browser from the build-time snapshot with no API call (see [Daily puzzle](#daily-puzzle)) |
 | `/stats` | Stats | The site's own visitor figures from `/api/public/site-stats`, how they are counted, and the changelog from `frontend/changelog.md` |
@@ -81,7 +80,6 @@ snapshot files and never call the API.
 | `/admin/collection/add/:id`, `/admin/closet/add/:id` | Sitting | One sitting: Shoot, Check, Details (shelf kinds) and Done |
 | `/admin/import` | Redirect | Import photos became Add: redirects client-side to `/admin/collection/add` |
 | `/admin/jobs` | Jobs | One row per nightly step and its last run |
-| `/admin/spots`, `/admin/weekend` | Spots, Weekend | The Denver spot finder and list, and the weekend planner |
 | `/admin/closet`, `/admin/closet/profile`, `/admin/closet/today`, `/admin/closet/review` | Closet | The outfit planner: pieces, profile, today's plan and the weekly review |
 | `/admin/play-next` | Play Next | Three picks from the owned backlog |
 | `/admin/catalogue` | Sources | What exists physically: registries (Switch 2 and Switch 1), stores, N64 |
@@ -247,8 +245,7 @@ by hand from `frontend/` (details in `frontend/scripts/README.md`):
 drawn route map (`DrawnMap`, a hand-drawn SVG coastline placed by two
 measured points in `lib/mapFit.js`); a trip without one has no map, which
 suits a trip known only to the month. Live map tiles were considered and
-rejected in the design. Denver spots is to reuse `DrawnMap`, not add a
-second map component.
+rejected in the design.
 
 **Publishing** a trip (removing `draft: true`) also needs its rewrite in
 `render.yaml`, ahead of the `/*` catch-all, and the first published trip
@@ -1064,9 +1061,9 @@ strips.
   the snapshot and the live read agree (`LIVE_PATHS` in
   `frontend/src/lib/useSnapshotThenLive.js`). A request with no `type` still
   counts every type.
-- **`comics.json` and `spots.json` are optional too**, the same way:
-  `/shelf/comics` and `/denver` paint them when the build wrote them, and
-  the nightly compares them with a failure there only a warning.
+- **`comics.json` is optional too**, the same way: `/shelf/comics` paints it
+  when the build wrote it, and the nightly compares it with a failure there
+  only a warning.
 - **`comic-issues.json` is optional too** (`/api/public/comic-issues`): the
   list of public series with the issue and edition pages that exist. Only the
   prerender reads it, to write `dist/shelf/<id>/<n>/index.html` and
@@ -1100,7 +1097,7 @@ keeps the snapshot within a day of production. It calls admin routes with
 1. wake the API (up to six minutes of retries);
 2. Play Next picks (`POST /api/picker/next`);
 3. the followed comics' issue lists (`POST /api/comics/refresh`), then the
-   weekend planner's NWS forecast (`POST /api/spots/weather/refresh`), then
+   forecast the Closet's Today reads (`POST /api/weather/refresh`), then
    the Closet's tag queue, up to the Profile's tag budget
    (`POST /api/closet/jobs/tag`; see [Closet](#closet)), then the day's
    outfit plan (`POST /api/closet/jobs/plan`);
@@ -1113,10 +1110,8 @@ keeps the snapshot within a day of production. It calls admin routes with
 6. Resolve, repeated while it makes progress, at most five rounds;
 7. Radar generate, then Discover generate on Sunday evenings or when the
    `discover` input is ticked on a manual run;
-8. the spot finder (`POST /api/spots/candidates/refresh`: one Overpass
-   query around the anchors and one model call), on Sunday evenings only,
-   then the Closet's Review opinion (`POST /api/closet/jobs/opinion`, one
-   model call over the flagged pieces; see [Review](#review)), also Sunday
+8. the Closet's Review opinion (`POST /api/closet/jobs/opinion`, one
+   model call over the flagged pieces; see [Review](#review)), on Sunday
    evenings only;
 9. the page-view rollup (`POST /api/analytics/rollup`);
 10. the snapshot compare and, only if a body differs, the static-site deploy
@@ -1234,7 +1229,6 @@ detail and next models' field sets.
 | `GET /api/public/next` | What's next: `generated_at`, `tonight`, `wanted`, `buy_now`, `preorders`, `later`, `not_on_cartridge`, `comics_this_week` (see below) |
 | `GET /api/public/pick-for-me` | Pick for me on What's next: every size and mood combination's top four, precomputed (see below) |
 | `GET /api/public/comics` | `/shelf/comics`: public series with their runs, the shelf's figures, and `this_week` (the weeks ahead and the undated series under Later); never `issues_skipped`, a price or a store |
-| `GET /api/public/spots` | `/denver`: published spots (`PublicSpot`: `spot_id`, name, slug, neighbourhood, tags, blurb, lat, lng), by neighbourhood then name; never an anchor, a visit or a distance; uncached |
 | `GET /api/public/site-stats` | `/stats`: the analytics summary (`backend/analytics_routes.py`) for the last thirty days (`thirty`) and since launch (`all`), reduced for the public: a referrer host is named only when it is on `analytics.PUBLIC_REFERRER_DOMAINS` and has five visitors, every other host folds into `referrers_other`; a private item's page is never listed; no best-day referrer, lists capped at ten; cached for an hour on the cache the admin read shares, `Cache-Control: max-age=300` |
 
 Following a comic series is private (comics spec D5): no public model

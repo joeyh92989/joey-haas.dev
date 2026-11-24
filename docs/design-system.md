@@ -27,7 +27,7 @@ The Tailwind v4 and shadcn/ui build setup (layers, Preflight, adding a component
 | **List** | Many things of one type: Games, Comics, a Year in review | Area band (`SpineHeader`) · page header (`PageHeader`, no trail) · figures (`StatTile` row) · search and links · labelled filters (`FilterChips labelled`) and sort · result bar (`ResultBar`) · the grid (`PosterGrid`) · overview · empty or error state | Full |
 | **Detail** | One thing: a game, a comic series | Breadcrumb · detail head (cover beside `PageHeader`'s title and facts) · sections as `item-card` panels · source attribution | Full, sections at reading width |
 | **Sub-detail** | One part of a detail: a comic issue or edition | Breadcrumb · detail head · description with its source · neighbours (`NeighbourStrip`) | Full, text at reading width |
-| **Tool** | Something you use: Daily game, Pick for me, Denver, the admin pages | Area band where the page has one · page header (`PageHeader`; a kicker may carry the day) · for a game, one `Card` holding its controls and its result; Pick for me and Denver keep chips over their results (cards, or a map beside a list) · the result's buttons (`Button`, one primary) · a muted status line. See [Charts and tools](#charts-and-tools) | Reading for a game, full for a map |
+| **Tool** | Something you use: Daily game, Pick for me, the admin pages | Area band where the page has one · page header (`PageHeader`; a kicker may carry the day) · for a game, one `Card` holding its controls and its result; Pick for me keeps chips over its results · the result's buttons (`Button`, one primary) · a muted status line. See [Charts and tools](#charts-and-tools) | Reading for a game |
 | **Prose** | Something you read: posts, TIL, About, Colophon | The page's own `h1` (title, optional lede), then the text. See [Prose pages](#prose-pages) | Reading |
 
 A list page has no breadcrumb: the area band's tabs are its way around. A
@@ -137,7 +137,7 @@ with the same ring, and the armed Delete/Redo buttons through
 since the Button look has no phone target of its own. Finished and abandoned
 titles fade only their cover on the admin lists (`.collection-list`), so the
 replay and heart marks keep their contrast. The List view's table keeps the
-shared `.item-table` look (Spots reads it; Sources has its own table now) until a later slice.
+shared `.item-table` look (Sources has its own table now) until a later slice.
 
 **Admin data and edit pages (#535).** Sources, the Store list, the item and
 comic edit pages and a book's page, with the components only they use
@@ -291,8 +291,7 @@ bar rows, with no behaviour the bars lack. The rules below keep them measured.
 - **A choice is a chip**: a toggle is `Button variant="chip"` with
   `aria-pressed`; a radio drawn as a chip keeps its native input, visually
   hidden, and its label carries the chip look, the checked bar (`data-checked`)
-  and the focus ring (`has-focus-visible`). A chip row has a visible label,
-  Denver's phone List / Map toggle included.
+  and the focus ring (`has-focus-visible`). A chip row has a visible label.
 - **A Card sets 14px** (`text-sm` in its shell). Where the content is body
   text, the Card says `text-[1rem]` so it stays 16px (Stats' changelog days,
   Daily's card). A Card that holds a combobox is `overflow-visible`, so the
@@ -360,8 +359,8 @@ line length is unchanged.
 
 One masthead on every public route: Home, About, Projects, My Shelf, then
 Travel and Blog while they exist, then **More**, a disclosure button that
-opens a panel of Now, Stats, TIL, Daily game, Denver and Colophon. TIL and
-Denver show only while a note or a spot exists. The list lives in one place,
+opens a panel of Now, Stats, TIL, Daily game and Colophon. TIL
+shows only while a note exists. The list lives in one place,
 `lib/navMore.js` (`moreItems`), and feeds both the desktop panel and the
 phone sheet's More group, so a new public page is added there. More is
 underlined when the route is one of its pages, except Daily game, a My Shelf
@@ -379,7 +378,7 @@ rest of the naming rules.
 
 | Thing | Public | Admin | Notes |
 |---|---|---|---|
-| The area | My Shelf (masthead, page titles) | Shelf (area rail) | The one sanctioned difference: admin areas are plain names of what is inside (Closet, Outings, Site & jobs): Outings is the weekend plan and the spots, Site & jobs is Analytics and Jobs. |
+| The area | My Shelf (masthead, page titles) | Shelf (area rail) | The one sanctioned difference: admin areas are plain names of what is inside (Closet, Site & jobs): Site & jobs is Analytics and Jobs. |
 | All types together | Shelf, at `/shelf`, when built | Shelf | Decided 12 Nov; not built yet. |
 | Games list | Games, `/shelf/games` | Games, `/admin/shelf/games` | Built 13 Nov. Replaced the Collection tab. |
 | Comics list | Comics, `/shelf/comics` | Comics, `/admin/shelf/comics` | Built 13 Nov. |
@@ -507,7 +506,6 @@ it up).
 | `/blog`, `/blog/:slug` | Blog, post | list, prose | live |
 | `/til`, `/til/:slug` | TIL, note | list, prose | live |
 | `/travel`, `/travel/:slug` | Travel, trip | list, detail | dark (no trip published) |
-| `/denver` | Denver spots | tool | dark (no spot published; footer link hidden) |
 | `/daily` | Daily game | tool | live |
 | `/shelf` | redirect to `/shelf/games` until the grouped Shelf page exists | — | live |
 | `/shelf/games` | Games | list | live |
@@ -534,7 +532,6 @@ it up).
 | `/admin/catalogue` | Sources | tool | live |
 | `/admin/store-list` | Store list | tool | live |
 | `/admin/closet`, `/today`, `/review`, `/profile`, `/add`, `/:id` | Closet | tool, detail | live (admin only) |
-| `/admin/weekend`, `/admin/spots` | Weekend, Spots | tool | live (admin only) |
 | `/admin/analytics` | Analytics | tool | live |
 | `*`, `/admin/*` | Not found | prose | live |
 | — | Board games (BGG source) | — | parked: BGG needs a registered app (#14) |

@@ -12,7 +12,7 @@ Story #631 of epic #630. The site keeps the shelf and the Closet, plus Analytics
 
 Backend (all removed unless marked):
 
-- `spots.py`, `spots_routes.py`, `spots_candidates_routes.py`, `spots_weekend_routes.py`, `spots_schemas.py`, `spot_sources/` (Overpass client, dedupe, limits, README), `candidates.py` (the finder's scoring), `planner.py` (the weekend planner), `scripts/record_spot_fixtures.py`, the `overpass_candidates.json` and `nws_*.json` fixtures that only these used, and their tests (`test_spots*.py`, `test_spot_dedupe.py`, `test_overpass.py`, `test_planner.py`, `test_candidates.py`).
+- `spots.py`, `spots_routes.py`, `spots_candidates_routes.py`, `spots_weekend_routes.py`, `spots_schemas.py`, `spot_sources/` (Overpass client, dedupe, limits, README), `candidates.py` (the finder's scoring), `planner.py` (the weekend planner), `scripts/record_spot_fixtures.py`, the `overpass_candidates.json` fixture, and their tests (`test_spots*.py`, `test_spot_dedupe.py`, `test_overpass.py`, `test_planner.py`, `test_candidates.py`).
 - `main.py` includes the three routers; `items.JOB_ROUTES` lists the two job routes; `public.py` / `public_outputs.py` carry `GET /api/public/spots` and `PublicSpot`; `analytics.py` lists `/denver` as a public path; `models.py` maps `Spot`, `Visit`, `Candidate`, `Dismissal`, `SpotSetting`, `CandidateSource`.
 - Pins that count routes or list job routes (`test_recs_response_models.py`, `test_job_token.py`, `test_public_outputs.py`).
 
@@ -24,7 +24,7 @@ Infra and docs: `.github/workflows/nightly.yml` steps `spots` (weekly) and the `
 
 The Closet's Today reads the cached forecast (`weather.hours_for_day`, `weather_hours`), and `closet.py` leans on `weather.py`. The nightly forecast job lived in `spots_weekend_routes.py` only because the planner came first. So the forecast **stays**:
 
-- `weather.py` stays, trimmed of the planner-only view builders (`day_view`, `verdict`, window helpers) and their tests.
+- `weather.py` stays, trimmed of the planner-only view builders (`day_view`, `verdict`, window helpers) and their tests; the recorded `nws_*.json` fixtures stay with its parser tests (the recorder script went with the spots fixtures script).
 - The job moves to `weather_routes.py`: `POST /api/weather/refresh` (was `/api/spots/weather/refresh`). Its last-run summary moves from `spot_settings["weather.last_run"]` to `closet_settings["weather.last_run"]`, read through `GET /api/closet/status` like the tag, plan and opinion rows. `nightly.yml`'s `weather` step changes only its path.
 - Jobs page: the row stays (renamed "Forecast", purpose now the Closet's), its link goes to the Closet's Today page.
 - `weather_hours` stays in the ORM.
@@ -33,7 +33,15 @@ The Closet's Today reads the cached forecast (`weather.hours_for_day`, `weather_
 
 Not mapped by the ORM after this PR, still present, nothing written to them: tables `spots`, `visits`, `candidates`, `dismissals`, `spot_settings`; the enum type `candidate_source`. No column is removed from any table. The Postgres rows of `spot_settings` (`weather.last_run`, `plan:<week>`, `constraints`, `candidates.last_run`) are orphaned; production held no spots at the last check.
 
-How the schema tests cope (as #537 did for the outing columns): `test_migrations.py`'s `_diff_against_models` already carries a carve-out for objects the models no longer have while the database keeps them. It gets one more, for those five tables, applied while the migrations still create them (until the drop migration of #632 lands and removes the carve-out). `test_schema_check.py` only pins the head revision and is untouched. The migrations 0013 and later stay as they are.
+How the schema tests cope (as #537 did for the outing columns): `test_migrations.py`'s `_diff_against_models` already carries a carve-out for objects the models no longer have while the database keeps them. It gets one more, for those five tables, applied while the migrations still create them (`DENVER_TABLES`; the drop migration of #632 removes it). The older outing-column carve-out is no longer reachable (the `visits` table is not in the models) and goes. `test_schema_check.py` only pins the head revision and is untouched. The migrations 0013 and later stay as they are.
+
+## Other decisions made while removing
+
+- `components/denverSiteClasses.js` also served the Analytics page (`SectionCard`, `RangeControl`). It becomes `siteAdminClasses.js` with the two helpers still used, and its style test follows.
+- `e2e/admin-denver-site.spec.js` covered Analytics as well as Weekend and Spots. The Analytics half stays as `e2e/admin-site.spec.js` (mocks in `e2e/site-mocks.js`). It lands in the `rest` e2e-admin shard by default, so `ci.yml` needs no change; its `cd-*` shard filter still names the old file and matches nothing (cleanup noted in the PR).
+- `lib/mapFit.js` loses the generated-drawing helpers (`makeFit`, `placeSpots`), which only `/denver` used. `DrawnMap` and the travel map are untouched.
+- The `/denver` link in old changelog entries renders as plain text (`REMOVED_PAGES` in `content/changelog.js`) rather than a dead link; the entries themselves are not edited.
+- `nightly.yml`: the weekly `spots` step and the `spots` snapshot compare are removed (the route and the API read are gone); the `weather` step changes only its path. `scripts/smoke.sh` drops the `/denver` and spots checks and keeps one forecast-route check.
 
 ## Deliberately left
 
