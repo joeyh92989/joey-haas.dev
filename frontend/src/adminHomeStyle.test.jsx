@@ -151,13 +151,13 @@ describe('JobStatusRow', () => {
           <JobStatusRow
             job={{
               key: 'weather',
-              label: 'Weekend forecast',
+              label: 'Forecast',
               at: Date.now(),
               summary: 'ok',
               state: 'ok',
-              runNow: '/admin/weekend',
+              runNow: '/admin/closet/today',
             }}
-            run={{ path: '/api/spots/weather/refresh' }}
+            run={{ path: '/api/weather/refresh' }}
           />
         </ul>
       </MemoryRouter>,
@@ -248,15 +248,10 @@ describe('StatusText', () => {
       <>
         <StatusText state="ok">Up</StatusText>
         <StatusText state="failed">Down</StatusText>
-        <StatusText state="stale" strong>
-          Rain
-        </StatusText>
       </>,
     )
-    const [ok, failed, rain] = container.querySelectorAll('.status-text')
+    const [ok, failed] = container.querySelectorAll('.status-text')
     expect(ok).toHaveClass('status-text', 'text-muted-foreground', 'font-mono')
-    expect(rain).toHaveClass('text-foreground')
-    expect(rain).not.toHaveClass('text-muted-foreground')
     expect(ok.querySelector('.status-dot')).toHaveClass('ok', 'rounded-[50%]')
     expect(failed.querySelector('.status-dot')).toHaveClass(
       'failed',

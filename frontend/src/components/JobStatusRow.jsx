@@ -24,7 +24,6 @@ import {
   DOT_UNKNOWN,
   STATUS_TEXT,
   STATUS_WORDS,
-  STATUS_WORDS_STRONG,
 } from './adminHomeClasses.js'
 import { cx } from '../lib/cx.js'
 
@@ -46,19 +45,10 @@ const DOTS = {
  * @param {import('react').ReactNode} [props.children] The words; the state
  *   itself when omitted.
  * @param {string} [props.className] Extra classes, for where it sits.
- * @param {boolean} [props.strong] The words in the page's text colour at
- *   13px (the Weekend weather verdict), not the small muted word.
  */
-export function StatusText({ state, children, className, strong = false }) {
+export function StatusText({ state, children, className }) {
   return (
-    <span
-      className={cx(
-        'status-text',
-        STATUS_TEXT,
-        strong ? STATUS_WORDS_STRONG : STATUS_WORDS,
-        className,
-      )}
-    >
+    <span className={cx('status-text', STATUS_TEXT, STATUS_WORDS, className)}>
       <span
         className={cx('status-dot', state, DOTS[state] ?? DOT_OK)}
         aria-hidden="true"

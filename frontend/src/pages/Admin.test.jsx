@@ -98,11 +98,6 @@ function stubApi(routes = {}) {
     '/api/physical/status': () => json(status()),
     '/api/recommendations/store-list': () =>
       json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } }),
-    '/api/spots/status': () =>
-      json({
-        'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
-        'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
-      }),
     '/snapshot/meta.json': () => json({ fetched_at: ago(3) }),
     '/api/closet/today?stored_only=true': () => json({ plan: null }),
     '/api/picker/continuing': () => json({ cards: [CONTINUING] }),
@@ -116,15 +111,6 @@ function stubApi(routes = {}) {
         },
         comics_this_week: [{}, {}],
       }),
-    '/api/spots/plan': () =>
-      json({
-        suggestions: [
-          { when: 'Saturday morning', name: 'Chautauqua' },
-          { when: 'Sunday', name: 'Red Rocks' },
-        ],
-      }),
-    '/api/spots': () => json([{}, {}, {}]),
-    '/api/spots/candidates': () => json([{}, {}]),
     '/api/analytics?range=7d': () =>
       json({ views: 42, visitors: 7, pages: [{ value: '/daily', count: 30 }] }),
   }
@@ -277,39 +263,6 @@ describe('Admin Home', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('leads Outings with the weekend, and links the candidates', async () => {
-    stubApi()
-    renderAt()
-    const denver = await card('Outings')
-    expect(
-      await within(denver).findByText('Saturday morning · Chautauqua'),
-    ).toBeInTheDocument()
-    expect(within(denver).getByText('Sunday · Red Rocks')).toBeInTheDocument()
-    await waitFor(() =>
-      expect(figureOf(denver, 'Spots')).toHaveTextContent('3'),
-    )
-    expect(figureOf(denver, 'Candidates')).toHaveTextContent('2')
-    expect(
-      within(denver).getByRole('link', {
-        name: adminCopy.dashboard.reviewCandidates,
-      }),
-    ).toHaveAttribute('href', '/admin/spots')
-  })
-
-  it('hides Outings with no spots and no weekend', async () => {
-    stubApi({
-      '/api/spots/plan': () => json({ suggestions: [] }),
-      '/api/spots': () => json([]),
-    })
-    renderAt()
-    await card('Shelf')
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('region', { name: 'Outings' }),
-      ).not.toBeInTheDocument(),
-    )
-  })
-
   it("reads Site's traffic and sums up the jobs", async () => {
     stubApi()
     renderAt()
@@ -378,7 +331,7 @@ describe('Admin Home', () => {
     const calls = (path) =>
       fetch.mock.calls.filter(([url]) => String(url).endsWith(path)).length
     expect(calls('/api/analytics?range=7d')).toBe(1)
-    expect(calls('/api/spots')).toBe(1)
+    expect(calls('/api/picker/continuing')).toBe(1)
 
     analyticsUp = true
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -387,7 +340,7 @@ describe('Admin Home', () => {
       expect(figureOf(site, 'Views · 7 days')).toHaveTextContent('42'),
     )
     expect(calls('/api/analytics?range=7d')).toBe(2)
-    expect(calls('/api/spots')).toBe(1)
+    expect(calls('/api/picker/continuing')).toBe(1)
     await waitFor(() =>
       expect(screen.queryByText(/^Couldn’t read:/)).not.toBeInTheDocument(),
     )

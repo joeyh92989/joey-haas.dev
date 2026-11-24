@@ -57,19 +57,36 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def _diff_against_models(connection, outing_columns_present: bool = False) -> list:
+# The Denver spots tables (0013). The models no longer map them (#631); the
+# tables stay in the database until the drop migration of story #632, so
+# autogenerate sees them as "remove". Remove this set with that migration.
+DENVER_TABLES = frozenset(
+    {"spots", "visits", "candidates", "dismissals", "spot_settings"}
+)
+
+
+def _is_denver_leftover(entry) -> bool:
+    """An autogenerate entry that only says the Denver tables still exist."""
+    kind, subject = entry[0], entry[1]
+    if kind == "remove_table":
+        return subject.name in DENVER_TABLES
+    if kind == "remove_index":
+        return subject.table.name in DENVER_TABLES
+    if kind in {"remove_fk", "remove_constraint"}:
+        return subject.table.name in DENVER_TABLES
+    return False
+
+
+def _diff_against_models(connection) -> list:
     """Autogenerate's view of how the live schema differs from the models.
 
-    `outing_columns_present` is for schemas between 0025 and 0028, which still
-    carry the four outing columns on visits that the models no longer have.
+    The Denver tables the models no longer map are left out (`DENVER_TABLES`).
     """
     context = MigrationContext.configure(connection)
     diff = compare_metadata(context, Base.metadata)
     # The models no longer carry items.editions (dropped by 0026), so a schema
     # below 0026 that still has the column is not drift.
     later_drops = {"items": {"editions"}}
-    if outing_columns_present:
-        later_drops["visits"] = {"title", "verdict", "kid_along", "precision"}
     # items.slug (0029) is in the models, so a schema below 0029 lacks it. The
     # revision is read from the schema itself, so the carve-out never applies
     # at head, where a missing slug column is drift.
@@ -84,6 +101,7 @@ def _diff_against_models(connection, outing_columns_present: bool = False) -> li
             entry[0] == "remove_column"
             and entry[3].name in later_drops.get(entry[2], ())
         )
+        and not _is_denver_leftover(entry)
         and not (before_slugs and _is_slug_addition(entry))
     ]
 
@@ -1966,7 +1984,7 @@ async def test_0025_keeps_an_old_visit_as_a_day_with_nothing_else_set(clean_data
                 )
             )
         ).one()
-        diff = await connection.run_sync(_diff_against_models, True)
+        diff = await connection.run_sync(_diff_against_models)
     assert tuple(row) == ("2026-05-01", "kept", "day", None, None, None)
     assert diff == []
 
@@ -2057,7 +2075,7 @@ async def test_0026_drops_the_editions_column_and_matches_the_models(clean_datab
     assert result.returncode == 0, result.stderr
     async with clean_database.connect() as connection:
         assert await _editions_column_exists(connection) is None
-        diff = await connection.run_sync(_diff_against_models, True)
+        diff = await connection.run_sync(_diff_against_models)
     assert diff == []
 
 
@@ -2347,7 +2365,7 @@ async def test_0028_cycle_downgrades_to_the_0027_schema_and_upgrades_again(
     async with clean_database.connect() as connection:
         columns, types, labels = await _outing_state(connection)
         precision = await connection.scalar(text("SELECT precision::text FROM visits"))
-        diff = await connection.run_sync(_diff_against_models, True)
+        diff = await connection.run_sync(_diff_against_models)
     assert {"title", "verdict", "kid_along", "precision"} <= columns
     assert types == {"outing_verdict", "outing_precision"}
     assert labels == ["shelf", "closet", "places"]
@@ -2367,21 +2385,19 @@ async def test_0028_cycle_downgrades_to_the_0027_schema_and_upgrades_again(
 
 
 @pytest.mark.asyncio
-async def test_a_head_level_diff_still_reports_a_leftover_visits_column(
+async def test_the_denver_carve_out_hides_those_tables_and_nothing_else(
     clean_database,
 ):
-    """The outing-column carve-out is for schemas between 0025 and 0028 only:
-    at head, a visits column the models do not carry must show as drift."""
+    """At head the five Denver tables are in the database and not in the
+    models (#631); the diff must not call that drift, but a table the models
+    do not carry and the carve-out does not name must still show."""
     assert _alembic("upgrade", "head").returncode == 0
     async with clean_database.begin() as connection:
-        await connection.execute(
-            text("ALTER TABLE visits ADD COLUMN kid_along boolean")
-        )
+        await connection.execute(text("CREATE TABLE stray (id integer)"))
     async with clean_database.connect() as connection:
-        at_head = await connection.run_sync(_diff_against_models)
-        below = await connection.run_sync(_diff_against_models, True)
-    assert [(e[0], e[3].name) for e in at_head] == [("remove_column", "kid_along")]
-    assert below == []  # the carve-out would hide it, which is why it is opt-in
+        diff = await connection.run_sync(_diff_against_models)
+    assert [(e[0], e[1].name) for e in diff] == [("remove_table", "stray")]
+    assert DENVER_TABLES <= await _tables(clean_database)
 
 
 # --- Revision 0029: items.slug (readable item URLs, #479). -------------------

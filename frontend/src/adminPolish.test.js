@@ -54,7 +54,6 @@ describe('phone chip count keeps its space (#505)', () => {
     for (const file of [
       'components/FilterChips.jsx',
       'components/CoverWall.jsx',
-      'pages/Denver.jsx',
       'pages/PlayNext.jsx',
     ]) {
       expect(readFileSync(join(here, file), 'utf8'), file).toContain(

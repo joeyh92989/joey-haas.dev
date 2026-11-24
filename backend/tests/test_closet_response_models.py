@@ -83,6 +83,7 @@ async def test_garment_bodies_keep_their_exact_keys(sessionmaker_for_test):
         "tag.last_run": None,
         "plan.last_run": None,
         "opinion.last_run": None,
+        "weather.last_run": None,
     }
     assert set(tagged) == {"tagged", "calls", "note", "remaining"}
 

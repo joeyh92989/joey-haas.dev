@@ -8,7 +8,7 @@
 // replay mark on a dimmed public card passes axe; (3) the Best day detail
 // wraps; (4) the quick-rate targets; (5) the admin shell's phone segment
 // links and What's next's JumpNav links are 44px with the label centred;
-// (6) the spots table and the Tour's bar track; (7) hovered cover tiles are
+// (6) the Tour's bar track; (7) hovered cover tiles are
 // not underlined; (8) code takes JetBrains Mono; (9) the date and month
 // fields keep their height.
 import { readFileSync } from 'node:fs'
@@ -123,7 +123,7 @@ export async function f598({ record }, theme, vp) {
   await record(at('2', 'dimmed replay mark'), dimmed, replayAxe)
 
   // ---------- 3: the Best day detail ----------
-  const analytics = spec('/admin/analytics', 'denver-admin')
+  const analytics = spec('/admin/analytics', 'site-admin')
   await record(
     at('3', 'analytics tiles'),
     analytics,
@@ -215,22 +215,7 @@ export async function f598({ record }, theme, vp) {
     measured('jump nav links', labelBox('.jump-nav a')),
   )
 
-  // ---------- 6: the spots table, the Tour's bar track ----------
-  await record(
-    at('6', 'spots table'),
-    spec('/admin/spots', 'denver-admin'),
-    measured('spots table fit', (page) =>
-      page.evaluate(() => {
-        const wrap = document.querySelector('.spots-table')?.parentElement
-        return {
-          docScroll: document.documentElement.scrollWidth,
-          inner: window.innerWidth,
-          wrapClient: wrap?.clientWidth,
-          wrapScroll: wrap?.scrollWidth,
-        }
-      }),
-    ),
-  )
+  // ---------- 6: the Tour's bar track ----------
   await record(
     at('6', 'tour bar'),
     spec('/shelf/how'),

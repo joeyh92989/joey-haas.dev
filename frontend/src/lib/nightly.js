@@ -86,7 +86,7 @@ export function lastNightly(status, generated, now = Date.now()) {
  * The paths and bodies match the buttons on each job's own page.
  */
 export const JOB_RUNS = {
-  weather: { path: '/api/spots/weather/refresh' },
+  weather: { path: '/api/weather/refresh' },
   radar: { path: '/api/recommendations/generate', body: { kind: 'radar' } },
   'comic-refresh': { path: '/api/comics/refresh' },
   'comic-issues': { path: '/api/comics/issues/sync?budget=10' },
@@ -112,12 +112,8 @@ export const JOB_INFO = {
     schedule: 'sunday',
   },
   weather: {
-    purpose: 'Fetches the hourly forecast that the weekend plan uses.',
+    purpose: 'Fetches the hourly forecast that Today’s outfit uses.',
     schedule: 'nightly',
-  },
-  spots: {
-    purpose: 'Searches near your anchor places for new outing spots.',
-    schedule: 'sunday',
   },
   'closet-tags': {
     purpose:
@@ -207,9 +203,8 @@ function parsed(iso) {
 }
 
 /**
- * A Denver or Closet job's row from its status summary (`{at, state, ok?,
- * note?}`, or null before its first run): `GET /api/spots/status` or
- * `GET /api/closet/status`. The jobs write their summary on a failed run
+ * A Closet job's row from its status summary (`{at, state, ok?,
+ * note?}`, or null before its first run): `GET /api/closet/status`. The jobs write their summary on a failed run
  * too, so a state in `job.failed` (default `["failed"]`) or `ok: false` is
  * a failed night.
  *
@@ -252,7 +247,7 @@ function runRow(run, job, age) {
 
 /**
  * One row per nightly job: the catalogue refresh, Radar, Discover, the
- * weekend forecast, the spot finder, the closet's tags, outfit plans and
+ * forecast, the closet's tags, outfit plans and
  * Sunday opinions, intake's photo reading, the comic refresh, issue sync and tags,
  * and the public snapshot. A job with
  * no time is "unknown" rather than stale, except the catalogue, whose
@@ -265,12 +260,9 @@ function runRow(run, job, age) {
  * @param {ReturnType<typeof lastNightly>} summary
  * @param {string|null} snapshotAt `fetched_at` from `/snapshot/meta.json`.
  * @param {number} [now] Milliseconds since the epoch.
- * @param {{weather?: object|null, candidates?: object|null}|null} [spots]
- *   The Denver jobs' last runs from `GET /api/spots/status`; null when it
- *   could not be read, which leaves both rows unknown.
- * @param {{tag?: object|null, plan?: object|null, opinion?: object|null}|null} [closet]
- *   The Closet jobs' last runs from `GET /api/closet/status`; null leaves
- *   all three unknown.
+ * @param {{weather?: object|null, tag?: object|null, plan?: object|null, opinion?: object|null}|null} [closet]
+ *   The Closet jobs' and the forecast's last runs from `GET /api/closet/status`;
+ *   null leaves all four unknown.
  * @param {{at?: string, state?: string, ok?: boolean, note?: string}|null} [intake]
  *   Intake's nightly run from `GET /api/intake/status`; null leaves it
  *   unknown.
@@ -285,7 +277,6 @@ export function nightlyJobs(
   summary,
   snapshotAt,
   now = Date.now(),
-  spots = null,
   closet = null,
   intake = null,
   comics = null,
@@ -331,30 +322,15 @@ export function nightlyJobs(
       runWords: 'Open Discover',
     },
     runRow(
-      spots?.weather,
+      closet?.weather,
       {
         key: 'weather',
-        label: 'Weekend forecast',
-        runNow: '/admin/weekend',
-        runWords: 'Open Weekend',
+        label: 'Forecast',
+        runNow: '/admin/closet/today',
+        runWords: 'Open Today',
         hours: STALE_HOURS,
         ok: 'NWS hourly forecast',
         quiet: { empty: 'NWS sent no hours' },
-      },
-      age,
-    ),
-    runRow(
-      spots?.candidates,
-      {
-        key: 'spots',
-        label: 'Spot finder',
-        runNow: '/admin/spots',
-        runWords: 'Open Spots',
-        hours: DISCOVER_STALE_HOURS,
-        ok: 'Sunday evenings only',
-        // Only a status that loaded can say the job has not run yet.
-        firstRun: spots ? 'Sunday evening' : undefined,
-        quiet: { no_anchors: 'No anchors to search from' },
       },
       age,
     ),

@@ -135,12 +135,8 @@ const summary = (overrides = {}) => ({
   discoverAt: hoursAgo(1),
   ...overrides,
 })
-const spots = (overrides = {}) => ({
-  weather: { at: hoursAgo(1), state: 'ok' },
-  candidates: { at: hoursAgo(1), state: 'ok' },
-  ...overrides,
-})
 const closet = (overrides = {}) => ({
+  weather: { at: hoursAgo(1), state: 'ok' },
   tag: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
   plan: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
   opinion: { at: hoursAgo(1), state: 'ok', ok: true, note: null },
@@ -149,7 +145,7 @@ const closet = (overrides = {}) => ({
 const intake = (run = { at: hoursAgo(1), state: 'ok', ok: true, note: null }) =>
   run
 const intakeRow = (run) =>
-  byKey(nightlyJobs(summary(), null, NOW, null, null, run)).intake
+  byKey(nightlyJobs(summary(), null, NOW, null, run)).intake
 const comicsRun = (run = { at: hoursAgo(1), state: 'ok', ok: true }) => ({
   issues: run,
   refresh: run,
@@ -158,13 +154,13 @@ const comicsRun = (run = { at: hoursAgo(1), state: 'ok', ok: true }) => ({
 const comicsRow = (run, key = 'comic-issues') => {
   const which = { 'comic-issues': 'issues', 'comic-refresh': 'refresh' }[key]
   return byKey(
-    nightlyJobs(summary(), null, NOW, null, null, null, {
+    nightlyJobs(summary(), null, NOW, null, null, {
       [which ?? 'tags']: run,
     }),
   )[key]
 }
 const closetRow = (key, run) =>
-  byKey(nightlyJobs(summary(), null, NOW, null, closet(run)))[key]
+  byKey(nightlyJobs(summary(), null, NOW, closet(run)))[key]
 const byKey = (jobs) => Object.fromEntries(jobs.map((job) => [job.key, job]))
 
 describe('the Comic issues row', () => {
@@ -276,12 +272,11 @@ describe('the Comic tags row', () => {
 })
 
 describe('nightlyJobs', () => {
-  it('lists the thirteen jobs, all ok', () => {
+  it('lists the twelve jobs, all ok', () => {
     const jobs = nightlyJobs(
       summary(),
       hoursAgo(1),
       NOW,
-      spots(),
       closet(),
       intake(),
       comicsRun(),
@@ -291,7 +286,6 @@ describe('nightlyJobs', () => {
       'radar',
       'discover',
       'weather',
-      'spots',
       'closet-tags',
       'closet-plans',
       'closet-opinions',
@@ -307,8 +301,7 @@ describe('nightlyJobs', () => {
       'Open Sources',
       'Open Radar',
       'Open Discover',
-      'Open Weekend',
-      'Open Spots',
+      'Open Today',
       'Open Closet',
       'Open Today',
       'Open Review',
@@ -322,8 +315,7 @@ describe('nightlyJobs', () => {
       '/admin/catalogue',
       '/admin/radar',
       '/admin/discover',
-      '/admin/weekend',
-      '/admin/spots',
+      '/admin/closet/today',
       '/admin/closet',
       '/admin/closet/today',
       '/admin/closet/review',
@@ -428,7 +420,7 @@ describe('nightlyJobs', () => {
   })
 
   it('reads the Closet rows unknown with no status', () => {
-    const jobs = byKey(nightlyJobs(summary(), null, NOW, null, null))
+    const jobs = byKey(nightlyJobs(summary(), null, NOW, null))
     expect(jobs['closet-tags'].state).toBe('unknown')
     expect(jobs['closet-plans'].summary).toBe('No run recorded')
     expect(jobs['closet-opinions'].state).toBe('unknown')
@@ -436,15 +428,9 @@ describe('nightlyJobs', () => {
 
   it('says when the weekly jobs first run, before they have run', () => {
     const jobs = byKey(
-      nightlyJobs(
-        summary(),
-        null,
-        NOW,
-        spots({ candidates: null }),
-        closet({ opinion: null }),
-      ),
+      nightlyJobs(summary(), null, NOW, closet({ opinion: null })),
     )
-    for (const key of ['spots', 'closet-opinions']) {
+    for (const key of ['closet-opinions']) {
       expect(jobs[key].summary).toBe('First run Sunday evening')
       expect(jobs[key].stateWords).toBe('scheduled')
       expect(jobs[key].scheduled).toBe(true)
@@ -454,8 +440,8 @@ describe('nightlyJobs', () => {
   })
 
   it('says nothing about a first run when the status could not be read', () => {
-    const jobs = byKey(nightlyJobs(summary(), null, NOW, null, null))
-    for (const key of ['spots', 'closet-opinions']) {
+    const jobs = byKey(nightlyJobs(summary(), null, NOW, null))
+    for (const key of ['closet-opinions']) {
       expect(jobs[key].summary).toBe('No run recorded')
       expect(jobs[key].stateWords).toBeUndefined()
     }
@@ -468,79 +454,43 @@ describe('nightlyJobs', () => {
           summary(),
           null,
           NOW,
-          spots({ weather: { at: hoursAgo(hours), state: 'ok' } }),
+          closet({ weather: { at: hoursAgo(hours), state: 'ok' } }),
         ),
       ).weather.state
     expect(at(STALE_HOURS - 1)).toBe('ok')
     expect(at(STALE_HOURS + 1)).toBe('stale')
   })
 
-  it(`gives the spot finder ${DISCOVER_STALE_HOURS} hours, a week and a day`, () => {
-    const at = (hours) =>
-      byKey(
-        nightlyJobs(
-          summary(),
-          null,
-          NOW,
-          spots({ candidates: { at: hoursAgo(hours), state: 'ok' } }),
-        ),
-      ).spots.state
-    expect(at(STALE_HOURS + 1)).toBe('ok')
-    expect(at(DISCOVER_STALE_HOURS + 1)).toBe('stale')
-  })
-
-  it('reads a failed Denver run as failed, with its note', () => {
+  it('reads a failed forecast run as failed, with its note', () => {
     const jobs = byKey(
       nightlyJobs(
         summary(),
         null,
         NOW,
-        spots({
+        closet({
           weather: { at: hoursAgo(1), state: 'failed', note: 'NWS timed out' },
-          candidates: { at: hoursAgo(1), state: 'failed' },
         }),
       ),
     )
     expect(jobs.weather.state).toBe('failed')
     expect(jobs.weather.summary).toBe('Failed: NWS timed out')
-    expect(jobs.spots.state).toBe('failed')
-    expect(jobs.spots.summary).toBe('Failed')
   })
 
-  it('words a run that found nothing, and keeps it ok', () => {
+  it('words a forecast run that found nothing, and keeps it ok', () => {
     const jobs = byKey(
       nightlyJobs(
         summary(),
         null,
         NOW,
-        spots({
-          weather: { at: hoursAgo(1), state: 'empty' },
-          candidates: { at: hoursAgo(1), state: 'no_anchors' },
-        }),
+        closet({ weather: { at: hoursAgo(1), state: 'empty' } }),
       ),
     )
     expect(jobs.weather.summary).toBe('NWS sent no hours')
     expect(jobs.weather.state).toBe('ok')
-    expect(jobs.spots.summary).toBe('No anchors to search from')
-    expect(jobs.spots.state).toBe('ok')
   })
 
-  it('shows the note of an ok run, so a degraded finder run is visible', () => {
-    const note = 'The model could not rank; template order kept'
-    const jobs = byKey(
-      nightlyJobs(
-        summary(),
-        null,
-        NOW,
-        spots({ candidates: { at: hoursAgo(1), state: 'ok', note } }),
-      ),
-    )
-    expect(jobs.spots.summary).toBe(note)
-    expect(jobs.spots.state).toBe('ok')
-  })
-
-  it('reads the Denver rows unknown with no status or no run', () => {
-    for (const given of [undefined, null, spots({ weather: null })]) {
+  it('reads the forecast row unknown with no status or no run', () => {
+    for (const given of [undefined, null, closet({ weather: null })]) {
       const weather = byKey(nightlyJobs(summary(), null, NOW, given)).weather
       expect(weather.state).toBe('unknown')
       expect(weather.at).toBeNull()
@@ -606,8 +556,8 @@ describe('nightlyJobs', () => {
 describe('every job says what it does and when it runs', () => {
   const rows = nightlyJobs(summary(), null, NOW)
 
-  it('gives each of the thirteen jobs a purpose, a schedule and a next run', () => {
-    expect(rows).toHaveLength(13)
+  it('gives each of the twelve jobs a purpose, a schedule and a next run', () => {
+    expect(rows).toHaveLength(12)
     for (const row of rows) {
       expect(row.purpose, row.key).toMatch(/^[A-Z].*\.$/)
       expect(['nightly', 'sunday'], row.key).toContain(row.schedule)
@@ -622,7 +572,7 @@ describe('every job says what it does and when it runs', () => {
   it('keeps the weekly jobs to Sunday evening', () => {
     expect(
       rows.filter((r) => r.schedule === 'sunday').map((r) => r.key),
-    ).toEqual(['discover', 'spots', 'closet-opinions'])
+    ).toEqual(['discover', 'closet-opinions'])
   })
 })
 

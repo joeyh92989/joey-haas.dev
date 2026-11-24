@@ -135,7 +135,7 @@ stack opened and folded, the Missing filter), the owner's wall (each cover a
 button, its number a link), a title with books, a book line, and an issue page
 with a neighbour strip of every state. The run, wall and issue answers are built
 in the scenario. `g3b`: Home's hero and actions, Projects' links, the shelf's
-header and tabs (hover, current, focus, touch), and Home, the shelf, Denver,
+header and tabs (hover, current, focus, touch), and Home, the shelf,
 What's next and the Daily game at the edge widths 320, 544, 545, 700, 701, 980
 and 981. `g3c`: the item edit page (journal, playthroughs table, relink, status
 control, registry line), the public item page signed in, the store list,

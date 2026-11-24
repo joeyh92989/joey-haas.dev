@@ -137,7 +137,7 @@ test('job rows are a table with headers and start with the job at 1280px', async
       next: row.querySelector('.job-next').textContent.trim().length,
     })),
   )
-  expect(gaps.length).toBe(13)
+  expect(gaps.length).toBe(12)
   expect(gaps.filter((g) => g.gap > 24)).toEqual([])
   expect(gaps.filter((g) => !g.purpose || !g.last || !g.next)).toEqual([])
 })
@@ -408,12 +408,10 @@ for (const theme of THEMES) {
     test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
     await open(page, openRoute, '/admin/jobs', theme, 1280)
     // The start call never answers, so the button stays "Running…".
-    await page.route('**/api/spots/weather/refresh', () => {})
-    await page
-      .getByRole('button', { name: /^Run now\s*: Weekend forecast/ })
-      .click()
+    await page.route('**/api/weather/refresh', () => {})
+    await page.getByRole('button', { name: /^Run now\s*: Forecast/ }).click()
     const busy = page.getByRole('button', {
-      name: /^Running…\s*: Weekend forecast/,
+      name: /^Running…\s*: Forecast/,
     })
     await expect(busy).toBeDisabled()
     expect(await busy.evaluate((el) => getComputedStyle(el).cursor)).toBe(

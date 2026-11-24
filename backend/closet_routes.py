@@ -108,7 +108,7 @@ logger = logging.getLogger(__name__)
 
 # The run summaries the closet's jobs write into closet_settings; the admin
 # page reads them through GET /api/closet/status. Unwritten is null.
-STATUS_KEYS = ("tag.last_run", "plan.last_run", "opinion.last_run")
+STATUS_KEYS = ("tag.last_run", "plan.last_run", "opinion.last_run", "weather.last_run")
 
 TAG_STATUS_KEY = "tag.last_run"
 # _failure_note's catch-all: the one model error that may be the photos' fault.

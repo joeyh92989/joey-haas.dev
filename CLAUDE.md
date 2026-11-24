@@ -220,5 +220,5 @@ before pushing.
 
 - `frontend/CLAUDE.md` — design tokens, shelf components, theming, prerender and routing rules,
   markdown collections, search, the Daily game. Loads when working under `frontend/`.
-- `backend/CLAUDE.md` — the media tracker, Closet, Denver spots, comics, tags, Radar/Discover/
+- `backend/CLAUDE.md` — the media tracker, Closet, the forecast job, comics, tags, Radar/Discover/
   Play Next, the job token and nightly order, test-login. Loads when working under `backend/`.

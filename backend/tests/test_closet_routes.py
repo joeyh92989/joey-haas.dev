@@ -387,7 +387,7 @@ async def test_a_bad_profile_field_is_422(sessionmaker_for_test, body):
     assert isinstance(response.json()["detail"], (str, list))
 
 
-async def test_the_status_route_reads_the_three_keys(sessionmaker_for_test):
+async def test_the_status_route_reads_the_four_keys(sessionmaker_for_test):
     async with sessionmaker_for_test() as session:
         session.add(ClosetSetting(key="tag.last_run", value={"state": "ok"}))
         await session.commit()

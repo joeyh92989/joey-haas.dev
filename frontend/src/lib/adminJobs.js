@@ -42,25 +42,7 @@ async function generatedAt(response) {
   }
 }
 
-/**
- * The Denver jobs' last runs, `{weather, candidates}`, or null when they
- * cannot be read. Never rejects: the two rows then read unknown.
- */
-async function spotsRuns() {
-  try {
-    const response = await apiFetch('/api/spots/status')
-    if (!response.ok) return null
-    const body = await response.json()
-    return {
-      weather: body?.['weather.last_run'] ?? null,
-      candidates: body?.['candidates.last_run'] ?? null,
-    }
-  } catch {
-    return null
-  }
-}
-
-/** The Closet jobs' last runs, or null when they cannot be read. */
+/** The Closet jobs' and the forecast's last runs, or null when unreadable. */
 async function closetRuns() {
   try {
     const response = await apiFetch('/api/closet/status')
@@ -70,6 +52,7 @@ async function closetRuns() {
       tag: body?.['tag.last_run'] ?? null,
       plan: body?.['plan.last_run'] ?? null,
       opinion: body?.['opinion.last_run'] ?? null,
+      weather: body?.['weather.last_run'] ?? null,
     }
   } catch {
     return null
@@ -108,7 +91,7 @@ async function comicsRun() {
 }
 
 /**
- * The catalogue status, the generate times, the Denver, Closet, intake and
+ * The catalogue status, the generate times, the Closet, intake and
  * comic issue jobs' runs and the snapshot's build time.
  * Never rejects. A status that cannot be read leaves `status` null, and the
  * jobs list says so rather than reading as a stopped schedule.
@@ -118,7 +101,6 @@ export async function loadNightly() {
   let api = 'unreachable'
   let status = null
   let generated = { radar: null, discover: null }
-  let spots = null
   let closet = null
   let intake = null
   let comics = null
@@ -131,18 +113,15 @@ export async function loadNightly() {
       // Not a status document: no jobs rather than "may have stopped".
       if (Array.isArray(body?.sources)) {
         status = body
-        const [times, runs, closetRun, intakeLast, comicsLast] =
-          await Promise.all([
-            apiFetch('/api/recommendations/store-list')
-              .catch(() => null)
-              .then(generatedAt),
-            spotsRuns(),
-            closetRuns(),
-            intakeRun(),
-            comicsRun(),
-          ])
+        const [times, closetRun, intakeLast, comicsLast] = await Promise.all([
+          apiFetch('/api/recommendations/store-list')
+            .catch(() => null)
+            .then(generatedAt),
+          closetRuns(),
+          intakeRun(),
+          comicsRun(),
+        ])
         generated = times
-        spots = runs
         closet = closetRun
         intake = intakeLast
         comics = comicsLast
@@ -155,7 +134,6 @@ export async function loadNightly() {
     api,
     status,
     generated,
-    spots,
     closet,
     intake,
     comics,
@@ -200,7 +178,6 @@ export function useNightly() {
         lastNightly(nightly.status, nightly.generated, now),
         nightly.snapshotAt ?? null,
         now,
-        nightly.spots,
         nightly.closet,
         nightly.intake,
         nightly.comics,

@@ -1,9 +1,9 @@
 import { useId } from 'react'
-import { box } from './denverSiteClasses.js'
+import { box } from './siteAdminClasses.js'
 import { cx } from '../lib/cx.js'
 
 /**
- * A titled card for the Denver and Site admin pages: the Card look, a header
+ * A titled card for the Site admin pages: the Card look, a header
  * with the heading and an optional action beside it, then the body. The
  * heading names the region. `mt-0` is there because the global
  * `section + section` rule would otherwise add a gap the page's own grid

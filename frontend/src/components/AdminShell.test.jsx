@@ -49,7 +49,6 @@ describe('AdminShell on a desktop', () => {
       ['⌂Home', '/admin'],
       ['▦Shelf', '/admin/shelf/games'],
       ['◫Closet', '/admin/closet/today'],
-      ['◎Outings', '/admin/weekend'],
       ['◇Site & jobs', '/admin/analytics'],
     ])
   })
@@ -115,14 +114,14 @@ describe('AdminShell on a desktop', () => {
   })
 
   it('titles the page list with the area and its description', () => {
-    renderAt('/admin/weekend')
-    expect(screen.getByText('weekend plans and spots')).toBeInTheDocument()
-    const nav = screen.getByRole('navigation', { name: 'Outings pages' })
+    renderAt('/admin/jobs')
+    expect(screen.getByText('traffic and nightly jobs')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Site & jobs pages' })
     expect(
       within(nav)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/admin/weekend', '/admin/spots'])
+    ).toEqual(['/admin/analytics', '/admin/jobs'])
   })
 
   it('marks Jobs and its area, never Home, on /admin/jobs', () => {
@@ -234,22 +233,21 @@ describe('AdminShell on a phone', () => {
       '/admin',
       '/admin/shelf/games',
       '/admin/closet/today',
-      '/admin/weekend',
       '/admin/analytics',
     ])
   })
 
   it('marks the current area tab', () => {
-    renderAt('/admin/spots')
+    renderAt('/admin/jobs')
     expect(
-      within(areas()).getByRole('link', { name: 'Outings' }),
+      within(areas()).getByRole('link', { name: 'Site & jobs' }),
     ).toHaveAttribute('aria-current', 'true')
   })
 
   it("shows the area's pages as segments, the current one marked", () => {
-    renderAt('/admin/spots')
-    const sub = screen.getByRole('navigation', { name: 'Outings pages' })
-    expect(within(sub).getByRole('link', { name: 'Spots' })).toHaveAttribute(
+    renderAt('/admin/jobs')
+    const sub = screen.getByRole('navigation', { name: 'Site & jobs pages' })
+    expect(within(sub).getByRole('link', { name: 'Jobs' })).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -257,7 +255,7 @@ describe('AdminShell on a phone', () => {
       within(sub)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Weekend', 'Spots'])
+    ).toEqual(['Analytics', 'Jobs'])
   })
 
   it('marks only Profile among the segments on the profile page', () => {

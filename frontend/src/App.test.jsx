@@ -169,7 +169,6 @@ const TITLES = [
   ['/now', 'Now · Joey Haas'],
   ['/colophon', 'Colophon · Joey Haas'],
   ['/stats', 'Stats · Joey Haas'],
-  ['/denver', 'Denver, the short list · Joey Haas'],
   ['/daily', 'Daily game · My Shelf'],
   ['/blog', 'Blog · Joey Haas'],
   ['/shelf/games', 'Games · My Shelf'],
@@ -198,8 +197,6 @@ const TITLES = [
   ['/admin/pull-list', 'Pull list · Admin · Joey Haas'],
   ['/admin/discover', 'Discover · Admin · Joey Haas'],
   ['/admin/store-list', 'Store list · Admin · Joey Haas'],
-  ['/admin/spots', 'Spots · Admin · Joey Haas'],
-  ['/admin/weekend', 'This weekend · Admin · Joey Haas'],
   ['/admin/collection/42', 'Item · Admin · Joey Haas'],
   ['/admin/shelf/comics/42', 'Comic · Admin · Joey Haas'],
   // The book's page, under its title's: not an issue and not a game.

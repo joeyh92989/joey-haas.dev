@@ -29,9 +29,8 @@ from items import JOB_ROUTES, _job_token_route, create_items_router, require_adm
 from physical_routes import create_physical_router
 from picker_routes import create_picker_router
 from recommendations_routes import create_recommendations_router
-from spots_candidates_routes import create_candidates_router
-from spots_weekend_routes import create_weekend_router
 from tests.test_intake_budget import _config
+from weather_routes import create_weather_router
 
 pytestmark = pytest.mark.asyncio
 
@@ -49,8 +48,7 @@ EXPECTED = {
     ("POST", "/api/comics/refresh"),
     ("POST", "/api/comics/issues/sync"),
     ("POST", "/api/comics/tags/generate"),
-    ("POST", "/api/spots/candidates/refresh"),
-    ("POST", "/api/spots/weather/refresh"),
+    ("POST", "/api/weather/refresh"),
     ("POST", "/api/closet/jobs/tag"),
     ("POST", "/api/closet/jobs/plan"),
     ("POST", "/api/closet/jobs/opinion"),
@@ -107,8 +105,7 @@ def _real_app() -> FastAPI:
     app.include_router(create_recommendations_router(None, {}, lock))
     app.include_router(create_analytics_router(None))
     app.include_router(create_comics_router(None, {}, lock))
-    app.include_router(create_candidates_router(None, lock=lock))
-    app.include_router(create_weekend_router(None, lock=lock))
+    app.include_router(create_weather_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
     app.include_router(create_closet_review_router(None, lock=lock))
@@ -141,8 +138,7 @@ async def test_every_whitelisted_route_exists_on_the_real_routers():
     app.include_router(create_recommendations_router(None, {}, lock))
     app.include_router(create_analytics_router(None))
     app.include_router(create_comics_router(None, {}, lock))
-    app.include_router(create_candidates_router(None, lock=lock))
-    app.include_router(create_weekend_router(None, lock=lock))
+    app.include_router(create_weather_router(None, lock=lock))
     app.include_router(create_closet_router(None, lock=lock))
     app.include_router(create_closet_today_router(None, lock=lock))
     app.include_router(create_closet_review_router(None, lock=lock))

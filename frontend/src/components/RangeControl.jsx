@@ -1,4 +1,4 @@
-import { chipBtn } from './denverSiteClasses.js'
+import { chipBtn } from './siteAdminClasses.js'
 
 /** The ranges the analytics read accepts, in order, with their labels. */
 export const RANGES = [

@@ -163,6 +163,7 @@ class JobStatusOut(BaseModel):
     tag_last_run: dict[str, Any] | None = Field(alias="tag.last_run")
     plan_last_run: dict[str, Any] | None = Field(alias="plan.last_run")
     opinion_last_run: dict[str, Any] | None = Field(alias="opinion.last_run")
+    weather_last_run: dict[str, Any] | None = Field(alias="weather.last_run")
 
 
 class TagNowOut(BaseModel):

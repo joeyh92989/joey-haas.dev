@@ -76,6 +76,18 @@ describe('the shipped changelog', () => {
   })
 })
 
+describe('renderLine with a page that was taken down', () => {
+  it('leaves an old link to it as plain text by default', () => {
+    render(
+      <MemoryRouter>
+        <p>{renderLine('See [Denver](/denver) and [shelf](/shelf).')}</p>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Denver' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'shelf' })).toBeInTheDocument()
+  })
+})
+
 describe('renderLine with a hidden path (#183)', () => {
   it('renders the link as plain text', () => {
     render(

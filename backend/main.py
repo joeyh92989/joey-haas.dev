@@ -45,10 +45,8 @@ from recommendations_routes import create_recommendations_router
 from schema_check import verify_schema_is_current
 from sources.metron import MetronClient
 from sources.registry import build_registry, configured_sources
-from spots_candidates_routes import create_candidates_router
-from spots_routes import create_spots_router
-from spots_weekend_routes import create_weekend_router
 from version_route import create_version_router
+from weather_routes import create_weather_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -147,7 +145,6 @@ app.include_router(
 )
 app.include_router(create_picker_router(session_factory))
 app.include_router(create_journal_router(session_factory))
-app.include_router(create_spots_router(session_factory))
 # One cache for the admin read and the public site-stats read, so the
 # nightly rollup's clear refreshes both.
 summary_cache = SummaryCache()
@@ -195,20 +192,10 @@ app.include_router(
         metron=MetronClient(config.metron_token),
     )
 )
-# So does the spot finder: it writes only spot rows. Overpass is read with
-# the catalogue's client, for its identifying User-Agent.
+# The forecast job: NWS is read by its route alone, with the same client (NWS
+# asks for an identifying User-Agent); its own lock.
 app.include_router(
-    create_candidates_router(
-        session_factory,
-        physical_http_client,
-        provider_factory=lambda: build_provider(config, recorder),
-        lock=asyncio.Lock(),
-    )
-)
-# The weekend planner: NWS is read by its job route alone, with the same
-# client (NWS asks for an identifying User-Agent); its own lock.
-app.include_router(
-    create_weekend_router(session_factory, physical_http_client, lock=asyncio.Lock())
+    create_weather_router(session_factory, physical_http_client, lock=asyncio.Lock())
 )
 # The Closet: garments, photos, profile and the tag queue. Its own lock: the
 # tag job writes only garment rows. The model is built per run.

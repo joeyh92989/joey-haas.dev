@@ -40,7 +40,6 @@ export const PAGE_NAMES = {
   '/now': 'Now',
   '/colophon': 'Colophon',
   '/stats': 'Stats',
-  '/denver': 'Denver',
   '/daily': 'Daily game',
   '/blog': 'Blog',
   '/til': 'TIL',

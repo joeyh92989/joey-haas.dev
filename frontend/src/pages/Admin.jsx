@@ -36,7 +36,7 @@ import { adminCopy } from '../content/adminCopy.js'
 const COULDNT_READ = 'Couldn’t read'
 
 /** The cards in page order, as the top line names them. */
-const AREAS = ['Closet', 'Shelf', 'Outings', 'Site & jobs']
+const AREAS = ['Closet', 'Shelf', 'Site & jobs']
 
 /**
  * `{body}` (null when it cannot be read or does not answer within the
@@ -103,7 +103,6 @@ function useReportFailure(area, failed, ended, onFailure) {
   }, [area, state, onFailure])
 }
 
-const listLength = (body) => (Array.isArray(body) ? body.length : null)
 const figure = (value, failed = false) =>
   value === null || value === undefined ? (failed ? COULDNT_READ : '—') : value
 
@@ -412,66 +411,6 @@ function ShelfCard({ items, year, round: retryRound, onFailure }) {
   )
 }
 
-/** Outings: this weekend's first suggestions, and the spots and the queue. */
-function DenverCard({ round, onFailure }) {
-  const [plan, planEnded, planFailed] = useRead('/api/spots/plan', round)
-  const [spots, spotsEnded, spotsFailed] = useRead('/api/spots', round)
-  const [candidates, candidatesEnded, candidatesFailed] = useRead(
-    '/api/spots/candidates',
-    round,
-  )
-  const failed = planFailed || spotsFailed || candidatesFailed
-  useReportFailure(
-    'Outings',
-    failed,
-    planEnded || spotsEnded || candidatesEnded,
-    onFailure,
-  )
-  const suggestions = Array.isArray(plan?.suggestions) ? plan.suggestions : []
-  const spotCount = listLength(spots)
-  const queued = listLength(candidates)
-
-  if (
-    spotCount === 0 &&
-    plan !== undefined &&
-    !failed &&
-    suggestions.length === 0
-  )
-    return null
-
-  const [first, second] = suggestions
-  const lead = first ? (
-    <AreaLead
-      title={`${first.when} · ${first.name}`}
-      meta={second && `${second.when} · ${second.name}`}
-    />
-  ) : (
-    (planFailed || plan === undefined) && (
-      <p className="muted">{planFailed ? COULDNT_READ : 'Loading…'}</p>
-    )
-  )
-
-  return (
-    <AreaCard
-      title={adminCopy.dashboard.denver}
-      to="/admin/weekend"
-      linkLabel="Weekend"
-      lead={lead}
-      figures={[
-        { label: 'Spots', value: figure(spotCount, spotsFailed) },
-        { label: 'Candidates', value: figure(queued, candidatesFailed) },
-      ]}
-      actions={
-        queued ? (
-          <Link className={PLAIN} to="/admin/spots">
-            {adminCopy.dashboard.reviewCandidates}
-          </Link>
-        ) : null
-      }
-    />
-  )
-}
-
 /** Site: the last seven days' traffic and the nightly jobs in one line. */
 function SiteCard({ nightly, round, onFailure }) {
   const [views, viewsEnded, failed] = useRead('/api/analytics?range=7d', round)
@@ -566,7 +505,6 @@ export default function Admin() {
           round={rounds.Shelf ?? 0}
           onFailure={onFailure}
         />
-        <DenverCard round={rounds.Outings ?? 0} onFailure={onFailure} />
         <SiteCard
           nightly={nightly}
           round={rounds['Site & jobs'] ?? 0}

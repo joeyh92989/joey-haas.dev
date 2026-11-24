@@ -30,7 +30,7 @@ export default defineConfig({
     'admin.setup.js',
     'admin.spec.js',
     'admin-closet.spec.js',
-    'admin-denver-site.spec.js',
+    'admin-site.spec.js',
     'admin-data.spec.js',
   ],
   forbidOnly: !!process.env.CI,
@@ -51,7 +51,7 @@ export default defineConfig({
       testMatch: [
         'admin.spec.js',
         'admin-closet.spec.js',
-        'admin-denver-site.spec.js',
+        'admin-site.spec.js',
         'admin-data.spec.js',
       ],
       dependencies: ['setup'],

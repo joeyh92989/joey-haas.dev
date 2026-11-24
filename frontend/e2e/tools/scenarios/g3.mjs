@@ -412,12 +412,6 @@ async function g3b({ record, on, spec, seen, at, theme, vp }) {
       await record(at2('shelf'), { path: '/shelf/games', theme, vp: edge })
       await record(at2('comics'), { path: '/shelf/comics', theme, vp: edge })
       await record(at2('projects'), { path: '/projects', theme, vp: edge })
-      await record(at2('denver'), {
-        path: '/denver',
-        theme,
-        vp: edge,
-        kind: 'denver',
-      })
       await record(at2('next'), {
         path: '/shelf/next',
         theme,

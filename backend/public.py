@@ -67,10 +67,8 @@ from public_issues import (
 from public_next_cache import PublicNextCache
 from public_outputs import (
     PublicNextOut,
-    PublicSpot,
     PublicStatusOut,
     load_public_next,
-    load_public_spots,
 )
 from public_pick_for_me import PublicPickForMeOut, load_pick_for_me
 
@@ -724,13 +722,6 @@ def create_public_router(factory: async_sessionmaker[AsyncSession]) -> APIRouter
         """/shelf/comics: public series, their stats and the weeks ahead.
         A series that is only followed is private and never listed (D5)."""
         return await load_public_comics(session, datetime.now(UTC).date())
-
-    @router.get("/spots", response_model=list[PublicSpot])
-    async def public_spots(
-        session: AsyncSession = Depends(get_session),
-    ) -> list[PublicSpot]:
-        """/denver: published spots, never an anchor (public_outputs.py)."""
-        return await load_public_spots(session)
 
     @router.get("/status", response_model=PublicStatusOut)
     async def public_status(

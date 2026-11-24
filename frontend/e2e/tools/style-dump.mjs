@@ -19,8 +19,8 @@ import { g2 } from './scenarios/g2.mjs'
 import { g3 } from './scenarios/g3.mjs'
 import { f598 } from './scenarios/f598.mjs'
 import { PROPS } from './props.mjs'
-import { mockDenverSite } from '../denver-site-mocks.js'
-import { NEXT, SPOTS, PICK_TABLE, serve } from '../tools-data.fixtures.js'
+import { mockSite } from '../site-mocks.js'
+import { NEXT, PICK_TABLE, serve } from '../tools-data.fixtures.js'
 
 const [base, out] = process.argv.slice(2)
 if (!base || !out) {
@@ -83,7 +83,6 @@ const PUBLIC = [
   '/daily',
   '/stats',
   '/now',
-  '/denver',
   '/shelf/how',
   '/shelf/year/2025/',
   '/colophon',
@@ -120,49 +119,7 @@ const ADMIN = [
   ['/admin/play-next', 'shelf'],
   ['/admin/catalogue', 'shelf'],
 ]
-// Denver, spots and the map (slice D3): the public /denver page's snapshot
-// (the four tools-data spots, a crowded extra one, one outside the drawing),
-// What's next's body (for the jump row) and the admin Denver pages' mocks.
-const edge = (id, name, lat, lng) => ({
-  spot_id: id,
-  name,
-  slug: id,
-  neighbourhood: 'Edge',
-  tags: ['park'],
-  blurb: null,
-  lat,
-  lng,
-})
-const DENVER_SPOTS = [
-  ...SPOTS,
-  // Pins near the drawing's top, left, right and bottom edges, so the
-  // popover's below / start / end placements all show.
-  edge('e1', 'Top left corner', 39.7718, -105.0224),
-  edge('e2', 'Top right corner', 39.7718, -104.9568),
-  edge('e3', 'Bottom right corner', 39.7368, -104.9568),
-  edge('e4', 'Middle left edge', 39.7521, -105.0224),
-
-  {
-    spot_id: 's5',
-    name: 'Red Rocks Park and Amphitheatre with a long name that wraps',
-    slug: 'red-rocks',
-    neighbourhood: 'Morrison and the foothills of the whole front range',
-    tags: ['park', 'kid-ok', 'rainy-day', 'coffee', 'food', 'bike-friendly'],
-    blurb: 'A long blurb that wraps over a couple of lines on a phone, too.',
-    lat: 39.6654,
-    lng: -105.2057,
-  },
-  {
-    spot_id: 's6',
-    name: 'Boulder Creek Path',
-    slug: 'boulder-creek',
-    neighbourhood: 'Boulder',
-    tags: ['bike-friendly'],
-    blurb: null,
-    lat: 40.015,
-    lng: -105.27,
-  },
-]
+// What's next's body (slice D3, for the jump row).
 const NEXT_ROWS = {
   ...NEXT,
   buy_now: ['One', 'Two'].map((title) => ({
@@ -299,22 +256,19 @@ async function open(
   }
   if (served) await serve(page, served)
   if (mock) await mock(page)
-  if (kind === 'denver' || kind === 'next') {
+  if (kind === 'next') {
     const json = (body) => (route) =>
       route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify(body),
       })
-    const bodies =
-      kind === 'denver'
-        ? { spots: DENVER_SPOTS }
-        : { next: NEXT_ROWS, 'pick-for-me': PICK_TABLE }
+    const bodies = { next: NEXT_ROWS, 'pick-for-me': PICK_TABLE }
     for (const [name, body] of Object.entries(bodies)) {
       await page.route(`**/snapshot/${name}.json`, json(body))
       await page.route(`**/api/public/${name}`, json(body))
     }
   }
-  if (kind === 'denver-admin') await mockDenverSite(page)
+  if (kind === 'site-admin') await mockSite(page)
   if (kind === 'gate') {
     await page.route('**/api/auth/me', (r) =>
       r.fulfill({ status: 401, json: { detail: 'no' } }),
@@ -408,124 +362,9 @@ async function record(label, spec, after) {
   }
 }
 
-// Slice D3's scenarios: /denver in list and map view, a selected spot at each
-// pin, a pressed chip, hover and focus on a pin, a card name and a chip, the
-// What's next jump row, and the admin Weekend, Spots and Analytics pages.
-async function denverScenarios(theme, vp) {
-  const denver = { path: '/denver', theme, vp, kind: 'denver' }
-  const pins = '.spot-map-pin'
-  const showMap = async (page) => {
-    const toggle = page.getByRole('button', { name: 'Map', exact: true })
-    if (await toggle.count()) await toggle.click()
-    await page.locator(pins).first().waitFor()
-  }
-  await record(`screen ${theme} ${vp} denver-list`, denver)
-  await record(`screen ${theme} ${vp} denver-map`, denver, showMap)
-  for (let i = 0; i < 6; i += 1)
-    await record(
-      `screen ${theme} ${vp} denver-pin-${i}`,
-      denver,
-      async (page) => {
-        await showMap(page)
-        if ((await page.locator(pins).count()) <= i) return
-        await page.locator(pins).nth(i).click()
-        await page.mouse.move(1, 1)
-        await page.waitForTimeout(300)
-      },
-    )
-  await record(
-    `screen ${theme} ${vp} denver-pin-hover`,
-    denver,
-    async (page) => {
-      await showMap(page)
-      await page.locator(pins).nth(1).hover()
-      await page.waitForTimeout(300)
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-pin-focus`,
-    denver,
-    async (page) => {
-      await showMap(page)
-      await page.locator(pins).nth(1).focus()
-      await page.keyboard.press('Shift+Tab')
-      await page.keyboard.press('Tab')
-      await page.waitForTimeout(300)
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-card-selected`,
-    denver,
-    async (page) => {
-      await page.locator('.spot-card-name button').nth(1).click()
-      await page.mouse.move(1, 1)
-      await page.waitForTimeout(300)
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-card-hover`,
-    denver,
-    async (page) => {
-      await page.locator('.spot-card-name button').nth(2).hover()
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-card-focus`,
-    denver,
-    async (page) => {
-      for (let i = 0; i < 9; i += 1) await page.keyboard.press('Tab')
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-chip-pressed`,
-    denver,
-    async (page) => {
-      await page.getByRole('button', { name: /^Park/ }).click()
-      await page.mouse.move(1, 1)
-      await page.waitForTimeout(300)
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-chip-hover`,
-    denver,
-    async (page) => {
-      await page.getByRole('button', { name: /^Kid/ }).hover()
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-chip-focus`,
-    denver,
-    async (page) => {
-      for (let i = 0; i < 4; i += 1) await page.keyboard.press('Tab')
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} denver-no-match`,
-    denver,
-    async (page) => {
-      await page.goto(`${base}/denver?tag=park,coffee`)
-      await page.waitForTimeout(600)
-    },
-  )
-  await record(`screen ${theme} ${vp} denver-empty`, denver, async (page) => {
-    for (const url of ['**/snapshot/spots.json', '**/api/public/spots'])
-      await page.route(url, (route) =>
-        route.fulfill({ contentType: 'application/json', body: '[]' }),
-      )
-    await page.goto(`${base}/denver`)
-    await page.waitForTimeout(600)
-  })
-  await record(
-    `screen ${theme} ${vp} denver-clear-focus`,
-    denver,
-    async (page) => {
-      await showMap(page)
-      await page.locator(pins).nth(1).click()
-      await page.getByRole('button', { name: 'Clear selection' }).focus()
-      await page.keyboard.press('Shift+Tab')
-      await page.keyboard.press('Tab')
-    },
-  )
+// Slice D3's scenarios: the What's next jump row and the admin Analytics
+// page.
+async function toolsScenarios(theme, vp) {
   const next = { path: '/shelf/next', theme, vp, kind: 'next' }
   await record(`screen ${theme} ${vp} next-jump`, next)
   await record(`screen ${theme} ${vp} next-jump-hover`, next, async (page) => {
@@ -542,46 +381,19 @@ async function denverScenarios(theme, vp) {
       await page.waitForTimeout(300)
     },
   )
-  for (const path of ['/admin/weekend', '/admin/spots', '/admin/analytics'])
-    await record(`screen ${theme} ${vp} ${path}`, {
-      path,
-      theme,
-      vp,
-      kind: 'denver-admin',
-    })
   const click = (name) => async (page) => {
     await page.getByRole('button', { name }).first().click()
     await page.waitForTimeout(300)
   }
-  const admin = (path) => ({ path, theme, vp, kind: 'denver-admin' })
+  const admin = (path) => ({ path, theme, vp, kind: 'site-admin' })
   await record(
-    `screen ${theme} ${vp} weekend-edit`,
-    admin('/admin/weekend'),
-    click(/^Edit/),
-  )
-  await record(
-    `screen ${theme} ${vp} spots-form`,
-    admin('/admin/spots'),
-    click('Add by hand'),
+    `screen ${theme} ${vp} /admin/analytics`,
+    admin('/admin/analytics'),
   )
   await record(
     `screen ${theme} ${vp} analytics-all`,
     admin('/admin/analytics'),
     click('All'),
-  )
-  await record(
-    `screen ${theme} ${vp} weekend-tab`,
-    admin('/admin/weekend'),
-    async (page) => {
-      for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
-    },
-  )
-  await record(
-    `screen ${theme} ${vp} spots-tab`,
-    admin('/admin/spots'),
-    async (page) => {
-      for (let i = 0; i < 12; i += 1) await page.keyboard.press('Tab')
-    },
   )
 }
 
@@ -915,7 +727,7 @@ async function d4b(theme, vp) {
   for (const range of [undefined, 'All'])
     await record(
       at(`/admin/analytics ${range ?? '30'}`),
-      { path: '/admin/analytics', theme, vp, kind: 'denver-admin' },
+      { path: '/admin/analytics', theme, vp, kind: 'site-admin' },
       async (page) => {
         await page.locator('.day-bars').waitFor()
         if (range) await press(page, range)
@@ -1217,7 +1029,7 @@ for (const theme of ['dark', 'light']) {
         for (let i = 0; i < 5; i += 1) await page.keyboard.press('Tab')
       },
     )
-    await denverScenarios(theme, vp)
+    await toolsScenarios(theme, vp)
     await record(
       `screen ${theme} ${vp} footer-signed-in`,
       { path: '/about', theme, vp, kind: 'signed-in' },
@@ -1258,22 +1070,13 @@ for (const theme of ['dark', 'light']) {
       media: 'print',
     })
   }
-  for (const path of ['/denver', '/shelf/next'])
-    await record(`print ${theme} ${path}`, {
-      path,
-      theme,
-      vp: 'desktop',
-      media: 'print',
-      kind: path === '/denver' ? 'denver' : 'next',
-    })
-  await record(
-    `reduce ${theme} denver-pin`,
-    { path: '/denver', theme, vp: 'desktop', reduce: true, kind: 'denver' },
-    async (page) => {
-      await page.locator('.spot-map-pin').nth(0).click()
-      await page.waitForTimeout(300)
-    },
-  )
+  await record(`print ${theme} /shelf/next`, {
+    path: '/shelf/next',
+    theme,
+    vp: 'desktop',
+    media: 'print',
+    kind: 'next',
+  })
   await record(
     `reduce ${theme} search-open`,
     { path: '/', theme, vp: 'desktop', reduce: true },
@@ -1417,13 +1220,6 @@ for (const theme of ['dark', 'light']) {
       '/admin/closet',
     ])
       await record(`${tag} ${path}`, { ...spec, path, kind: 'closet' })
-    await record(
-      `${tag} denver-chip`,
-      { ...spec, path: '/denver', kind: 'denver' },
-      async (page) => {
-        await pressFirst(page, '.chip[aria-pressed="false"]')
-      },
-    )
   }
   await record(`d4c ${theme} reduce games`, {
     path: '/shelf/games',

@@ -87,17 +87,6 @@ export const ADMIN_AREAS = [
     ],
   },
   {
-    key: 'denver',
-    label: 'Outings',
-    icon: '◎',
-    home: '/admin/weekend',
-    description: 'weekend plans and spots',
-    pages: [
-      { to: '/admin/weekend', label: 'Weekend' },
-      { to: '/admin/spots', label: 'Spots' },
-    ],
-  },
-  {
     key: 'site',
     label: 'Site & jobs',
     icon: '◇',
