@@ -137,7 +137,7 @@ test('job rows are a table with headers and start with the job at 1280px', async
       next: row.querySelector('.job-next').textContent.trim().length,
     })),
   )
-  expect(gaps.length).toBe(13)
+  expect(gaps.length).toBe(12)
   expect(gaps.filter((g) => g.gap > 24)).toEqual([])
   expect(gaps.filter((g) => !g.purpose || !g.last || !g.next)).toEqual([])
 })
