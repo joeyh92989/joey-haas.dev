@@ -858,20 +858,11 @@ describe('render.yaml rewrites', () => {
     .map((route) => route.path)
     .filter((route) => route !== '/')
 
-  // Rewrites whose page was taken down. The rule stays in render.yaml until
-  // someone with infrastructure access removes it (#630, story #631 left it
-  // alone); `/denver` then answers 404 instead of the app's not-found page.
-  // Delete the entry here in the same change that deletes the rule.
-  const STALE = ['/denver']
-
   it('rewrites exactly the pages this build writes, each to its own file', () => {
     const rewrites = rules.slice(0, -1)
-    expect(
-      rewrites
-        .map((rule) => rule.source)
-        .filter((source) => !STALE.includes(source))
-        .sort(),
-    ).toEqual([...pages].sort())
+    expect(rewrites.map((rule) => rule.source).sort()).toEqual(
+      [...pages].sort(),
+    )
     for (const rule of rewrites) {
       expect(rule.destination).toBe(`${rule.source}/index.html`)
     }

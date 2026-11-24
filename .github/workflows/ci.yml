@@ -441,10 +441,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: cd-1, args: 'admin-closet admin-denver-site admin.setup --shard=1/3', skip: '' }
-          - { name: cd-2, args: 'admin-closet admin-denver-site admin.setup --shard=2/3', skip: '' }
-          - { name: cd-3, args: 'admin-closet admin-denver-site admin.setup --shard=3/3', skip: '' }
-          - { name: rest, args: '', skip: 'admin-closet.spec.js,admin-denver-site.spec.js' }
+          - { name: cd-1, args: 'admin-closet admin.setup --shard=1/3', skip: '' }
+          - { name: cd-2, args: 'admin-closet admin.setup --shard=2/3', skip: '' }
+          - { name: cd-3, args: 'admin-closet admin.setup --shard=3/3', skip: '' }
+          - { name: rest, args: '', skip: 'admin-closet.spec.js' }
     services:
       postgres:
         # Same pin as the backend job: Neon's version.
