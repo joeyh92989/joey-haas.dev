@@ -1,8 +1,6 @@
-"""weather.py: the NWS parser, the day view and the ride verdict.
+"""weather.py: the NWS parser, the day window and the cached hours.
 
-The parser runs over a recorded answer (scripts/record_spot_fixtures.py
---weather); the verdict over built hours, since one recorded week is
-rarely both dry and snowy.
+The parser runs over a recorded answer (fixtures/nws_*.json).
 """
 
 from __future__ import annotations
@@ -20,12 +18,9 @@ from weather import (
     Hour,
     WeatherError,
     clock,
-    day_view,
-    daytime,
     fetch_hourly,
     gridpoint_of,
     parse_periods,
-    verdict,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -45,23 +40,6 @@ def points():
 def _hour(at: int, temp=55, precip=0, wind=5, short="Sunny", day=SATURDAY):
     start = datetime(day.year, day.month, day.day, at, tzinfo=DENVER_TZ)
     return Hour(start, temp, precip, wind, short)
-
-
-def _day(temps=None, precip=None, wind=None, short="Sunny", day=SATURDAY):
-    """The 13 daytime hours, 8 am to 8 pm, with per-hour overrides."""
-    out = []
-    for i, at in enumerate(range(8, 21)):
-        out.append(
-            _hour(
-                at,
-                temp=(temps or {}).get(at, 55),
-                precip=(precip or {}).get(at, 0),
-                wind=(wind or {}).get(at, 5),
-                short=short if not callable(short) else short(at),
-                day=day,
-            )
-        )
-    return out
 
 
 # --- parse_periods -------------------------------------------------------------
@@ -233,7 +211,7 @@ async def test_an_unreachable_nws_is_a_weather_error():
             await fetch_hourly(client)
 
 
-# --- the day and its verdict ---------------------------------------------------
+# --- the two words the Closet reads hours with ---------------------------------
 
 
 @pytest.mark.parametrize(
@@ -251,130 +229,10 @@ def test_clock(hour, text):
     assert clock(hour) == text
 
 
-def test_a_dry_day_names_its_window():
-    # The mockup's Saturday: rideable 10a to 3p, cold before, windy after.
-    hours = _day(temps={8: 40, 9: 44}, wind={h: 22 for h in range(15, 21)})
-    assert verdict(hours) == {
-        "state": "ok",
-        "text": "Ride window 10a–3p",
-        "window": [10, 15],
-    }
-
-
-def test_the_longest_run_wins_and_an_earlier_one_breaks_a_tie():
-    hours = _day(precip={11: 60, 14: 60})  # 8-11, 12-14, 15-21
-    assert verdict(hours)["window"] == [15, 21]
-    hours = _day(precip={10: 60, 13: 60, 14: 60, 15: 60, 16: 60, 17: 60, 18: 60})
-    assert verdict(hours)["window"] == [8, 10]  # ties 19-21, earlier wins
-
-
-def test_a_snowy_day_names_the_snow():
-    # The mockup's Sunday: cold all day, snow 10a to 5p.
-    hours = _day(
-        temps={h: 34 for h in range(8, 21)},
-        precip={h: 80 for h in range(10, 17)},
-        short=lambda h: "Snow" if 10 <= h < 17 else "Cloudy",
-    )
-    assert verdict(hours) == {
-        "state": "warn",
-        "text": "No ride window: snow from 10a",
-        "window": None,
-    }
-
-
-def test_rain_is_rain():
-    hours = _day(precip={h: 70 for h in range(8, 21)}, short="Chance Rain Showers")
-    assert verdict(hours)["text"] == "No ride window: rain from 8a"
-
-
-def test_a_null_probability_counts_as_dry():
-    hours = _day(precip={h: None for h in range(8, 21)})
-    assert verdict(hours)["state"] == "ok"
-
-
-def test_precipitation_is_named_before_cold_and_wind():
-    hours = _day(
-        temps={h: 30 for h in range(8, 21)},
-        wind={h: 30 for h in range(8, 21)},
-        precip={14: 50},
-    )
-    assert verdict(hours)["text"] == "No ride window: rain from 2p"
-
-
-def test_cold_all_day_names_the_high():
-    hours = _day(temps={h: 30 + (h - 8) for h in range(8, 21)})
-    assert verdict(hours)["text"] == "No ride window: too cold, 42° at best"
-
-
-def test_cold_is_named_before_wind():
-    hours = _day(
-        temps={h: 40 for h in range(8, 15)}, wind={h: 25 for h in range(15, 21)}
-    )
-    assert verdict(hours)["text"] == "No ride window: too cold some of the day"
-
-
-def test_one_cold_hour_is_only_some_of_the_day():
-    hours = _day(temps={8: 40}, wind={h: 25 for h in range(9, 21)})
-    assert verdict(hours)["text"] == "No ride window: too cold some of the day"
-
-
-def test_wind_alone():
-    hours = _day(wind={h: 25 for h in range(8, 21)})
-    assert verdict(hours)["text"] == "No ride window: wind 20 mph or more"
-
-
-def test_one_rideable_hour_is_not_a_window():
-    hours = _day(wind={h: 25 for h in range(8, 21) if h != 12})
-    assert verdict(hours)["state"] == "warn"
-
-
-def test_the_thresholds_are_the_spec_s():
-    edge = _day(
-        temps={h: weather.VERDICT["min_temp_f"] for h in range(8, 21)},
-        precip={h: weather.VERDICT["wet_pct"] - 1 for h in range(8, 21)},
-        wind={h: weather.VERDICT["max_wind_mph"] - 1 for h in range(8, 21)},
-    )
-    assert verdict(edge)["window"] == [8, 21]
-
-
-def test_no_hours_is_a_warning_not_an_error():
-    assert verdict([]) == {
-        "state": "warn",
-        "text": "No forecast for this day yet",
-        "window": None,
-    }
-
-
-def test_daytime_keeps_8am_to_8pm_on_the_day_in_denver():
-    late = [_hour(h) for h in range(0, 24)]
-    next_day = [_hour(9, day=SATURDAY + timedelta(days=1))]
-    picked = daytime(late + next_day, SATURDAY)
-    assert [h.starts_at.hour for h in picked] == list(range(8, 21))
-
-
-def test_daytime_reads_utc_starts_in_denver_time():
-    utc = Hour(datetime(2026, 11, 14, 15, tzinfo=weather.ZoneInfo("UTC")), 50, 0, 5, "")
-    assert daytime([utc], SATURDAY) == [utc]  # 8 am in Denver
-
-
-def test_the_day_view(hourly):
-    hours = parse_periods(hourly)
-    first_full = hours[0].starts_at.astimezone(DENVER_TZ).date() + timedelta(days=1)
-    view = day_view(hours, first_full)
-    assert view["date"] == first_full.isoformat()
-    assert view["name"] == first_full.strftime("%A")
-    assert len(view["hours"]) == 13
-    assert [h["label"] for h in view["hours"]][:5] == ["8a", "9a", "10a", "11a", "noon"]
-    assert view["low"] <= min(h["temp_f"] for h in view["hours"])
-    assert view["high"] >= max(h["temp_f"] for h in view["hours"])
-    assert view["verdict"]["state"] in {"ok", "warn"}
-    assert view["summary"]
-
-
-def test_a_day_past_the_forecast_has_no_bars():
-    view = day_view([], SATURDAY)
-    assert view["hours"] == [] and view["high"] is None
-    assert view["verdict"]["state"] == "warn"
+def test_an_hour_is_wet_at_forty_percent_and_a_null_counts_as_dry():
+    assert weather.is_wet(_hour(9, precip=40))
+    assert not weather.is_wet(_hour(9, precip=39))
+    assert not weather.is_wet(_hour(9, precip=None))
 
 
 # --- The cached hours' day window -------------------------------------------

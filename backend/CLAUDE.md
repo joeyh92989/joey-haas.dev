@@ -32,23 +32,8 @@ link to an item carry `item_slug` (`slug`, `series_slug`, `title_slug` on the it
 issue pages). `analytics.py` counts slug paths and `public_path_filter` keeps a slug page
 only while its item is public. Admin routes stay keyed by id.
 
-## Denver spots, test login
+## ISBN lookup, test login
 
-- Denver spots: the public `/denver` map and list,
-  `/admin/spots` (finder and spot list) and `/admin/weekend` (planner),
-  backed by `spots_routes.py`, `spots_candidates_routes.py` and
-  `spots_weekend_routes.py`, with the sources in `backend/spot_sources/`
-  (read its README first). The map drawing in `content/maps/denver.js` is
-  generated from OpenStreetMap by `frontend/scripts/draw-denver-map.mjs`
-  and is ODbL: keep its header, and keep the visible attribution `SpotMap`
-  draws from it, linking https://www.openstreetmap.org/copyright. Settings, last-run summaries
-  (`weather.last_run`, `candidates.last_run`) and each week's plan
-  (`plan:<iso-week>`) are rows in `spot_settings` (one JSONB value per
-  key), never new columns. The public field for a spot's line is `blurb`,
-  because `test_public_outputs.py` forbids `note` at any depth, and
-  `PublicSpot` carries `spot_id` and no anchor, visit or distance. The
-  Dashboard's Weekend forecast and Spot finder rows read
-  `GET /api/spots/status`.
 - **ISBN lookup (story #336).** `sources/openlibrary.py` (Open Library,
   keyless, not a registry adapter) and `intake/isbn_route.py`
   (`GET /api/intake/isbn/{isbn}`); read `sources/README.md` ("Open Library") and
@@ -957,19 +942,19 @@ only while its item is public. Admin routes stay keyed by id.
   land the same night), then the comic tags
   (`POST /api/comics/tags/generate?budget=12`, in `JOB_ROUTES`, one model
   call per untagged public series inside the free-tier budget), then the
-  weekend forecast, then the Closet's tag queue
+  forecast job (the Closet's Today reads it), then the Closet's tag queue
   (`POST /api/closet/jobs/tag`), then tomorrow's outfit plans
   (`POST /api/closet/jobs/plan`), then registry,
   then the WooCommerce stores on Render, then the Shopify stores walked on the runner
   (`backend/scripts/walk_stores.py`, posting each to
   `/api/physical/stores/{key}/ingest`: Shopify rate-limits Render's IP), then Switch 1
   (Sunday evenings in Denver), then resolve (up to 5 rounds), then Radar,
-  then Discover (Sunday evenings), then the spot finder (Sunday evenings),
+  then Discover (Sunday evenings),
   then the Closet's Review opinion (`POST /api/closet/jobs/opinion`, Sunday
   evenings, or any night started by hand with `closet_opinion`), then the
   page-view rollup, then the snapshot compare and the deploy hook.
-  The weekend forecast (`POST /api/spots/weather/refresh`) runs right after
-  the comics, every night. There is no picks step: the public picks are
+  The forecast job (`POST /api/weather/refresh`, `weather_routes.py`, summary in
+  `closet_settings["weather.last_run"]`) runs right after the comics, every night. There is no picks step: the public picks are
   computed live, and `POST /api/picker/next` is out of `JOB_ROUTES`.
 - **`next_list.py`** (pure, with `next_load.py` loading the rows) is the one
   sectioning authority for `/api/public/next` and

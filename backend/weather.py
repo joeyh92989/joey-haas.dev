@@ -1,27 +1,25 @@
-"""The weekend planner's weather: the NWS hourly forecast and its verdict.
+"""The cached NWS hourly forecast: fetch, parse, and read back by Denver day.
 
 Two halves. `fetch_hourly` resolves the downtown gridpoint through
 `/points` and reads its `forecastHourly` URL with the caller's client (the
 catalogue's, for its identifying User-Agent, which NWS requires). The rest
-is pure: `parse_periods` turns NWS periods into `Hour`s, `day_view` picks
-one Denver day's 8 am to 8 pm, and `verdict` names the ride window or the
-blocker. No FastAPI and no SQLAlchemy in the import graph --
-tests/test_physical_imports.py holds it to that -- and only the job route
-calls `fetch_hourly`: nothing on a page's request path reaches NWS.
+is pure: `parse_periods` turns NWS periods into `Hour`s, and `is_wet` and
+`clock` are the two words the Closet's Today reads them with. No FastAPI and
+no SQLAlchemy in the import graph -- tests/test_physical_imports.py holds it
+to that -- and only the job route (`weather_routes.py`) calls
+`fetch_hourly`: nothing on a page's request path reaches NWS.
 
-`hours_for_day` is the one read of the cached `weather_hours`, shared by
-the weekend planner and Closet's Today. It takes the caller's session and
-imports SQLAlchemy and the model inside the function, so importing this
-module still loads neither.
+`hours_for_day` is the one read of the cached `weather_hours`, used by the
+Closet's Today. It takes the caller's session and imports SQLAlchemy and the
+model inside the function, so importing this module still loads neither.
 
-Spec and plan: docs/planning/2026-11-08-denver-spots-design.md.
+The recorded answers in tests/fixtures/nws_*.json were recorded by hand from
+api.weather.gov; there is no recorder script.
 """
 
 from __future__ import annotations
 
 import re
-from collections import Counter
-from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -35,20 +33,9 @@ DOWNTOWN = (39.7392, -104.9903)
 DENVER_TZ = ZoneInfo("America/Denver")
 REQUEST_TIMEOUT_SECONDS = 30.0
 
-# The verdict's rules, in one place (spec: Key decisions, Weather verdict
-# rules). Hours `first_hour` to `last_hour` inclusive are the day's 13 bars;
-# an hour is rideable at `min_temp_f` or warmer, below `wet_pct`
-# precipitation probability (a null one counts as 0), and below
-# `max_wind_mph`. The longest rideable run of `min_window_hours` or more is
-# the window.
-VERDICT = {
-    "first_hour": 8,
-    "last_hour": 20,
-    "min_temp_f": 45,
-    "wet_pct": 40,
-    "max_wind_mph": 20,
-    "min_window_hours": 2,
-}
+# An hour is wet at this precipitation probability or more (a null one
+# counts as 0).
+WET_PCT = 40
 
 
 class WeatherError(Exception):
@@ -227,23 +214,8 @@ async def hours_for_day(session, day: date, last: date | None = None) -> list[Ho
     ]
 
 
-# --- One day, and its verdict ------------------------------------------------
-
-
-def _local(hour: Hour) -> datetime:
-    return hour.starts_at.astimezone(DENVER_TZ)
-
-
-def _rideable(hour: Hour) -> bool:
-    return (
-        hour.temp_f >= VERDICT["min_temp_f"]
-        and (hour.precip_pct or 0) < VERDICT["wet_pct"]
-        and hour.wind_mph < VERDICT["max_wind_mph"]
-    )
-
-
 def is_wet(hour: Hour) -> bool:
-    return (hour.precip_pct or 0) >= VERDICT["wet_pct"]
+    return (hour.precip_pct or 0) >= WET_PCT
 
 
 def clock(hour: int) -> str:
@@ -254,98 +226,3 @@ def clock(hour: int) -> str:
     if hour == 12:
         return "noon"
     return f"{hour}a" if hour < 12 else f"{hour - 12}p"
-
-
-def daytime(hours: Iterable[Hour], day: date) -> list[Hour]:
-    """`day`'s hours from 8 am to 8 pm, Denver time, in order."""
-    first, last = VERDICT["first_hour"], VERDICT["last_hour"]
-    picked = [
-        h for h in hours if _local(h).date() == day and first <= _local(h).hour <= last
-    ]
-    return sorted(picked, key=lambda h: h.starts_at)
-
-
-def _window(hours: list[Hour]) -> tuple[int, int] | None:
-    """The longest run of rideable consecutive hours, as (start, end) local
-    hours with `end` the hour the run stops; the earlier run wins a tie."""
-    best: tuple[int, int] | None = None
-    start: int | None = None
-    previous: int | None = None
-    for hour in [*hours, None]:
-        local = _local(hour).hour if hour is not None else None
-        ok = hour is not None and _rideable(hour)
-        if ok and start is not None and previous is not None and local == previous + 1:
-            previous = local
-            continue
-        if start is not None and previous is not None:
-            if best is None or previous + 1 - start > best[1] - best[0]:
-                best = (start, previous + 1)
-        start, previous = (local, local) if ok else (None, None)
-    return best
-
-
-def _precip_word(hour: Hour) -> str:
-    return "snow" if "snow" in hour.short.lower() else "rain"
-
-
-def _blocker(hours: list[Hour]) -> str:
-    """What rules the day out, precipitation first, then cold, then wind."""
-    wet = [h for h in hours if is_wet(h)]
-    if wet:
-        return f"{_precip_word(wet[0])} from {clock(_local(wet[0]).hour)}"
-    if all(h.temp_f < VERDICT["min_temp_f"] for h in hours):
-        return f"too cold, {max(h.temp_f for h in hours)}° at best"
-    if any(h.temp_f < VERDICT["min_temp_f"] for h in hours):
-        return "too cold some of the day"
-    # Nothing wet and nothing cold leaves wind as the only thing `_rideable`
-    # refuses, so it is the blocker by elimination.
-    return f"wind {VERDICT['max_wind_mph']} mph or more"
-
-
-def verdict(hours: list[Hour]) -> dict:
-    """`{state, text, window}` for one day's 8 am to 8 pm hours.
-
-    `ok` names the longest rideable run of two hours or more ("Ride window
-    10a–3p"); `warn` names what blocks the day. `window` is `[start, end]`
-    in local hours, or null.
-    """
-    if not hours:
-        return {"state": "warn", "text": "No forecast for this day yet", "window": None}
-    window = _window(hours)
-    if window and window[1] - window[0] >= VERDICT["min_window_hours"]:
-        text = f"Ride window {clock(window[0])}–{clock(window[1])}"
-        return {"state": "ok", "text": text, "window": list(window)}
-    return {
-        "state": "warn",
-        "text": f"No ride window: {_blocker(hours)}",
-        "window": None,
-    }
-
-
-def day_view(hours: Iterable[Hour], day: date) -> dict:
-    """What the page draws for one day: the 13 bars, high and low over the
-    whole local day, the commonest daytime forecast, and the verdict."""
-    hours = list(hours)
-    whole = [h for h in hours if _local(h).date() == day]
-    bars = daytime(hours, day)
-    summary = Counter(h.short for h in bars if h.short).most_common(1)
-    return {
-        "date": day.isoformat(),
-        "name": day.strftime("%A"),
-        "high": max((h.temp_f for h in whole), default=None),
-        "low": min((h.temp_f for h in whole), default=None),
-        "summary": summary[0][0] if summary else None,
-        "hours": [
-            {
-                "hour": _local(h).hour,
-                "label": clock(_local(h).hour),
-                "temp_f": h.temp_f,
-                "precip_pct": h.precip_pct,
-                "wind_mph": h.wind_mph,
-                "wet": is_wet(h),
-                "rideable": _rideable(h),
-            }
-            for h in bars
-        ],
-        "verdict": verdict(bars),
-    }

@@ -76,7 +76,7 @@ THINKING_LEVELS = {
 
 # Two orders over the same models, so either can fall all the way through.
 #
-# Text-only calls (Discover, closet opinion and Today, spot scoring) rank
+# Text-only calls (Discover, closet opinion and Today) rank
 # against a schema; the Flash-Lite models answered those in 0.6s while 3.8 and
 # 3.7 hung for a minute and 3.6 answered 503, so they lead.
 #

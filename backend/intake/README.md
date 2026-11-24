@@ -376,7 +376,7 @@ a request per photo fits the free tier's slow reads and isolates a
 failure. The nightly is the only reader after the tab closes. Its
 workflow step (`.github/workflows/nightly.yml`, `call intake 600`) runs
 after the Closet's outfit plans and before the registry, so it comes
-before Discover, the spot finder and the Closet opinion, which the reserve
+before Discover and the Closet opinion, which the reserve
 of 12 calls is kept for. A spent budget is an ok night, not a failure:
 the photos wait for tomorrow.
 
