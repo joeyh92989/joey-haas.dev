@@ -260,49 +260,6 @@ test.describe('Report-Only CSP (#263)', () => {
   }
 })
 
-test.describe('SpotMap action is a button, not on the image (#275)', () => {
-  test('Clear selection is a named, keyboard-reachable button at 400px', async ({
-    page,
-    openRoute,
-  }) => {
-    await page.setViewportSize(PHONE)
-    await page.route('**/snapshot/spots.json', (route) =>
-      route.fulfill({
-        json: [
-          {
-            spot_id: 'a',
-            name: 'Union Station',
-            slug: 'union-station',
-            neighbourhood: 'LoDo',
-            tags: [],
-            blurb: null,
-            lat: 39.7527,
-            lng: -105.0003,
-          },
-        ],
-      }),
-    )
-    await openRoute('/denver', 'dark')
-    await page.getByRole('button', { name: 'Map', exact: true }).click()
-    await page.locator('.spot-map-pin').first().click()
-
-    const clear = page.getByRole('button', { name: 'Clear selection' })
-    await expect(clear).toBeVisible()
-    await clear.focus()
-    await expect(clear).toBeFocused()
-    expect(await clear.getAttribute('tabindex')).not.toBe('-1')
-
-    // The role=img drawing holds no control and takes no focus.
-    const image = page.locator('.spot-map-ground[role="img"]')
-    await expect(image).toHaveAttribute('aria-label', /.+/)
-    expect(await image.locator('button, a, [tabindex]').count()).toBe(0)
-    expect(await image.getAttribute('tabindex')).toBeNull()
-
-    await clear.press('Enter')
-    await expect(clear).toBeHidden()
-  })
-})
-
 test.describe('keyboard focus ring (#528)', () => {
   // The shared components once shipped `outline-none` beside `outline-2`, and
   // Tailwind v4 then draws no ring at all. Tab onto the real control and read

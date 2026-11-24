@@ -13,8 +13,7 @@ import {
 } from './travelClasses.js'
 
 /**
- * A hand-drawn map with numbered stops: the travel route map, and the
- * component Denver spots is to reuse rather than add a second one.
+ * A hand-drawn map with numbered stops: the travel route map.
  *
  * The drawing is a prop (a component rendering SVG shapes in the
  * `drawn-map__*` classes, which CSS colours from tokens), placed by a

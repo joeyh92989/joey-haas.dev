@@ -8,7 +8,7 @@ import { badgeVariants } from './components/ui/badge-variants.js'
 import * as shelf from './components/shelf-classes.js'
 import * as detail from './components/detail-classes.js'
 import * as prose from './components/prose-classes.js'
-import * as denverSite from './components/denverSiteClasses.js'
+import * as siteAdmin from './components/siteAdminClasses.js'
 import * as home from './components/adminHomeClasses.js'
 import * as adminData from './components/adminDataClasses.js'
 import * as adminShelf from './components/adminShelfClasses.js'
@@ -77,7 +77,7 @@ const OWN = {
   'adminShellClasses.js': adminShell,
   'closetClasses.js': closet,
   'adminHomeClasses.js': home,
-  'denverSiteClasses.js': denverSite,
+  'siteAdminClasses.js': siteAdmin,
 }
 
 // Families a variant's own string and a literal joined to it can both set:
@@ -132,11 +132,11 @@ function evaluate(statement, own = {}) {
     parts.push(mastButton(m[1]))
   }
   for (const m of statement.matchAll(/['"`]([^'"`]*)['"`]/g)) parts.push(m[1])
-  // The Denver and Site helpers (#535): a constant spliced into a template,
+  // The Site helpers (#535): a constant spliced into a template,
   // `${box} text-sm ...`.
   for (const m of statement.matchAll(/\$\{(\w+)\}/g)) {
     if (typeof own[m[1]] === 'string') parts.push(own[m[1]])
-    else if (typeof denverSite[m[1]] === 'string') parts.push(denverSite[m[1]])
+    else if (typeof siteAdmin[m[1]] === 'string') parts.push(siteAdmin[m[1]])
   }
   for (const m of statement.matchAll(/\b([A-Z][A-Z_]{3,})\b/g)) {
     if (typeof own[m[1]] === 'string') parts.push(own[m[1]])

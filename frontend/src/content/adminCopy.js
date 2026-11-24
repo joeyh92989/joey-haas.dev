@@ -62,13 +62,11 @@ export const adminCopy = {
   dashboard: {
     change: 'Change',
     closet: 'Closet',
-    denver: 'Outings',
     home: 'Home',
     jobs: 'All jobs',
     loading: 'Loading…',
     logError: 'Couldn’t log tonight.',
     nightlyUnread: 'The nightly status couldn’t be read.',
-    reviewCandidates: 'Review candidates',
     shelf: 'Shelf',
     site: 'Site & jobs',
     swap: 'Swap',
@@ -110,19 +108,6 @@ export const adminCopy = {
     failed: 'Failed',
     run: 'Run now',
     running: 'Running…',
-  },
-  spots: {
-    actions: 'Actions',
-    anchor: 'Anchor',
-    edit: 'Edit',
-    isPublic: 'Public',
-    lastVisit: 'Last visit',
-    logVisit: 'Log visit',
-    spot: 'Spot',
-    tags: 'Tags',
-  },
-  weekend: {
-    miles: 'mi',
   },
   shell: {
     account: 'Account',

@@ -125,13 +125,9 @@ export async function serveHome(page, { posts = [], stopped = false } = {}) {
         return json(stopped ? { sources: [] } : STATUS)
       case '/api/recommendations/store-list':
         return json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } })
-      case '/api/spots/status':
-        return json({
-          'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
-          'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
-        })
       case '/api/closet/status':
         return json({
+          'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
           'tag.last_run': { at: ago(2), state: 'ok' },
           'plan.last_run': {
             at: ago(3),
@@ -176,20 +172,6 @@ export async function serveHome(page, { posts = [], stopped = false } = {}) {
           tonight: { up_next: null, picks: [] },
           comics_this_week: Array.from({ length: 120 }, () => ({})),
         })
-      case '/api/spots/plan':
-        return json({
-          suggestions: [
-            {
-              when: 'Saturday morning',
-              name: 'Chautauqua Park and the Royal Arch trailhead loop',
-            },
-            { when: 'Sunday', name: UNBROKEN },
-          ],
-        })
-      case '/api/spots':
-        return json(Array.from({ length: 214 }, () => ({})))
-      case '/api/spots/candidates':
-        return json(Array.from({ length: 112 }, () => ({})))
       case '/api/analytics':
         return json({
           views: 12840,

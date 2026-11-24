@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SearchDialog from './SearchDialog.jsx'
 
 vi.mock('../content/posts.js', () => ({ posts: [] }))
-// A build whose spots snapshot is empty (#183).
-vi.mock('../lib/snapshotPresence.js', () => ({ hiddenPaths: ['/denver'] }))
+// A build with a page hidden (#183).
+vi.mock('../lib/snapshotPresence.js', () => ({ hiddenPaths: ['/daily'] }))
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -21,20 +21,22 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('SearchDialog with an empty Denver', () => {
-  it('does not offer the Denver page', async () => {
+describe('SearchDialog with a hidden page', () => {
+  it('does not offer the hidden page', async () => {
     const user = userEvent.setup()
     render(
       <MemoryRouter>
         <SearchDialog open onClose={() => {}} />
       </MemoryRouter>,
     )
-    await user.type(screen.getByRole('combobox', { name: 'Search' }), 'denver')
+    await user.type(screen.getByRole('combobox', { name: 'Search' }), 'game')
     const pages = screen.getByRole('group', { name: 'Pages' })
-    // Other pages still match ("Denver" is in Home's description).
+    // Other pages still match ("game" is in Home's description).
     expect(
       within(pages).getByRole('option', { name: /^Home/ }),
     ).toBeInTheDocument()
-    expect(within(pages).queryByRole('option', { name: /^Denver/ })).toBeNull()
+    expect(
+      within(pages).queryByRole('option', { name: /^Daily game/ }),
+    ).toBeNull()
   })
 })

@@ -66,14 +66,8 @@ describe('SiteFooter', () => {
     expect(names).toEqual(['Now', 'Daily game', 'TIL', 'Colophon'])
   })
 
-  it('links Denver unless the snapshot says it has no spots', () => {
-    expect(
-      renderFooter(false).getByRole('link', { name: 'Denver' }),
-    ).toHaveAttribute('href', '/denver')
-  })
-
-  it('drops Denver, and only Denver, when it has no spots', () => {
-    renderFooter(false, false, { hasSpots: false })
+  it('does not link Denver, which is gone', () => {
+    renderFooter(false)
     const credit = screen
       .getByRole('contentinfo')
       .querySelector('.footer-credit')

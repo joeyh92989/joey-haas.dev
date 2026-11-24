@@ -1,5 +1,5 @@
-// Synthetic bodies for the tools and data pages (#534). /stats, /denver and
-// Pick for me read snapshots the shared fixture set (e2e/fixtures/snapshot)
+// Synthetic bodies for the tools and data pages (#534). /stats and Pick for me
+// read snapshots the shared fixture set (e2e/fixtures/snapshot)
 // does not carry, and adding them there would change every other route's
 // More menu and baselines; this spec serves them from the page instead.
 
@@ -37,56 +37,6 @@ const summary = (views, visitors) => ({
 })
 
 export const SITE_STATS = { thirty: summary(214, 118), all: summary(1834, 902) }
-
-const spot = (id, name, neighbourhood, tags, blurb, lat, lng) => ({
-  spot_id: id,
-  name,
-  slug: name.toLowerCase().replace(/\W+/g, '-'),
-  neighbourhood,
-  tags,
-  blurb,
-  lat,
-  lng,
-})
-
-export const SPOTS = [
-  spot(
-    's1',
-    'Union Station',
-    'LoDo',
-    ['kid-ok', 'rainy-day'],
-    'Great hall, trains to watch, and a bookshop under the arches.',
-    39.7527,
-    -105.0003,
-  ),
-  spot(
-    's2',
-    'Commons Park',
-    'Central Platte Valley',
-    ['park', 'kid-ok'],
-    null,
-    39.7578,
-    -105.0072,
-  ),
-  spot(
-    's3',
-    'Washington Park',
-    'Wash Park',
-    ['park'],
-    'A loop with two lakes.',
-    39.7007,
-    -104.9707,
-  ),
-  spot(
-    's4',
-    'Denver Botanic Gardens',
-    'Cheesman Park',
-    ['rainy-day'],
-    null,
-    39.7321,
-    -104.9615,
-  ),
-]
 
 const card = (id, title, hours) => ({
   item_id: id,
@@ -146,7 +96,6 @@ export const NEXT = {
 
 const BODIES = {
   'site-stats': SITE_STATS,
-  spots: SPOTS,
   'pick-for-me': PICK_TABLE,
   next: NEXT,
 }

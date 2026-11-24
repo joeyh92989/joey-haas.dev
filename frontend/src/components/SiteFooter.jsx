@@ -22,14 +22,11 @@ const FOOTER_P =
  * @param {boolean} [props.hasNotes] Whether a TIL note is published; the
  *   link waits for one, as the masthead's Blog item waits for a post.
  * @param {boolean} [props.hasTrips] Whether a trip is published, likewise.
- * @param {boolean} [props.hasSpots] Whether /denver has a spot to show. True
- *   unless the build's snapshot says otherwise (`lib/snapshotPresence.js`).
  */
 export default function SiteFooter({
   signedIn,
   hasNotes = false,
   hasTrips = false,
-  hasSpots = true,
 }) {
   return (
     <footer className="site-footer mt-12 border-t border-t-border pt-6 pb-8 text-[0.8125rem]">
@@ -46,11 +43,6 @@ export default function SiteFooter({
           {hasTrips && (
             <>
               &middot; <Link to="/travel">Travel</Link>{' '}
-            </>
-          )}
-          {hasSpots && (
-            <>
-              &middot; <Link to="/denver">Denver</Link>{' '}
             </>
           )}
           &middot; <Link to="/colophon">Colophon</Link> &middot;{' '}

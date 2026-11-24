@@ -1,11 +1,11 @@
 /**
- * Whether the pages behind the Games and Comics tabs and the Denver footer link have
+ * Whether the pages behind the Games and Comics tabs have
  * anything to show, read from the build-time snapshot (#125).
  *
  * `vite.config.js` calls this once per build and hands the answer to the
  * app as `__SNAPSHOT_PRESENCE__` (read by `src/lib/snapshotPresence.js`).
  * `npm run build` runs `fetch-snapshot.mjs` before `vite build`, and the
- * nightly job redeploys when the comics or spots snapshot changes, so the
+ * nightly job redeploys when the comics snapshot changes, so the
  * answer is exactly as fresh as the snapshot the pages themselves paint,
  * with no request at runtime and no link that flashes in or out.
  *
@@ -33,16 +33,11 @@ const COUNTS = {
     file: 'comics',
     count: (body) => (Array.isArray(body?.series) ? body.series.length : null),
   },
-  // /denver shows "No spots yet." with no spots.
-  spots: {
-    file: 'spots',
-    count: (body) => (Array.isArray(body) ? body.length : null),
-  },
 }
 
 /**
  * @param {string} dir The snapshot directory (public/snapshot).
- * @returns {{games: boolean|null, comics: boolean|null, spots: boolean|null}}
+ * @returns {{games: boolean|null, comics: boolean|null}}
  */
 export function snapshotPresence(dir) {
   const presence = {}

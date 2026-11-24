@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('../lib/snapshotPresence.js', () => ({
   hasComics: false,
   hasGames: true,
-  hasSpots: true,
 }))
 
 const { default: SpineTabs } = await import('./SpineTabs.jsx')

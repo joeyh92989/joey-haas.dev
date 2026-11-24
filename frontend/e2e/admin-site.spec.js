@@ -1,12 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
 import { tabRings } from './focus-ring.js'
-import { mockDenverSite } from './denver-site-mocks.js'
+import { mockSite } from './site-mocks.js'
 
-// The Denver and Site areas (#535, slice 3): Weekend, Spots and Analytics with
-// long names, every tag and big numbers, at the four review widths, in both
+// The Site area (#535, slice 3): Analytics with long names and big numbers, at the four review widths, in both
 // themes. Desktop project only (the viewport is set here). The API is routed
-// in the page (denver-site-mocks.js), so no database rows are needed.
+// in the page (site-mocks.js), so no database rows are needed.
 const WIDTHS = [
   { width: 320, height: 700 },
   { width: 390, height: 800 },
@@ -18,19 +17,6 @@ const GATED = ['serious', 'critical']
 
 // A state is a route and what to press to reach it.
 const STATES = [
-  { name: 'weekend', route: '/admin/weekend' },
-  {
-    name: 'weekend-constraints',
-    route: '/admin/weekend',
-    prepare: (page) => page.getByRole('button', { name: /^Edit/ }).click(),
-  },
-  { name: 'spots', route: '/admin/spots' },
-  {
-    name: 'spots-form',
-    route: '/admin/spots',
-    prepare: (page) =>
-      page.getByRole('button', { name: 'Add by hand' }).click(),
-  },
   { name: 'analytics', route: '/admin/analytics' },
   {
     name: 'analytics-all',
@@ -42,7 +28,7 @@ const STATES = [
 test.beforeEach(async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'desktop project only')
   await page.route('**/api/track', (route) => route.abort())
-  await mockDenverSite(page)
+  await mockSite(page)
 })
 
 async function open(page, state, { width, height }, theme = 'light') {
@@ -89,37 +75,12 @@ for (const size of WIDTHS) {
   }
 }
 
-// The spots table scrolls inside its own wrapper; it must not widen the page,
-// and it must say so rather than clip: the wrapper is the only scroller.
-for (const size of WIDTHS) {
-  test(`the spots table stays in its wrapper at ${size.width}px`, async ({
-    page,
-  }) => {
-    await open(page, STATES[2], size)
-    const result = await page.evaluate(() => {
-      const table = document.querySelector('table')
-      const wrap = table.parentElement
-      return {
-        wrap: wrap.getBoundingClientRect().right,
-        edge: document.documentElement.clientWidth,
-        scrolls: getComputedStyle(wrap).overflowX,
-        // A visually hidden label inside a scroller escapes it, and widens
-        // the page, unless the scroller is positioned.
-        position: getComputedStyle(wrap).position,
-      }
-    })
-    expect(result.wrap).toBeLessThanOrEqual(result.edge)
-    expect(result.scrolls).toBe('auto')
-    expect(result.position).toBe('relative')
-  })
-}
-
 // #598: the Best day tile's detail ("Sun, Oct 18 · <referrer>") wraps inside
 // its tile at the narrow widths, with nothing clipped by the tile's own
 // overflow, and the phone's page links are 44px tall with the label centred.
 for (const width of [320, 390]) {
   test(`the Best day detail is not clipped at ${width}px`, async ({ page }) => {
-    await open(page, STATES[4], { width, height: 800 })
+    await open(page, STATES[0], { width, height: 800 })
     const clipped = await page.evaluate(() =>
       [...document.querySelectorAll('.stat-detail')]
         .filter((el) => el.scrollWidth > el.clientWidth)
@@ -133,7 +94,7 @@ for (const width of [320, 390]) {
   test(`the shell's phone page links are 44px with the label centred at ${width}px`, async ({
     page,
   }) => {
-    await open(page, STATES[2], { width, height: 800 })
+    await open(page, STATES[0], { width, height: 800 })
     const links = page.locator('.admin-subnav a, .admin-subnav button')
     await expect(links.first()).toBeVisible()
     const boxes = await links.evaluateAll((list) =>
@@ -153,27 +114,6 @@ for (const width of [320, 390]) {
       expect(height).toBeGreaterThanOrEqual(44)
       expect(gap).toBeLessThanOrEqual(1)
     }
-  })
-}
-
-// Every action in the spots table is reached by real Tab presses, whole, with
-// its ring painted, at the widths the half-width column is tightest. At 1280
-// and above the table needs no sideways scroll at all.
-for (const width of [1440, 1280, 1100, 900, 390, 320]) {
-  test(`spots table actions are whole under Tab at ${width}px`, async ({
-    page,
-  }) => {
-    test.setTimeout(240_000)
-    await open(page, STATES[2], { width, height: 800 })
-    const fits = await page.evaluate(() => {
-      const wrap = document.querySelector('table').parentElement
-      return wrap.scrollWidth - wrap.clientWidth
-    })
-    if (width >= 1280) expect(fits, 'the table scrolls sideways').toBe(0)
-    const controls = page.locator(
-      'main table :is(button, input):not(:disabled)',
-    )
-    expect(await tabRings(page, controls)).toEqual([])
   })
 }
 
@@ -215,48 +155,6 @@ for (const state of STATES) {
   })
 }
 
-// Computed styles the legacy sheet and the utilities fight over: a utility
-// width (`w-full`) must not beat the page's own narrow fields, and the saved
-// card's green border must not lose to the Card look's border colour.
-test('the constraints fields keep their narrow widths at 1280px', async ({
-  page,
-}) => {
-  await open(page, STATES[1], WIDTHS[2])
-  const widths = await page.evaluate(() => ({
-    miles: document.querySelector('.wk-field input').getBoundingClientRect()
-      .width,
-    home: document.querySelector('.wk-field select').getBoundingClientRect()
-      .width,
-    rows: [...document.querySelectorAll('.wk-field')].map(
-      (el) => el.getBoundingClientRect().height,
-    ),
-  }))
-  expect(widths.miles).toBe(96)
-  expect(widths.home).toBeLessThan(160)
-  // One line each: the label does not wrap.
-  for (const height of widths.rows) expect(height).toBeLessThan(50)
-})
-
-test('the saved suggestion keeps its green border', async ({ page }) => {
-  await open(page, STATES[0], WIDTHS[2])
-  const { card, ok, plain } = await page.evaluate(() => {
-    const probe = document.createElement('i')
-    probe.style.color = 'var(--ok)'
-    document.body.append(probe)
-    const ok = getComputedStyle(probe).color
-    probe.remove()
-    const saved = document.querySelector('.sug.saved')
-    const other = document.querySelector('.sug:not(.saved):not(.lead)')
-    return {
-      card: getComputedStyle(saved).borderTopColor,
-      ok,
-      plain: getComputedStyle(other).borderTopColor,
-    }
-  })
-  expect(card).toBe(ok)
-  expect(card).not.toBe(plain)
-})
-
 for (const state of STATES) {
   for (const theme of THEMES) {
     test(`axe finds no serious violation on ${state.name}, ${theme}`, async ({
@@ -279,7 +177,7 @@ for (const state of STATES) {
 
 // Review shots: set E2E_SHOT_DIR to save each state at the four widths in
 // both themes.
-test('denver and site review shots', async ({ page }) => {
+test('site review shots', async ({ page }) => {
   test.skip(!process.env.E2E_SHOT_DIR, 'set E2E_SHOT_DIR to save the shots')
   test.setTimeout(900_000)
   for (const theme of THEMES) {
@@ -292,33 +190,5 @@ test('denver and site review shots', async ({ page }) => {
         })
       }
     }
-  }
-})
-
-// Review shots of the keyboard state: Tab to an action far down the spots
-// table (the viewport as the browser scrolled it) and the saved suggestion.
-test('denver and site focus shots', async ({ page }) => {
-  test.skip(!process.env.E2E_SHOT_DIR, 'set E2E_SHOT_DIR to save the shots')
-  test.setTimeout(300_000)
-  for (const theme of THEMES) {
-    for (const size of [WIDTHS[1], WIDTHS[2]]) {
-      await open(page, STATES[2], size, theme)
-      await page.locator('main h1').focus()
-      for (let i = 0; i < 120; i++) {
-        await page.keyboard.press('Tab')
-        const label = await page.evaluate(
-          () => document.activeElement?.getAttribute('aria-label') ?? '',
-        )
-        if (label.startsWith('Log a visit to Great Divide')) break
-      }
-      await page.waitForTimeout(300)
-      await page.screenshot({
-        path: `${process.env.E2E_SHOT_DIR}/focus-spots-${size.width}-${theme}.png`,
-      })
-    }
-    await open(page, STATES[0], WIDTHS[2], theme)
-    await page.locator('.sug.saved').screenshot({
-      path: `${process.env.E2E_SHOT_DIR}/focus-saved-${theme}.png`,
-    })
   }
 })

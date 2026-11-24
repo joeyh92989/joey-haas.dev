@@ -111,26 +111,6 @@ export async function e1({ record }, theme, vp) {
       on('.pager .chip', 'hover', 0, at(`${mode}comics pager chip hover`)),
     )
     await record(
-      at(`${mode}denver chip hover`),
-      spec('/denver', 'denver', touch),
-      on(
-        '.chip[aria-pressed="false"]',
-        'hover',
-        0,
-        at(`${mode}denver chip hover`),
-      ),
-    )
-    await record(
-      at(`${mode}denver chip pressed hover`),
-      spec('/denver', 'denver', touch),
-      on(
-        '.chip[aria-pressed="true"]',
-        'hover',
-        0,
-        at(`${mode}denver chip pressed hover`),
-      ),
-    )
-    await record(
       at(`${mode}play next chip hover`),
       spec('/admin/play-next', 'play-next', touch),
       on(

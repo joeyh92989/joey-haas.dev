@@ -1,13 +1,13 @@
 /* global __SNAPSHOT_PRESENCE__ */
 
 /**
- * Whether Games, Comics and Denver have anything to show, decided at build time
+ * Whether Games and Comics have anything to show, decided at build time
  * from the snapshot (`scripts/snapshot-presence.mjs`, injected by
  * `vite.config.js`). A static fact, like `hasNotes` and `hasTrips`: no
- * request, so the Comics tab and the Denver footer link never flash.
+ * request, so the Comics tab never flashes.
  *
  * Only a snapshot that was written and is empty hides a link. Dev, tests and
- * a build whose optional fetch failed have no answer, and keep both links.
+ * a build whose optional fetch failed have no answer, and keep the links.
  */
 const presence =
   typeof __SNAPSHOT_PRESENCE__ === 'undefined' ? {} : __SNAPSHOT_PRESENCE__
@@ -18,9 +18,6 @@ export const hasGames = presence.games !== false
 /** False only when the build's comics snapshot holds no series. */
 export const hasComics = presence.comics !== false
 
-/** False only when the build's spots snapshot holds no spots. */
-export const hasSpots = presence.spots !== false
-
 /**
  * The pages whose snapshot is written and empty. They stay routable, but the
  * sitemap, search and changelog links leave them out. A future page joins by
@@ -30,12 +27,11 @@ export const hasSpots = presence.spots !== false
  * is a copy of the same file (`public/snapshot`), so the prerender step and
  * the app agree whichever directory is read.
  *
- * @param {{comics?: boolean|null, games?: boolean|null, spots?: boolean|null}} p A presence record.
+ * @param {{comics?: boolean|null, games?: boolean|null}} p A presence record.
  * @returns {string[]}
  */
 export function hiddenPathsFor(p) {
   return [
-    ...(p.spots === false ? ['/denver'] : []),
     ...(p.comics === false ? ['/shelf/comics'] : []),
     ...(p.games === false ? ['/shelf/games'] : []),
   ]
@@ -43,7 +39,8 @@ export function hiddenPathsFor(p) {
 
 /**
  * Whether an href or path is one of the hidden pages: judged on its
- * pathname, so `/denver#map`, `/denver?x=1` and `/denver/` all match.
+ * pathname, so `/shelf/comics#top`, `/shelf/comics?x=1` and `/shelf/comics/`
+ * all match.
  *
  * @param {string} href
  * @param {string[]} hidden

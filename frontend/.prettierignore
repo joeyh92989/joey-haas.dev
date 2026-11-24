@@ -14,10 +14,8 @@ public/search-index.json
 # Documentation is prose too.
 *.md
 
-# Drawn maps (scripts/draw-denver-map.mjs) and its recorded Overpass answer:
-# generated, and only ever rewritten by the script.
+# Drawn maps: hand-drawn SVG paths, never reformatted.
 src/content/maps
-scripts/fixtures/overpass-*.json
 
 # The intake demo (backend/scripts/record_intake_demo.py): the recorder's
 # output, never edited by hand.

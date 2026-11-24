@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { moreItems } from '../lib/navMore.js'
 import MoreMenu from './MoreMenu.jsx'
 
-function renderAt(path = '/', flags = { hasNotes: true, hasSpots: true }) {
+function renderAt(path = '/', flags = { hasNotes: true }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <button type="button">Elsewhere</button>
@@ -31,7 +31,7 @@ describe('MoreMenu', () => {
       within(panel())
         .getAllByRole('link')
         .map((link) => link.querySelector('.t').textContent),
-    ).toEqual(['Now', 'Stats', 'TIL', 'Daily game', 'Denver', 'Colophon'])
+    ).toEqual(['Now', 'Stats', 'TIL', 'Daily game', 'Colophon'])
     fireEvent.click(button())
     expect(panel()).toHaveAttribute('hidden')
   })
@@ -62,19 +62,19 @@ describe('MoreMenu', () => {
     })
     expect(button()).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(button())
-    fireEvent.click(within(panel()).getByRole('link', { name: /Denver/ }))
+    fireEvent.click(within(panel()).getByRole('link', { name: /Stats/ }))
     expect(button()).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('underlines More and marks the row on one of its pages', () => {
-    renderAt('/denver')
+    renderAt('/stats')
     open()
     expect(button()).toHaveClass('active')
     expect(
-      within(panel()).getByRole('link', { name: /Denver/ }),
+      within(panel()).getByRole('link', { name: /Stats/ }),
     ).toHaveAttribute('aria-current', 'page')
     expect(
-      within(panel()).getByRole('link', { name: /Stats/ }),
+      within(panel()).getByRole('link', { name: /Now/ }),
     ).not.toHaveAttribute('aria-current')
   })
 
@@ -92,8 +92,8 @@ describe('MoreMenu', () => {
     ).toHaveAttribute('aria-current', 'page')
   })
 
-  it('hides TIL and Denver while they are absent', () => {
-    renderAt('/', { hasNotes: false, hasSpots: false })
+  it('hides TIL while it is absent', () => {
+    renderAt('/', { hasNotes: false })
     const names = within(panel())
       .getAllByRole('link', { hidden: true })
       .map((link) => link.querySelector('.t').textContent)

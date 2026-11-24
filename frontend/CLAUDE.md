@@ -70,13 +70,13 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `photos.json` are committed. Nav and footer show Travel only while a trip
   is published (`hasTrips`), and tests mock `content/trips.js` like posts.
   `DrawnMap` (`components/`, placed by `lib/mapFit.js`, drawings in
-  `content/maps/`) is the one map component: Denver spots reuses it.
-- The Games and Comics tabs and the Denver footer link hide while their page
+  `content/maps/`) is the one map component.
+- The Games and Comics tabs hide while their page
   is empty (#125), decided at build time like `hasNotes`: `vite.config.js`
-  reads `public/snapshot/{items,comics,spots}.json` (Games counts the games
+  reads `public/snapshot/{items,comics}.json` (Games counts the games
   in the items snapshot) through `scripts/snapshot-presence.mjs` into
   `__SNAPSHOT_PRESENCE__`, which `lib/snapshotPresence.js` turns into
-  `hasGames`, `hasComics` and `hasSpots`. Only a
+  `hasGames` and `hasComics`. Only a
   written, empty snapshot hides a link; dev, tests and a failed optional
   fetch keep both. No runtime request.
 - The tracker shelf is one design system for the public Games and Comics
@@ -181,24 +181,16 @@ Moved from the root CLAUDE.md. Rules for `frontend/`; shared and deploy rules st
   `TILE`, `BOX`, `INTAKE_FIELD`, `NUM_FIELD`): a destructive confirm is
   `ibtn('danger')` everywhere, and the legacy `.btn` and `.chip` are gone from
   these pages. `adminShelfClasses.js` holds the admin shelf twins' strings.
-  The Denver and Site pages (#535, slice 3: Weekend, Spots, Analytics) take them
-  from `components/denverSiteClasses.js` (`btn()`, `chipBtn`, `tagBtn`, `pill`,
-  `field`, `checkbox`, and `box`, which is `closetCard`), with the same 44px
+  The Site pages (#535, slice 3: Analytics) take them
+  from `components/siteAdminClasses.js` (`chipBtn`, and `box`, which is
+  `closetCard`), with the same 44px
   targets, and a titled card from `components/SectionCard.jsx` (Card look, `mt-0`
   against the global `section + section` gap, no `overflow`). Utilities sit above
   the site's `base` layer, so a width, border colour or margin a base rule sets
   on those controls is overridden on the element (`w-24!`, `border-(color:--ok)!`).
-  The Spots table folds Last visit under the name below 1440px and the tags and
-  actions under it on a phone, so no action is ever half-scrolled out of its
-  wrapper; `e2e/focus-ring.js` presses real Tab to prove it.
-  Denver, spots and the map have no rule in `index.css` (#536, slice D3): `/denver`
-  (`pages/Denver.jsx`, `SpotCard`, `SpotMap`), What's next's `JumpNav` and the
-  weekend and finder cards draw from utilities written on the components. A
-  state hook that tests or e2e read stays as a name: `spot-card`,
-  `spot-card-name`, `denver-chips`, `spot-map-pin`, `spot-map-ground`,
-  `spot-map-popover` (with its `below`, `start` and `end` placements, which the
-  popover's transforms key on), `jump-nav`, `sug` (`lead`, `saved`), `wk-field`
-  and `wx-bars` (`wet`). Tailwind reads classes from the source text, so a long
+  What's next's `JumpNav` has no rule in `index.css` (#536, slice D3): it draws
+  from utilities written on the component. A state hook that tests or e2e read
+  stays as a name: `jump-nav`. Tailwind reads classes from the source text, so a long
   class string is written out, never joined from a `${}` piece; a media bound
   that must stay inclusive is `[@media(max-width:760px)]:`, since `max-[760px]:`
   is a strict `<`. A `font:` shorthand in the old sheet also reset the line

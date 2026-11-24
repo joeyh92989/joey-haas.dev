@@ -10,7 +10,6 @@ import { spine } from '../content/spine.js'
 import { moreItems } from '../lib/navMore.js'
 import { apiFetch } from '../lib/api.js'
 import { isSearchShortcut } from '../lib/searchKeys.js'
-import { hasSpots } from '../lib/snapshotPresence.js'
 import { useAnalyticsBeacon } from '../lib/useAnalyticsBeacon.js'
 import { useRouteFocus } from '../lib/useRouteFocus.js'
 
@@ -59,12 +58,11 @@ class SearchBoundary extends Component {
 
 /**
  * Routes that break out of the 45rem reading column: the tracker's shelves
- * and item pages are grids of covers, not prose, and /denver sets its map
- * beside the list. /daily is a shelf tab, so it shares the shelf's frame
+ * and item pages are grids of covers, not prose. /daily is a shelf tab, so it shares the shelf's frame
  * (the puzzle keeps its own narrower column). Each entry matches itself and
  * anything nested under it.
  */
-const WIDE_ROUTES = ['/shelf', '/daily', '/denver']
+const WIDE_ROUTES = ['/shelf', '/daily']
 
 /**
  * Routes that bring their own frame: the admin shell replaces the masthead
@@ -284,7 +282,7 @@ export default function RootLayout() {
         theme={theme}
         onToggleTheme={toggleTheme}
         items={navItems(posts.length > 0, trips.length > 0)}
-        more={moreItems({ hasNotes: notes.length > 0, hasSpots })}
+        more={moreItems({ hasNotes: notes.length > 0 })}
         onOpenSearch={() => setSearchOpen(true)}
         onPreloadSearch={preloadSearch}
         searchOpen={searchOpen}
@@ -327,7 +325,6 @@ export default function RootLayout() {
         signedIn={Boolean(signedIn)}
         hasNotes={notes.length > 0}
         hasTrips={trips.length > 0}
-        hasSpots={hasSpots}
       />
     </div>
   )

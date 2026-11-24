@@ -57,10 +57,8 @@ export const HEAD_LINK = 'inline-block min-h-6 py-1'
 export const STATUS_TEXT =
   'inline-flex items-center gap-2 font-mono leading-[normal] font-medium'
 
-/** The words' size and colour: the small muted word, or the Weekend weather
- *  verdict's, which is the page's text colour at 13px. */
+/** The words' size and colour: the small muted word. */
 export const STATUS_WORDS = 'text-[0.75rem] text-muted-foreground'
-export const STATUS_WORDS_STRONG = 'text-[0.8125rem] text-foreground'
 
 const DOT = 'size-2 flex-none'
 

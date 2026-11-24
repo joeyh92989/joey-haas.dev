@@ -26,7 +26,7 @@ strips, so they still make no API calls.
   something unexpected, the build ships without a snapshot, and the site
   behaves as it did before the snapshot existed.
 - Required snapshots (`items`, `stats`) are written together or not at all.
-- `next`, `status`, `comics`, `site-stats`, `pick-for-me`, `spots` and
+- `next`, `status`, `comics`, `site-stats`, `pick-for-me` and
   `comic-issues` are optional; if one fails, the build leaves that file out.
   `comic-issues.json` (`/api/public/comic-issues`) is read only by the
   prerender, for the heads of the comic issue and edition pages; without it
@@ -74,12 +74,12 @@ README → Collection snapshot and Nightly job.
 Not a step of its own: `vite.config.js` calls `snapshotPresence(dir)` when
 Vite starts, after `fetch-snapshot.mjs` has written `public/snapshot/`, and
 defines the answer as `__SNAPSHOT_PRESENCE__` for
-`src/lib/snapshotPresence.js` (#125). It reads `comics.json` and
-`spots.json` and answers, per key, `true` (a series or a spot to show),
+`src/lib/snapshotPresence.js` (#125). It reads `items.json` and
+`comics.json` and answers, per key, `true` (a game or a series to show),
 `false` (written and empty) or `null` (missing or unreadable). Only `false`
-hides a link: the Comics tab (`SpineTabs`) and the Denver footer link
-(`SiteFooter`'s `hasSpots`). A first comic or spot reaches the links at the
-next build, which the nightly job triggers when either snapshot changes.
+hides a link: the Games and Comics tabs (`SpineTabs`). A first comic reaches
+the links at the next build, which the nightly job triggers when the
+snapshot changes.
 Tests: `snapshot-presence.test.mjs`.
 
 ## build-search-index.mjs
@@ -292,49 +292,6 @@ they only have to land a photo within 40 km. Names become place names in a
 trip file, so none may contain `·` or `→`. Add a place by hand when a trip
 needs one; the tool reads nothing from the network.
 
-## draw-denver-map.mjs
-
-Draws the `/denver` poster map from OpenStreetMap and writes it to
-`src/content/maps/denver.js`, which is committed. It is an authoring step,
-not part of the build: the page never calls Overpass or a tile server. Run it
-again only to redraw or extend the map, then commit the result.
-
-```bash
-node scripts/draw-denver-map.mjs                  # fetch the area, write the module
-node scripts/draw-denver-map.mjs --record-fixture # re-record the test fixture
-```
-
-**What it does.** One Overpass query (`out geom`) for the streets, the South
-Platte and Cherry Creek, and the parks inside `DENVER_AREA`. It projects them
-north-up with `src/lib/mapFit.js`, the same projection the page uses for
-pins. Only the west edge and the latitudes are chosen; the east edge follows
-from the 800×600 viewBox, so the drawing keeps the cos(latitude) proportions
-`makeFit` insists on. Each layer (arterials, streets, water, parks) becomes
-one path. Each line is clipped to a padded frame, simplified with
-Douglas–Peucker and rounded to 0.1. Elements are sorted by type and then id
-first, so the same answer always writes the same file. Two known limits of
-the clip: a point is kept only when it or a neighbour is inside the frame,
-so a long segment whose ends both lie outside it is dropped; and a park is
-drawn only when one of its vertices is inside, with its holes filled. Check
-the corners by eye after a redraw. Neighbourhood and water labels and the
-two reference intersections in the module's `fit` are placed by hand in the
-script.
-
-**Attribution.** The data is ODbL. The module's header says so, and its
-`attribution` field is the line the page shows beside the map.
-
-**Overpass.** The main instance often answers 502 or 504 under load. Set
-`OVERPASS_URL` to a mirror, for example
-`https://overpass.private.coffee/api/interpreter`. The script sends a generic
-user agent, with no personal contact details.
-
-**Tests.** `draw-denver-map.test.mjs` runs `buildDrawing` on a recorded
-answer for a small area around Union Station
-(`fixtures/overpass-union-station.json`), with no network. It checks that
-the output is deterministic, that real intersections fall on the drawn
-lines, and that the committed module's fit, labels and attribution are
-valid. The fixture and the module are generated, so Prettier ignores them.
-
 ## project-heroes.mjs
 
 Writes the Projects cards' hero images, `public/projects/<slug>-<dark|light>.webp`
@@ -380,9 +337,7 @@ step.
 
 ## fixtures/
 
-`overpass-union-station.json` is a recorded Overpass response, the input to
-`draw-denver-map.test.mjs` (see `draw-denver-map.mjs`). It is generated, not
-edited. The synthetic snapshot files CI builds from live in
+The synthetic snapshot files CI builds from live in
 `frontend/e2e/fixtures/snapshot/`, explained in `frontend/e2e/fixtures/README.md`
 and checked by `fixture-snapshot.test.mjs` above.
 

@@ -36,16 +36,20 @@ export function isRouterPath(href) {
   return !/\.[a-z0-9]+$/i.test(last)
 }
 
+/** Pages that no longer exist; old entries that link to them keep their text. */
+export const REMOVED_PAGES = ['/denver']
+
 /**
  * One changelog line as React nodes: text, with each markdown link a
  * router Link (a page path, see `isRouterPath`) or an anchor. A link to a
- * hidden path (a page with nothing on it yet) stays as plain text.
+ * hidden path (a page with nothing on it yet) or to a page that was taken
+ * down (`REMOVED_PAGES`) stays as plain text.
  *
  * @param {string} line
  * @param {string[]} [hidden] Paths to leave unlinked; this build's by default.
  * @returns {import('react').ReactNode[]}
  */
-export function renderLine(line, hidden = hiddenPaths) {
+export function renderLine(line, hidden = [...hiddenPaths, ...REMOVED_PAGES]) {
   const nodes = []
   let last = 0
   for (const match of line.matchAll(LINK)) {

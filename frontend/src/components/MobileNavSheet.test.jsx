@@ -35,24 +35,13 @@ function renderSheet(path, flags) {
 
 describe('MobileNavSheet More group', () => {
   it('lists the More pages in a labelled group under the nav, before Resume', () => {
-    renderSheet('/', { hasNotes: true, hasSpots: true })
+    renderSheet('/', { hasNotes: true })
     const group = screen.getByRole('group', { name: 'More' })
     expect(
       within(group)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual([
-      'Now',
-      'Stats',
-      'TIL',
-      'Daily game',
-      'Denver places',
-      'Colophon',
-    ])
-    expect(screen.getByRole('link', { name: 'Denver places' })).toHaveAttribute(
-      'href',
-      '/denver',
-    )
+    ).toEqual(['Now', 'Stats', 'TIL', 'Daily game', 'Colophon'])
     expect(screen.getAllByRole('navigation')).toHaveLength(1)
     const resume = screen.getByRole('link', { name: 'Resume (PDF)' })
     expect(
@@ -60,8 +49,8 @@ describe('MobileNavSheet More group', () => {
     ).toBeTruthy()
   })
 
-  it('drops TIL and Denver while absent', () => {
-    renderSheet('/', { hasNotes: false, hasSpots: false })
+  it('drops TIL while absent', () => {
+    renderSheet('/', { hasNotes: false })
     const group = screen.getByRole('group', { name: 'More' })
     expect(
       within(group)
@@ -71,7 +60,7 @@ describe('MobileNavSheet More group', () => {
   })
 
   it('marks the current More page', () => {
-    renderSheet('/stats', { hasNotes: true, hasSpots: true })
+    renderSheet('/stats', { hasNotes: true })
     expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
       'aria-current',
       'page',

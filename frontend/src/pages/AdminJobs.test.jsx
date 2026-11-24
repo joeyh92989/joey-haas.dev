@@ -91,14 +91,10 @@ function stubApi(routes = {}) {
       // Older than the catalogue run's ago(1): an equal stamp ties, and the
       // milliseconds between the two calls would decide which row leads.
       json({ generated_at: { radar: ago(1.5), discover: ago(1.5) } }),
-    '/api/spots/status': () =>
-      json({
-        'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
-        'candidates.last_run': { at: ago(30), state: 'ok', queued: 4 },
-      }),
     // Older than the newest edit, which the recent-changes test looks for.
     '/api/closet/status': () =>
       json({
+        'weather.last_run': { at: ago(1.5), state: 'ok', hours: 156 },
         'tag.last_run': { at: ago(3), state: 'ok', ok: true },
         'plan.last_run': { at: ago(3), state: 'ok', ok: true },
         'opinion.last_run': { at: ago(3), state: 'ok', ok: true },
@@ -150,39 +146,33 @@ describe('Admin Jobs', () => {
     expect(document.title).toBe('Jobs · Admin · Joey Haas')
   })
 
-  it('lists the thirteen nightly jobs with their state in words', async () => {
+  it('lists the twelve nightly jobs with their state in words', async () => {
     stubApi()
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows).toHaveLength(13)
+    expect(rows).toHaveLength(12)
     expect(rows[0]).toHaveTextContent('Sources refresh')
     expect(rows[0]).toHaveTextContent(/ok/)
-    expect(rows[3]).toHaveTextContent('Weekend forecast')
-    expect(rows[4]).toHaveTextContent('Spot finder')
-    expect(rows[5]).toHaveTextContent('Closet tags')
-    expect(rows[6]).toHaveTextContent('Outfit plans')
-    expect(rows[7]).toHaveTextContent('Closet opinions')
-    expect(rows[8]).toHaveTextContent('Intake')
-    expect(rows[8]).toHaveTextContent('Nothing to read')
-    expect(rows[9]).toHaveTextContent('Comic refresh')
-    expect(rows[9]).toHaveTextContent('Followed series refreshed')
-    expect(rows[10]).toHaveTextContent('Comic issues')
-    expect(rows[10]).toHaveTextContent('Every series synced')
-    expect(rows[11]).toHaveTextContent('Comic tags')
-    expect(rows[11]).toHaveTextContent('Series tagged')
-    expect(rows[12]).toHaveTextContent('Public snapshot')
+    expect(rows[3]).toHaveTextContent('Forecast')
+    expect(rows[4]).toHaveTextContent('Closet tags')
+    expect(rows[5]).toHaveTextContent('Outfit plans')
+    expect(rows[6]).toHaveTextContent('Closet opinions')
+    expect(rows[7]).toHaveTextContent('Intake')
+    expect(rows[7]).toHaveTextContent('Nothing to read')
+    expect(rows[8]).toHaveTextContent('Comic refresh')
+    expect(rows[8]).toHaveTextContent('Followed series refreshed')
+    expect(rows[9]).toHaveTextContent('Comic issues')
+    expect(rows[9]).toHaveTextContent('Every series synced')
+    expect(rows[10]).toHaveTextContent('Comic tags')
+    expect(rows[10]).toHaveTextContent('Series tagged')
+    expect(rows[11]).toHaveTextContent('Public snapshot')
     expect(
       within(panel).getByRole('link', { name: 'Open Radar' }),
     ).toHaveAttribute('href', '/admin/radar')
     expect(
-      within(panel).getByRole('link', {
-        name: 'Open Weekend: Weekend forecast',
-      }),
-    ).toHaveAttribute('href', '/admin/weekend')
-    expect(
-      within(panel).getByRole('link', { name: 'Open Spots: Spot finder' }),
-    ).toHaveAttribute('href', '/admin/spots')
+      within(panel).getByRole('link', { name: 'Open Today: Forecast' }),
+    ).toHaveAttribute('href', '/admin/closet/today')
     expect(
       within(panel).getByRole('link', { name: 'Open Today: Outfit plans' }),
     ).toHaveAttribute('href', '/admin/closet/today')
@@ -193,7 +183,7 @@ describe('Admin Jobs', () => {
       within(panel).getByRole('link', { name: 'Open Intake' }),
     ).toHaveAttribute('href', '/admin/collection/add')
     expect(
-      within(rows[12]).queryByRole('link', { name: /Run now/ }),
+      within(rows[11]).queryByRole('link', { name: /Run now/ }),
     ).not.toBeInTheDocument()
   })
 
@@ -237,7 +227,7 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows[10].querySelector('.job-last')).toHaveTextContent('Not yet')
+    expect(rows[9].querySelector('.job-last')).toHaveTextContent('Not yet')
   })
 
   it('lists the jobs once on the page', async () => {
@@ -263,7 +253,7 @@ describe('Admin Jobs', () => {
       )
     expect(withButton).toEqual([
       'Radar',
-      'Weekend forecast',
+      'Forecast',
       'Comic refresh',
       'Comic issues',
     ])
@@ -280,7 +270,7 @@ describe('Admin Jobs', () => {
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const row = (await jobRows(panel))[9]
+    const row = (await jobRows(panel))[8]
     const before = fetch.mock.calls.filter(([url]) =>
       String(url).endsWith('/api/comics/status'),
     ).length
@@ -321,43 +311,31 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows[9]).toHaveTextContent(
+    expect(rows[8]).toHaveTextContent(
       'Failed: 1 of 3 series failed: Saga: HTTP 500',
     )
-    expect(rows[11]).toHaveTextContent('Failed: Tagging stopped: 429 quota')
+    expect(rows[10]).toHaveTextContent('Failed: Tagging stopped: 429 quota')
     expect(screen.getByText(/^nightly failed/)).toBeInTheDocument()
   })
 
   it('names a failed forecast and reads failed in the header', async () => {
     stubApi({
-      '/api/spots/status': () =>
+      '/api/closet/status': () =>
         json({
           'weather.last_run': {
             at: ago(1),
             state: 'failed',
             note: 'NWS answered 503',
           },
-          'candidates.last_run': null,
         }),
     })
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
     expect(rows[3]).toHaveTextContent('Failed: NWS answered 503')
-    expect(rows[4]).toHaveTextContent('First run Sunday evening')
-    expect(rows[4]).toHaveTextContent('scheduled')
+    expect(rows[6]).toHaveTextContent('First run Sunday evening')
+    expect(rows[6]).toHaveTextContent('scheduled')
     expect(await screen.findByText(/^nightly failed/)).toBeInTheDocument()
-  })
-
-  it('keeps the jobs when the spots status fails, with both rows unknown', async () => {
-    stubApi({ '/api/spots/status': () => json({}, false) })
-    renderAt()
-    const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
-    const rows = await jobRows(panel)
-    expect(rows).toHaveLength(13)
-    expect(rows[3]).toHaveTextContent('unknown')
-    expect(rows[4]).toHaveTextContent('unknown')
-    expect(rows[0]).toHaveTextContent(/ok/)
   })
 
   it('keeps the jobs when the closet status fails, with its rows unknown', async () => {
@@ -365,10 +343,12 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows).toHaveLength(13)
+    expect(rows).toHaveLength(12)
+    expect(rows[3]).toHaveTextContent('unknown')
+    expect(rows[4]).toHaveTextContent('unknown')
     expect(rows[5]).toHaveTextContent('unknown')
     expect(rows[6]).toHaveTextContent('unknown')
-    expect(rows[4]).toHaveTextContent(/ok/)
+    expect(rows[2]).toHaveTextContent(/ok/)
   })
 
   it('names a failed source and reads failed in the header', async () => {
@@ -457,8 +437,8 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows[12]).toHaveTextContent('No build time recorded')
-    expect(rows[12]).toHaveTextContent('unknown')
+    expect(rows[11]).toHaveTextContent('No build time recorded')
+    expect(rows[11]).toHaveTextContent('unknown')
     // An unknown job does not drag the headline down.
     expect(screen.getByText(/^nightly ok · /)).toBeInTheDocument()
   })
@@ -483,7 +463,7 @@ describe('Admin Jobs', () => {
       screen.getByText('The nightly status couldn’t be read.'),
     ).toBeInTheDocument()
     expect(called(fetch, '/api/recommendations/store-list')).toBe(false)
-    expect(called(fetch, '/api/spots/status')).toBe(false)
+    expect(called(fetch, '/api/closet/status')).toBe(false)
     expect(screen.queryByText(/^nightly /)).not.toBeInTheDocument()
   })
 
@@ -520,8 +500,8 @@ describe('Admin Jobs', () => {
     renderAt()
     const panel = await screen.findByRole('region', { name: 'Nightly jobs' })
     const rows = await jobRows(panel)
-    expect(rows[12]).toHaveTextContent('Rebuilt nightly')
-    expect(rows[12]).toHaveTextContent('stale')
+    expect(rows[11]).toHaveTextContent('Rebuilt nightly')
+    expect(rows[11]).toHaveTextContent('stale')
   })
 
   it('reads a status body with no sources as no jobs, not a stopped schedule', async () => {

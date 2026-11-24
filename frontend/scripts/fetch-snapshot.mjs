@@ -105,20 +105,6 @@ const isPickForMeBody = (body) =>
   Object.values(body.combos).every(Array.isArray)
 
 /**
- * /denver's spots (Denver spots spec): each row with the fields the map and
- * the list need. Keep in step with `isSpotsBody` in src/lib/snapshot.js:
- * the two predicates must be identical.
- */
-const isSpot = (row) =>
-  isObject(row) &&
-  typeof row.spot_id === 'string' &&
-  typeof row.name === 'string' &&
-  Number.isFinite(row.lat) &&
-  Number.isFinite(row.lng) &&
-  Array.isArray(row.tags)
-const isSpotsBody = (body) => Array.isArray(body) && body.every(isSpot)
-
-/**
  * The issue and volume pages' list (comic issue pages spec, comics
  * book-first #335): one row per public series. Only the prerender reads it,
  * for link-preview heads. Keep in step with nothing in src/: the app never
@@ -185,13 +171,6 @@ export const SNAPSHOTS = {
   'pick-for-me': {
     path: '/api/public/pick-for-me',
     valid: isPickForMeBody,
-    required: false,
-  },
-  // Optional like next: /denver's spots, new in the release that ships its
-  // endpoint. In the nightly compare as an optional output, like comics.
-  spots: {
-    path: '/api/public/spots',
-    valid: isSpotsBody,
     required: false,
   },
   // Optional like next: the issue and edition pages' heads, new in the

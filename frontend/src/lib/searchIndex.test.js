@@ -35,25 +35,25 @@ describe('score', () => {
 })
 
 describe('pageEntry keywords', () => {
-  const denver = pageEntry({
-    path: '/denver',
-    title: 'Denver',
-    description: 'A short list',
-    keywords: ['places', 'outings'],
+  const daily = pageEntry({
+    path: '/daily',
+    title: 'Daily game',
+    description: 'A small game',
+    keywords: ['puzzle', 'guess'],
   })
 
   it('matches on keywords without showing them', () => {
-    expect(denver.sub).toBe('A short list')
-    expect(denver.s).toContain('outings')
-    expect(score(denver, 'places')).toBe(0.5)
-    expect(search([denver], 'outings').count).toBe(1)
+    expect(daily.sub).toBe('A small game')
+    expect(daily.s).toContain('guess')
+    expect(score(daily, 'puzzle')).toBe(0.5)
+    expect(search([daily], 'guess').count).toBe(1)
   })
 
-  it('finds the real Denver page by places and outings', () => {
+  it('finds the real Daily game page by puzzle and guess', () => {
     const entries = STATIC_PAGES.map(pageEntry)
-    for (const q of ['places', 'outings']) {
+    for (const q of ['puzzle', 'guess']) {
       const rows = search(entries, q).groups[0].rows
-      expect(rows.map((r) => r.href)).toContain('/denver')
+      expect(rows.map((r) => r.href)).toContain('/daily')
     }
   })
 })

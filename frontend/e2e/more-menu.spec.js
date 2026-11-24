@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures.js'
 
 // The masthead's More (desktop) and the phone sheet's More group (#471):
-// Denver, Now, Stats, Daily game and Colophon are reachable from the menu.
+// Now, Stats, Daily game and Colophon are reachable from the menu.
 
-test('More opens from the masthead and reaches Denver', async ({
+test('More opens from the masthead and reaches Stats', async ({
   page,
   openRoute,
 }, testInfo) => {
@@ -15,9 +15,9 @@ test('More opens from the masthead and reaches Denver', async ({
   await expect(more).toHaveAttribute('aria-expanded', 'true')
   await page
     .getByRole('navigation', { name: 'Site' })
-    .getByRole('link', { name: /^Denver/ })
+    .getByRole('link', { name: /^Stats/ })
     .click()
-  await expect(page).toHaveURL(/\/denver\/?$/)
+  await expect(page).toHaveURL(/\/stats\/?$/)
 })
 
 test('Menu on a phone lists the More group', async ({
@@ -32,6 +32,6 @@ test('Menu on a phone lists the More group', async ({
   for (const name of ['Now', 'Stats', 'Daily game', 'Colophon']) {
     await expect(group.getByRole('link', { name })).toBeVisible()
   }
-  await group.getByRole('link', { name: 'Denver places' }).click()
-  await expect(page).toHaveURL(/\/denver\/?$/)
+  await group.getByRole('link', { name: 'Stats' }).click()
+  await expect(page).toHaveURL(/\/stats\/?$/)
 })

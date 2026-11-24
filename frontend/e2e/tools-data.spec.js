@@ -40,12 +40,6 @@ const PAGES = [
       ).toBeVisible(),
   },
   {
-    name: 'denver',
-    path: '/denver',
-    serve: ['spots'],
-    ready: (page) => expect(page.locator('.spot-card').first()).toBeVisible(),
-  },
-  {
     name: 'daily',
     path: '/daily',
     serve: [],
@@ -169,20 +163,6 @@ async function ringPaints(page, target) {
 }
 
 for (const theme of ['light', 'dark']) {
-  test(`Denver chips and spot names paint a focus ring (${theme})`, async ({
-    page,
-    openRoute,
-  }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'keyboard focus')
-    await serve(page, ['spots'])
-    await openRoute('/denver', theme)
-    await expect(page.locator('.spot-card').first()).toBeVisible()
-    const chip = page.locator('.denver-chips button').nth(1)
-    expect(await ringPaints(page, chip)).toBe(true)
-    const name = page.locator('.spot-card-name button').first()
-    expect(await ringPaints(page, name)).toBe(true)
-  })
-
   test(`Pick for me chips and length radios paint a focus ring (${theme})`, async ({
     page,
     openRoute,

@@ -1,5 +1,4 @@
 import { daily } from '../content/daily.js'
-import { denver } from '../content/denver.js'
 
 /**
  * The pages under the masthead's More: one list that feeds the desktop panel
@@ -11,14 +10,14 @@ import { denver } from '../content/denver.js'
  * Daily game is a My Shelf tab (My Shelf owns /daily), so on it My Shelf
  * keeps the underline and More does not.
  *
- * TIL shows only while a note is published (`hasNotes`) and Denver only
- * while it has spots (`hasSpots`), the same rules as the footer.
+ * TIL shows only while a note is published (`hasNotes`), the same rule as
+ * the footer.
  *
- * @param {{hasNotes?: boolean, hasSpots?: boolean}} [flags]
+ * @param {{hasNotes?: boolean}} [flags]
  * @returns {{to: string, label: string, desc: string, sheetLabel?: string,
  *   underlinesMore?: boolean}[]}
  */
-export function moreItems({ hasNotes = false, hasSpots = false } = {}) {
+export function moreItems({ hasNotes = false } = {}) {
   return [
     {
       to: '/now',
@@ -39,16 +38,6 @@ export function moreItems({ hasNotes = false, hasSpots = false } = {}) {
       desc: 'One small game a day',
       underlinesMore: false,
     },
-    ...(hasSpots
-      ? [
-          {
-            to: denver.page.path,
-            label: 'Denver',
-            sheetLabel: 'Denver places',
-            desc: 'Places and outings',
-          },
-        ]
-      : []),
     {
       to: '/colophon',
       label: 'Colophon',

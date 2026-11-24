@@ -15,8 +15,8 @@ describe('STATIC_PAGES', () => {
   })
 
   it('keeps search keywords out of the prerendered fields', () => {
-    const denver = STATIC_PAGES.find((page) => page.path === '/denver')
-    expect(denver.keywords).toContain('outings')
+    const daily = STATIC_PAGES.find((page) => page.path === '/daily')
+    expect(daily.keywords).toContain('puzzle')
     for (const page of STATIC_PAGES) {
       for (const word of page.keywords ?? []) {
         expect(page.description.toLowerCase()).not.toBe(word)

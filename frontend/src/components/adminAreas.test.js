@@ -31,7 +31,6 @@ describe('ADMIN_AREAS', () => {
       'Home',
       'Shelf',
       'Closet',
-      'Outings',
       'Site & jobs',
     ])
   })
@@ -144,8 +143,6 @@ describe('areaFor', () => {
     ['/admin/pull-list', 'shelf', 'Pull list'],
     ['/admin/catalogue', 'shelf', 'Sources'],
     ['/admin/store-list', 'shelf', 'Store list'],
-    ['/admin/weekend', 'denver', 'Weekend'],
-    ['/admin/spots', 'denver', 'Spots'],
     ['/admin/analytics', 'site', 'Analytics'],
   ])('puts %s in %s on %s', (path, key, label) => {
     const area = areaFor(path)
@@ -190,6 +187,6 @@ describe('currentPage', () => {
   })
 
   it('is null off every page', () => {
-    expect(currentPage(closet.pages, '/admin/spots')).toBeNull()
+    expect(currentPage(closet.pages, '/admin/jobs')).toBeNull()
   })
 })

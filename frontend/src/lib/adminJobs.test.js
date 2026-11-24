@@ -18,7 +18,9 @@ describe('jobsSummary', () => {
   })
 
   it('does not call a scheduled job a problem', () => {
-    expect(jobsSummary([ok('A'), ok('B'), scheduled('Spot finder')])).toEqual({
+    expect(
+      jobsSummary([ok('A'), ok('B'), scheduled('Review opinions')]),
+    ).toEqual({
       state: 'ok',
       words: '2 of 3 jobs ok · 1 scheduled',
     })
@@ -40,7 +42,7 @@ describe('jobsSummary', () => {
 
   it('names a failed job ahead of a scheduled one', () => {
     const out = jobsSummary([
-      scheduled('Spot finder'),
+      scheduled('Review opinions'),
       { label: 'Stores', state: 'failed', stateWords: 'failed' },
     ])
     expect(out.words).toBe('0 of 2 jobs ok · Stores failed')
