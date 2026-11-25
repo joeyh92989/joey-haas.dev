@@ -1054,6 +1054,11 @@ class Garment(Base):
     tag_attempts: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=0, server_default="0"
     )
+    # The formality scale this piece was tagged on (closet_tag.SCALE_VERSION);
+    # a model-tagged piece below it is queued for a formality re-tag (#548).
+    tag_scale: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=1, server_default="1"
+    )
     created_at: Mapped[datetime] = _now_column()
     updated_at: Mapped[datetime] = _updated_column()
 

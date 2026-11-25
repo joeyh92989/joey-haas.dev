@@ -91,6 +91,11 @@ TAG_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+# The formality scale the prompt below defines. Garments carry the version
+# they were tagged on (`garments.tag_scale`); raising this number queues every
+# model-tagged piece below it for a formality re-tag (#548).
+SCALE_VERSION = 2
+
 INSTRUCTIONS = """\
 Each photograph shows one piece of clothing, shoes or an accessory from one
 person's wardrobe, numbered in the order given, starting at 0. Describe
