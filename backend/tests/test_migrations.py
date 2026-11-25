@@ -2581,7 +2581,8 @@ async def _feedback_garment(engine) -> str:
     async with engine.begin() as connection:
         return await connection.scalar(
             text(
-                "INSERT INTO garments (id) VALUES (gen_random_uuid()) RETURNING id::text"
+                "INSERT INTO garments (id) VALUES (gen_random_uuid()) "
+                "RETURNING id::text"
             )
         )
 
