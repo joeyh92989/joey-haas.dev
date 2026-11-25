@@ -305,3 +305,57 @@ def test_the_prompt_ties_each_image_to_its_garment_in_order():
     assert f"image 2 is garment {picks[1]}" in prompt
     plain = closet_rank.build_prompt(found, Request(DAY, "weekend"), READ, "", {})
     assert "[image" not in plain and "Photos" not in plain
+
+
+# --- distinct tops --------------------------------------------------------------
+
+
+def roomy_found():
+    pieces = (
+        [piece(f"t{i}", "top", name=f"top {i}") for i in range(3)]
+        + [piece(f"b{i}", "bottom", name=f"pants {i}") for i in range(4)]
+        + [piece(f"s{i}", "shoes", name=f"shoes {i}") for i in range(4)]
+    )
+    return closet.candidates(pieces, Request(DAY, "weekend"), READ)
+
+
+def test_validate_drops_a_model_outfit_that_repeats_a_top():
+    found = roomy_found()
+    got = closet_rank.validate(
+        answer(
+            found,
+            (["t0", "b0", "s0"], "A."),
+            (["t0", "b1", "s1"], "Same top."),
+            (["t1", "b2", "s2"], "Other top."),
+        ),
+        found,
+    )
+    assert [ids(o) for o in got] == [["t0", "b0", "s0"], ["t1", "b2", "s2"]]
+
+
+def test_top_up_refills_with_the_next_distinct_top():
+    found = roomy_found()
+    payload = answer(
+        found, (["t0", "b0", "s0"], "A."), (["t0", "b1", "s1"], "Same top.")
+    )
+    outfits, _ = closet_rank.outcome(payload, None, found)
+    tops = [dict(o.pieces)["top"].id for o in outfits]
+    assert len(outfits) == 3 and len(set(tops)) == 3
+
+
+def test_a_short_top_pool_keeps_the_model_outfits_that_share_a_top():
+    found = closet.candidates(
+        [
+            piece("t0", "top"),
+            piece("b0", "bottom"),
+            piece("b1", "bottom"),
+            piece("s0", "shoes"),
+        ],
+        Request(DAY, "weekend"),
+        READ,
+    )
+    got = closet_rank.validate(
+        answer(found, (["t0", "b0", "s0"], "A."), (["t0", "b1", "s0"], "B.")),
+        found,
+    )
+    assert len(got) == 2

@@ -249,13 +249,18 @@ def validate(
     An outfit needs a reason and at least one number in range; foreign
     numbers and a second piece for a slot are dropped, an empty slot takes
     its best candidate, the fixed piece is always in, and an outfit worn
-    within the repeat window, or given twice, is dropped."""
+    within the repeat window, or given twice, is dropped; so is one whose
+    top an earlier outfit already wears, while the top pool has at least
+    `OUTFITS` pieces."""
     entries = payload.get("outfits") if isinstance(payload, dict) else None
     if not isinstance(entries, list):
         return []
     listed = numbered(found)
     outfits: list[Outfit] = []
     seen: set[frozenset[str]] = set()
+    # A top repeats only when the pool is too small to give each outfit one.
+    distinct = closet.top_pool(found) >= closet.OUTFITS
+    tops: set[str] = set()
     for entry in entries:
         if len(outfits) == closet.OUTFITS:
             break
@@ -280,6 +285,11 @@ def validate(
         outfit = closet.assemble(chosen, found, reason, "model")
         if outfit.key in seen or outfit.key in recent:
             continue
+        top = dict(outfit.pieces).get("top")
+        if distinct and top is not None:
+            if top.id in tops:
+                continue
+            tops.add(top.id)
         seen.add(outfit.key)
         outfits.append(outfit)
     return outfits
@@ -293,12 +303,18 @@ def top_up(
     """The model's outfits, filled to three from the template's."""
     keys = {outfit.key for outfit in outfits}
     filled = list(outfits)
+    distinct = closet.top_pool(found) >= closet.OUTFITS
+    tops = {p.id for o in outfits for slot, p in o.pieces if slot == "top"}
     for outfit in closet.template(found, recent, count=closet.OUTFITS * 2):
         if len(filled) >= closet.OUTFITS:
             break
-        if outfit.key not in keys:
-            keys.add(outfit.key)
-            filled.append(outfit)
+        top = dict(outfit.pieces).get("top")
+        if outfit.key in keys or (distinct and top is not None and top.id in tops):
+            continue
+        keys.add(outfit.key)
+        if top is not None:
+            tops.add(top.id)
+        filled.append(outfit)
     return filled
 
 

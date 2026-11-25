@@ -223,12 +223,19 @@ def test_wool_and_ordinary_pieces_are_never_cut():
 
 
 def test_a_cut_piece_is_out_of_candidates_and_the_swap_fallback():
-    pieces = [piece("t1", "top", name="linen shirt"), piece("t2", "top")]
+    # Three other tops keep the pool at MIN_POOL, so the cut holds.
+    pieces = [
+        piece("t1", "top", name="linen shirt"),
+        piece("t2", "top"),
+        piece("t3", "top"),
+        piece("t4", "top"),
+    ]
     cold = read(45, 60)
     got = closet.candidates(pieces, Request(DAY, "weekend"), cold)
-    assert [s.piece.id for s in got.by_slot["top"]] == ["t2"]
+    assert {s.piece.id for s in got.by_slot["top"]} == {"t2", "t3", "t4"}
+    assert "top" not in got.relaxed
     found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), cold)
-    assert [s.piece.id for s in found] == ["t2"]
+    assert {s.piece.id for s in found} == {"t2", "t3", "t4"}
 
 
 def test_a_cold_november_office_day_keeps_its_tops_warmest_first():
@@ -324,8 +331,10 @@ def test_candidates_filter_rank_and_count():
     assert found.slots == ("outer", "mid", "top", "bottom", "shoes")
     assert [s.piece.id for s in found.by_slot["outer"]] == ["o1", "o2"]
     assert [s.piece.id for s in found.by_slot["shoes"]] == ["s2", "s1"]
-    # Linen is out of season, the blue tee worn two days ago.
-    assert {s.piece.id for s in found.by_slot["top"]} == {"t1", "t2"}
+    # The blue tee was worn two days ago; two tops are short of MIN_POOL, so
+    # the linen shirt (cut under 50 F) comes back and the plan says so.
+    assert {s.piece.id for s in found.by_slot["top"]} == {"t1", "t2", "t3"}
+    assert found.relaxed["top"] == ("season",)
     assert (found.active, found.fit, found.skipped_recent) == (11, 9, 1)
 
 
@@ -388,7 +397,7 @@ def test_a_tagged_piece_beats_an_untagged_one_in_its_slot():
     found = closet.candidates(pieces, Request(DAY, "office"), read(66, 78))
     assert "u" not in {s.piece.id for s in found.by_slot["top"]}
     assert len(found.by_slot["top"]) == 6
-    assert found.relaxed == {}
+    assert "top" not in found.relaxed
 
 
 def test_a_slot_with_only_untagged_pieces_fills_and_records_it():
@@ -399,20 +408,19 @@ def test_a_slot_with_only_untagged_pieces_fills_and_records_it():
     ]
     found = closet.candidates(pieces, Request(DAY, "weekend"), read(66, 78))
     assert [s.piece.id for s in found.by_slot["top"]] == ["t1"]
-    assert found.relaxed == {"top": ("untagged",)}
+    # Superseded: untagged is the last step, not a rule of its own.
+    assert found.relaxed["top"] == ("season", "formality", "untagged")
 
 
 def test_the_swap_fallback_prefers_tagged_pieces():
-    pieces = [
-        piece("t1", "top", name="tagged"),
-        piece("t2", "top", name="untagged", formality=None),
-    ]
+    pieces = [piece(f"t{i}", "top", name=f"tagged {i}") for i in range(3)]
+    pieces.append(piece("u", "top", name="untagged", formality=None))
     found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), read(50, 60))
-    assert [s.piece.id for s in found] == ["t1"]
+    assert sorted(s.piece.id for s in found) == ["t0", "t1", "t2"]
     only = closet.slot_fallback(
-        pieces[1:], "top", Request(DAY, "weekend"), read(50, 60)
+        pieces[3:], "top", Request(DAY, "weekend"), read(50, 60)
     )
-    assert [s.piece.id for s in only] == ["t2"]
+    assert [s.piece.id for s in only] == ["u"]
 
 
 def test_candidates_are_capped_per_slot():
@@ -427,9 +435,13 @@ def test_the_bike_filters_and_formality_holds():
         piece("b3", "bottom", name="wide trousers", formality=3),
     ]
     found = closet.candidates(pieces, Request(DAY, "office", bike=True), read(55, 60))
-    assert [s.piece.id for s in found.by_slot["top"]] == ["t2"]
-    assert found.by_slot["shoes"] == []
-    assert found.by_slot["bottom"] == []
+    # The bike rule is never relaxed; the tops are, and the plan says so.
+    assert found.by_slot["top"][0].piece.id == "t2"
+    assert found.relaxed["top"] == ("season", "formality")
+    # Formality 2 comes back with the widened band; oxfords and wide
+    # trousers never do, whatever the pool.
+    assert {s.piece.id for s in found.by_slot["shoes"]} == {"s1", "s2"}
+    assert {s.piece.id for s in found.by_slot["bottom"]} == {"b1", "b2"}
 
 
 def test_a_lock_passes_every_rule_and_adds_its_slot():
@@ -469,7 +481,7 @@ def test_the_template_lead_is_every_slots_best():
         "shoes",
     ]
     assert {p.id for _, p in lead.pieces} == {"o1", "m1", "t1", "b1", "s2"}
-    assert len(outfits) == 2  # two tops, two bottoms: depth two
+    assert len(outfits) == 3  # three tops (one relaxed in), three outfits
     assert outfits[1].key != lead.key
 
 
@@ -545,3 +557,166 @@ def test_recent_keys_reads_the_window():
 )
 def test_qualifier(p, slot, bike, text):
     assert closet.qualifier(p, slot, DAY, bike) == text
+
+
+# --- the minimum pool ---------------------------------------------------------
+
+WARM = read(66, 78)
+
+
+def tops(n: int, **kw) -> list[Piece]:
+    return [piece(f"t{i}", "top", name=f"plain top {i}", **kw) for i in range(n)]
+
+
+def test_the_constants():
+    assert closet.MIN_POOL == 3
+    assert closet.RELAX_STEPS == ("season", "formality", "untagged")
+
+
+def test_a_full_pool_relaxes_nothing():
+    found = closet.candidates(tops(3), Request(DAY, "weekend"), WARM)
+    assert len(found.by_slot["top"]) == 3
+    assert "top" not in found.relaxed
+
+
+def test_season_is_the_first_step():
+    pieces = tops(2) + [piece("l", "top", name="linen shirt")]
+    cold = read(40, 60)
+    found = closet.candidates(pieces, Request(DAY, "weekend"), cold)
+    assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "l"}
+    assert found.relaxed["top"] == ("season",)
+
+
+def test_formality_widens_one_step_each_side_and_no_further():
+    # Office is 3 to 5: formality 2 comes in, formality 1 stays out.
+    pieces = tops(2, formality=3) + [
+        piece("f2", "top", name="soft top", formality=2),
+        piece("f1", "top", name="lounge top", formality=1),
+    ]
+    found = closet.candidates(pieces, Request(DAY, "office"), WARM)
+    assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "f2"}
+    # Season was tried first (a step is recorded when tried, not when it helped).
+    assert found.relaxed["top"] == ("season", "formality")
+
+
+def test_formality_widening_is_clamped_to_the_scale():
+    assert closet.fits_occasion(piece("a", "top", formality=5), "office", 1)
+    assert not closet.fits_occasion(piece("a", "top", formality=1), "office", 1)
+    assert closet.fits_occasion(piece("a", "top", formality=1), "wfh", 1)
+
+
+def test_untagged_is_the_last_step():
+    pieces = tops(2) + [piece("u", "top", name="mystery top", warmth=None)]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), WARM)
+    assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "u"}
+    assert found.relaxed["top"] == ("season", "formality", "untagged")
+
+
+def test_a_slot_stops_relaxing_once_it_has_three():
+    pieces = tops(1) + [
+        piece("l", "top", name="linen shirt"),
+        piece("l2", "top", name="linen tee"),
+        piece("u", "top", name="mystery top", warmth=None),
+    ]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), read(40, 60))
+    assert found.relaxed["top"] == ("season",)
+    assert "u" not in {s.piece.id for s in found.by_slot["top"]}
+
+
+def test_the_one_candidate_pool_records_every_step():
+    pieces = tops(1)
+    found = closet.candidates(pieces, Request(DAY, "weekend"), WARM)
+    assert [s.piece.id for s in found.by_slot["top"]] == ["t0"]
+    assert found.relaxed["top"] == ("season", "formality", "untagged")
+
+
+def test_the_hard_rules_are_never_relaxed():
+    request = Request(DAY, "weekend", bike=True)
+    pieces = [
+        piece("w", "bottom", name="wide trousers"),
+        piece("t", "top", name="tee", last_worn=DAY - timedelta(days=1)),
+    ]
+    found = closet.candidates(pieces, request, WARM)
+    assert found.by_slot["bottom"] == []  # the bike rule holds
+    assert found.by_slot["top"] == []  # worn yesterday
+    assert found.relaxed["bottom"] == ("season", "formality", "untagged")
+
+
+def test_a_fixed_slot_records_no_relaxation():
+    found = closet.candidates(tops(1), Request(DAY, "weekend", lock="t0"), WARM)
+    assert "top" not in found.relaxed
+
+
+def test_the_swap_fallback_relaxes_like_the_plan():
+    pieces = tops(2) + [piece("l", "top", name="linen shirt")]
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), read(40, 60))
+    assert {s.piece.id for s in found} == {"t0", "t1", "l"}
+
+
+@pytest.mark.parametrize(
+    "kw, cut",
+    [
+        ({"name": "shortsleeve tee"}, False),
+        ({"name": "shortstop jersey"}, False),
+        ({"name": "tee", "subtype": "short-sleeve"}, False),
+        ({"name": "Cargo Shorts"}, True),
+        ({"name": "Linen shirt"}, True),
+        ({"name": "tee", "material": "linen blend"}, True),
+        ({"name": "tee", "material": "cotton, linen"}, True),
+    ],
+)
+def test_shorts_and_linen_match_whole_words(kw, cut):
+    assert closet.clearly_out_of_season(piece("a", "top", **kw), read(40, 60)) is cut
+
+
+def test_a_season_matching_top_outranks_a_season_missing_one_at_equal_warmth():
+    # The 2026-11-20 replay: summer-tagged tops against an autumn one.
+    pieces = [
+        piece(f"s{i}", "top", name=f"summer top {i}", seasons=(6, 7, 8))
+        for i in range(2)
+    ] + [piece("a", "top", name="zzz autumn top", seasons=(10, 11))]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), read(37, 61))
+    assert found.by_slot["top"][0].piece.id == "a"
+
+
+# --- distinct tops ------------------------------------------------------------
+
+
+def roomy(n_tops: int) -> list[Piece]:
+    return (
+        tops(n_tops)
+        + [piece(f"b{i}", "bottom", name=f"pants {i}") for i in range(5)]
+        + [piece(f"s{i}", "shoes", name=f"shoes {i}") for i in range(5)]
+    )
+
+
+def top_ids(outfits) -> list[str]:
+    return [dict(o.pieces)["top"].id for o in outfits]
+
+
+def test_the_template_gives_every_outfit_its_own_top():
+    found = closet.candidates(roomy(3), Request(DAY, "weekend"), WARM)
+    got = closet.template(found)
+    assert len(got) == 3 and len(set(top_ids(got))) == 3
+
+
+def test_distinct_tops_hold_when_a_recent_outfit_is_skipped():
+    found = closet.candidates(roomy(4), Request(DAY, "weekend"), WARM)
+    lead = closet.template(found)[0]
+    got = closet.template(found, recent={lead.key})
+    assert len(got) == 3 and len(set(top_ids(got))) == 3
+
+
+def test_a_short_top_pool_shares_the_top():
+    found = closet.candidates(roomy(1), Request(DAY, "weekend"), WARM)
+    got = closet.template(found)
+    assert len(got) == 3
+    assert set(top_ids(got)) == {"t0"}
+    assert closet.top_pool(found) == 1
+
+
+def test_two_tops_are_used_before_one_repeats():
+    found = closet.candidates(roomy(2), Request(DAY, "weekend"), WARM)
+    got = closet.template(found)
+    assert top_ids(got)[:2] == ["t0", "t1"]
+    assert closet.top_pool(found) == 2

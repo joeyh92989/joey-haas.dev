@@ -561,6 +561,12 @@ def create_closet_today_router(
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
+        pool = closet.top_pool(found)
+        # Optional keys: absent on a plan whose outfits each have a top of
+        # their own, and on plans stored before they existed.
+        short = (
+            {"shared_top": True, "top_pool": pool} if 0 < pool < closet.OUTFITS else {}
+        )
         return {
             "day": day.isoformat(),
             "occasion": occasion,
@@ -578,6 +584,7 @@ def create_closet_today_router(
             },
             "lock": lock_id,
             "relaxed": {slot: list(steps) for slot, steps in found.relaxed.items()},
+            **short,
         }
 
     async def store(session: AsyncSession, body: dict[str, Any]) -> None:
