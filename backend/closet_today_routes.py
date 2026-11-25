@@ -792,7 +792,7 @@ def create_closet_today_router(
         if listed is None:
             # A slot the day does not need (a layer on a warm day): the
             # garments that pass the same rules, least worn first.
-            listed = closet.slot_fallback(pieces, slot.value, request)
+            listed = closet.slot_fallback(pieces, slot.value, request, read)
         return {
             "slot": slot.value,
             "candidates": [

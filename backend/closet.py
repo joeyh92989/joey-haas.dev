@@ -11,7 +11,8 @@ is left. When the model cannot answer, `template()` here is the plan.
   adds its own slot when the day would not have one (a hat, a coat on a
   warm morning).
 - **Season windows** are month sets on the garment (`seasons`); an empty
-  set is all year. A garment out of its window is never a candidate.
+  set is all year. A month outside the window costs `WEIGHTS["season"]` in
+  `score`; only shorts and linen under `LINEN_MIN_LOW_F` are cut.
 - **Warmth.** The morning low (6 to 9 am) and the afternoon high (noon to
   6 pm) from the cached forecast, or the month's Denver normals when there
   is none. Layers are chosen for the morning, the top for the afternoon,
@@ -69,7 +70,11 @@ OCCASION_FORMALITY = {
 }
 
 # The tuning points of the ranking without a model.
-WEIGHTS = {"warmth": 2.0, "formality": 1.0, "rest": 0.5, "wears": 0.3}
+# "season" equals one warmth step: a month the piece is not tagged for
+# costs as much as a garment one step too warm or too cold, so a piece
+# that suits the day in every other way still ranks above a worse fit.
+WEIGHTS = {"warmth": 2.0, "formality": 1.0, "rest": 0.5, "wears": 0.3, "season": 2.0}
+LINEN_MIN_LOW_F = 50  # below this low, shorts and linen are out of the pool
 REST_CAP_DAYS = 28  # rest stops counting after four weeks
 NEVER_WORN_REST = 4.0  # a garment never worn ranks as four weeks rested
 SNOW_BOOT_BONUS = 3.0  # beats one warmth step
@@ -315,11 +320,21 @@ def is_tagged(piece: Piece) -> bool:
     return piece.warmth is not None and piece.formality is not None
 
 
-def eligible(piece: Piece, request: Request, month: int) -> bool:
+def clearly_out_of_season(piece: Piece, read: WeatherRead) -> bool:
+    """Shorts and linen when the day's low is under `LINEN_MIN_LOW_F`.
+    The one season rule left as a cut; the rest is `score`."""
+    if read.low >= LINEN_MIN_LOW_F:
+        return False
+    words = f"{_words(piece)} {(piece.material or '').lower()}"
+    return "shorts" in words or "linen" in words
+
+
+def eligible(piece: Piece, request: Request, read: WeatherRead) -> bool:
     """The rules every candidate passes, in `candidates` and `slot_fallback`
-    alike (the repeat rule is applied by the callers)."""
+    alike (the repeat rule is applied by the callers). A tagged season is a
+    score, not a rule: see `score`."""
     return (
-        in_season(piece, month)
+        not clearly_out_of_season(piece, read)
         and fits_occasion(piece, request.occasion)
         and (not request.bike or bike_ok(piece))
     )
@@ -369,6 +384,8 @@ def score(piece: Piece, target: int, occasion: str, day: date, snow: bool) -> fl
         + WEIGHTS["rest"] * rest
         - WEIGHTS["wears"] * piece.wears_30
     )
+    if piece.seasons and day.month not in piece.seasons:
+        total -= WEIGHTS["season"]
     if snow and piece.category == "shoes" and "boot" in _words(piece):
         total += SNOW_BOOT_BONUS
     return round(total, 3)
@@ -389,13 +406,12 @@ def candidates(
         slots.append(fixed.category)
     slots = [slot for slot in SLOT_ORDER if slot in slots]
     goal = targets(read, request.bike)
-    month = request.day.month
     pool: dict[str, list[Piece]] = {slot: [] for slot in slots}
     fit = skipped = 0
     for piece in pieces:
         if fixed is not None and piece.id == fixed.id:
             continue
-        if not eligible(piece, request, month):
+        if not eligible(piece, request, read):
             continue
         if worn_recently(piece, request.day, request.repeat_top_days):
             skipped += 1
@@ -430,16 +446,17 @@ def candidates(
     )
 
 
-def slot_fallback(pieces: Sequence[Piece], slot: str, request: Request) -> list[Scored]:
+def slot_fallback(
+    pieces: Sequence[Piece], slot: str, request: Request, read: WeatherRead
+) -> list[Scored]:
     """Swap a piece for a slot the day does not need (a layer on a warm
     day): the pieces that pass the same rules as `candidates`, the repeat
     rule included, least worn first and capped the same way."""
-    month = request.day.month
     found = [
         p
         for p in pieces
         if p.category == slot
-        and eligible(p, request, month)
+        and eligible(p, request, read)
         and not worn_recently(p, request.day, request.repeat_top_days)
     ]
     kept, _ = tagged_first(found)

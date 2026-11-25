@@ -190,6 +190,86 @@ def test_bike_ok(p, ok):
     assert closet.bike_ok(p) is ok
 
 
+def test_a_season_miss_costs_the_season_weight():
+    args = (3, "weekend", DAY, False)
+    ins = closet.score(piece("a", "top", seasons=(11,)), *args)
+    out = closet.score(piece("a", "top", seasons=(6, 7, 8)), *args)
+    all_year = closet.score(piece("a", "top", seasons=()), *args)
+    assert ins == all_year
+    assert round(ins - out, 3) == closet.WEIGHTS["season"]
+
+
+@pytest.mark.parametrize("low, cut", [(49, True), (50, False)])
+@pytest.mark.parametrize(
+    "category, kw",
+    [
+        ("top", {"name": "camp shorts"}),
+        ("bottom", {"name": "walk shorts"}),
+        ("top", {"name": "tee", "subtype": "shorts set"}),
+        ("top", {"name": "tee", "material": "Linen"}),
+        ("bottom", {"name": "trousers", "material": "linen blend"}),
+        ("top", {"name": "linen shirt"}),
+        ("bottom", {"name": "linen pants"}),
+    ],
+)
+def test_shorts_and_linen_are_cut_below_fifty(category, kw, low, cut):
+    p = piece("a", category, **kw)
+    assert closet.clearly_out_of_season(p, read(low, 70)) is cut
+
+
+def test_wool_and_ordinary_pieces_are_never_cut():
+    p = piece("a", "top", name="wool sweater", material="wool")
+    assert not closet.clearly_out_of_season(p, read(10, 30))
+
+
+def test_a_cut_piece_is_out_of_candidates_and_the_swap_fallback():
+    pieces = [piece("t1", "top", name="linen shirt"), piece("t2", "top")]
+    cold = read(45, 60)
+    got = closet.candidates(pieces, Request(DAY, "weekend"), cold)
+    assert [s.piece.id for s in got.by_slot["top"]] == ["t2"]
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), cold)
+    assert [s.piece.id for s in found] == ["t2"]
+
+
+def test_a_cold_november_office_day_keeps_its_tops_warmest_first():
+    """The 2026-11-20 shape: 37 to 61 F, thirteen summer-tagged tops."""
+    summer = [
+        piece(
+            f"s{i}",
+            "top",
+            name=f"summer top {i}",
+            warmth=2 + i % 2,
+            formality=3,
+            seasons=(6, 7, 8),
+        )
+        for i in range(13)
+    ]
+    autumn = [
+        piece(
+            f"a{i}",
+            "top",
+            name=f"autumn top {i}",
+            warmth=4,
+            formality=3,
+            seasons=(9, 10),
+        )
+        for i in range(3)
+    ]
+    other = [
+        piece(f"o{i}", "top", name=f"plain top {i}", warmth=3, formality=3)
+        for i in range(3)
+    ]
+    cold = read(37, 61)
+    got = closet.candidates(summer + autumn + other, Request(DAY, "office"), cold)
+    tops = got.by_slot["top"]
+    assert len(tops) >= 3
+    assert got.fit == 19
+    warmth = [s.piece.warmth for s in tops]
+    target = got.targets["top"]
+    gaps = [abs(w - target) for w in warmth]
+    assert gaps == sorted(gaps)
+
+
 @pytest.mark.parametrize(
     "seasons, month, ok",
     [((), 7, True), ((11, 12, 1), 11, True), ((6, 7, 8), 11, False)],
@@ -208,13 +288,14 @@ def test_a_top_worn_within_n_days_is_recent(days_ago, n, recent):
 
 
 def test_the_swap_fallback_keeps_the_repeat_rule():
+    mild = read(50, 60)
     pieces = [
         piece("t1", "top", name="worn tee", last_worn=DAY - timedelta(days=2)),
         piece("t2", "top", name="rested tee", last_worn=DAY - timedelta(days=9)),
         piece("t3", "top", name="summer tee", seasons=(6, 7, 8)),
     ]
-    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"))
-    assert [s.piece.id for s in found] == ["t2"]
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), mild)
+    assert sorted(s.piece.id for s in found) == ["t2", "t3"]  # season is a score
 
 
 def test_only_tops_have_the_repeat_rule():
@@ -326,9 +407,11 @@ def test_the_swap_fallback_prefers_tagged_pieces():
         piece("t1", "top", name="tagged"),
         piece("t2", "top", name="untagged", formality=None),
     ]
-    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"))
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"), read(50, 60))
     assert [s.piece.id for s in found] == ["t1"]
-    only = closet.slot_fallback(pieces[1:], "top", Request(DAY, "weekend"))
+    only = closet.slot_fallback(
+        pieces[1:], "top", Request(DAY, "weekend"), read(50, 60)
+    )
     assert [s.piece.id for s in only] == ["t2"]
 
 
