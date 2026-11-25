@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 BATCH_SIZE = 10
 MAX_ATTEMPTS = 3
@@ -214,13 +214,19 @@ def _attributes(item: Any) -> dict:
     return raw if isinstance(raw, dict) else {}
 
 
-def validate(payload: Any, count: int, mode: str = "new") -> list[Tagged]:
+Mode = Literal["new", "fill", "retag"]
+MODES = ("new", "fill", "retag")
+
+
+def validate(payload: Any, count: int, mode: Mode = "new") -> list[Tagged]:
     """The answer as one `Tagged` per photograph, in order.
 
     Raises `TagBatchError` unless the indices are exactly `0..count-1`. With
     mode `"retag"`, only the formality is read; with `"fill"`, only warmth
     and formality (a bad category or any other field does not reject the
     batch) and an unusable value is None."""
+    if mode not in MODES:
+        raise ValueError(f"unknown tag mode {mode!r}")
     items = payload.get("items") if isinstance(payload, dict) else None
     if not isinstance(items, list):
         raise TagBatchError("the answer had no items")

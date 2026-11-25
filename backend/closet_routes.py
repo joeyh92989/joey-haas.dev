@@ -954,8 +954,10 @@ def create_closet_router(
         return await _count(session, _to_fill())
 
     async def _strike(
-        session: AsyncSession, ids: list[uuid.UUID], mode: str = "new"
+        session: AsyncSession, ids: list[uuid.UUID], mode: closet_tag.Mode = "new"
     ) -> None:
+        if mode not in closet_tag.MODES:
+            raise ValueError(f"unknown tag mode {mode!r}")
         owner = {
             "new": Garment.tag_source.is_(None),
             "fill": Garment.tag_source == GarmentTagSource.MANUAL,
@@ -964,14 +966,18 @@ def create_closet_router(
         await session.execute(
             update(Garment)
             .where(Garment.id.in_(ids), owner)
-            .values(tag_attempts=Garment.tag_attempts + 1)
+            # `updated_at` is the photo's cache version: the column's onupdate
+            # would move it, so it is set to itself.
+            .values(
+                tag_attempts=Garment.tag_attempts + 1, updated_at=Garment.updated_at
+            )
         )
         await session.commit()
 
     async def tag_batch(
         session: AsyncSession,
         only: list[uuid.UUID] | None = None,
-        mode: str = "new",
+        mode: closet_tag.Mode = "new",
     ) -> dict[str, Any]:
         """One model call over the oldest queued garments (or over `only`,
         the ones still queued), or none when there is nothing to tag. Never
@@ -992,6 +998,8 @@ def create_closet_router(
         same budget. A single photo that fails the same way takes a strike.
         A quota or overload error never strikes, since it says nothing about
         the photos."""
+        if mode not in closet_tag.MODES:
+            raise ValueError(f"unknown tag mode {mode!r}")
         query = (
             select(Garment.id, GarmentImage.webp)
             .join(GarmentImage, GarmentImage.garment_id == Garment.id)
@@ -1065,15 +1073,30 @@ def create_closet_router(
 
         written = 0
         if mode == "fill":
+            blank_before = {
+                row.id: row
+                for row in await session.execute(
+                    select(Garment.id, Garment.warmth, Garment.formality).where(
+                        Garment.id.in_(ids)
+                    )
+                )
+            }
+            unusable: list[uuid.UUID] = []
             for garment_id, entry in zip(ids, tagged, strict=True):
                 # Only the blanks, and a field set by hand during the call
-                # wins (COALESCE in SQL). `tag_source`, status and colours
-                # never move; `updated_at` is set to itself (the photo's
-                # cache version). The scale is current only when this fill
-                # wrote the formality.
+                # wins (COALESCE in SQL). `tag_source`, colours and the
+                # photo's cache version `updated_at` never move. The scale is
+                # current only when this fill wrote the formality.
                 values: dict[str, Any] = {}
                 warmth = entry.attributes["warmth"]
                 formality = entry.attributes["formality"]
+                was = blank_before.get(garment_id)
+                progress = was is not None and (
+                    (was.warmth is None and warmth is not None)
+                    or (was.formality is None and formality is not None)
+                )
+                if not progress:
+                    unusable.append(garment_id)
                 if warmth is not None:
                     values["warmth"] = func.coalesce(Garment.warmth, warmth)
                 if formality is not None:
@@ -1088,6 +1111,9 @@ def create_closet_router(
                         .where(
                             Garment.id == garment_id,
                             Garment.tag_source == GarmentTagSource.MANUAL,
+                            Garment.status.in_(
+                                (GarmentStatus.ACTIVE, GarmentStatus.PACKED)
+                            ),
                             or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
                         )
                         .values(**values, updated_at=Garment.updated_at)
@@ -1099,20 +1125,24 @@ def create_closet_router(
                         after is not None
                         and None not in (after.warmth, after.formality)
                     )
-            # A piece the fill left blank takes a strike, so an unreadable
-            # photo leaves the queue after MAX_ATTEMPTS.
-            await session.execute(
-                update(Garment)
-                .where(
-                    Garment.id.in_(ids),
-                    Garment.tag_source == GarmentTagSource.MANUAL,
-                    or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
+            # A piece the call gave nothing usable for takes a strike. One
+            # that gained a field is not struck: it is asked again for the
+            # rest. This still ends: once it is blank on one field only, a
+            # call that leaves that field unusable gains nothing, so it is
+            # struck on every later night and leaves after MAX_ATTEMPTS.
+            if unusable:
+                await session.execute(
+                    update(Garment)
+                    .where(
+                        Garment.id.in_(unusable),
+                        Garment.tag_source == GarmentTagSource.MANUAL,
+                        or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
+                    )
+                    .values(
+                        tag_attempts=Garment.tag_attempts + 1,
+                        updated_at=Garment.updated_at,
+                    )
                 )
-                .values(
-                    tag_attempts=Garment.tag_attempts + 1,
-                    updated_at=Garment.updated_at,
-                )
-            )
             await session.commit()
             return {**idle, "tagged": written, "called": True}
         if mode == "retag":
