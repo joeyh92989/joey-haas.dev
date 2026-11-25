@@ -577,6 +577,7 @@ def create_closet_today_router(
                 "skipped_recent": found.skipped_recent,
             },
             "lock": lock_id,
+            "relaxed": {slot: list(steps) for slot, steps in found.relaxed.items()},
         }
 
     async def store(session: AsyncSession, body: dict[str, Any]) -> None:

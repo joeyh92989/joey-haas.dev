@@ -26,6 +26,9 @@ import {
   countsLine,
   filterGarments,
   settleFilter,
+  lacksDetails,
+  needsDetailsLabel,
+  NEEDS_DETAILS_FILTER,
   tagResult,
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
@@ -135,6 +138,10 @@ export default function AdminCloset() {
 
   const garments = useMemo(() => closet?.garments ?? [], [closet])
   const counts = useMemo(() => chipCounts(garments), [garments])
+  const needDetails = useMemo(
+    () => garments.filter(lacksDetails).length,
+    [garments],
+  )
   const waiting = useMemo(() => garments.filter(queued).length, [garments])
   const shown = useMemo(
     () => filterGarments(garments, filter),
@@ -297,6 +304,20 @@ export default function AdminCloset() {
             value={filter}
             onChange={(next) => setFilter((prev) => settleFilter(prev, next))}
           />
+          {(needDetails > 0 || filter.needsDetails) && (
+            <button
+              type="button"
+              className={btn()}
+              aria-pressed={filter.needsDetails}
+              onClick={() =>
+                setFilter(
+                  filter.needsDetails ? DEFAULT_FILTER : NEEDS_DETAILS_FILTER,
+                )
+              }
+            >
+              {needsDetailsLabel(needDetails)}
+            </button>
+          )}
           <div className={`closet-toolbar-end ${CLOSET_TOOLBAR_END}`}>
             <div
               className="flex flex-wrap gap-2"

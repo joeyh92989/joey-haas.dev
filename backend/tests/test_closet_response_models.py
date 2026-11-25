@@ -32,7 +32,7 @@ GARMENT_KEYS = {
 }  # fmt: skip
 PLAN_KEYS = {
     "day", "occasion", "bike", "planned_at", "ranked_by", "model_note",
-    "weather", "lead", "alternatives", "footnote", "lock",
+    "weather", "lead", "alternatives", "footnote", "lock", "relaxed",
 }  # fmt: skip
 
 

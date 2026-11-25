@@ -128,6 +128,49 @@ describe('AdminCloset', () => {
     ).toBeInTheDocument()
   })
 
+  it('counts active pieces missing details and shows exactly those', async () => {
+    stubApi({
+      'GET /api/closet/garments': () =>
+        json(
+          closet([
+            ...GARMENTS,
+            garment('e', 'Plain tee', { warmth: null }),
+            garment('f', 'Odd shirt', { formality: null }),
+          ]),
+        ),
+    })
+    renderCloset()
+    await screen.findByRole('list')
+    const button = screen.getByRole('button', { name: '2 pieces need details' })
+    await userEvent.click(button)
+    expect(tiles()).toEqual(['/admin/closet/e', '/admin/closet/f'])
+    // The button again, or a status chip, gets the list back.
+    await userEvent.click(button)
+    expect(tiles()).toHaveLength(6 - 1)
+    await userEvent.click(button)
+    await userEvent.click(screen.getByRole('button', { name: /^Packed/ }))
+    expect(tiles()).toEqual(['/admin/closet/c'])
+  })
+
+  it('has no needs-details button when every active piece is tagged', async () => {
+    stubApi()
+    renderCloset()
+    await screen.findByRole('list')
+    expect(screen.queryByRole('button', { name: /need.* details/ })).toBeNull()
+  })
+
+  it('says "1 piece needs details" for one', async () => {
+    stubApi({
+      'GET /api/closet/garments': () =>
+        json(closet([garment('e', 'Plain tee', { warmth: null })])),
+    })
+    renderCloset()
+    await screen.findByRole('list')
+    expect(
+      screen.getByRole('button', { name: '1 piece needs details' }),
+    ).toBeInTheDocument()
+  })
+
   it('keeps a pressed Active chip strict: untagged pieces drop out', async () => {
     stubApi()
     renderCloset()
