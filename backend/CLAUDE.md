@@ -88,6 +88,12 @@ only while its item is public. Admin routes stay keyed by id.
   garment (source, url, order reference, item number, title, price, a JSONB
   snapshot of the parsed product, `fetched_at`); `size` is per garment and
   wins over the profile size on the Sell checklist.
+- **Formality re-tag** (#548): `garments.tag_scale` is the formality scale a
+  piece was tagged on; `closet_tag.SCALE_VERSION` is the current one. To start a
+  re-tag after changing the formality anchors in `closet_tag.INSTRUCTIONS`, raise
+  `SCALE_VERSION`: the nightly tag job (and Tag now, once nothing is untagged)
+  re-tags `formality` only on `tag_source = model`, `active`/`packed` pieces
+  below it. Progress is `retagged` / `retag_remaining` in `tag.last_run`.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay
