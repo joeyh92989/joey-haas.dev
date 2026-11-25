@@ -632,9 +632,9 @@ index replaced by the piece's slot and name (so the two answers can be read
 side by side) and its reason. `usage` is always null: the providers' `complete_json`
 returns the answer only, not token counts.
 
-To turn the feature on after a good measurement, set the row in
-`closet_settings` (key `rank.images`, value `{"enabled": true}`). There is no
-admin screen for it. Tests never call a real provider; they use fakes
+To turn the feature on after a good measurement, tick "Rank outfits from
+photos" on the admin Closet Profile page (#555); it writes the `closet_settings`
+row (key `rank.images`, value `{"enabled": true}`) that the planner reads. Tests never call a real provider; they use fakes
 (`tests/test_closet_rank_images_probe.py`).
 
 ## export_admin_volume_fixtures.py

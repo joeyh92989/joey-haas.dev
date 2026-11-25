@@ -27,6 +27,7 @@ const PROFILE = {
   repeat_top_days: 7,
   repeat_outfit_weeks: 3,
   tag_budget: 12,
+  rank_images: false,
   occasions: ['office', 'wfh', 'date', 'weekend', 'travel', 'event'],
 }
 
@@ -54,6 +55,58 @@ describe('AdminClosetProfile', () => {
     expect(
       screen.getByRole('group', { name: adminCopy.closetProfile.coloring }),
     ).toBeInTheDocument()
+  })
+
+  it('shows the saved photo-ranking state and sends a change', async () => {
+    const calls = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const method = options.method ?? 'GET'
+        const body = options.body ? JSON.parse(options.body) : undefined
+        calls.push({ method, body })
+        const base = { ...PROFILE, rank_images: true }
+        return json(method === 'PATCH' ? { ...base, ...body } : base)
+      }),
+    )
+    render(
+      <MemoryRouter>
+        <AdminClosetProfile />
+      </MemoryRouter>,
+    )
+    const box = await screen.findByLabelText(adminCopy.closetProfile.rankImages)
+    expect(box).toBeChecked()
+    expect(box).toHaveAccessibleDescription(/25 to 40 seconds/)
+    await userEvent.click(box)
+    expect(box).not.toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText(adminCopy.closetProfile.saved)
+    expect(calls.find((c) => c.method === 'PATCH').body.rank_images).toBe(false)
+  })
+
+  it('leaves the photo-ranking switch out of a Save of another field', async () => {
+    const calls = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const method = options.method ?? 'GET'
+        const body = options.body ? JSON.parse(options.body) : undefined
+        calls.push({ method, body })
+        const base = { ...PROFILE, rank_images: true }
+        return json(method === 'PATCH' ? { ...base, ...body } : base)
+      }),
+    )
+    render(
+      <MemoryRouter>
+        <AdminClosetProfile />
+      </MemoryRouter>,
+    )
+    await userEvent.type(await screen.findByLabelText(/^Dislikes/), 'logos')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText(adminCopy.closetProfile.saved)
+    const patch = calls.find((c) => c.method === 'PATCH')
+    expect(patch.body).not.toHaveProperty('rank_images')
+    expect(patch.body.dislikes).toEqual(['logos'])
   })
 
   it('sends the whole profile as one PATCH', async () => {

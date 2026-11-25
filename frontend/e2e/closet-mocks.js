@@ -185,6 +185,7 @@ export const PROFILE = {
   repeat_top_days: 7,
   repeat_outfit_weeks: 3,
   tag_budget: 12,
+  rank_images: false,
   occasions: ['office', 'wfh', 'date', 'weekend', 'travel', 'event'],
 }
 

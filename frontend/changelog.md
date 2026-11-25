@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-25
 
+- Behind the scenes: the outfit planner can now rank from photos of the shortlisted pieces, not only their descriptions. It is a checkbox on the closet's Profile page, off until it is switched on, and a plan ranked that way says on Today how many pieces had a photo and how many did not.
 - Behind the scenes: the outfit planner can now be told a single piece is not for today, too cold, too warm, or never for an occasion; it leaves that piece out of every plan and swap, and tells the model why. The Closet page suggests checking the warmth of pieces turned down as too cold or too warm, and never changes a tag itself.
 
 ## 2026-11-24

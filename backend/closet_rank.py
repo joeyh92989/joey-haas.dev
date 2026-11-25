@@ -178,6 +178,20 @@ def _describe(piece: Piece, day: date) -> str:
     return f"{piece.name} ({detail})" if detail else piece.name
 
 
+def image_window(found: Candidates, per_slot: int = IMAGES_PER_SLOT) -> list[int]:
+    """The numbers (`numbered` order) `image_picks` considers: the top
+    `per_slot` of each slot's shortlist, with or without a photo. A photo
+    missing, unreadable or cut by the byte budget leaves its number out of
+    the picks, not out of the window."""
+    taken: Counter[str] = Counter()
+    window = []
+    for index, (slot, _) in enumerate(numbered(found)):
+        taken[slot] += 1
+        if taken[slot] <= per_slot:
+            window.append(index)
+    return window
+
+
 def image_picks(
     found: Candidates, with_image: Iterable[str], per_slot: int = IMAGES_PER_SLOT
 ) -> list[int]:

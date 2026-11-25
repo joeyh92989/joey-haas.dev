@@ -30,6 +30,8 @@ const COLORING = [
  */
 export default function AdminClosetProfile() {
   const [form, setForm] = useState(null)
+  // The form as loaded or last saved: the switch is sent only when changed.
+  const [loaded, setLoaded] = useState(null)
   const [occasions, setOccasions] = useState([])
   const [error, setError] = useState(null)
   const [slow, setSlow] = useState(false)
@@ -54,6 +56,7 @@ export default function AdminClosetProfile() {
         if (!live) return
         setOccasions(body.occasions)
         setForm(profileForm(body))
+        setLoaded(profileForm(body))
       })
       .catch(() => live && setError(LOAD_ERROR))
       .finally(() => clearTimeout(timer))
@@ -81,13 +84,15 @@ export default function AdminClosetProfile() {
       const response = await apiFetch('/api/closet/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileBody(form)),
+        body: JSON.stringify(profileBody(form, loaded)),
       })
       if (!response.ok) {
         setError(await errorMessage(response))
         return
       }
-      setForm(profileForm(await response.json()))
+      const next = profileForm(await response.json())
+      setForm(next)
+      setLoaded(next)
       setSaved(true)
     } catch {
       setError('The save did not reach the server. Check your connection.')
@@ -291,6 +296,20 @@ export default function AdminClosetProfile() {
             50,
             '0 turns the nightly tagging off.',
           )}
+          <div className={GARMENT_LABEL}>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.rank_images}
+                aria-describedby="rank-images-help"
+                onChange={(e) => set('rank_images')(e.target.checked)}
+              />{' '}
+              {adminCopy.closetProfile.rankImages}
+            </label>
+            <span id="rank-images-help" className="muted">
+              {adminCopy.closetProfile.rankImagesHelp}
+            </span>
+          </div>
         </fieldset>
 
         {error && (

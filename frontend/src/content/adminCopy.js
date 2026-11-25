@@ -287,6 +287,12 @@ export const adminCopy = {
     matchThis: 'Match this…',
     notThis: 'Not this…',
     outfitBoard: 'The outfit',
+    // "Ranked from photos: 14 pieces, 2 without one." (the tail only when some
+    // shortlisted piece had no photo)
+    photosLine: 'Ranked from photos: {n} {pieces}{without}.',
+    photosPiece: 'piece',
+    photosPieces: 'pieces',
+    photosWithout: ', {n} without one',
     // "Few {slot} fit, so {steps}." One phrase per relaxation step, joined
     // in the order the planner tried them.
     relaxedLine: 'Few {slot} fit, so {steps}.',
@@ -332,6 +338,9 @@ export const adminCopy = {
     commaSeparated: 'Comma-separated, up to twelve.',
     dislikes: 'Dislikes',
     dislikesPlaceholder: 'logos, skinny fits',
+    rankImages: 'Rank outfits from photos',
+    rankImagesHelp:
+      'Slower: about 25 to 40 seconds a plan instead of under 10.',
     repeatsTagging: 'Repeats and tagging',
     saved: 'Saved.',
     seasonsTurn: 'Seasons turn',
