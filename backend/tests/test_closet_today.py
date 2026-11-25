@@ -1181,3 +1181,10 @@ async def test_a_full_top_pool_omits_shared_top(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         plan = (await client.get("/api/closet/today")).json()["plan"]
     assert "shared_top" not in plan and "top" not in plan.get("short", {})
+
+
+def test_the_piece_loader_passes_graphic_through():
+    row = Garment(name="tee", category=GarmentCategory.TOP, seasons=[], graphic=True)
+    assert closet_today_routes._piece(row, None, 0).graphic is True
+    row.graphic = None
+    assert closet_today_routes._piece(row, None, 0).graphic is None

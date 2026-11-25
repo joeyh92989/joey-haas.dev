@@ -22,6 +22,14 @@ const garment = {
 }
 
 describe('GarmentForm state', () => {
+  it('keeps an unset graphic flag null through a save', () => {
+    expect(formFrom(garment).graphic).toBeNull()
+    expect(bodyFrom(formFrom(garment)).graphic).toBeNull()
+    expect(bodyFrom(formFrom({ ...garment, graphic: false })).graphic).toBe(
+      false,
+    )
+  })
+
   it('saves an untagged garment as active, blanks as null', () => {
     const body = bodyFrom({ ...formFrom(garment), notes: '  ' })
     expect(body).toMatchObject({
