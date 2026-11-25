@@ -29,6 +29,10 @@ import {
   lacksDetails,
   needsDetailsLabel,
   NEEDS_DETAILS_FILTER,
+  CHECK_WARMTH_FILTER,
+  checkWarmthLabel,
+  warmthFlagged,
+  warmthToCheck,
   tagResult,
 } from '../lib/closet.js'
 import { readShelfPref, writeShelfPref } from '../lib/shelf.js'
@@ -142,10 +146,15 @@ export default function AdminCloset() {
     () => garments.filter(lacksDetails).length,
     [garments],
   )
+  const flagged = useMemo(() => warmthFlagged(closet), [closet])
+  const warmthCount = useMemo(
+    () => warmthToCheck(garments, flagged).length,
+    [garments, flagged],
+  )
   const waiting = useMemo(() => garments.filter(queued).length, [garments])
   const shown = useMemo(
-    () => filterGarments(garments, filter),
-    [garments, filter],
+    () => filterGarments(garments, filter, flagged),
+    [garments, filter, flagged],
   )
 
   function changeView(next) {
@@ -316,6 +325,20 @@ export default function AdminCloset() {
               }
             >
               {needsDetailsLabel(needDetails)}
+            </button>
+          )}
+          {(warmthCount > 0 || filter.checkWarmth) && (
+            <button
+              type="button"
+              className={btn()}
+              aria-pressed={filter.checkWarmth}
+              onClick={() =>
+                setFilter(
+                  filter.checkWarmth ? DEFAULT_FILTER : CHECK_WARMTH_FILTER,
+                )
+              }
+            >
+              {checkWarmthLabel(warmthCount)}
             </button>
           )}
           <div className={`closet-toolbar-end ${CLOSET_TOOLBAR_END}`}>

@@ -63,11 +63,11 @@ const GARMENTS = [
   }),
 ]
 
-function closet(garments) {
+function closet(garments, temperature_flags = []) {
   const counts = { total: garments.length }
   for (const s of ['untagged', 'active', 'packed', 'listed', 'gone'])
     counts[s] = garments.filter((g) => g.status === s).length
-  return { garments, counts }
+  return { garments, counts, temperature_flags }
 }
 
 function json(body, status = 200) {
@@ -169,6 +169,45 @@ describe('AdminCloset', () => {
     expect(
       screen.getByRole('button', { name: '1 piece needs details' }),
     ).toBeInTheDocument()
+  })
+
+  it('counts pieces turned down as too cold or too warm and shows exactly those', async () => {
+    stubApi({
+      'GET /api/closet/garments': () =>
+        json(
+          closet(GARMENTS, [
+            {
+              garment_id: 'a',
+              too_cold: 2,
+              too_warm: 0,
+              last_day: '2026-11-20',
+            },
+            {
+              garment_id: 'b',
+              too_cold: 0,
+              too_warm: 1,
+              last_day: '2026-11-18',
+            },
+          ]),
+        ),
+    })
+    renderCloset()
+    await screen.findByRole('list')
+    const button = screen.getByRole('button', { name: 'Check warmth: 2' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(button)
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(tiles()).toEqual(['/admin/closet/a', '/admin/closet/b'])
+    // The button again gets the list back.
+    await userEvent.click(button)
+    expect(tiles()).toHaveLength(3)
+  })
+
+  it('has no Check warmth button without temperature feedback', async () => {
+    stubApi()
+    renderCloset()
+    await screen.findByRole('list')
+    expect(screen.queryByRole('button', { name: /Check warmth/ })).toBeNull()
   })
 
   it('keeps a pressed Active chip strict: untagged pieces drop out', async () => {

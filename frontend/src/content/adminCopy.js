@@ -352,6 +352,7 @@ export const adminCopy = {
     unpackAll: 'Unpack all',
   },
   closet: {
+    checkWarmth: 'Check warmth: {n}',
     needsDetailsMany: '{n} pieces need details',
     needsDetailsOne: '1 piece needs details',
     nothingMatches: 'Nothing matches these chips.',

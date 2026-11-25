@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_FILTER,
   NEEDS_DETAILS_FILTER,
+  CHECK_WARMTH_FILTER,
+  checkWarmthLabel,
+  warmthFlagged,
+  warmthToCheck,
   backMonth,
   footnoteLine,
   longDate,
@@ -146,6 +150,24 @@ describe('filterGarments', () => {
         ...NEEDS_DETAILS_FILTER,
         status: null,
       }).needsDetails,
+    ).toBe(false)
+  })
+
+  it('checkWarmth keeps only the flagged ids and settleFilter clears it', () => {
+    const flagged = warmthFlagged({
+      temperature_flags: [{ garment_id: 'b' }, { garment_id: 'c' }],
+    })
+    expect(
+      filterGarments(closet, CHECK_WARMTH_FILTER, flagged).map((g) => g.id),
+    ).toEqual(['b'])
+    expect(warmthToCheck(closet, flagged).map((g) => g.id)).toEqual(['b'])
+    expect(warmthFlagged({}).size).toBe(0)
+    expect(checkWarmthLabel(3)).toBe('Check warmth: 3')
+    expect(
+      settleFilter(CHECK_WARMTH_FILTER, {
+        ...CHECK_WARMTH_FILTER,
+        status: null,
+      }).checkWarmth,
     ).toBe(false)
   })
 
