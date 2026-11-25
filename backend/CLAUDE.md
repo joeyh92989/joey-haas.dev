@@ -152,9 +152,12 @@ only while its item is public. Admin routes stay keyed by id.
   `FOR UPDATE` on the garment.
 - **Ranking can send thumbnails** (`closet_rank.image_picks`, at most 4 per
   slot, under the 20 MB payload ceiling, each tied to its garment number), but
-  only while `closet_settings["rank.images"]` is `{"enabled": true}`. It is off:
-  nothing flips it from the app. A refused payload retries once text-only,
-  then falls back as before. Run `scripts/closet_rank_images_probe.py` (see
+  only while `closet_settings["rank.images"]` is the JSON boolean `{"enabled": true}`
+  (`closet_routes.rank_images_enabled` reads it for the plan and the profile).
+  It is off until Joey switches it on from the Profile checkbox
+  (`rank_images` on `GET`/`PATCH /profile`, #555). A plan ranked from photos
+  records `photos: {sent, without}` in its body, null otherwise (and on older
+  plans). A refused payload retries once text-only, then falls back as before. Run `scripts/closet_rank_images_probe.py` (see
   `scripts/README.md`) on a local database with photos before turning it on
   (#400).
 - **Purchase history stays out of the repo.** Seed files live in
