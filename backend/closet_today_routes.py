@@ -113,8 +113,6 @@ from recommendations_routes import _failure_note
 logger = logging.getLogger(__name__)
 
 PLAN_STATUS_KEY = "plan.last_run"
-# `{"enabled": bool}`: send the shortlist's thumbnails with the ranking prompt.
-# Off until the #400 measurement says latency and tokens are acceptable.
 THUMB_EDGE = LONG_EDGE  # the grid rendition
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
@@ -615,7 +613,7 @@ def create_closet_today_router(
 
         found = closet.candidates(pieces, request, read)
         photos_used: list[bool] = []
-        sent = shortlisted = 0
+        sent = window = 0
         sentence = closet.read_sentence(read, bike, f"{day:%B}")
         if not closet.template(found, recent):
             outfits, note = [], NOTHING_TO_WEAR
@@ -626,7 +624,7 @@ def create_closet_today_router(
                 picks, images = await shortlist_images(session, found)
                 await session.commit()
                 if images:
-                    sent, shortlisted = len(images), len(closet_rank.numbered(found))
+                    sent, window = len(images), len(closet_rank.image_window(found))
                     with_images = (
                         closet_rank.build_prompt(
                             *args, images=picks, turned_down=turned_down
@@ -642,10 +640,10 @@ def create_closet_today_router(
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         # Null when ranked from text (setting off, the template, the text-only
         # retry, or an answer that fell to the template); else the photos sent
-        # and the shortlisted pieces without one.
+        # and the pieces in the photo window (top four a slot) without one.
         by_model = bool(outfits) and outfits[0].ranked_by == "model"
         photo_note = (
-            {"sent": sent, "without": shortlisted - sent}
+            {"sent": sent, "without": window - sent}
             if photos_used and by_model
             else None
         )

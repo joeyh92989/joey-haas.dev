@@ -1086,9 +1086,38 @@ async def test_each_image_is_the_piece_the_prompt_says(sessionmaker_for_test):
         assert max(PILImage.open(io.BytesIO(image.data)).size) <= 400
 
 
-async def test_at_most_four_images_per_slot_and_a_missing_photo_is_text(
-    sessionmaker_for_test,
-):
+async def add_tops(factory, ids: dict[str, str], count: int) -> None:
+    """`count` more tops (with photos), named into `ids`."""
+    async with factory() as session:
+        for n in range(count):
+            row = Garment(
+                name=f"extra tee {n}",
+                category=GarmentCategory("top"),
+                warmth=2,
+                formality=3,
+                seasons=[],
+                status=GarmentStatus.ACTIVE,
+                tag_attempts=0,
+            )
+            session.add(row)
+            await session.flush()
+            session.add(
+                GarmentImage(garment_id=row.id, webp=_webp(), width=40, height=30)
+            )
+            ids[row.name] = str(row.id)
+        await session.commit()
+
+
+def first_of_each_slot(prompt):
+    """A model answer: the first garment listed for each slot."""
+    firsts = {}
+    for line in prompt.split("Garments:\n", 1)[1].splitlines():
+        index, rest = line.split(". ", 1)
+        firsts.setdefault(rest.split(": ", 1)[0], int(index))
+    return {"outfits": [{"indices": list(firsts.values()), "reason": "Ok."}]}
+
+
+async def test_a_missing_photo_is_text_and_counts_as_without(sessionmaker_for_test):
     ids = await seed(sessionmaker_for_test)
     await paint(sessionmaker_for_test, ids, skip={"wool coat"})
     await switch_on(sessionmaker_for_test)
@@ -1105,6 +1134,53 @@ async def test_at_most_four_images_per_slot_and_a_missing_photo_is_text(
     coat = next(ln for ln in prompt.splitlines() if "wool coat (" in ln)
     assert "[image" not in coat
     assert len(provider.sent[0]) == 10
+
+
+async def test_at_most_four_images_per_slot_and_the_rest_are_not_without(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    await add_tops(sessionmaker_for_test, ids, 5)  # eight tops, all with photos
+    await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    provider = ImageProvider(first_of_each_slot)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    prompt = provider.calls[0][0]
+    listed = prompt.split("Garments:\n", 1)[1].splitlines()
+    assert (
+        sum(
+            ": top: " not in ln and ln.split(". ", 1)[1].startswith("top:")
+            for ln in listed
+        )
+        == 8
+    )
+    # 2 coats, 2 mids, the top four of eight tops, 2 bottoms, 2 shoes
+    assert len(provider.sent[0]) == 12
+    assert plan["photos"] == {"sent": 12, "without": 0}
+
+
+async def test_a_top_in_the_window_without_a_photo_counts_once(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test)
+    await add_tops(sessionmaker_for_test, ids, 3)  # six tops
+    await paint(sessionmaker_for_test, ids)
+    await switch_on(sessionmaker_for_test)
+    first = ImageProvider(first_of_each_slot)
+    async with client_for(sessionmaker_for_test, first) as client:
+        await client.get("/api/closet/today")
+    listed = first.calls[0][0].split("Garments:\n", 1)[1].splitlines()
+    tops = [ln for ln in listed if ln.split(". ", 1)[1].startswith("top:")]
+    assert len(tops) == 6
+    second = tops[1].split(": ", 2)[1].split(" (", 1)[0]
+    async with sessionmaker_for_test() as session:
+        await session.delete(await session.get(GarmentImage, uuid.UUID(ids[second])))
+        await session.commit()
+    provider = ImageProvider(first_of_each_slot)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.post("/api/closet/plan", json={})).json()["plan"]
+    assert plan["photos"] == {"sent": 11, "without": 1}
 
 
 async def test_a_refused_payload_retries_text_only_once(sessionmaker_for_test):

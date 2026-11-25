@@ -278,9 +278,11 @@ describe('profile form', () => {
   it('carries the photo-ranking switch, off when the body has none', () => {
     expect(profileForm(body).rank_images).toBe(false)
     expect(profileForm({ ...body, rank_images: true }).rank_images).toBe(true)
-    expect(
-      profileBody(profileForm({ ...body, rank_images: true })),
-    ).toMatchObject({ rank_images: true })
+    const on = profileForm({ ...body, rank_images: true })
+    expect(profileBody(on, on)).not.toHaveProperty('rank_images')
+    expect(profileBody({ ...on, rank_images: false }, on).rank_images).toBe(
+      false,
+    )
   })
 
   it('sends a blank number as null, never 0', () => {

@@ -84,7 +84,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from pydantic import BaseModel, Field, StrictBool
+from pydantic import BaseModel, Field
 from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -243,7 +243,7 @@ class ProfileFields(BaseModel):
     repeat_top_days: int | None = None
     repeat_outfit_weeks: int | None = None
     tag_budget: int | None = None
-    rank_images: StrictBool | None = None
+    rank_images: Any = None
 
 
 def _clean(text: str | None) -> str | None:
@@ -545,10 +545,10 @@ def rank_images_enabled(setting: ClosetSetting | None) -> bool:
     )
 
 
-def profile_out(row: ClosetProfile | None, rank_images: bool = False) -> dict[str, Any]:
-    """The profile as the page reads it; the defaults before the first save,
-    and the default week while none is stored. `rank_images` is the
-    `closet_settings` switch, passed in by the routes that read it."""
+def profile_out(row: ClosetProfile | None) -> dict[str, Any]:
+    """The profile as the planners read it; the defaults before the first
+    save, and the default week while none is stored. No `rank_images`: that
+    switch lives in `closet_settings`, so only `profile_page` carries it."""
     row = row or ClosetProfile(
         id=1,
         sizes={},
@@ -576,9 +576,15 @@ def profile_out(row: ClosetProfile | None, rank_images: bool = False) -> dict[st
         "repeat_top_days": row.repeat_top_days,
         "repeat_outfit_weeks": row.repeat_outfit_weeks,
         "tag_budget": row.tag_budget,
-        "rank_images": rank_images,
         "occasions": list(OCCASIONS),
     }
+
+
+def profile_page(row: ClosetProfile | None, *, rank_images: bool) -> dict[str, Any]:
+    """`profile_out` plus the photo-ranking switch: what `GET` and `PATCH
+    /profile` return. The one place the key is added, so a planner's profile
+    dict can never carry a switch it did not read."""
+    return {**profile_out(row), "rank_images": rank_images}
 
 
 async def load_profile(session: AsyncSession) -> ClosetProfile | None:
@@ -930,9 +936,11 @@ def create_closet_router(
     async def get_profile(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
-        return profile_out(
+        return profile_page(
             await load_profile(session),
-            rank_images_enabled(await session.get(ClosetSetting, RANK_IMAGES_KEY)),
+            rank_images=rank_images_enabled(
+                await session.get(ClosetSetting, RANK_IMAGES_KEY)
+            ),
         )
 
     @router.patch("/profile", response_model=ProfileOut)
@@ -959,9 +967,11 @@ def create_closet_router(
             )
         await session.commit()
         await session.refresh(row)
-        return profile_out(
+        return profile_page(
             row,
-            rank_images_enabled(await session.get(ClosetSetting, RANK_IMAGES_KEY)),
+            rank_images=rank_images_enabled(
+                await session.get(ClosetSetting, RANK_IMAGES_KEY)
+            ),
         )
 
     @router.get("/status", response_model=JobStatusOut)

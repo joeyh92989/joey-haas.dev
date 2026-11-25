@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: feature (a setting control; small UI on existing pages)
 mode: auto
 ---
@@ -47,7 +47,9 @@ stays off until Joey switches it).
 3. **The plan records it.** The plan body gains `photos: {"sent": n, "without":
    m} | null`: null when ranked from text (setting off, the template, or the
    text-only retry), else the number of shortlisted pieces whose photo was sent
-   and the number shortlisted without one. Stored plans carry it; older plans
+   and the number in the photo window without one (the window is the top four
+   pieces of each slot's shortlist, the only ones whose photos are ever sent; a
+   missing, unreadable or budget-cut photo counts, and so does a Match-this piece). Stored plans carry it; older plans
    without the key read as null.
 4. **Today says so.** The footnote list (`AdminClosetToday.jsx`, beside
    `relaxedLines`) gains one line from a `photosLine(plan)` helper in

@@ -332,10 +332,19 @@ function numberOrNull(value) {
   return String(value ?? '').trim() === '' ? null : Number(value)
 }
 
-/** The whole profile as one PATCH body; the route drops blank sizes. */
-export function profileBody(form) {
+/**
+ * The whole profile as one PATCH body; the route drops blank sizes.
+ * `rank_images` is a production setting kept beside the profile, so it is sent
+ * only when `loaded` (the form as loaded or last saved) differs, never as a
+ * side effect of saving another field.
+ */
+export function profileBody(form, loaded) {
+  const { rank_images: ranking, ...rest } = form
   return {
-    ...form,
+    ...(loaded && loaded.rank_images === ranking
+      ? {}
+      : { rank_images: ranking }),
+    ...rest,
     build_fit: form.build_fit.trim() || null,
     style_words: splitWords(form.style_words),
     dislikes: splitWords(form.dislikes),

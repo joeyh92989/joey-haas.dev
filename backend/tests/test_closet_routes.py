@@ -438,6 +438,7 @@ async def test_a_non_boolean_switch_is_422_and_changes_nothing(
             "/api/closet/profile", json={"rank_images": value}
         )
     assert response.status_code == 422
+    assert response.json()["detail"] == "Photo ranking is on or off"
     async with sessionmaker_for_test() as session:
         assert await session.get(ClosetSetting, "rank.images") is None
 
