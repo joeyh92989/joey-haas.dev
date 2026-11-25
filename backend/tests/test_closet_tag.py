@@ -41,6 +41,7 @@ def attrs(n: int, **over) -> dict:
         "primary_hex": "#1F2A44",
         "warmth": 2,
         "formality": 3,
+        "graphic": False,
         "seasons": [3, 1, 2, 2],
         **over,
     }
@@ -157,6 +158,45 @@ def test_the_module_stays_pure():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     assert not imported & {"fastapi", "sqlalchemy", "models", "db", "llm"}
+
+
+def test_graphic_is_a_real_bool_or_none():
+    for raw, want in (
+        (True, True),
+        (False, False),
+        ("yes", None),
+        (1, None),
+        (None, None),
+    ):
+        assert closet_tag.clean_attributes(attrs(0, graphic=raw))["graphic"] is want
+    # Only a top carries the flag.
+    shoe = closet_tag.clean_attributes(attrs(0, category="shoes", graphic=True))
+    assert shoe["graphic"] is None
+
+
+def test_the_schema_offers_graphic_and_requires_it():
+    props = closet_tag.ATTRIBUTES_SCHEMA["properties"]
+    assert props["graphic"] == {"type": "boolean"}
+    assert "graphic" in closet_tag.ATTRIBUTES_SCHEMA["required"]
+    assert "graphic:" in closet_tag.INSTRUCTIONS
+    assert closet_tag.SCALE_VERSION == 3
+
+
+def test_retag_and_fill_read_graphic_and_drop_a_non_bool():
+    payload = {
+        "items": [
+            {"index": 0, "attributes": attrs(0, graphic=True)},
+            {"index": 1, "attributes": attrs(1, graphic="maybe")},
+        ]
+    }
+    retag = closet_tag.validate(payload, 2, mode="retag")
+    assert [t.attributes for t in retag] == [
+        {"formality": 3, "graphic": True},
+        {"formality": 3, "graphic": None},
+    ]
+    fill = closet_tag.validate(payload, 2, mode="fill")
+    assert [t.attributes["graphic"] for t in fill] == [True, None]
+    assert set(fill[0].attributes) == {"warmth", "formality", "graphic"}
 
 
 # --- routes -----------------------------------------------------------------
@@ -811,7 +851,9 @@ async def test_a_model_tagged_piece_gets_only_its_formality_and_scale(
 
 @pytest.mark.asyncio
 async def test_a_manual_piece_is_never_sent_or_written(sessionmaker_for_test):
-    ids = await seed_old(sessionmaker_for_test, tag_source=GarmentTagSource.MANUAL)
+    ids = await seed_old(
+        sessionmaker_for_test, tag_source=GarmentTagSource.MANUAL, graphic=False
+    )
     provider = FakeProvider(full)
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/jobs/tag")).json()
@@ -991,7 +1033,16 @@ async def test_a_retag_answer_with_a_bad_category_still_writes_the_formality(
 ):
     ids = await seed_old(sessionmaker_for_test)
     odd = {
-        "items": [{"index": 0, "attributes": {"category": "nonsense", "formality": 4}}]
+        "items": [
+            {
+                "index": 0,
+                "attributes": {
+                    "category": "nonsense",
+                    "formality": 4,
+                    "graphic": False,
+                },
+            }
+        ]
     }
     async with client_for(sessionmaker_for_test, FakeProvider(odd)) as client:
         body = (await client.post("/api/closet/jobs/tag")).json()
@@ -1036,6 +1087,7 @@ async def seed_partial(factory, count: int = 1, **fields) -> list:
             "primary_hex": "#00ff00",
             "warmth": 4,
             "formality": None,
+            "graphic": False,
             "tag_scale": 1,
             "seasons": [],
             **fields,
@@ -1339,3 +1391,238 @@ async def test_a_blank_fill_piece_is_asked_once_a_run_and_again_next_run(
         second = (await client.post("/api/closet/jobs/tag")).json()
     assert (second["calls"], len(provider.calls)) == (1, 2)
     assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == 2
+
+
+# --- the graphic flag (#550) -------------------------------------------------
+
+
+def graphic_answer(value):
+    return lambda count: {
+        "items": [
+            {"index": i, "attributes": attrs(i, graphic=value)} for i in range(count)
+        ]
+    }
+
+
+@pytest.mark.asyncio
+async def test_a_first_time_tag_writes_graphic(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test, 1)
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        await client.post("/api/closet/tag")
+    assert (await rows(sessionmaker_for_test, ids))[0].graphic is True
+
+
+@pytest.mark.asyncio
+async def test_a_retag_at_scale_three_writes_formality_and_graphic_only(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test, tag_scale=2)
+    before = (await rows(sessionmaker_for_test, ids))[0]
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["retagged"] == 1
+    after = (await rows(sessionmaker_for_test, ids))[0]
+    assert (after.formality, after.graphic) == (3, True)
+    assert after.tag_scale == closet_tag.SCALE_VERSION
+    for field in ("name", "warmth", "primary_color", "seasons", "updated_at"):
+        assert getattr(after, field) == getattr(before, field), field
+
+
+@pytest.mark.asyncio
+async def test_a_retag_with_a_non_bool_graphic_keeps_the_old_flag_and_strikes(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test, graphic=False)
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer("maybe"))
+    ) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.graphic, got.tag_scale, got.tag_attempts) == (False, 1, 1)
+
+
+@pytest.mark.asyncio
+async def test_a_manual_top_with_a_null_graphic_is_filled_and_keeps_set_fields(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test, graphic=None, warmth=4, formality=2)
+    before = (await rows(sessionmaker_for_test, ids))[0]
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert (body["filled"], body["fill_remaining"]) == (1, 0)
+    after = (await rows(sessionmaker_for_test, ids))[0]
+    assert (after.warmth, after.formality, after.graphic) == (4, 2, True)
+    assert (after.tag_scale, after.updated_at) == (before.tag_scale, before.updated_at)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [True, False])
+async def test_a_graphic_set_by_hand_is_never_sent_or_overwritten(
+    sessionmaker_for_test, value
+):
+    ids = await seed_partial(
+        sessionmaker_for_test, graphic=value, warmth=4, formality=2
+    )
+    provider = FakeProvider(graphic_answer(not value))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/jobs/tag")
+    assert provider.calls == []
+    assert (await rows(sessionmaker_for_test, ids))[0].graphic is value
+
+
+@pytest.mark.asyncio
+async def test_a_manual_bottom_with_a_null_graphic_is_not_queued(
+    sessionmaker_for_test,
+):
+    await seed_partial(
+        sessionmaker_for_test,
+        graphic=None,
+        warmth=4,
+        formality=2,
+        category=GarmentCategory.BOTTOM,
+    )
+    provider = FakeProvider(graphic_answer(True))
+    async with client_for(sessionmaker_for_test, provider) as client:
+        await client.post("/api/closet/jobs/tag")
+    assert provider.calls == []
+
+
+@pytest.mark.asyncio
+async def test_a_top_left_without_a_graphic_takes_a_strike(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, graphic=None, warmth=4, formality=2)
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer("maybe"))
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["filled"] == 0
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.graphic, got.tag_attempts) == (None, 1)
+
+
+@pytest.mark.asyncio
+async def test_a_first_time_top_without_a_usable_graphic_is_asked_again(
+    sessionmaker_for_test,
+):
+    ids = await seed(sessionmaker_for_test, 1)
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer("maybe"))
+    ) as client:
+        await client.post("/api/closet/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.graphic, got.tag_scale) == (None, closet_tag.SCALE_VERSION - 1)
+    assert got.tag_source == GarmentTagSource.MODEL
+
+
+@pytest.mark.asyncio
+async def test_a_first_time_shoe_is_done_with_a_null_graphic(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test, 1)
+
+    def shoe(count):
+        return {
+            "items": [
+                {
+                    "index": i,
+                    "attributes": attrs(i, category="shoes", graphic=True),
+                }
+                for i in range(count)
+            ]
+        }
+
+    async with client_for(sessionmaker_for_test, FakeProvider(shoe)) as client:
+        await client.post("/api/closet/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.graphic, got.tag_scale) == (None, closet_tag.SCALE_VERSION)
+
+
+@pytest.mark.asyncio
+async def test_a_retag_top_without_a_usable_graphic_is_struck_not_done(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test, tag_scale=2, graphic=None)
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer("maybe"))
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["retag_remaining"] == 1
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.tag_scale, got.tag_attempts, got.graphic) == (2, 1, None)
+    assert got.formality == 3  # the usable part still lands
+
+
+@pytest.mark.asyncio
+async def test_a_retag_top_leaves_the_queue_after_max_attempts(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(
+        sessionmaker_for_test,
+        tag_scale=2,
+        graphic=None,
+        tag_attempts=closet_tag.MAX_ATTEMPTS - 1,
+    )
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer("maybe"))
+    ) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["retag_remaining"] == 0
+    assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == (
+        closet_tag.MAX_ATTEMPTS
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_retag_non_top_is_done_and_keeps_a_null_graphic(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(
+        sessionmaker_for_test,
+        tag_scale=2,
+        graphic=None,
+        category=GarmentCategory.SHOES,
+    )
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.graphic, got.tag_scale, got.tag_attempts) == (
+        None,
+        closet_tag.SCALE_VERSION,
+        0,
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_filled_manual_shoe_keeps_graphic_null(sessionmaker_for_test):
+    ids = await seed_partial(
+        sessionmaker_for_test,
+        category=GarmentCategory.SHOES,
+        graphic=None,
+        warmth=None,
+    )
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.warmth, got.formality, got.graphic) == (2, 3, None)
+
+
+@pytest.mark.asyncio
+async def test_a_fill_keeps_a_graphic_set_by_hand_while_filling_warmth(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(
+        sessionmaker_for_test, warmth=None, formality=2, graphic=False
+    )
+    async with client_for(
+        sessionmaker_for_test, FakeProvider(graphic_answer(True))
+    ) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.warmth, got.formality, got.graphic) == (2, 2, False)

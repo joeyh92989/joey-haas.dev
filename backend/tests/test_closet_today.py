@@ -15,6 +15,7 @@ from PIL import Image as PILImage
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
+import closet
 import closet_rank
 import closet_tag
 import closet_today_routes
@@ -1181,3 +1182,21 @@ async def test_a_full_top_pool_omits_shared_top(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         plan = (await client.get("/api/closet/today")).json()["plan"]
     assert "shared_top" not in plan and "top" not in plan.get("short", {})
+
+
+def test_a_transient_graphic_top_takes_the_office_penalty():
+    graphic = closet_today_routes._transient({"category": "top", "graphic": True})
+    plain = closet_today_routes._transient({"category": "top", "graphic": False})
+    assert graphic.graphic is True
+    args = (3, "office", date(2026, 11, 10), False)
+    assert (
+        round(closet.score(plain, *args) - closet.score(graphic, *args), 3)
+        == (closet.WEIGHTS["graphic"])
+    )
+
+
+def test_the_piece_loader_passes_graphic_through():
+    row = Garment(name="tee", category=GarmentCategory.TOP, seasons=[], graphic=True)
+    assert closet_today_routes._piece(row, None, 0).graphic is True
+    row.graphic = None
+    assert closet_today_routes._piece(row, None, 0).graphic is None

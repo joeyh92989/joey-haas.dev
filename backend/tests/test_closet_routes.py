@@ -226,6 +226,24 @@ async def test_a_garment_without_a_photo_is_404_on_the_image_route(
     assert missing.status_code == 404
 
 
+async def test_patch_sets_graphic_true_false_null_and_omitting_leaves_it(
+    sessionmaker_for_test,
+):
+    row = await _garment(sessionmaker_for_test)
+    path = f"/api/closet/garments/{row.id}"
+    async with client_for(sessionmaker_for_test) as client:
+        assert (await client.get(path)).json()["graphic"] is None
+        for value in (True, False, None):
+            response = await client.patch(path, json={"graphic": value})
+            assert response.status_code == 200
+            assert response.json()["graphic"] is value
+        await client.patch(path, json={"graphic": True})
+        omitted = await client.patch(path, json={"name": "Navy oxford"})
+        assert omitted.json()["graphic"] is True
+        bad = await client.patch(path, json={"graphic": "maybe"})
+    assert bad.status_code == 422
+
+
 async def test_a_hand_save_marks_the_garment_manual_and_active(sessionmaker_for_test):
     row = await _garment(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test) as client:

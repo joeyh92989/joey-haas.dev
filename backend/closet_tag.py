@@ -57,12 +57,20 @@ ATTRIBUTES_SCHEMA: dict[str, Any] = {
         "material": {"type": "string"},
         "warmth": {"type": "integer", "minimum": 1, "maximum": 5},
         "formality": {"type": "integer", "minimum": 1, "maximum": 5},
+        "graphic": {"type": "boolean"},
         "seasons": {
             "type": "array",
             "items": {"type": "integer", "minimum": 1, "maximum": 12},
         },
     },
-    "required": ["name", "category", "primary_color", "warmth", "formality"],
+    "required": [
+        "name",
+        "category",
+        "primary_color",
+        "warmth",
+        "formality",
+        "graphic",
+    ],
     "additionalProperties": False,
 }
 
@@ -93,8 +101,9 @@ TAG_SCHEMA: dict[str, Any] = {
 
 # The formality scale the prompt below defines. Garments carry the version
 # they were tagged on (`garments.tag_scale`); raising this number queues every
-# model-tagged piece below it for a formality re-tag (#548).
-SCALE_VERSION = 2
+# model-tagged piece below it for a re-tag of the formality and the graphic
+# flag (#548, #550). 3 = formality anchors and the graphic flag.
+SCALE_VERSION = 3
 
 INSTRUCTIONS = """\
 Each photograph shows one piece of clothing, shoes or an accessory from one
@@ -122,6 +131,10 @@ For each give:
   casual (an oxford or dress shirt, wool trousers, leather dress shoes or
   loafers); 5 business formal (a suit, a tie, a tuxedo). A flannel or
   casual button-up is a 2 or a 3 depending on how it reads.
+- graphic: always give true or false (false for anything that is not a top).
+  True when a print, picture, slogan or large logo covers the front
+  (a band tee, a souvenir tee); false for plain, striped, checked or a small
+  chest logo.
 - seasons: the months, 1 to 12, someone in Denver would wear it.
 
 Describe only what is in the photographs. Never invent a garment, never
@@ -176,6 +189,10 @@ def _scale(value: Any) -> int | None:
     return value if 1 <= value <= 5 else None
 
 
+def _flag(value: Any) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
 def _seasons(value: Any) -> list[int]:
     if not isinstance(value, list):
         return []
@@ -205,6 +222,8 @@ def clean_attributes(raw: Any) -> dict[str, Any]:
     attributes["secondary_hex"] = _hex(raw.get("secondary_hex"))
     attributes["warmth"] = _scale(raw.get("warmth"))
     attributes["formality"] = _scale(raw.get("formality"))
+    # Only a top carries the flag; the answer for anything else is dropped.
+    attributes["graphic"] = _flag(raw.get("graphic")) if category == "top" else None
     attributes["seasons"] = _seasons(raw.get("seasons"))
     return attributes
 
@@ -222,9 +241,9 @@ def validate(payload: Any, count: int, mode: Mode = "new") -> list[Tagged]:
     """The answer as one `Tagged` per photograph, in order.
 
     Raises `TagBatchError` unless the indices are exactly `0..count-1`. With
-    mode `"retag"`, only the formality is read; with `"fill"`, only warmth
-    and formality (a bad category or any other field does not reject the
-    batch) and an unusable value is None."""
+    mode `"retag"`, only the formality and graphic flag are read; with
+    `"fill"`, only warmth, formality and graphic (a bad category or any other
+    field does not reject the batch) and an unusable value is None."""
     if mode not in MODES:
         raise ValueError(f"unknown tag mode {mode!r}")
     items = payload.get("items") if isinstance(payload, dict) else None
@@ -244,13 +263,19 @@ def validate(payload: Any, count: int, mode: Mode = "new") -> list[Tagged]:
                 {
                     "warmth": _scale(_attributes(by_index[index]).get("warmth")),
                     "formality": _scale(_attributes(by_index[index]).get("formality")),
+                    "graphic": _flag(_attributes(by_index[index]).get("graphic")),
                 }
             )
             for index in range(count)
         ]
     if mode == "retag":
         return [
-            Tagged({"formality": _scale(_attributes(by_index[index]).get("formality"))})
+            Tagged(
+                {
+                    "formality": _scale(_attributes(by_index[index]).get("formality")),
+                    "graphic": _flag(_attributes(by_index[index]).get("graphic")),
+                }
+            )
             for index in range(count)
         ]
     return [

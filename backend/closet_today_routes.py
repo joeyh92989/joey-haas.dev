@@ -161,6 +161,7 @@ def _piece(row: Garment, last_worn: date | None, wears_30: int) -> closet.Piece:
         material=row.material,
         warmth=row.warmth,
         formality=row.formality,
+        graphic=row.graphic,
         seasons=tuple(row.seasons or ()),
         last_worn=last_worn,
         wears_30=wears_30,
@@ -180,6 +181,7 @@ def _transient(attributes: dict[str, Any]) -> closet.Piece:
         material=attributes.get("material"),
         warmth=attributes.get("warmth"),
         formality=attributes.get("formality"),
+        graphic=attributes.get("graphic"),
         seasons=tuple(attributes.get("seasons") or ()),
         transient=True,
     )

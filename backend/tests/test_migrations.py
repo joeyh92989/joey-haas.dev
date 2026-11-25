@@ -97,6 +97,7 @@ def _diff_against_models(connection) -> list:
     before_slugs = version is not None and version < "0029"
     before_denver_drop = version is not None and version < "0030"
     before_tag_scale = version is not None and version < "0031"
+    before_graphic = version is not None and version < "0032"
     return [
         entry
         for entry in diff
@@ -107,7 +108,17 @@ def _diff_against_models(connection) -> list:
         and not (before_denver_drop and _is_denver_leftover(entry))
         and not (before_slugs and _is_slug_addition(entry))
         and not (before_tag_scale and _is_tag_scale_addition(entry))
+        and not (before_graphic and _is_graphic_addition(entry))
     ]
+
+
+def _is_graphic_addition(entry) -> bool:
+    """The autogenerate entry for 0032's column."""
+    return (
+        entry[0] == "add_column"
+        and entry[2] == "garments"
+        and entry[3].name == "graphic"
+    )
 
 
 def _is_tag_scale_addition(entry) -> bool:

@@ -19,6 +19,7 @@ const GARMENT = {
   material: null,
   warmth: null,
   formality: null,
+  graphic: null,
   seasons: [],
   notes: null,
   acquired_on: null,
@@ -104,6 +105,46 @@ describe('AdminGarment', () => {
       status: 'active',
       brand: null,
     })
+  })
+
+  it('shows Graphic print as Not set and keeps null on a save that did not touch it', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () => json(GARMENT),
+      'PATCH /api/closet/garments/g1': (options) =>
+        json({ ...GARMENT, ...JSON.parse(options.body) }),
+    })
+    renderAt('/admin/closet/g1')
+    const select = await screen.findByLabelText('Graphic print')
+    expect(select).toHaveValue('')
+    expect(screen.getByRole('option', { name: 'Not set' })).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Name'), 'Grey tee')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText(/^Saved ·/)
+    expect(calls.find((c) => c.method === 'PATCH').body.graphic).toBeNull()
+  })
+
+  it('sends Yes and No from the Graphic print select', async () => {
+    const calls = stubApi({
+      'GET /api/closet/garments/g1': () => json({ ...GARMENT, graphic: true }),
+      'PATCH /api/closet/garments/g1': (options) =>
+        json({ ...GARMENT, ...JSON.parse(options.body) }),
+    })
+    renderAt('/admin/closet/g1')
+    const select = await screen.findByLabelText('Graphic print')
+    expect(select).toHaveValue('yes')
+    await userEvent.selectOptions(select, 'No')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText(/^Saved ·/)
+    expect(calls.find((c) => c.method === 'PATCH').body.graphic).toBe(false)
+    await userEvent.selectOptions(
+      screen.getByLabelText('Graphic print'),
+      'Not set',
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await vi.waitFor(() =>
+      expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(2),
+    )
+    expect(calls.filter((c) => c.method === 'PATCH')[1].body.graphic).toBeNull()
   })
 
   it('gives a packed garment a Back in month a browser without the picker can take', async () => {

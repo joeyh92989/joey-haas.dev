@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   CATEGORIES,
   HAND_STATUSES,
@@ -36,6 +36,16 @@ const TEXT = [
 // The API's limits (`GarmentFields`); the rest of the text fields take 60.
 const MAX_LENGTH = { brand: 80, color_name: 80, size: 40 }
 
+// The graphic select's options and the stored true, false or null.
+const GRAPHIC_VALUE = new Map([
+  [true, 'yes'],
+  [false, 'no'],
+])
+const GRAPHIC_FROM = new Map([
+  ['yes', true],
+  ['no', false],
+])
+
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 /** The form's state from a `GarmentOut`: text as strings, the rest as is. */
@@ -56,6 +66,8 @@ export function formFrom(garment) {
     material: text(garment.material),
     warmth: garment.warmth,
     formality: garment.formality,
+    // true, false or null (not set): a save that never touched it keeps null.
+    graphic: garment.graphic ?? null,
     seasons: [...(garment.seasons ?? [])],
     notes: text(garment.notes),
     acquired_on: text(garment.acquired_on),
@@ -238,19 +250,39 @@ export default function GarmentForm({ garment, onSave, onDelete, busy }) {
       </fieldset>
 
       {TEXT.map(([key, label, hint]) => (
-        <label key={key} className={GARMENT_LABEL}>
-          <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
-            {label}
-          </span>
-          <input
-            className={field}
-            type="text"
-            value={form[key]}
-            placeholder={hint}
-            maxLength={MAX_LENGTH[key] ?? 60}
-            onChange={(e) => set(key)(e.target.value)}
-          />
-        </label>
+        <Fragment key={key}>
+          <label className={GARMENT_LABEL}>
+            <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+              {label}
+            </span>
+            <input
+              className={field}
+              type="text"
+              value={form[key]}
+              placeholder={hint}
+              maxLength={MAX_LENGTH[key] ?? 60}
+              onChange={(e) => set(key)(e.target.value)}
+            />
+          </label>
+          {key === 'pattern' && (
+            <label className={GARMENT_LABEL}>
+              <span className={`garment-field-label ${GARMENT_FIELD_LABEL}`}>
+                Graphic print
+              </span>
+              <select
+                className={field}
+                value={GRAPHIC_VALUE.get(form.graphic) ?? ''}
+                onChange={(e) =>
+                  set('graphic')(GRAPHIC_FROM.get(e.target.value) ?? null)
+                }
+              >
+                <option value="">Not set</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </label>
+          )}
+        </Fragment>
       ))}
 
       <Color
