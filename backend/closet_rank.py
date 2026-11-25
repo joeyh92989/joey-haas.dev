@@ -118,6 +118,37 @@ def summarise_not_this(reasons: Iterable[str | None]) -> str | None:
     )
 
 
+TURNED_DOWN_CAP = 8
+_TURNED_DOWN_WHY = {
+    "not_today": "not today",
+    "too_cold": "too cold",
+    "too_warm": "too warm",
+}
+
+
+def turned_down_line(entries: Iterable[tuple[str, str, str | None]]) -> str | None:
+    """The prompt's line for pieces the owner turned down (#551): entries
+    are `(kind, name, occasion)`, newest first, at most `TURNED_DOWN_CAP`.
+    Day-scoped kinds read "name (too warm)"; `never_for_occasion` reads
+    "never for office: name". The pieces are already out of the candidate
+    list; the line says why, so "too warm" steers the rest cooler."""
+    kept = list(entries)[:TURNED_DOWN_CAP]
+    today = [
+        f"{name} ({_TURNED_DOWN_WHY[kind]})"
+        for kind, name, _ in kept
+        if kind in _TURNED_DOWN_WHY
+    ]
+    never: dict[str, list[str]] = {}
+    for kind, name, occasion in kept:
+        if kind == "never_for_occasion" and occasion:
+            never.setdefault(occasion, []).append(name)
+    parts = []
+    if today:
+        parts.append("Turned down for this day: " + ", ".join(today))
+    parts.extend(f"never for {o}: " + ", ".join(n) for o, n in never.items())
+    return "; ".join(parts) + "." if parts else None
+
+
 def _describe(piece: Piece, day: date) -> str:
     colour = piece.color_name or piece.primary_color
     look = ", ".join(part for part in (colour, piece.pattern, piece.material) if part)
@@ -173,8 +204,11 @@ def build_prompt(
     profile: dict[str, Any],
     not_this: Sequence[str | None] = (),
     images: Sequence[int] = (),
+    turned_down: Sequence[tuple[str, str, str | None]] = (),
 ) -> str:
     """The one prompt for one plan.
+
+    `turned_down` is the per-piece feedback in force (`turned_down_line`).
 
     `images` are the garment numbers whose photos are sent, in the order
     they are sent: the garment's line ends "[image k]" and a closing line
@@ -212,6 +246,9 @@ def build_prompt(
             f"Already chosen for {found.fixed.category} ({how}): "
             f"{_describe(found.fixed, request.day)}. Build around it."
         )
+    feedback = turned_down_line(turned_down)
+    if feedback:
+        lines.append(feedback)
     open_slots = [s for s in found.slots if s != (found.fixed and found.fixed.category)]
     lines.append("Slots to fill: " + ", ".join(open_slots) + ".")
     position = {index: k for k, index in enumerate(images, start=1)}

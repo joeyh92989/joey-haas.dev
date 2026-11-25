@@ -359,3 +359,53 @@ def test_a_short_top_pool_keeps_the_model_outfits_that_share_a_top():
         found,
     )
     assert len(got) == 2
+
+
+# --- turned-down pieces (#551) --------------------------------------------------
+
+
+def _prompt(turned_down=()):
+    request = Request(DAY, "office")
+    found = closet.candidates(PIECES, request, READ)
+    return closet_rank.build_prompt(
+        found, request, READ, "Mild.", {}, turned_down=turned_down
+    )
+
+
+def test_the_prompt_names_the_turned_down_piece_and_the_reason():
+    prompt = _prompt(
+        [
+            ("too_warm", "navy oxford", None),
+            ("not_today", "grey sweater", None),
+            ("never_for_occasion", "rain shell", "office"),
+        ]
+    )
+    assert (
+        "Turned down for this day: navy oxford (too warm), grey sweater (not today); "
+        "never for office: rain shell." in prompt
+    )
+    # It sits before the slots and the garment list.
+    assert prompt.index("Turned down for this day") < prompt.index("\nSlots to fill:")
+
+
+def test_a_never_for_occasion_alone_has_no_day_clause():
+    prompt = _prompt([("never_for_occasion", "rain shell", "office")])
+    assert "never for office: rain shell." in prompt
+    assert "Turned down for this day" not in prompt
+
+
+def test_the_turned_down_line_is_capped_at_eight_newest_first():
+    entries = [("not_today", f"piece {i}", None) for i in range(12)]
+    line = closet_rank.turned_down_line(entries)
+    assert line.count("(not today)") == 8
+    assert "piece 7 " in line and "piece 8" not in line
+
+
+def test_no_feedback_adds_no_line_and_the_answer_format_is_unchanged():
+    assert closet_rank.turned_down_line([]) is None
+    plain = _prompt()
+    assert "Turned down for" not in plain and "never for" not in plain
+    with_feedback = _prompt([("too_cold", "navy oxford", None)])
+    assert with_feedback.splitlines()[0] == plain.splitlines()[0]  # the instructions
+    assert closet_rank.INSTRUCTIONS in with_feedback
+    assert with_feedback.endswith(plain.split("Garments:\n", 1)[1])

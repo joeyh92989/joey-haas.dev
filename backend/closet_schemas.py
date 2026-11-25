@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from models import (
     GarmentCategory,
     GarmentColorSource,
+    GarmentFeedbackKind,
     GarmentStatus,
     GarmentTagSource,
 )
@@ -77,6 +78,24 @@ class GarmentListOut(BaseModel):
 
     garments: list[GarmentOut]
     counts: GarmentCountsOut
+
+
+class FeedbackOut(BaseModel):
+    """One piece turned down (`garment_feedback`, #551)."""
+
+    id: uuid.UUID
+    garment_id: uuid.UUID
+    kind: GarmentFeedbackKind
+    occasion: str | None
+    day: date | None
+    created_at: datetime
+
+
+class FeedbackListOut(BaseModel):
+    """`GET /feedback`: the rows in force for a day."""
+
+    day: date
+    feedback: list[FeedbackOut]
 
 
 class ProductSizeOut(BaseModel):
