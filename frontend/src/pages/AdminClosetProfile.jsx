@@ -291,6 +291,20 @@ export default function AdminClosetProfile() {
             50,
             '0 turns the nightly tagging off.',
           )}
+          <div className={GARMENT_LABEL}>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.rank_images}
+                aria-describedby="rank-images-help"
+                onChange={(e) => set('rank_images')(e.target.checked)}
+              />{' '}
+              {adminCopy.closetProfile.rankImages}
+            </label>
+            <span id="rank-images-help" className="muted">
+              {adminCopy.closetProfile.rankImagesHelp}
+            </span>
+          </div>
         </fieldset>
 
         {error && (

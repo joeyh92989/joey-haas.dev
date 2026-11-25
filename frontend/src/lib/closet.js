@@ -323,6 +323,7 @@ export function profileForm(body) {
     repeat_top_days: String(body.repeat_top_days),
     repeat_outfit_weeks: String(body.repeat_outfit_weeks),
     tag_budget: String(body.tag_budget),
+    rank_images: body.rank_images === true,
   }
 }
 
@@ -417,6 +418,24 @@ export function relaxedLines(plan) {
         .replace('{steps}', named),
     ]
   })
+}
+
+/**
+ * The footnote line saying the plan was ranked from photos, or null: for a
+ * plan ranked from text, and for plans stored before `photos` existed.
+ */
+export function photosLine(plan) {
+  const photos = plan.photos
+  if (!photos) return null
+  const copy = adminCopy.closetToday
+  const pieces = photos.sent === 1 ? copy.photosPiece : copy.photosPieces
+  const without = photos.without
+    ? copy.photosWithout.replace('{n}', photos.without)
+    : ''
+  return copy.photosLine
+    .replace('{n}', photos.sent)
+    .replace('{pieces}', pieces)
+    .replace('{without}', without)
 }
 
 /**

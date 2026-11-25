@@ -23,6 +23,7 @@ import {
   ownerDay,
   MAX_PHOTO_BYTES,
   oversizePhoto,
+  photosLine,
   profileBody,
   profileForm,
   seasonLabel,
@@ -274,6 +275,14 @@ describe('profile form', () => {
     expect(back.weekly_bike).toEqual(body.weekly_bike)
   })
 
+  it('carries the photo-ranking switch, off when the body has none', () => {
+    expect(profileForm(body).rank_images).toBe(false)
+    expect(profileForm({ ...body, rank_images: true }).rank_images).toBe(true)
+    expect(
+      profileBody(profileForm({ ...body, rank_images: true })),
+    ).toMatchObject({ rank_images: true })
+  })
+
   it('sends a blank number as null, never 0', () => {
     const form = profileForm(body)
     const back = profileBody({
@@ -292,6 +301,28 @@ describe('profile form', () => {
       'logos',
       'skinny fits',
     ])
+  })
+})
+
+describe('photosLine', () => {
+  it('is null for a text plan and for a plan stored before the key', () => {
+    expect(photosLine({ photos: null })).toBeNull()
+    expect(photosLine({})).toBeNull()
+  })
+
+  it('counts the pieces and those without a photo', () => {
+    expect(photosLine({ photos: { sent: 14, without: 2 } })).toBe(
+      'Ranked from photos: 14 pieces, 2 without one.',
+    )
+  })
+
+  it('leaves the tail off when none lacked one, and says piece for one', () => {
+    expect(photosLine({ photos: { sent: 11, without: 0 } })).toBe(
+      'Ranked from photos: 11 pieces.',
+    )
+    expect(photosLine({ photos: { sent: 1, without: 0 } })).toBe(
+      'Ranked from photos: 1 piece.',
+    )
   })
 })
 

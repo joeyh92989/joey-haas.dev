@@ -198,6 +198,23 @@ describe('AdminClosetToday', () => {
     ).toBeInTheDocument()
   })
 
+  it('says the plan was ranked from photos, and counts the ones missing', async () => {
+    stub({
+      'GET /api/closet/today': answer({}, { photos: { sent: 14, without: 2 } }),
+    })
+    renderPage()
+    expect(
+      await screen.findByText('Ranked from photos: 14 pieces, 2 without one.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no photos line for a text plan or an old plan', async () => {
+    stub({ 'GET /api/closet/today': answer({}, { photos: null }) })
+    renderPage()
+    await screen.findByText('navy oxford')
+    expect(screen.queryByText(/Ranked from photos/)).toBeNull()
+  })
+
   it('shows no relaxed line for an old plan without the key', async () => {
     stub({ 'GET /api/closet/today': answer() })
     renderPage()

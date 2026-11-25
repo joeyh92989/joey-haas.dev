@@ -28,6 +28,7 @@ import {
   PHOTO_ACCEPT,
   categoryLabel,
   footnoteLine,
+  photosLine,
   relaxedLines,
   sharedTopLine,
   shortLines,
@@ -755,7 +756,12 @@ export default function AdminClosetToday() {
           {plan && (
             <footer className={`today-footnote ${TODAY_FOOTNOTE}`}>
               <p>{footnoteLine(plan, answer.planned_just_now)}</p>
-              {[...relaxedLines(plan), ...shortLines(plan), sharedTopLine(plan)]
+              {[
+                ...relaxedLines(plan),
+                ...shortLines(plan),
+                sharedTopLine(plan),
+                photosLine(plan),
+              ]
                 .filter(Boolean)
                 .map((line) => (
                   <p key={line}>{line}</p>
