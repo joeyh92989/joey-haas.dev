@@ -1035,6 +1035,22 @@ async def switch_on(factory, enabled=True):
         await session.commit()
 
 
+@pytest.mark.parametrize("value", [1, "true", {}, {"enabled": 1}, {"enabled": "true"}])
+async def test_only_the_json_boolean_true_turns_photo_ranking_on(
+    sessionmaker_for_test, value
+):
+    async with sessionmaker_for_test() as session:
+        session.add(ClosetSetting(key="rank.images", value=value))
+        await session.commit()
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    provider = ImageProvider(None)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert provider.sent == [[]]
+    assert plan["photos"] is None
+
+
 async def test_images_are_off_by_default(sessionmaker_for_test):
     ids = await seed(sessionmaker_for_test)
     await paint(sessionmaker_for_test, ids)
@@ -1049,15 +1065,20 @@ async def test_each_image_is_the_piece_the_prompt_says(sessionmaker_for_test):
     ids = await seed(sessionmaker_for_test)
     colours = await paint(sessionmaker_for_test, ids)
     await switch_on(sessionmaker_for_test)
-    provider = ImageProvider(None)
+    provider = ImageProvider(
+        choose(
+            (["wool coat", "grey sweater", "navy oxford", "chinos", "sneakers"], "Ok.")
+        ),
+    )
     async with client_for(sessionmaker_for_test, provider) as client:
-        await client.get("/api/closet/today")
+        plan = (await client.get("/api/closet/today")).json()["plan"]
     prompt = provider.calls[0][0]
     images = provider.sent[0]
     garments = numbers(prompt)
     by_number = {n: name for name, n in garments.items()}
     # the shortlist is 2 coats, 2 mids, 3 tops, 2 bottoms, 2 shoes: all fit
     assert len(images) == len(garments) == 11
+    assert plan["photos"] == {"sent": 11, "without": 0}
     for k, image in enumerate(images, start=1):
         n = int(re.search(rf"image {k} is garment (\d+)", prompt).group(1))
         assert colour_of(image) == pytest.approx(colours[by_number[n]], abs=6)
@@ -1071,9 +1092,14 @@ async def test_at_most_four_images_per_slot_and_a_missing_photo_is_text(
     ids = await seed(sessionmaker_for_test)
     await paint(sessionmaker_for_test, ids, skip={"wool coat"})
     await switch_on(sessionmaker_for_test)
-    provider = ImageProvider(None)
+    provider = ImageProvider(
+        choose(
+            (["wool coat", "grey sweater", "navy oxford", "chinos", "sneakers"], "Ok.")
+        ),
+    )
     async with client_for(sessionmaker_for_test, provider) as client:
-        await client.get("/api/closet/today")
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert plan["photos"] == {"sent": 10, "without": 1}
     prompt = provider.calls[0][0]
     assert "wool coat" in prompt
     coat = next(ln for ln in prompt.splitlines() if "wool coat (" in ln)
@@ -1094,6 +1120,7 @@ async def test_a_refused_payload_retries_text_only_once(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, provider) as client:
         plan = (await client.get("/api/closet/today")).json()["plan"]
     assert [len(s) for s in provider.sent] == [11, 0]
+    assert plan["photos"] is None  # ranked from the text-only retry
     assert "[image" in provider.calls[0][0] and "[image" not in provider.calls[1][0]
     assert plan["ranked_by"] == "model"
 
@@ -1110,6 +1137,23 @@ async def test_images_and_text_both_failing_falls_back_to_the_template(
     assert len(provider.sent) == 2  # once with, once without, never a third
     assert plan["ranked_by"] == "template"
     assert plan["model_note"]
+    assert plan["photos"] is None
+
+
+async def test_text_only_and_template_plans_record_no_photos(sessionmaker_for_test):
+    ids = await seed(sessionmaker_for_test)
+    await paint(sessionmaker_for_test, ids)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        template = (await client.get("/api/closet/today")).json()["plan"]
+    assert template["photos"] is None
+    provider = ImageProvider(
+        choose(
+            (["wool coat", "grey sweater", "navy oxford", "chinos", "sneakers"], "Ok.")
+        ),
+    )
+    async with client_for(sessionmaker_for_test, provider) as client:
+        text = (await client.post("/api/closet/plan", json={})).json()["plan"]
+    assert text["ranked_by"] == "model" and text["photos"] is None
 
 
 async def test_the_nightly_job_and_a_replan_send_images_too(sessionmaker_for_test):

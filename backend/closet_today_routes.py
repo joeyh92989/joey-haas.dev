@@ -73,10 +73,12 @@ from closet_images import (
 from closet_routes import (
     DEFAULT_WEEK,
     OCCASIONS,
+    RANK_IMAGES_KEY,
     _image_url,
     garment_out,
     load_profile,
     profile_out,
+    rank_images_enabled,
 )
 from closet_schemas import (
     CandidatesOut,
@@ -113,7 +115,6 @@ logger = logging.getLogger(__name__)
 PLAN_STATUS_KEY = "plan.last_run"
 # `{"enabled": bool}`: send the shortlist's thumbnails with the ranking prompt.
 # Off until the #400 measurement says latency and tokens are acceptable.
-RANK_IMAGES_KEY = "rank.images"
 THUMB_EDGE = LONG_EDGE  # the grid rendition
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
@@ -504,13 +505,13 @@ def create_closet_today_router(
     async def rank_images_on(session: AsyncSession) -> bool:
         """`closet_settings["rank.images"]` (`{"enabled": bool}`): off unless
         set. Read by every plan, the nightly job's and the re-plans'."""
-        row = await session.get(ClosetSetting, RANK_IMAGES_KEY)
-        return bool(row and row.value.get("enabled") is True)
+        return rank_images_enabled(await session.get(ClosetSetting, RANK_IMAGES_KEY))
 
     async def rank(
         prompt: str,
         budget: dict[str, Any] | None = None,
         with_images: tuple[str, list[Image]] | None = None,
+        photos_used: list[bool] | None = None,
     ) -> tuple[dict | None, str | None]:
         """One model call, or why there was none. Never raises.
 
@@ -521,7 +522,10 @@ def create_closet_today_router(
         `budget` is the nightly job's: once a call has failed (quota,
         overload, timeout) or the run is past `JOB_MODEL_BUDGET_S`, the
         rest of the run is the template, so the job ends inside the
-        workflow's timeout."""
+        workflow's timeout.
+
+        `photos_used` gets True appended when the answer came from the call
+        with photos, so the plan can record whether it was ranked from them."""
         if provider_factory is None:
             return None, "No model is configured"
         if budget is not None:
@@ -538,6 +542,8 @@ def create_closet_today_router(
                         with_images[0], closet_rank.SCHEMA, images=with_images[1]
                     )
                     tried = True
+                    if photos_used is not None:
+                        photos_used.append(True)
                 except LLMError as error:
                     logger.warning("closet rank with images failed: %s", error)
             if not tried:
@@ -608,6 +614,8 @@ def create_closet_today_router(
         await session.commit()
 
         found = closet.candidates(pieces, request, read)
+        photos_used: list[bool] = []
+        sent = shortlisted = 0
         sentence = closet.read_sentence(read, bike, f"{day:%B}")
         if not closet.template(found, recent):
             outfits, note = [], NOTHING_TO_WEAR
@@ -618,6 +626,7 @@ def create_closet_today_router(
                 picks, images = await shortlist_images(session, found)
                 await session.commit()
                 if images:
+                    sent, shortlisted = len(images), len(closet_rank.numbered(found))
                     with_images = (
                         closet_rank.build_prompt(
                             *args, images=picks, turned_down=turned_down
@@ -628,8 +637,18 @@ def create_closet_today_router(
                 closet_rank.build_prompt(*args, turned_down=turned_down),
                 budget,
                 with_images,
+                photos_used,
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
+        # Null when ranked from text (setting off, the template, the text-only
+        # retry, or an answer that fell to the template); else the photos sent
+        # and the shortlisted pieces without one.
+        by_model = bool(outfits) and outfits[0].ranked_by == "model"
+        photo_note = (
+            {"sent": sent, "without": shortlisted - sent}
+            if photos_used and by_model
+            else None
+        )
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
         # Optional keys, absent when nothing is short and on plans stored
         # before they existed. `short` is the one source for how many fit.
@@ -658,6 +677,7 @@ def create_closet_today_router(
                 "skipped_recent": found.skipped_recent,
             },
             "lock": lock_id,
+            "photos": photo_note,
             "relaxed": {slot: list(steps) for slot, steps in found.relaxed.items()},
             **extra,
         }

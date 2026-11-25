@@ -183,6 +183,7 @@ class ProfileOut(BaseModel):
     repeat_top_days: int
     repeat_outfit_weeks: int
     tag_budget: int
+    rank_images: bool
     occasions: list[str]
 
 

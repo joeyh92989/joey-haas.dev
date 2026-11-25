@@ -84,7 +84,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool
 from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -243,6 +243,7 @@ class ProfileFields(BaseModel):
     repeat_top_days: int | None = None
     repeat_outfit_weeks: int | None = None
     tag_budget: int | None = None
+    rank_images: StrictBool | None = None
 
 
 def _clean(text: str | None) -> str | None:
@@ -530,9 +531,24 @@ def _required(value: int | None) -> int:
     return value
 
 
-def profile_out(row: ClosetProfile | None) -> dict[str, Any]:
+RANK_IMAGES_KEY = "rank.images"
+
+
+def rank_images_enabled(setting: ClosetSetting | None) -> bool:
+    """`closet_settings["rank.images"]` (`{"enabled": bool}`): on only for the
+    JSON boolean true (not 1, "true" or a missing key). The one reader, for
+    the plan and for the profile page."""
+    return (
+        setting is not None
+        and isinstance(setting.value, dict)
+        and setting.value.get("enabled") is True
+    )
+
+
+def profile_out(row: ClosetProfile | None, rank_images: bool = False) -> dict[str, Any]:
     """The profile as the page reads it; the defaults before the first save,
-    and the default week while none is stored."""
+    and the default week while none is stored. `rank_images` is the
+    `closet_settings` switch, passed in by the routes that read it."""
     row = row or ClosetProfile(
         id=1,
         sizes={},
@@ -560,6 +576,7 @@ def profile_out(row: ClosetProfile | None) -> dict[str, Any]:
         "repeat_top_days": row.repeat_top_days,
         "repeat_outfit_weeks": row.repeat_outfit_weeks,
         "tag_budget": row.tag_budget,
+        "rank_images": rank_images,
         "occasions": list(OCCASIONS),
     }
 
@@ -913,7 +930,10 @@ def create_closet_router(
     async def get_profile(
         session: AsyncSession = Depends(get_session),
     ) -> dict[str, Any]:
-        return profile_out(await load_profile(session))
+        return profile_out(
+            await load_profile(session),
+            rank_images_enabled(await session.get(ClosetSetting, RANK_IMAGES_KEY)),
+        )
 
     @router.patch("/profile", response_model=ProfileOut)
     async def patch_profile(
@@ -925,9 +945,24 @@ def create_closet_router(
             row = ClosetProfile(id=1)
             session.add(row)
         apply_profile_fields(row, fields)
+        if "rank_images" in fields.model_fields_set:
+            if not isinstance(fields.rank_images, bool):
+                raise _unprocessable("Photo ranking is on or off")
+            value = {"enabled": fields.rank_images}
+            await session.execute(
+                insert(ClosetSetting)
+                .values(key=RANK_IMAGES_KEY, value=value)
+                .on_conflict_do_update(
+                    index_elements=[ClosetSetting.key],
+                    set_={"value": value, "updated_at": func.now()},
+                )
+            )
         await session.commit()
         await session.refresh(row)
-        return profile_out(row)
+        return profile_out(
+            row,
+            rank_images_enabled(await session.get(ClosetSetting, RANK_IMAGES_KEY)),
+        )
 
     @router.get("/status", response_model=JobStatusOut)
     async def job_status(

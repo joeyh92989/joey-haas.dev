@@ -34,6 +34,7 @@ GARMENT_KEYS = {
 PLAN_KEYS = {
     "day", "occasion", "bike", "planned_at", "ranked_by", "model_note",
     "weather", "lead", "alternatives", "footnote", "lock", "relaxed", "short",
+    "photos",
 }  # fmt: skip
 
 
@@ -78,7 +79,8 @@ async def test_garment_bodies_keep_their_exact_keys(sessionmaker_for_test):
     assert set(profile) == {
         "sizes", "coloring", "build_fit", "style_words", "dislikes",
         "weekly_occasions", "weekly_bike", "spring_turn", "autumn_turn",
-        "repeat_top_days", "repeat_outfit_weeks", "tag_budget", "occasions",
+        "repeat_top_days", "repeat_outfit_weeks", "tag_budget", "rank_images",
+        "occasions",
     }  # fmt: skip
     assert status == {
         "tag.last_run": None,

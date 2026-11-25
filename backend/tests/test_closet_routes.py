@@ -24,6 +24,7 @@ from models import (
     GarmentTagSource,
     Wear,
 )
+from tests import test_closet_today as today
 
 pytestmark = pytest.mark.asyncio
 
@@ -378,6 +379,67 @@ async def test_the_profile_reads_defaults_and_round_trips(sessionmaker_for_test)
     assert after["weekly_bike"][0] is True
     async with sessionmaker_for_test() as session:
         assert await session.scalar(select(func.count(ClosetProfile.id))) == 1
+
+
+async def set_rank_setting(factory, value):
+    async with factory() as session:
+        session.add(ClosetSetting(key="rank.images", value=value))
+        await session.commit()
+
+
+async def test_the_profile_reports_photo_ranking_off_with_no_row(
+    sessionmaker_for_test,
+):
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/closet/profile")).json()
+    assert body["rank_images"] is False
+
+
+@pytest.mark.parametrize("value", [1, "true", {}, {"enabled": 1}, {"enabled": "true"}])
+async def test_only_the_json_boolean_true_reads_as_on(sessionmaker_for_test, value):
+    await set_rank_setting(sessionmaker_for_test, value)
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/closet/profile")).json()
+    assert body["rank_images"] is False
+
+
+async def test_patching_the_switch_agrees_with_the_planner(sessionmaker_for_test):
+    ids = await today.seed(sessionmaker_for_test)
+    await today.paint(sessionmaker_for_test, ids)
+    async with client_for(sessionmaker_for_test) as client:
+        on = await client.patch("/api/closet/profile", json={"rank_images": True})
+        got = (await client.get("/api/closet/profile")).json()
+        kept = await client.patch("/api/closet/profile", json={"tag_budget": 6})
+    assert on.status_code == 200 and on.json()["rank_images"] is True
+    assert got["rank_images"] is True
+    assert kept.json()["rank_images"] is True  # an omitted key leaves it
+    async with sessionmaker_for_test() as session:
+        row = await session.get(ClosetSetting, "rank.images")
+        assert row.value == {"enabled": True}
+    provider = today.ImageProvider(None)
+    async with today.client_for(sessionmaker_for_test, provider) as planner:
+        await planner.get("/api/closet/today")
+    assert provider.sent[0]  # rank_images_on read it as on
+    async with client_for(sessionmaker_for_test) as client:
+        off = await client.patch("/api/closet/profile", json={"rank_images": False})
+    assert off.json()["rank_images"] is False
+    provider = today.ImageProvider(None)
+    async with today.client_for(sessionmaker_for_test, provider) as planner:
+        await planner.post("/api/closet/plan", json={})
+    assert provider.sent == [[]]
+
+
+@pytest.mark.parametrize("value", ["yes", "true", 1, None, {}])
+async def test_a_non_boolean_switch_is_422_and_changes_nothing(
+    sessionmaker_for_test, value
+):
+    async with client_for(sessionmaker_for_test) as client:
+        response = await client.patch(
+            "/api/closet/profile", json={"rank_images": value}
+        )
+    assert response.status_code == 422
+    async with sessionmaker_for_test() as session:
+        assert await session.get(ClosetSetting, "rank.images") is None
 
 
 @pytest.mark.parametrize(
