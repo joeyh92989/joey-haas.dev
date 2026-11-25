@@ -70,7 +70,7 @@ OUTFITS = 3  # the lead and two alternatives
 OCCASIONS = ("office", "wfh", "date", "weekend", "travel", "event")
 # (lowest, highest, target) on the 1 (lounge) to 5 (business) scale.
 OCCASION_FORMALITY = {
-    "office": (3, 5, 3),
+    "office": (2, 4, 3),
     "wfh": (1, 3, 2),
     "date": (2, 4, 3),
     "weekend": (1, 3, 2),

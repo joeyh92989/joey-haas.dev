@@ -1,5 +1,6 @@
 """closet.py: the day's read, the filter and the outfit without a model."""
 
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -162,7 +163,9 @@ def test_the_bike_makes_the_morning_colder():
     "p, occasion, ok",
     [
         (piece("a", "top", formality=4), "office", True),
+        (piece("a", "top", formality=2), "office", True),
         (piece("a", "top", formality=1), "office", False),
+        (piece("a", "top", formality=5), "office", False),
         (piece("a", "top", formality=5), "weekend", False),
         (piece("a", "top", formality=None), "event", True),
         (piece("a", "top", formality=3), "date", True),
@@ -430,7 +433,12 @@ def test_candidates_are_capped_per_slot():
 
 
 def test_the_bike_filters_and_formality_holds():
-    pieces = wardrobe() + [
+    # Office is 2 to 4: the tops other than the oxford drop to lounge (1), so
+    # the pool starts short and the widened band is what brings them back.
+    pieces = [
+        replace(p, formality=1) if p.category == "top" and p.id != "t2" else p
+        for p in wardrobe()
+    ] + [
         piece("s3", "shoes", name="oxfords", formality=3),
         piece("b3", "bottom", name="wide trousers", formality=3),
     ]
@@ -438,7 +446,7 @@ def test_the_bike_filters_and_formality_holds():
     # The bike rule is never relaxed; the tops are, and the plan says so.
     assert found.by_slot["top"][0].piece.id == "t2"
     assert found.relaxed["top"] == ("formality",)
-    # Formality 2 comes back with the widened band; oxfords and wide
+    # Oxfords and wide
     # trousers never do, whatever the pool.
     assert {s.piece.id for s in found.by_slot["shoes"]} == {"s1", "s2"}
     assert {s.piece.id for s in found.by_slot["bottom"]} == {"b1", "b2"}
@@ -588,20 +596,22 @@ def test_season_is_the_first_step():
 
 
 def test_formality_widens_one_step_each_side_and_no_further():
-    # Office is 3 to 5: formality 2 comes in, formality 1 stays out.
+    # Weekend is 1 to 3: formality 4 comes in, formality 5 stays out.
     pieces = tops(2, formality=3) + [
-        piece("f2", "top", name="soft top", formality=2),
-        piece("f1", "top", name="lounge top", formality=1),
+        piece("f4", "top", name="smart top", formality=4),
+        piece("f5", "top", name="suit top", formality=5),
     ]
-    found = closet.candidates(pieces, Request(DAY, "office"), WARM)
-    assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "f2"}
+    found = closet.candidates(pieces, Request(DAY, "weekend"), WARM)
+    assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "f4"}
     # Season was tried and added nothing, so only formality is recorded.
     assert found.relaxed["top"] == ("formality",)
 
 
 def test_formality_widening_is_clamped_to_the_scale():
     assert closet.fits_occasion(piece("a", "top", formality=5), "office", 1)
-    assert not closet.fits_occasion(piece("a", "top", formality=1), "office", 1)
+    assert closet.fits_occasion(piece("a", "top", formality=1), "office", 1)
+    assert closet.fits_occasion(piece("a", "top", formality=1), "office", 9)
+    assert not closet.fits_occasion(piece("a", "top", formality=5), "weekend", 1)
     assert closet.fits_occasion(piece("a", "top", formality=1), "wfh", 1)
 
 
@@ -764,8 +774,8 @@ def test_formality_is_relaxed_before_season():
         piece("wool", "bottom", name="wool trouser", warmth=4, formality=3),
         piece("jeans", "bottom", name="jeans", warmth=3, formality=3),
         piece("linen", "bottom", name="linen trouser", warmth=2, formality=3),
-        piece("chino", "bottom", name="chino", warmth=3, formality=2),
-        piece("cord", "bottom", name="cord", warmth=4, formality=2),
+        piece("chino", "bottom", name="chino", warmth=3, formality=1),
+        piece("cord", "bottom", name="cord", warmth=4, formality=1),
     ]
     found = closet.candidates(bottoms, Request(DAY, "office"), read(37, 61))
     ids = {s.piece.id for s in found.by_slot["bottom"]}
@@ -780,7 +790,7 @@ def test_the_2026_11_20_shape_end_to_end():
             "top",
             name=f"summer top {i}",
             warmth=2,
-            formality=2,
+            formality=1,
             seasons=(6, 7, 8),
         )
         for i in range(13)
@@ -802,13 +812,13 @@ def test_the_2026_11_20_shape_end_to_end():
             "top",
             name=f"flannel {i}",
             warmth=4,
-            formality=2,
+            formality=1,
             seasons=(10, 11, 12),
         )
         for i in range(2)
     ]
     tee = piece("u", "top", name="mystery tee", warmth=None, formality=None)
-    other = piece("o", "top", name="plain knit", warmth=3, formality=2)
+    other = piece("o", "top", name="plain knit", warmth=3, formality=1)
     pieces = (
         summer
         + oxfords

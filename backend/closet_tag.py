@@ -111,7 +111,12 @@ For each give:
 - pattern ("solid", "stripe", "check", "print"...) and material when it can
   be told from the photo ("cotton", "wool", "denim", "leather").
 - warmth from 1 (a linen tee) to 5 (a down parka).
-- formality from 1 (lounge) to 5 (business).
+- formality, 1 to 5, by these anchors: 1 lounge or gym (sweatpants, a
+  graphic tee); 2 casual (a plain tee, a hoodie, sneakers); 3 smart casual
+  (a flannel or casual button-up, a polo, chinos, dark jeans); 4 business
+  casual (an oxford or dress shirt, wool trousers, loafers); 5 business
+  formal (a suit, a tie, dress shoes). A flannel or casual button-up is a 2
+  or a 3 depending on how it reads.
 - seasons: the months, 1 to 12, someone in Denver would wear it.
 
 Describe only what is in the photographs. Never invent a garment, never

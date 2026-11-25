@@ -123,6 +123,18 @@ def test_the_prompt_names_the_count_and_refuses_an_oversize_batch():
         build_prompt(0)
 
 
+def test_the_prompt_anchors_every_formality_level():
+    text = " ".join(closet_tag.INSTRUCTIONS.split())
+    for anchor in (
+        "1 lounge or gym",
+        "2 casual",
+        "3 smart casual",
+        "4 business casual",
+        "5 business formal",
+    ):
+        assert anchor in text
+
+
 def test_the_schema_converts_for_gemini():
     converted = to_gemini_schema(TAG_SCHEMA)
     assert "additionalProperties" not in str(converted)

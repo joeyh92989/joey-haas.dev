@@ -1120,8 +1120,8 @@ async def test_the_nightly_job_and_a_replan_send_images_too(sessionmaker_for_tes
 
 
 async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test):
-    """Office is formality 3 to 5; the seed closet is 3 everywhere. One top
-    at 2 makes the pool two until formality widens: three after."""
+    """Office is formality 2 to 4; the seed closet is 3 everywhere. One top
+    at 1 makes the pool two until formality widens: three after."""
     await seed(sessionmaker_for_test)
     async with sessionmaker_for_test() as session:
         rows = (
@@ -1133,7 +1133,7 @@ async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test)
             .scalars()
             .all()
         )
-        rows[0].formality = 2
+        rows[0].formality = 1
         await session.commit()
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         body = (
