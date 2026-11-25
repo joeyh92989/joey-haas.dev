@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_FILTER,
+  NEEDS_DETAILS_FILTER,
   backMonth,
   footnoteLine,
   longDate,
@@ -128,6 +129,24 @@ describe('filterGarments', () => {
         settleFilter(DEFAULT_FILTER, { ...DEFAULT_FILTER, status: 'packed' }),
       ),
     ).toEqual(['c'])
+  })
+
+  it('needsDetails keeps active pieces missing warmth or formality', () => {
+    const mixed = [
+      garment({ id: 'a', warmth: 2, formality: 2 }),
+      garment({ id: 'b', warmth: null, formality: 2 }),
+      garment({ id: 'c', warmth: 2, formality: null }),
+      garment({ id: 'd', status: 'packed', warmth: null }),
+    ]
+    expect(
+      filterGarments(mixed, NEEDS_DETAILS_FILTER).map((g) => g.id),
+    ).toEqual(['b', 'c'])
+    expect(
+      settleFilter(NEEDS_DETAILS_FILTER, {
+        ...NEEDS_DETAILS_FILTER,
+        status: null,
+      }).needsDetails,
+    ).toBe(false)
   })
 
   it('ANDs the category and the attribute toggles', () => {

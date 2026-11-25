@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-24
+
+- Behind the scenes: the outfit planner no longer suggests a piece missing its warmth or formality while a tagged piece fits, and the Closet counts the pieces that need details.
+
 ## 2026-11-23
 
 - The Denver page is gone. The site keeps the shelf and the closet, so the short list of places and the map behind it came down, and Denver no longer shows in the More menu or the footer.

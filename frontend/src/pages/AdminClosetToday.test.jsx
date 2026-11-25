@@ -165,6 +165,33 @@ afterEach(() => {
 })
 
 describe('AdminClosetToday', () => {
+  it('says which slots had to use pieces missing details', async () => {
+    stub({
+      'GET /api/closet/today': answer(
+        {},
+        { relaxed: { shoes: ['untagged'], top: ['untagged'] } },
+      ),
+    })
+    renderPage()
+    expect(
+      await screen.findByText(
+        'No tagged tops fit, so pieces missing details were used.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'No tagged shoes fit, so pieces missing details were used.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no relaxed line for an old plan without the key', async () => {
+    stub({ 'GET /api/closet/today': answer() })
+    renderPage()
+    await screen.findByText('navy oxford')
+    expect(screen.queryByText(/missing details/)).toBeNull()
+  })
+
   it('shows the weather, the lead, two alternatives and the footnote', async () => {
     stub({ 'GET /api/closet/today': answer() })
     renderPage()

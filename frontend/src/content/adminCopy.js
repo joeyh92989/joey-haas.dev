@@ -287,6 +287,8 @@ export const adminCopy = {
     matchThis: 'Match this…',
     notThis: 'Not this…',
     outfitBoard: 'The outfit',
+    relaxedUntagged:
+      'No tagged {slot} fit, so pieces missing details were used.',
     retry: 'Retry',
     saveAsOwned: 'Save as owned',
     saving: 'Saving…',
@@ -326,6 +328,8 @@ export const adminCopy = {
     unpackAll: 'Unpack all',
   },
   closet: {
+    needsDetailsMany: '{n} pieces need details',
+    needsDetailsOne: '1 piece needs details',
     nothingMatches: 'Nothing matches these chips.',
     nothingYet: 'Nothing here yet. ▤ Photos adds pieces, one per photo.',
     showThem: 'Show them',

@@ -2,6 +2,7 @@
  * The Closet's pure helpers: labels, the season window, the tile's stat line
  * and the page's filter. No fetches and no React, so each is tested alone.
  */
+import { adminCopy } from '../content/adminCopy.js'
 import { API_URL } from './api.js'
 import { DAY, DENVER_TIME, WEEKDAY_LONG_DAY, denverDay } from './formatDate.js'
 
@@ -173,6 +174,7 @@ export const DEFAULT_FILTER = {
   category: null,
   warm: false,
   smart: false,
+  needsDetails: false,
 }
 
 /** The garments the filter keeps, in the order given. */
@@ -184,8 +186,33 @@ export function filterGarments(garments, filter) {
         (filter.untaggedToo && g.status === 'untagged')) &&
       (!filter.category || g.category === filter.category) &&
       (!filter.warm || (g.warmth ?? 0) >= HIGH) &&
-      (!filter.smart || (g.formality ?? 0) >= HIGH),
+      (!filter.smart || (g.formality ?? 0) >= HIGH) &&
+      (!filter.needsDetails || lacksDetails(g)),
   )
+}
+
+/** An active piece missing its warmth or formality: the planner's filter
+ * leaves it out while a tagged piece fits. */
+export function lacksDetails(garment) {
+  return (
+    garment.status === 'active' &&
+    (garment.warmth == null || garment.formality == null)
+  )
+}
+
+/** The filter that shows exactly the pieces that need details. */
+export const NEEDS_DETAILS_FILTER = {
+  ...DEFAULT_FILTER,
+  status: 'active',
+  untaggedToo: false,
+  needsDetails: true,
+}
+
+/** The button's words: "1 piece needs details", "3 pieces need details". */
+export function needsDetailsLabel(count) {
+  return count === 1
+    ? adminCopy.closet.needsDetailsOne
+    : adminCopy.closet.needsDetailsMany.replace('{n}', String(count))
 }
 
 /**
@@ -196,7 +223,7 @@ export function filterGarments(garments, filter) {
 export function settleFilter(previous, next) {
   return next.status === previous.status
     ? next
-    : { ...next, untaggedToo: false }
+    : { ...next, untaggedToo: false, needsDetails: false }
 }
 
 /** The chips' counts, each from the whole closet as the shelf's are. */
@@ -335,6 +362,21 @@ export function plannedWords(plan, justNow) {
   if (madeOn < plan.day) return 'planned last night'
   const time = DENVER_TIME.format(at)
   return `planned at ${time}`
+}
+
+/**
+ * One line per slot the planner relaxed a rule to fill, in slot order.
+ * Plans stored before `relaxed` existed have none.
+ */
+export function relaxedLines(plan) {
+  const relaxed = plan.relaxed ?? {}
+  return CATEGORIES.filter((c) => relaxed[c.value]?.includes('untagged')).map(
+    (c) =>
+      adminCopy.closetToday.relaxedUntagged.replace(
+        '{slot}',
+        c.plural.toLowerCase(),
+      ),
+  )
 }
 
 /** The footnote: what the plan chose from, and when it was made. */
