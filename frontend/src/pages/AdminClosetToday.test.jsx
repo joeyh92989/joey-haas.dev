@@ -165,22 +165,35 @@ afterEach(() => {
 })
 
 describe('AdminClosetToday', () => {
-  it('says which slots had to use pieces missing details', async () => {
+  it('says which rules were loosened for a short slot, in order', async () => {
     stub({
       'GET /api/closet/today': answer(
         {},
-        { relaxed: { shoes: ['untagged'], top: ['untagged'] } },
+        {
+          relaxed: {
+            shoes: ['untagged'],
+            top: ['season', 'formality', 'untagged'],
+            bottom: ['season'],
+            mid: ['season', 'formality'],
+          },
+        },
       ),
     })
     renderPage()
     expect(
       await screen.findByText(
-        'No tagged tops fit, so pieces missing details were used.',
+        'Few tops fit, so shorts and linen were allowed, formality was widened and pieces missing details were used.',
       ),
     ).toBeInTheDocument()
     expect(
+      screen.getByText('Few shoes fit, so pieces missing details were used.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Few bottoms fit, so shorts and linen were allowed.'),
+    ).toBeInTheDocument()
+    expect(
       screen.getByText(
-        'No tagged shoes fit, so pieces missing details were used.',
+        'Few mids fit, so shorts and linen were allowed and formality was widened.',
       ),
     ).toBeInTheDocument()
   })
@@ -189,7 +202,32 @@ describe('AdminClosetToday', () => {
     stub({ 'GET /api/closet/today': answer() })
     renderPage()
     await screen.findByText('navy oxford')
-    expect(screen.queryByText(/missing details/)).toBeNull()
+    expect(screen.queryByText(/Few .* fit/)).toBeNull()
+    expect(screen.queryByText(/share/)).toBeNull()
+  })
+
+  it('says when the outfits share one top', async () => {
+    stub({
+      'GET /api/closet/today': answer({}, { shared_top: true, top_pool: 2 }),
+    })
+    renderPage()
+    expect(
+      await screen.findByText(
+        'Only 2 tops fit today, so the outfits share one.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('says it in the singular for a single top', async () => {
+    stub({
+      'GET /api/closet/today': answer({}, { shared_top: true, top_pool: 1 }),
+    })
+    renderPage()
+    expect(
+      await screen.findByText(
+        'Only 1 top fits today, so the outfits share it.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('shows the weather, the lead, two alternatives and the footnote', async () => {

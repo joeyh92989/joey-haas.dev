@@ -365,18 +365,39 @@ export function plannedWords(plan, justNow) {
 }
 
 /**
- * One line per slot the planner relaxed a rule to fill, in slot order.
- * Plans stored before `relaxed` existed have none.
+ * One line per slot the planner relaxed a rule to fill, in slot order, naming
+ * the steps in the order it tried them. Plans stored before `relaxed` existed
+ * have none.
  */
 export function relaxedLines(plan) {
   const relaxed = plan.relaxed ?? {}
-  return CATEGORIES.filter((c) => relaxed[c.value]?.includes('untagged')).map(
-    (c) =>
-      adminCopy.closetToday.relaxedUntagged.replace(
-        '{slot}',
-        c.plural.toLowerCase(),
-      ),
-  )
+  const copy = adminCopy.closetToday
+  return CATEGORIES.flatMap((c) => {
+    const steps = (relaxed[c.value] ?? [])
+      .map((step) => copy.relaxedSteps[step])
+      .filter(Boolean)
+    if (!steps.length) return []
+    const named =
+      steps.length === 1
+        ? steps[0]
+        : `${steps.slice(0, -1).join(', ')} and ${steps.at(-1)}`
+    return [
+      copy.relaxedLine
+        .replace('{slot}', c.plural.toLowerCase())
+        .replace('{steps}', named),
+    ]
+  })
+}
+
+/**
+ * The line saying the outfits share a top, or null. `top_pool` is the number
+ * of tops that fit; plans stored before it existed have neither key.
+ */
+export function sharedTopLine(plan) {
+  if (!plan.shared_top) return null
+  const copy = adminCopy.closetToday
+  const n = plan.top_pool ?? 1
+  return n === 1 ? copy.sharedTopOne : copy.sharedTop.replace('{n}', String(n))
 }
 
 /** The footnote: what the plan chose from, and when it was made. */

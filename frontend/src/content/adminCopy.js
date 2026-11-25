@@ -287,8 +287,16 @@ export const adminCopy = {
     matchThis: 'Match this…',
     notThis: 'Not this…',
     outfitBoard: 'The outfit',
-    relaxedUntagged:
-      'No tagged {slot} fit, so pieces missing details were used.',
+    // "Few {slot} fit, so {steps}." One phrase per relaxation step, joined
+    // in the order the planner tried them.
+    relaxedLine: 'Few {slot} fit, so {steps}.',
+    relaxedSteps: {
+      season: 'shorts and linen were allowed',
+      formality: 'formality was widened',
+      untagged: 'pieces missing details were used',
+    },
+    sharedTop: 'Only {n} tops fit today, so the outfits share one.',
+    sharedTopOne: 'Only 1 top fits today, so the outfits share it.',
     retry: 'Retry',
     saveAsOwned: 'Save as owned',
     saving: 'Saving…',
