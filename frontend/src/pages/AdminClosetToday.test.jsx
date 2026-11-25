@@ -260,6 +260,43 @@ describe('AdminClosetToday', () => {
     ).toBeInTheDocument()
   })
 
+  it('says the outfits share a top without a count when no top is short', async () => {
+    stub({ 'GET /api/closet/today': answer({}, { shared_top: true }) })
+    renderPage()
+    expect(
+      await screen.findByText('The outfits share a top today.'),
+    ).toBeInTheDocument()
+  })
+
+  it('names coats and mid layers naturally in the relaxed line', async () => {
+    stub({
+      'GET /api/closet/today': answer(
+        {},
+        {
+          relaxed: {
+            outer: ['untagged'],
+            mid: ['formality'],
+            accessory: ['season'],
+          },
+        },
+      ),
+    })
+    renderPage()
+    expect(
+      await screen.findByText(
+        'Few coats fit, so pieces missing details were used.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Few mid layers fit, so formality was widened.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Few accessories fit, so shorts and linen were allowed.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('says it in the singular for a single top', async () => {
     stub({
       'GET /api/closet/today': answer(

@@ -383,7 +383,7 @@ export function relaxedLines(plan) {
         : `${steps.slice(0, -1).join(', ')} and ${steps.at(-1)}`
     return [
       copy.relaxedLine
-        .replace('{slot}', c.plural.toLowerCase())
+        .replace('{slot}', copy.slotNames[c.value] ?? c.plural.toLowerCase())
         .replace('{steps}', named),
     ]
   })
@@ -391,13 +391,15 @@ export function relaxedLines(plan) {
 
 /**
  * The line saying the outfits share a top, or null. `plan.short.top` is the
- * number of tops that fit (the one source for N); plans stored before these
+ * number of tops that fit (the one source for N); without it (a repeat the
+ * pool did not force) the line carries no count. Plans stored before these
  * keys existed have neither.
  */
 export function sharedTopLine(plan) {
   if (!plan.shared_top) return null
   const copy = adminCopy.closetToday
-  const n = plan.short?.top ?? 1
+  const n = plan.short?.top
+  if (n === undefined) return copy.sharedTopNoCount
   return n === 1 ? copy.sharedTopOne : copy.sharedTop.replace('{n}', String(n))
 }
 

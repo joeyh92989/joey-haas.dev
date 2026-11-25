@@ -23,7 +23,7 @@ is left. When the model cannot answer, `template()` here is the plan.
   formality missing) are the last relaxation step (below).
 - **Minimum pool.** A slot with fewer than `MIN_POOL` eligible pieces relaxes
   one rule at a time, in `RELAX_STEPS` order, and stops at three: lift the
-  shorts and linen cut, widen the formality band a step each side, allow
+  formality band a step each side, lift the shorts and linen cut, allow
   untagged pieces. A step that added a piece is recorded in
   `Candidates.relaxed`; a slot still under three is in `Candidates.short`.
   The bike rule, the repeat rule and the fixed piece are never relaxed.
@@ -86,7 +86,7 @@ WEIGHTS = {"warmth": 2.0, "formality": 1.0, "rest": 0.5, "wears": 0.3, "season":
 LINEN_MIN_LOW_F = 50  # below this low, shorts and linen are out of the pool
 MIN_POOL = 3  # a slot with fewer eligible pieces relaxes a rule, one at a time
 # In the order tried; the plan body and the Today page use these names.
-RELAX_STEPS = ("season", "formality", "untagged")
+RELAX_STEPS = ("formality", "season", "untagged")
 REST_CAP_DAYS = 28  # rest stops counting after four weeks
 NEVER_WORN_REST = 4.0  # a garment never worn ranks as four weeks rested
 SNOW_BOOT_BONUS = 3.0  # beats one warmth step
@@ -496,7 +496,17 @@ def candidates(
             )
             for p in kept
         ]
-        found.sort(key=lambda s: (-s.score, s.piece.name.lower(), s.piece.id))
+        # Every tagged piece outranks every untagged one: an untagged filler
+        # scores as one step off with no season penalty, which would beat a
+        # poor tagged fit. Untagged pieces only fill the count.
+        found.sort(
+            key=lambda s: (
+                not is_tagged(s.piece),
+                -s.score,
+                s.piece.name.lower(),
+                s.piece.id,
+            )
+        )
         by_slot[slot] = found[:CANDIDATES_PER_SLOT]
     return Candidates(
         slots=tuple(slots),

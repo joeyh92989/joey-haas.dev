@@ -89,6 +89,8 @@ turned down.
 For each outfit write a reason of at most two short sentences in the
 second person, about why these pieces work together today. Do not list
 the garments again and do not mention numbers.
+
+When at least three tops are listed, give each outfit a different top.
 """
 
 

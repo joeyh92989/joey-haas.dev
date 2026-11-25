@@ -570,7 +570,7 @@ def tops(n: int, **kw) -> list[Piece]:
 
 def test_the_constants():
     assert closet.MIN_POOL == 3
-    assert closet.RELAX_STEPS == ("season", "formality", "untagged")
+    assert closet.RELAX_STEPS == ("formality", "season", "untagged")
 
 
 def test_a_full_pool_relaxes_nothing():
@@ -737,3 +737,89 @@ def test_two_tops_are_used_before_one_repeats():
     got = closet.template(found)
     assert top_ids(got)[:2] == ["t0", "t1"]
     assert closet.top_pool(found) == 2
+
+
+# --- fix round 2 ----------------------------------------------------------------
+
+
+def test_untagged_fillers_rank_below_every_tagged_piece():
+    # A short outer slot (target warmth 5): one good coat, a poor linen one
+    # that only the season step brings back, and two untagged coats. Tagged
+    # first, even the poor one; untagged only fill the count.
+    pieces = [
+        piece("o1", "outer", name="coat a", warmth=4),
+        piece("o3", "outer", name="linen jacket", warmth=2),
+        piece("u1", "outer", name="mystery coat 1", warmth=None, formality=None),
+        piece("u2", "outer", name="mystery coat 2", warmth=None, formality=None),
+    ]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), read(10, 30))
+    ids = [s.piece.id for s in found.by_slot["outer"]]
+    assert ids[:2] == ["o1", "o3"] and set(ids[2:]) == {"u1", "u2"}
+    assert found.relaxed["outer"] == ("season", "untagged")
+
+
+def test_formality_is_relaxed_before_season():
+    # office, 37 to 61 F: a linen trouser must not beat a warm cord one.
+    bottoms = [
+        piece("wool", "bottom", name="wool trouser", warmth=4, formality=3),
+        piece("jeans", "bottom", name="jeans", warmth=3, formality=3),
+        piece("linen", "bottom", name="linen trouser", warmth=2, formality=3),
+        piece("chino", "bottom", name="chino", warmth=3, formality=2),
+        piece("cord", "bottom", name="cord", warmth=4, formality=2),
+    ]
+    found = closet.candidates(bottoms, Request(DAY, "office"), read(37, 61))
+    ids = {s.piece.id for s in found.by_slot["bottom"]}
+    assert found.relaxed["bottom"] == ("formality",)
+    assert "linen" not in ids and {"wool", "jeans", "chino", "cord"} == ids
+
+
+def test_the_2026_11_20_shape_end_to_end():
+    summer = [
+        piece(
+            f"s{i}",
+            "top",
+            name=f"summer top {i}",
+            warmth=2,
+            formality=2,
+            seasons=(6, 7, 8),
+        )
+        for i in range(13)
+    ]
+    oxfords = [
+        piece(
+            f"x{i}",
+            "top",
+            name=f"oxford {i}",
+            warmth=3,
+            formality=3,
+            seasons=(3, 4, 9, 10),
+        )
+        for i in range(2)
+    ]
+    flannels = [
+        piece(
+            f"f{i}",
+            "top",
+            name=f"flannel {i}",
+            warmth=4,
+            formality=2,
+            seasons=(10, 11, 12),
+        )
+        for i in range(2)
+    ]
+    tee = piece("u", "top", name="mystery tee", warmth=None, formality=None)
+    other = piece("o", "top", name="plain knit", warmth=3, formality=2)
+    pieces = (
+        summer
+        + oxfords
+        + flannels
+        + [tee, other]
+        + [piece(f"b{i}", "bottom", name=f"pants {i}", formality=3) for i in range(4)]
+        + [piece(f"h{i}", "shoes", name=f"shoes {i}", formality=3) for i in range(4)]
+    )
+    assert len([p for p in pieces if p.category == "top"]) == 19
+    found = closet.candidates(pieces, Request(DAY, "office"), read(37, 61))
+    assert found.relaxed["top"] == ("formality",)
+    assert "u" not in {s.piece.id for s in found.by_slot["top"]}
+    got = closet.template(found)
+    assert len(got) == 3 and len(set(top_ids(got))) == 3
