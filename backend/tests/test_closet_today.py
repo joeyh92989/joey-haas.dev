@@ -272,6 +272,30 @@ async def test_an_occasion_chip_replans_and_a_bad_one_is_422(sessionmaker_for_te
     assert bad.status_code == 422
 
 
+async def test_candidates_leave_out_untagged_while_a_tagged_one_fits(
+    sessionmaker_for_test,
+):
+    await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Garment(
+                name="untagged tee",
+                category=GarmentCategory("top"),
+                warmth=None,
+                formality=None,
+                seasons=[],
+                status=GarmentStatus.ACTIVE,
+                tag_attempts=0,
+            )
+        )
+        await session.commit()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        tops = (await client.get("/api/closet/candidates?slot=top")).json()
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert "untagged tee" not in {t["name"] for t in tops["candidates"]}
+    assert plan["relaxed"] == {}
+
+
 async def test_build_around_locks_the_garment(sessionmaker_for_test):
     ids = await seed(sessionmaker_for_test)
     provider = FakeProvider(

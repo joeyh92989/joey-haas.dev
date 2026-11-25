@@ -18,7 +18,9 @@ is left. When the model cannot answer, `template()` here is the plan.
   the bottom for the day's middle: Denver's swing is the reason to layer.
   Riding makes the morning `BIKE_CHILL` degrees colder.
 - **Formality** per occasion is a range with a target (`OCCASION_FORMALITY`);
-  an untagged formality passes and scores as one step off.
+  an untagged formality passes the range, but a slot drops untagged
+  pieces (warmth or formality missing) while a tagged one is left; a slot
+  with only untagged pieces uses them and records `relaxed`.
 - **Bike** rules out dress shoes, long coats and wide or cuffed bottoms
   (`BIKE_EXCLUDES`, matched on name and subtype).
 - **Repeat rules.** A top worn within `repeat_top_days` days is out (worn
@@ -270,6 +272,8 @@ class Candidates:
     fit: int = 0
     skipped_recent: int = 0
     targets: dict[str, int] = field(default_factory=dict)
+    # slot -> the steps relaxed to fill it; absent means nothing relaxed.
+    relaxed: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -303,6 +307,31 @@ def fits_occasion(piece: Piece, occasion: str) -> bool:
         return True
     low, high, _ = OCCASION_FORMALITY.get(occasion, (1, 5, 3))
     return low <= piece.formality <= high
+
+
+def is_tagged(piece: Piece) -> bool:
+    """Warmth and formality both set. Empty seasons is not missing: it
+    means all year."""
+    return piece.warmth is not None and piece.formality is not None
+
+
+def eligible(piece: Piece, request: Request, month: int) -> bool:
+    """The rules every candidate passes, in `candidates` and `slot_fallback`
+    alike (the repeat rule is applied by the callers)."""
+    return (
+        in_season(piece, month)
+        and fits_occasion(piece, request.occasion)
+        and (not request.bike or bike_ok(piece))
+    )
+
+
+def tagged_first(found: list[Piece]) -> tuple[list[Piece], bool]:
+    """Drop the untagged pieces of a slot while any tagged one is left.
+    Returns the pieces and whether the slot had to use untagged ones."""
+    tagged = [p for p in found if is_tagged(p)]
+    if tagged or not found:
+        return tagged, False
+    return found, True
 
 
 def _words(piece: Piece) -> str:
@@ -361,35 +390,32 @@ def candidates(
     slots = [slot for slot in SLOT_ORDER if slot in slots]
     goal = targets(read, request.bike)
     month = request.day.month
-    by_slot: dict[str, list[Scored]] = {slot: [] for slot in slots}
+    pool: dict[str, list[Piece]] = {slot: [] for slot in slots}
     fit = skipped = 0
     for piece in pieces:
         if fixed is not None and piece.id == fixed.id:
             continue
-        if not (
-            in_season(piece, month)
-            and fits_occasion(piece, request.occasion)
-            and (not request.bike or bike_ok(piece))
-        ):
+        if not eligible(piece, request, month):
             continue
         if worn_recently(piece, request.day, request.repeat_top_days):
             skipped += 1
             continue
         fit += 1
-        if piece.category in by_slot:
-            by_slot[piece.category].append(
-                Scored(
-                    piece,
-                    score(
-                        piece,
-                        goal[piece.category],
-                        request.occasion,
-                        request.day,
-                        read.snow,
-                    ),
-                )
+        if piece.category in pool:
+            pool[piece.category].append(piece)
+    by_slot: dict[str, list[Scored]] = {}
+    relaxed: dict[str, tuple[str, ...]] = {}
+    for slot, found_pieces in pool.items():
+        kept, used_untagged = tagged_first(found_pieces)
+        if used_untagged:
+            relaxed[slot] = ("untagged",)
+        found = [
+            Scored(
+                p,
+                score(p, goal[slot], request.occasion, request.day, read.snow),
             )
-    for slot, found in by_slot.items():
+            for p in kept
+        ]
         found.sort(key=lambda s: (-s.score, s.piece.name.lower(), s.piece.id))
         by_slot[slot] = found[:CANDIDATES_PER_SLOT]
     return Candidates(
@@ -400,6 +426,7 @@ def candidates(
         fit=fit,
         skipped_recent=skipped,
         targets={slot: goal[slot] for slot in slots},
+        relaxed=relaxed,
     )
 
 
@@ -408,16 +435,16 @@ def slot_fallback(pieces: Sequence[Piece], slot: str, request: Request) -> list[
     day): the pieces that pass the same rules as `candidates`, the repeat
     rule included, least worn first and capped the same way."""
     month = request.day.month
+    found = [
+        p
+        for p in pieces
+        if p.category == slot
+        and eligible(p, request, month)
+        and not worn_recently(p, request.day, request.repeat_top_days)
+    ]
+    kept, _ = tagged_first(found)
     return sorted(
-        (
-            Scored(p, 0.0)
-            for p in pieces
-            if p.category == slot
-            and in_season(p, month)
-            and fits_occasion(p, request.occasion)
-            and (not request.bike or bike_ok(p))
-            and not worn_recently(p, request.day, request.repeat_top_days)
-        ),
+        (Scored(p, 0.0) for p in kept),
         key=lambda s: (s.piece.wears_30, s.piece.name),
     )[:CANDIDATES_PER_SLOT]
 

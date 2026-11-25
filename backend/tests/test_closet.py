@@ -294,6 +294,44 @@ def test_snow_favours_boots():
     assert dry.by_slot["shoes"][0].piece.id == "a"
 
 
+def test_is_tagged_needs_warmth_and_formality_not_seasons():
+    assert closet.is_tagged(piece("a", "top", seasons=()))
+    assert not closet.is_tagged(piece("b", "top", warmth=None))
+    assert not closet.is_tagged(piece("c", "top", formality=None))
+
+
+def test_a_tagged_piece_beats_an_untagged_one_in_its_slot():
+    # The 2026-11-20 shape on an office day: many tagged tops, one untagged.
+    pieces = [piece(f"t{i}", "top", formality=3) for i in range(6)]
+    pieces.append(piece("u", "top", name="mystery top", warmth=None, formality=None))
+    found = closet.candidates(pieces, Request(DAY, "office"), read(66, 78))
+    assert "u" not in {s.piece.id for s in found.by_slot["top"]}
+    assert len(found.by_slot["top"]) == 6
+    assert found.relaxed == {}
+
+
+def test_a_slot_with_only_untagged_pieces_fills_and_records_it():
+    pieces = [
+        piece("t1", "top", warmth=None),
+        piece("b1", "bottom"),
+        piece("s1", "shoes"),
+    ]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), read(66, 78))
+    assert [s.piece.id for s in found.by_slot["top"]] == ["t1"]
+    assert found.relaxed == {"top": ("untagged",)}
+
+
+def test_the_swap_fallback_prefers_tagged_pieces():
+    pieces = [
+        piece("t1", "top", name="tagged"),
+        piece("t2", "top", name="untagged", formality=None),
+    ]
+    found = closet.slot_fallback(pieces, "top", Request(DAY, "weekend"))
+    assert [s.piece.id for s in found] == ["t1"]
+    only = closet.slot_fallback(pieces[1:], "top", Request(DAY, "weekend"))
+    assert [s.piece.id for s in only] == ["t2"]
+
+
 def test_candidates_are_capped_per_slot():
     pieces = [piece(f"t{i:02}", "top") for i in range(20)]
     found = closet.candidates(pieces, Request(DAY, "weekend"), read(66, 78))
