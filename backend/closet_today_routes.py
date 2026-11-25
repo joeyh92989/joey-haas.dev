@@ -893,6 +893,7 @@ def create_closet_today_router(
             **values,
             status=GarmentStatus.ACTIVE,
             tag_source=GarmentTagSource.MODEL,
+            tag_scale=closet_tag.SCALE_VERSION,
             tag_attempts=0,
         )
         session.add(row)

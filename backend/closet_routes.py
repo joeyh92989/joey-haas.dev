@@ -28,14 +28,14 @@
   `tag_budget` calls are spent, a model error, or the queue is empty, and
   writes `closet_settings["tag.last_run"]`. A write lands only while the
   garment is still untouched (`tag_source IS NULL`), so a hand save made
-  during the model call wins.
-  An answer that cannot be used for a batch of
+  during the model call wins. An answer that cannot be used for a batch of
   several strikes nobody: its photos are retried one at a time, and only a
   single photo's unusable answer counts a strike. A quota or overload error
   never does, since it says nothing about the photos; a missing model key
   fails the run without a call.
-- **A formality re-tag follows the first-time queue** (#548). Once nothing is
-  untagged, the same call and budget re-tag `tag_source = model` pieces
+- **A formality re-tag follows the first-time queue** (#548), in the nightly
+  job only (Tag now never takes it). Once nothing is untagged, the same
+  call and budget re-tag `tag_source = model` pieces
   whose `tag_scale` is below `closet_tag.SCALE_VERSION` (`active` or
   `packed`, with a photo, oldest first). A batch is all first-time or all
   re-tag. A re-tag writes `formality` and `tag_scale` only, guarded by
@@ -1011,7 +1011,7 @@ def create_closet_router(
                 closet_tag.TAG_SCHEMA,
                 images=images,
             )
-            tagged = closet_tag.validate(payload, len(ids))
+            tagged = closet_tag.validate(payload, len(ids), retag=retag)
         except LLMError as error:
             logger.warning("closet tag model call failed: %s", error)
             note = _failure_note(str(error))
@@ -1106,7 +1106,10 @@ def create_closet_router(
         return {**idle, "tagged": written, "called": True}
 
     async def _run(
-        session: AsyncSession, budget: int, batches: int | None = None
+        session: AsyncSession,
+        budget: int,
+        batches: int | None = None,
+        allow_retag: bool = True,
     ) -> dict[str, Any]:
         """Batches until `budget` calls are spent, a model error stops it,
         the queue is empty, or `batches` queue batches have been taken. A
@@ -1127,7 +1130,9 @@ def create_closet_router(
             else:
                 result = await tag_batch(session)
                 taken += 1
-                if not (result["called"] or result["stop"] or result["retry"]):
+                if allow_retag and not (
+                    result["called"] or result["stop"] or result["retry"]
+                ):
                     # Nothing untagged: the formality re-tag takes the call.
                     retag = True
                     result = await tag_batch(session, retag=True)
@@ -1175,7 +1180,9 @@ def create_closet_router(
             raise HTTPException(status_code=409, detail="Tagging is already running")
         async with run_lock:
             # One batch, and its photos one at a time if it is rejected.
-            result = await _run(session, 1 + closet_tag.BATCH_SIZE, batches=1)
+            result = await _run(
+                session, 1 + closet_tag.BATCH_SIZE, batches=1, allow_retag=False
+            )
             return {
                 "tagged": result["tagged"],
                 "calls": result["calls"],
@@ -1200,7 +1207,7 @@ def create_closet_router(
             retag_remaining = await _retag_remaining(session)
             retagged = result["retagged"]
             note = result["note"]
-            if not note and (retagged or retag_remaining):
+            if not note and result["calls"] and (retagged or retag_remaining):
                 note = (
                     f"Formality re-tag: {retagged} done tonight, {retag_remaining} left"
                 )

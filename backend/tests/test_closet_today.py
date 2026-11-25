@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 import closet_rank
+import closet_tag
 import closet_today_routes
 import weather
 from closet_today_routes import create_closet_today_router
@@ -531,6 +532,11 @@ async def test_save_as_owned_creates_an_active_garment(sessionmaker_for_test):
     assert body["status"] == "active" and body["tag_source"] == "model"
     assert body["name"] == "green overshirt" and body["image"]
     assert bad.status_code == 422
+    async with sessionmaker_for_test() as session:
+        row = await session.scalar(
+            select(Garment).where(Garment.name == "green overshirt")
+        )
+    assert row.tag_scale == closet_tag.SCALE_VERSION
 
 
 async def test_the_plan_job_plans_each_chip_of_the_week(sessionmaker_for_test):

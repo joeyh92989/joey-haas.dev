@@ -36,7 +36,7 @@ re-tagging warmth, seasons, names or categories, any new UI.
 
 ```mermaid
 flowchart TD
-  N[Nightly tag job / Tag now] --> Q1{First-time queue<br/>untagged, tag_source NULL}
+  N[Nightly tag job] --> Q1{First-time queue<br/>untagged, tag_source NULL}
   Q1 -->|has pieces| T1[Tag batch: write every field<br/>tag_scale = current]
   Q1 -->|empty| Q2{Re-tag queue<br/>tag_source = model,<br/>tag_scale &lt; current,<br/>active or packed}
   Q2 -->|has pieces| T2[Tag batch: write formality only<br/>+ tag_scale = current]
@@ -51,7 +51,8 @@ flowchart TD
    1 lounge or gym (sweatpants, a graphic tee); 2 casual (a plain tee, a hoodie,
    sneakers); 3 smart casual (a flannel or casual button-up, a polo, chinos,
    dark jeans); 4 business casual (an oxford or dress shirt, wool trousers,
-   loafers); 5 business formal (a suit, a tie, dress shoes). A flannel or casual
+   loafers, leather dress shoes); 5 business formal (a suit, a tie, a
+   tuxedo). A flannel or casual
    button-up can be 2 or 3 depending on how it reads. This matches the issue's
    anchors (graphic tee 1, flannel 2 to 3, oxford 3 to 4).
 2. **Office 2 to 4** (`OCCASION_FORMALITY["office"] = (2, 4, 3)`). The target
@@ -65,7 +66,8 @@ flowchart TD
 4. **The re-tag queue**: `tag_source = model`, `tag_scale < SCALE_VERSION`,
    status `active` or `packed` (not `listed` or `gone`, which would waste the
    budget), fewer than `MAX_ATTEMPTS` strikes, with a photo, oldest first. It is
-   taken only when the first-time queue is empty, so new photos are never held up.
+   taken only when the first-time queue is empty, so new photos are never held up. Only the nightly job takes it: Tag now
+   (the page's button) stays on the first-time queue and spends no call on a re-tag.
 5. **A re-tag writes formality and `tag_scale` only.** It uses the same call and
    prompt and ignores every other field in the answer. The `UPDATE` is guarded by
    `tag_source = model AND tag_scale < SCALE_VERSION`, so a hand save landing during
@@ -101,7 +103,8 @@ flowchart TD
   Few pieces are like that, and the Jobs row shows what is left.
 - **`listed`/`gone` skipped.** They are never planned.
 - **Office ceiling 4.** Not asked for in the issue, but the range is 2 to 4 as the
-  issue says. Event and date are unchanged.
+  issue says. Event and date are unchanged. Dress shoes sit at 4, not 5, so
+  the ceiling of 4 does not shut out every pair of work shoes; 5 is formal wear.
 
 ## Sources
 

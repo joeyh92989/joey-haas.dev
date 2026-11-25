@@ -119,9 +119,9 @@ For each give:
 - formality, 1 to 5, by these anchors: 1 lounge or gym (sweatpants, a
   graphic tee); 2 casual (a plain tee, a hoodie, sneakers); 3 smart casual
   (a flannel or casual button-up, a polo, chinos, dark jeans); 4 business
-  casual (an oxford or dress shirt, wool trousers, loafers); 5 business
-  formal (a suit, a tie, dress shoes). A flannel or casual button-up is a 2
-  or a 3 depending on how it reads.
+  casual (an oxford or dress shirt, wool trousers, leather dress shoes or
+  loafers); 5 business formal (a suit, a tie, a tuxedo). A flannel or
+  casual button-up is a 2 or a 3 depending on how it reads.
 - seasons: the months, 1 to 12, someone in Denver would wear it.
 
 Describe only what is in the photographs. Never invent a garment, never
@@ -209,10 +209,17 @@ def clean_attributes(raw: Any) -> dict[str, Any]:
     return attributes
 
 
-def validate(payload: Any, count: int) -> list[Tagged]:
+def _attributes(item: Any) -> dict:
+    raw = item.get("attributes") if isinstance(item, dict) else None
+    return raw if isinstance(raw, dict) else {}
+
+
+def validate(payload: Any, count: int, retag: bool = False) -> list[Tagged]:
     """The answer as one `Tagged` per photograph, in order.
 
-    Raises `TagBatchError` unless the indices are exactly `0..count-1`."""
+    Raises `TagBatchError` unless the indices are exactly `0..count-1`. With
+    `retag`, only the formality is read (a bad category or any other field
+    does not reject the batch) and an unusable one is None."""
     items = payload.get("items") if isinstance(payload, dict) else None
     if not isinstance(items, list):
         raise TagBatchError("the answer had no items")
@@ -224,6 +231,11 @@ def validate(payload: Any, count: int) -> list[Tagged]:
             f"the answer's indices were {indices}, not 0 to {count - 1}"
         )
     by_index = {item["index"]: item for item in items}
+    if retag:
+        return [
+            Tagged({"formality": _scale(_attributes(by_index[index]).get("formality"))})
+            for index in range(count)
+        ]
     return [
         Tagged(clean_attributes(by_index[index].get("attributes")))
         for index in range(count)

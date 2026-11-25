@@ -446,8 +446,7 @@ def test_the_bike_filters_and_formality_holds():
     # The bike rule is never relaxed; the tops are, and the plan says so.
     assert found.by_slot["top"][0].piece.id == "t2"
     assert found.relaxed["top"] == ("formality",)
-    # Oxfords and wide
-    # trousers never do, whatever the pool.
+    # Oxfords and wide trousers never come back, whatever the pool.
     assert {s.piece.id for s in found.by_slot["shoes"]} == {"s1", "s2"}
     assert {s.piece.id for s in found.by_slot["bottom"]} == {"b1", "b2"}
 
@@ -613,6 +612,47 @@ def test_formality_widening_is_clamped_to_the_scale():
     assert closet.fits_occasion(piece("a", "top", formality=1), "office", 9)
     assert not closet.fits_occasion(piece("a", "top", formality=5), "weekend", 1)
     assert closet.fits_occasion(piece("a", "top", formality=1), "wfh", 1)
+
+
+def test_formality_widening_stops_at_one_on_the_low_side():
+    assert not closet.fits_occasion(piece("a", "top", formality=1), "event", 1)
+    assert closet.fits_occasion(piece("a", "top", formality=2), "event", 1)
+
+
+def test_the_original_2026_11_20_shape_needs_no_relaxation_for_office():
+    # Flannel-like tops tagged 2, as the unanchored prompt gave them: office
+    # is 2 to 4 now, so they are in the pool without loosening anything.
+    flannels = [
+        piece(
+            f"f{i}",
+            "top",
+            name=f"flannel {i}",
+            warmth=4,
+            formality=2,
+            seasons=(10, 11, 12),
+        )
+        for i in range(2)
+    ]
+    oxfords = [
+        piece(
+            f"x{i}",
+            "top",
+            name=f"oxford {i}",
+            warmth=3,
+            formality=3,
+            seasons=(3, 4, 9, 10),
+        )
+        for i in range(2)
+    ]
+    pieces = (
+        flannels
+        + oxfords
+        + [piece(f"b{i}", "bottom", name=f"pants {i}", formality=3) for i in range(4)]
+        + [piece(f"h{i}", "shoes", name=f"shoes {i}", formality=3) for i in range(4)]
+    )
+    found = closet.candidates(pieces, Request(DAY, "office"), read(37, 61))
+    assert "top" not in found.relaxed
+    assert {"f0", "f1"} <= {s.piece.id for s in found.by_slot["top"]}
 
 
 def test_untagged_is_the_last_step():
