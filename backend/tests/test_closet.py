@@ -924,7 +924,7 @@ def test_an_excluded_top_never_appears_even_when_the_slot_relaxes():
     found = closet.candidates(pieces, request, read(40, 60))
     assert [s.piece.id for s in found.by_slot["top"]] == ["t1"]
     assert found.short["top"] == 1
-    # The footnote does not count it as fitting (t0 only; linen is cut anyway).
+    # The footnote does not count it as fitting (t1 only; t0 is excluded, linen is cut).
     assert found.fit == 1
 
 

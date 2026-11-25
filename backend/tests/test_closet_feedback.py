@@ -248,9 +248,13 @@ async def test_the_nightly_job_plans_tomorrow_without_a_piece_turned_down_for_it
             )
         await client.post("/api/closet/jobs/plan")
     async with sessionmaker_for_test() as session:
-        stored = await session.get(OutfitPlan, (tomorrow, "office", False))
-    for outfit in [stored.body["lead"], *stored.body["alternatives"]]:
-        assert not {"navy oxford", "white shirt"} & set(names(outfit))
+        rows = (
+            await session.scalars(select(OutfitPlan).where(OutfitPlan.day == tomorrow))
+        ).all()
+    assert {r.occasion for r in rows} == {"office", "weekend"}
+    for row in rows:
+        for outfit in [row.body["lead"], *row.body["alternatives"]]:
+            assert not {"navy oxford", "white shirt"} & set(names(outfit))
     # Today's own plan is untouched by tomorrow's feedback.
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         assert {"navy oxford", "white shirt"} <= await candidate_names(client, "top")
@@ -270,18 +274,109 @@ async def test_a_lock_on_a_turned_down_piece_keeps_it(sessionmaker_for_test):
     assert "blue shirt (not today)" not in provider.calls[0][0]
 
 
-async def test_feedback_does_not_rewrite_the_stored_plan(sessionmaker_for_test):
+def top_of(plan):
+    return next(g for g in plan["lead"]["garments"] if g["slot"] == "top")
+
+
+def in_plan(plan, name):
+    return any(name in names(o) for o in [plan["lead"], *plan["alternatives"]])
+
+
+async def test_a_stored_plan_naming_a_turned_down_piece_is_planned_again(
+    sessionmaker_for_test,
+):
     from models import OutfitPlan
 
     await seed(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test, no_model=True) as client:
-        lead = (await client.get("/api/closet/today")).json()["plan"]["lead"]
-        victim = next(g for g in lead["garments"] if g["slot"] == "top")
+        first = (await client.get("/api/closet/today")).json()["plan"]
+        victim = top_of(first)
         await client.post(
             "/api/closet/feedback",
             json={"garment_id": victim["id"], "kind": "not_today"},
         )
-        stored = (await client.get("/api/closet/today")).json()["plan"]["lead"]
-    assert victim["name"] in names(stored)  # the client re-plans (S8)
+        again = (await client.get("/api/closet/today")).json()
+    assert again["planned_just_now"] is True
+    assert not in_plan(again["plan"], victim["name"])
     async with sessionmaker_for_test() as session:
         assert len((await session.scalars(select(OutfitPlan))).all()) == 1
+
+
+async def test_stored_only_never_shows_a_plan_naming_a_turned_down_piece(
+    sessionmaker_for_test,
+):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        victim = top_of((await client.get("/api/closet/today")).json()["plan"])
+        await client.post(
+            "/api/closet/feedback",
+            json={"garment_id": victim["id"], "kind": "too_cold"},
+        )
+        quiet = (await client.get("/api/closet/today?stored_only=true")).json()
+    assert quiet["plan"] is None  # as for an inactive piece: never stale
+
+
+async def test_a_nightly_stored_weekend_plan_is_refreshed_after_not_today(
+    sessionmaker_for_test,
+):
+    await seed(sessionmaker_for_test)
+    tomorrow = DAY + timedelta(days=1)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        await client.post("/api/closet/jobs/plan")
+    async with client_for(sessionmaker_for_test, no_model=True, day=tomorrow) as client:
+        weekend = (await client.get("/api/closet/today?occasion=weekend")).json()
+        assert weekend["planned_just_now"] is False  # the nightly's row
+        victim = top_of(weekend["plan"])
+        await client.post(
+            "/api/closet/feedback",
+            json={"garment_id": victim["id"], "kind": "not_today"},
+        )
+        fresh = (await client.get("/api/closet/today?occasion=weekend")).json()
+    assert fresh["planned_just_now"] is True
+    assert not in_plan(fresh["plan"], victim["name"])
+
+
+async def test_never_for_office_leaves_the_weekend_plan_alone(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        weekend = (await client.get("/api/closet/today?occasion=weekend")).json()
+        victim = top_of(weekend["plan"])
+        await client.post(
+            "/api/closet/feedback",
+            json={
+                "garment_id": victim["id"],
+                "kind": "never_for_occasion",
+                "occasion": "office",
+            },
+        )
+        again = (await client.get("/api/closet/today?occasion=weekend")).json()
+    assert again["planned_just_now"] is False
+    assert again["plan"]["lead"] == weekend["plan"]["lead"]
+
+
+async def test_the_bike_variant_is_refreshed_too(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plain = (await client.get("/api/closet/today?bike=false")).json()["plan"]
+        await client.get("/api/closet/today?bike=true")
+        victim = top_of(plain)
+        await client.post(
+            "/api/closet/feedback",
+            json={"garment_id": victim["id"], "kind": "not_today"},
+        )
+        for flag in ("false", "true"):
+            fresh = (await client.get(f"/api/closet/today?bike={flag}")).json()
+            assert not in_plan(fresh["plan"], victim["name"])
+
+
+@pytest.mark.parametrize("offset, status", [(-1, 422), (0, 201), (7, 201), (8, 422)])
+async def test_the_feedback_day_must_be_today_up_to_a_week_ahead(
+    sessionmaker_for_test, offset, status
+):
+    ids = await seed(sessionmaker_for_test)
+    day = (DAY + timedelta(days=offset)).isoformat()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        response = await client.post(
+            "/api/closet/feedback", json=body(ids, "chinos", "not_today", day=day)
+        )
+    assert response.status_code == status

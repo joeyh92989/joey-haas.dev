@@ -128,24 +128,34 @@ _TURNED_DOWN_WHY = {
 
 def turned_down_line(entries: Iterable[tuple[str, str, str | None]]) -> str | None:
     """The prompt's line for pieces the owner turned down (#551): entries
-    are `(kind, name, occasion)`, newest first, at most `TURNED_DOWN_CAP`.
-    Day-scoped kinds read "name (too warm)"; `never_for_occasion` reads
-    "never for office: name". The pieces are already out of the candidate
-    list; the line says why, so "too warm" steers the rest cooler."""
-    kept = list(entries)[:TURNED_DOWN_CAP]
-    today = [
-        f"{name} ({_TURNED_DOWN_WHY[kind]})"
-        for kind, name, _ in kept
-        if kind in _TURNED_DOWN_WHY
-    ]
+    are `(kind, name, occasion)`, newest first. One entry per piece, its kinds
+    joined ("name (too warm, not today)"), at most `TURNED_DOWN_CAP` pieces
+    for the day and, separately, as many for `never for <occasion>`. The
+    pieces are already out of the candidate list; the line says why, so "too
+    warm" steers the rest cooler."""
+    today: dict[str, list[str]] = {}
     never: dict[str, list[str]] = {}
-    for kind, name, occasion in kept:
-        if kind == "never_for_occasion" and occasion:
-            never.setdefault(occasion, []).append(name)
+    for kind, name, occasion in entries:
+        if kind in _TURNED_DOWN_WHY:
+            why = today.setdefault(name, [])
+            if _TURNED_DOWN_WHY[kind] not in why:
+                why.append(_TURNED_DOWN_WHY[kind])
+        elif kind == "never_for_occasion" and occasion:
+            names = never.setdefault(occasion, [])
+            if name not in names:
+                names.append(name)
     parts = []
     if today:
-        parts.append("Turned down for this day: " + ", ".join(today))
-    parts.extend(f"never for {o}: " + ", ".join(n) for o, n in never.items())
+        shown = list(today.items())[:TURNED_DOWN_CAP]
+        parts.append(
+            "Turned down for this day: "
+            + ", ".join(f"{name} ({', '.join(why)})" for name, why in shown)
+        )
+    flat = [(o, n) for o, names in never.items() for n in names][:TURNED_DOWN_CAP]
+    grouped: dict[str, list[str]] = {}
+    for occasion, name in flat:
+        grouped.setdefault(occasion, []).append(name)
+    parts.extend(f"never for {o}: " + ", ".join(n) for o, n in grouped.items())
     return "; ".join(parts) + "." if parts else None
 
 

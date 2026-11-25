@@ -117,6 +117,8 @@ RANK_IMAGES_KEY = "rank.images"
 THUMB_EDGE = LONG_EDGE  # the grid rendition
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
+# POST /feedback takes today or a day up to this many days ahead.
+FEEDBACK_DAYS_AHEAD = 7
 NOTHING_TO_WEAR = "Nothing in the closet fits today yet"
 # The nightly job must finish inside nightly.yml's 300 s curl timeout, and a
 # model call can take up to 150 s: past this many seconds, the job's
@@ -715,6 +717,31 @@ def create_closet_today_router(
             return True
         return bool(named) and await active_ids(session, named) != named
 
+    async def names_turned_down(
+        session: AsyncSession,
+        plan: dict[str, Any],
+        day: date,
+        occasion: str,
+    ) -> bool:
+        """True when the stored plan names a piece turned down since (#551)
+        for this day and occasion, other than the plan's own lock. Feedback
+        rewrites no plan itself: the next read finds it stale here."""
+        turned = {
+            str(row.garment_id)
+            for row, _ in await feedback_in_force(session, day, occasion)
+        }
+        turned.discard(str(plan.get("lock")))
+        if not turned:
+            return False
+        outfits = [plan.get("lead"), *(plan.get("alternatives") or [])]
+        return any(
+            g["id"] in turned
+            for outfit in outfits
+            if outfit
+            for g in outfit["garments"]
+            if not g.get("transient")
+        )
+
     async def kept_lock(session: AsyncSession, plan: dict[str, Any]) -> str | None:
         """The stale plan's Build-around lock, when that garment is still active."""
         try:
@@ -752,10 +779,14 @@ def create_closet_today_router(
         occasion = _occasion(occasion, default_occasion)
         bike = default_bike if bike is None else bike
         plan = await stored(session, day, occasion, bike)
-        # A plan naming a garment since deleted, packed, listed or gone is
-        # stale: plan again for the same occasion and bike it was stored under.
+        # A plan naming a garment since deleted, packed, listed or gone, or
+        # turned down for today (#551), is stale: plan again for the same
+        # occasion and bike it was stored under.
         lock_id = None
-        stale = plan is not None and await names_inactive(session, plan)
+        stale = plan is not None and (
+            await names_inactive(session, plan)
+            or await names_turned_down(session, plan, day, occasion)
+        )
         if stale:
             lock_id = await kept_lock(session, plan)
             plan = None
@@ -913,6 +944,10 @@ def create_closet_today_router(
             if body.occasion is not None:
                 raise _unprocessable(f"{body.kind.value} holds for the day")
             occasion, day = None, body.day or today()
+            if not today() <= day <= today() + timedelta(days=FEEDBACK_DAYS_AHEAD):
+                raise _unprocessable(
+                    f"day must be today or up to {FEEDBACK_DAYS_AHEAD} days ahead"
+                )
         status = await session.scalar(
             select(Garment.status).where(Garment.id == body.garment_id)
         )
@@ -940,8 +975,10 @@ def create_closet_today_router(
         except IntegrityError:  # a concurrent identical add won the race
             await session.rollback()
             row = await session.scalar(existing())
-            if row is None:
-                raise
+            if row is None:  # the garment went meanwhile
+                raise HTTPException(
+                    status_code=404, detail="No such active garment"
+                ) from None
             response.status_code = 200
         return _feedback_out(row)
 

@@ -112,7 +112,11 @@ only while its item is public. Admin routes stay keyed by id.
   name (too warm); never for office: name." (`closet_rank.turned_down_line`, at most 8,
   newest first). `GET /garments` adds `temperature_flags` (too cold / too warm counts
   over 60 days) for the Closet page's "Check warmth" button; no tag is ever edited by
-  feedback. Outfit-level Not this (`outfits.not_this`) is unchanged.
+  feedback. A stored plan naming a piece turned down for its day and occasion (the lock
+  excepted) is stale and re-planned on the next `GET /today` (`stored_only` answers no
+  plan, as for an inactive piece). Feedback on a non-active piece is hidden from
+  `GET /feedback` and the flags, and returns when the piece is active again. POST takes a
+  `day` of today to 7 days ahead. Outfit-level Not this (`outfits.not_this`) is unchanged.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay

@@ -661,6 +661,7 @@ def create_closet_router(
         counts = {status.value: 0 for status in GarmentStatus}
         for row in rows:
             counts[row.status.value] += 1
+        owner_day = datetime.now(OWNER_TZ).date()
         flagged = (
             await session.execute(
                 select(
@@ -673,12 +674,14 @@ def create_closet_router(
                     ),
                     func.max(GarmentFeedback.day),
                 )
+                .join(Garment, Garment.id == GarmentFeedback.garment_id)
                 .where(
+                    Garment.status == GarmentStatus.ACTIVE,
                     GarmentFeedback.kind.in_(
                         [GarmentFeedbackKind.TOO_COLD, GarmentFeedbackKind.TOO_WARM]
                     ),
-                    GarmentFeedback.day
-                    > datetime.now(OWNER_TZ).date() - timedelta(days=60),
+                    GarmentFeedback.day > owner_day - timedelta(days=60),
+                    GarmentFeedback.day <= owner_day,
                 )
                 .group_by(GarmentFeedback.garment_id)
                 .order_by(func.max(GarmentFeedback.day).desc())

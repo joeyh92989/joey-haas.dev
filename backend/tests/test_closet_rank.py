@@ -401,6 +401,23 @@ def test_the_turned_down_line_is_capped_at_eight_newest_first():
     assert "piece 7 " in line and "piece 8" not in line
 
 
+def test_a_piece_turned_down_twice_is_one_entry_with_its_kinds_joined():
+    line = closet_rank.turned_down_line(
+        [("too_warm", "navy oxford", None), ("not_today", "navy oxford", None)]
+    )
+    assert line == "Turned down for this day: navy oxford (too warm, not today)."
+
+
+def test_never_for_occasion_entries_are_capped_apart_from_the_day_ones():
+    entries = [("not_today", f"day {i}", None) for i in range(9)] + [
+        ("never_for_occasion", f"never {i}", "office") for i in range(10)
+    ]
+    line = closet_rank.turned_down_line(entries)
+    day, never = line.split("; never for office: ")
+    assert day.count("(not today)") == 8 and "day 8" not in day
+    assert never.count("never ") == 8 and "never 8" not in never
+
+
 def test_no_feedback_adds_no_line_and_the_answer_format_is_unchanged():
     assert closet_rank.turned_down_line([]) is None
     plain = _prompt()

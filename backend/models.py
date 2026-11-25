@@ -1268,7 +1268,8 @@ class GarmentFeedback(Base):
     __table_args__ = (
         CheckConstraint(
             "(kind = 'never_for_occasion' AND occasion IS NOT NULL AND day IS NULL)"
-            " OR (kind <> 'never_for_occasion' AND day IS NOT NULL)",
+            " OR (kind <> 'never_for_occasion' AND day IS NOT NULL"
+            " AND occasion IS NULL)",
             name="garment_feedback_scope",
         ),
         Index(

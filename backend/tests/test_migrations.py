@@ -2631,6 +2631,7 @@ async def test_0033_checks_reject_a_dayless_not_today_and_an_occasionless_never(
         {"kind": "not_today", "occasion": None, "day": None},
         {"kind": "never_for_occasion", "occasion": None, "day": None},
         {"kind": "never_for_occasion", "occasion": "office", "day": date(2026, 1, 1)},
+        {"kind": "not_today", "occasion": "office", "day": date(2026, 1, 1)},
     ]
     for params in bad:
         with pytest.raises(IntegrityError):

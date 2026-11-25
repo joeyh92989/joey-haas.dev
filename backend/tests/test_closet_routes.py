@@ -568,6 +568,8 @@ async def test_the_list_counts_temperature_feedback_over_sixty_days(
     mixed = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
     old = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
     plain = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    packed = await _garment(sessionmaker_for_test, status=GarmentStatus.PACKED)
+    ahead = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
     kinds = GarmentFeedbackKind
     rows = [
         (chilly, kinds.TOO_COLD, today - timedelta(days=3)),
@@ -576,6 +578,8 @@ async def test_the_list_counts_temperature_feedback_over_sixty_days(
         (mixed, kinds.TOO_COLD, today - timedelta(days=59)),
         (old, kinds.TOO_WARM, today - timedelta(days=60)),  # out of the window
         (plain, kinds.NOT_TODAY, today),  # not a temperature kind
+        (packed, kinds.TOO_COLD, today),  # not active
+        (ahead, kinds.TOO_WARM, today + timedelta(days=1)),  # not yet in force
     ]
     async with sessionmaker_for_test() as session:
         for garment, kind, day in rows:
