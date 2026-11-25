@@ -561,6 +561,17 @@ def create_closet_today_router(
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
+        # Optional keys, absent when nothing is short and on plans stored
+        # before they existed. `short` is the one source for how many fit.
+        extra: dict[str, Any] = {}
+        if found.short:
+            extra["short"] = dict(found.short)
+        # Only when a top really repeats across the lead and alternatives
+        # (a short pool, or recent-outfit skips that forced it).
+        tops = [g["id"] for o in shaped for g in o["garments"] if g["slot"] == "top"]
+        locked_top = found.fixed is not None and found.fixed.category == "top"
+        if not locked_top and len(tops) != len(set(tops)):
+            extra["shared_top"] = True
         return {
             "day": day.isoformat(),
             "occasion": occasion,
@@ -578,6 +589,7 @@ def create_closet_today_router(
             },
             "lock": lock_id,
             "relaxed": {slot: list(steps) for slot, steps in found.relaxed.items()},
+            **extra,
         }
 
     async def store(session: AsyncSession, body: dict[str, Any]) -> None:

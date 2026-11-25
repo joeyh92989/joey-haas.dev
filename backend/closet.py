@@ -19,9 +19,17 @@ is left. When the model cannot answer, `template()` here is the plan.
   the bottom for the day's middle: Denver's swing is the reason to layer.
   Riding makes the morning `BIKE_CHILL` degrees colder.
 - **Formality** per occasion is a range with a target (`OCCASION_FORMALITY`);
-  an untagged formality passes the range, but a slot drops untagged
-  pieces (warmth or formality missing) while a tagged one is left; a slot
-  with only untagged pieces uses them and records `relaxed`.
+  an untagged formality passes the range, but untagged pieces (warmth or
+  formality missing) are the last relaxation step (below).
+- **Minimum pool.** A slot with fewer than `MIN_POOL` eligible pieces relaxes
+  one rule at a time, in `RELAX_STEPS` order, and stops at three: lift the
+  formality band a step each side, lift the shorts and linen cut, allow
+  untagged pieces. A step that added a piece is recorded in
+  `Candidates.relaxed`; a slot still under three is in `Candidates.short`.
+  The bike rule, the repeat rule and the fixed piece are never relaxed.
+  `slot_pool` holds this for `candidates` and `slot_fallback` alike.
+- **Distinct tops.** `template` gives each outfit a top of its own while the
+  pool has one; a pool under `OUTFITS` shares (`top_pool`).
 - **Bike** rules out dress shoes, long coats and wide or cuffed bottoms
   (`BIKE_EXCLUDES`, matched on name and subtype).
 - **Repeat rules.** A top worn within `repeat_top_days` days is out (worn
@@ -47,6 +55,7 @@ PR D, task 18).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -75,6 +84,9 @@ OCCASION_FORMALITY = {
 # that suits the day in every other way still ranks above a worse fit.
 WEIGHTS = {"warmth": 2.0, "formality": 1.0, "rest": 0.5, "wears": 0.3, "season": 2.0}
 LINEN_MIN_LOW_F = 50  # below this low, shorts and linen are out of the pool
+MIN_POOL = 3  # a slot with fewer eligible pieces relaxes a rule, one at a time
+# In the order tried; the plan body and the Today page use these names.
+RELAX_STEPS = ("formality", "season", "untagged")
 REST_CAP_DAYS = 28  # rest stops counting after four weeks
 NEVER_WORN_REST = 4.0  # a garment never worn ranks as four weeks rested
 SNOW_BOOT_BONUS = 3.0  # beats one warmth step
@@ -279,6 +291,9 @@ class Candidates:
     targets: dict[str, int] = field(default_factory=dict)
     # slot -> the steps relaxed to fill it; absent means nothing relaxed.
     relaxed: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # slot -> its final pool size, for a slot still under MIN_POOL after
+    # every step (a fixed slot is not listed).
+    short: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -307,11 +322,13 @@ def in_season(piece: Piece, month: int) -> bool:
     return not piece.seasons or month in piece.seasons
 
 
-def fits_occasion(piece: Piece, occasion: str) -> bool:
+def fits_occasion(piece: Piece, occasion: str, widen: int = 0) -> bool:
+    """Formality inside the occasion's band, `widen` steps further each
+    side (clamped to the 1 to 5 scale)."""
     if piece.formality is None:
         return True
     low, high, _ = OCCASION_FORMALITY.get(occasion, (1, 5, 3))
-    return low <= piece.formality <= high
+    return max(low - widen, 1) <= piece.formality <= min(high + widen, 5)
 
 
 def is_tagged(piece: Piece) -> bool:
@@ -322,31 +339,70 @@ def is_tagged(piece: Piece) -> bool:
 
 def clearly_out_of_season(piece: Piece, read: WeatherRead) -> bool:
     """Shorts and linen when the day's low is under `LINEN_MIN_LOW_F`.
-    The one season rule left as a cut; the rest is `score`."""
+    The one season rule left as a cut; the rest is `score`. Whole words:
+    "short sleeve" and "shortstop" are not shorts."""
     if read.low >= LINEN_MIN_LOW_F:
         return False
-    words = f"{_words(piece)} {(piece.material or '').lower()}"
-    return "shorts" in words or "linen" in words
+    text = f"{_words(piece)} {(piece.material or '').lower()}"
+    return bool({"shorts", "linen"} & set(re.findall(r"[a-z0-9]+", text)))
 
 
-def eligible(piece: Piece, request: Request, read: WeatherRead) -> bool:
+def eligible(
+    piece: Piece,
+    request: Request,
+    read: WeatherRead,
+    lifted: frozenset[str] = frozenset(),
+) -> bool:
     """The rules every candidate passes, in `candidates` and `slot_fallback`
-    alike (the repeat rule is applied by the callers). A tagged season is a
-    score, not a rule: see `score`."""
+    alike (the repeat rule is applied by `slot_pool`). `lifted` holds the
+    `RELAX_STEPS` already given up for a short slot: "season" lifts the
+    shorts and linen cut, "formality" widens the band one step each side,
+    "untagged" admits pieces missing warmth or formality. The bike rule is
+    never lifted. A tagged season is a score, not a rule: see `score`."""
     return (
-        not clearly_out_of_season(piece, read)
-        and fits_occasion(piece, request.occasion)
+        ("season" in lifted or not clearly_out_of_season(piece, read))
+        and fits_occasion(piece, request.occasion, 1 if "formality" in lifted else 0)
+        and ("untagged" in lifted or is_tagged(piece))
         and (not request.bike or bike_ok(piece))
     )
 
 
-def tagged_first(found: list[Piece]) -> tuple[list[Piece], bool]:
-    """Drop the untagged pieces of a slot while any tagged one is left.
-    Returns the pieces and whether the slot had to use untagged ones."""
-    tagged = [p for p in found if is_tagged(p)]
-    if tagged or not found:
-        return tagged, False
-    return found, True
+def slot_pool(
+    pieces: Sequence[Piece],
+    slot: str,
+    request: Request,
+    read: WeatherRead,
+    skip: str | None = None,
+) -> tuple[list[Piece], tuple[str, ...]]:
+    """One slot's eligible pieces and the steps relaxed to reach `MIN_POOL`,
+    in order. Both `candidates` and `slot_fallback` come through here, so
+    the Swap sheet cannot drift from the plan. A step is recorded only when
+    it added a piece to the pool; a pool still under `MIN_POOL` is the
+    caller's to report (`Candidates.short`). The repeat rule and `skip` (the fixed
+    piece) are never relaxed."""
+    lifted: frozenset[str] = frozenset()
+    steps: list[str] = []
+
+    def pool() -> list[Piece]:
+        return [
+            p
+            for p in pieces
+            if p.category == slot
+            and p.id != skip
+            and eligible(p, request, read, lifted)
+            and not worn_recently(p, request.day, request.repeat_top_days)
+        ]
+
+    found = pool()
+    for step in RELAX_STEPS:
+        if len(found) >= MIN_POOL:
+            break
+        lifted |= {step}
+        wider = pool()
+        if len(wider) > len(found):
+            steps.append(step)
+        found = wider
+    return found, tuple(steps)
 
 
 def _words(piece: Piece) -> str:
@@ -384,7 +440,7 @@ def score(piece: Piece, target: int, occasion: str, day: date, snow: bool) -> fl
         + WEIGHTS["rest"] * rest
         - WEIGHTS["wears"] * piece.wears_30
     )
-    if piece.seasons and day.month not in piece.seasons:
+    if not in_season(piece, day.month):
         total -= WEIGHTS["season"]
     if snow and piece.category == "shoes" and "boot" in _words(piece):
         total += SNOW_BOOT_BONUS
@@ -406,25 +462,33 @@ def candidates(
         slots.append(fixed.category)
     slots = [slot for slot in SLOT_ORDER if slot in slots]
     goal = targets(read, request.bike)
-    pool: dict[str, list[Piece]] = {slot: [] for slot in slots}
+    # The footnote counts what passes the rules before any slot relaxes
+    # ("untagged" lifted, as it has always counted them); it is not the
+    # pool sizes the planner ends up with.
+    counted = frozenset({"untagged"})
     fit = skipped = 0
     for piece in pieces:
         if fixed is not None and piece.id == fixed.id:
             continue
-        if not eligible(piece, request, read):
+        if not eligible(piece, request, read, counted):
             continue
         if worn_recently(piece, request.day, request.repeat_top_days):
             skipped += 1
             continue
         fit += 1
-        if piece.category in pool:
-            pool[piece.category].append(piece)
     by_slot: dict[str, list[Scored]] = {}
     relaxed: dict[str, tuple[str, ...]] = {}
-    for slot, found_pieces in pool.items():
-        kept, used_untagged = tagged_first(found_pieces)
-        if used_untagged:
-            relaxed[slot] = ("untagged",)
+    short: dict[str, int] = {}
+    for slot in slots:
+        kept, steps = slot_pool(
+            pieces, slot, request, read, fixed.id if fixed else None
+        )
+        if fixed is not None and fixed.category == slot:
+            steps = ()  # the owner's piece fills the slot: nothing to relax for
+        elif len(kept) < MIN_POOL:
+            short[slot] = len(kept)
+        if steps:
+            relaxed[slot] = steps
         found = [
             Scored(
                 p,
@@ -432,7 +496,17 @@ def candidates(
             )
             for p in kept
         ]
-        found.sort(key=lambda s: (-s.score, s.piece.name.lower(), s.piece.id))
+        # Every tagged piece outranks every untagged one: an untagged filler
+        # scores as one step off with no season penalty, which would beat a
+        # poor tagged fit. Untagged pieces only fill the count.
+        found.sort(
+            key=lambda s: (
+                not is_tagged(s.piece),
+                -s.score,
+                s.piece.name.lower(),
+                s.piece.id,
+            )
+        )
         by_slot[slot] = found[:CANDIDATES_PER_SLOT]
     return Candidates(
         slots=tuple(slots),
@@ -443,6 +517,7 @@ def candidates(
         skipped_recent=skipped,
         targets={slot: goal[slot] for slot in slots},
         relaxed=relaxed,
+        short=short,
     )
 
 
@@ -451,15 +526,8 @@ def slot_fallback(
 ) -> list[Scored]:
     """Swap a piece for a slot the day does not need (a layer on a warm
     day): the pieces that pass the same rules as `candidates`, the repeat
-    rule included, least worn first and capped the same way."""
-    found = [
-        p
-        for p in pieces
-        if p.category == slot
-        and eligible(p, request, read)
-        and not worn_recently(p, request.day, request.repeat_top_days)
-    ]
-    kept, _ = tagged_first(found)
+    rule and the relaxation included, least worn first and capped the same way."""
+    kept, _ = slot_pool(pieces, slot, request, read)
     return sorted(
         (Scored(p, 0.0) for p in kept),
         key=lambda s: (s.piece.wears_30, s.piece.name),
@@ -524,12 +592,24 @@ def template(
 
     outfits: list[Outfit] = []
     seen: set[frozenset[str]] = set()
-    for k in range(depth):
-        outfit = nth(k)
-        if not outfit.pieces or outfit.key in seen or outfit.key in recent:
-            continue
-        seen.add(outfit.key)
-        outfits.append(outfit)
+    used_tops: set[str] = set()
+    # Tops first: the first pass gives each outfit a top of its own (outfit k
+    # takes the k-th top while one is left); the second fills any gap, so a
+    # short pool shares its tops and a plan still has `count` outfits.
+    for distinct in (True, False):
+        for k in range(depth):
+            outfit = nth(k)
+            top = dict(outfit.pieces).get("top")
+            if not outfit.pieces or outfit.key in seen or outfit.key in recent:
+                continue
+            if distinct and top is not None and top.id in used_tops:
+                continue
+            seen.add(outfit.key)
+            outfits.append(outfit)
+            if top is not None:
+                used_tops.add(top.id)
+            if len(outfits) == count:
+                break
         if len(outfits) == count:
             break
     if not outfits and depth:
@@ -537,6 +617,14 @@ def template(
     if not outfits and found.fixed is not None:
         outfits.append(assemble({}, found, reason, "template"))
     return outfits
+
+
+def top_pool(found: Candidates) -> int:
+    """How many tops the plan chose from; zero when a top is fixed (the
+    owner's piece is every outfit's top) or none fit."""
+    if found.fixed is not None and found.fixed.category == "top":
+        return 0
+    return len(found.by_slot.get("top", ()))
 
 
 def qualifier(piece: Piece, slot: str, day: date, bike: bool) -> str:

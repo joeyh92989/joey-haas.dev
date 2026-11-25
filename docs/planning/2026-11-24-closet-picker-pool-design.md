@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 kind: feature / fix
 mode: auto
 ---
@@ -43,7 +43,7 @@ flowchart LR
   F --> T[tagged only]
   T --> N{"pool ≥ 3?"}
   N -- yes --> S[score: warmth, formality, season penalty, rest]
-  N -- no --> R[relax in order: season → formality → untagged]
+  N -- no --> R[relax in order: formality → season → untagged]
   R --> S
   S --> TPL[template: distinct tops first]
 ```
@@ -56,7 +56,8 @@ flowchart LR
   (`closet.is_tagged`). An empty `seasons` already means all year, so it is not
   "missing".
 - **Relaxation record.** `Candidates` gains `relaxed: dict[slot, tuple[str, ...]]`
-  holding the steps in the order applied: `"season"`, `"formality"`, `"untagged"`.
+  holding the steps in the order applied: `"formality"`, `"season"`, `"untagged"`
+  (only steps that added a piece).
   `make_plan` stores it in the plan body as `relaxed` (an object keyed by slot,
   omitted slots meaning nothing was relaxed). Older stored plans have no key and
   read as nothing relaxed.
@@ -67,9 +68,9 @@ flowchart LR
   `clearly_out_of_season(piece, read)` is true when `read.low < LINEN_MIN_LOW_F`
   (50 °F) and the piece's name, subtype or material contains `shorts` or `linen`
   (word match, the same `_words` helper the bike rule uses). Constants are tested.
-- **S3** sets `MIN_POOL = 3`. For a slot with fewer than three: lift the clear-case
-  cut (`season`), then widen the occasion's formality band by one each side
-  (`formality`), then allow untagged pieces (`untagged`), stopping as soon as the
+- **S3** sets `MIN_POOL = 3`. For a slot with fewer than three: widen the
+  occasion's formality band by one each side (`formality`), then lift the
+  clear-case cut (`season`), then allow untagged pieces (`untagged`), stopping as soon as the
   slot reaches three. The bike rule, the worn-recently rule and the fixed piece are
   never relaxed. `template()` assigns tops first: outfit *k* takes the *k*-th top
   when one exists, before it considers bottoms and shoes. `closet_rank.validate`
@@ -82,10 +83,13 @@ flowchart LR
 
 ## Decisions and tradeoffs (my call, auto mode)
 
-- **Order of relaxation: season, formality, untagged.** The story names season,
-  then formality. Untagged goes last because S1 makes "no tagged candidate" the
-  only reason to use one, and in S3 that becomes "still under three after the
-  other two".
+- **Order of relaxation: formality, season, untagged.** The story names season,
+  then formality; the order was reversed after a replay of a 37 °F office day,
+  where lifting the shorts and linen cut first brought a linen trouser in ahead
+  of a warm cord one a formality step off. Untagged goes last because S1 makes
+  "no tagged candidate" the only reason to use one, and in S3 that becomes
+  "still under three after the other two". Every tagged piece ranks above every
+  untagged one, so fillers only fill the count.
 - **"Relax season" after S2 means lifting the clear-case cut**, since season is no
   longer a filter. Shorts on a cold day can therefore appear only in a slot with
   fewer than three other choices, and the page says so.

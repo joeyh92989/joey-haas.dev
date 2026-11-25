@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-24
 
+- Behind the scenes: the outfit planner keeps at least three choices for each piece, loosening its rules one at a time and saying which, and the suggested outfits each use a different top when there are enough.
 - Behind the scenes: the outfit planner treats a piece's tagged months as a preference rather than a rule, so a shirt tagged for spring can still be suggested on a cold November day; only shorts and linen stay out when the low is under 50°F.
 - Behind the scenes: the outfit planner no longer suggests a piece missing its warmth or formality while a tagged piece fits, and the Closet counts the pieces that need details.
 

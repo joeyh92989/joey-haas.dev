@@ -29,6 +29,8 @@ import {
   categoryLabel,
   footnoteLine,
   relaxedLines,
+  sharedTopLine,
+  shortLines,
   longDate,
   outfitReason,
   oversizePhoto,
@@ -753,9 +755,11 @@ export default function AdminClosetToday() {
           {plan && (
             <footer className={`today-footnote ${TODAY_FOOTNOTE}`}>
               <p>{footnoteLine(plan, answer.planned_just_now)}</p>
-              {relaxedLines(plan).map((line) => (
-                <p key={line}>{line}</p>
-              ))}
+              {[...relaxedLines(plan), ...shortLines(plan), sharedTopLine(plan)]
+                .filter(Boolean)
+                .map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
               {lead && plan.model_note && <p>Model: {plan.model_note}</p>}
             </footer>
           )}

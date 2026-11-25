@@ -293,7 +293,7 @@ async def test_candidates_leave_out_untagged_while_a_tagged_one_fits(
         tops = (await client.get("/api/closet/candidates?slot=top")).json()
         plan = (await client.get("/api/closet/today")).json()["plan"]
     assert "untagged tee" not in {t["name"] for t in tops["candidates"]}
-    assert plan["relaxed"] == {}
+    assert "top" not in plan["relaxed"]
 
 
 async def test_build_around_locks_the_garment(sessionmaker_for_test):
@@ -1117,3 +1117,61 @@ async def test_the_nightly_job_and_a_replan_send_images_too(sessionmaker_for_tes
     assert replanned == 1 and provider.sent[0]
     assert len(provider.sent) > replanned
     assert all(sent for sent in provider.sent)
+
+
+async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test):
+    """Office is formality 3 to 5; the seed closet is 3 everywhere. One top
+    at 2 makes the pool two until formality widens: three after."""
+    await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        rows = (
+            (
+                await session.execute(
+                    select(Garment).where(Garment.category == GarmentCategory("top"))
+                )
+            )
+            .scalars()
+            .all()
+        )
+        rows[0].formality = 2
+        await session.commit()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        body = (
+            await client.get("/api/closet/candidates?slot=top&occasion=office")
+        ).json()
+        plan = (
+            await client.post("/api/closet/plan", json={"occasion": "office"})
+        ).json()["plan"]
+    assert len(body["candidates"]) == 3
+    assert plan["relaxed"]["top"] == ["formality"]
+
+
+async def test_a_one_top_closet_shares_the_top_and_says_so(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with sessionmaker_for_test() as session:
+        rows = (
+            (
+                await session.execute(
+                    select(Garment).where(Garment.category == GarmentCategory("top"))
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for row in rows[1:]:
+            await session.delete(row)
+        await session.commit()
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert "top" not in plan["relaxed"]
+    assert plan["shared_top"] is True and plan["short"]["top"] == 1
+    outfits = [plan["lead"], *plan["alternatives"]]
+    tops = {g["name"] for o in outfits for g in o["garments"] if g["slot"] == "top"}
+    assert len(outfits) == 2 and len(tops) == 1  # two bottoms, two shoes
+
+
+async def test_a_full_top_pool_omits_shared_top(sessionmaker_for_test):
+    await seed(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, no_model=True) as client:
+        plan = (await client.get("/api/closet/today")).json()["plan"]
+    assert "shared_top" not in plan and "top" not in plan.get("short", {})
