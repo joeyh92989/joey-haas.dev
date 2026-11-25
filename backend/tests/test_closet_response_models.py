@@ -98,6 +98,8 @@ async def test_tag_job_summary_keeps_its_exact_keys(sessionmaker_for_test):
         "tagged",
         "calls",
         "remaining",
+        "filled",
+        "fill_remaining",
         "retagged",
         "retag_remaining",
         "note",

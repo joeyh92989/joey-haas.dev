@@ -94,6 +94,9 @@ only while its item is public. Admin routes stay keyed by id.
   `SCALE_VERSION`: the nightly tag job (never Tag now), once nothing is untagged,
   re-tags `formality` only on `tag_source = model`, `active`/`packed` pieces
   below it. Progress is `retagged` / `retag_remaining` in `tag.last_run`.
+  A fill queue (#549) runs before it: `manual` pieces missing warmth or
+  formality get just those (COALESCE, `tag_source` stays `manual`); progress is
+  `filled` / `fill_remaining`.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay

@@ -214,12 +214,13 @@ def _attributes(item: Any) -> dict:
     return raw if isinstance(raw, dict) else {}
 
 
-def validate(payload: Any, count: int, retag: bool = False) -> list[Tagged]:
+def validate(payload: Any, count: int, mode: str = "new") -> list[Tagged]:
     """The answer as one `Tagged` per photograph, in order.
 
     Raises `TagBatchError` unless the indices are exactly `0..count-1`. With
-    `retag`, only the formality is read (a bad category or any other field
-    does not reject the batch) and an unusable one is None."""
+    mode `"retag"`, only the formality is read; with `"fill"`, only warmth
+    and formality (a bad category or any other field does not reject the
+    batch) and an unusable value is None."""
     items = payload.get("items") if isinstance(payload, dict) else None
     if not isinstance(items, list):
         raise TagBatchError("the answer had no items")
@@ -231,7 +232,17 @@ def validate(payload: Any, count: int, retag: bool = False) -> list[Tagged]:
             f"the answer's indices were {indices}, not 0 to {count - 1}"
         )
     by_index = {item["index"]: item for item in items}
-    if retag:
+    if mode == "fill":
+        return [
+            Tagged(
+                {
+                    "warmth": _scale(_attributes(by_index[index]).get("warmth")),
+                    "formality": _scale(_attributes(by_index[index]).get("formality")),
+                }
+            )
+            for index in range(count)
+        ]
+    if mode == "retag":
         return [
             Tagged({"formality": _scale(_attributes(by_index[index]).get("formality"))})
             for index in range(count)

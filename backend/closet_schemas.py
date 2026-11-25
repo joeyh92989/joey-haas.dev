@@ -185,6 +185,8 @@ class TagJobOut(BaseModel):
     tagged: int
     calls: int
     remaining: int
+    filled: int
+    fill_remaining: int
     retagged: int
     retag_remaining: int
     note: str | None
