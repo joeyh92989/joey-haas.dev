@@ -978,13 +978,18 @@ def create_closet_router(
         session: AsyncSession,
         only: list[uuid.UUID] | None = None,
         mode: closet_tag.Mode = "new",
+        sent: set[uuid.UUID] | None = None,
     ) -> dict[str, Any]:
         """One model call over the oldest queued garments (or over `only`,
         the ones still queued), or none when there is nothing to tag. Never
         raises: the answer says what happened. `mode` picks the queue:
         `"new"` (first-time, `_queued`), `"fill"` (warmth and formality
         blanks on hand-saved pieces, `_to_fill`) or `"retag"` (the formality
-        re-tag, `_requeued`).
+        re-tag, `_requeued`). `sent` is the run's set of ids already asked:
+        fill and re-tag batches leave them out, so a piece still blank after
+        its call is not asked again tonight (one strike a night at most), and
+        every id this call sends is added to it. `only` ignores it: a rejected
+        batch's single retry is allowed once. `"new"` is left as it was.
 
         `called` is whether a model call was spent, `stop` whether the run
         should go no further (no model, or a model error), and `retry` the
@@ -1007,6 +1012,8 @@ def create_closet_router(
         )
         if only is not None:
             query = query.where(Garment.id.in_(only))
+        elif sent and mode != "new":
+            query = query.where(Garment.id.not_in(sent))
         rows = (
             await session.execute(
                 query.order_by(Garment.created_at, Garment.id).limit(
@@ -1030,6 +1037,8 @@ def create_closet_router(
             return {**idle, "stop": True, "note": f"No model is configured: {error}"}
 
         ids = [row.id for row in rows]
+        if sent is not None:
+            sent.update(ids)
         images = [Image("image/webp", row.webp) for row in rows]
         del rows
         single = len(ids) == 1
@@ -1237,22 +1246,25 @@ def create_closet_router(
         note = None
         state = "off" if budget == 0 else "ok"
         pending: list[uuid.UUID] = []
+        sent: set[uuid.UUID] = set()  # ids asked this run (fill, re-tag skip them)
         while calls < budget:
             mode = "new"
             if pending:
                 mode = retrying
-                result = await tag_batch(session, only=[pending.pop(0)], mode=mode)
+                result = await tag_batch(
+                    session, only=[pending.pop(0)], mode=mode, sent=sent
+                )
             elif batches is not None and taken >= batches:
                 break
             else:
-                result = await tag_batch(session)
+                result = await tag_batch(session, sent=sent)
                 taken += 1
                 for later in ("fill", "retag") if allow_retag else ():
                     if result["called"] or result["stop"] or result["retry"]:
                         break
                     # Nothing in the earlier queues: the next one takes the call.
                     mode = later
-                    result = await tag_batch(session, mode=mode)
+                    result = await tag_batch(session, mode=mode, sent=sent)
             done[mode] += result["tagged"]
             calls += int(result["called"])
             note = result["note"] or note

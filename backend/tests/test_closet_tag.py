@@ -1261,9 +1261,6 @@ async def test_a_rejected_single_fill_strikes_without_moving_updated_at(
     ids = await seed_partial(sessionmaker_for_test)
     before = (await rows(sessionmaker_for_test, ids))[0]
     async with client_for(sessionmaker_for_test, FakeProvider({"items": []})) as client:
-        async with sessionmaker_for_test() as session:
-            session.add(ClosetProfile(id=1, tag_budget=1))
-            await session.commit()
         await client.post("/api/closet/jobs/tag")
     after = (await rows(sessionmaker_for_test, ids))[0]
     assert (before.tag_attempts, after.tag_attempts) == (0, 1)
@@ -1287,9 +1284,6 @@ async def test_a_fill_batch_strikes_only_the_piece_with_nothing_usable(
         ]
     }
     async with client_for(sessionmaker_for_test, FakeProvider(payload)) as client:
-        async with sessionmaker_for_test() as session:
-            session.add(ClosetProfile(id=1, tag_budget=1))
-            await session.commit()
         body = (await client.post("/api/closet/jobs/tag")).json()
     first, second = await rows(sessionmaker_for_test, ids)
     assert (first.formality, first.tag_attempts) == (3, 0)
@@ -1302,9 +1296,6 @@ async def test_partial_progress_does_not_strike(sessionmaker_for_test):
     ids = await seed_partial(sessionmaker_for_test, warmth=None)
     payload = {"items": [{"index": 0, "attributes": attrs(0, formality=9)}]}
     async with client_for(sessionmaker_for_test, FakeProvider(payload)) as client:
-        async with sessionmaker_for_test() as session:
-            session.add(ClosetProfile(id=1, tag_budget=1))
-            await session.commit()
         body = (await client.post("/api/closet/jobs/tag")).json()
     got = (await rows(sessionmaker_for_test, ids))[0]
     assert (got.warmth, got.formality, got.tag_attempts) == (2, None, 0)
@@ -1327,3 +1318,24 @@ async def test_a_piece_moved_to_listed_during_the_fill_call_is_not_written(
     async with client_for(sessionmaker_for_test, Racing()) as client:
         await client.post("/api/closet/jobs/tag")
     assert (await rows(sessionmaker_for_test, ids))[0].formality is None
+
+
+@pytest.mark.asyncio
+async def test_a_blank_fill_piece_is_asked_once_a_run_and_again_next_run(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test)
+    nothing = {
+        "items": [{"index": 0, "attributes": attrs(0, warmth=None, formality=None)}]
+    }
+    provider = FakeProvider(nothing, nothing)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=5))
+            await session.commit()
+        first = (await client.post("/api/closet/jobs/tag")).json()
+        assert (first["calls"], len(provider.calls)) == (1, 1)
+        assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == 1
+        second = (await client.post("/api/closet/jobs/tag")).json()
+    assert (second["calls"], len(provider.calls)) == (1, 2)
+    assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == 2
