@@ -3,7 +3,7 @@
 import io
 import uuid
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -17,6 +17,8 @@ from models import (
     ClosetProfile,
     ClosetSetting,
     Garment,
+    GarmentFeedback,
+    GarmentFeedbackKind,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -554,3 +556,49 @@ async def test_a_stored_colour_with_stray_space_is_not_flipped_by_an_untouched_s
             f"/api/closet/garments/{row.id}", json={"color_name": "Grey Twill"}
         )
     assert response.json()["color_source"] == "vendor"
+
+
+async def test_the_list_counts_temperature_feedback_over_sixty_days(
+    sessionmaker_for_test,
+):
+    from public import OWNER_TZ
+
+    today = datetime.now(OWNER_TZ).date()
+    chilly = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    mixed = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    old = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    plain = await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    kinds = GarmentFeedbackKind
+    rows = [
+        (chilly, kinds.TOO_COLD, today - timedelta(days=3)),
+        (chilly, kinds.TOO_COLD, today - timedelta(days=10)),
+        (mixed, kinds.TOO_WARM, today - timedelta(days=1)),
+        (mixed, kinds.TOO_COLD, today - timedelta(days=59)),
+        (old, kinds.TOO_WARM, today - timedelta(days=60)),  # out of the window
+        (plain, kinds.NOT_TODAY, today),  # not a temperature kind
+    ]
+    async with sessionmaker_for_test() as session:
+        for garment, kind, day in rows:
+            session.add(GarmentFeedback(garment_id=garment.id, kind=kind, day=day))
+        await session.commit()
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/closet/garments")).json()
+    flags = {f["garment_id"]: f for f in body["temperature_flags"]}
+    assert set(flags) == {str(chilly.id), str(mixed.id)}
+    assert flags[str(chilly.id)] == {
+        "garment_id": str(chilly.id),
+        "too_cold": 2,
+        "too_warm": 0,
+        "last_day": (today - timedelta(days=3)).isoformat(),
+    }
+    assert (flags[str(mixed.id)]["too_cold"], flags[str(mixed.id)]["too_warm"]) == (
+        1,
+        1,
+    )
+
+
+async def test_no_feedback_means_no_temperature_flags(sessionmaker_for_test):
+    await _garment(sessionmaker_for_test, status=GarmentStatus.ACTIVE)
+    async with client_for(sessionmaker_for_test) as client:
+        body = (await client.get("/api/closet/garments")).json()
+    assert body["temperature_flags"] == []

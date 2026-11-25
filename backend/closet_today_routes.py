@@ -945,7 +945,8 @@ def create_closet_today_router(
             response.status_code = 200
         return _feedback_out(row)
 
-    @router.delete("/feedback/{feedback_id}", status_code=204)
+    # 204: no body, so no model.
+    @router.delete("/feedback/{feedback_id}", status_code=204, response_model=None)
     async def remove_feedback(
         feedback_id: uuid.UUID, session: AsyncSession = Depends(get_session)
     ) -> Response:

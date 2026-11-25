@@ -119,6 +119,8 @@ from models import (
     Garment,
     GarmentCategory,
     GarmentColorSource,
+    GarmentFeedback,
+    GarmentFeedbackKind,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -659,6 +661,29 @@ def create_closet_router(
         counts = {status.value: 0 for status in GarmentStatus}
         for row in rows:
             counts[row.status.value] += 1
+        flagged = (
+            await session.execute(
+                select(
+                    GarmentFeedback.garment_id,
+                    func.count(GarmentFeedback.id).filter(
+                        GarmentFeedback.kind == GarmentFeedbackKind.TOO_COLD
+                    ),
+                    func.count(GarmentFeedback.id).filter(
+                        GarmentFeedback.kind == GarmentFeedbackKind.TOO_WARM
+                    ),
+                    func.max(GarmentFeedback.day),
+                )
+                .where(
+                    GarmentFeedback.kind.in_(
+                        [GarmentFeedbackKind.TOO_COLD, GarmentFeedbackKind.TOO_WARM]
+                    ),
+                    GarmentFeedback.day
+                    > datetime.now(OWNER_TZ).date() - timedelta(days=60),
+                )
+                .group_by(GarmentFeedback.garment_id)
+                .order_by(func.max(GarmentFeedback.day).desc())
+            )
+        ).all()
         return {
             "garments": [
                 garment_out(
@@ -670,6 +695,15 @@ def create_closet_router(
                 for row in rows
             ],
             "counts": {"total": len(rows), **counts},
+            "temperature_flags": [
+                {
+                    "garment_id": garment_id,
+                    "too_cold": cold,
+                    "too_warm": warm,
+                    "last_day": last_day,
+                }
+                for garment_id, cold, warm, last_day in flagged
+            ],
         }
 
     @router.get("/garments/{garment_id}", response_model=GarmentOut)

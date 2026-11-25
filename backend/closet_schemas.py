@@ -73,11 +73,22 @@ class GarmentCountsOut(BaseModel):
     gone: int
 
 
+class TemperatureFlagOut(BaseModel):
+    """A piece turned down as too cold or too warm in the last 60 days (#551):
+    the Closet page's "Check warmth" suggestion. Never edits a tag."""
+
+    garment_id: uuid.UUID
+    too_cold: int
+    too_warm: int
+    last_day: date
+
+
 class GarmentListOut(BaseModel):
     """`GET /garments`."""
 
     garments: list[GarmentOut]
     counts: GarmentCountsOut
+    temperature_flags: list[TemperatureFlagOut] = []
 
 
 class FeedbackOut(BaseModel):
