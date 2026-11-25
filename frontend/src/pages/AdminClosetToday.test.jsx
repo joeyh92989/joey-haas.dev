@@ -193,7 +193,7 @@ describe('AdminClosetToday', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        'Few mids fit, so shorts and linen were allowed and formality was widened.',
+        'Few mid layers fit, so shorts and linen were allowed and formality was widened.',
       ),
     ).toBeInTheDocument()
   })
