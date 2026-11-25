@@ -62,13 +62,13 @@ class FakeProvider:
 
 
 @asynccontextmanager
-async def client_for(factory, provider=None, signed_in=True, no_model=False):
+async def client_for(factory, provider=None, signed_in=True, no_model=False, day=DAY):
     app = FastAPI()
     app.include_router(
         create_closet_today_router(
             factory,
             provider_factory=None if no_model else (lambda: provider),
-            today=lambda: DAY,
+            today=lambda: day,
         )
     )
     if signed_in:

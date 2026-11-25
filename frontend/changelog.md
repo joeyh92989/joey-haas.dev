@@ -4,6 +4,10 @@ The public changelog, shown on /stats. One `## YYYY-MM-DD` heading per
 day something shipped, one bullet per change, newest first, markdown links
 where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
+## 2026-11-25
+
+- Behind the scenes: the outfit planner can now be told a single piece is not for today, too cold, too warm, or never for an occasion; it leaves that piece out of every plan and swap, and tells the model why. The Closet page suggests checking the warmth of pieces turned down as too cold or too warm, and never changes a tag itself.
+
 ## 2026-11-24
 
 - Behind the scenes: pieces saved by hand with their warmth or formality left empty now get those two filled in overnight, without changing anything already set.

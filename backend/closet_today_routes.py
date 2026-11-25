@@ -44,10 +44,19 @@ from collections.abc import AsyncIterator, Callable
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Response,
+    UploadFile,
+)
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import closet
@@ -71,6 +80,8 @@ from closet_routes import (
 )
 from closet_schemas import (
     CandidatesOut,
+    FeedbackListOut,
+    FeedbackOut,
     GarmentOut,
     PlanJobOut,
     TodayOut,
@@ -83,6 +94,8 @@ from models import (
     ClosetSetting,
     Garment,
     GarmentCategory,
+    GarmentFeedback,
+    GarmentFeedbackKind,
     GarmentImage,
     GarmentStatus,
     GarmentTagSource,
@@ -104,6 +117,8 @@ RANK_IMAGES_KEY = "rank.images"
 THUMB_EDGE = LONG_EDGE  # the grid rendition
 TRANSIENT_ID = "match"
 WEARS_WINDOW_DAYS = 30
+# POST /feedback takes today or a day up to this many days ahead.
+FEEDBACK_DAYS_AHEAD = 7
 NOTHING_TO_WEAR = "Nothing in the closet fits today yet"
 # The nightly job must finish inside nightly.yml's 300 s curl timeout, and a
 # model call can take up to 150 s: past this many seconds, the job's
@@ -134,6 +149,14 @@ class PlanIn(BaseModel):
     # Not this: the lead as it was on screen (after any swap), so what is
     # recorded is what was turned down. The stored lead stands in without it.
     declined: list[WornGarment] | None = Field(default=None, min_length=1, max_length=6)
+
+
+class FeedbackIn(BaseModel):
+    garment_id: uuid.UUID
+    kind: GarmentFeedbackKind
+    occasion: str | None = None
+    # The owner's day unless named (the nightly plans tomorrow).
+    day: date | None = None
 
 
 class WoreIn(BaseModel):
@@ -284,6 +307,38 @@ async def recent_not_this(session: AsyncSession) -> list[str]:
             .limit(closet_rank.NOT_THIS_RECENT)
         )
     )
+
+
+async def feedback_in_force(
+    session: AsyncSession, day: date, occasion: str | None = None
+) -> list[tuple[GarmentFeedback, str]]:
+    """The piece feedback in force on `day`, newest first, each with the
+    piece's name: the rows for that day (every occasion) and the
+    `never_for_occasion` rows (for `occasion`, or every occasion when None).
+    Active garments only: a packed or sold piece is not in the pool anyway."""
+    scope = (GarmentFeedback.day == day) | (
+        (GarmentFeedback.kind == GarmentFeedbackKind.NEVER_FOR_OCCASION)
+        & (True if occasion is None else GarmentFeedback.occasion == occasion)
+    )
+    rows = (
+        await session.execute(
+            select(
+                GarmentFeedback,
+                Garment.name,
+                Garment.subtype,
+                Garment.color_name,
+                Garment.primary_color,
+            )
+            .join(Garment, Garment.id == GarmentFeedback.garment_id)
+            .where(scope, Garment.status == GarmentStatus.ACTIVE)
+            .order_by(GarmentFeedback.created_at.desc(), GarmentFeedback.id)
+        )
+    ).all()
+    found = []
+    for row, name, subtype, colour, primary in rows:
+        label = name or " ".join(p for p in (colour or primary, subtype) if p)
+        found.append((row, label or "unnamed piece"))
+    return found
 
 
 async def worn_today(session: AsyncSession, day: date) -> dict[str, Any] | None:
@@ -522,6 +577,7 @@ def create_closet_today_router(
         pieces, rows, photos = await load_pieces(session, day)
         if lock_id is not None and lock_id not in rows:
             raise _unprocessable("Only an active garment can be built around")
+        turned = await feedback_in_force(session, day, occasion)
         request = closet.Request(
             day=day,
             occasion=occasion,
@@ -530,7 +586,15 @@ def create_closet_today_router(
             repeat_outfit_weeks=profile["repeat_outfit_weeks"],
             lock=lock_id,
             extra=extra,
+            excluded=frozenset(str(row.garment_id) for row, _ in turned),
         )
+        # A lock wins over feedback (the owner's newer choice): the prompt does
+        # not call the locked piece turned down.
+        turned_down = [
+            (row.kind.value, label, row.occasion)
+            for row, label in turned
+            if str(row.garment_id) != lock_id
+        ]
         read = closet.read_weather(await weather.hours_for_day(session, day), day)
         since = day - timedelta(weeks=request.repeat_outfit_weeks)
         recent = closet.recent_keys(
@@ -555,11 +619,15 @@ def create_closet_today_router(
                 await session.commit()
                 if images:
                     with_images = (
-                        closet_rank.build_prompt(*args, images=picks),
+                        closet_rank.build_prompt(
+                            *args, images=picks, turned_down=turned_down
+                        ),
                         images,
                     )
             payload, note = await rank(
-                closet_rank.build_prompt(*args), budget, with_images
+                closet_rank.build_prompt(*args, turned_down=turned_down),
+                budget,
+                with_images,
             )
             outfits, note = closet_rank.outcome(payload, note, found, recent)
         shaped = [_outfit_out(o, day, bike, photos, rows) for o in outfits]
@@ -649,6 +717,31 @@ def create_closet_today_router(
             return True
         return bool(named) and await active_ids(session, named) != named
 
+    async def names_turned_down(
+        session: AsyncSession,
+        plan: dict[str, Any],
+        day: date,
+        occasion: str,
+    ) -> bool:
+        """True when the stored plan names a piece turned down since (#551)
+        for this day and occasion, other than the plan's own lock. Feedback
+        rewrites no plan itself: the next read finds it stale here."""
+        turned = {
+            str(row.garment_id)
+            for row, _ in await feedback_in_force(session, day, occasion)
+        }
+        turned.discard(str(plan.get("lock")))
+        if not turned:
+            return False
+        outfits = [plan.get("lead"), *(plan.get("alternatives") or [])]
+        return any(
+            g["id"] in turned
+            for outfit in outfits
+            if outfit
+            for g in outfit["garments"]
+            if not g.get("transient")
+        )
+
     async def kept_lock(session: AsyncSession, plan: dict[str, Any]) -> str | None:
         """The stale plan's Build-around lock, when that garment is still active."""
         try:
@@ -686,10 +779,14 @@ def create_closet_today_router(
         occasion = _occasion(occasion, default_occasion)
         bike = default_bike if bike is None else bike
         plan = await stored(session, day, occasion, bike)
-        # A plan naming a garment since deleted, packed, listed or gone is
-        # stale: plan again for the same occasion and bike it was stored under.
+        # A plan naming a garment since deleted, packed, listed or gone, or
+        # turned down for today (#551), is stale: plan again for the same
+        # occasion and bike it was stored under.
         lock_id = None
-        stale = plan is not None and await names_inactive(session, plan)
+        stale = plan is not None and (
+            await names_inactive(session, plan)
+            or await names_turned_down(session, plan, day, occasion)
+        )
         if stale:
             lock_id = await kept_lock(session, plan)
             plan = None
@@ -794,12 +891,14 @@ def create_closet_today_router(
         bike = default_bike if bike is None else bike
         pieces, rows, photos = await load_pieces(session, day)
         read = closet.read_weather(await weather.hours_for_day(session, day), day)
+        turned = await feedback_in_force(session, day, occasion)
         request = closet.Request(
             day=day,
             occasion=occasion,
             bike=bike,
             repeat_top_days=profile["repeat_top_days"],
             repeat_outfit_weeks=profile["repeat_outfit_weeks"],
+            excluded=frozenset(str(row.garment_id) for row, _ in turned),
         )
         found = closet.candidates(pieces, request, read)
         listed = found.by_slot.get(slot.value)
@@ -813,6 +912,98 @@ def create_closet_today_router(
                 _tile(slot.value, s.piece, day, bike, photos, rows) for s in listed
             ],
         }
+
+    def _feedback_out(row: GarmentFeedback) -> dict[str, Any]:
+        return {
+            "id": row.id,
+            "garment_id": row.garment_id,
+            "kind": row.kind,
+            "occasion": row.occasion,
+            "day": row.day,
+            "created_at": row.created_at,
+        }
+
+    @router.post("/feedback", response_model=FeedbackOut, status_code=201)
+    async def add_feedback(
+        body: FeedbackIn,
+        response: Response,
+        session: AsyncSession = Depends(get_session),
+    ) -> dict[str, Any]:
+        """Turn a piece down (#551): 201 for a new row, 200 for a repeat.
+        `never_for_occasion` needs an occasion and holds until removed; the
+        other kinds hold for `day` (today unless named), every occasion."""
+        if body.kind == GarmentFeedbackKind.NEVER_FOR_OCCASION:
+            if body.occasion is None:
+                raise _unprocessable("never_for_occasion needs an occasion")
+            if body.occasion not in OCCASIONS:
+                raise _unprocessable(f"{body.occasion} is not an occasion")
+            if body.day is not None:
+                raise _unprocessable("never_for_occasion holds until removed")
+            occasion, day = body.occasion, None
+        else:
+            if body.occasion is not None:
+                raise _unprocessable(f"{body.kind.value} holds for the day")
+            occasion, day = None, body.day or today()
+            if not today() <= day <= today() + timedelta(days=FEEDBACK_DAYS_AHEAD):
+                raise _unprocessable(
+                    f"day must be today or up to {FEEDBACK_DAYS_AHEAD} days ahead"
+                )
+        status = await session.scalar(
+            select(Garment.status).where(Garment.id == body.garment_id)
+        )
+        if status != GarmentStatus.ACTIVE:
+            raise HTTPException(status_code=404, detail="No such active garment")
+
+        def existing():
+            return select(GarmentFeedback).where(
+                GarmentFeedback.garment_id == body.garment_id,
+                GarmentFeedback.kind == body.kind,
+                GarmentFeedback.occasion.is_not_distinct_from(occasion),
+                GarmentFeedback.day.is_not_distinct_from(day),
+            )
+
+        row = await session.scalar(existing())
+        if row is not None:
+            response.status_code = 200
+            return _feedback_out(row)
+        row = GarmentFeedback(
+            garment_id=body.garment_id, kind=body.kind, occasion=occasion, day=day
+        )
+        session.add(row)
+        try:
+            await session.commit()
+        except IntegrityError:  # a concurrent identical add won the race
+            await session.rollback()
+            row = await session.scalar(existing())
+            if row is None:  # the garment went meanwhile
+                raise HTTPException(
+                    status_code=404, detail="No such active garment"
+                ) from None
+            response.status_code = 200
+        return _feedback_out(row)
+
+    # 204: no body, so no model.
+    @router.delete("/feedback/{feedback_id}", status_code=204, response_model=None)
+    async def remove_feedback(
+        feedback_id: uuid.UUID, session: AsyncSession = Depends(get_session)
+    ) -> Response:
+        removed = await session.execute(
+            delete(GarmentFeedback).where(GarmentFeedback.id == feedback_id)
+        )
+        await session.commit()
+        if removed.rowcount == 0:
+            raise HTTPException(status_code=404, detail="No such feedback")
+        return Response(status_code=204)
+
+    @router.get("/feedback", response_model=FeedbackListOut)
+    async def list_feedback(
+        day: date | None = None, session: AsyncSession = Depends(get_session)
+    ) -> dict[str, Any]:
+        """The rows in force on `day` (today by default): that day's rows and
+        every `never_for_occasion`."""
+        when = day or today()
+        rows = await feedback_in_force(session, when)
+        return {"day": when, "feedback": [_feedback_out(r) for r, _ in rows]}
 
     async def _thumbnail(photo: UploadFile):
         if photo.content_type not in ACCEPTED_MEDIA_TYPES:

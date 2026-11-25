@@ -277,6 +277,9 @@ class Request:
     repeat_outfit_weeks: int = 3
     lock: str | None = None  # a garment id among the pieces
     extra: Piece | None = None  # the transient garment
+    # Garment ids turned down for this day and occasion (#551): a hard
+    # exclusion, never relaxed. The lock is the owner's newer choice and wins.
+    excluded: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -386,8 +389,8 @@ def slot_pool(
     in order. Both `candidates` and `slot_fallback` come through here, so
     the Swap sheet cannot drift from the plan. A step is recorded only when
     it added a piece to the pool; a pool still under `MIN_POOL` is the
-    caller's to report (`Candidates.short`). The repeat rule and `skip` (the fixed
-    piece) are never relaxed."""
+    caller's to report (`Candidates.short`). The repeat rule, `skip` (the fixed
+    piece) and `request.excluded` (pieces turned down) are never relaxed."""
     lifted: frozenset[str] = frozenset()
     steps: list[str] = []
 
@@ -397,6 +400,7 @@ def slot_pool(
             for p in pieces
             if p.category == slot
             and p.id != skip
+            and p.id not in request.excluded
             and eligible(p, request, read, lifted)
             and not worn_recently(p, request.day, request.repeat_top_days)
         ]
@@ -480,6 +484,8 @@ def candidates(
     fit = skipped = 0
     for piece in pieces:
         if fixed is not None and piece.id == fixed.id:
+            continue
+        if piece.id in request.excluded:
             continue
         if not eligible(piece, request, read, counted):
             continue

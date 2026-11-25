@@ -175,10 +175,13 @@ export const DEFAULT_FILTER = {
   warm: false,
   smart: false,
   needsDetails: false,
+  checkWarmth: false,
 }
 
-/** The garments the filter keeps, in the order given. */
-export function filterGarments(garments, filter) {
+/** The garments the filter keeps, in the order given. `flagged` is the set
+ * of ids turned down as too cold or too warm (`warmthFlagged`), read only by
+ * the Check warmth filter. */
+export function filterGarments(garments, filter, flagged = new Set()) {
   return garments.filter(
     (g) =>
       (!filter.status ||
@@ -187,7 +190,8 @@ export function filterGarments(garments, filter) {
       (!filter.category || g.category === filter.category) &&
       (!filter.warm || (g.warmth ?? 0) >= HIGH) &&
       (!filter.smart || (g.formality ?? 0) >= HIGH) &&
-      (!filter.needsDetails || lacksDetails(g)),
+      (!filter.needsDetails || lacksDetails(g)) &&
+      (!filter.checkWarmth || flagged.has(g.id)),
   )
 }
 
@@ -216,6 +220,31 @@ export function needsDetailsLabel(count) {
     : adminCopy.closet.needsDetailsMany.replace('{n}', String(count))
 }
 
+/** The ids of pieces turned down as too cold or too warm in the last 60
+ * days (`temperature_flags` from the list), a suggestion to check their
+ * warmth tag. Nothing here edits a tag. */
+export function warmthFlagged(closet) {
+  return new Set((closet?.temperature_flags ?? []).map((f) => f.garment_id))
+}
+
+/** The active pieces among `flagged`: what the Check warmth button counts. */
+export function warmthToCheck(garments, flagged) {
+  return garments.filter((g) => g.status === 'active' && flagged.has(g.id))
+}
+
+/** The filter that shows exactly the pieces whose warmth is worth checking. */
+export const CHECK_WARMTH_FILTER = {
+  ...DEFAULT_FILTER,
+  status: 'active',
+  untaggedToo: false,
+  checkWarmth: true,
+}
+
+/** The button's words: "Check warmth: 3". */
+export function checkWarmthLabel(count) {
+  return adminCopy.closet.checkWarmth.replace('{n}', String(count))
+}
+
 /**
  * The filter after the chips report a change. Pressing (or clearing) a
  * status chip ends the default's extra untagged pieces: a chip filters
@@ -224,7 +253,7 @@ export function needsDetailsLabel(count) {
 export function settleFilter(previous, next) {
   return next.status === previous.status
     ? next
-    : { ...next, untaggedToo: false, needsDetails: false }
+    : { ...next, untaggedToo: false, needsDetails: false, checkWarmth: false }
 }
 
 /** The chips' counts, each from the whole closet as the shelf's are. */

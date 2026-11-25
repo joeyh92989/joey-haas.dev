@@ -118,6 +118,47 @@ def summarise_not_this(reasons: Iterable[str | None]) -> str | None:
     )
 
 
+TURNED_DOWN_CAP = 8
+_TURNED_DOWN_WHY = {
+    "not_today": "not today",
+    "too_cold": "too cold",
+    "too_warm": "too warm",
+}
+
+
+def turned_down_line(entries: Iterable[tuple[str, str, str | None]]) -> str | None:
+    """The prompt's line for pieces the owner turned down (#551): entries
+    are `(kind, name, occasion)`, newest first. One entry per piece, its kinds
+    joined ("name (too warm, not today)"), at most `TURNED_DOWN_CAP` pieces
+    for the day and, separately, as many for `never for <occasion>`. The
+    pieces are already out of the candidate list; the line says why, so "too
+    warm" steers the rest cooler."""
+    today: dict[str, list[str]] = {}
+    never: dict[str, list[str]] = {}
+    for kind, name, occasion in entries:
+        if kind in _TURNED_DOWN_WHY:
+            why = today.setdefault(name, [])
+            if _TURNED_DOWN_WHY[kind] not in why:
+                why.append(_TURNED_DOWN_WHY[kind])
+        elif kind == "never_for_occasion" and occasion:
+            names = never.setdefault(occasion, [])
+            if name not in names:
+                names.append(name)
+    parts = []
+    if today:
+        shown = list(today.items())[:TURNED_DOWN_CAP]
+        parts.append(
+            "Turned down for this day: "
+            + ", ".join(f"{name} ({', '.join(why)})" for name, why in shown)
+        )
+    flat = [(o, n) for o, names in never.items() for n in names][:TURNED_DOWN_CAP]
+    grouped: dict[str, list[str]] = {}
+    for occasion, name in flat:
+        grouped.setdefault(occasion, []).append(name)
+    parts.extend(f"never for {o}: " + ", ".join(n) for o, n in grouped.items())
+    return "; ".join(parts) + "." if parts else None
+
+
 def _describe(piece: Piece, day: date) -> str:
     colour = piece.color_name or piece.primary_color
     look = ", ".join(part for part in (colour, piece.pattern, piece.material) if part)
@@ -173,8 +214,11 @@ def build_prompt(
     profile: dict[str, Any],
     not_this: Sequence[str | None] = (),
     images: Sequence[int] = (),
+    turned_down: Sequence[tuple[str, str, str | None]] = (),
 ) -> str:
     """The one prompt for one plan.
+
+    `turned_down` is the per-piece feedback in force (`turned_down_line`).
 
     `images` are the garment numbers whose photos are sent, in the order
     they are sent: the garment's line ends "[image k]" and a closing line
@@ -212,6 +256,9 @@ def build_prompt(
             f"Already chosen for {found.fixed.category} ({how}): "
             f"{_describe(found.fixed, request.day)}. Build around it."
         )
+    feedback = turned_down_line(turned_down)
+    if feedback:
+        lines.append(feedback)
     open_slots = [s for s in found.slots if s != (found.fixed and found.fixed.category)]
     lines.append("Slots to fill: " + ", ".join(open_slots) + ".")
     position = {index: k for k, index in enumerate(images, start=1)}

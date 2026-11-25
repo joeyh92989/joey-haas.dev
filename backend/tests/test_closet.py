@@ -912,3 +912,30 @@ def test_the_2026_11_20_shape_end_to_end():
     assert "u" not in {s.piece.id for s in found.by_slot["top"]}
     got = closet.template(found)
     assert len(got) == 3 and len(set(top_ids(got))) == 3
+
+
+# --- turned-down pieces (#551) --------------------------------------------------
+
+
+def test_an_excluded_top_never_appears_even_when_the_slot_relaxes():
+    # Two tops plus a linen one the season rule would only admit by relaxing.
+    pieces = tops(2) + [piece("l", "top", name="linen shirt")]
+    request = Request(DAY, "weekend", excluded=frozenset({"t0", "l"}))
+    found = closet.candidates(pieces, request, read(40, 60))
+    assert [s.piece.id for s in found.by_slot["top"]] == ["t1"]
+    assert found.short["top"] == 1
+    # The footnote does not count it as fitting (t1 only; t0 is excluded, linen is cut).
+    assert found.fit == 1
+
+
+def test_the_swap_fallback_drops_an_excluded_piece_too():
+    pieces = tops(2) + [piece("l", "top", name="linen shirt")]
+    request = Request(DAY, "weekend", excluded=frozenset({"l"}))
+    found = closet.slot_fallback(pieces, "top", request, read(40, 60))
+    assert {s.piece.id for s in found} == {"t0", "t1"}
+
+
+def test_a_lock_on_an_excluded_piece_keeps_it():
+    request = Request(DAY, "weekend", lock="t0", excluded=frozenset({"t0"}))
+    found = closet.candidates(tops(3), request, WARM)
+    assert found.fixed is not None and found.fixed.id == "t0"

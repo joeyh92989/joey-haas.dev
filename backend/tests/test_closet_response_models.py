@@ -20,6 +20,7 @@ pytestmark = pytest.mark.asyncio
 NO_MODEL = {
     ("delete", "/api/closet/garments/{garment_id}"),
     ("get", "/api/closet/garments/{garment_id}/image"),
+    ("delete", "/api/closet/feedback/{feedback_id}"),
 }
 
 GARMENT_KEYS = {
@@ -57,7 +58,7 @@ async def test_every_json_route_declares_a_response_model(sessionmaker_for_test)
             schema = ok.get("content", {}).get("application/json", {}).get("schema")
             if schema in (None, {}) or schema == {"type": "object"}:
                 unpinned.append(f"{method.upper()} {path}")
-    assert seen == 30
+    assert seen == 33
     assert unpinned == []
 
 
@@ -69,7 +70,7 @@ async def test_garment_bodies_keep_their_exact_keys(sessionmaker_for_test):
         status = (await client.get("/api/closet/status")).json()
         tagged = (await client.post("/api/closet/tag")).json()
     assert set(made) == GARMENT_KEYS
-    assert set(listed) == {"garments", "counts"}
+    assert set(listed) == {"garments", "counts", "temperature_flags"}
     assert set(listed["garments"][0]) == GARMENT_KEYS
     assert set(listed["counts"]) == {
         "total", "untagged", "active", "packed", "listed", "gone",

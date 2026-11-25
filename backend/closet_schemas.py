@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from models import (
     GarmentCategory,
     GarmentColorSource,
+    GarmentFeedbackKind,
     GarmentStatus,
     GarmentTagSource,
 )
@@ -72,11 +73,40 @@ class GarmentCountsOut(BaseModel):
     gone: int
 
 
+class TemperatureFlagOut(BaseModel):
+    """A piece turned down as too cold or too warm in the last 60 days (#551):
+    the Closet page's "Check warmth" suggestion. Never edits a tag."""
+
+    garment_id: uuid.UUID
+    too_cold: int
+    too_warm: int
+    last_day: date
+
+
 class GarmentListOut(BaseModel):
     """`GET /garments`."""
 
     garments: list[GarmentOut]
     counts: GarmentCountsOut
+    temperature_flags: list[TemperatureFlagOut] = []
+
+
+class FeedbackOut(BaseModel):
+    """One piece turned down (`garment_feedback`, #551)."""
+
+    id: uuid.UUID
+    garment_id: uuid.UUID
+    kind: GarmentFeedbackKind
+    occasion: str | None
+    day: date | None
+    created_at: datetime
+
+
+class FeedbackListOut(BaseModel):
+    """`GET /feedback`: the rows in force for a day."""
+
+    day: date
+    feedback: list[FeedbackOut]
 
 
 class ProductSizeOut(BaseModel):

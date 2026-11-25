@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-24 · decision · Piece feedback is its own table, and a lock beats it
+Turning a piece down is a `garment_feedback` row (kind, optional occasion, optional day), not columns on `garments` or a one-piece `outfits` row: it holds every scope, keeps outfit rows meaning outfits, and gives the Closet page its history. A lock on a turned-down piece keeps the piece, because the lock is the newer and more explicit choice; feedback never edits a tag.
+PR #657 · docs/planning/2026-11-24-closet-piece-feedback-design.md
+
 ### 2026-11-24 · lesson · The first changelog entry of a day reddens Home's visual baselines
 Home's "Last shipped" date is masked in `visual.spec.js`, but the mask box takes the date's width, so "Nov 23" → "Nov 24" moved 19 pixels and failed `e2e-shard (rest)` on #636 with no visual change. A PR that opens a new `## YYYY-MM-DD` heading should expect it: run `update-visual-baselines.yml` on the branch and push an empty commit. Later PRs under the same heading pass. A fixed-width mask would end it.
 PR #636 · docs/planning/2026-11-24-closet-picker-pool-design.md
