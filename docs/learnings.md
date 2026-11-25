@@ -1,5 +1,9 @@
 # Learnings
 
+### 2026-11-24 · lesson · The first changelog entry of a day reddens Home's visual baselines
+Home's "Last shipped" date is masked in `visual.spec.js`, but the mask box takes the date's width, so "Nov 23" → "Nov 24" moved 19 pixels and failed `e2e-shard (rest)` on #636 with no visual change. A PR that opens a new `## YYYY-MM-DD` heading should expect it: run `update-visual-baselines.yml` on the branch and push an empty commit. Later PRs under the same heading pass. A fixed-width mask would end it.
+PR #636 · docs/planning/2026-11-24-closet-picker-pool-design.md
+
 ### 2026-11-20 · lesson · A layered legacy sheet loses to Tailwind's theme layer, and a design colour is not a text colour
 Putting `index.css` in `@layer legacy` still let Tailwind's `theme` layer replace the site's `--font-sans`, `--font-mono` and `--radius` the moment any CSS used them, so every page lost Inter until a cold review diffed computed styles against a build of `main` (#541); `tailwindSetup.test.js` now fails on a new collision. In #527 the owner's dark accent `#f7a391` is 3.49:1 as text on a card: keep it for fills and edges, and add `--accent-text`, `--ok-text` and `--warn-text` for text. Check a "no visible change" PR by comparing computed styles, not only tests, and measure a colour in the role it will play.
 PRs #541, #542 · docs/planning/2026-11-20-design-system-foundation-design.md · docs/planning/2026-11-20-design-system-tokens-design.md
