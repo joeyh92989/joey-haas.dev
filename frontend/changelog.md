@@ -6,6 +6,7 @@ where a change has a page. A shipped feature adds its entry (repo CLAUDE.md).
 
 ## 2026-11-24
 
+- Behind the scenes: the outfit planner can now be told a single piece is not for today, too cold, too warm, or never for an occasion; it leaves that piece out of every plan and swap, and tells the model why. The Closet page suggests checking the warmth of pieces turned down as too cold or too warm, and never changes a tag itself.
 - Behind the scenes: pieces saved by hand with their warmth or formality left empty now get those two filled in overnight, without changing anything already set.
 - Behind the scenes: the outfit planner's formality scale now has examples, so flannels and casual button-ups count as fine for the office, and pieces already tagged are re-tagged overnight against it.
 - Behind the scenes: the outfit planner keeps at least three choices for each piece, loosening its rules one at a time and saying which, and the suggested outfits each use a different top when there are enough.

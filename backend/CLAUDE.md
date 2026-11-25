@@ -100,6 +100,19 @@ only while its item is public. Admin routes stay keyed by id.
   `graphic`, get just those (COALESCE, `tag_source` stays `manual`); progress
   is `filled` / `fill_remaining`. `closet.score` takes `WEIGHTS["graphic"]`
   (4.0) off a graphic top for the office only; `is_tagged` ignores graphic.
+- **Piece feedback** (#551, `garment_feedback`, migration `0033`): the owner turns a
+  piece down for a day (`not_today`, `too_cold`, `too_warm`: that day, every occasion)
+  or for an occasion until removed (`never_for_occasion`). The day is the owner's
+  (`owner_today()`) unless the body names one. `closet_today_routes.feedback_in_force`
+  reads the rows; `make_plan` (so `POST /plan`, the nightly job and Match this) and
+  `GET /candidates` pass them as `Request.excluded`, which `slot_pool` drops outside the
+  relaxation loop (never relaxed, `slot_fallback` included). **A lock wins**: a locked
+  piece stays, and the prompt does not call it turned down. Adding feedback rewrites no
+  stored plan; the client re-plans. The ranking prompt gets "Turned down for this day:
+  name (too warm); never for office: name." (`closet_rank.turned_down_line`, at most 8,
+  newest first). `GET /garments` adds `temperature_flags` (too cold / too warm counts
+  over 60 days) for the Closet page's "Check warmth" button; no tag is ever edited by
+  feedback. Outfit-level Not this (`outfits.not_this`) is unchanged.
 - **Garment photos are 800px** (`closet_images.GARMENT_LONG_EDGE`; shelf and
   Match-this photos stay 400). `GET /api/closet/garments/{id}/image?size=thumb`
   makes the 400px rendition on read, with its own ETag; older garments stay
