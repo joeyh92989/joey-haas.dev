@@ -1059,6 +1059,9 @@ class Garment(Base):
     tag_scale: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=1, server_default="1"
     )
+    # A print, picture, slogan or large logo covers the front (#550). NULL is
+    # "not known" and scores as plain.
+    graphic: Mapped[bool | None] = mapped_column(Boolean)
     created_at: Mapped[datetime] = _now_column()
     updated_at: Mapped[datetime] = _updated_column()
 

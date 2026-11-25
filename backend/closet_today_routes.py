@@ -161,6 +161,7 @@ def _piece(row: Garment, last_worn: date | None, wears_30: int) -> closet.Piece:
         material=row.material,
         warmth=row.warmth,
         formality=row.formality,
+        graphic=row.graphic,
         seasons=tuple(row.seasons or ()),
         last_worn=last_worn,
         wears_30=wears_30,

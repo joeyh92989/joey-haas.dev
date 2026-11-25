@@ -82,7 +82,14 @@ OCCASION_FORMALITY = {
 # "season" equals one warmth step: a month the piece is not tagged for
 # costs as much as a garment one step too warm or too cold, so a piece
 # that suits the day in every other way still ranks above a worse fit.
-WEIGHTS = {"warmth": 2.0, "formality": 1.0, "rest": 0.5, "wears": 0.3, "season": 2.0}
+WEIGHTS = {
+    "warmth": 2.0,
+    "formality": 1.0,
+    "rest": 0.5,
+    "wears": 0.3,
+    "season": 2.0,
+    "graphic": 4.0,
+}
 LINEN_MIN_LOW_F = 50  # below this low, shorts and linen are out of the pool
 MIN_POOL = 3  # a slot with fewer eligible pieces relaxes a rule, one at a time
 # In the order tried; the plan body and the Today page use these names.
@@ -252,6 +259,7 @@ class Piece:
     material: str | None = None
     warmth: int | None = None
     formality: int | None = None
+    graphic: bool | None = None
     seasons: tuple[int, ...] = ()
     last_worn: date | None = None
     wears_30: int = 0
@@ -442,6 +450,9 @@ def score(piece: Piece, target: int, occasion: str, day: date, snow: bool) -> fl
     )
     if not in_season(piece, day.month):
         total -= WEIGHTS["season"]
+    # A graphic tee is allowed at the office but rarely worn there (#550).
+    if occasion == "office" and piece.category == "top" and piece.graphic is True:
+        total -= WEIGHTS["graphic"]
     if snow and piece.category == "shoes" and "boot" in _words(piece):
         total += SNOW_BOOT_BONUS
     return round(total, 3)
