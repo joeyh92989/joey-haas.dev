@@ -1004,7 +1004,7 @@ async def test_a_retag_answer_with_a_bad_category_still_writes_the_formality(
     assert body["retagged"] == 1 and body["state"] == "ok"
     # The indices check still holds for a re-tag.
     with pytest.raises(TagBatchError):
-        validate({"items": [{"index": 1, "attributes": {}}]}, 1, retag=True)
+        validate({"items": [{"index": 1, "attributes": {}}]}, 1, mode="retag")
 
 
 @pytest.mark.asyncio
@@ -1017,3 +1017,325 @@ async def test_a_budget_of_zero_leaves_no_retag_note(sessionmaker_for_test):
         body = (await client.post("/api/closet/jobs/tag")).json()
     assert (body["state"], body["calls"], body["retag_remaining"]) == ("off", 0, 2)
     assert body["note"] is None
+
+
+# --- the fill queue (#549) ---------------------------------------------------
+
+
+async def seed_partial(factory, count: int = 1, **fields) -> list:
+    """Hand-saved pieces with warmth set and formality empty."""
+    return await seed(
+        factory,
+        count,
+        **{
+            "status": GarmentStatus.ACTIVE,
+            "tag_source": GarmentTagSource.MANUAL,
+            "name": "piece a",
+            "category": GarmentCategory.TOP,
+            "primary_color": "green",
+            "primary_hex": "#00ff00",
+            "warmth": 4,
+            "formality": None,
+            "tag_scale": 1,
+            "seasons": [],
+            **fields,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_partial_manual_piece_gets_its_blanks_and_keeps_the_rest(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test)
+    before = (await rows(sessionmaker_for_test, ids))[0]
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert (body["tagged"], body["filled"], body["calls"]) == (0, 1, 1)
+    assert (body["fill_remaining"], body["remaining"]) == (0, 0)
+    after = (await rows(sessionmaker_for_test, ids))[0]
+    assert (before.warmth, before.formality) == (4, None)
+    assert (after.warmth, after.formality) == (4, 3)
+    assert after.tag_scale == closet_tag.SCALE_VERSION
+    for field in (
+        "name",
+        "category",
+        "primary_color",
+        "primary_hex",
+        "seasons",
+        "status",
+        "tag_source",
+        "tag_attempts",
+        "updated_at",
+    ):
+        assert getattr(after, field) == getattr(before, field), field
+    assert after.tag_source == GarmentTagSource.MANUAL
+
+
+@pytest.mark.asyncio
+async def test_a_fill_writes_both_blanks_when_both_are_empty(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, warmth=None)
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.warmth, got.formality) == (2, 3)
+
+
+@pytest.mark.asyncio
+async def test_a_fully_set_manual_piece_is_never_sent(sessionmaker_for_test):
+    await seed_partial(sessionmaker_for_test, formality=2)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert provider.calls == []
+    assert (body["calls"], body["filled"], body["fill_remaining"]) == (0, 0, 0)
+    assert body["note"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_field_set_by_hand_during_the_fill_call_wins(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, warmth=None)
+
+    class Racing(FakeProvider):
+        async def complete_json(self, prompt, schema, images=None):
+            async with sessionmaker_for_test() as session:
+                row = await session.get(Garment, ids[0])
+                row.formality = 5
+                await session.commit()
+            return full(len(images))
+
+    async with client_for(sessionmaker_for_test, Racing()) as client:
+        await client.post("/api/closet/jobs/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.warmth, got.formality) == (2, 5)
+    # The formality was not this fill's, so the scale does not claim it.
+    assert got.tag_scale == 1
+
+
+@pytest.mark.asyncio
+async def test_a_fill_that_leaves_the_piece_blank_strikes_it(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, tag_attempts=2)
+    bad = {"items": [{"index": 0, "attributes": attrs(0, formality=9)}]}
+    async with client_for(sessionmaker_for_test, FakeProvider(bad)) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.tag_attempts, got.formality, got.tag_scale) == (3, None, 1)
+    assert (body["filled"], body["fill_remaining"]) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_a_piece_out_of_strikes_leaves_the_fill_queue(sessionmaker_for_test):
+    await seed_partial(sessionmaker_for_test, tag_attempts=3)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert provider.calls == [] and body["fill_remaining"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_rejected_fill_batch_is_retried_one_at_a_time(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, 2)
+    provider = FakeProvider({"items": []}, full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [2, 1, 1]
+    assert body["filled"] == 2
+    assert [row.formality for row in await rows(sessionmaker_for_test, ids)] == [3, 3]
+
+
+@pytest.mark.asyncio
+async def test_listed_gone_and_photoless_pieces_are_not_filled(sessionmaker_for_test):
+    for status in (GarmentStatus.LISTED, GarmentStatus.GONE):
+        await seed_partial(sessionmaker_for_test, status=status)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Garment(
+                status=GarmentStatus.ACTIVE,
+                tag_source=GarmentTagSource.MANUAL,
+                warmth=3,
+                seasons=[],
+            )
+        )
+        await session.commit()
+    packed = await seed_partial(sessionmaker_for_test, status=GarmentStatus.PACKED)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [1]
+    assert (body["filled"], body["fill_remaining"]) == (1, 0)
+    assert (await rows(sessionmaker_for_test, packed))[0].formality == 3
+
+
+@pytest.mark.asyncio
+async def test_the_order_is_new_then_fill_then_retag_one_mode_per_batch(
+    sessionmaker_for_test,
+):
+    old = await seed_old(sessionmaker_for_test)
+    part = await seed_partial(sessionmaker_for_test)
+    await seed(sessionmaker_for_test, 1)
+    provider = FakeProvider(full, full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [1, 1, 1]
+    assert (body["tagged"], body["filled"], body["retagged"]) == (1, 1, 1)
+    assert (await rows(sessionmaker_for_test, part))[0].formality == 3
+    assert (await rows(sessionmaker_for_test, old))[0].tag_scale == (
+        closet_tag.SCALE_VERSION
+    )
+
+
+@pytest.mark.asyncio
+async def test_the_fill_goes_before_the_retag_when_the_budget_is_short(
+    sessionmaker_for_test,
+):
+    old = await seed_old(sessionmaker_for_test)
+    part = await seed_partial(sessionmaker_for_test)
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=1))
+            await session.commit()
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert (body["filled"], body["retagged"]) == (1, 0)
+    assert (await rows(sessionmaker_for_test, part))[0].formality == 3
+    assert (await rows(sessionmaker_for_test, old))[0].tag_scale == 1
+
+
+@pytest.mark.asyncio
+async def test_tag_now_never_fills(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, 2)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    assert provider.calls == [] and body["calls"] == 0
+    assert all(row.formality is None for row in await rows(sessionmaker_for_test, ids))
+
+
+@pytest.mark.asyncio
+async def test_the_summary_carries_the_fill_counts_and_the_joined_note(
+    sessionmaker_for_test,
+):
+    await seed_partial(sessionmaker_for_test, 12)
+    await seed_old(sessionmaker_for_test, 12)
+    async with client_for(sessionmaker_for_test, FakeProvider(full, full)) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=2))
+            await session.commit()
+        body = (await client.post("/api/closet/jobs/tag")).json()
+        status = (await client.get("/api/closet/status")).json()["tag.last_run"]
+    # Two calls: ten and two filled, nothing left to fill, so no re-tag yet.
+    assert (body["filled"], body["fill_remaining"]) == (12, 0)
+    assert (body["retagged"], body["retag_remaining"]) == (0, 12)
+    assert body["note"] == (
+        "Blanks filled: 12, 0 left · Formality re-tag: 0 done tonight, 12 left"
+    )
+    assert status["filled"] == 12 and status["fill_remaining"] == 0
+
+
+@pytest.mark.asyncio
+async def test_only_the_parts_with_numbers_join_the_note(sessionmaker_for_test):
+    await seed_partial(sessionmaker_for_test, 12)
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=1))
+            await session.commit()
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["note"] == "Blanks filled: 10, 2 left"
+
+
+@pytest.mark.asyncio
+async def test_a_budget_of_zero_leaves_no_fill_note(sessionmaker_for_test):
+    await seed_partial(sessionmaker_for_test, 2)
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=0))
+            await session.commit()
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert (body["state"], body["calls"], body["fill_remaining"]) == ("off", 0, 2)
+    assert body["note"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_rejected_single_fill_strikes_without_moving_updated_at(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test)
+    before = (await rows(sessionmaker_for_test, ids))[0]
+    async with client_for(sessionmaker_for_test, FakeProvider({"items": []})) as client:
+        await client.post("/api/closet/jobs/tag")
+    after = (await rows(sessionmaker_for_test, ids))[0]
+    assert (before.tag_attempts, after.tag_attempts) == (0, 1)
+    assert after.updated_at == before.updated_at
+
+
+def test_an_unknown_mode_is_an_error_not_the_first_time_path():
+    with pytest.raises(ValueError):
+        validate(answer([0]), 1, mode="filled")
+
+
+@pytest.mark.asyncio
+async def test_a_fill_batch_strikes_only_the_piece_with_nothing_usable(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test, 2)
+    payload = {
+        "items": [
+            {"index": 0, "attributes": attrs(0)},
+            {"index": 1, "attributes": attrs(1, formality=9)},
+        ]
+    }
+    async with client_for(sessionmaker_for_test, FakeProvider(payload)) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    first, second = await rows(sessionmaker_for_test, ids)
+    assert (first.formality, first.tag_attempts) == (3, 0)
+    assert (second.formality, second.tag_attempts) == (None, 1)
+    assert body["filled"] == 1
+
+
+@pytest.mark.asyncio
+async def test_partial_progress_does_not_strike(sessionmaker_for_test):
+    ids = await seed_partial(sessionmaker_for_test, warmth=None)
+    payload = {"items": [{"index": 0, "attributes": attrs(0, formality=9)}]}
+    async with client_for(sessionmaker_for_test, FakeProvider(payload)) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.warmth, got.formality, got.tag_attempts) == (2, None, 0)
+    assert (body["filled"], body["fill_remaining"]) == (0, 1)
+
+
+@pytest.mark.asyncio
+async def test_a_piece_moved_to_listed_during_the_fill_call_is_not_written(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test)
+
+    class Racing(FakeProvider):
+        async def complete_json(self, prompt, schema, images=None):
+            async with sessionmaker_for_test() as session:
+                (await session.get(Garment, ids[0])).status = GarmentStatus.LISTED
+                await session.commit()
+            return full(len(images))
+
+    async with client_for(sessionmaker_for_test, Racing()) as client:
+        await client.post("/api/closet/jobs/tag")
+    assert (await rows(sessionmaker_for_test, ids))[0].formality is None
+
+
+@pytest.mark.asyncio
+async def test_a_blank_fill_piece_is_asked_once_a_run_and_again_next_run(
+    sessionmaker_for_test,
+):
+    ids = await seed_partial(sessionmaker_for_test)
+    nothing = {
+        "items": [{"index": 0, "attributes": attrs(0, warmth=None, formality=None)}]
+    }
+    provider = FakeProvider(nothing, nothing)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=5))
+            await session.commit()
+        first = (await client.post("/api/closet/jobs/tag")).json()
+        assert (first["calls"], len(provider.calls)) == (1, 1)
+        assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == 1
+        second = (await client.post("/api/closet/jobs/tag")).json()
+    assert (second["calls"], len(provider.calls)) == (1, 2)
+    assert (await rows(sessionmaker_for_test, ids))[0].tag_attempts == 2
