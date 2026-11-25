@@ -98,6 +98,7 @@ def _diff_against_models(connection) -> list:
     before_denver_drop = version is not None and version < "0030"
     before_tag_scale = version is not None and version < "0031"
     before_graphic = version is not None and version < "0032"
+    before_feedback = version is not None and version < "0033"
     return [
         entry
         for entry in diff
@@ -109,7 +110,18 @@ def _diff_against_models(connection) -> list:
         and not (before_slugs and _is_slug_addition(entry))
         and not (before_tag_scale and _is_tag_scale_addition(entry))
         and not (before_graphic and _is_graphic_addition(entry))
+        and not (before_feedback and _is_feedback_addition(entry))
     ]
+
+
+def _is_feedback_addition(entry) -> bool:
+    """The autogenerate entries for 0033's table and its indexes."""
+    kind, subject = entry[0], entry[1]
+    if kind == "add_table":
+        return subject.name == "garment_feedback"
+    if kind == "add_index":
+        return subject.table.name == "garment_feedback"
+    return False
 
 
 def _is_graphic_addition(entry) -> bool:
@@ -2560,3 +2572,111 @@ async def test_0029_the_slug_index_is_unique_but_lets_nulls_repeat(clean_databas
     with pytest.raises(IntegrityError):
         async with clean_database.begin() as connection:
             await connection.execute(insert, {"slug": "same"})
+
+
+# --- Revision 0033: garment_feedback (#551). ---------------------------------
+
+
+async def _feedback_garment(engine) -> str:
+    async with engine.begin() as connection:
+        return await connection.scalar(
+            text(
+                "INSERT INTO garments (id) VALUES (gen_random_uuid()) RETURNING id::text"
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_0033_cycle_matches_the_models_and_drops_the_type(clean_database):
+    assert _alembic("upgrade", "0032").returncode == 0
+    assert "garment_feedback" not in await _tables(clean_database)
+    up = _alembic("upgrade", "head")
+    assert up.returncode == 0, up.stderr
+    assert "garment_feedback" in await _tables(clean_database)
+    async with clean_database.connect() as connection:
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+    down = _alembic("downgrade", "0032")
+    assert down.returncode == 0, down.stderr
+    assert "garment_feedback" not in await _tables(clean_database)
+    async with clean_database.connect() as connection:
+        assert (
+            await connection.scalar(
+                text(
+                    "SELECT count(*) FROM pg_type "
+                    "WHERE typname = 'garment_feedback_kind'"
+                )
+            )
+            == 0
+        )
+        diff = await connection.run_sync(_diff_against_models)
+    assert diff == []
+    again = _alembic("upgrade", "head")
+    assert again.returncode == 0, again.stderr
+
+
+@pytest.mark.asyncio
+async def test_0033_checks_reject_a_dayless_not_today_and_an_occasionless_never(
+    clean_database,
+):
+    assert _alembic("upgrade", "head").returncode == 0
+    garment_id = await _feedback_garment(clean_database)
+    insert = text(
+        "INSERT INTO garment_feedback (id, garment_id, kind, occasion, day) "
+        "VALUES (gen_random_uuid(), :g, CAST(:kind AS garment_feedback_kind), "
+        ":occasion, :day)"
+    )
+    bad = [
+        {"kind": "not_today", "occasion": None, "day": None},
+        {"kind": "never_for_occasion", "occasion": None, "day": None},
+        {"kind": "never_for_occasion", "occasion": "office", "day": date(2026, 1, 1)},
+    ]
+    for params in bad:
+        with pytest.raises(IntegrityError):
+            async with clean_database.begin() as connection:
+                await connection.execute(insert, {"g": garment_id, **params})
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            insert,
+            {
+                "g": garment_id,
+                "kind": "too_warm",
+                "occasion": None,
+                "day": date(2026, 1, 1),
+            },
+        )
+        await connection.execute(
+            insert,
+            {
+                "g": garment_id,
+                "kind": "never_for_occasion",
+                "occasion": "office",
+                "day": None,
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_0033_rows_go_with_their_garment_and_a_repeat_is_refused(
+    clean_database,
+):
+    assert _alembic("upgrade", "head").returncode == 0
+    garment_id = await _feedback_garment(clean_database)
+    insert = text(
+        "INSERT INTO garment_feedback (id, garment_id, kind, occasion, day) "
+        "VALUES (gen_random_uuid(), :g, CAST('never_for_occasion' AS "
+        "garment_feedback_kind), 'office', NULL)"
+    )
+    async with clean_database.begin() as connection:
+        await connection.execute(insert, {"g": garment_id})
+    with pytest.raises(IntegrityError):
+        async with clean_database.begin() as connection:
+            await connection.execute(insert, {"g": garment_id})
+    async with clean_database.begin() as connection:
+        await connection.execute(
+            text("DELETE FROM garments WHERE id = CAST(:g AS uuid)"),
+            {"g": garment_id},
+        )
+        assert (
+            await connection.scalar(text("SELECT count(*) FROM garment_feedback")) == 0
+        )

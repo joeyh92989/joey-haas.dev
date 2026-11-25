@@ -965,6 +965,17 @@ class GarmentOutcome(str, enum.Enum):
     DONATED = "donated"
 
 
+class GarmentFeedbackKind(str, enum.Enum):
+    """Why a piece was turned down (migration 0033). `not_today`, `too_cold` and
+    `too_warm` apply to one day; `never_for_occasion` to an occasion until
+    removed."""
+
+    NOT_TODAY = "not_today"
+    NEVER_FOR_OCCASION = "never_for_occasion"
+    TOO_COLD = "too_cold"
+    TOO_WARM = "too_warm"
+
+
 def _garment_fk(**kwargs):
     return mapped_column(
         UUID(as_uuid=True),
@@ -1245,6 +1256,41 @@ class GarmentDecision(Base):
     decided_on: Mapped[date] = mapped_column(Date, nullable=False)
     back_on: Mapped[date | None] = mapped_column(Date)
     note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _now_column()
+
+
+class GarmentFeedback(Base):
+    """A piece turned down (migration 0033, #551): a hard exclusion from the
+    day's picks, never a tag edit. Day-scoped kinds carry a `day` and no
+    occasion; `never_for_occasion` carries an occasion and no day."""
+
+    __tablename__ = "garment_feedback"
+    __table_args__ = (
+        CheckConstraint(
+            "(kind = 'never_for_occasion' AND occasion IS NOT NULL AND day IS NULL)"
+            " OR (kind <> 'never_for_occasion' AND day IS NOT NULL)",
+            name="garment_feedback_scope",
+        ),
+        Index(
+            "ux_garment_feedback_scope",
+            "garment_id",
+            "kind",
+            text("coalesce(occasion, '')"),
+            text("coalesce(day, '0001-01-01'::date)"),
+            unique=True,
+        ),
+        Index("ix_garment_feedback_day", "day"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    garment_id: Mapped[uuid.UUID] = _garment_fk()
+    kind: Mapped[GarmentFeedbackKind] = _enum_column(
+        GarmentFeedbackKind, "garment_feedback_kind", nullable=False
+    )
+    occasion: Mapped[str | None] = mapped_column(String(20))
+    day: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = _now_column()
 
 
