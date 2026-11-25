@@ -173,6 +173,7 @@ class TagNowOut(BaseModel):
     calls: int
     note: str | None
     remaining: int
+    retag_remaining: int
 
 
 class TagJobOut(BaseModel):
@@ -184,6 +185,8 @@ class TagJobOut(BaseModel):
     tagged: int
     calls: int
     remaining: int
+    retagged: int
+    retag_remaining: int
     note: str | None
 
 

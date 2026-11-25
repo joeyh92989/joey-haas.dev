@@ -28,11 +28,21 @@
   `tag_budget` calls are spent, a model error, or the queue is empty, and
   writes `closet_settings["tag.last_run"]`. A write lands only while the
   garment is still untouched (`tag_source IS NULL`), so a hand save made
-  during the model call wins. An answer that cannot be used for a batch of
+  during the model call wins.
+  An answer that cannot be used for a batch of
   several strikes nobody: its photos are retried one at a time, and only a
   single photo's unusable answer counts a strike. A quota or overload error
   never does, since it says nothing about the photos; a missing model key
   fails the run without a call.
+- **A formality re-tag follows the first-time queue** (#548). Once nothing is
+  untagged, the same call and budget re-tag `tag_source = model` pieces
+  whose `tag_scale` is below `closet_tag.SCALE_VERSION` (`active` or
+  `packed`, with a photo, oldest first). A batch is all first-time or all
+  re-tag. A re-tag writes `formality` and `tag_scale` only, guarded by
+  `tag_source = model AND tag_scale < SCALE_VERSION`, so a hand save wins and
+  `updated_at` (the photo's ETag) does not move. A formality the model gave
+  unusably leaves the old value and still marks the piece as done. Strikes
+  count the same way. `tag.last_run` adds `retagged` and `retag_remaining`.
 
 Admin only, at the router. The check is a router dependency, which FastAPI
 solves after it has parsed a multipart body, so a signed-out upload is
@@ -890,26 +900,53 @@ def create_closet_router(
             )
         )
 
-    async def _remaining(session: AsyncSession) -> int:
-        count = await session.scalar(
-            select(func.count()).select_from(_queued().subquery())
+    def _requeued():
+        """Model-tagged pieces on an older formality scale (#548)."""
+        return (
+            select(Garment.id)
+            .join(GarmentImage, GarmentImage.garment_id == Garment.id)
+            .where(
+                Garment.tag_source == GarmentTagSource.MODEL,
+                Garment.tag_scale < closet_tag.SCALE_VERSION,
+                Garment.status.in_((GarmentStatus.ACTIVE, GarmentStatus.PACKED)),
+                Garment.tag_attempts < closet_tag.MAX_ATTEMPTS,
+            )
         )
+
+    async def _count(session: AsyncSession, queue) -> int:
+        count = await session.scalar(select(func.count()).select_from(queue.subquery()))
         return count or 0
 
-    async def _strike(session: AsyncSession, ids: list[uuid.UUID]) -> None:
+    async def _remaining(session: AsyncSession) -> int:
+        return await _count(session, _queued())
+
+    async def _retag_remaining(session: AsyncSession) -> int:
+        return await _count(session, _requeued())
+
+    async def _strike(
+        session: AsyncSession, ids: list[uuid.UUID], retag: bool = False
+    ) -> None:
+        owner = (
+            Garment.tag_source == GarmentTagSource.MODEL
+            if retag
+            else Garment.tag_source.is_(None)
+        )
         await session.execute(
             update(Garment)
-            .where(Garment.id.in_(ids), Garment.tag_source.is_(None))
+            .where(Garment.id.in_(ids), owner)
             .values(tag_attempts=Garment.tag_attempts + 1)
         )
         await session.commit()
 
     async def tag_batch(
-        session: AsyncSession, only: list[uuid.UUID] | None = None
+        session: AsyncSession,
+        only: list[uuid.UUID] | None = None,
+        retag: bool = False,
     ) -> dict[str, Any]:
         """One model call over the oldest queued garments (or over `only`,
         the ones still queued), or none when there is nothing to tag. Never
-        raises: the answer says what happened.
+        raises: the answer says what happened. `retag` takes the formality
+        re-tag queue (`_requeued`) instead of the first-time one.
 
         `called` is whether a model call was spent, `stop` whether the run
         should go no further (no model, or a model error), and `retry` the
@@ -926,7 +963,7 @@ def create_closet_router(
         query = (
             select(Garment.id, GarmentImage.webp)
             .join(GarmentImage, GarmentImage.garment_id == Garment.id)
-            .where(Garment.id.in_(_queued()))
+            .where(Garment.id.in_(_requeued() if retag else _queued()))
         )
         if only is not None:
             query = query.where(Garment.id.in_(only))
@@ -959,7 +996,7 @@ def create_closet_router(
 
         async def rejected(note: str, stop: bool = False) -> dict[str, Any]:
             if single:
-                await _strike(session, ids)
+                await _strike(session, ids, retag)
                 return {**idle, "called": True, "stop": stop, "note": note}
             return {
                 **idle,
@@ -995,6 +1032,28 @@ def create_closet_router(
             )
 
         written = 0
+        if retag:
+            for garment_id, entry in zip(ids, tagged, strict=True):
+                # Formality and the scale it was read on, nothing else. An
+                # unusable formality keeps the old one but still marks the
+                # piece done, or it would be asked for every night. No
+                # `updated_at` is the photo's cache version: the column's
+                # onupdate would move it, so it is set to itself.
+                values: dict[str, Any] = {"tag_scale": closet_tag.SCALE_VERSION}
+                if entry.attributes["formality"] is not None:
+                    values["formality"] = entry.attributes["formality"]
+                result = await session.execute(
+                    update(Garment)
+                    .where(
+                        Garment.id == garment_id,
+                        Garment.tag_source == GarmentTagSource.MODEL,
+                        Garment.tag_scale < closet_tag.SCALE_VERSION,
+                    )
+                    .values(**values, updated_at=Garment.updated_at)
+                )
+                written += result.rowcount or 0
+            await session.commit()
+            return {**idle, "tagged": written, "called": True}
         for garment_id, entry in zip(ids, tagged, strict=True):
             values = dict(entry.attributes)
             values["category"] = GarmentCategory(values["category"])
@@ -1037,6 +1096,7 @@ def create_closet_router(
                         else_=Garment.color_source,
                     ),
                     tag_source=GarmentTagSource.MODEL,
+                    tag_scale=closet_tag.SCALE_VERSION,
                     status=GarmentStatus.ACTIVE,
                     updated_at=func.now(),
                 )
@@ -1052,21 +1112,33 @@ def create_closet_router(
         the queue is empty, or `batches` queue batches have been taken. A
         rejected batch's singles are tried before the next batch, each one a
         call against the same budget. `state` is the job's word for it."""
-        tagged = calls = taken = 0
+        tagged = retagged = calls = taken = 0
+        retrying = False  # whether `pending` holds re-tag pieces
         note = None
         state = "off" if budget == 0 else "ok"
         pending: list[uuid.UUID] = []
         while calls < budget:
+            retag = False
             if pending:
-                result = await tag_batch(session, only=[pending.pop(0)])
+                retag = retrying
+                result = await tag_batch(session, only=[pending.pop(0)], retag=retag)
             elif batches is not None and taken >= batches:
                 break
             else:
                 result = await tag_batch(session)
                 taken += 1
-            tagged += result["tagged"]
+                if not (result["called"] or result["stop"] or result["retry"]):
+                    # Nothing untagged: the formality re-tag takes the call.
+                    retag = True
+                    result = await tag_batch(session, retag=True)
+            if retag:
+                retagged += result["tagged"]
+            else:
+                tagged += result["tagged"]
             calls += int(result["called"])
             note = result["note"] or note
+            if result["retry"]:
+                retrying = retag
             pending.extend(result["retry"])
             if result["stop"]:
                 # No model at all is a failed night; a quota or overload
@@ -1077,7 +1149,13 @@ def create_closet_router(
                 break
         if state == "ok" and calls == 0:
             state = "empty"
-        return {"state": state, "tagged": tagged, "calls": calls, "note": note}
+        return {
+            "state": state,
+            "tagged": tagged,
+            "retagged": retagged,
+            "calls": calls,
+            "note": note,
+        }
 
     async def _write_tag_status(session: AsyncSession, summary: dict[str, Any]) -> None:
         await session.execute(
@@ -1103,6 +1181,7 @@ def create_closet_router(
                 "calls": result["calls"],
                 "note": result["note"],
                 "remaining": await _remaining(session),
+                "retag_remaining": await _retag_remaining(session),
             }
 
     @router.post("/jobs/tag", response_model=TagJobOut)
@@ -1118,6 +1197,13 @@ def create_closet_router(
             at = datetime.now(UTC).isoformat()
             result = await _run(session, budget)
             remaining = await _remaining(session)
+            retag_remaining = await _retag_remaining(session)
+            retagged = result["retagged"]
+            note = result["note"]
+            if not note and (retagged or retag_remaining):
+                note = (
+                    f"Formality re-tag: {retagged} done tonight, {retag_remaining} left"
+                )
             state = result["state"]
             summary = {
                 "at": at,
@@ -1126,7 +1212,9 @@ def create_closet_router(
                 "tagged": result["tagged"],
                 "calls": result["calls"],
                 "remaining": remaining,
-                "note": result["note"],
+                "retagged": retagged,
+                "retag_remaining": retag_remaining,
+                "note": note,
             }
             await _write_tag_status(session, summary)
             logger.info("closet tag: %s", summary)

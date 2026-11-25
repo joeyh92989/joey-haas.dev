@@ -256,12 +256,19 @@ async def test_a_batch_fills_attributes_in_order(sessionmaker_for_test):
     async with client_for(sessionmaker_for_test, provider) as client:
         response = await client.post("/api/closet/tag")
     assert response.status_code == 200
-    assert response.json() == {"tagged": 3, "calls": 1, "note": None, "remaining": 0}
+    assert response.json() == {
+        "tagged": 3,
+        "calls": 1,
+        "note": None,
+        "remaining": 0,
+        "retag_remaining": 0,
+    }
     assert provider.calls[0][1] == 3
     tagged = await rows(sessionmaker_for_test, ids)
     assert [row.name for row in tagged] == ["shirt 0", "shirt 1", "shirt 2"]
     assert all(row.status == GarmentStatus.ACTIVE for row in tagged)
     assert all(row.tag_source == GarmentTagSource.MODEL for row in tagged)
+    assert all(row.tag_scale == closet_tag.SCALE_VERSION for row in tagged)
     assert tagged[0].category == GarmentCategory.TOP
     assert tagged[0].primary_hex == "#1f2a44"
     assert tagged[0].seasons == [1, 2, 3]
@@ -275,7 +282,13 @@ async def test_the_button_takes_one_batch_of_at_most_ten_oldest_first(
     provider = FakeProvider(full)
     async with client_for(sessionmaker_for_test, provider) as client:
         body = (await client.post("/api/closet/tag")).json()
-    assert body == {"tagged": 10, "calls": 1, "note": None, "remaining": 2}
+    assert body == {
+        "tagged": 10,
+        "calls": 1,
+        "note": None,
+        "remaining": 2,
+        "retag_remaining": 0,
+    }
     tagged = await rows(sessionmaker_for_test, ids)
     assert [row.status for row in tagged] == [GarmentStatus.ACTIVE] * 10 + [
         GarmentStatus.UNTAGGED
@@ -729,3 +742,224 @@ async def test_a_vendor_name_survives_and_a_manual_one_is_replaced(
     assert (got_vendor.warmth, got_vendor.formality) == (2, 3)
     assert got_vendor.status == GarmentStatus.ACTIVE
     assert got_manual.name in {"burgundy pants", "navy shirt"}
+
+
+# --- the formality re-tag (#548) --------------------------------------------
+
+
+async def seed_old(factory, count: int = 1, **fields) -> list:
+    """Model-tagged pieces on the old scale, as they stand in the closet."""
+    return await seed(
+        factory,
+        count,
+        **{
+            "status": GarmentStatus.ACTIVE,
+            "tag_source": GarmentTagSource.MODEL,
+            "color_source": GarmentColorSource.MODEL,
+            "tag_scale": 1,
+            "name": "piece a",
+            "category": GarmentCategory.TOP,
+            "subtype": "tee",
+            "primary_color": "green",
+            "primary_hex": "#00ff00",
+            "warmth": 4,
+            "formality": 2,
+            "seasons": [10, 11],
+            **fields,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_model_tagged_piece_gets_only_its_formality_and_scale(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test)
+    before = (await rows(sessionmaker_for_test, ids))[0]
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    assert (body["tagged"], body["calls"], body["remaining"]) == (0, 1, 0)
+    assert body["retag_remaining"] == 0
+    after = (await rows(sessionmaker_for_test, ids))[0]
+    assert (before.formality, after.formality) == (2, 3)
+    assert (before.tag_scale, after.tag_scale) == (1, closet_tag.SCALE_VERSION)
+    for field in (
+        "name",
+        "category",
+        "subtype",
+        "primary_color",
+        "primary_hex",
+        "warmth",
+        "seasons",
+        "status",
+        "tag_source",
+        "color_source",
+        "tag_attempts",
+        "updated_at",
+    ):
+        assert getattr(after, field) == getattr(before, field), field
+
+
+@pytest.mark.asyncio
+async def test_a_manual_piece_is_never_sent_or_written(sessionmaker_for_test):
+    ids = await seed_old(sessionmaker_for_test, tag_source=GarmentTagSource.MANUAL)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    assert (body["calls"], body["retag_remaining"]) == (0, 0)
+    assert provider.calls == []
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.formality, got.tag_scale) == (2, 1)
+
+
+@pytest.mark.asyncio
+async def test_a_vendor_coloured_piece_keeps_its_colours_and_name(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(
+        sessionmaker_for_test,
+        color_source=GarmentColorSource.VENDOR,
+        name="Store title",
+        brand="Maker",
+        primary_color="Burgundy",
+        primary_hex="#800020",
+    )
+    async with client_for(sessionmaker_for_test, FakeProvider(full)) as client:
+        await client.post("/api/closet/tag")
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.name, got.brand) == ("Store title", "Maker")
+    assert (got.primary_color, got.primary_hex) == ("Burgundy", "#800020")
+    assert (got.formality, got.color_source) == (3, GarmentColorSource.VENDOR)
+
+
+@pytest.mark.asyncio
+async def test_a_hand_save_during_a_retag_call_wins(sessionmaker_for_test):
+    ids = await seed_old(sessionmaker_for_test, 2)
+
+    class Racing(FakeProvider):
+        async def complete_json(self, prompt, schema, images=None):
+            async with sessionmaker_for_test() as session:
+                row = await session.get(Garment, ids[0])
+                row.formality = 5
+                row.tag_source = GarmentTagSource.MANUAL
+                await session.commit()
+            return full(len(images))
+
+    async with client_for(sessionmaker_for_test, Racing()) as client:
+        await client.post("/api/closet/tag")
+    got = await rows(sessionmaker_for_test, ids)
+    assert (got[0].formality, got[0].tag_scale) == (5, 1)
+    assert (got[1].formality, got[1].tag_scale) == (3, closet_tag.SCALE_VERSION)
+
+
+@pytest.mark.asyncio
+async def test_first_time_pieces_go_before_re_tags_and_never_share_a_batch(
+    sessionmaker_for_test,
+):
+    old = await seed_old(sessionmaker_for_test, 2)
+    new = await seed(sessionmaker_for_test, 2)
+    provider = FakeProvider(full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [2, 2]
+    assert (body["tagged"], body["retagged"]) == (2, 2)
+    got = await rows(sessionmaker_for_test, new)
+    assert all(row.status == GarmentStatus.ACTIVE for row in got)
+    assert all(
+        row.tag_scale == closet_tag.SCALE_VERSION
+        for row in await rows(sessionmaker_for_test, old)
+    )
+
+
+@pytest.mark.asyncio
+async def test_listed_gone_untagged_and_photoless_pieces_are_not_re_tagged(
+    sessionmaker_for_test,
+):
+    for status in (GarmentStatus.LISTED, GarmentStatus.GONE):
+        await seed_old(sessionmaker_for_test, status=status)
+    async with sessionmaker_for_test() as session:
+        session.add(
+            Garment(
+                status=GarmentStatus.ACTIVE,
+                tag_source=GarmentTagSource.MODEL,
+                tag_scale=1,
+                seasons=[],
+            )
+        )
+        await session.commit()
+    packed = await seed_old(sessionmaker_for_test, status=GarmentStatus.PACKED)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [1]
+    assert body["retagged"] == 1
+    assert (await rows(sessionmaker_for_test, packed))[0].formality == 3
+
+
+@pytest.mark.asyncio
+async def test_a_single_retag_failure_strikes_and_three_strikes_leave_it_out(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test, tag_attempts=2)
+    provider = FakeProvider({"items": []})
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.tag_attempts, got.formality, got.tag_scale) == (3, 2, 1)
+    assert body["retag_remaining"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_rejected_retag_batch_is_retried_one_at_a_time(sessionmaker_for_test):
+    ids = await seed_old(sessionmaker_for_test, 2)
+    provider = FakeProvider({"items": []}, full, full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert [count for _, count in provider.calls] == [2, 1, 1]
+    assert body["retagged"] == 2
+    got = await rows(sessionmaker_for_test, ids)
+    assert [row.formality for row in got] == [3, 3]
+
+
+@pytest.mark.asyncio
+async def test_an_unusable_formality_keeps_the_old_one_and_is_not_asked_again(
+    sessionmaker_for_test,
+):
+    ids = await seed_old(sessionmaker_for_test)
+    bad = {"items": [{"index": 0, "attributes": attrs(0, formality=9)}]}
+    async with client_for(sessionmaker_for_test, FakeProvider(bad)) as client:
+        body = (await client.post("/api/closet/tag")).json()
+    got = (await rows(sessionmaker_for_test, ids))[0]
+    assert (got.formality, got.tag_scale) == (2, closet_tag.SCALE_VERSION)
+    assert body["retag_remaining"] == 0
+
+
+@pytest.mark.asyncio
+async def test_the_job_summary_carries_the_retag_counts_and_note(
+    sessionmaker_for_test,
+):
+    await seed_old(sessionmaker_for_test, 12)
+    provider = FakeProvider(full)
+    async with client_for(sessionmaker_for_test, provider) as client:
+        # A budget of one call: ten re-tagged, two left.
+        async with sessionmaker_for_test() as session:
+            session.add(ClosetProfile(id=1, tag_budget=1))
+            await session.commit()
+        body = (await client.post("/api/closet/jobs/tag")).json()
+        status = (await client.get("/api/closet/status")).json()["tag.last_run"]
+    assert (body["tagged"], body["retagged"], body["retag_remaining"]) == (0, 10, 2)
+    assert body["remaining"] == 0
+    assert body["note"] == "Formality re-tag: 10 done tonight, 2 left"
+    assert status["retagged"] == 10 and status["retag_remaining"] == 2
+
+
+@pytest.mark.asyncio
+async def test_an_error_note_wins_over_the_retag_note(sessionmaker_for_test):
+    await seed_old(sessionmaker_for_test, 2)
+    provider = FakeProvider(_daily_quota())
+    async with client_for(sessionmaker_for_test, provider) as client:
+        body = (await client.post("/api/closet/jobs/tag")).json()
+    assert body["state"] == "stopped"
+    assert body["note"] and not body["note"].startswith("Formality re-tag")
+    assert body["retag_remaining"] == 2
