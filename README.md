@@ -21,7 +21,7 @@ Two terminals:
 ```sh
 # Terminal 1 — backend (http://localhost:8000)
 cd backend
-/usr/local/opt/python@3.12/bin/python3.12 -m venv .venv   # first time only
+"$(brew --prefix)/opt/python@3.12/bin/python3.12" -m venv .venv   # first time only
 source .venv/bin/activate
 pip install -r requirements-dev.txt -c constraints.txt   # first time only
 uvicorn main:app --reload
@@ -504,8 +504,8 @@ brew services start postgresql@18
 # Homebrew's initdb creates a superuser named after your macOS account, not
 # `postgres`. These two make the local instance match CI, so pytest needs no
 # configuration.
-/usr/local/opt/postgresql@18/bin/createuser -s -h localhost postgres
-/usr/local/opt/postgresql@18/bin/psql -h localhost -d postgres \
+"$(brew --prefix)/opt/postgresql@18/bin/createuser" -s -h localhost postgres
+"$(brew --prefix)/opt/postgresql@18/bin/psql" -h localhost -d postgres \
   -c "alter role postgres password 'postgres'"
 ```
 
