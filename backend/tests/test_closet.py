@@ -216,10 +216,15 @@ def test_a_graphic_top_costs_the_graphic_weight_for_the_office_only():
 
 def test_a_graphic_top_ranks_below_a_plain_one_of_equal_fit_for_the_office():
     pieces = [piece("g", "top", graphic=True), piece("p", "top", graphic=False)]
-    for occasion, first in (("office", "p"), ("weekend", "g")):
-        found = closet.candidates(pieces, Request(DAY, occasion), read(66, 78))
-        got = [s.piece.id for s in found.by_slot["top"]]
-        assert got[0] == first if occasion == "office" else set(got) == {"g", "p"}
+    office = closet.candidates(pieces, Request(DAY, "office"), read(66, 78))
+    assert [s.piece.id for s in office.by_slot["top"]][0] == "p"
+
+
+def test_a_graphic_top_scores_the_same_as_a_plain_one_for_the_weekend():
+    args = (3, "weekend", DAY, False)
+    assert closet.score(piece("g", "top", graphic=True), *args) == closet.score(
+        piece("p", "top", graphic=False), *args
+    )
 
 
 def test_an_unknown_graphic_scores_as_plain():

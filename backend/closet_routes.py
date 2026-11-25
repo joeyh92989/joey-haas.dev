@@ -997,12 +997,16 @@ def create_closet_router(
         """One model call over the oldest queued garments (or over `only`,
         the ones still queued), or none when there is nothing to tag. Never
         raises: the answer says what happened. `mode` picks the queue:
-        `"new"` (first-time, `_queued`), `"fill"` (warmth and formality
-        blanks on hand-saved pieces, `_to_fill`) or `"retag"` (the formality
-        re-tag, `_requeued`). `sent` is the run's set of ids already asked:
-        fill and re-tag batches leave them out, so a piece still blank after
-        its call is not asked again tonight (one strike a night at most), and
-        every id this call sends is added to it. `only` ignores it: a rejected
+        `"new"` (first-time, `_queued`), `"fill"` (warmth, formality and, on
+        a top, graphic blanks on hand-saved pieces, `_to_fill`) or `"retag"`
+        (formality and, on a top, graphic, `_requeued`). The graphic flag is
+        written for tops only. A top whose graphic comes back unusable stays
+        queued: a first-time tag leaves `tag_scale` one below current, and a
+        re-tag keeps `tag_scale` and strikes it (gone after MAX_ATTEMPTS).
+        `sent` is the run's set of ids already asked: fill and re-tag batches
+        leave them out, so a piece still blank after its call is not asked
+        again tonight (one strike a night at most), and every id this call
+        sends is added to it. `only` ignores it: a rejected
         batch's single retry is allowed once. `"new"` is left as it was.
 
         `called` is whether a model call was spent, `stop` whether the run
@@ -1117,8 +1121,13 @@ def create_closet_router(
                 values: dict[str, Any] = {}
                 warmth = entry.attributes["warmth"]
                 formality = entry.attributes["formality"]
-                graphic = entry.attributes["graphic"]
                 was = blank_before.get(garment_id)
+                # Only a top carries the flag.
+                graphic = (
+                    entry.attributes["graphic"]
+                    if was is not None and was.category == GarmentCategory.TOP
+                    else None
+                )
                 progress = was is not None and (
                     (was.warmth is None and warmth is not None)
                     or (was.formality is None and formality is not None)
@@ -1190,17 +1199,33 @@ def create_closet_router(
             await session.commit()
             return {**idle, "tagged": written, "called": True}
         if mode == "retag":
+            categories = dict(
+                (
+                    await session.execute(
+                        select(Garment.id, Garment.category).where(Garment.id.in_(ids))
+                    )
+                ).all()
+            )
             for garment_id, entry in zip(ids, tagged, strict=True):
-                # Formality, the graphic flag and the scale they were read on,
-                # nothing else. An unusable value keeps the old one but still
-                # marks the piece done, or it would be asked for every night. No
+                # Formality, the graphic flag (tops only) and the scale they
+                # were read on, nothing else. An unusable formality keeps the
+                # old one but still marks the piece done, or it would be asked
+                # for every night. A top whose graphic is unusable is not
+                # done: it keeps its scale and takes a strike, so it is asked
+                # again on a later night and leaves after MAX_ATTEMPTS. No
                 # `updated_at` is the photo's cache version: the column's
                 # onupdate would move it, so it is set to itself.
-                values = {"tag_scale": closet_tag.SCALE_VERSION}
+                is_top = categories.get(garment_id) == GarmentCategory.TOP
+                graphic = entry.attributes["graphic"]
+                values: dict[str, Any] = {}
                 if entry.attributes["formality"] is not None:
                     values["formality"] = entry.attributes["formality"]
-                if isinstance(entry.attributes["graphic"], bool):
-                    values["graphic"] = entry.attributes["graphic"]
+                if is_top and isinstance(graphic, bool):
+                    values["graphic"] = graphic
+                if is_top and not isinstance(graphic, bool):
+                    values["tag_attempts"] = Garment.tag_attempts + 1
+                else:
+                    values["tag_scale"] = closet_tag.SCALE_VERSION
                 result = await session.execute(
                     update(Garment)
                     .where(
@@ -1255,7 +1280,14 @@ def create_closet_router(
                         else_=Garment.color_source,
                     ),
                     tag_source=GarmentTagSource.MODEL,
-                    tag_scale=closet_tag.SCALE_VERSION,
+                    # A top the model gave no usable graphic for is asked
+                    # again by the re-tag.
+                    tag_scale=(
+                        closet_tag.SCALE_VERSION
+                        if values["category"] != GarmentCategory.TOP
+                        or values["graphic"] is not None
+                        else closet_tag.SCALE_VERSION - 1
+                    ),
                     status=GarmentStatus.ACTIVE,
                     updated_at=func.now(),
                 )

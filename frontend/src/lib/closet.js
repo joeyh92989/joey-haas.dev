@@ -192,7 +192,8 @@ export function filterGarments(garments, filter) {
 }
 
 /** An active piece missing its warmth or formality: the planner's filter
- * leaves it out while a tagged piece fits. */
+ * leaves it out while a tagged piece fits. Graphic is not a details field
+ * (`closet.is_tagged` agrees). */
 export function lacksDetails(garment) {
   return (
     garment.status === 'active' &&

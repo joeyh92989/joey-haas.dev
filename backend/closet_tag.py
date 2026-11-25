@@ -63,7 +63,14 @@ ATTRIBUTES_SCHEMA: dict[str, Any] = {
             "items": {"type": "integer", "minimum": 1, "maximum": 12},
         },
     },
-    "required": ["name", "category", "primary_color", "warmth", "formality"],
+    "required": [
+        "name",
+        "category",
+        "primary_color",
+        "warmth",
+        "formality",
+        "graphic",
+    ],
     "additionalProperties": False,
 }
 
@@ -124,7 +131,8 @@ For each give:
   casual (an oxford or dress shirt, wool trousers, leather dress shoes or
   loafers); 5 business formal (a suit, a tie, a tuxedo). A flannel or
   casual button-up is a 2 or a 3 depending on how it reads.
-- graphic: true when a print, picture, slogan or large logo covers the front
+- graphic: always give true or false (false for anything that is not a top).
+  True when a print, picture, slogan or large logo covers the front
   (a band tee, a souvenir tee); false for plain, striped, checked or a small
   chest logo.
 - seasons: the months, 1 to 12, someone in Denver would wear it.
@@ -214,7 +222,8 @@ def clean_attributes(raw: Any) -> dict[str, Any]:
     attributes["secondary_hex"] = _hex(raw.get("secondary_hex"))
     attributes["warmth"] = _scale(raw.get("warmth"))
     attributes["formality"] = _scale(raw.get("formality"))
-    attributes["graphic"] = _flag(raw.get("graphic"))
+    # Only a top carries the flag; the answer for anything else is dropped.
+    attributes["graphic"] = _flag(raw.get("graphic")) if category == "top" else None
     attributes["seasons"] = _seasons(raw.get("seasons"))
     return attributes
 
