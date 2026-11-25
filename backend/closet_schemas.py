@@ -44,6 +44,7 @@ class GarmentOut(BaseModel):
     material: str | None
     warmth: int | None
     formality: int | None
+    graphic: bool | None
     seasons: list[int]
     notes: str | None
     acquired_on: date | None

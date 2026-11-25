@@ -40,19 +40,21 @@
   call and budget re-tag `tag_source = model` pieces
   whose `tag_scale` is below `closet_tag.SCALE_VERSION` (`active` or
   `packed`, with a photo, oldest first). A batch is all first-time or all
-  re-tag. A re-tag writes `formality` and `tag_scale` only, guarded by
+  re-tag. A re-tag writes `formality`, `graphic` (only when the answer is a
+  real boolean) and `tag_scale` only, guarded by
   `tag_source = model AND tag_scale < SCALE_VERSION`, so a hand save wins and
   `updated_at` (the photo's ETag) does not move. A formality the model gave
   unusably leaves the old value and still marks the piece as done. Strikes
   count the same way. `tag.last_run` adds `retagged` and `retag_remaining`.
 - **A fill queue sits between them** (#549), in the nightly job only. Once
   nothing is untagged, `tag_source = manual` pieces (`active` or `packed`,
-  with a photo, strikes left) missing warmth or formality are asked for just
-  those two. The write is `COALESCE(existing, new)` per field, guarded by
-  `tag_source = manual AND (warmth IS NULL OR formality IS NULL)`, so a field
-  set by hand wins; `tag_source`, status, colours, name and `updated_at` never
-  move, and `tag_scale` is set only when the formality was written. A piece
-  still blank after a fill takes a strike. Order: first-time, fill, re-tag;
+  with a photo, strikes left) missing warmth or formality, or a `top` whose
+  `graphic` is NULL (#550), are asked for just those fields. The write is
+  `COALESCE(existing, new)` per field, guarded by `tag_source = manual AND`
+  the same blank test, so a field set by hand wins; `tag_source`, status,
+  colours, name and `updated_at` never move, and `tag_scale` is set only
+  when the formality was written. A piece still blank after a fill takes a
+  strike. Order: first-time, fill, re-tag;
   `tag.last_run` adds `filled` and `fill_remaining`.
 
 Admin only, at the router. The check is a router dependency, which FastAPI
@@ -83,7 +85,7 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import case, func, or_, select, update
+from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -178,6 +180,8 @@ class GarmentFields(BaseModel):
     material: str | None = Field(default=None, max_length=60)
     warmth: int | None = Field(default=None, ge=1, le=5)
     formality: int | None = Field(default=None, ge=1, le=5)
+    # True or false is the owner's word and stays; null is "not known".
+    graphic: bool | None = None
     seasons: list[int] | None = Field(default=None, max_length=12)
     notes: str | None = Field(default=None, max_length=MAX_NOTES)
     acquired_on: date | None = None
@@ -336,7 +340,7 @@ def apply_garment_fields(row: Garment, fields: GarmentFields) -> None:
         row.primary_hex = _hex(fields.primary_hex, "primary")
     if "secondary_hex" in given:
         row.secondary_hex = _hex(fields.secondary_hex, "secondary")
-    for name in ("category", "warmth", "formality", "acquired_on"):
+    for name in ("category", "warmth", "formality", "graphic", "acquired_on"):
         if name in given:
             setattr(row, name, getattr(fields, name))
     if "purchased_on" in given:
@@ -401,6 +405,7 @@ def garment_out(
         material=row.material,
         warmth=row.warmth,
         formality=row.formality,
+        graphic=row.graphic,
         seasons=list(row.seasons or []),
         notes=row.notes,
         acquired_on=row.acquired_on,
@@ -924,14 +929,23 @@ def create_closet_router(
             )
         )
 
+    def _blank():
+        """A field a fill can still give: warmth, formality, or a top's graphic."""
+        return or_(
+            Garment.warmth.is_(None),
+            Garment.formality.is_(None),
+            and_(Garment.category == GarmentCategory.TOP, Garment.graphic.is_(None)),
+        )
+
     def _to_fill():
-        """Hand-saved pieces still missing warmth or formality (#549)."""
+        """Hand-saved pieces still missing warmth or formality (#549), or a
+        top whose graphic flag is not known (#550)."""
         return (
             select(Garment.id)
             .join(GarmentImage, GarmentImage.garment_id == Garment.id)
             .where(
                 Garment.tag_source == GarmentTagSource.MANUAL,
-                or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
+                _blank(),
                 Garment.status.in_((GarmentStatus.ACTIVE, GarmentStatus.PACKED)),
                 Garment.tag_attempts < closet_tag.MAX_ATTEMPTS,
             )
@@ -1085,9 +1099,13 @@ def create_closet_router(
             blank_before = {
                 row.id: row
                 for row in await session.execute(
-                    select(Garment.id, Garment.warmth, Garment.formality).where(
-                        Garment.id.in_(ids)
-                    )
+                    select(
+                        Garment.id,
+                        Garment.category,
+                        Garment.warmth,
+                        Garment.formality,
+                        Garment.graphic,
+                    ).where(Garment.id.in_(ids))
                 )
             }
             unusable: list[uuid.UUID] = []
@@ -1099,10 +1117,16 @@ def create_closet_router(
                 values: dict[str, Any] = {}
                 warmth = entry.attributes["warmth"]
                 formality = entry.attributes["formality"]
+                graphic = entry.attributes["graphic"]
                 was = blank_before.get(garment_id)
                 progress = was is not None and (
                     (was.warmth is None and warmth is not None)
                     or (was.formality is None and formality is not None)
+                    or (
+                        was.category == GarmentCategory.TOP
+                        and was.graphic is None
+                        and graphic is not None
+                    )
                 )
                 if not progress:
                     unusable.append(garment_id)
@@ -1114,6 +1138,8 @@ def create_closet_router(
                         (Garment.formality.is_(None), closet_tag.SCALE_VERSION),
                         else_=Garment.tag_scale,
                     )
+                if graphic is not None:
+                    values["graphic"] = func.coalesce(Garment.graphic, graphic)
                 if values:
                     result = await session.execute(
                         update(Garment)
@@ -1123,16 +1149,25 @@ def create_closet_router(
                             Garment.status.in_(
                                 (GarmentStatus.ACTIVE, GarmentStatus.PACKED)
                             ),
-                            or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
+                            _blank(),
                         )
                         .values(**values, updated_at=Garment.updated_at)
-                        .returning(Garment.warmth, Garment.formality)
+                        .returning(
+                            Garment.category,
+                            Garment.warmth,
+                            Garment.formality,
+                            Garment.graphic,
+                        )
                     )
                     # Filled means no longer blank, not merely written to.
                     after = result.first()
                     written += int(
                         after is not None
                         and None not in (after.warmth, after.formality)
+                        and not (
+                            after.category == GarmentCategory.TOP
+                            and after.graphic is None
+                        )
                     )
             # A piece the call gave nothing usable for takes a strike. One
             # that gained a field is not struck: it is asked again for the
@@ -1145,7 +1180,7 @@ def create_closet_router(
                     .where(
                         Garment.id.in_(unusable),
                         Garment.tag_source == GarmentTagSource.MANUAL,
-                        or_(Garment.warmth.is_(None), Garment.formality.is_(None)),
+                        _blank(),
                     )
                     .values(
                         tag_attempts=Garment.tag_attempts + 1,
@@ -1156,14 +1191,16 @@ def create_closet_router(
             return {**idle, "tagged": written, "called": True}
         if mode == "retag":
             for garment_id, entry in zip(ids, tagged, strict=True):
-                # Formality and the scale it was read on, nothing else. An
-                # unusable formality keeps the old one but still marks the
-                # piece done, or it would be asked for every night. No
+                # Formality, the graphic flag and the scale they were read on,
+                # nothing else. An unusable value keeps the old one but still
+                # marks the piece done, or it would be asked for every night. No
                 # `updated_at` is the photo's cache version: the column's
                 # onupdate would move it, so it is set to itself.
                 values = {"tag_scale": closet_tag.SCALE_VERSION}
                 if entry.attributes["formality"] is not None:
                     values["formality"] = entry.attributes["formality"]
+                if isinstance(entry.attributes["graphic"], bool):
+                    values["graphic"] = entry.attributes["graphic"]
                 result = await session.execute(
                     update(Garment)
                     .where(

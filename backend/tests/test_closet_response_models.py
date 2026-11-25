@@ -26,7 +26,7 @@ GARMENT_KEYS = {
     "id", "name", "category", "subtype", "brand", "primary_color", "primary_hex",
     "secondary_color", "secondary_hex", "color_name", "color_source", "size",
     "pattern", "material", "warmth",
-    "formality", "seasons", "notes", "acquired_on", "status", "back_on",
+    "formality", "graphic", "seasons", "notes", "acquired_on", "status", "back_on",
     "tag_source", "tag_attempts", "created_at", "updated_at", "image",
     "wears_12mo", "last_worn",
 }  # fmt: skip
