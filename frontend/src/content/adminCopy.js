@@ -295,6 +295,12 @@ export const adminCopy = {
       formality: 'formality was widened',
       untagged: 'pieces missing details were used',
     },
+    // The still-short line, core slots only: [singular, plural].
+    shortNames: {
+      top: ['top', 'tops'],
+      bottom: ['bottom', 'bottoms'],
+      shoes: ['pair of shoes', 'pairs of shoes'],
+    },
     sharedTop: 'Only {n} tops fit today, so the outfits share one.',
     sharedTopOne: 'Only 1 top fits today, so the outfits share it.',
     retry: 'Retry',

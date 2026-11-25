@@ -30,6 +30,7 @@ import {
   footnoteLine,
   relaxedLines,
   sharedTopLine,
+  shortLines,
   longDate,
   outfitReason,
   oversizePhoto,
@@ -754,7 +755,7 @@ export default function AdminClosetToday() {
           {plan && (
             <footer className={`today-footnote ${TODAY_FOOTNOTE}`}>
               <p>{footnoteLine(plan, answer.planned_just_now)}</p>
-              {[...relaxedLines(plan), sharedTopLine(plan)]
+              {[...relaxedLines(plan), ...shortLines(plan), sharedTopLine(plan)]
                 .filter(Boolean)
                 .map((line) => (
                   <p key={line}>{line}</p>

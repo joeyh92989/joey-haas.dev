@@ -1143,7 +1143,7 @@ async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test)
             await client.post("/api/closet/plan", json={"occasion": "office"})
         ).json()["plan"]
     assert len(body["candidates"]) == 3
-    assert plan["relaxed"]["top"] == ["season", "formality"]
+    assert plan["relaxed"]["top"] == ["formality"]
 
 
 async def test_a_one_top_closet_shares_the_top_and_says_so(sessionmaker_for_test):
@@ -1163,8 +1163,8 @@ async def test_a_one_top_closet_shares_the_top_and_says_so(sessionmaker_for_test
         await session.commit()
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         plan = (await client.get("/api/closet/today")).json()["plan"]
-    assert plan["relaxed"]["top"] == ["season", "formality", "untagged"]
-    assert plan["shared_top"] is True and plan["top_pool"] == 1
+    assert "top" not in plan["relaxed"]
+    assert plan["shared_top"] is True and plan["short"]["top"] == 1
     outfits = [plan["lead"], *plan["alternatives"]]
     tops = {g["name"] for o in outfits for g in o["garments"] if g["slot"] == "top"}
     assert len(outfits) == 2 and len(tops) == 1  # two bottoms, two shoes
@@ -1174,4 +1174,4 @@ async def test_a_full_top_pool_omits_shared_top(sessionmaker_for_test):
     await seed(sessionmaker_for_test)
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         plan = (await client.get("/api/closet/today")).json()["plan"]
-    assert "shared_top" not in plan and "top_pool" not in plan
+    assert "shared_top" not in plan and "top" not in plan.get("short", {})

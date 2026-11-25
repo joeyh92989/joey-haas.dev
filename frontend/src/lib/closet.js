@@ -390,14 +390,34 @@ export function relaxedLines(plan) {
 }
 
 /**
- * The line saying the outfits share a top, or null. `top_pool` is the number
- * of tops that fit; plans stored before it existed have neither key.
+ * The line saying the outfits share a top, or null. `plan.short.top` is the
+ * number of tops that fit (the one source for N); plans stored before these
+ * keys existed have neither.
  */
 export function sharedTopLine(plan) {
   if (!plan.shared_top) return null
   const copy = adminCopy.closetToday
-  const n = plan.top_pool ?? 1
+  const n = plan.short?.top ?? 1
   return n === 1 ? copy.sharedTopOne : copy.sharedTop.replace('{n}', String(n))
+}
+
+/**
+ * "Only N … fit today." for a core slot still under the minimum pool. Outer,
+ * mid and accessory are short by nature and get no line; tops are left to the
+ * shared-top line when the outfits share one.
+ */
+export function shortLines(plan) {
+  const short = plan.short ?? {}
+  const names = adminCopy.closetToday.shortNames
+  return Object.keys(names).flatMap((slot) => {
+    const n = short[slot]
+    if (n === undefined || (slot === 'top' && plan.shared_top)) return []
+    const [one, many] = names[slot]
+    if (n === 0) return [`No ${many} fit today.`]
+    return [
+      n === 1 ? `Only 1 ${one} fits today.` : `Only ${n} ${many} fit today.`,
+    ]
+  })
 }
 
 /** The footnote: what the plan chose from, and when it was made. */

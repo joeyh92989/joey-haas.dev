@@ -409,7 +409,7 @@ def test_a_slot_with_only_untagged_pieces_fills_and_records_it():
     found = closet.candidates(pieces, Request(DAY, "weekend"), read(66, 78))
     assert [s.piece.id for s in found.by_slot["top"]] == ["t1"]
     # Superseded: untagged is the last step, not a rule of its own.
-    assert found.relaxed["top"] == ("season", "formality", "untagged")
+    assert found.relaxed["top"] == ("untagged",)
 
 
 def test_the_swap_fallback_prefers_tagged_pieces():
@@ -437,7 +437,7 @@ def test_the_bike_filters_and_formality_holds():
     found = closet.candidates(pieces, Request(DAY, "office", bike=True), read(55, 60))
     # The bike rule is never relaxed; the tops are, and the plan says so.
     assert found.by_slot["top"][0].piece.id == "t2"
-    assert found.relaxed["top"] == ("season", "formality")
+    assert found.relaxed["top"] == ("formality",)
     # Formality 2 comes back with the widened band; oxfords and wide
     # trousers never do, whatever the pool.
     assert {s.piece.id for s in found.by_slot["shoes"]} == {"s1", "s2"}
@@ -595,8 +595,8 @@ def test_formality_widens_one_step_each_side_and_no_further():
     ]
     found = closet.candidates(pieces, Request(DAY, "office"), WARM)
     assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "f2"}
-    # Season was tried first (a step is recorded when tried, not when it helped).
-    assert found.relaxed["top"] == ("season", "formality")
+    # Season was tried and added nothing, so only formality is recorded.
+    assert found.relaxed["top"] == ("formality",)
 
 
 def test_formality_widening_is_clamped_to_the_scale():
@@ -609,7 +609,7 @@ def test_untagged_is_the_last_step():
     pieces = tops(2) + [piece("u", "top", name="mystery top", warmth=None)]
     found = closet.candidates(pieces, Request(DAY, "weekend"), WARM)
     assert {s.piece.id for s in found.by_slot["top"]} == {"t0", "t1", "u"}
-    assert found.relaxed["top"] == ("season", "formality", "untagged")
+    assert found.relaxed["top"] == ("untagged",)
 
 
 def test_a_slot_stops_relaxing_once_it_has_three():
@@ -623,11 +623,27 @@ def test_a_slot_stops_relaxing_once_it_has_three():
     assert "u" not in {s.piece.id for s in found.by_slot["top"]}
 
 
-def test_the_one_candidate_pool_records_every_step():
+def test_the_one_candidate_pool_records_no_step_that_added_nothing():
     pieces = tops(1)
     found = closet.candidates(pieces, Request(DAY, "weekend"), WARM)
     assert [s.piece.id for s in found.by_slot["top"]] == ["t0"]
-    assert found.relaxed["top"] == ("season", "formality", "untagged")
+    assert "top" not in found.relaxed
+    assert found.short["top"] == 1
+
+
+def test_a_step_that_adds_nothing_is_not_recorded():
+    # Only a linen piece to add: season counts, formality and untagged do not.
+    pieces = tops(1) + [piece("l", "top", name="linen shirt")]
+    found = closet.candidates(pieces, Request(DAY, "weekend"), read(40, 60))
+    assert found.relaxed["top"] == ("season",)
+    assert found.short["top"] == 2
+
+
+def test_a_full_slot_and_a_fixed_slot_are_not_short():
+    found = closet.candidates(tops(3), Request(DAY, "weekend"), WARM)
+    assert "top" not in found.short
+    locked = closet.candidates(tops(1), Request(DAY, "weekend", lock="t0"), WARM)
+    assert "top" not in locked.short
 
 
 def test_the_hard_rules_are_never_relaxed():
@@ -639,7 +655,8 @@ def test_the_hard_rules_are_never_relaxed():
     found = closet.candidates(pieces, request, WARM)
     assert found.by_slot["bottom"] == []  # the bike rule holds
     assert found.by_slot["top"] == []  # worn yesterday
-    assert found.relaxed["bottom"] == ("season", "formality", "untagged")
+    assert "bottom" not in found.relaxed
+    assert found.short["bottom"] == 0
 
 
 def test_a_fixed_slot_records_no_relaxation():

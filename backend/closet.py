@@ -24,9 +24,10 @@ is left. When the model cannot answer, `template()` here is the plan.
 - **Minimum pool.** A slot with fewer than `MIN_POOL` eligible pieces relaxes
   one rule at a time, in `RELAX_STEPS` order, and stops at three: lift the
   shorts and linen cut, widen the formality band a step each side, allow
-  untagged pieces. Each step tried is recorded in `Candidates.relaxed`. The
-  bike rule, the repeat rule and the fixed piece are never relaxed. `slot_pool`
-  holds this for `candidates` and `slot_fallback` alike.
+  untagged pieces. A step that added a piece is recorded in
+  `Candidates.relaxed`; a slot still under three is in `Candidates.short`.
+  The bike rule, the repeat rule and the fixed piece are never relaxed.
+  `slot_pool` holds this for `candidates` and `slot_fallback` alike.
 - **Distinct tops.** `template` gives each outfit a top of its own while the
   pool has one; a pool under `OUTFITS` shares (`top_pool`).
 - **Bike** rules out dress shoes, long coats and wide or cuffed bottoms
@@ -290,6 +291,9 @@ class Candidates:
     targets: dict[str, int] = field(default_factory=dict)
     # slot -> the steps relaxed to fill it; absent means nothing relaxed.
     relaxed: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # slot -> its final pool size, for a slot still under MIN_POOL after
+    # every step (a fixed slot is not listed).
+    short: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -372,9 +376,9 @@ def slot_pool(
 ) -> tuple[list[Piece], tuple[str, ...]]:
     """One slot's eligible pieces and the steps relaxed to reach `MIN_POOL`,
     in order. Both `candidates` and `slot_fallback` come through here, so
-    the Swap sheet cannot drift from the plan. A step is recorded when it
-    was tried because the pool was short, even if it added nothing: the page
-    then says the planner tried. The repeat rule and `skip` (the fixed
+    the Swap sheet cannot drift from the plan. A step is recorded only when
+    it added a piece to the pool; a pool still under `MIN_POOL` is the
+    caller's to report (`Candidates.short`). The repeat rule and `skip` (the fixed
     piece) are never relaxed."""
     lifted: frozenset[str] = frozenset()
     steps: list[str] = []
@@ -394,8 +398,10 @@ def slot_pool(
         if len(found) >= MIN_POOL:
             break
         lifted |= {step}
-        steps.append(step)
-        found = pool()
+        wider = pool()
+        if len(wider) > len(found):
+            steps.append(step)
+        found = wider
     return found, tuple(steps)
 
 
@@ -472,12 +478,15 @@ def candidates(
         fit += 1
     by_slot: dict[str, list[Scored]] = {}
     relaxed: dict[str, tuple[str, ...]] = {}
+    short: dict[str, int] = {}
     for slot in slots:
         kept, steps = slot_pool(
             pieces, slot, request, read, fixed.id if fixed else None
         )
         if fixed is not None and fixed.category == slot:
             steps = ()  # the owner's piece fills the slot: nothing to relax for
+        elif len(kept) < MIN_POOL:
+            short[slot] = len(kept)
         if steps:
             relaxed[slot] = steps
         found = [
@@ -498,6 +507,7 @@ def candidates(
         skipped_recent=skipped,
         targets={slot: goal[slot] for slot in slots},
         relaxed=relaxed,
+        short=short,
     )
 
 

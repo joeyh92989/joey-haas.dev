@@ -204,11 +204,53 @@ describe('AdminClosetToday', () => {
     await screen.findByText('navy oxford')
     expect(screen.queryByText(/Few .* fit/)).toBeNull()
     expect(screen.queryByText(/share/)).toBeNull()
+    expect(screen.queryByText(/^(Only|No) .* fits? today/)).toBeNull()
+  })
+
+  it('shows one line about tops for a one-top pool', async () => {
+    stub({
+      'GET /api/closet/today': answer(
+        {},
+        { shared_top: true, short: { top: 1, outer: 2 } },
+      ),
+    })
+    renderPage()
+    await screen.findByText('Only 1 top fits today, so the outfits share it.')
+    expect(screen.getAllByText(/tops?\b.*fit/)).toHaveLength(1)
+    expect(screen.queryByText(/outer/i, { selector: 'p' })).toBeNull()
+  })
+
+  it('says how many bottoms and shoes fit when short, but not outer', async () => {
+    stub({
+      'GET /api/closet/today': answer(
+        {},
+        { short: { bottom: 2, shoes: 1, outer: 2, mid: 1, accessory: 0 } },
+      ),
+    })
+    renderPage()
+    expect(
+      await screen.findByText('Only 2 bottoms fit today.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Only 1 pair of shoes fits today.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/outer|mid|accessor/i, { selector: 'p' }),
+    ).toBeNull()
+  })
+
+  it('says a core slot has none', async () => {
+    stub({ 'GET /api/closet/today': answer({}, { short: { top: 0 } }) })
+    renderPage()
+    expect(await screen.findByText('No tops fit today.')).toBeInTheDocument()
   })
 
   it('says when the outfits share one top', async () => {
     stub({
-      'GET /api/closet/today': answer({}, { shared_top: true, top_pool: 2 }),
+      'GET /api/closet/today': answer(
+        {},
+        { shared_top: true, short: { top: 2 } },
+      ),
     })
     renderPage()
     expect(
@@ -220,7 +262,10 @@ describe('AdminClosetToday', () => {
 
   it('says it in the singular for a single top', async () => {
     stub({
-      'GET /api/closet/today': answer({}, { shared_top: true, top_pool: 1 }),
+      'GET /api/closet/today': answer(
+        {},
+        { shared_top: true, short: { top: 1 } },
+      ),
     })
     renderPage()
     expect(
