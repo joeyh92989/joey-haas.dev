@@ -85,13 +85,23 @@ async def test_garment_bodies_keep_their_exact_keys(sessionmaker_for_test):
         "opinion.last_run": None,
         "weather.last_run": None,
     }
-    assert set(tagged) == {"tagged", "calls", "note", "remaining"}
+    assert set(tagged) == {"tagged", "calls", "note", "remaining", "retag_remaining"}
 
 
 async def test_tag_job_summary_keeps_its_exact_keys(sessionmaker_for_test):
     async with garments.client_for(sessionmaker_for_test) as client:
         body = (await client.post("/api/closet/jobs/tag")).json()
-    assert set(body) == {"at", "state", "ok", "tagged", "calls", "remaining", "note"}
+    assert set(body) == {
+        "at",
+        "state",
+        "ok",
+        "tagged",
+        "calls",
+        "remaining",
+        "retagged",
+        "retag_remaining",
+        "note",
+    }
 
 
 async def test_today_bodies_keep_their_exact_keys(sessionmaker_for_test):

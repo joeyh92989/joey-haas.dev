@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 import closet_rank
+import closet_tag
 import closet_today_routes
 import weather
 from closet_today_routes import create_closet_today_router
@@ -531,6 +532,11 @@ async def test_save_as_owned_creates_an_active_garment(sessionmaker_for_test):
     assert body["status"] == "active" and body["tag_source"] == "model"
     assert body["name"] == "green overshirt" and body["image"]
     assert bad.status_code == 422
+    async with sessionmaker_for_test() as session:
+        row = await session.scalar(
+            select(Garment).where(Garment.name == "green overshirt")
+        )
+    assert row.tag_scale == closet_tag.SCALE_VERSION
 
 
 async def test_the_plan_job_plans_each_chip_of_the_week(sessionmaker_for_test):
@@ -1120,8 +1126,8 @@ async def test_the_nightly_job_and_a_replan_send_images_too(sessionmaker_for_tes
 
 
 async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test):
-    """Office is formality 3 to 5; the seed closet is 3 everywhere. One top
-    at 2 makes the pool two until formality widens: three after."""
+    """Office is formality 2 to 4; the seed closet is 3 everywhere. One top
+    at 1 makes the pool two until formality widens: three after."""
     await seed(sessionmaker_for_test)
     async with sessionmaker_for_test() as session:
         rows = (
@@ -1133,7 +1139,7 @@ async def test_candidates_for_a_short_slot_relax_to_three(sessionmaker_for_test)
             .scalars()
             .all()
         )
-        rows[0].formality = 2
+        rows[0].formality = 1
         await session.commit()
     async with client_for(sessionmaker_for_test, no_model=True) as client:
         body = (
