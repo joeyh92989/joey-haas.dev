@@ -151,3 +151,11 @@ PR #174 · docs/planning/2026-11-12-comic-sitting-fixes-design.md
 ### 2026-11-12 · lesson · A new public route needs the analytics allowlist too
 `/shelf/<id>/<n>/` shipped with no pattern in `backend/analytics.py`, so its views would have been dropped; only the full backend suite (`test_every_public_route_in_the_app_is_counted`) caught it, after every task review passed. Next time, list analytics, prerender, sitemap and `render.yaml` in the plan for any new public route.
 PR #173 · docs/planning/2026-11-11-comic-issue-pages-plan.md
+
+### 2026-11-25 · lesson · /security-review reads the checkout, not the branch
+The built-in `/security-review` diffs the current checkout against its upstream, so run from the main checkout it reviewed an empty diff while the work sat in a worktree. Point an Opus security reviewer at the branch diff (`git diff origin/main...<branch>`) instead.
+PR #657 · docs/planning/2026-11-24-closet-piece-feedback-design.md
+
+### 2026-11-25 · lesson · A test workaround can hide the bug it works around
+#549's implementer gave a test a budget of one to stop a piece being asked twice; the second ask was the bug (three strikes in one night). When a subagent bends a test around a behaviour, check that behaviour before accepting the test. Fixed with a per-run `sent` set.
+PR #655 · docs/planning/2026-11-24-closet-fill-blanks-design.md
